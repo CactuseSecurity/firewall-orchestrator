@@ -5,8 +5,8 @@
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using System.Text.Json
+@using FWO.Data.Enums
 @using FWO.Ui.Data.Extensions
-@using FWO.Data.Enums;
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -64,6 +64,16 @@
             </div>
             <div class="col-sm-4">
                 <CustomLogoUpload AuthorizedRoles="@Roles.Admin" SupportedFileFormats=".png,.jpg,.jpeg"></CustomLogoUpload>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5411a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("color_scheme")):</label>
+            <div class="col-sm-3">
+                <Dropdown ElementType="ColorScheme" ElementToString="@(c => userConfig.GetText(c.Name ))" @bind-SelectedElement="selectedColorScheme" Elements="ColorScheme.AvailableSchemes">
+                    <ElementTemplate Context="colorScheme">
+                        @(userConfig.GetText(colorScheme.Name))
+                    </ElementTemplate>
+                </Dropdown>
             </div>
         </div>
         <hr />
@@ -150,6 +160,12 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.MaxImportInterval" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importScriptTimeout")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="1" max="@GlobalConst.kMaxImportScriptTimeoutMinutes" @bind="configData!.ImportScriptTimeout" />
             </div>
         </div>
         <hr />
@@ -244,6 +260,7 @@ else
 
     private ConfigData? configData;
     private Language selectedLanguage = new Language();
+    private ColorScheme selectedColorScheme = new ColorScheme();
     private DateTime autoDiscStartDate = DateTime.Today;
     private DateTime autoDiscStartTime = DateTime.Now.AddSeconds(-DateTime.Now.Second);
     private List<Module> availableModules { get; set; } = [];
@@ -268,6 +285,7 @@ else
 
             configData = await globalConfig.GetEditableConfig();
             selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == configData.DefaultLanguage) ?? new Language();
+            selectedColorScheme = ColorScheme.GetSchemeByName(configData.ColorScheme);
             autoDiscStartDate = autoDiscStartTime = configData.AutoDiscoverStartAt;
             availableModules = JsonSerializer.Deserialize<List<Module>>(string.IsNullOrEmpty(configData.AvailableModules) ? ModuleGroups.AllModulesNumList() : configData.AvailableModules) ?? throw new JsonException("Config data could not be parsed.");
             dailyCheckModules = JsonSerializer.Deserialize<List<DailyCheckModule>>(string.IsNullOrEmpty(configData.DailyCheckModules) ? DailyCheckModuleGroups.AllModulesNumList() : configData.DailyCheckModules) ?? throw new JsonException("Config data could not be parsed.");
@@ -350,6 +368,7 @@ else
                 configData.RefreshTokenLifetimeUnit = refreshTokenLifetimeUnit;
 
                 configData.DefaultLanguage = selectedLanguage.Name;
+                configData.ColorScheme = selectedColorScheme.Name;
                 configData.AutoDiscoverStartAt = autoDiscStartDate.Date.Add(autoDiscStartTime.TimeOfDay);
                 availableModules = [];
                 foreach (Module module in modulesVisibleDict.Keys)
@@ -369,6 +388,9 @@ else
                     }
                 }
                 configData.DailyCheckModules = JsonSerializer.Serialize(dailyCheckModules);
+                // an import script is waited for with a timeout in milliseconds which has to fit
+                // into an int, a larger value would let every scripted import fail immediately
+                configData.ImportScriptTimeout = Math.Min(configData.ImportScriptTimeout, GlobalConst.kMaxImportScriptTimeoutMinutes);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

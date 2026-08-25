@@ -124,6 +124,39 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildBodyWithStringContentConvertsNewLinesInHtmlLayout()
+        {
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                EmailBody = "header "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, "line1\r\nline2\nline3");
+
+            Assert.That(body, Is.EqualTo("header line1<br>line2<br>line3"));
+        }
+
+        [Test]
+        public void BuildBodyWithLayoutContentAppendsWhenPlaceholderIsMissing()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                PlainText = "plain content",
+                Html = "<strong>html content</strong>"
+            };
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.SimpleText,
+                EmailBody = "prefix "
+            };
+
+            string body = NotificationEmailLayoutHelper.BuildBody(notification, content);
+
+            Assert.That(body, Is.EqualTo("prefix plain content"));
+        }
+
+        [Test]
         public void BuildBodyAppendsContentWhenPlaceholderIsMissing()
         {
             FwoNotification notification = new()
@@ -197,6 +230,21 @@ namespace FWO.Test
             Assert.That(nullAttachment, Is.Null);
         }
 
+        [Test]
+        public async Task BuildAttachmentWithContentReturnsNullForUnsupportedLayout()
+        {
+            NotificationEmailLayoutContent content = new()
+            {
+                Html = "<p>html fragment</p>",
+                Csv = "a,b",
+                Json = "{}"
+            };
+
+            FormFile? unsupportedAttachment = await NotificationEmailLayoutHelper.BuildAttachment(NotificationLayout.SimpleText, content, "Subject Line");
+
+            Assert.That(unsupportedAttachment, Is.Null);
+        }
+
         [TestCase(NotificationLayout.HtmlAsAttachment, "application/html", "<p>html fragment</p>")]
         [TestCase(NotificationLayout.JsonAsAttachment, "application/json", "{\"k\":1}")]
         [TestCase(NotificationLayout.CsvAsAttachment, "application/csv", "a,b")]
@@ -262,6 +310,45 @@ namespace FWO.Test
                 $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
 
             Assert.That(text, Is.EqualTo("Application/APP-1/Requester"));
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersUsesRequesterDnWhenRequesterNameIsMissing()
+        {
+            WfTicket ticket = new()
+            {
+                RequesterDn = "cn=requester,dc=test",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-2" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-2/cn=requester,dc=test"));
+        }
+
+        [Test]
+        public void ReplaceOwnerPlaceholdersReplacesAppAndTimeInterval()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-3"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.TIME_INTERVAL}", owner, "14 days");
+
+            Assert.That(text, Is.EqualTo("Application/APP-3/14 days"));
         }
 
         [Test]
@@ -416,7 +503,13 @@ namespace FWO.Test
                 RequestAction = RequestAction.create.ToString(),
                 Elements =
                 {
-                    new WfReqElement { Field = ElemFieldType.source.ToString(), GroupName = "AR1", IpString = "10.0.0.2" }
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        GroupName = "AR1",
+                        IpString = "10.0.0.2"
+                    }
                 }
             };
             WfReqTask modifyGroupTask = new()
@@ -441,12 +534,51 @@ namespace FWO.Test
             Assert.That(content.PlainText, Does.Contain("Requested Connections"));
             Assert.That(content.PlainText, Does.Contain("101 | Open web | create | src-a | 10.0.0.1 | WebServices"));
             Assert.That(content.PlainText, Does.Contain("Group Requests"));
-            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Members"));
-            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create | 10.0.0.2"));
-            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify | addAfterCreation: Server2, delete: 10.0.0.3"));
-            Assert.That(content.Html, Does.Contain("<h2>Group Requests</h2>"));
-            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"10.0.0.2\""));
-            Assert.That(content.Json, Does.Contain("\"Members\":\"10.0.0.2\""));
+            Assert.That(content.PlainText, Does.Contain("Task | Type | Title | Action | Current Members | Members to add | Members to remove"));
+            Assert.That(content.PlainText, Does.Contain("102 | Create Group | New App Role | create |  | 10.0.0.2 |"));
+            Assert.That(content.PlainText, Does.Contain("103 | Modify Group | Update App Role | modify |  | Server2 | 10.0.0.3"));
+            Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"\",\"10.0.0.2\",\"\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToAdd\":\"10.0.0.2\""));
+            Assert.That(content.Json, Does.Contain("\"MembersToRemove\":\"10.0.0.3\""));
+        }
+
+        [Test]
+        public void FromRequestTasksFormatsGroupServiceAndRuleMembersWithDetails()
+        {
+            WfReqTask groupTask = new()
+            {
+                Id = 10,
+                TaskNumber = 104,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Refine Group",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.modify.ToString(),
+                        Port = 443,
+                        ProtoId = 6
+                    },
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.rule.ToString(),
+                        RequestAction = RequestAction.addAfterCreation.ToString(),
+                        Name = "RuleA",
+                        RuleUid = "R-7"
+                    }
+                }
+            };
+
+            List<WfReqTask> requestTasks = new() { groupTask };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(requestTasks, new EmailNotificationUserConfig(), new Dictionary<int, string>
+            {
+                { 6, "TCP" }
+            });
+
+            Assert.That(content.PlainText, Does.Contain("443/TCP"));
+            Assert.That(content.PlainText, Does.Contain("RuleA (R-7)"));
         }
 
         private static async Task<string> ReadFormFile(FormFile formFile)

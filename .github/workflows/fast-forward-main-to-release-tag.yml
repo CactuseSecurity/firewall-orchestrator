@@ -14,7 +14,9 @@ concurrency:
 
 jobs:
   fast-forward-main:
-    environment: stable-release
+    environment:
+      name: stable-release
+      deployment: false
     runs-on: ubuntu-latest
 
     steps:

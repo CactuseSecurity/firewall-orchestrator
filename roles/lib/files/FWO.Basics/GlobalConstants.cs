@@ -24,7 +24,10 @@ namespace FWO.Basics
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
+        public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
+        // an import script is waited for with a timeout in milliseconds which has to fit into an int
+        public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         public const int kOwnerResponsibleTypeMain = 1;
         public const int kOwnerResponsibleTypeSupporting = 2;
         public const int kOwnerResponsibleTypeOptionalEscalation = 3;
@@ -39,6 +42,7 @@ namespace FWO.Basics
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
+        public const string kImportLogData = "importLogData";
         public const string kAdjustAppServerNames = "adjustAppServerNames";
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
@@ -78,6 +82,11 @@ namespace FWO.Basics
         // qad: these two strings should be replaced by customer specific setting values asap
         public const string kField2 = "field-2";
         public const string kDatumRegelpr = "Datum-Regelpruefung";
+
+        // fallback used whenever the CustomFieldChangeIdKey setting is unavailable
+        public const string kDefaultChangeIdKeys = "[\"field-2\",\"ChangeID\"]";
+
+        public const string BrowserResourceSaving = "This may occur when a browser goes into resource saving mode";
     }
 
     public struct PageName
@@ -93,7 +102,9 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string DynamicNetObj = "dynamic_net_obj";
         public const string AccessRole = "access-role";
+        public const string Domain = "domain";
     }
 
     public struct ServiceType
@@ -125,6 +136,7 @@ namespace FWO.Basics
         public const string ManagementId = "management_id";
         public const string RuleIds = "ruleIds";
         public const string RuleId = "rule_id";
+        public const string RulebaseIds = "rulebaseIds";
     }
 
     public struct Placeholder
@@ -193,6 +205,7 @@ namespace FWO.Basics
         public const int RULE = 1;
         public const int OWNER = 2;
         public const int ADMIN_VIA_REINITIALIZE_BTN = 3;
+        public const int LOG = 4;
     }
 
     public struct ChangelogActionType

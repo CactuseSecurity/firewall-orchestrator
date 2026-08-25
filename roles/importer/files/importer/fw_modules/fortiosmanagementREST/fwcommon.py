@@ -1,6 +1,6 @@
 from fw_modules.fortiosmanagementREST import fos_getter, fos_normalizer
 from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig
-from fwo_base import write_native_config_to_file
+from fwo_base import ensure_device_name, write_native_config_to_file
 from fwo_exceptions import FwoNativeConfigParseError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from models.fw_common import FwCommon
@@ -56,23 +56,3 @@ def ensure_manager_set(config_in: FwConfigManagerListController, import_state: I
             configs=[],
         )
     )
-
-
-def ensure_device_name(global_state: GlobalState, import_state: ImportState) -> None:
-    mgm_details = import_state.mgm_details
-    gw_map = global_state.stm_mapper.gateway_map.get(
-        mgm_details.mgm_id, {}
-    )  # Watch out changed from current_mgm_id to mgm_id
-    gateway_uid = next(iter(gw_map.keys()), None)
-
-    if (
-        mgm_details.devices
-        and "name" in mgm_details.devices[0]
-        and (gateway_uid is None or mgm_details.devices[0]["name"] in gw_map)
-    ):
-        return
-
-    if gateway_uid is None:
-        gateway_uid = mgm_details.name or mgm_details.hostname
-
-    mgm_details.devices = [{"name": gateway_uid}]

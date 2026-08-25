@@ -1,7 +1,9 @@
 using FWO.Config.File;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Client
@@ -77,7 +79,7 @@ namespace FWO.Middleware.Client
                 if (tokenValidationResult.IsValid)
                 {
                     jwt = tokenValidationResult.SecurityToken as JsonWebToken;
-                    Log.WriteDebug(JwtValidation, "Jwt was successfully validated.");
+
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Success,
@@ -87,15 +89,28 @@ namespace FWO.Middleware.Client
 
                 if (tokenValidationResult.Exception is SecurityTokenExpiredException)
                 {
-                    Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
-
                     return new JwtValidationResult
                     {
                         Status = JwtValidationStatus.Expired
                     };
                 }
 
-                Log.WriteWarning(JwtValidation, "Jwt validation failed.");
+                if (tokenValidationResult.Exception is SecurityTokenInvalidSignatureException)
+                {
+                    Log.WriteAudit(JwtValidation, BuildAuditText(jwtString, "Jwt signature could not be verified."));
+                }
+                else if (tokenValidationResult.Exception is SecurityTokenInvalidAudienceException)
+                {
+                    Log.WriteAudit(JwtValidation, BuildAuditText(jwtString, "Jwt audience incorrect."));
+                }
+                else if (tokenValidationResult.Exception is SecurityTokenInvalidIssuerException)
+                {
+                    Log.WriteAudit(JwtValidation, BuildAuditText(jwtString, "Jwt issuer incorrect."));
+                }
+                else
+                {
+                    Log.WriteError(JwtValidation, "Jwt validation failed.", tokenValidationResult.Exception);
+                }
 
                 return new JwtValidationResult
                 {
@@ -104,43 +119,14 @@ namespace FWO.Middleware.Client
             }
             catch (SecurityTokenExpiredException)
             {
-                Log.WriteDebug(JwtValidation, $"Jwt lifetime expired: {jwtString}.");
-
                 return new JwtValidationResult
                 {
                     Status = JwtValidationStatus.Expired
                 };
             }
-            catch (SecurityTokenInvalidSignatureException InvalidSignatureException)
-            {
-                Log.WriteError(JwtValidation, $"Jwt signature could not be verified. Potential attack: {jwtString}.", InvalidSignatureException);
-
-                return new JwtValidationResult
-                {
-                    Status = JwtValidationStatus.Invalid
-                };
-            }
-            catch (SecurityTokenInvalidAudienceException InvalidAudienceException)
-            {
-                Log.WriteError(JwtValidation, $"Jwt audience incorrect: {jwtString}.", InvalidAudienceException);
-
-                return new JwtValidationResult
-                {
-                    Status = JwtValidationStatus.Invalid
-                };
-            }
-            catch (SecurityTokenInvalidIssuerException InvalidIssuerException)
-            {
-                Log.WriteError(JwtValidation, $"Jwt issuer incorrect: {jwtString}.", InvalidIssuerException);
-
-                return new JwtValidationResult
-                {
-                    Status = JwtValidationStatus.Invalid
-                };
-            }
             catch (Exception UnexpectedError)
             {
-                Log.WriteError(JwtValidation, $"Unexpected problem while trying to verify Jwt: {jwtString}.", UnexpectedError);
+                Log.WriteError(JwtValidation, "Unexpected problem while trying to verify Jwt.", UnexpectedError);
 
                 return new JwtValidationResult
                 {
@@ -149,9 +135,25 @@ namespace FWO.Middleware.Client
             }
         }
 
-        public async Task<bool> Validate()
+        /// <summary>
+        /// Builds the audit text for a JWT validation failure.
+        /// </summary>
+        /// <param name="jwt">Jwt string.</param>
+        /// <param name="actionText">Human-readable action prefix.</param>
+        /// <returns>Audit message text containing token metadata when it can be parsed safely.</returns>
+        private static string BuildAuditText(string jwt, string actionText)
         {
-            return (await ValidateToken()).IsSuccess;
+            try
+            {
+                JsonWebTokenHandler handler = new();
+                JsonWebToken accessToken = handler.ReadJsonWebToken(jwt);
+
+                return $"{actionText} Potential attack: access_jti={accessToken.Id}, access_expires={accessToken.ValidTo.ToLocalTime():yyyy-MM-dd'T'HH:mm:sszzz}";
+            }
+            catch
+            {
+                return $"{actionText} Potential attack: token metadata unavailable because the JWT could not be parsed.";
+            }
         }
 
         public Claim[] GetClaims()
@@ -161,14 +163,6 @@ namespace FWO.Middleware.Client
                 throw new ArgumentException(nameof(jwt), JwtNotValidated);
 
             return jwt.Claims.ToArray();
-        }
-
-        public TimeSpan TimeUntilExpiry()
-        {
-            if (jwt == null)
-                throw new ArgumentException(nameof(jwt), JwtNotValidated);
-
-            return jwt.ValidTo - DateTime.UtcNow;
         }
 
         public string GetRole()

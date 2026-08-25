@@ -19,6 +19,12 @@ namespace FWO.Data.Workflow
         public const string ConnId = "ConnId";
         public const string ReqOwner = "ReqOwner";
         public const string GrpName = "GrpName";
+        public const string GroupId = "GroupId";
+        public const string RequestContactName = "requestContactName";
+        public const string RequestContactId = "requestContactId";
+        public const string RequestorName = "requestorName";
+        public const string RequestorId = "requestorId";
+        public const string TimeObjectId = "timeObjectId";
         public const string ExtIcketId = "ExtIcketId";
         public const string AppRoleId = "AppRoleId";
         public const string SvcGrpId = "SvcGrpId";

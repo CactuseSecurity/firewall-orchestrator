@@ -1,0 +1,5 @@
+mutation updateFlowSvcObjects($updates: [flow_svcobject_updates!]!) {
+  update_flow_svcobject_many(updates: $updates) {
+    affected_rows
+  }
+}

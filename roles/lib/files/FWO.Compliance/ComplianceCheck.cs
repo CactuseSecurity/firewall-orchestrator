@@ -75,6 +75,7 @@ namespace FWO.Compliance
         /// Parameter for treating domain and dynamic network objects as part of the auto-calculated internet zone.
         /// </summary>
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
+        private static readonly List<string> kDynamicAndDomainObjectTypes = [ObjectType.DynamicNetObj, ObjectType.Domain];
         /// <summary>
         /// True if the feature auto-calculated internet zone is activated.
         /// </summary>
@@ -1433,7 +1434,7 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone> networkZones = [];
 
-                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
+                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && kDynamicAndDomainObjectTypes.Contains(dataItem.networkObject.Type.Name))
                 {
                     List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
 
@@ -1495,45 +1496,11 @@ namespace FWO.Compliance
         private List<ComplianceNetworkZone> DetermineZones(List<IPAddressRange> ranges, List<ComplianceNetworkZone>? networkZonesOverride = null)
         {
             List<ComplianceNetworkZone> activeNetworkZones = networkZonesOverride ?? NetworkZones;
-            List<ComplianceNetworkZone> result = [];
-            List<List<IPAddressRange>> unseenIpAddressRanges = [];
-
-            for (int i = 0; i < ranges.Count; i++)
-            {
-                unseenIpAddressRanges.Add(
-                [
-                    new(ranges[i].Begin, ranges[i].End)
-                ]);
-            }
-
-            foreach (ComplianceNetworkZone zone in activeNetworkZones.Where(z => z.OverlapExists(ranges, unseenIpAddressRanges)))
-            {
-                result.Add(zone);
-            }
-
-            // No need to proceed if auto calculated internet zone is activated.
-
-            if (_autoCalculatedInternetZoneActive)
-            {
-                return result;
-            }
-
-            // Get ip ranges that are not in any zone
-
-            List<IPAddressRange> undefinedIpRanges = [.. unseenIpAddressRanges.SelectMany(x => x)];
-
-            if (undefinedIpRanges.Count > 0)
-            {
-                result.Add
-                (
-                    new ComplianceNetworkZone()
-                    {
-                        Name = _userConfig.GetText("internet_local_zone"),
-                    }
-                );
-            }
-
-            return result;
+            return ComplianceZoneResolver.ResolveZones(
+                ranges,
+                activeNetworkZones,
+                _autoCalculatedInternetZoneActive,
+                _userConfig.GetText("internet_local_zone"));
         }
 
         /// <summary>
@@ -1577,7 +1544,7 @@ namespace FWO.Compliance
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
             {
                 networkObjects = networkObjects
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .Where(n => !kDynamicAndDomainObjectTypes.Contains(n.Type.Name))
                     .ToList();
             }
 

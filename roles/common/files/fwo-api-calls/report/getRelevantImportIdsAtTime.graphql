@@ -17,6 +17,9 @@ query getRelevantImportIdsAtTime(
     id: mgm_id
     is_super_manager
     multi_device_manager_id
+    managementByMultiDeviceManagerId(where: { hide_in_gui: { _eq: false } }) {
+      id: mgm_id
+    }
     import: import_controls_aggregate(where: {
       stop_time: {_lte: $time}
       successful_import: {_eq: true}

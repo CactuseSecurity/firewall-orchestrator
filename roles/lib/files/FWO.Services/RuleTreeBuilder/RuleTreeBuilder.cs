@@ -648,6 +648,7 @@ namespace FWO.Services.RuleTreeBuilder
         private List<Rule> FlattenTreeAndAssignDisplayNumbers(bool suppressEmptyHeaders)
         {
             RuleTree.ElementsFlat.Clear();
+            RuleTree.ItemsByRule.Clear();
             NextDisplayOrderNumber = 1;
             NextRuleNumber = 1;
 
@@ -697,6 +698,7 @@ namespace FWO.Services.RuleTreeBuilder
                     childNode.Position = [.. parentPosition];
                     AssignOrderNumber(childNode, parentPosition, assignDisplayNumber: false);
                     RuleTree.ElementsFlat.Add(childNode);
+                    RuleTree.ItemsByRule[childNode.Data] = childNode;
                     flattenedRules.Add(childNode.Data!);
                     FlattenChildren(childNode.Children, parentPosition, flattenedRules, ref visibleChildIndex, suppressEmptyHeaders);
                     continue;
@@ -712,6 +714,7 @@ namespace FWO.Services.RuleTreeBuilder
                 childNode.Position = childPosition;
                 AssignOrderNumber(childNode, childPosition, assignDisplayNumber: true);
                 RuleTree.ElementsFlat.Add(childNode);
+                RuleTree.ItemsByRule[childNode.Data] = childNode;
                 flattenedRules.Add(childNode.Data!);
 
                 int nestedVisibleChildIndex = 0;

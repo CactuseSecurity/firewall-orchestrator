@@ -1,0 +1,118 @@
+@using System.Text.Json
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("state"))*:</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedState"
+                      SelectedElementChanged="OnStateChanged"
+                      Elements="States">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("group")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="UiUser"
+                      SelectedElement="selectedUserGroup"
+                      SelectedElementChanged="OnUserGroupChanged"
+                      ElementToString="@(g => g.Name)"
+                      Elements="UserAndGroupList"
+                      Nullable="true">
+                <ElementTemplate Context="group">
+                    @group.Name
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5523"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("deadline")):</label>
+        <input type="number" class="col-sm-8" value="@deadline" @onchange="OnDeadlineChanged" />
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    [Parameter]
+    public List<UiUser> UserAndGroupList { get; set; } = [];
+
+    private ApprovalParams actApprovalParams = new();
+    private WfState selectedState = new();
+    private UiUser? selectedUserGroup;
+    private int deadline;
+
+    protected override void OnParametersSet()
+    {
+        ResetLocalState();
+        LoadFromExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        actApprovalParams = new();
+        selectedState = new();
+        selectedUserGroup = null;
+        deadline = 0;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        if (string.IsNullOrWhiteSpace(ActAction.ExternalParams) || ActAction.ExternalParams == "{}")
+        {
+            return;
+        }
+
+        actApprovalParams = JsonSerializer.Deserialize<ApprovalParams>(ActAction.ExternalParams) ?? throw new JsonException("Extparams could not be parsed.");
+        selectedState = States.FirstOrDefault(x => x.Id == actApprovalParams.StateId) ?? new WfState();
+        selectedUserGroup = UserAndGroupList.FirstOrDefault(x => DistName.DnEquals(x.Dn, actApprovalParams.ApproverGroup));
+        deadline = actApprovalParams.Deadline;
+    }
+
+    private Task OnStateChanged(WfState state)
+    {
+        selectedState = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnUserGroupChanged(UiUser? userGroup)
+    {
+        selectedUserGroup = userGroup;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnDeadlineChanged(ChangeEventArgs changeEventArgs)
+    {
+        deadline = int.TryParse(changeEventArgs.Value?.ToString(), out int parsedDeadline)
+            ? parsedDeadline
+            : 0;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateExternalParams()
+    {
+        actApprovalParams.StateId = selectedState.Id;
+        actApprovalParams.ApproverGroup = selectedUserGroup?.Dn ?? "";
+        actApprovalParams.Deadline = deadline;
+        ActAction.ExternalParams = JsonSerializer.Serialize(actApprovalParams);
+    }
+}

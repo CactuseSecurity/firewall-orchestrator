@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Data.Workflow;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Components;
 using NUnit.Framework;
@@ -67,6 +68,46 @@ namespace FWO.Test
             Assert.That(result.Value, Does.Contain("title=\"Save -  Extra\""));
             Assert.That(result.Value, Does.Contain("<span class=\"stdtext\">Add</span>"));
             Assert.That(result.Value, Does.Contain("<span class=\"bi bi-obj\"/>"));
+        }
+
+        [Test]
+        public void DisplayState_ReturnsAutomaticForAutomaticState()
+        {
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            string result = DisplayService.DisplayState(userConfig, new WfState { Id = -1, Name = "Ignored" });
+
+            Assert.That(result, Is.EqualTo(userConfig.GetText("automatic")));
+        }
+
+        [Test]
+        public void DisplayState_ReturnsConditionalForConditionalState()
+        {
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            string result = DisplayService.DisplayState(userConfig, new WfState { Id = -2, Name = "Ignored" });
+
+            Assert.That(result, Is.EqualTo(userConfig.GetText("Conditional")));
+        }
+
+        [Test]
+        public void DisplayStateWithId_ReturnsNameAndIdForPositiveState()
+        {
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            string result = DisplayService.DisplayStateWithId(userConfig, new WfState { Id = 17, Name = "Approved" });
+
+            Assert.That(result, Is.EqualTo("Approved (17)"));
+        }
+
+        [Test]
+        public void DisplayStateWithId_DoesNotAppendIdForNegativeState()
+        {
+            UserConfig userConfig = new SimulatedUserConfig();
+
+            string result = DisplayService.DisplayStateWithId(userConfig, new WfState { Id = -1, Name = "Ignored" });
+
+            Assert.That(result, Is.EqualTo(userConfig.GetText("automatic")));
         }
     }
 }

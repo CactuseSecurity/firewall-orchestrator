@@ -2457,6 +2457,142 @@
             },
             {
               "table": {
+                "name": "log_entry",
+                "schema": "logging"
+              },
+              "object_relationships": [
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "service_protocol"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-recertifiable-owners"
+                      }
+                    }
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_count",
+                      "allowed",
+                      "log_time",
+                      "logging_rule_name"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "change_history",
                 "schema": "modelling"
               },
@@ -14012,6 +14148,18 @@
                   }
                 },
                 {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "notifications",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -16035,7 +16183,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -16074,7 +16223,8 @@
                       "next_recert_date",
                       "recert_date"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -18562,6 +18712,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "reqtask_id",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -20189,7 +20350,8 @@
                       "dev_id",
                       "rule_id"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20247,7 +20409,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20264,7 +20427,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -20281,7 +20445,8 @@
                       "dev_id": {
                         "_in": "x-hasura-visible-devices"
                       }
-                    }
+                    },
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -24776,6 +24941,18 @@
                       "table": {
                         "name": "implelement",
                         "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_protocol",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
                       }
                     }
                   }
@@ -29429,7 +29606,6 @@
                 "name": "view_rule_with_owner",
                 "schema": "public"
               },
-              "object_relationships": [],
               "array_relationships": [
                 {
                   "name": "rule_froms",
@@ -32877,6 +33053,36 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "flow_nwgrp_id",
+                      "flow_nwobj_id",
+                      "flow_svcgrp_id",
+                      "flow_svcobj_id",
+                      "id",
+                      "network_object_id",
+                      "original_nat_id",
+                      "service_id",
+                      "task_id",
+                      "user_id",
+                      "group_name",
+                      "name",
+                      "rule_uid",
+                      "ip",
+                      "ip_end",
+                      "device_id",
+                      "ip_proto_id",
+                      "port",
+                      "port_end",
+                      "field",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -33495,6 +33701,42 @@
                 }
               ],
               "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "flow_access_id",
+                      "id",
+                      "ticket_id",
+                      "locked",
+                      "additional_info",
+                      "assigned_group",
+                      "devices",
+                      "task_type",
+                      "title",
+                      "current_handler",
+                      "mgm_id",
+                      "nw_obj_grp_id",
+                      "recent_handler",
+                      "rule_action",
+                      "rule_tracking",
+                      "state_id",
+                      "svc_grp_id",
+                      "task_number",
+                      "user_grp_id",
+                      "free_text",
+                      "reason",
+                      "last_recert_date",
+                      "start",
+                      "stop",
+                      "target_begin_date",
+                      "target_end_date",
+                      "request_action"
+                    ]
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "modeller",
                   "permission": {
@@ -35552,6 +35794,33 @@
               ],
               "insert_permissions": [
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "id",
+                      "locked",
+                      "assigned_group",
+                      "external_ticket_id",
+                      "requester_dn",
+                      "requester_group",
+                      "title",
+                      "current_handler",
+                      "external_ticket_source",
+                      "recent_handler",
+                      "requester_id",
+                      "state_id",
+                      "tenant_id",
+                      "ticket_priority",
+                      "reason",
+                      "date_completed",
+                      "date_created",
+                      "ticket_deadline"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "check": {},
@@ -36088,6 +36357,17 @@
                       "ticket_id"
                     ]
                   }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "comment_id",
+                      "ticket_id"
+                    ]
+                  },
+                  "comment": ""
                 },
                 {
                   "role": "modeller",

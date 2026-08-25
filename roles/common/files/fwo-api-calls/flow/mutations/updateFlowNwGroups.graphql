@@ -1,0 +1,5 @@
+mutation updateFlowNwGroups($updates: [flow_nwgroup_updates!]!) {
+  update_flow_nwgroup_many(updates: $updates) {
+    affected_rows
+  }
+}

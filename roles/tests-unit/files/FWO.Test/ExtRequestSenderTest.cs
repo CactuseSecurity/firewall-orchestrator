@@ -1,4 +1,5 @@
 using FWO.Basics.Exceptions;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.ExternalSystems.Tufin.SecureChange;
 using FWO.Middleware.Server;
@@ -6,6 +7,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using RestSharp;
 using System.Net;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -61,7 +63,7 @@ namespace FWO.Test
         [SetUp]
         public void Initialize()
         {
-
+            // The fixture owns immutable test data; each test creates its own sender instance.
         }
 
         [Test]
@@ -94,11 +96,52 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestCreation.Count);
             ClassicAssert.IsFalse(apiConnection.UpdateExtRequestCreation[0].Contains("id = 1"));
             ClassicAssert.IsTrue(apiConnection.UpdateExtRequestCreation[0].Contains("id = 2"));
+            ClassicAssert.IsTrue(apiConnection.UpdateExtRequestCreation[0].Contains("extTicketId = 1"));
             ClassicAssert.IsTrue(apiConnection.UpdateExtRequestCreation[1].Contains("id = 3"));
+            ClassicAssert.IsTrue(apiConnection.UpdateExtRequestCreation[1].Contains("extTicketId = 2"));
             ClassicAssert.AreEqual(2, apiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.IsTrue(apiConnection.UpdateExtRequestProcess[0].Contains("id = 4"));
             ClassicAssert.IsTrue(apiConnection.UpdateExtRequestProcess[1].Contains("id = 5"));
-            ClassicAssert.AreEqual(0, apiConnection.TriedToGetLdapsForHandleStateChange);
+            // Successful creates are now synced to the workflow immediately so the external ticket id/state is visible on the task.
+            ClassicAssert.AreEqual(2, apiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [Test]
+        public async Task SendDefaultRequest_SuccessfulCreateTriggersWorkflowSync()
+        {
+            ExtRequestSenderTestApiConn localApiConnection = new();
+            SimulatedSCClient simulatedSCClient = new(ticketSystem);
+            simulatedSCClient.EnqueueResponse("tickets.json", new(new())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = "{\"ticket\": {\"id\": 1, \"status\": \"In Progress\" } }"
+            });
+            simulatedSCClient.EnqueueResponse("tickets.json", new(new())
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = "{\"ticket\": {\"id\": 2, \"status\": \"In Progress\" } }"
+            });
+
+            ExternalRequestSender sender = new(localApiConnection, globalConfig, simulatedSCClient);
+
+            await sender.Run();
+
+            ClassicAssert.AreEqual(2, localApiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [Test]
+        public void BuildInternalCheckPointTicketNumber_UsesInternalTicketAndTaskReferences()
+        {
+            UserConfig userConfig = new SimulatedUserConfig();
+            ExternalRequest request = new()
+            {
+                TicketId = 123,
+                TaskNumber = 4
+            };
+
+            string result = InvokePrivateStatic<string>("BuildInternalCheckPointTicketNumber", userConfig, request);
+
+            ClassicAssert.AreEqual("Internal (Ticket Id: 123, Task Number: 4)", result);
         }
 
         [Test]
@@ -116,6 +159,99 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestCreation.Count);
             ClassicAssert.AreEqual(0, localApiConnection.UpdateExtRequestProcess.Count);
             ClassicAssert.AreEqual(0, localApiConnection.TriedToGetLdapsForHandleStateChange);
+        }
+
+        [TestCase("", null)]
+        [TestCase("{}", null)]
+        [TestCase("{\"ManagementId\":[]}", null)]
+        [TestCase("{\"ManagementId\":[23,42]}", 23)]
+        public void GetManagementId_ReturnsTheFirstConfiguredManagement(string queryVariables, int? expectedId)
+        {
+            int? managementId = InvokePrivateStatic<int?>("GetManagementId", queryVariables);
+
+            ClassicAssert.AreEqual(expectedId, managementId);
+        }
+
+        [TestCase(null, false)]
+        [TestCase("", false)]
+        [TestCase("GENERAL_ERROR", true)]
+        [TestCase("GENERAL_ERROR Unable to rollback against JDBC Connection", false)]
+        [TestCase("ILLEGAL_ARGUMENT_ERROR", true)]
+        [TestCase("FIELD_VALIDATION_ERROR", true)]
+        [TestCase("WEB_APPLICATION_ERROR", true)]
+        [TestCase("implementation failure", true)]
+        [TestCase("Check Point rule change tasks are not yet supported.", true)]
+        public void AnalyseForRejected_RecognizesPermanentFailures(string? content, bool expected)
+        {
+            RestResponse<int>? response = content == null ? null : new(new()) { Content = content };
+
+            bool rejected = InvokePrivateStatic<bool>("AnalyseForRejected", response);
+
+            ClassicAssert.AreEqual(expected, rejected);
+        }
+
+        [TestCase("{\"ticket\": {\"id\": 4711, \"status\": \"In Progress\" } }", "4711")]
+        [TestCase("{\"id\": 4712}", "4712")]
+        [TestCase(null, null)]
+        [TestCase("", null)]
+        [TestCase("{}", null)]
+        [TestCase("not-json", null)]
+        [TestCase("[1]", null)]
+        [TestCase("123", null)]
+        [TestCase("\"ok\"", null)]
+        [TestCase("true", null)]
+        [TestCase("null", null)]
+        [TestCase("{\"ticket\": 123}", null)]
+        [TestCase("{\"ticket\": [1]}", null)]
+        [TestCase("{\"ticket\": \"ok\"}", null)]
+        public void ExtractExternalTicketIdFromBody_ReturnsTicketIdWhenPresent(string? content, string? expectedId)
+        {
+            string? ticketId = InvokePrivateStatic<string?>("ExtractExternalTicketIdFromBody", content);
+
+            ClassicAssert.AreEqual(expectedId, ticketId);
+        }
+
+        [Test]
+        public void ExtractExternalTicketId_FallsBackToLocationHeader()
+        {
+            RestResponse<int> response = new(new())
+            {
+                Content = "{}",
+                Headers =
+                [
+                    new HeaderParameter("location", "https://tufin.example/securechangeworkflow/api/securechange/tickets/4713")
+                ]
+            };
+
+            string? ticketId = InvokePrivateStatic<string?>("ExtractExternalTicketId", response);
+
+            ClassicAssert.AreEqual("4713", ticketId);
+        }
+
+        [Test]
+        public void ExtractExternalTicketId_ReturnsNullWithoutBodyTicketIdOrLocationHeader()
+        {
+            RestResponse<int> response = new(new())
+            {
+                Content = "{}"
+            };
+
+            string? ticketId = InvokePrivateStatic<string?>("ExtractExternalTicketId", response);
+
+            ClassicAssert.IsNull(ticketId);
+        }
+
+        [Test]
+        public void GetManagementId_RejectsMalformedJson()
+        {
+            Assert.Throws<TargetInvocationException>(() => InvokePrivateStatic<int?>("GetManagementId", "not-json"));
+        }
+
+        private static T InvokePrivateStatic<T>(string methodName, params object?[] parameters)
+        {
+            MethodInfo method = typeof(ExternalRequestSender).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException($"{methodName} not found.");
+            return (T)method.Invoke(null, parameters)!;
         }
     }
 }

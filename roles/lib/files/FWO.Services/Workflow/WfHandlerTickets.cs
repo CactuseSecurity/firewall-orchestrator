@@ -59,15 +59,14 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                DateTime cutOffDate = interval switch
+                DateTime createdFrom = interval switch
                 {
-                    SchedulerInterval.Days => DateTime.Now.AddDays(-cutOffPeriod),
-                    SchedulerInterval.Weeks => DateTime.Now.AddDays(-cutOffPeriod * GlobalConst.kDaysPerWeek),
-                    SchedulerInterval.Months => DateTime.Now.AddMonths(-cutOffPeriod),
+                    SchedulerInterval.Days => DateTime.Now.Date.AddDays(-cutOffPeriod),
+                    SchedulerInterval.Weeks => DateTime.Now.Date.AddDays(-cutOffPeriod * GlobalConst.kDaysPerWeek),
+                    SchedulerInterval.Months => DateTime.Now.Date.AddMonths(-cutOffPeriod),
                     _ => throw new NotSupportedException("Time interval is not supported."),
                 };
-                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, cutOffDate,
-                    null);
+                return await dbAcc.GetTicketsByParameters(taskType, StateMatrix(taskType).LowestInputState, StateMatrix(taskType).LowestEndState, createdFrom, null, null);
             }
             return [];
         }
@@ -135,7 +134,12 @@ namespace FWO.Services.Workflow
                     {
                         // insert new ticket
                         ActTicket.CreationDate = DateTime.Now;
-                        ActTicket.Requester = userConfig.User;
+                        UiUser requester = ActTicket.Requester ?? userConfig.User;
+                        if (requester.DbId <= 0 && userConfig.User.DbId > 0)
+                        {
+                            requester = userConfig.User;
+                        }
+                        ActTicket.Requester = requester;
                         ActTicket = await dbAcc.AddTicketToDb(ActTicket);
                         TicketList.Add(ActTicket);
                     }

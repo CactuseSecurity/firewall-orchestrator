@@ -6,6 +6,7 @@ using FWO.Data;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -144,16 +145,10 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         List<Dictionary<string, object>> predicates = BuildFilterPredicates(request);
         if (ShouldRestrictToEditableOwners(user))
         {
-            predicates.Add(BuildInExpression("id", JwtClaimParser.ExtractIntClaimValues(user.Claims, "x-hasura-editable-owners")));
+            predicates.Add(GraphQlFilterBuilder.BuildInExpression("id", JwtClaimParser.ExtractIntClaimValues(user.Claims, "x-hasura-editable-owners")));
         }
 
-        Dictionary<string, object> whereClause = predicates.Count switch
-        {
-            0 => [],
-            1 => predicates[0],
-            _ => new Dictionary<string, object> { ["_and"] = predicates }
-        };
-        return new Dictionary<string, object> { ["where"] = whereClause };
+        return new Dictionary<string, object> { ["where"] = GraphQlFilterBuilder.CombinePredicates(predicates) };
     }
 
     /// <summary>
@@ -220,55 +215,13 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     private static List<Dictionary<string, object>> BuildFilterPredicates(GetOwnersRequest request)
     {
         List<Dictionary<string, object>> predicates = [];
-        AddEqualsPredicate(predicates, "id", request.OwnerId);
-        AddEqualsPredicate(predicates, "owner_lifecycle_state_id", request.OwnerLifeCycleStateId);
-        AddEqualsPredicate(predicates, "active", request.Active);
-        AddWildcardPredicate(predicates, "name", request.Name);
-        AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal);
-        AddActiveStatePredicate(predicates, request.ShowOnlyActiveState);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", request.OwnerId);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "owner_lifecycle_state_id", request.OwnerLifeCycleStateId);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "active", request.Active);
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", request.Name);
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal);
+        GraphQlFilterBuilder.AddOwnerActiveStatePredicate(predicates, request.ShowOnlyActiveState);
         return predicates;
-    }
-
-    /// <summary>
-    /// Excludes owners whose lifecycle state is inactive, while keeping owners without a lifecycle state.
-    /// Applied by default unless <paramref name="showOnlyActiveState"/> is explicitly <c>false</c>.
-    /// </summary>
-    private static void AddActiveStatePredicate(List<Dictionary<string, object>> predicates, bool? showOnlyActiveState)
-    {
-        if (showOnlyActiveState == false)
-        {
-            return;
-        }
-
-        predicates.Add(new Dictionary<string, object>
-        {
-            ["_or"] = new List<Dictionary<string, object>>
-            {
-                new() { ["owner_lifecycle_state"] = new Dictionary<string, object> { ["active_state"] = new Dictionary<string, object> { ["_eq"] = true } } },
-                new() { ["owner_lifecycle_state_id"] = new Dictionary<string, object> { ["_is_null"] = true } }
-            }
-        });
-    }
-
-    private static void AddEqualsPredicate(List<Dictionary<string, object>> predicates, string fieldName, object? value)
-    {
-        if (value is not null)
-        {
-            predicates.Add(new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_eq"] = value } });
-        }
-    }
-
-    private static void AddWildcardPredicate(List<Dictionary<string, object>> predicates, string fieldName, string? value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            predicates.Add(new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_ilike"] = BuildLikePattern(value) } });
-        }
-    }
-
-    private static Dictionary<string, object> BuildInExpression(string fieldName, List<int> values)
-    {
-        return new Dictionary<string, object> { [fieldName] = new Dictionary<string, object> { ["_in"] = values } };
     }
 
     private static bool ShouldRestrictToEditableOwners(ClaimsPrincipal user)
@@ -279,23 +232,5 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     private static bool IsStandardOwner(string? appIdExternal)
     {
         return appIdExternal?.Contains("app", StringComparison.OrdinalIgnoreCase) == true;
-    }
-
-    /// <summary>
-    /// Builds an <c>_ilike</c> pattern from a user-supplied filter value.
-    /// Literal SQL wildcards (<c>\</c>, <c>%</c>, <c>_</c>) in the input are escaped so they are matched verbatim,
-    /// while the documented <c>*</c> and <c>?</c> wildcards are translated to <c>%</c> and <c>_</c>.
-    /// Plain text without <c>*</c>/<c>?</c> is wrapped for a contains search.
-    /// </summary>
-    private static string BuildLikePattern(string value)
-    {
-        string trimmedValue = value.Trim();
-        bool hasWildcard = trimmedValue.Contains('*') || trimmedValue.Contains('?');
-        string escapedValue = trimmedValue
-            .Replace("\\", "\\\\")
-            .Replace("%", "\\%")
-            .Replace("_", "\\_");
-        string pattern = escapedValue.Replace('*', '%').Replace('?', '_');
-        return hasWildcard ? pattern : $"%{pattern}%";
     }
 }

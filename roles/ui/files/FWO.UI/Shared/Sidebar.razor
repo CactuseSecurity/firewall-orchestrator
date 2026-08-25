@@ -1,33 +1,42 @@
 @inject DomEventService eventService
 @inject IJSRuntime jsRuntime
 
-<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass" style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
+@implements IDisposable
+
+<div class="sidebar-main d-flex flex-row @SidebarContainerCssClass"
+     style="@($"top: 0; {(PositionLeft ? "left: 0;" : "right: 0;")} padding-top: {topOffset}px;")">
     @if (topOffset != -1)
     {
         @if (!PositionLeft)
         {
             if (Collapsible)
             {
-                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" @onclick="MinMaxSidebar"
+                     draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
                     <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
                 </div>
             }
 
-            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+            </div>
         }
 
-        <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@(SidebarCssClass)" style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
+        <div id="@(PositionLeft ? "lsb-content" : "rsb-content")" class="@(SidebarCssClass)"
+             style="width:@($"{Width}px"); overflow-x:@overflowSidebar;">
             @* Sidebar Content *@
             @ChildContent
         </div>
 
         @if (PositionLeft)
         {
-            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize"></div>
+            <div class="sidebar-sizer" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+            </div>
 
             if (Collapsible)
             {
-                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left" style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())" @ondragstart="ResizeStart" @ondragend="Resize">
+                <div class="btn btn-dark btn-sm sidebar-min-max-button align-self-center text-left"
+                     style="transform:rotate(180deg);" @onclick="MinMaxSidebar" draggable="@(Resizeable.ToString())"
+                     @ondragstart="ResizeStart" @ondragend="Resize">
                     <div class="@minMaxButtonSymbol" style="vertical-align: top; margin-left:-5px; margin-top:-3px;"></div>
                 </div>
             }
@@ -75,6 +84,8 @@
 
     private int topOffset = -1;
 
+    private bool _disposed;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -83,7 +94,11 @@
             {
                 await eventService.Initialize(jsRuntime);
             }
-            eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
+
+            if (!_disposed && eventService is not null)
+            {
+                eventService.OnNavbarHeightChanged += OnNavbarHeightChanged;
+            }
         }
     }
 
@@ -162,5 +177,27 @@
     {
         topOffset = height;
         StateHasChanged();
+    }
+
+    public void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (disposing && eventService is not null)
+        {
+            eventService.OnNavbarHeightChanged -= OnNavbarHeightChanged;
+        }
+
+        _disposed = true;
+
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

@@ -640,6 +640,8 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
             ClassicAssert.AreEqual(1, result.UnModelledRules[1].Count);
             ClassicAssert.AreEqual("NonModelledRule", result.UnModelledRules[1][0].Name);
+            ClassicAssert.AreEqual("Checkpoint1", result.UnModelledRules[1][0].ManagementName);
+            ClassicAssert.AreEqual("Gateway3", result.UnModelledRules[1][0].DeviceName);
 
             ClassicAssert.AreEqual(1, result.ConnsNotImplemented.Count);
             ClassicAssert.AreEqual(3, result.ConnsNotImplemented[0].Id);
@@ -649,10 +651,14 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Conn2", result.OkRules[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(1, result.OkRules[0].ImplementedRules.Count);
             ClassicAssert.AreEqual("xxxFWOC2yyy", result.OkRules[0].ImplementedRules[0].Name);
+            ClassicAssert.AreEqual("Checkpoint1", result.OkRules[0].ImplementedRules[0].ManagementName);
+            ClassicAssert.AreEqual("", result.OkRules[0].ImplementedRules[0].DeviceName);
 
             ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
             ClassicAssert.AreEqual("Conn1", result.RuleDifferences[0].ModelledConnection.Name);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules.Count);
+            ClassicAssert.AreEqual("Checkpoint1", result.RuleDifferences[0].ImplementedRules[0].ManagementName);
+            ClassicAssert.AreEqual("Gateway1, Gateway2", result.RuleDifferences[0].ImplementedRules[0].DeviceName);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].DisregardedFroms[0].Object.Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
@@ -661,13 +667,13 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Service2", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
             ClassicAssert.AreEqual(1999, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPort);
             ClassicAssert.AreEqual(2000, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].DestinationPortEnd);
@@ -675,10 +681,10 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[1].Services.Length);
             ClassicAssert.AreEqual(990, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPort);
             ClassicAssert.AreEqual(999, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.DestinationPortEnd);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[1].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(1000, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPort);
             ClassicAssert.AreEqual(1998, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.DestinationPortEnd);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[1].Services[1].Content.IsSurplus);
 
             ClassicAssert.AreEqual(1, result.DifferingAppRoles.Count);
             ClassicAssert.AreEqual(1, result.DifferingAppRoles[1].Count);
@@ -689,9 +695,9 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, result.DifferingAppRoles[1][0].AppServers.Count);
             ClassicAssert.AreEqual("AppServerUnchanged", result.DifferingAppRoles[1][0].AppServers[0].Content.Name);
             ClassicAssert.AreEqual("1.2.3.4", result.DifferingAppRoles[1][0].AppServers[0].Content.Ip);
-            ClassicAssert.AreEqual(false, result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
+            ClassicAssert.IsFalse(result.DifferingAppRoles[1][0].AppServers[0].Content.NotImplemented);
             ClassicAssert.AreEqual("AppServerNew1/32", result.DifferingAppRoles[1][0].AppServers[1].Content.Name);
-            ClassicAssert.AreEqual(true, result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
+            ClassicAssert.IsTrue(result.DifferingAppRoles[1][0].AppServers[1].Content.NotImplemented);
         }
 
         [Test]
@@ -710,12 +716,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -731,12 +737,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -772,13 +778,13 @@ namespace FWO.Test
             ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[0].DisregardedServices[0].Name);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("AppServerOld", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(true, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsTrue(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("AR504711-001", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Services.Length);
             ClassicAssert.AreEqual("Service1", result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Services[0].Content.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[1].DisregardedServices.Length);
             ClassicAssert.AreEqual("SvcGrp1", result.RuleDifferences[0].ImplementedRules[1].DisregardedServices[0].Name);
 
@@ -792,21 +798,27 @@ namespace FWO.Test
             List<ModellingConnection> Connections = [Connection1, Connection2, Connection3];
             userConfig.ModModelledMarker = "XXX";
             userConfig.ModModelledMarkerLocation = MarkerLocation.Comment;
-            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
-            ModellingFilter modellingFilter = new() { AnalyseRemainingRules = true };
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
+            try
+            {
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingFilter modellingFilter = new() { AnalyseRemainingRules = true };
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(Connections, modellingFilter);
 
-            ClassicAssert.AreEqual(2, result.ConnsNotImplemented.Count);
-            ClassicAssert.AreEqual("Conn1", result.ConnsNotImplemented[0].Name);
-            ClassicAssert.AreEqual("Conn2", result.ConnsNotImplemented[1].Name);
-            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
-            ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
-            ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
-            ClassicAssert.AreEqual(8, result.UnModelledRules[1].Count);
-            ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
-            ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
-            userConfig.ModModelledMarker = "FWOC";
-            userConfig.ModModelledMarkerLocation = MarkerLocation.Rulename;
+                ClassicAssert.AreEqual(2, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual("Conn1", result.ConnsNotImplemented[0].Name);
+                ClassicAssert.AreEqual("Conn2", result.ConnsNotImplemented[1].Name);
+                ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+                ClassicAssert.AreEqual("Conn3", result.RuleDifferences[0].ModelledConnection.Name);
+                ClassicAssert.AreEqual(1, result.UnModelledRules.Count);
+                ClassicAssert.AreEqual(14, result.UnModelledRules[1].Count);
+                ClassicAssert.AreEqual("FWOC1", result.UnModelledRules[1][0].Name);
+                ClassicAssert.AreEqual("xxxFWOC2yyy", result.UnModelledRules[1][1].Name);
+            }
+            finally
+            {
+                userConfig.ModModelledMarker = "FWOC";
+                userConfig.ModModelledMarkerLocation = MarkerLocation.Rulename;
+            }
         }
 
         [Test]
@@ -883,6 +895,226 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestAnalyseRuleStatusSingleUpdatableObject()
+        {
+            // Control case: one updatable object mapped to one placeholder area is recognized.
+            userConfig.ModUpdatableObjAreas = "[{\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";
+            try
+            {
+                ModellingConnection connOneUpdObj = new()
+                {
+                    Id = 9,
+                    Name = "Conn9",
+                    SourceAppServers = [new() { Content = AS1 }],
+                    DestinationAreas = [new() { Content = new ModellingNetworkArea() { Id = 3, Name = "NA-UpdArea" } }],
+                    Services = [new() { Content = Svc1 }],
+                    ExtraConfigs = [new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj1" }]
+                };
+                List<ModellingConnection> connections = [connOneUpdObj];
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+            }
+            finally
+            {
+                userConfig.ModUpdatableObjAreas = "";
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusMultipleUpdatableObjects()
+        {
+            // Issue #4979: two updatable objects (rule FWOC8: UpdObj1 + UpdObj2) modelled by a single
+            // placeholder area must still be recognized as implementation.
+            userConfig.ModUpdatableObjAreas = "[{\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";
+            try
+            {
+                ModellingConnection connTwoUpdObj = new()
+                {
+                    Id = 8,
+                    Name = "Conn8",
+                    SourceAppServers = [new() { Content = AS1 }],
+                    DestinationAreas = [new() { Content = new ModellingNetworkArea() { Id = 3, Name = "NA-UpdArea" } }],
+                    Services = [new() { Content = Svc1 }],
+                    ExtraConfigs = [new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj1" },
+                                    new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj2" }]
+                };
+                List<ModellingConnection> connections = [connTwoUpdObj];
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+            }
+            finally
+            {
+                userConfig.ModUpdatableObjAreas = "";
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusSingleUpdatableObjectDoesNotMatchMultipleAreas()
+        {
+            userConfig.ModUpdatableObjAreas = "[{\"area_id\":1,\"use_in_src\":false,\"use_in_dst\":true}, {\"area_id\":3,\"use_in_src\":false,\"use_in_dst\":true}]";
+            try
+            {
+                ModellingConnection connWithMultipleAreas = new()
+                {
+                    Id = 9,
+                    Name = "Conn9",
+                    SourceAppServers = [new() { Content = AS1 }],
+                    DestinationAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-UpdArea1" } },
+                                        new() { Content = new ModellingNetworkArea() { Id = 3, Name = "NA-UpdArea3" } }],
+                    Services = [new() { Content = Svc1 }],
+                    ExtraConfigs = [new() { ExtraConfigType = "updatable_obj", ExtraConfigText = "UpdObj1" }]
+                };
+                List<ModellingConnection> connections = [connWithMultipleAreas];
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            }
+            finally
+            {
+                userConfig.ModUpdatableObjAreas = "";
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusMultipleSpecialUserObjects()
+        {
+            // Issue #4979: two special user objects (rule FWOC10: SpecObj1 + SpecObj2 in source) modelled
+            // by a single placeholder area must still be recognized as implementation.
+            ModellingConnection connTwoSpecUsers = new()
+            {
+                Id = 10,
+                Name = "Conn10",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj1" },
+                                new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj2" }]
+            };
+            List<ModellingConnection> connections = [connTwoSpecUsers];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusSpecialUserObjectWithoutIp()
+        {
+            ModellingConnection connSpecUserWithoutIp = new()
+            {
+                Id = 12,
+                Name = "Conn12",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObjWithoutIp" }]
+            };
+
+            List<ModellingConnection> connections = [connSpecUserWithoutIp];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusSingleSpecialUserDoesNotMatchMultipleAreas()
+        {
+            ModellingConnection connWithMultipleAreas = new()
+            {
+                Id = 11,
+                Name = "Conn11",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea1" } },
+                               new() { Content = new ModellingNetworkArea() { Id = 3, Name = "NA-SpecUserArea3" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "IDA_user", ExtraConfigText = "SpecObj1" }]
+            };
+            List<ModellingConnection> connections = [connWithMultipleAreas];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+        }
+
+        [TestCase("IDA_user")]
+        [TestCase("updatable_obj")]
+        public async Task TestAnalyseRuleStatusNormallyMatchedObjectDoesNotMatchPlaceholder(string extraConfigType)
+        {
+            bool isUpdatableObject = extraConfigType == "updatable_obj";
+            if (isUpdatableObject)
+            {
+                userConfig.ModUpdatableObjAreas = "[{\"area_id\":1,\"use_in_src\":true,\"use_in_dst\":false}]";
+            }
+            try
+            {
+                ModellingConnection connWithNormallyMatchedObject = new()
+                {
+                    Id = 2,
+                    Name = "Conn2",
+                    SourceAppServers = [new() { Content = AS1 }],
+                    SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-PlaceholderArea" } }],
+                    DestinationAppRoles = [new() { Content = AR3 }],
+                    Services = [new() { Content = Svc1 }],
+                    ExtraConfigs = [new() { ExtraConfigType = extraConfigType, ExtraConfigText = "AppServerUnchanged" }]
+                };
+                List<ModellingConnection> connections = [connWithNormallyMatchedObject];
+                ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+                ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+                ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+                ClassicAssert.AreEqual(1, result.RuleDifferences.Count);
+            }
+            finally
+            {
+                if (isUpdatableObject)
+                {
+                    userConfig.ModUpdatableObjAreas = "";
+                }
+            }
+        }
+
+        [Test]
+        public async Task TestAnalyseRuleStatusMultipleIpLessSpecialUserObjectsOutsideSpecialTypeAllowList()
+        {
+            ModellingConnection connWithIpLessHostObjects = new()
+            {
+                Id = 15,
+                Name = "Conn15",
+                SourceAppServers = [new() { Content = AS1 }],
+                SourceAreas = [new() { Content = new ModellingNetworkArea() { Id = 1, Name = "NA-SpecUserArea" } }],
+                DestinationAppRoles = [new() { Content = AR3 }],
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs =
+                [
+                    new() { ExtraConfigType = "IDA_user", ExtraConfigText = "HostObjWithoutIp1" },
+                    new() { ExtraConfigType = "IDA_user", ExtraConfigText = "HostObjWithoutIp2" }
+                ]
+            };
+
+            List<ModellingConnection> connections = [connWithIpLessHostObjects];
+            ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(connections, new(), false);
+
+            ClassicAssert.AreEqual(0, result.ConnsNotImplemented.Count);
+            ClassicAssert.AreEqual(0, result.RuleDifferences.Count);
+        }
+
+        [Test]
         public async Task TestAnalyseRuleStatusSpecialUserObjects()
         {
             List<ModellingConnection> Connections = [Connection4];
@@ -913,12 +1145,12 @@ namespace FWO.Test
             ClassicAssert.AreEqual(0, result.RuleDifferences[0].ImplementedRules[0].DisregardedTos.Length);
             ClassicAssert.AreEqual(2, result.RuleDifferences[0].ImplementedRules[0].Froms.Length);
             ClassicAssert.AreEqual("SpecObj1", result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[0].Object.IsSurplus);
             ClassicAssert.AreEqual("AppServerUnchanged", result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Froms[1].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].Tos.Length);
             ClassicAssert.AreEqual("SpecObj2", result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.Name);
-            ClassicAssert.AreEqual(false, result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
+            ClassicAssert.IsFalse(result.RuleDifferences[0].ImplementedRules[0].Tos[0].Object.IsSurplus);
             ClassicAssert.AreEqual(1, result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects.Count);
             ClassicAssert.AreEqual("specobj3", result.RuleDifferences[0].ImplementedRules[0].UnusedSpecialUserObjects[0]);
 
@@ -932,25 +1164,25 @@ namespace FWO.Test
             ModellingVarianceAnalysis varianceAnalysis = new(varianceAnalysisApiConnection, extStateHandler, userConfig, Application, DefaultInit.DoNothing);
             await varianceAnalysis.AnalyseConnsForStatusAsync(Connections);
 
-            ClassicAssert.AreEqual(true, Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(true, Connections[0].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[0].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsTrue(Connections[0].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[0].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[1].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[1].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[1].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[1].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[1].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[1].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[2].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[2].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(true, Connections[2].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[2].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[2].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsTrue(Connections[2].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[3].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(true, Connections[3].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[3].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[3].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsTrue(Connections[3].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[3].Props?.ContainsKey(ConState.NotImplemented.ToString()));
 
-            ClassicAssert.AreEqual(true, Connections[4].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
-            ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.VarianceFound.ToString()));
-            ClassicAssert.AreEqual(false, Connections[4].Props?.ContainsKey(ConState.NotImplemented.ToString()));
+            ClassicAssert.IsTrue(Connections[4].Props?.ContainsKey(ConState.VarianceChecked.ToString()));
+            ClassicAssert.IsFalse(Connections[4].Props?.ContainsKey(ConState.VarianceFound.ToString()));
+            ClassicAssert.IsFalse(Connections[4].Props?.ContainsKey(ConState.NotImplemented.ToString()));
         }
 
         [Test]
@@ -976,7 +1208,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForRequestFlow()
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForRequestFlow()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new();
@@ -984,8 +1216,57 @@ namespace FWO.Test
 
             await analysis.AnalyseModelledConnectionsForRequest([]);
 
-            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public void TestNameFieldRuleOwnerMappingQueriesIncludeRemovedConnections()
+        {
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameField, Does.Not.Contain("removed:"));
+            Assert.That(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner, Does.Not.Contain("removed:"));
+        }
+
+        [Test]
+        public void TestNameFieldRuleOwnerPreFilterCompletenessQueryExcludesExistingOwnerMappings()
+        {
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("_not:"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("rule_owners:"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("owner_id: { _eq: $ownerId }"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("owner_mapping_source_id: { _eq: $ownerMappingSourceId }"));
+            Assert.That(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules, Does.Contain("removed: { _is_null: true }"));
+        }
+
+        [Test]
+        public void TestRelevantImportQueryIncludesSubManagementsForRuleOwnerPendingImportScope()
+        {
+            Assert.That(ReportQueries.getRelevantImportIdsAtTime, Does.Contain("managementByMultiDeviceManagerId"));
+            Assert.That(ReportQueries.getRelevantImportIdsAtTime, Does.Contain("id: mgm_id"));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterFindsDeletedConnectionForRequestFlow()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterDeletedConnectionApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            ModellingConnection deletedConnection = new()
+            {
+                Id = 5047,
+                Name = "DeletedConn5047",
+                Removed = true,
+                Services = [new() { Content = Svc1 }],
+                ExtraConfigs = [new() { ExtraConfigType = "Doku_Reason", ExtraConfigText = "deleted model reference" }]
+            };
+
+            List<WfReqTask> taskList = await analysis.AnalyseModelledConnectionsForRequest([deletedConnection]);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(taskList, Has.Some.Matches<WfReqTask>(task =>
+                task.TaskType == WfTaskType.rule_delete.ToString()
+                && task.Title == "Delete Rule: FWOC5047"));
         }
 
         [Test]
@@ -993,6 +1274,61 @@ namespace FWO.Test
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
             RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingOnSameManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterUsedForPendingRuleOwnerMappingOnForeignManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 2
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForPendingRuleOwnerMappingOnSubManagement()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                PendingRuleOwnerMappingMgmId = 2,
+                RelevantImportSubManagementIds = [2]
+            };
             ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
@@ -1017,23 +1353,33 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TestNameFieldRuleOwnerPreFilterSkippedForExpandedRuleModes()
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedForAnalyseRemainingRules()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
-            foreach (ModellingFilter modellingFilter in new ModellingFilter[]
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AnalyseRemainingRules = true }, false);
+
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStrictCompletenessFallsBackForMissingMapping()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
             {
-                new() { AnalyseRemainingRules = true },
-                new() { RulesForDeletedConns = true }
-            })
-            {
-                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
-                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+                HasMissingRuleOwnerPreFilterCompletenessMapping = true
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
-                await analysis.AnalyseRulesVsModelledConnections([], modellingFilter, false);
+            await analysis.AnalyseRulesVsModelledConnections([], new() { RulesForDeletedConns = true, VerifyRuleOwnerPreFilterCompleteness = true }, false);
 
-                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            }
+            Assert.That(apiConnection.Queries, Does.Contain(ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
@@ -1048,12 +1394,15 @@ namespace FWO.Test
             };
         }
 
-        private sealed class RuleOwnerPreFilterRoutingApiConn : SimulatedApiConnection
+        private class RuleOwnerPreFilterRoutingApiConn : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
             public bool ReturnRuleOwnerRules { get; init; } = true;
             public bool HasPendingRuleOwnerMappingImport { get; init; } = false;
             public bool ThrowOnRuleOwnerPreFilter { get; init; } = false;
+            public int? PendingRuleOwnerMappingMgmId { get; init; }
+            public List<int> RelevantImportSubManagementIds { get; init; } = [];
+            public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1066,13 +1415,45 @@ namespace FWO.Test
 
                 Type responseType = typeof(QueryResponseType);
 
+                if (responseType == typeof(List<ManagementReport>) && query == ReportQueries.getRelevantImportIdsAtTime)
+                {
+                    List<ManagementReport> managementReports =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Import = new()
+                            {
+                                ImportAggregate = new()
+                                {
+                                    ImportAggregateMax = new()
+                                    {
+                                        RelevantImportId = 1
+                                    }
+                                }
+                            },
+                            SubManagements = RelevantImportSubManagementIds
+                                .Select(id => new Management { Id = id })
+                                .ToList()
+                        }
+                    ];
+
+                    return (QueryResponseType)(object)managementReports;
+                }
+
                 if (responseType == typeof(List<Management>))
                 {
-                    object managements = query == ReportQueries.getRelevantImportIdsAtTime
-                        ? new List<Management> { new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } } }
-                        : new List<Management> { new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}" } };
+                    List<Management> managements =
+                    [
+                        new()
+                        {
+                            Id = 1,
+                            Name = "Checkpoint1",
+                            ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}"
+                        }
+                    ];
 
-                    return (QueryResponseType)managements;
+                    return (QueryResponseType)(object)managements;
                 }
 
                 if (responseType == typeof(List<ModellingNetworkArea>))
@@ -1082,12 +1463,21 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<ModellingConnection>))
                 {
+                    if (query == ModellingQueries.getOwnersForRuleOwnerNameFieldFilteredByOwner)
+                    {
+                        List<ModellingConnection> connections = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, AppId = Application.Id }]
+                            : [];
+
+                        return (QueryResponseType)(object)connections;
+                    }
+
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
                 if (responseType == typeof(List<ImportControl>))
                 {
                     List<ImportControl> imports = HasPendingRuleOwnerMappingImport
-                        ? [new() { ControlId = 1 }]
+                        ? [new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId }]
                         : [];
                     return (QueryResponseType)(object)imports;
                 }
@@ -1108,6 +1498,15 @@ namespace FWO.Test
                         throw new InvalidOperationException("Simulated rule_owner prefilter failure.");
                     }
 
+                    if (query == RuleQueries.getNameFieldRuleOwnerPreFilterCompletenessRules)
+                    {
+                        List<Rule> completenessRules = HasMissingRuleOwnerPreFilterCompletenessMapping
+                            ? [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }]
+                            : [];
+
+                        return (QueryResponseType)(object)completenessRules;
+                    }
+
                     List<Rule> rules = query == RuleQueries.getModelledRulesByRuleOwnerNameField && !ReturnRuleOwnerRules
                         ? []
                         : [new() { Id = 1, Name = "FWOC1", MgmtId = 1 }];
@@ -1116,6 +1515,53 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException(query);
+            }
+        }
+
+        private sealed class RuleOwnerPreFilterDeletedConnectionApiConn : RuleOwnerPreFilterRoutingApiConn
+        {
+            private const int kDeletedConnectionId = 5047;
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
+                string query,
+                object? variables = null,
+                string? operationName = null,
+                QueryChunkingOptions? chunkingOptions = null)
+            {
+                await DefaultInit.DoNothing();
+
+                if (typeof(QueryResponseType) == typeof(List<Rule>) && query == RuleQueries.getModelledRulesByRuleOwnerNameField)
+                {
+                    Queries.Add(query);
+                    List<Rule> rules =
+                    [
+                        new()
+                {
+                    Id = kDeletedConnectionId,
+                    Name = "FWOC5047",
+                    MgmtId = 1
+                }
+                    ];
+                    return (QueryResponseType)(object)rules;
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getDeletedConnections)
+                {
+                    Queries.Add(query);
+                    List<ModellingConnection> connections =
+                    [
+                        new()
+                {
+                    Id = kDeletedConnectionId,
+                    Name = "DeletedConn5047",
+                    Removed = true,
+                    Services = [new() { Content = Svc1 }]
+                }
+                    ];
+                    return (QueryResponseType)(object)connections;
+                }
+
+                return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
             }
         }
 
@@ -1192,15 +1638,18 @@ namespace FWO.Test
             {
                 await DefaultInit.DoNothing();
                 Type responseType = typeof(QueryResponseType);
-                if (responseType == typeof(List<Management>))
+                if (responseType == typeof(List<ManagementReport>))
                 {
                     if (query == ReportQueries.getRelevantImportIdsAtTime)
                     {
-                        return (QueryResponseType)(object)new List<Management>
+                        return (QueryResponseType)(object)new List<ManagementReport>
                         {
                             new() { Import = new() { ImportAggregate = new() { ImportAggregateMax = new() { RelevantImportId = 1 } } } }
                         };
                     }
+                }
+                if (responseType == typeof(List<Management>))
+                {
                     return (QueryResponseType)(object)new List<Management>
                     {
                         new() { Id = 1, Name = "Checkpoint1", ExtMgtData = "{\"id\":\"1\"}" }

@@ -33,9 +33,8 @@ namespace FWO.Test
         [Test]
         public void AddResolvedGroupMemberships_MergesResolvedGroupDnsIntoExistingMemberships()
         {
-            Type authManagerType = typeof(AuthenticationTokenController).Assembly.GetType("FWO.Middleware.Server.Controllers.AuthManager", throwOnError: true)!;
-            MethodInfo addResolvedGroupMemberships = authManagerType.GetMethod("AddResolvedGroupMemberships", BindingFlags.NonPublic | BindingFlags.Static)
-                ?? throw new MissingMethodException(authManagerType.FullName, "AddResolvedGroupMemberships");
+            MethodInfo addResolvedGroupMemberships = typeof(UserGroupResolver).GetMethod("AddResolvedGroupMemberships", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(typeof(UserGroupResolver).FullName, "AddResolvedGroupMemberships");
 
             HashSet<string> userGroups = new(DistName.DnComparer)
             {

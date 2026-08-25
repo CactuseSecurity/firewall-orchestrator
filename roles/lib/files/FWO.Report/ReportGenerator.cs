@@ -14,8 +14,6 @@ namespace FWO.Report
 {
     public static class ReportGenerator
     {
-        private static ReportBase? _currentReport;
-
         public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null, IRuleTreeBuilder? ruleTreeBuilder = null)
         {
             try
@@ -79,7 +77,24 @@ namespace FWO.Report
                 }, token);
             report.ReportData.RecertificationDisplayPeriod = reportTemplate.ReportParams.RecertFilter.RecertificationDisplayPeriod;
             report.ReportData.MergeOwnerRecertTables = reportTemplate.ReportParams.ModellingFilter.MergeOwnerRecertTables;
-            report.ReportData.OwnerAdditionalInfoKey = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey;
+            if (report.ReportType == ReportType.OwnerRecertification)
+            {
+                report.ReportData.OwnerAddInfoFilter = new(reportTemplate.ReportParams.ModellingFilter.OwnerAddInfoFilter);
+                if (string.IsNullOrWhiteSpace(report.ReportData.OwnerAddInfoFilter.Name)
+                    && !string.IsNullOrWhiteSpace(reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey))
+                {
+                    report.ReportData.OwnerAddInfoFilter = new AddInfoFilter
+                    {
+                        Name = reportTemplate.ReportParams.ModellingFilter.OwnerAdditionalInfoKey,
+                        Mode = AddInfoFilterMode.display_only
+                    };
+                }
+
+                if (!string.IsNullOrWhiteSpace(report.ReportData.OwnerAddInfoFilter.Name))
+                {
+                    report.ReportData.OwnerAdditionalInfoKey = report.ReportData.OwnerAddInfoFilter.Name;
+                }
+            }
             foreach (var owner in report.ReportData.OwnerData.Select(o => o.Owner))
             {
                 if (!owner.RecertActive)
@@ -100,7 +115,6 @@ namespace FWO.Report
 
         private static async Task GenerateConnectionRelatedReport(ReportBase report, ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
-            _currentReport = report;
             ModellingAppRole dummyAppRole = new();
             List<ModellingAppRole> dummyAppRoles = await apiConnection.SendQueryAsync<List<ModellingAppRole>>(ModellingQueries.getDummyAppRole);
             if (dummyAppRoles.Count > 0)
@@ -117,7 +131,7 @@ namespace FWO.Report
                         actOwnerData.Connections = rep.OwnerData[0].Connections;
                         return Task.CompletedTask;
                     }, token);
-                await PrepareConnReportData(selectedOwner, actOwnerData, report.ReportType, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi);
+                await PrepareConnReportData(selectedOwner, actOwnerData, report, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
             if (report.ReportType == ReportType.Connections)
             {
@@ -129,7 +143,7 @@ namespace FWO.Report
             }
         }
 
-        private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportType reportType, ModellingFilter modellingFilter,
+        private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportBase report, ModellingFilter modellingFilter,
             ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi, true, false);
@@ -137,9 +151,9 @@ namespace FWO.Report
             {
                 await handlerBase.ExtractUsedInterface(conn);
             }
-            if (reportType == ReportType.VarianceAnalysis)
+            if (report.ReportType == ReportType.VarianceAnalysis)
             {
-                await PrepareVarianceData(ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
+                await PrepareVarianceData(report, ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
             }
             ownerReport.Name = selectedOwner.Name;
             ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
@@ -147,7 +161,7 @@ namespace FWO.Report
             ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
         }
 
-        private static async Task PrepareVarianceData(OwnerConnectionReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
+        private static async Task PrepareVarianceData(ReportBase report, OwnerConnectionReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
             UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
         {
             ownerReport.ExtractConnectionsToAnalyse();
@@ -170,7 +184,7 @@ namespace FWO.Report
                 ownerReport.UnmodelledRules = await ReportAppRules.PrepareAppRulesReport(ownerReport.UnmodelledRules, modellingFilter, apiConnection, ownerReport.Owner.Id);
             }
 
-            if (_currentReport is ReportVariances reportVariances)
+            if (report is ReportVariances reportVariances)
             {
                 reportVariances.ReportData.ElementsCount += reportVariances.MissARCounter + reportVariances.DiffARCounter + reportVariances.MissConnCounter + reportVariances.DiffConnCounter;
             }

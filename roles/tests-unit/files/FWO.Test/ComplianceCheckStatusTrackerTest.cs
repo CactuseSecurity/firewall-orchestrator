@@ -1,6 +1,7 @@
 using FWO.Data.Middleware;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using System.Reflection;
 
 namespace FWO.Test
 {
@@ -55,6 +56,26 @@ namespace FWO.Test
             Assert.That(failedJob!.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Failed));
             Assert.That(failedJob.Message, Is.EqualTo("failure"));
             Assert.That(failedJob.FinishedAt, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task TryCompleteWaiterIfJobIsTerminal_CompletesOrphanedWaiter()
+        {
+            ComplianceCheckStatusTracker tracker = new();
+            ComplianceCheckJobStatus job = tracker.CreateQueuedJob();
+            tracker.SetSucceeded(job.JobId);
+
+            Type waiterType = typeof(ComplianceCheckStatusTracker).GetNestedType("TerminalStatusWaiter", BindingFlags.NonPublic)!;
+            object waiter = Activator.CreateInstance(waiterType, nonPublic: true)!;
+            MethodInfo tryCompleteWaiterIfJobIsTerminal = typeof(ComplianceCheckStatusTracker).GetMethod("TryCompleteWaiterIfJobIsTerminal", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            PropertyInfo completionProperty = waiterType.GetProperty("Completion", BindingFlags.Instance | BindingFlags.Public)!;
+            TaskCompletionSource<ComplianceCheckJobStatus> completion = (TaskCompletionSource<ComplianceCheckJobStatus>)completionProperty.GetValue(waiter)!;
+
+            tryCompleteWaiterIfJobIsTerminal.Invoke(tracker, [job.JobId, waiter]);
+
+            ComplianceCheckJobStatus completedStatus = await completion.Task;
+            Assert.That(completedStatus.Status, Is.EqualTo(ComplianceCheckExecutionStatus.Succeeded));
+            Assert.That(completedStatus.JobId, Is.EqualTo(job.JobId));
         }
     }
 }

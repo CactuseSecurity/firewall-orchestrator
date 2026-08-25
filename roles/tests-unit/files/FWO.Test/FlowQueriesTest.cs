@@ -11,6 +11,42 @@ namespace FWO.Test
         {
             Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("query getFlowCustomObjectCandidates"));
             Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("networkObjects: objects"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("obj_uid"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("flow_nwobj_id"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("flow_nwgrp_id"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("flow_active"));
+            Assert.That(FlowQueries.getFlowCustomObjectCandidates, Does.Contain("type: stm_obj_typ"));
+        }
+
+        [Test]
+        public void FlowQueries_LoadCustomObjectNamingCandidatesQuery()
+        {
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Contain("query getFlowCustomObjectNamingCandidates"));
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Contain("networkObjects: objects"));
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Contain("flow_nwgrp_id"));
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Contain("hide_in_gui: { _eq: false }"));
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Contain("is_pure_routing_device: { _eq: false }"));
+            Assert.That(FlowQueries.getFlowCustomObjectNamingCandidates, Does.Not.Contain("dev_typ_is_multi_mgmt"));
+        }
+
+        [Test]
+        public void FlowQueries_LoadCustomServiceNamingCandidatesQuery()
+        {
+            Assert.That(FlowQueries.getFlowCustomServiceNamingCandidates, Does.Contain("query getFlowCustomServiceNamingCandidates"));
+            Assert.That(FlowQueries.getFlowCustomServiceNamingCandidates, Does.Contain("serviceObjects: services("));
+            Assert.That(FlowQueries.getFlowCustomServiceNamingCandidates, Does.Contain("flow_svcgrp_id"));
+            Assert.That(FlowQueries.getFlowCustomServiceNamingCandidates, Does.Contain("is_pure_routing_device: { _eq: false }"));
+            Assert.That(FlowQueries.getFlowCustomServiceNamingCandidates, Does.Not.Contain("dev_typ_is_multi_mgmt"));
+        }
+
+        [Test]
+        public void FlowQueries_LoadCustomTimeObjectNamingCandidatesQuery()
+        {
+            Assert.That(FlowQueries.getFlowCustomTimeObjectNamingCandidates, Does.Contain("query getFlowCustomTimeObjectNamingCandidates"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectNamingCandidates, Does.Contain("timeObjects: time_objects("));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectNamingCandidates, Does.Contain("flow_timeobj_id"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectNamingCandidates, Does.Contain("is_pure_routing_device: { _eq: false }"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectNamingCandidates, Does.Not.Contain("dev_typ_is_multi_mgmt"));
         }
 
         [Test]
@@ -24,15 +60,26 @@ namespace FWO.Test
             Assert.That(FlowQueries.getFlowAddressGroups, Does.Not.Contain("objects("));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("query getFlowServiceObjects"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("fragment flowSvcObjectFragment"));
+            Assert.That(FlowQueries.getFlowServiceObjects, Does.Contain("show_in_request_module"));
             Assert.That(FlowQueries.getFlowServiceObjects, Does.Not.Contain("services("));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("query getFlowServiceGroups"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Contain("fragment flowSvcGroupWithMembersFragment"));
             Assert.That(FlowQueries.getFlowServiceGroups, Does.Not.Contain("services("));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("query getFlowTimeObjectId"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("timeobjects: flow_timeobject(where: $where, order_by: [{ timeobj_id: asc }], limit: 1)"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("timeobj_id"));
+            Assert.That(FlowQueries.getFlowTimeObjectId, Does.Contain("name"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Contain("query getFlowTimeObjects"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Contain("fragment flowTimeObjectFragment"));
             Assert.That(FlowQueries.getFlowTimeObjects, Does.Not.Contain("time_objects("));
             Assert.That(FlowQueries.getFlowAddressObjectId, Does.Contain("query getFlowAddressObjectId"));
             Assert.That(FlowQueries.getFlowServiceObjectId, Does.Contain("query getFlowServiceObjectId"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("query getFlowCustomServiceCandidates"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("serviceObjects: services("));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_uid"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("svc_port_end"));
+            Assert.That(FlowQueries.getFlowCustomServiceCandidates, Does.Contain("flow_active"));
+            Assert.That(FlowQueries.getFlowCustomTimeObjectCandidates, Does.Contain("query getFlowCustomTimeObjectCandidates"));
         }
 
         [Test]

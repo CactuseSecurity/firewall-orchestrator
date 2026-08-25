@@ -17,6 +17,15 @@
           - "--delete"
       become: true
 
+    - name: provide api metadata for the report permission tests
+      copy:
+        src: roles/api/files/replace_metadata.json
+        dest: "{{ test_dir }}/csharp/replace_metadata.json"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0644"
+      become: true
+
     - name: run csharp tests
       command: dotnet test
       args:

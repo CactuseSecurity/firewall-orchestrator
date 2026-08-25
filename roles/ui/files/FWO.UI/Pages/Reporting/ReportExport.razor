@@ -127,10 +127,13 @@
 </PopUp>
 
 <ReportDownloadPopUp Title="@(userConfig.GetText("export_report_download"))" ReportFile="reportExportFile"
-    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="() => ShowExportDownloadDialog = false" />
+    Show="ShowExportDownloadDialog" ShowJson="ExportJson" OnClose="CloseExportDownloadDialog" />
 
 @code
 {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationStateTask { get; set; }
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -147,6 +150,16 @@
 
     private bool ShowExportDialog = false;
     private bool ShowExportDownloadDialog = false;
+
+    /// <summary>
+    /// Closes the download dialog and drops the html the export left cached on the report. The next
+    /// export rebuilds it; keeping it would hold the rendered report for the rest of the session.
+    /// </summary>
+    private void CloseExportDownloadDialog()
+    {
+        ShowExportDownloadDialog = false;
+        ReportToExport?.ReleaseExportCache();
+    }
 
     private bool Exporting = false;
 
@@ -200,7 +213,7 @@
                 {
                     if (!ReportToExport.GotObjectsInReport)
                     {
-                        await ReportToExport.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
+                        await GetReportObjectsForExport();
                     }
 
                     ConvertToHtml();
@@ -241,6 +254,40 @@
         {
             DisplayMessageInUi(null, userConfig.GetText("export_report"), userConfig.GetText("E1002"), true);
         }
+    }
+
+    /// <summary>
+    /// Gets all report objects using the role required by App Rules reports when an authentication
+    /// state is available.
+    /// </summary>
+    private async Task GetReportObjectsForExport()
+    {
+        if (ReportToExport == null)
+        {
+            return;
+        }
+
+        if (authenticationStateTask == null || ReportToExport.ReportType != ReportType.AppRules)
+        {
+            await FetchReportObjects();
+            return;
+        }
+
+        AuthenticationState authenticationState = await authenticationStateTask;
+        await apiConnection.RunWithBestRoleForReport(authenticationState.User, ReportToExport.ReportType,
+            async () =>
+            {
+                await FetchReportObjects();
+                return true;
+            });
+    }
+
+    /// <summary>
+    /// Gets all objects needed by the report export.
+    /// </summary>
+    private Task FetchReportObjects()
+    {
+        return ReportToExport!.GetObjectsInReport(int.MaxValue, apiConnection, _ => Task.CompletedTask);
     }
 
     private async Task ConvertToPdf()

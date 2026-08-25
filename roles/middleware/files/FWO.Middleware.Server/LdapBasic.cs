@@ -44,7 +44,7 @@ namespace FWO.Middleware.Server
         /// Builds a connection to the specified Ldap server.
         /// </summary>
         /// <returns>Connection to the specified Ldap server.</returns>
-        private async Task<LdapConnection> Connect()
+        protected virtual async Task<ILdapClient> Connect()
         {
             try
             {
@@ -53,7 +53,7 @@ namespace FWO.Middleware.Server
                 LdapConnection connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
                 await connection.ConnectAsync(Address, Port);
 
-                return connection;
+                return new NovellLdapConnectionAdapter(connection);
             }
 
             catch (Exception exception)
@@ -70,9 +70,9 @@ namespace FWO.Middleware.Server
         /// <param name="password">LDAP password to bind with.</param>
         /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
         /// <returns>Connected LDAP connection that has attempted the bind.</returns>
-        private async Task<LdapConnection> GetBoundConnection(string? user, string? password, bool followReferrals = false)
+        private async Task<ILdapClient> GetBoundConnection(string? user, string? password, bool followReferrals = false)
         {
-            LdapConnection connection = await Connect();
+            ILdapClient connection = await Connect();
             await TryBind(connection, user, password);
 
             if (followReferrals)
@@ -87,9 +87,9 @@ namespace FWO.Middleware.Server
         /// Enables LDAP referral following for the given connection.
         /// </summary>
         /// <param name="connection">LDAP connection to configure.</param>
-        private static void EnableReferralFollowing(LdapConnection connection)
+        private static void EnableReferralFollowing(ILdapClient connection)
         {
-            LdapSearchConstraints constraints = connection.SearchConstraints;
+            LdapConstraints constraints = connection.SearchConstraints;
             constraints.ReferralFollowing = true;
             connection.Constraints = constraints;
         }
@@ -98,7 +98,7 @@ namespace FWO.Middleware.Server
         /// try an ldap bind, decrypting pwd before bind; using pwd as is if it cannot be decrypted
         /// false if bind fails
         /// </summary>
-        private static async Task<bool> TryBind(LdapConnection connection, string? user, string? password)
+        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password)
         {
             if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
             {
@@ -118,12 +118,12 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task TestConnection()
         {
-            using LdapConnection connection = await Connect();
-            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd!))
+            using ILdapClient connection = await Connect();
+            if (!string.IsNullOrEmpty(SearchUser) && !string.IsNullOrEmpty(SearchUserPwd) && !await TryBind(connection, SearchUser, SearchUserPwd))
             {
                 throw new LdapConnectionException("Binding failed for search user");
             }
-            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd!))
+            if (!string.IsNullOrEmpty(WriteUser) && !string.IsNullOrEmpty(WriteUserPwd) && !await TryBind(connection, WriteUser, WriteUserPwd))
             {
                 throw new LdapConnectionException("Binding failed for write user");
             }
@@ -239,7 +239,7 @@ namespace FWO.Middleware.Server
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             try
             {
-                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 List<LdapEntry> possibleUserEntries = [];
 
@@ -291,7 +291,7 @@ namespace FWO.Middleware.Server
             return null;
         }
 
-        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, LdapConnection connection)
+        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection)
         {
             string[] attrList = ["*", MemberOfLowerCase];
             string userSearchFilter = GetUserSearchFilter(userName);
@@ -299,16 +299,19 @@ namespace FWO.Middleware.Server
             // Search for users in ldap with same name as user to validate
             ILdapSearchResults? searchResults = await connection.SearchAsync(
                 UserSearchPath,             // top-level path under which to search for user
-                LdapConnection.ScopeSub,    // search all levels beneath
+                Novell.Directory.Ldap.LdapConnection.ScopeSub,    // search all levels beneath
                 userSearchFilter,
                 attrList,
                 typesOnly: false
             );
 
-            while (await searchResults.HasMoreAsync())
+            if (searchResults != null)
             {
-                LdapEntry? result = await searchResults.NextAsync();
-                possibleUserEntries.Add(result);
+                while (await searchResults.HasMoreAsync())
+                {
+                    LdapEntry? result = await searchResults.NextAsync();
+                    possibleUserEntries.Add(result);
+                }
             }
         }
 
@@ -320,7 +323,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Try to read user entry directly
                 return await connection.ReadAsync(distinguishedName);
@@ -336,7 +339,7 @@ namespace FWO.Middleware.Server
             return null;
         }
 
-        private async Task<bool> CredentialsValid(LdapConnection connection, string dn, string password)
+        private async Task<bool> CredentialsValid(ILdapClient connection, string dn, string password)
         {
             try
             {
@@ -484,7 +487,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await Connect();
+                using ILdapClient connection = await Connect();
                 // Try to authenticate as user with old password
                 if (await TryBind(connection, userDn, oldPassword))
                 {
@@ -515,7 +518,7 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 if (connection.Bound)
                 {
                     // authentication was successful: set new password
@@ -548,22 +551,25 @@ namespace FWO.Middleware.Server
 
             try
             {
-                using LdapConnection connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
 
                 // Search for Ldap users in given directory          
-                int searchScope = LdapConnection.ScopeSub;
+                int searchScope = Novell.Directory.Ldap.LdapConnection.ScopeSub;
 
                 ILdapSearchResults? searchResults = await connection.SearchAsync(UserSearchPath, searchScope, GetUserSearchFilter(searchPattern), null, false);
 
-                while (await searchResults.HasMoreAsync())
+                if (searchResults != null)
                 {
-                    LdapEntry? entry = await searchResults.NextAsync();
-                    allUsers.Add(new LdapUserGetReturnParameters()
+                    while (await searchResults.HasMoreAsync())
                     {
-                        UserDn = entry.Dn,
-                        Email = entry.GetAttributeSet().ContainsKey("mail") ? entry.Get("mail").StringValue : null
-                        // add first and last name of user
-                    });
+                        LdapEntry? entry = await searchResults.NextAsync();
+                        allUsers.Add(new LdapUserGetReturnParameters()
+                        {
+                            UserDn = entry.Dn,
+                            Email = entry.GetAttributeSet().ContainsKey("mail") ? entry.Get("mail").StringValue : null
+                            // add first and last name of user
+                        });
+                    }
                 }
             }
             catch (Exception exception)
@@ -583,7 +589,7 @@ namespace FWO.Middleware.Server
             bool userAdded = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 string userName = new DistName(userDn).UserName;
                 LdapAttributeSet attributeSet = new()
@@ -627,7 +633,7 @@ namespace FWO.Middleware.Server
             bool userUpdated = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
                 LdapAttribute attribute = new("mail", email);
                 LdapModification[] mods = [new(LdapModification.Replace, attribute)];
 
@@ -660,7 +666,7 @@ namespace FWO.Middleware.Server
             bool userDeleted = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 try
                 {
@@ -754,7 +760,7 @@ namespace FWO.Middleware.Server
             bool userModified = false;
             try
             {
-                using LdapConnection connection = await GetBoundConnection(WriteUser, WriteUserPwd);
+                using ILdapClient connection = await GetBoundConnection(WriteUser, WriteUserPwd);
 
                 LdapEntry? entryData;
                 try

@@ -723,6 +723,56 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveImportedUserIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveUserIdentifier("user-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedGroupIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveGroupIdentifier("group-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedResponsibleIdentifierToDn_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            string? resolvedDn = await import.ResolveResponsibleIdentifier("mixed-a");
+
+            Assert.That(resolvedDn, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedUiUser_ReturnsNullWithoutLdaps()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            UiUser? resolvedUser = await import.ResolveUiUser("cn=user,dc=example,dc=com");
+
+            Assert.That(resolvedUser, Is.Null);
+        }
+
+        [Test]
+        public async Task ResolveImportedGroupMembers_ReturnsEmptyForEmptyGroupDn()
+        {
+            BaseResolverTestAppDataImport import = new(new SimulatedApiConnection(), new GlobalConfig());
+
+            List<string> resolvedMembers = await import.ResolveGroupMembers(new Ldap(), "");
+
+            Assert.That(resolvedMembers, Is.Empty);
+        }
+
+        [Test]
         public async Task DeactivateMissingApps_DeactivatesOnlyActiveAppsFromSameSourceThatAreMissingInImport()
         {
             AppDataImportFlowTestApiConn apiConn = new();
@@ -2556,6 +2606,39 @@ namespace FWO.Test
             {
                 CheckedOwners.Add(new FwoOwner(owner) { OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId });
                 return Task.CompletedTask;
+            }
+        }
+
+        private sealed class BaseResolverTestAppDataImport : AppDataImport
+        {
+            public BaseResolverTestAppDataImport(ApiConnection apiConnection, GlobalConfig globalConfig)
+                : base(apiConnection, globalConfig)
+            {
+            }
+
+            public Task<string?> ResolveUserIdentifier(string userIdentifier)
+            {
+                return ResolveImportedUserIdentifierToDn(userIdentifier);
+            }
+
+            public Task<string?> ResolveGroupIdentifier(string groupIdentifier)
+            {
+                return ResolveImportedGroupIdentifierToDn(groupIdentifier);
+            }
+
+            public Task<string?> ResolveResponsibleIdentifier(string identifier)
+            {
+                return ResolveImportedResponsibleIdentifierToDn(identifier);
+            }
+
+            public Task<UiUser?> ResolveUiUser(string responsibleDn)
+            {
+                return ResolveImportedUiUser(responsibleDn);
+            }
+
+            public Task<List<string>> ResolveGroupMembers(Ldap ldap, string groupDn)
+            {
+                return ResolveImportedGroupMembers(ldap, groupDn);
             }
         }
 

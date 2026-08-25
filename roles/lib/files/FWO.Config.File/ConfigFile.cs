@@ -127,11 +127,11 @@ namespace FWO.Config.File
         {
             get
             {
-                string fwoHome = FwoHome;
+                string fwoHome = FwoHome.TrimEnd('/', '\\');
                 return
                 [
-                    Path.Combine(fwoHome, "scripts", "customizing"),
-                    Path.Combine(fwoHome, "etc")
+                    Path.Combine(fwoHome, "scripts", "customizing").Replace('\\', '/'),
+                    Path.Combine(fwoHome, "etc").Replace('\\', '/')
                 ];
             }
         }

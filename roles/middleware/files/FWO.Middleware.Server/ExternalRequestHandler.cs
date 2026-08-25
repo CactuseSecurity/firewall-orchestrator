@@ -752,10 +752,22 @@ namespace FWO.Middleware.Server
 
         private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
         {
-            if (extStateHandler != null && reqTask.StateId != extStateHandler.GetInternalStateId(extReqState))
+            int? internalStateId = extStateHandler?.GetInternalStateId(extReqState);
+
+            if (internalStateId == null)
+            {
+                if (extReqState == ExtStates.ExtReqRequested.ToString())
+                {
+                    return;
+                }
+
+                throw new ArgumentException($"No translation defined for external state {extReqState}.");
+            }
+
+            if (reqTask.StateId != internalStateId)
             {
                 wfHandler.SetReqTaskEnv(reqTask);
-                reqTask.StateId = extStateHandler.GetInternalStateId(extReqState) ?? throw new ArgumentException("No translation defined for external state.");
+                reqTask.StateId = internalStateId.Value;
                 await wfHandler.PromoteReqTask(reqTask);
             }
         }

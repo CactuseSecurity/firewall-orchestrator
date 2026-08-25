@@ -20,6 +20,12 @@ public sealed class AddressObjectResponse
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets the Type value calculated from the IpStart and IpEnd values.
+    /// </summary>
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets the IpStart value.
     /// </summary>
     [JsonPropertyName("ipStart")]

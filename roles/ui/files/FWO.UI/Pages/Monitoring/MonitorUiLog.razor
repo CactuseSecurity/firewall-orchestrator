@@ -58,7 +58,7 @@ else
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
 
     private List<LogEntry> logEntrys = [];
-    private List<UiUser> uiUsers = [];
+    private readonly List<UiUser> uiUsers = [];
     private UiUser selectedUser = new();
     private bool seeAllUsers = false;
     private bool InitComplete = false;

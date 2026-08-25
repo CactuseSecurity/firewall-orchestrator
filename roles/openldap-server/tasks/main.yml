@@ -8,11 +8,23 @@
   become: true
   tags: ["test", "integrationtests"]
 
-- block:
-      ### OS basics
-      - name: Add the OS specific varibles
-        include_vars: "{{ ansible_facts['os_family'] }}.yml"
+### OS basics needed in every installation mode
+- name: Add the OS specific varibles
+  include_vars: "{{ ansible_facts['os_family'] }}.yml"
+  tags: ["always"]
 
+# the ldap client tools are used by the upgrade, sample-auth-data and integration test tasks,
+# so they must not depend on the server installation block below
+- name: Install the openldap client packages
+  package:
+      name: "{{ item }}"
+      state: present
+  loop: "{{ openldap_client_pkgs }}"
+  become: true
+  environment: "{{ proxy_env }}"
+  tags: ["test", "integrationtests"]
+
+- block:
       - name: Install the openldap and required Packages
         package:
             name: "{{ item }}"

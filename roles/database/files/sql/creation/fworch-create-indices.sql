@@ -22,6 +22,7 @@ Create index IF NOT EXISTS idx_rule01 on rule (rule_uid,mgm_id,dev_id,active,nat
 Create index IF NOT EXISTS idx_rule02 on rule (mgm_id,rule_id,rule_uid,dev_id);
 Create index IF NOT EXISTS idx_rule03 on rule (dev_id);
 Create index IF NOT EXISTS idx_rule04 on rule (action_id);
+Create index IF NOT EXISTS idx_rule_standard_report_page on rule (mgm_id,rulebase_id,rule_num_numeric,rule_id) WHERE access_rule = TRUE;
 Create index IF NOT EXISTS idx_rule_from01 on rule_from (rule_id);
 Create index IF NOT EXISTS idx_rule_service01 on rule_service (rule_id);
 Create index IF NOT EXISTS idx_rule_service02 on rule_service (svc_id);

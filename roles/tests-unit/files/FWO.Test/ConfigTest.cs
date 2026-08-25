@@ -4,16 +4,18 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using System.Text.RegularExpressions;
 
 namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ConfigTest
+    internal partial class ConfigTest
     {
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
@@ -238,6 +240,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Constructor_UsesGlobalUserConfigValueWhenUserHasNoSpecificConfig()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            globalConfig.RawConfigItems =
+            [
+                new() { Key = "elementsPerFetch", Value = "777", User = 0 }
+            ];
+
+            using UserConfigApiConnection apiConnection = new([]);
+            UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
+
+            Assert.That(userConfig.ElementsPerFetch, Is.EqualTo(777));
+        }
+
+        [Test]
         public async Task WriteToDatabase_UpdatesCurrentConfigAfterPersistingChanges()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -336,6 +353,95 @@ namespace FWO.Test
         }
 
         [Test]
+        public void LogDataImportSubscription_ContainsIntervalUnit()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataSleepTimeUnit"));
+        }
+
+        [Test]
+        public void LogDataImportSubscription_ContainsSettingsUsedByRunningImports()
+        {
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataMaxEntries"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("allowLogDataPortWithoutProtocol"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("replaceExistingLogData"));
+            Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("logDataRetentionDays"));
+        }
+
+        [Test]
+        public void ImportSubscriptions_ContainTheScriptTimeoutOfEveryScriptedImport()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportAppDataConfigChanges, Does.Contain("importScriptTimeout"));
+                Assert.That(ConfigQueries.subscribeImportIpDataConfigChanges, Does.Contain("importScriptTimeout"));
+            });
+        }
+
+        [Test]
+        public void ConfigData_DefaultsTheImportScriptTimeoutToAnHour()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportScriptTimeout, Is.EqualTo(60));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsLogDataImportIntervalUnitToHours()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ImportLogDataSleepTimeUnit, Is.EqualTo(LogDataImportIntervalUnit.Hours));
+        }
+
+        [Test]
+        public void ConfigData_EnablesLogDataReplacementByDefault()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ReplaceExistingLogData, Is.True);
+        }
+
+        [Test]
+        public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
+        {
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));
+        }
+
+        [Test]
+        public void ComplianceCheckSubscription_LimitCoversAllTrackedConfigKeys()
+        {
+            string subscription = ConfigQueries.subscribeComplianceCheckConfigChanges;
+            MatchCollection configKeyFilters = ConfigKeyFiltersRegex().Matches(subscription);
+            int trackedConfigKeyCount = configKeyFilters
+                .SelectMany(match => QuotedValueRegex().Matches(match.Groups["body"].Value).Select(quotedValue => quotedValue.Groups[1].Value))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            int limitStart = subscription.IndexOf("limit:", StringComparison.Ordinal);
+
+            Assert.That(limitStart, Is.GreaterThanOrEqualTo(0), "Subscription limit not found.");
+
+            string limitText = subscription[(limitStart + "limit:".Length)..].TrimStart();
+            int limitEnd = limitText.IndexOfAny(['\r', '\n', ')']);
+            string limitValue = limitEnd >= 0 ? limitText[..limitEnd] : limitText;
+
+            Assert.That(int.Parse(limitValue), Is.GreaterThanOrEqualTo(trackedConfigKeyCount));
+        }
+
+        [Test]
+        public void ChangeIdCustomFieldKeysAreIncludedInRelevantSubscriptions()
+        {
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("CustomFieldChangeIdKey"));
+            Assert.That(ConfigQueries.subscribeDailyCheckConfigChanges, Does.Contain("CustomFieldChangeIdKey"));
+        }
+
+        [GeneratedRegex(@"config_key\s*:\s*\{(?<body>.*?)\}", RegexOptions.Singleline)]
+        private static partial Regex ConfigKeyFiltersRegex();
+
+        [GeneratedRegex("\"([^\"]+)\"")]
+        private static partial Regex QuotedValueRegex();
+
+        [Test]
         public void ConfigData_DefaultsFlowSyncSleepTimeToDisabled()
         {
             ConfigData configData = new();
@@ -365,6 +471,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ComplianceDesignatedZoneMatrixId, Is.Zero);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsChangeIdCustomFieldKeys()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.CustomFieldChangeIdKey, Is.EqualTo("[\"field-2\",\"ChangeID\"]"));
         }
 
         [Test]

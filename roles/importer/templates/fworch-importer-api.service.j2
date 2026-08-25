@@ -1,14 +1,19 @@
 [Unit]
 Description={{ product_name }} importer pure python
+Wants=network-online.target
+# wide enough to keep retrying while api or middleware are still coming up, but capped so that a
+# service which keeps crashing ends up in a visible failed state instead of restarting forever
+StartLimitIntervalSec={{ fworch_systemd_start_limit_interval_sec }}
+StartLimitBurst={{ fworch_systemd_start_limit_burst }}
 
 {% if 'apiserver' in group_names and 'middlewareserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ api_service_name }}.service {{ middleware_service_name }}.service
 {% elif 'apiserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ api_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ api_service_name }}.service
 {% elif 'middlewareserver' in group_names -%}
-After=network.target remote-fs.target nss-lookup.target {{ middleware_service_name }}.service
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service {{ middleware_service_name }}.service
 {% else -%}
-After=network.target remote-fs.target nss-lookup.target
+After=network-online.target remote-fs.target nss-lookup.target {{ webserver_package_name }}.service
 {%- endif %}
 
 [Service]
@@ -26,6 +31,13 @@ User={{ fworch_user }}
 KillSignal=SIGINT
 Group={{ fworch_group }}
 Restart=always
+RestartSec={{ fworch_systemd_restart_sec }}
+# bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim.
+# unlike the other services this one runs a process tree, and OOMPolicy=stop would stop it the
+# regular way - SIGINT first, then up to the TimeoutStopSec above before the survivors are killed.
+# oom-killing the whole cgroup at once keeps a restart after an out of memory kill immediate.
+MemoryMax={{ fworch_importer_memory_max }}
+OOMPolicy=kill
 
 [Install]
 WantedBy=multi-user.target

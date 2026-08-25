@@ -53,7 +53,15 @@ namespace FWO.Report
 
     public abstract class ReportBase
     {
-        protected StringBuilder HtmlTemplate = new($@"
+        protected sealed class HtmlFrameOptions
+        {
+            public string? OtherFilter { get; set; }
+            public string? OwnerFilter { get; set; }
+            public TimeFilter? TimeFilter { get; set; }
+            public string FilterTextKey { get; set; } = "filter";
+        }
+
+        private static readonly string HtmlTemplateSource = $@"
 <!DOCTYPE html>
 <html>
 <head>
@@ -73,7 +81,9 @@ namespace FWO.Report
         <hr>
         ##Body##
     </body>
-</html>");
+</html>";
+
+        protected StringBuilder HtmlTemplate = new(HtmlTemplateSource);
 
         public readonly DynGraphqlQuery Query;
         public UserConfig userConfig;
@@ -91,12 +101,34 @@ namespace FWO.Report
 
         public bool GotObjectsInReport { get; protected set; } = false;
 
+        protected const int kMaxConcurrentPdfRenders = 2;
+        private static readonly SemaphoreSlim PdfRenderGate = new(kMaxConcurrentPdfRenders, kMaxConcurrentPdfRenders);
+        protected const int kPdfRenderGateWaitSeconds = 120;
+        protected const int kBrowserLaunchTimeoutMs = 60_000;
+        protected const int kBrowserProtocolTimeoutMs = 180_000;
+        protected const int kPageOperationTimeoutMs = 120_000;
+        protected const int kBrowserCloseTimeoutMs = 30_000;
+
 
         protected ReportBase(DynGraphqlQuery query, UserConfig UserConfig, ReportType reportType)
         {
             Query = query;
             userConfig = UserConfig;
             ReportType = reportType;
+        }
+
+        /// <summary>
+        /// Drops the cached html rendering of this report. It is only needed while an export is being
+        /// prepared - keeping it afterwards pins a multi megabyte string to the report for as long as
+        /// the page holds it, on top of the report data itself. The template is reset as well, because
+        /// the substitutions happen in place and leave a second copy of the body inside the builder.
+        /// </summary>
+        public void ReleaseExportCache()
+        {
+            htmlExport = "";
+            htmlBodyExport = "";
+            htmlBodyExportValid = false;
+            HtmlTemplate = new(HtmlTemplateSource);
         }
 
         public abstract Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct);
@@ -245,18 +277,19 @@ namespace FWO.Report
                     .Replace("\r", "<br>");
         }
 
-        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, string? otherFilter = null, string? ownerFilter = null, TimeFilter? timeFilter = null)
+        protected string GenerateHtmlFrameBase(string title, string filter, DateTime date, StringBuilder htmlReport, HtmlFrameOptions? options = null)
         {
             if (string.IsNullOrEmpty(htmlExport))
             {
+                HtmlFrameOptions frameOptions = options ?? new();
                 string body = htmlReport.ToString();
                 HtmlTemplate = HtmlTemplate.Replace("##Title##", title);
-                ReplaceFilter(filter);
+                ReplaceFilter(filter, frameOptions.FilterTextKey);
                 HtmlTemplate = HtmlTemplate.Replace("##GeneratedOn##", userConfig.GetText("generated_on"));
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
-                ReplaceDateOfConfig(timeFilter);
-                ReplaceOwnerFilter(ownerFilter);
-                ReplaceOtherFilter(otherFilter);
+                ReplaceDateOfConfig(frameOptions.TimeFilter);
+                ReplaceOwnerFilter(frameOptions.OwnerFilter);
+                ReplaceOtherFilter(frameOptions.OtherFilter);
 
                 string htmlToC = BuildHTMLToC(body);
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
@@ -268,11 +301,11 @@ namespace FWO.Report
             return htmlExport;
         }
 
-        private void ReplaceFilter(string filter)
+        private void ReplaceFilter(string filter, string filterTextKey)
         {
             if (filter != "")
             {
-                HtmlTemplate = HtmlTemplate.Replace("##Filter##", userConfig.GetText("filter") + ": " + filter);
+                HtmlTemplate = HtmlTemplate.Replace("##Filter##", $"{EncodeHtml(userConfig.GetText(filterTextKey))}: {EncodeHtml(filter)}");
             }
             else
             {
@@ -305,9 +338,9 @@ namespace FWO.Report
 
         private void ReplaceOwnerFilter(string? ownerFilter)
         {
-            if (ownerFilter != null && ownerFilter != "")
+            if (!string.IsNullOrWhiteSpace(ownerFilter))
             {
-                HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", userConfig.GetText("owners") + ": " + ownerFilter);
+                HtmlTemplate = HtmlTemplate.Replace("##OwnerFilters##", $"{EncodeHtml(userConfig.GetText("owners"))}: {EncodeHtml(ownerFilter)}");
             }
             else
             {
@@ -317,19 +350,23 @@ namespace FWO.Report
 
         private void ReplaceOtherFilter(string? otherFilter)
         {
-            if (otherFilter != null && ReportType != ReportType.RecertEventReport)
+            if (!string.IsNullOrWhiteSpace(otherFilter) && ReportType != ReportType.RecertEventReport)
             {
                 if (ReportType.IsWorkflowReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("workflow_filters") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("workflow_filters"))}: {EncodeHtml(otherFilter)}");
                 }
                 else if (ReportType.IsRulebaseReport())
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("managements") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("managements"))}: {EncodeHtml(otherFilter)}");
+                }
+                else if (ReportType == ReportType.OwnerRecertification)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("other_filters"))}: {EncodeHtml(otherFilter)}");
                 }
                 else
                 {
-                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", userConfig.GetText("devices") + ": " + otherFilter);
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("devices"))}: {EncodeHtml(otherFilter)}");
                 }
             }
             else
@@ -347,6 +384,80 @@ namespace FWO.Report
             catch (Exception)
             {
                 return timestring ?? "";
+            }
+        }
+
+        /// <summary>
+        /// Runs a pdf render behind the concurrency gate.
+        /// </summary>
+        /// <param name="render">The render to run while holding a slot.</param>
+        /// <param name="gateWaitTimeout">How long to wait for a slot. Defaults to <see cref="kPdfRenderGateWaitSeconds"/>.</param>
+        protected static async Task<string?> RunGatedPdfRender(Func<Task<string?>> render, TimeSpan? gateWaitTimeout = null)
+        {
+            TimeSpan slotWaitTimeout = gateWaitTimeout ?? TimeSpan.FromSeconds(kPdfRenderGateWaitSeconds);
+            if (!await PdfRenderGate.WaitAsync(slotWaitTimeout))
+            {
+                Log.WriteAlert("Report Export", $"No pdf render slot became available within {slotWaitTimeout.TotalSeconds} seconds.");
+                throw new TimeoutException("Too many report exports are running at the moment. Please try again in a few minutes.");
+            }
+            try
+            {
+                return await render();
+            }
+            finally
+            {
+                PdfRenderGate.Release();
+            }
+        }
+
+        /// <summary>
+        /// Renders the given html in an already launched browser and shuts that browser down again afterwards.
+        /// </summary>
+        protected async Task<string?> RenderPdfInLaunchedBrowser(IBrowser browser, string html, PaperFormat format, SupportedBrowser wantedBrowser)
+        {
+            try
+            {
+                using IPage page = await browser.NewPageAsync();
+                await page.SetContentAsync(html, new SetContentOptions { Timeout = kPageOperationTimeoutMs });
+
+                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
+
+                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, Timeout = kPageOperationTimeoutMs, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
+                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
+
+                return Convert.ToBase64String(pdfData);
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Report Export", "Rendering the report to pdf failed.", exception);
+                throw;
+            }
+            finally
+            {
+                await CloseBrowserSafely(browser, wantedBrowser);
+            }
+        }
+
+        /// <summary>
+        /// Shuts the headless browser down without letting a stuck shutdown hold on to the render slot.
+        /// </summary>
+        protected static async Task CloseBrowserSafely(IBrowser browser, SupportedBrowser wantedBrowser, TimeSpan? closeTimeout = null)
+        {
+            try
+            {
+                await browser.CloseAsync().WaitAsync(closeTimeout ?? TimeSpan.FromMilliseconds(kBrowserCloseTimeoutMs));
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Report Export", $"Closing the {wantedBrowser} instance failed, killing it instead.", exception);
+            }
+            finally
+            {
+                browser.Dispose();
             }
         }
 
@@ -410,43 +521,27 @@ namespace FWO.Report
                 executablePath = latestInstalledBrowser.GetExecutablePath();
             }
 
-            IBrowser? browser;
-
-            try
+            return await RunGatedPdfRender(async () =>
             {
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                IBrowser browser;
+                try
                 {
-                    ExecutablePath = executablePath,
-                    Headless = true,
-                });
-            }
-            catch (Exception)
-            {
-                Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
-            }
+                    browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                    {
+                        ExecutablePath = executablePath,
+                        Headless = true,
+                        Timeout = kBrowserLaunchTimeoutMs,
+                        ProtocolTimeout = kBrowserProtocolTimeoutMs
+                    });
+                }
+                catch (Exception)
+                {
+                    Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
+                    throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
+                }
 
-            try
-            {
-                using IPage page = await browser.NewPageAsync();
-                await page.SetContentAsync(html);
-
-                PuppeteerSharp.Media.PaperFormat? pupformat = GetPuppeteerPaperFormat(format) ?? throw new KeyNotFoundException();
-
-                PdfOptions pdfOptions = new() { Outline = true, DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = pupformat, MarginOptions = new MarginOptions { Top = "1cm", Bottom = "1cm", Left = "1cm", Right = "1cm" } };
-                byte[]? pdfData = await page.PdfDataAsync(pdfOptions);
-
-                return Convert.ToBase64String(pdfData);
-            }
-            catch (Exception)
-            {
-                throw new NotSupportedException("This paper kind is currently not supported. Please choose another one or \"Custom\" for a custom size.");
-            }
-            finally
-            {
-                await browser.CloseAsync();
-                browser.Dispose();
-            }
+                return await RenderPdfInLaunchedBrowser(browser, html, format, wantedBrowser);
+            });
         }
 
         public static List<ToCHeader> CreateTOCContent(string html)

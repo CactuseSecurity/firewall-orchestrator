@@ -17,5 +17,5 @@ public sealed class CreateRequestResponse
     /// Gets the RequestId value.
     /// </summary>
     [JsonPropertyName("requestId")]
-    public int RequestId { get; set; }
+    public long RequestId { get; set; }
 }

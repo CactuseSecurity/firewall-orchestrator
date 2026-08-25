@@ -57,6 +57,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ResolveAdditionalInformation_ShouldIgnoreCustomFieldCasing()
+        {
+            Rule rule = CreateRule(
+                OwnerMappingSourceStm.CustomField,
+                "{'Change_Key':'chg-4711'}",
+                123);
+
+            AdditionalInformation value = RuleFieldSourceResolver.ResolveAdditionalInformation(rule, @"[""change_key""]");
+
+            ClassicAssert.AreEqual("chg-4711", value.ChangeId);
+        }
+
+        [Test]
+        public void ResolveOwnerInformation_ShouldKeepExactCustomFieldCasing()
+        {
+            Rule rule = CreateRule(
+                OwnerMappingSourceStm.CustomField,
+                "{'Owner_Key':'owner-from-custom'}",
+                123);
+
+            // owner mapping stays case sensitive, so an upgrade cannot silently remap rules to other owners
+            OwnerInformation value = RuleFieldSourceResolver.ResolveOwnerInformation(rule, @"[""owner_key""]");
+
+            ClassicAssert.IsNull(value.ExtAppId);
+        }
+
+        [Test]
         public void ResolveAdditionalInformation_ShouldReturnEmptyObjectWhenNoMappingIsConfigured()
         {
             Rule rule = CreateRule(

@@ -1,0 +1,14 @@
+query getAppZones($where: modelling_nwgroup_bool_exp = {}) {
+  modelling_nwgroup (where: { _and: [{ group_type: { _eq: 21 }, is_deleted: { _eq: false } }, $where] } order_by: { name: asc }) {
+    id
+    app_id
+    name
+    id_string
+    is_deleted
+    nwobjects: nwobject_nwgroups(where: { owner_network: { is_deleted: { _eq: false } } }) {
+      owner_network {
+        ...appServerDetails
+      }
+    }
+  }
+}

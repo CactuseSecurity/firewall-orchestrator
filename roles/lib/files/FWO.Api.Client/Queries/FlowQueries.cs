@@ -13,6 +13,11 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowAddressObjectId;
         public static readonly string getFlowAddressObjects;
         public static readonly string getFlowCustomObjectCandidates;
+        public static readonly string getFlowCustomObjectNamingCandidates;
+        public static readonly string getFlowCustomServiceCandidates;
+        public static readonly string getFlowCustomServiceNamingCandidates;
+        public static readonly string getFlowCustomTimeObjectCandidates;
+        public static readonly string getFlowCustomTimeObjectNamingCandidates;
         public static readonly string getFlowNwObjectCatalog;
         public static readonly string getFlowRequestNwObjectCatalog;
         public static readonly string getFlowRequestSvcObjectCatalog;
@@ -21,6 +26,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowServiceGroups;
         public static readonly string getFlowServiceObjectId;
         public static readonly string getFlowServiceObjects;
+        public static readonly string getFlowTimeObjectId;
         public static readonly string getFlowTimeObjects;
         // Flow sync specific queries/mutations
         public static readonly string getFlowSyncNwObjects;
@@ -73,6 +79,16 @@ namespace FWO.Api.Client.Queries
 
                 getFlowCustomObjectCandidates =
                     GetQueryText("flow/getFlowCustomObjectCandidates.graphql");
+                getFlowCustomObjectNamingCandidates =
+                    GetQueryText("flow/getFlowCustomObjectNamingCandidates.graphql");
+                getFlowCustomServiceCandidates =
+                    GetQueryText("flow/getFlowCustomServiceCandidates.graphql");
+                getFlowCustomServiceNamingCandidates =
+                    GetQueryText("flow/getFlowCustomServiceNamingCandidates.graphql");
+                getFlowCustomTimeObjectCandidates =
+                    GetQueryText("flow/getFlowCustomTimeObjectCandidates.graphql");
+                getFlowCustomTimeObjectNamingCandidates =
+                    GetQueryText("flow/getFlowCustomTimeObjectNamingCandidates.graphql");
 
                 getFlowNwObjectCatalog =
                     flowNwObjectFragment +
@@ -100,6 +116,9 @@ namespace FWO.Api.Client.Queries
                 getFlowServiceObjects =
                     flowSvcObjectFragment +
                     GetQueryText("flow/getFlowServiceObjects.graphql");
+
+                getFlowTimeObjectId =
+                    GetQueryText("flow/getFlowTimeObjectId.graphql");
 
                 getFlowTimeObjects =
                     flowTimeObjectFragment +

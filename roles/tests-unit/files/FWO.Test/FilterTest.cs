@@ -66,12 +66,6 @@ namespace FWO.Test
             return (TException)exception.InnerException!;
         }
 
-        [SetUp]
-        public void Initialize()
-        {
-
-        }
-
         [Test]
         [Parallelizable]
         public void EmptySearch()
@@ -141,8 +135,8 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "this year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear + 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
@@ -153,15 +147,15 @@ namespace FWO.Test
 
             object range = CreateDateTimeRange(TokenKind.EEQ, "last year");
 
-            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0)));
-            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0)));
+            Assert.That(GetDateTimeRangeBound(range, "Start"), Is.EqualTo(new DateTime(currentYear - 1, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
+            Assert.That(GetDateTimeRangeBound(range, "End"), Is.EqualTo(new DateTime(currentYear, 1, 1, 0, 0, 0, DateTimeKind.Unspecified)));
         }
 
         [Test]
         [Parallelizable]
         public void DateTimeRange_LessThanCreatesOpenStartRange()
         {
-            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedEnd = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.LSS, "2025-01-01");
 
@@ -173,7 +167,7 @@ namespace FWO.Test
         [Parallelizable]
         public void DateTimeRange_GreaterThanCreatesOpenEndRange()
         {
-            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0);
+            DateTime expectedStart = new(2025, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
 
             object range = CreateDateTimeRange(TokenKind.GRT, "2025-01-01");
 
@@ -334,7 +328,7 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
 
             ClassicAssert.AreEqual(3, query.QueryVariables.Count);
-            ClassicAssert.AreEqual(true, query.QueryVariables.ContainsKey("refdate1"));
+            ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("refdate1"));
             ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
             ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
@@ -396,6 +390,43 @@ namespace FWO.Test
             StringAssert.Contains("rulebase_links(where:", query.FullQuery);
             StringAssert.DoesNotContain("rulebase_links(where: { }) { rules (", query.FullQuery);
             StringAssert.Contains("rulebases { id uid name rules (", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void StandardRulesQueryBuildsSplitStructureAndRulePageQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("query standardRulesStructure", query.StandardRulesStructureQuery);
+            Assert.That(query.FullQuery, Is.Empty);
+            StringAssert.Contains("rulebase_links", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("rules (", query.StandardRulesStructureQuery);
+            StringAssert.Contains("query standardRulesPage", query.StandardRulesPageQuery);
+            StringAssert.Contains("firewall_rule", query.StandardRulesPageQuery);
+            StringAssert.Contains("$rulebaseIds: [Int!]", query.StandardRulesPageQuery);
+            StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
+            StringAssert.Contains("rulebase_id", query.StandardRulesPageQuery);
+            StringAssert.Contains("rule_id: asc", query.StandardRulesPageQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void StandardRulesQueryWithActiveTenantFilterSkipsSplitQueries()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.Rules;
+            t.ReportParams.TenantFilter.IsActive = true;
+            t.ReportParams.TenantFilter.TenantId = 2;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            Assert.That(query.StandardRulesStructureQuery, Is.Empty);
+            Assert.That(query.StandardRulesPageQuery, Is.Empty);
+            StringAssert.Contains("get_rules_for_tenant", query.FullQuery);
         }
 
         [Test]
@@ -1026,7 +1057,7 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0).ToString(DynGraphqlQuery.fullTimeFormat);
+            string expected = new DateTime(DateTime.Now.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified).ToString(DynGraphqlQuery.fullTimeFormat);
             Assert.That(query.QueryVariables["lastHitLimit0"], Is.EqualTo(expected));
         }
 
@@ -1457,58 +1488,74 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
-        public void TicketReport_FiltersByWorkflowLabelValueTrue()
+        public void TicketReport_FiltersByWorkflowAddInfoValueTrue()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.value, Value = "true" };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $labelValuePattern0 } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelValuePattern0"], Is.EqualTo("%\"policy_check\":\"true\"%"));
+            StringAssert.Contains("reqtasks: { additional_info: { _ilike: $addInfoValuePattern0 } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\":\"true\"%"));
         }
 
         [Test]
         [Parallelizable]
-        public void TicketReport_FiltersByWorkflowLabelNotExisting()
+        public void TicketReport_FiltersByWorkflowAddInfoValueEscapesLikeWildcards()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check_%", Mode = AddInfoFilterMode.value, Value = "tr%ue_" };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $labelKeyPattern0 } } }", query.FullQuery);
-            Assert.That(query.QueryVariables["labelKeyPattern0"], Is.EqualTo("%\"policy_check\":%"));
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo("%\"policy\\_check\\_\\%\":\"tr\\%ue\\_\"%"));
         }
 
         [Test]
         [Parallelizable]
-        public void TicketReport_LabelDisplayOnlyDoesNotFilterTickets()
+        public void TicketReport_FiltersByWorkflowAddInfoNotExisting()
         {
             ReportTemplate template = new()
             {
                 Filter = ""
             };
             template.ReportParams.ReportType = (int)ReportType.TicketReport;
-            template.ReportParams.WorkflowFilter.LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.display_only };
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.not_existing };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            StringAssert.Contains("_not: { reqtasks: { additional_info: { _ilike: $addInfoKeyPattern0 } } }", query.FullQuery);
+            Assert.That(query.QueryVariables["addInfoKeyPattern0"], Is.EqualTo("%\"policy\\_check\":%"));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_AddInfoDisplayOnlyDoesNotFilterTickets()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.display_only };
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
             Assert.Multiple(() =>
             {
-                Assert.That(query.FullQuery, Does.Not.Contain("labelKeyPattern"));
-                Assert.That(query.FullQuery, Does.Not.Contain("labelValuePattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoKeyPattern"));
+                Assert.That(query.FullQuery, Does.Not.Contain("addInfoValuePattern"));
                 Assert.That(query.FullQuery, Does.Not.Contain("additional_info: { _ilike"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelKeyPattern0"));
-                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("labelValuePattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoKeyPattern0"));
+                Assert.That(query.QueryVariables.Keys, Does.Not.Contain("addInfoValuePattern0"));
             });
         }
 
@@ -1530,6 +1577,41 @@ namespace FWO.Test
 
         [Test]
         [Parallelizable]
+        public void TicketReport_FiltersByWorkflowAddInfoValueEscapesJsonCharacters()
+        {
+            string addInfoName = "policy\"check\\name\n";
+            string addInfoValue = "tr\"ue\\value\t";
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = addInfoName, Mode = AddInfoFilterMode.value, Value = addInfoValue };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["addInfoValuePattern0"], Is.EqualTo(BuildAddInfoValuePattern(addInfoName, addInfoValue)));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void TicketReport_FiltersByWorkflowAddInfoNotExistingEscapesJsonCharacters()
+        {
+            string addInfoName = "policy\"check\\name\n";
+            ReportTemplate template = new()
+            {
+                Filter = ""
+            };
+            template.ReportParams.ReportType = (int)ReportType.TicketReport;
+            template.ReportParams.WorkflowFilter.AddInfoFilter = new() { Name = addInfoName, Mode = AddInfoFilterMode.not_existing };
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["addInfoKeyPattern0"], Is.EqualTo(BuildAddInfoExistsPattern(addInfoName)));
+        }
+
+        [Test]
+        [Parallelizable]
         public void TicketReport_FilterLineDoesNotBreakPlainTextStatusSearch()
         {
             ReportTemplate template = new()
@@ -1543,6 +1625,29 @@ namespace FWO.Test
             StringAssert.Contains("query ticketReport", query.FullQuery);
             Assert.That(query.QueryVariables, Does.ContainKey("task_types"));
             Assert.That(query.QueryVariables, Does.Not.ContainKey("state_ids"));
+        }
+
+        private static string BuildAddInfoValuePattern(string addInfoName, string addInfoValue)
+        {
+            return $"%\"{EscapeLike(EscapeJson(addInfoName))}\":\"{EscapeLike(EscapeJson(addInfoValue))}\"%";
+        }
+
+        private static string BuildAddInfoExistsPattern(string addInfoName)
+        {
+            return $"%\"{EscapeLike(EscapeJson(addInfoName))}\":%";
+        }
+
+        private static string EscapeJson(string value)
+        {
+            return JsonSerializer.Serialize(value)[1..^1];
+        }
+
+        private static string EscapeLike(string value)
+        {
+            return value
+                .Replace("\\", "\\\\")
+                .Replace("%", "\\%")
+                .Replace("_", "\\_");
         }
     }
 }

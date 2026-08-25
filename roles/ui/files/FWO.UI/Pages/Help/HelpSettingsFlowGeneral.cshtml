@@ -1,0 +1,19 @@
+@page "/help/settings/flows/general"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("flow_general_settings")</h3>
+    <p>@userConfig.GetText("H5018")</p>
+    <p>@userConfig.GetText("H5020")</p>
+    <p>@userConfig.GetText("H5019")</p>
+</div>

@@ -1,0 +1,215 @@
+# pyright: reportPrivateUsage=false
+# the recursion bound of the internal sweep is tested directly, hence private-usage is allowed here
+from typing import Any
+
+from fw_modules.opnsense25ff.opnsense_constants import MAX_SANITIZER_DEPTH
+from fw_modules.opnsense25ff.opnsense_sanitizer import _redact_sensitive_keys, remove_opnsense_sensitive_data
+
+# Non-credential placeholder used for fields the sanitizer is expected to strip.
+# Routing the values through a variable avoids hard-coded credential literals in
+# the test fixture (e.g. SonarQube S2068).
+_PLACEHOLDER = "redacted-test-value"
+
+
+def _native_config_with_secrets() -> dict[str, Any]:
+    return {
+        "opnsense": {
+            "system": {
+                "user": [
+                    {
+                        "name": "root",
+                        "password": _PLACEHOLDER,
+                        "apikeys": {"k": "v"},
+                        "otp_seed": _PLACEHOLDER,
+                        "authorizedkeys": _PLACEHOLDER,
+                        "pwd_changed_at": _PLACEHOLDER,
+                        "landing_page": "/ui",
+                        "dashboard": "d",
+                    }
+                ],
+                "authserver": [{"name": "ldap", "ldap_bindpw": _PLACEHOLDER}],
+                "hostname": "fw",
+            },
+            "OPNsense": {
+                "IPsec": {"preSharedKeys": {"preSharedKey": [{"ident": "a", "Key": _PLACEHOLDER}]}},
+                "Firewall": {
+                    "Alias": {
+                        "geoip": {"url": "http://example.com/geoip"},
+                        "aliases": {"alias": [{"name": "a1", "username": "u", "password": _PLACEHOLDER}]},
+                    }
+                },
+                "Netflow": {"x": 1},
+                "Syslog": {"y": 2},
+                "wireguard": {"server": {"servers": {"server": [{"privkey": _PLACEHOLDER}]}}},
+                "DynDNS": {"accounts": {"account": [{"service": "dyndns", "password": _PLACEHOLDER}]}},
+                "Nginx": {"upstream": {"servers": {"server": [{"name": "web", "token": _PLACEHOLDER}]}}},
+            },
+            "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
+            "dyndnses": {"dyndns": [{"host": "example.org", "password": _PLACEHOLDER}]},
+            "dhcpd": {"lan": {"ddnsdomainkey": _PLACEHOLDER, "range": {"from": "10.0.0.10"}}},
+            "hasync": {"x": 1},
+            "openvpn": {"y": 2},
+            "ipsec": {"phase1": [{"ikeid": "1", "pre-shared-key": _PLACEHOLDER, "private-key": _PLACEHOLDER}]},
+            "ppps": {"ppp": [{"ptpid": "0", "username": "pppoe-user", "password": _PLACEHOLDER}]},
+            "virtualip": {"vip": [{"password": _PLACEHOLDER}]},
+            "ca": [{"prv": _PLACEHOLDER}],
+            "cert": [{"prv": _PLACEHOLDER}],
+            "rrd": {"x": 1},
+            "snmpd": {"y": 2},
+            "sysctl": {"z": 3},
+            "widgets": {"w": 4},
+            "dhcpdv6": {"d": 5},
+        }
+    }
+
+
+def _native_config_with_singletons() -> dict[str, Any]:
+    return {
+        "opnsense": {
+            "system": {
+                "user": {
+                    "name": "root",
+                    "password": _PLACEHOLDER,
+                    "apikeys": {"k": "v"},
+                    "otp_seed": _PLACEHOLDER,
+                }
+            },
+            "OPNsense": {
+                "IPsec": {"preSharedKeys": {"preSharedKey": {"ident": "a", "Key": _PLACEHOLDER}}},
+                "Firewall": {
+                    "Alias": {
+                        "geoip": {"url": "http://example.com/geoip"},
+                        "aliases": {"alias": {"name": "a1", "username": "u", "password": _PLACEHOLDER}},
+                    }
+                },
+            },
+            "Deciso": {"UserPortal": {"group_options": {"otp_seed": _PLACEHOLDER}}},
+            "virtualip": {"vip": {"password": _PLACEHOLDER}},
+            "ca": {"prv": _PLACEHOLDER},
+            "cert": {"prv": _PLACEHOLDER},
+        }
+    }
+
+
+def test_remove_opnsense_sensitive_data_strips_user_secrets() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+
+    user = out["opnsense"]["system"]["user"][0]
+    for removed_key in (
+        "password",
+        "apikeys",
+        "otp_seed",
+        "authorizedkeys",
+        "pwd_changed_at",
+        "landing_page",
+        "dashboard",
+    ):
+        assert removed_key not in user
+    # non-sensitive fields are preserved
+    assert user["name"] == "root"
+
+
+def test_remove_opnsense_sensitive_data_strips_keys_and_aliases() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]["OPNsense"]
+
+    assert "Key" not in opnsense["IPsec"]["preSharedKeys"]["preSharedKey"][0]
+    assert "geoip" not in opnsense["Firewall"]["Alias"]
+    alias = opnsense["Firewall"]["Alias"]["aliases"]["alias"][0]
+    assert "username" not in alias
+    assert "password" not in alias
+    assert out["opnsense"]["Deciso"]["UserPortal"]["group_options"].get("otp_seed") is None
+
+
+def test_remove_opnsense_sensitive_data_drops_excluded_sections_and_private_keys() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    for excluded_service in ("Netflow", "Syslog"):
+        assert excluded_service not in opnsense["OPNsense"]
+    for excluded_section in ("hasync", "openvpn", "rrd", "snmpd", "sysctl", "widgets", "dhcpdv6"):
+        assert excluded_section not in opnsense
+    assert "password" not in opnsense["virtualip"]["vip"][0]
+    assert "prv" not in opnsense["ca"][0]
+    assert "prv" not in opnsense["cert"][0]
+
+
+def test_remove_opnsense_sensitive_data_strips_legacy_ipsec_ppp_and_wireguard() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    phase1 = opnsense["ipsec"]["phase1"][0]
+    assert "pre-shared-key" not in phase1
+    assert "private-key" not in phase1
+    # non-sensitive fields are preserved
+    assert phase1["ikeid"] == "1"
+
+    ppp = opnsense["ppps"]["ppp"][0]
+    assert "password" not in ppp
+    assert "username" not in ppp
+    assert ppp["ptpid"] == "0"
+
+    assert "wireguard" not in opnsense["OPNsense"]
+
+
+def test_remove_opnsense_sensitive_data_drops_dyndns_and_auth_sections() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    assert "DynDNS" not in opnsense["OPNsense"]
+    assert "dyndnses" not in opnsense
+    assert "authserver" not in opnsense["system"]
+    # non-sensitive system data is preserved
+    assert opnsense["system"]["hostname"] == "fw"
+
+
+def test_remove_opnsense_sensitive_data_sweeps_sections_without_deny_list_entry() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_secrets())
+    opnsense = out["opnsense"]
+
+    nginx_server = opnsense["OPNsense"]["Nginx"]["upstream"]["servers"]["server"][0]
+    assert "token" not in nginx_server
+    assert nginx_server["name"] == "web"
+
+    dhcpd_lan = opnsense["dhcpd"]["lan"]
+    assert "ddnsdomainkey" not in dhcpd_lan
+    assert dhcpd_lan["range"] == {"from": "10.0.0.10"}
+
+
+def test_redact_sensitive_keys_stops_at_max_depth() -> None:
+    # secrets within the supported nesting level are removed, deeper levels are not walked
+    deep: dict[str, Any] = {"password": _PLACEHOLDER}
+    for _ in range(MAX_SANITIZER_DEPTH + 2):
+        deep = {"level": deep, "password": _PLACEHOLDER}
+
+    _redact_sensitive_keys(deep)
+
+    assert "password" not in deep
+    current = deep
+    for _ in range(MAX_SANITIZER_DEPTH - 1):
+        current = current["level"]
+        assert "password" not in current
+    assert "password" in current["level"]
+
+
+def test_remove_opnsense_sensitive_data_handles_singleton_sections() -> None:
+    out = remove_opnsense_sensitive_data(_native_config_with_singletons())
+    opnsense = out["opnsense"]
+
+    user = opnsense["system"]["user"]
+    assert user["name"] == "root"
+    assert "password" not in user
+    assert "apikeys" not in user
+    assert "otp_seed" not in user
+
+    assert "Key" not in opnsense["OPNsense"]["IPsec"]["preSharedKeys"]["preSharedKey"]
+    assert "geoip" not in opnsense["OPNsense"]["Firewall"]["Alias"]
+
+    alias = opnsense["OPNsense"]["Firewall"]["Alias"]["aliases"]["alias"]
+    assert "username" not in alias
+    assert "password" not in alias
+
+    assert "password" not in opnsense["virtualip"]["vip"]
+    assert "prv" not in opnsense["ca"]
+    assert "prv" not in opnsense["cert"]
+    assert opnsense["Deciso"]["UserPortal"]["group_options"].get("otp_seed") is None

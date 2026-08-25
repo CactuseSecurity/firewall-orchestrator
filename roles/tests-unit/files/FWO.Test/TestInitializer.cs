@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using FWO.Basics;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 
@@ -88,7 +89,6 @@ namespace FWO.Test
             File.WriteAllText(testConfigFilePath, kTestConfigFileContent);
             Environment.SetEnvironmentVariable(kConfigFilePathEnvVar, testConfigFilePath);
         }
-
 
         public static void SetGermanCultureOnAllUnitTest()
         {

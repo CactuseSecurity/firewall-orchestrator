@@ -50,6 +50,12 @@ namespace FWO.Test
 
             handler.SetReqTaskPopUpOpt(ObjAction.displayPathAnalysis);
             Assert.That(handler.DisplayPathAnalysisMode, Is.True);
+
+            handler.SetReqTaskPopUpOpt(ObjAction.displayDelete);
+            Assert.That(handler.DisplayDeleteReqTaskMode, Is.True);
+
+            handler.SetReqTaskPopUpOpt(ObjAction.displayComment);
+            Assert.That(handler.DisplayReqTaskCommentMode, Is.True);
         }
 
         [Test]
@@ -178,6 +184,43 @@ namespace FWO.Test
                 Assert.That(missingTask, Is.False);
                 Assert.That(missingTicket, Is.False);
             });
+        }
+
+        [Test]
+        public async Task ReloadActReqTask_RefreshesTicketAndTask()
+        {
+            string taskType = WfTaskType.access.ToString();
+            WfReqTask refreshedTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+            WfTicket refreshedTicket = new() { Id = 7, Tasks = { refreshedTask } };
+            WfHandler handler = CreateReloadHandler(refreshedTicket);
+            SetMatrix(handler, taskType);
+            handler.ActReqTask = new WfReqTask { Id = 11, TicketId = 7, TaskType = taskType };
+            handler.TicketList.Add(new WfTicket { Id = 7, Tasks = { new WfReqTask { Id = 11, TicketId = 7, TaskType = taskType } } });
+
+            bool reloaded = await handler.ReloadActReqTask();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(reloaded, Is.True);
+                Assert.That(handler.ActTicket, Is.SameAs(refreshedTicket));
+                Assert.That(handler.ActReqTask, Is.Not.SameAs(refreshedTask));
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+                Assert.That(handler.TicketList[0], Is.SameAs(refreshedTicket));
+            });
+        }
+
+        [Test]
+        public async Task ReloadActReqTask_ReturnsFalseWhenReloadedTaskCannotBeActivated()
+        {
+            string taskType = WfTaskType.access.ToString();
+            WfReqTask refreshedTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+            WfTicket refreshedTicket = new() { Id = 7, Tasks = { refreshedTask } };
+            WfHandler handler = CreateReloadHandler(refreshedTicket);
+            handler.ActReqTask = new WfReqTask { Id = 11, TicketId = 7, TaskType = taskType };
+
+            bool reloaded = await handler.ReloadActReqTask();
+
+            Assert.That(reloaded, Is.False);
         }
 
         [Test]
@@ -679,6 +722,43 @@ namespace FWO.Test
             await handler.HandlePathAnalysisAction("{");
 
             Assert.That(handler.DisplayPathAnalysisMode, Is.False);
+        }
+
+        private static WfHandler CreateReloadHandler(WfTicket refreshedTicket)
+        {
+            ReloadApiConnection apiConnection = new(refreshedTicket);
+            WfHandler handler = new();
+            handler.userConfig.ReqOwnerBased = false;
+            WfDbAccess dbAccess = new((_, _, _, _) => { }, handler.userConfig, apiConnection, null!, true);
+            SetPrivateField(handler, "dbAcc", dbAccess);
+            return handler;
+        }
+
+        private static void SetPrivateField<T>(WfHandler handler, string fieldName, T value)
+        {
+            FieldInfo field = typeof(WfHandler).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException($"Field '{fieldName}' not found.");
+            field.SetValue(handler, value);
+        }
+
+        private sealed class ReloadApiConnection : SimulatedApiConnection
+        {
+            private readonly WfTicket refreshedTicket;
+
+            public ReloadApiConnection(WfTicket refreshedTicket)
+            {
+                this.refreshedTicket = refreshedTicket;
+            }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(WfTicket))
+                {
+                    return Task.FromResult((QueryResponseType)(object)refreshedTicket);
+                }
+
+                throw new NotSupportedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
+            }
         }
     }
 }

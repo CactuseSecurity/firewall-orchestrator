@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly List<string> kNoGroups = [];
 
         /// <summary>
         /// Constructor.
@@ -180,7 +181,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            if (!CallerCanAccessVisibility(User, wfHandler, scope, statefulObject))
+            if (!await CallerCanAccessVisibility(User, wfHandler, scope, statefulObject))
             {
                 SetWarning(result, $"User is not authorized to access workflow visibility for scope '{scope}' and state {statefulObject.StateId}.");
                 return result;
@@ -382,7 +383,7 @@ namespace FWO.Middleware.Server.Controllers
             return editableOwnerIds.Count > 0 && ticket.Tasks.Any(task => CallerOwnsTask(task, editableOwnerIds));
         }
 
-        private static bool CallerCanAccessVisibility(ClaimsPrincipal user, WfHandler wfHandler, WfObjectScopes scope, WfStatefulObject statefulObject)
+        private async Task<bool> CallerCanAccessVisibility(ClaimsPrincipal user, WfHandler wfHandler, WfObjectScopes scope, WfStatefulObject statefulObject)
         {
             if (!wfHandler.userConfig.ReqVisibilityBased)
             {
@@ -391,9 +392,31 @@ namespace FWO.Middleware.Server.Controllers
 
             StateMatrix stateMatrix = scope == WfObjectScopes.Ticket ? wfHandler.MasterStateMatrix : wfHandler.ActStateMatrix;
             HashSet<int> visibilityGroupIds = GetClaimIds(user, "x-hasura-workflow-visibility-groups");
-            List<string> userGroups = GetClaimStrings(user, "x-hasura-groups");
-            return WorkflowVisibilityHelper.CanAccessStatefulObject(statefulObject, stateMatrix, visibilityGroupIds, wfHandler.GetWorkflowExclusiveVisibilityGroupIds())
-                || IsExplicitlyAssigned(user, userGroups, statefulObject);
+            if (WorkflowVisibilityHelper.CanAccessStatefulObject(statefulObject, stateMatrix, visibilityGroupIds, wfHandler.GetWorkflowExclusiveVisibilityGroupIds()))
+            {
+                return true;
+            }
+            return await IsExplicitlyAssigned(user, statefulObject);
+        }
+
+        /// <summary>
+        /// Decides whether the caller is explicitly assigned, resolving the ldap group memberships only if a
+        /// group assignment exists that could match at all. The group dns are no longer part of the jwt, so
+        /// every lookup costs an ldap round trip.
+        /// </summary>
+        private async Task<bool> IsExplicitlyAssigned(ClaimsPrincipal user, WfStatefulObject statefulObject)
+        {
+            if (IsExplicitlyAssignedToUserOrGroups(user, statefulObject, kNoGroups))
+            {
+                return true;
+            }
+            if (CollectAssignedGroupDns(statefulObject).Count == 0)
+            {
+                return false;
+            }
+
+            List<string> userGroups = await new UserGroupResolver(ldaps).GetGroupsForUserDn(GetClaimValue(user, "x-hasura-uuid") ?? "");
+            return IsExplicitlyAssignedToUserOrGroups(user, statefulObject, userGroups);
         }
 
         private static bool CallerCanUseRole(ClaimsPrincipal user, string executionMode, string role)
@@ -432,30 +455,26 @@ namespace FWO.Middleware.Server.Controllers
             return int.TryParse(GetClaimValue(user, claimName), out int value) ? value : null;
         }
 
-        private static List<string> GetClaimStrings(ClaimsPrincipal user, string claimName)
-        {
-            string? claimValue = GetClaimValue(user, claimName);
-            if (string.IsNullOrWhiteSpace(claimValue))
-            {
-                return [];
-            }
-
-            try
-            {
-                return System.Text.Json.JsonSerializer.Deserialize<List<string>>(claimValue) ?? [];
-            }
-            catch (System.Text.Json.JsonException)
-            {
-                return [];
-            }
-        }
-
-        private static bool IsExplicitlyAssigned(ClaimsPrincipal user, List<string> userGroups, WfStatefulObject statefulObject)
+        private static bool IsExplicitlyAssignedToUserOrGroups(ClaimsPrincipal user, WfStatefulObject statefulObject, List<string> userGroups)
         {
             return IsAssignedToCurrentUser(user, statefulObject.CurrentHandler)
                 || IsAssignedToCurrentUserGroup(userGroups, statefulObject.AssignedGroup)
                 || (statefulObject is WfApproval approval && (IsAssignedToCurrentUserDn(user, approval.ApproverDn)
                     || IsAssignedToCurrentUserGroup(userGroups, approval.ApproverGroup)));
+        }
+
+        private static List<string> CollectAssignedGroupDns(WfStatefulObject statefulObject)
+        {
+            List<string> assignedGroupDns = [];
+            if (!string.IsNullOrWhiteSpace(statefulObject.AssignedGroup))
+            {
+                assignedGroupDns.Add(statefulObject.AssignedGroup);
+            }
+            if (statefulObject is WfApproval approval && !string.IsNullOrWhiteSpace(approval.ApproverGroup))
+            {
+                assignedGroupDns.Add(approval.ApproverGroup);
+            }
+            return assignedGroupDns;
         }
 
         private static bool IsAssignedToCurrentUser(ClaimsPrincipal user, UiUser? handler)

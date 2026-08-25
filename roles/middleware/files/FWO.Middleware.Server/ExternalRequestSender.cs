@@ -1,6 +1,5 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
 using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Data;
@@ -169,17 +168,25 @@ namespace FWO.Middleware.Server
 
             if (ticketIdResponse.StatusCode == HttpStatusCode.OK || ticketIdResponse.StatusCode == HttpStatusCode.Created)
             {
-                var locationHeader = ticketIdResponse.Headers?.FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?.Value
-                    ?.ToString();
-
-                if (!string.IsNullOrEmpty(locationHeader))
+                string? externalTicketId = ExtractExternalTicketId(ticketIdResponse);
+                if (!string.IsNullOrWhiteSpace(externalTicketId))
                 {
-                    Uri locationUri = new(locationHeader);
-                    request.ExtTicketId = locationUri.Segments[^1];
+                    request.ExtTicketId = externalTicketId;
                 }
 
                 request.ExtRequestState = ExtStates.ExtReqRequested.ToString();
                 await UpdateRequestCreation(request);
+
+                try
+                {
+                    using ExternalRequestHandler extReqHandler = new(userConfig, apiConnection);
+                    await extReqHandler.HandleStateChange(request);
+                }
+                catch (Exception exception)
+                {
+                    Log.WriteError(LogMessageTitle, $"{RequestInfo(request)} was created externally, but ticket sync failed.", exception);
+                }
+
                 Log.WriteDebug(LogMessageTitle, $"{RequestInfo(request)}. Success Message: " + ticketIdResponse.Content);
             }
             else
@@ -212,7 +219,7 @@ namespace FWO.Middleware.Server
 
             if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created)
             {
-                request.ExtTicketId = ticket.TicketId;
+                request.ExtTicketId = BuildInternalCheckPointTicketNumber(userConfig, request);
                 request.ExtRequestState = ExtStates.ExtReqDone.ToString();
                 await UpdateRequestCreation(request);
 
@@ -248,6 +255,14 @@ namespace FWO.Middleware.Server
             throw new ProcessingFailedException(
                 $"CheckPoint external request failed for {RequestInfo(request)} with status {(int)response.StatusCode} " +
                 $"{response.StatusCode}: {response.Content}");
+        }
+
+        /// <summary>
+        /// Builds the internal Check Point ticket reference shown as external ticket number.
+        /// </summary>
+        private static string BuildInternalCheckPointTicketNumber(UserConfig userConfig, ExternalRequest request)
+        {
+            return $"{userConfig.GetText("Internal")} ({userConfig.GetText("ticket_id")}: {request.TicketId}, {userConfig.GetText("task_number")}: {request.TaskNumber})";
         }
 
         private async Task<ExternalTicket> ConstructTicket(ExternalRequest request)
@@ -433,6 +448,71 @@ namespace FWO.Middleware.Server
                 waitCycles = --request.WaitCycles
             };
             await apiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExternalRequestWaitCycles, Variables);
+        }
+
+        /// <summary>
+        /// Extracts the created external ticket id from the response body or Location header.
+        /// </summary>
+        private static string? ExtractExternalTicketId(RestResponse<int> response)
+        {
+            string? ticketIdFromBody = ExtractExternalTicketIdFromBody(response.Content);
+            if (!string.IsNullOrWhiteSpace(ticketIdFromBody))
+            {
+                return ticketIdFromBody;
+            }
+
+            string? locationHeader = response.Headers?
+                .FirstOrDefault(h => h.Name.Equals("location", StringComparison.OrdinalIgnoreCase))?
+                .Value?.ToString();
+
+            if (string.IsNullOrWhiteSpace(locationHeader))
+            {
+                return null;
+            }
+
+            if (Uri.TryCreate(locationHeader, UriKind.Absolute, out Uri? locationUri))
+            {
+                return locationUri.Segments.LastOrDefault()?.TrimEnd('/');
+            }
+
+            return locationHeader.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        }
+
+        /// <summary>
+        /// Extracts the created external ticket id from ticket.id or id in the JSON response body.
+        /// </summary>
+        private static string? ExtractExternalTicketIdFromBody(string? content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return null;
+            }
+
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(content);
+
+                if (document.RootElement.ValueKind != JsonValueKind.Object)
+                {
+                    return null;
+                }
+
+                if (document.RootElement.TryGetProperty("ticket", out JsonElement ticket) && ticket.ValueKind == JsonValueKind.Object && ticket.TryGetProperty("id", out JsonElement ticketId))
+                {
+                    return ticketId.ToString();
+                }
+
+                if (document.RootElement.TryGetProperty("id", out JsonElement id))
+                {
+                    return id.ToString();
+                }
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+
+            return null;
         }
 
         /// <summary>

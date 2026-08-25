@@ -66,6 +66,75 @@ internal class FlowComplianceValidationTest
     }
 
     [Test]
+    public void GetFlowComplianceState_AllowsCidr32MaskedIpBoundsAndNormalizesRequest()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1/32", IpEnd = "10.0.0.2/32" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1/32", IpEnd = "10.0.1.2/32" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(request.Source[0].IpStart, Is.EqualTo("10.0.0.1"));
+            Assert.That(request.Source[0].IpEnd, Is.EqualTo("10.0.0.2"));
+            Assert.That(request.Destination[0].IpStart, Is.EqualTo("10.0.1.1"));
+            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("10.0.1.2"));
+        });
+    }
+
+    [TestCase("10.0.0.1/32", "10.0.0.1")]
+    [TestCase("10.0.0.1", "10.0.0.1")]
+    [TestCase("", "")]
+    public void RemoveCidrMask_StripsOnlyAllowedHostMaskSuffix(string input, string expected)
+    {
+        string result = FlowComplianceRequestValidator.RemoveCidrMask(input);
+
+        Assert.That(result, Is.EqualTo(expected));
+    }
+
+    [TestCase("10.0.0.1/24")]
+    [TestCase("10.0.0.1/255.255.255.0")]
+    [TestCase("2001:db8::1/64")]
+    public void RemoveCidrMask_RejectsNonCidr32MaskSuffix(string input)
+    {
+        ArgumentException? exception = Assert.Throws<ArgumentException>(() => FlowComplianceRequestValidator.RemoveCidrMask(input));
+
+        Assert.That(exception?.Message, Does.Contain("Only '/32' is allowed"));
+    }
+
+    [Test]
+    public void TryValidateIpRange_AllowsCidr32MaskedBounds()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange("10.0.0.1/32", "10.0.0.2/32", "address", 0, out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorMessage, Is.Null);
+        });
+    }
+
+    [Test]
+    public void TryValidateIpRange_RejectsNonCidr32MaskedBounds()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange("10.0.0.1/24", "10.0.0.2/32", "address", 0, out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorMessage, Does.Contain("Only '/32' is allowed"));
+            Assert.That(errorMessage, Does.Contain("'ipStart'"));
+        });
+    }
+
+    [Test]
     public void GetFlowComplianceState_RejectsUnknownRootKey()
     {
         string json = """
@@ -205,6 +274,27 @@ internal class FlowComplianceValidationTest
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("same address family"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_RejectsIpv6Addresses()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1", IpEnd = "2001:db8::ffff" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("does not support IPv6 addresses"));
         });
     }
 

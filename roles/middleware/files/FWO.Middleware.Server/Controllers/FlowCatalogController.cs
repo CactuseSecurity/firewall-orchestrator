@@ -34,6 +34,13 @@ public class FlowCatalogController : ControllerBase
             new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
             new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
         ]);
+    private static readonly RequestRootValidationSchema TimeObjectIdRootSchema = new(
+        nameof(GetTimeObjectId),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("startTime", "Start time for the time object lookup."),
+            new RequestKeyDefinition("endTime", "End time for the time object lookup.")
+        ]);
     private static readonly RequestRootValidationSchema AddressObjectIdRootSchema = new(
         nameof(GetAddressObjectId),
         [
@@ -42,6 +49,7 @@ public class FlowCatalogController : ControllerBase
             new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
+    private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
 
     private readonly FlowCatalogService flowCatalogService;
@@ -162,8 +170,35 @@ public class FlowCatalogController : ControllerBase
     }
 
     /// <summary>
+    /// Resolves a time object identifier from the supplied lookup request against the shared flow catalog.
+    /// This lookup is not scoped to a modeller or owner.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [HttpPost("getTimeObjectId")]
+    public async Task<ActionResult<TimeObjectIdResponse>> GetTimeObjectId([FromBody] GetTimeObjectIdRequest request)
+    {
+        if (!TryValidateVisibleInRequestRequest(request, TimeObjectIdRootSchema, TimeObjectIdFilterSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+
+        if (!request.StartTime.HasValue && !request.EndTime.HasValue)
+        {
+            return BadRequest("At least one of 'startTime' or 'endTime' is required.");
+        }
+
+        if (request.StartTime.HasValue && request.EndTime.HasValue && request.StartTime > request.EndTime)
+        {
+            return BadRequest("'startTime' must be <= 'endTime'.");
+        }
+
+        return Ok(await flowCatalogService.GetTimeObjectIdAsync(request.StartTime, request.EndTime, request.Filter?.VisibleInRequest));
+    }
+
+    /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]
@@ -179,11 +214,20 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'ipStart' and 'ipEnd' are required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateIpRange(request.IpStart, request.IpEnd, "address", 0, out string? addressErrorMessage))
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+            request.IpStart,
+            request.IpEnd,
+            "address",
+            0,
+            out string normalizedIpStart,
+            out string normalizedIpEnd,
+            out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
+        request.IpStart = normalizedIpStart;
+        request.IpEnd = normalizedIpEnd;
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 

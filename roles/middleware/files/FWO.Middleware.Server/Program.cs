@@ -9,6 +9,7 @@ using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Quartz;
@@ -76,6 +77,7 @@ builder.Services.AddSingleton<ExternalRequestSchedulerService>();
 builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
 builder.Services.AddSingleton<DailyCheckSchedulerService>();
 builder.Services.AddSingleton<ImportAppDataSchedulerService>();
+builder.Services.AddSingleton<ImportLogDataSchedulerService>();
 builder.Services.AddSingleton<ImportIpDataSchedulerService>();
 builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
@@ -94,6 +96,7 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
+builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
 builder.Services.AddApiExamples();
@@ -174,6 +177,8 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
+app.UseForwardedHeaders(ReverseProxyForwardingOptions.Create());
+
 app.MapOpenApi(kApiDocsRoute);
 app.MapScalarApiReference(kApiDocsPageRoute, options =>
 {
@@ -208,6 +213,7 @@ app.Services.GetRequiredService<ExternalRequestSchedulerService>();
 app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
 app.Services.GetRequiredService<DailyCheckSchedulerService>();
 app.Services.GetRequiredService<ImportAppDataSchedulerService>();
+app.Services.GetRequiredService<ImportLogDataSchedulerService>();
 app.Services.GetRequiredService<ImportIpDataSchedulerService>();
 app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();

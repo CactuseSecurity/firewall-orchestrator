@@ -29,6 +29,7 @@ namespace FWO.Api.Client.Queries
                     GetQueryText("networkObject/fragments/networkObjectOverview.graphql") +
                     GetQueryText("networkService/fragments/networkServiceOverview.graphql") +
                     GetQueryText("user/fragments/userOverview.graphql") +
+                    GetQueryText("rule/fragments/ruleEnforcedOnGateways.graphql") +
                     GetQueryText("rule/fragments/ruleOverview.graphql") +
                     GetQueryText("rule/fragments/rulebaseOverview.graphql");
                 ruleOpenRecertFragments = ruleOverviewFragments + GetQueryText("recertification/fragments/ruleOpenCertOverview.graphql");

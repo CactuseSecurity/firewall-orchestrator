@@ -84,16 +84,26 @@ namespace FWO.Config.Api
         private void OnGlobalConfigChange(Config config, ConfigItem[] changedItems)
         {
             if (IsDisposed) return;
-            // Get properties that belong to the user config 
-            IEnumerable<PropertyInfo> properties = GetType().GetProperties()
-                .Where(prop => prop.GetCustomAttribute<UserConfigDataAttribute>() != null);
-
-            // Exclude all properties from update that belong to the user config
+            HashSet<string> userConfigKeys = GetUserConfigKeys();
+            HashSet<string> personalOverrideKeys = RawConfigItems.Select(configItem => configItem.Key).ToHashSet();
             ConfigItem[] relevantChangedItems = changedItems.Where(configItem =>
-                !properties.Any(prop => ((JsonPropertyNameAttribute)prop.GetCustomAttribute(typeof(JsonPropertyNameAttribute))!).Name == configItem.Key)).ToArray();
+                !userConfigKeys.Contains(configItem.Key) || !personalOverrideKeys.Contains(configItem.Key)).ToArray();
 
             Update(relevantChangedItems);
             InvokeOnChange(this, changedItems);
+        }
+
+        /// <summary>
+        /// Gets all config keys that can be overridden per user.
+        /// </summary>
+        private HashSet<string> GetUserConfigKeys()
+        {
+            return GetType().GetProperties()
+                .Where(prop => prop.GetCustomAttribute<UserConfigDataAttribute>() != null)
+                .Select(prop => prop.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
+                .Where(name => name != null)
+                .Cast<string>()
+                .ToHashSet();
         }
 
         public async Task SetUserInformation(string userDn, ApiConnection apiConnection)

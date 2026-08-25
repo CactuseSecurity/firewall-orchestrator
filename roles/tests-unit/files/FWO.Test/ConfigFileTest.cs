@@ -21,8 +21,8 @@ namespace FWO.Test
         private const string publicKeyTestPath = "public_key.test";
         private static readonly string[] kExpectedAllowedCustomizationRoots =
         [
-            Path.Combine("/usr/local/fworch", "scripts", "customizing"),
-            Path.Combine("/usr/local/fworch", "etc")
+            NormalizePath(Path.Combine("/usr/local/fworch", "scripts", "customizing")),
+            NormalizePath(Path.Combine("/usr/local/fworch", "etc"))
         ];
 
         #region configFiles
@@ -193,6 +193,11 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             File.WriteAllText(uniquePrivateKeyTestPath, privateKey);
             File.WriteAllText(uniquepublicKeyTestPath, publicKey);
             TestHelper.InvokeMethod<ConfigFile, object?>("Read", new object[] { uniqueConfigFilePath, uniquePrivateKeyTestPath, uniquepublicKeyTestPath });
+        }
+
+        private static string NormalizePath(string path)
+        {
+            return path.Replace('\\', '/');
         }
     }
 }

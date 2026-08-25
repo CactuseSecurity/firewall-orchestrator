@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
@@ -11,8 +12,8 @@ using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Services.RuleTreeBuilder;
-using FWO.Ui.Services;
 using FWO.Ui.Pages.NetworkModelling;
+using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -172,7 +173,7 @@ namespace FWO.Test
         [Test]
         public async Task ReportButtonNavigatesToReportGenerationForSelectedApp()
         {
-            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out _);
+            await using BunitContext context = CreateContext([Roles.Admin], out NetworkModellingPageTestApiConn apiConn, out SimulatedUserConfig userConfig);
             IRenderedComponent<NetworkModelling> page = RenderPage(context, appId: "APP-B");
 
             page.WaitForAssertion(() =>
@@ -180,10 +181,42 @@ namespace FWO.Test
                 Assert.That(page.Markup, Does.Contain("Beta App"));
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
-            FindButton(page, "generate_report").Click();
+            FindButton(page, userConfig.GetText("generate_report")).Click();
 
             NavigationManager navigation = context.Services.GetRequiredService<NavigationManager>();
             Assert.That(navigation.Uri, Does.EndWith("/report/generation/20"));
+        }
+
+        [Test]
+        public async Task Render_ReactsToModIconifyChange_ForGenerateReportButton()
+        {
+            await using BunitContext context = CreateContext([Roles.Admin], out _, out SimulatedUserConfig userConfig);
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
+                .AddChildContent<NetworkModelling>(child =>
+                {
+                    child.Add(page => page.AppId, "APP-A");
+                }));
+            IRenderedComponent<NetworkModelling> page = wrapper.FindComponent<NetworkModelling>();
+
+            page.WaitForAssertion(() =>
+            {
+                IReadOnlyList<IElement> buttons = page.FindAll(".btn-group button");
+                Assert.That(buttons[0].TextContent.Trim(), Is.EqualTo(userConfig.GetText("generate_report")));
+            });
+
+            List<ConfigItem> changedItems = new()
+            {
+                new ConfigItem { Key = "modIconify", Value = "true", User = userConfig.User.DbId }
+            };
+            await page.InvokeAsync(() => userConfig.SubscriptionUpdateHandler(changedItems.ToArray()));
+
+            page.WaitForAssertion(() =>
+            {
+                IReadOnlyList<IElement> buttons = page.FindAll(".btn-group button");
+                Assert.That(buttons[0].InnerHtml, Does.Contain(Icons.GenerateReport));
+            });
+
+            wrapper.Dispose();
         }
 
         private static BunitContext CreateContext(
@@ -301,7 +334,7 @@ namespace FWO.Test
         private static IElement FindButton(IRenderedComponent<NetworkModelling> page, string text)
         {
             List<IElement> matches = [.. page.FindAll("button")
-                .Where(button => button.TextContent.Contains(text, StringComparison.OrdinalIgnoreCase))];
+                .Where(button => string.Equals(button.TextContent.Trim(), text, StringComparison.OrdinalIgnoreCase))];
             if (matches.Count == 1)
             {
                 return matches[0];

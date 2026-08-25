@@ -27,30 +27,18 @@ updates:
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    groups:
-      pip-dependencies:
-        patterns:
-          - "*"
 
   - package-ecosystem: "pip"
     directory: "/scripts/customizing/app_data_import"
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    groups:
-      pip-dependencies:
-        patterns:
-          - "*"
 
   - package-ecosystem: "pip"
     directory: "/"
     target-branch: "develop"
     schedule:
       interval: "weekly"
-    groups:
-      pip-dependencies:
-        patterns:
-          - "*"
     ignore:
       # ansible >=13 requires Python >=3.12, unavailable on Debian 12 (see requirements.txt)
       - dependency-name: "ansible"

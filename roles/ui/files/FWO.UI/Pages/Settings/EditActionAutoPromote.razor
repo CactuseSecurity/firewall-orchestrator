@@ -1,0 +1,230 @@
+@using System.Text.Json
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+<div class="col-sm-4">
+    <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5522"))">
+        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_state")):</label>
+        <div class="col-sm-8">
+            <Dropdown ElementType="WfState"
+                      ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                      SelectedElement="selectedToState"
+                      SelectedElementChanged="OnToStateChanged"
+                      Elements="statesPlus">
+                <ElementTemplate Context="state">
+                    @DisplayService.DisplayStateWithId(userConfig, state)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+</div>
+@if (selectedToState.Id == ConditionalState.Id)
+{
+    <div class="col-sm-4">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("to_be_called")):</label>
+            <div class="col-sm-8">
+                <Dropdown ElementType="ToBeCalled"
+                          SelectedElement="selectedToBeCalled"
+                          SelectedElementChanged="OnToBeCalledChanged"
+                          ElementToString="@(t => userConfig.GetText(t.ToString()))"
+                          Elements="Enum.GetValues(typeof(ToBeCalled)).Cast<ToBeCalled>()">
+                    <ElementTemplate Context="callTarget">
+                        @(userConfig.GetText(callTarget.ToString()))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+    </div>
+    @if (selectedToBeCalled == ToBeCalled.PolicyCheck)
+    {
+        <div class="form-group row mt-2">
+            <div class="col-sm-8">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+                    <label class="col-sm-2 col-form-label col-form-label-sm">@(userConfig.GetText("policies")):</label>
+                    <div class="col-sm-10">
+                        <Dropdown ElementType="CompliancePolicy"
+                                  Multiselect="true"
+                                  SelectedElements="selectedPolicies"
+                                  SelectedElementsChanged="OnPoliciesChanged"
+                                  ElementToString="@(p => p.Name)"
+                                  Elements="Policies">
+                            <ElementTemplate Context="policy">
+                                @policy.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("checkResultLabel")):</label>
+                    <div class="col-sm-8">
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               value="@actConditionalAutoPromoteParams.CheckResultLabel"
+                               @onchange="OnCheckResultLabelChanged" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group row mt-2">
+            <div class="col-sm-4">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ifCompliantState")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="WfState"
+                                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                                  SelectedElement="selectedStateOk"
+                                  SelectedElementChanged="OnStateOkChanged"
+                                  Elements="statesPlus.Where(x => x.Id != ConditionalState.Id)">
+                            <ElementTemplate Context="state">
+                                @DisplayService.DisplayStateWithId(userConfig, state)
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5528"))">
+                    <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("ifNotCompliantState")):</label>
+                    <div class="col-sm-8">
+                        <Dropdown ElementType="WfState"
+                                  ElementToString="@(s => DisplayService.DisplayStateWithId(userConfig, s))"
+                                  SelectedElement="selectedStateNotOk"
+                                  SelectedElementChanged="OnStateNotOkChanged"
+                                  Elements="statesPlus.Where(x => x.Id != ConditionalState.Id)">
+                            <ElementTemplate Context="state">
+                                @DisplayService.DisplayStateWithId(userConfig, state)
+                            </ElementTemplate>
+                        </Dropdown>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public WfStateAction ActAction { get; set; } = new();
+
+    [Parameter]
+    public List<WfState> States { get; set; } = [];
+
+    [Parameter]
+    public List<CompliancePolicy> Policies { get; set; } = [];
+
+    private IEnumerable<CompliancePolicy> selectedPolicies = [];
+    private ConditionalAutoPromoteParams actConditionalAutoPromoteParams = new();
+    private static WfState AutomaticState = new() { Id = -1, Name = "automatic" };
+    private static WfState ConditionalState = new() { Id = -2, Name = "Conditional" };
+    private WfState selectedToState = AutomaticState;
+    private WfState selectedStateOk = AutomaticState;
+    private WfState selectedStateNotOk = AutomaticState;
+    private ToBeCalled selectedToBeCalled = ToBeCalled.PolicyCheck;
+    private List<WfState> statesPlus = [];
+
+    protected override void OnParametersSet()
+    {
+        statesPlus =
+        [
+            AutomaticState,
+            ConditionalState,
+            .. States
+        ];
+
+        ResetLocalState();
+        LoadFromExternalParams();
+    }
+
+    private void ResetLocalState()
+    {
+        actConditionalAutoPromoteParams = new();
+        selectedToState = AutomaticState;
+        selectedStateOk = AutomaticState;
+        selectedStateNotOk = AutomaticState;
+        selectedPolicies = [];
+        selectedToBeCalled = ToBeCalled.PolicyCheck;
+    }
+
+    private void LoadFromExternalParams()
+    {
+        if (!WfStateAction.TryParseAutoPromoteParams(ActAction.ExternalParams, out int? parsedToState, out ConditionalAutoPromoteParams? conditionalParams))
+        {
+            return;
+        }
+
+        if (conditionalParams != null)
+        {
+            actConditionalAutoPromoteParams = conditionalParams;
+            selectedToBeCalled = conditionalParams.ToBeCalled;
+            selectedPolicies = Policies.Where(p => conditionalParams.PolicyIds.Contains(p.Id)).ToList();
+            selectedToState = ConditionalState;
+            selectedStateOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfCompliantState) ?? AutomaticState;
+            selectedStateNotOk = statesPlus.Where(x => x.Id != ConditionalState.Id).FirstOrDefault(x => x.Id == conditionalParams.IfNotCompliantState) ?? AutomaticState;
+            return;
+        }
+
+        selectedToState = statesPlus.FirstOrDefault(x => x.Id == parsedToState) ?? AutomaticState;
+    }
+
+    private Task OnToStateChanged(WfState state)
+    {
+        selectedToState = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnToBeCalledChanged(ToBeCalled toBeCalled)
+    {
+        selectedToBeCalled = toBeCalled;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPoliciesChanged(IEnumerable<CompliancePolicy> policies)
+    {
+        selectedPolicies = policies.ToList();
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnCheckResultLabelChanged(ChangeEventArgs changeEventArgs)
+    {
+        actConditionalAutoPromoteParams.CheckResultLabel = changeEventArgs.Value?.ToString() ?? "";
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnStateOkChanged(WfState state)
+    {
+        selectedStateOk = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private Task OnStateNotOkChanged(WfState state)
+    {
+        selectedStateNotOk = state;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private void UpdateExternalParams()
+    {
+        if (selectedToState.Id != ConditionalState.Id)
+        {
+            ActAction.ExternalParams = selectedToState.Id.ToString();
+            return;
+        }
+
+        actConditionalAutoPromoteParams.ToBeCalled = selectedToBeCalled;
+        actConditionalAutoPromoteParams.PolicyIds = selectedPolicies.Select(p => p.Id).ToList();
+        actConditionalAutoPromoteParams.CheckResultLabel = actConditionalAutoPromoteParams.CheckResultLabel?.Trim() ?? "";
+        actConditionalAutoPromoteParams.IfCompliantState = selectedStateOk.Id;
+        actConditionalAutoPromoteParams.IfNotCompliantState = selectedStateNotOk.Id;
+        ActAction.ExternalParams = JsonSerializer.Serialize(actConditionalAutoPromoteParams);
+    }
+}

@@ -9,6 +9,7 @@ using FWO.Middleware.Client;
 using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
 using FWO.Ui.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
@@ -21,7 +22,7 @@ namespace FWO.Ui.Auth
     /// <summary>
     /// Manages the authenticated UI user state based on JWT access and refresh tokens.
     /// </summary>
-    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
+    public class AuthStateProvider(TokenService tokenService, IEventMediator eventMediator, NavigationManager navigationManager, ExecutionModeStorage? executionModeStorage = null) : AuthenticationStateProvider
     {
         private enum JwtApplyStatus
         {
@@ -80,7 +81,7 @@ namespace FWO.Ui.Auth
 
                 await ApplyTokenPair(tokenPair, apiConnection, middlewareClient, userConfig);
 
-                Log.WriteAudit("AuthenticateUser", $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
+                Log.WriteAudit(nameof(Authenticate), $"User \"{username}\" with DN: \"{userConfig.User.Dn}\" successfully authenticated.");
             }
 
             return apiAuthResponse;
@@ -125,7 +126,7 @@ namespace FWO.Ui.Auth
         /// <summary>
         /// Deauthenticates the current user and clears any persisted session state.
         /// </summary>
-        public async Task Deauthenticate()
+        public async Task Deauthenticate(string navigationUri = "", bool forceNavigation = true)
         {
             try
             {
@@ -135,16 +136,25 @@ namespace FWO.Ui.Auth
             {
                 Log.WriteWarning("Deauthenticate", $"Token cleanup failed during logout: {ex.Message}");
             }
-            finally
+
+            try
             {
                 if (executionModeStorage != null)
                 {
                     await executionModeStorage.ClearExecutionMode();
                 }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteWarning("Deauthenticate", $"Execution mode cleanup failed during logout: {ex.Message}");
+            }
 
-                user = new ClaimsPrincipal(new ClaimsIdentity());
+            user = new ClaimsPrincipal(new ClaimsIdentity());
+            NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
 
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(user)));
+            if (forceNavigation)
+            {
+                navigationManager.NavigateTo(navigationUri, forceLoad: true);
             }
         }
 
@@ -217,18 +227,16 @@ namespace FWO.Ui.Auth
             string userDn = user.FindFirstValue("x-hasura-uuid") ?? "";
             string defaultRole = user.FindFirstValue("x-hasura-default-role") ?? "";
 
-            userConfig.User.Jwt = jwtString;
             await apiConnection.RunWithRole(defaultRole, async () =>
             {
                 await userConfig.SetUserInformation(userDn, apiConnection);
                 userConfig.User.Tenant = await GetTenantFromJwt(jwtString, apiConnection);
             });
 
-            userConfig.User.Jwt = jwtString;
-            userConfig.User.Roles = await GetAllowedRoles(userConfig.User.Jwt);
-            userConfig.User.Ownerships = await GetAssignedOwners(userConfig.User.Jwt);
-            userConfig.User.RecertOwnerships = await GetRecertifiableOwners(userConfig.User.Jwt);
-            userConfig.User.WorkflowVisibilityGroupIds = await GetWorkflowVisibilityGroupIds(userConfig.User.Jwt);
+            userConfig.User.Roles = await GetAllowedRoles(jwtString);
+            userConfig.User.Ownerships = await GetAssignedOwners(jwtString);
+            userConfig.User.RecertOwnerships = await GetRecertifiableOwners(jwtString);
+            userConfig.User.WorkflowVisibilityGroupIds = await GetWorkflowVisibilityGroupIds(jwtString);
 
             Log.WriteDebug("Auth Claims", $"Parsed allowed roles: [{string.Join(", ", userConfig.User.Roles)}]");
             Log.WriteDebug("Auth Claims", $"Parsed editable owners: [{string.Join(", ", userConfig.User.Ownerships)}]");
@@ -261,7 +269,7 @@ namespace FWO.Ui.Auth
                     return false;
                 case JwtApplyStatus.Invalid:
                 case JwtApplyStatus.UnauthorizedRole:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     return false;
                 default:
                     return false;
@@ -273,8 +281,8 @@ namespace FWO.Ui.Auth
         /// </summary>
         private async Task HandleExpiredSessionAsync()
         {
-            PublishReloginRequiredForAuthenticatedUser();
             await tokenService.RevokeTokens();
+            PublishReloginRequiredForAuthenticatedUser();
         }
 
         /// <summary>
@@ -316,11 +324,11 @@ namespace FWO.Ui.Auth
                     await tokenService.SetTokenPair(tokenPair);
                     return;
                 case JwtApplyStatus.UnauthorizedRole:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     throw new AuthenticationException(result.ErrorCode ?? "not_authorized");
                 case JwtApplyStatus.Expired:
                 case JwtApplyStatus.Invalid:
-                    await Deauthenticate();
+                    await Deauthenticate(forceNavigation: false);
                     throw new AuthenticationException("not_authorized");
             }
 
@@ -353,32 +361,6 @@ namespace FWO.Ui.Auth
         /// <param name="userDn">Distinguished name of the affected user.</param>
         private void PublishReloginRequired(string userDn) => eventMediator.Publish(nameof(ReloginRequiredEvent), new ReloginRequiredEvent(new(userDn)));
 
-        // public async Task<int> GetTenantId(string jwtString)
-        // {
-        // 	JwtReader jwtReader = new(jwtString);
-        // 	int tenantId = 0;
-
-        // 	if (await jwtReader.Validate())
-        // 	{
-        // 		ClaimsIdentity identity = new
-        // 		(
-        // 			claims: jwtReader.GetClaims(),
-        // 			authenticationType: "ldap",
-        // 			nameType: JwtRegisteredClaimNames.UniqueName,
-        // 			roleType: "role"
-        // 		);
-
-        // 		// Set user information
-        // 		user = new ClaimsPrincipal(identity);
-
-        // 		if (!int.TryParse(user.FindFirstValue("x-hasura-tenant-id"), out tenantId))
-        // 		{
-        // 			// TODO: log warning
-        // 		}
-        // 	}
-        // 	return tenantId;
-        // }
-
         private async Task<Tenant> GetTenantFromJwt(string jwtString, ApiConnection apiConnection)
         {
             JwtReader jwtReader = new(jwtString);
@@ -401,10 +383,6 @@ namespace FWO.Ui.Auth
                 {
                     tenant = await GetSingleTenant(apiConnection, tenantId) ?? new();
                 }
-                // else
-                // {
-                //     // TODO: log warning
-                // }
             }
             return tenant;
         }

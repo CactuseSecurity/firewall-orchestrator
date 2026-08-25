@@ -26,6 +26,15 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ParseLegacyAllOwnerResponsiblesReturnsEmptyWhenNoResponsibleTypesAreActive()
+        {
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(nameof(EmailRecipientOption.AllOwnerResponsibles), Array.Empty<int>());
+
+            Assert.That(selection.None, Is.True);
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.Empty);
+        }
+
+        [Test]
         public void ParseJsonDerivesNoneFromEffectiveSelections()
         {
             string rawConfig = "{\"none\":true,\"other_addresses\":true,\"owner_responsible_type_ids\":[1,2]}";

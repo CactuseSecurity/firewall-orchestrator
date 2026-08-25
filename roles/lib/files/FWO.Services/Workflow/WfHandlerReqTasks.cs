@@ -152,9 +152,17 @@ namespace FWO.Services.Workflow
                 return TicketList.FirstOrDefault(ticket => ticket.Id == reqTask.TicketId);
             }
 
-            if (ActTicket != null && (ActTicket.Id <= 0 || ActTicket.Tasks.Any(task => task.Id == reqTask.Id)))
+            if (ActTicket != null)
             {
-                return ActTicket;
+                if (AddTicketMode && ActTicket.Id <= 0)
+                {
+                    return ActTicket;
+                }
+
+                if (ActTicket.Tasks.Contains(reqTask))
+                {
+                    return ActTicket;
+                }
             }
 
             return TicketList.FirstOrDefault(ticket => ticket.Tasks.Any(task => task.Id == reqTask.Id));

@@ -7,8 +7,10 @@ using System.Collections.Generic;
 
 namespace FWO.Services.Workflow
 {
-    public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
+    public class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, bool FailOnActionError = false)
     {
+        private readonly bool failOnActionError = FailOnActionError;
+
         public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
             Func<WfTicket, bool>? ticketFilter = null)
         {
@@ -184,6 +186,10 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
+                if (failOnActionError)
+                {
+                    throw new InvalidOperationException("Workflow actions failed while creating the request ticket.", exception);
+                }
             }
             return ticket;
         }

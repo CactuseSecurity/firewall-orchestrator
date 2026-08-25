@@ -348,7 +348,8 @@ namespace FWO.Test
             string taskType = WfTaskType.access.ToString();
             SetMatrix(handler, taskType);
             WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
-            handler.ActTicket = new WfTicket { Id = 0, Tasks = { reqTask } };
+            handler.ActTicket = new WfTicket { Id = 0 };
+            handler.AddTicketMode = true;
 
             bool found = handler.TrySetReqTaskEnv(reqTask);
 
@@ -361,13 +362,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public void TrySetReqTaskEnv_ReturnsFalseWhenZeroTicketIdUsesStaleCurrentTicket()
+        public void TrySetReqTaskEnv_ReturnsFalseWhenZeroTicketIdUsesDefaultPlaceholderTicket()
         {
             WfHandler handler = new();
             string taskType = WfTaskType.access.ToString();
             SetMatrix(handler, taskType);
             WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
-            handler.ActTicket = new WfTicket { Id = 7 };
+            handler.ActTicket = new WfTicket { Id = 0 };
 
             bool found = handler.TrySetReqTaskEnv(reqTask);
 

@@ -21,6 +21,7 @@ namespace FWO.Test
             public List<WfTicket> Tickets { get; set; } = [];
             public WfTicket Ticket { get; set; } = new();
             public bool FindRuleUidHasMatch { get; set; }
+            public long NewTicketId { get; set; } = 101;
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -32,6 +33,13 @@ namespace FWO.Test
                 if (query == RequestQueries.getTicketById)
                 {
                     return Task.FromResult((T)(object)Ticket);
+                }
+                if (query == RequestQueries.newTicket)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = NewTicketId } }
+                    });
                 }
                 if (query == RequestQueries.getTickets || query == RequestQueries.getFullTickets || query == RequestQueries.getTicketsByParameters)
                 {
@@ -119,6 +127,62 @@ namespace FWO.Test
 
             Assert.That(filtered, Has.Count.EqualTo(1));
             Assert.That(filtered[0].Id, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task AddTicketToDb_RethrowsWorkflowActionFailuresWhenConfigured()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    StateId = 1,
+                    Requester = new UiUser { DbId = 42 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>
+            {
+                new()
+                {
+                    Id = 1,
+                    Name = "requested",
+                    Actions = new List<WfStateActionDataHelper>
+                    {
+                        new()
+                        {
+                            SortOrder = 1,
+                            Action = new WfStateAction
+                            {
+                                Name = "broken add approval",
+                                ActionType = StateActionTypes.AddApproval.ToString(),
+                                Scope = WfObjectScopes.Ticket.ToString(),
+                                Event = StateActionEvents.OnSet.ToString(),
+                                ExternalParams = "{invalid"
+                            }
+                        }
+                    }
+                }
+            });
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, true);
+
+            WfTicket ticket = new()
+            {
+                Id = 0,
+                StateId = 1,
+                Requester = new UiUser { DbId = 42 },
+                Tasks = new List<WfReqTask>()
+            };
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await dbAccess.AddTicketToDb(ticket))!;
+
+            Assert.That(exception.Message, Does.Contain("Workflow actions failed while creating the request ticket."));
+            Assert.That(exception.InnerException, Is.TypeOf<System.Text.Json.JsonException>());
         }
 
         [Test]

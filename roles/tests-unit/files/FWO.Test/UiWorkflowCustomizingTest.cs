@@ -113,7 +113,11 @@ namespace FWO.Test
             SettingsCustomizing component = new();
             WorkflowCustomizingApiConn apiConnection = new()
             {
-                States = [new WfState { Id = 0, Name = "draft" }, new WfState { Id = 17, Name = "requested" }]
+                States = new List<WfState>
+                {
+                    new() { Id = 0, Name = "draft" },
+                    new() { Id = 17, Name = "requested" }
+                }
             };
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -141,6 +145,53 @@ namespace FWO.Test
             Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
             ConfigItem stateConfig = apiConnection.LastConfigItems.Single(item => item.Key == "reqApiTicketInitialStateId");
             Assert.That(stateConfig.Value, Is.EqualTo("17"));
+        }
+
+        [Test]
+        public async Task SettingsCustomizing_FiltersApiTicketInitialStatesToActivePhaseStates()
+        {
+            await using BunitContext context = new();
+            WorkflowCustomizingApiConn apiConnection = new()
+            {
+                States = new List<WfState>
+                {
+                    new() { Id = 0, Name = "draft" },
+                    new() { Id = 17, Name = "requested" },
+                    new() { Id = 50, Name = "approval" }
+                },
+                WorkflowConfigurations = new List<WorkflowConfiguration>
+                {
+                    CreateWorkflowConfiguration("request-active",
+                        CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 101),
+                        CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 50, 60, 102))
+                }
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqApiTicketInitialStateId = 50
+            };
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Admin));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<SettingsCustomizing>());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
+                List<int> stateIds = (List<int>)GetField(settings.Instance, "stateIds");
+                int? selectedStateId = (int?)GetField(settings.Instance, "selectedApiTicketInitialStateId");
+
+                Assert.That(stateIds, Is.EqualTo(new List<int> { 17 }));
+                Assert.That(selectedStateId, Is.Null);
+            });
         }
 
         [Test]
@@ -320,13 +371,47 @@ namespace FWO.Test
         {
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
-            public List<WfState> States { get; set; } = [new WfState { Id = 0, Name = "draft" }];
+            public List<WfState> States { get; set; } = new List<WfState>
+            {
+                new() { Id = 0, Name = "draft" }
+            };
+            public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } = new List<WorkflowConfiguration>
+            {
+                new()
+                {
+                    Id = 1,
+                    Name = "default",
+                    Phases = new List<WorkflowConfigurationPhase>
+                    {
+                        new()
+                        {
+                            TaskType = WfTaskType.master.ToString(),
+                            Phase = WorkflowPhases.request.ToString(),
+                            PhaseMatrix = new StateMatrixPhase
+                            {
+                                Id = 11,
+                                Name = "request",
+                                Phase = WorkflowPhases.request.ToString(),
+                                Active = true,
+                                LowestInputState = 0,
+                                LowestStartState = 0,
+                                LowestEndState = 0
+                            }
+                        }
+                    }
+                }
+            };
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == RequestQueries.getStates && typeof(QueryResponseType) == typeof(List<WfState>))
                 {
                     return Task.FromResult((QueryResponseType)(object)States);
+                }
+
+                if (query == RequestQueries.getActiveStateMatrixConfiguration && typeof(QueryResponseType) == typeof(List<WorkflowConfiguration>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)WorkflowConfigurations);
                 }
 
                 if (query == ConfigQueries.upsertConfigItems)
@@ -340,6 +425,53 @@ namespace FWO.Test
 
                 throw new NotImplementedException();
             }
+        }
+
+        private static object GetField(object instance, string memberName)
+        {
+            Type type = instance.GetType();
+            FieldInfo? field = type.GetField(memberName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (field != null)
+            {
+                return field.GetValue(instance)!;
+            }
+
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                return property.GetValue(instance)!;
+            }
+
+            throw new MissingFieldException(type.FullName, memberName);
+        }
+
+        private static WorkflowConfiguration CreateWorkflowConfiguration(string name, params WorkflowConfigurationPhase[] phases)
+        {
+            return new WorkflowConfiguration
+            {
+                Id = 1,
+                Name = name,
+                Phases = phases.ToList()
+            };
+        }
+
+        private static WorkflowConfigurationPhase CreateWorkflowConfigurationPhase(WorkflowPhases phase, bool active, int lowestInputState, int lowestEndState, int id)
+        {
+            return new WorkflowConfigurationPhase
+            {
+                TaskType = WfTaskType.master.ToString(),
+                Phase = phase.ToString(),
+                PhaseMatrix = new StateMatrixPhase
+                {
+                    Id = id,
+                    Name = phase.ToString(),
+                    Phase = phase.ToString(),
+                    Active = active,
+                    LowestInputState = lowestInputState,
+                    LowestStartState = lowestInputState,
+                    LowestEndState = lowestEndState
+                }
+            };
         }
 
         private sealed class WorkflowCustomizingAuthStateProvider(params string[] roles) : AuthenticationStateProvider

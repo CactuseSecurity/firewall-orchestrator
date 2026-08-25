@@ -314,12 +314,16 @@ namespace FWO.Services.Workflow
             int protoId = snapshot.ProtoId!.Value;
             int? portEnd = snapshot.PortEnd ?? snapshot.Port;
             string name = BuildServiceObjectName(snapshot, context);
-            bool isTechnical = snapshot.Port.HasValue && portEnd.HasValue;
-            string hash = isTechnical
-                ? FlowHashGenerator.GenerateSvcObjectHash(protoId, snapshot.Port!.Value, portEnd!.Value)
-                : FlowHashGenerator.GenerateRandomHash();
-            FlowSvcObject? existingObject = isTechnical
-                ? FindServiceObjectByHash(hash, context)
+            FlowSvcObject newFlowSvcObject = new()
+            {
+                ProtoId = protoId,
+                PortStart = snapshot.Port,
+                PortEnd = portEnd
+            };
+            string? deterministicHash = newFlowSvcObject.TryCalculateHash();
+            string hash = deterministicHash ?? FlowHashGenerator.GenerateRandomHash();
+            FlowSvcObject? existingObject = deterministicHash != null
+                ? FindServiceObjectByHash(deterministicHash, context)
                 : FindReusableServiceObject(name, protoId, context);
             if (existingObject != null)
             {

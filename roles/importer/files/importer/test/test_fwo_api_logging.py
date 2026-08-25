@@ -1,10 +1,13 @@
 from unittest import mock
 
+import pytest
 from fwo_api import REDACTED_VALUE, FwoApi
 
 
-def test_show_import_api_call_info_redacts_variables_and_authorization_header() -> None:
-    FwoApi.login = mock.MagicMock()  # Mock login to avoid side effects
+def test_show_import_api_call_info_redacts_variables_and_authorization_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(FwoApi, "login", mock.MagicMock())  # Mock login to avoid side effects
     api = FwoApi("https://fworch.example/api", "importer", "jwt", "uri", "api-uri")
 
     payload = {
@@ -25,8 +28,10 @@ def test_show_import_api_call_info_redacts_variables_and_authorization_header() 
     assert '"x-hasura-role": "importer"' in message
 
 
-def test_show_api_call_info_redacts_variables_and_hasura_admin_secret_header() -> None:
-    FwoApi.login = mock.MagicMock()  # Mock login to avoid side effects
+def test_show_api_call_info_redacts_variables_and_hasura_admin_secret_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(FwoApi, "login", mock.MagicMock())  # Mock login to avoid side effects
     api = FwoApi("https://fworch.example/api", "importer", "jwt", "uri", "api-uri")
     payload = {
         "query": "query Test { config { config_value } }",

@@ -1,5 +1,5 @@
 query getMaxImportId {
-  import_control_aggregate {
+  import_control_aggregate(where: {successful_import: {_eq: true}}) {
     aggregate {
       max {
         id: control_id

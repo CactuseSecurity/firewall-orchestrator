@@ -1,0 +1,3 @@
+mutation deleteImportControl($importIds: [bigint!]!) {
+    delete_import_control(where: {control_id: {_in: $importIds}}) { affected_rows }
+}

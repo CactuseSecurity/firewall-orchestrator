@@ -156,7 +156,7 @@ class FwoApiCall:
             changes_in_import = 0
         return changes_in_import
 
-    def unlock_import(self, import_state: ImportState, success: bool):
+    def unlock_import(self, import_state: ImportState, success: bool, import_errors: str | None = None):
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -169,6 +169,7 @@ class FwoApiCall:
                 "changesFound": import_stats.get_total_change_number() > 0,
                 "policyChangesFound": import_stats.get_rule_change_number() > 0,
                 "changeNumber": import_stats.get_rule_change_number(),
+                "importErrors": import_errors,
             }
 
             unlock_mutation = FwoApi.get_graphql_code(
@@ -382,13 +383,12 @@ class FwoApiCall:
         except Exception:
             FWOLogger.error("error while trying to log import attempt")
 
-        self.unlock_import(import_state, success=exception is None)
-
         exception_message: str | None = None
-        if exception is not None and hasattr(exception, "message"):
-            exception_message = getattr(exception, "message", None)
-        else:
-            exception_message = str(exception)
+        if exception is not None:
+            # prefer a custom .message but always fall back to str(exception) so the failure reason is never lost
+            exception_message = getattr(exception, "message", None) or str(exception)
+
+        self.unlock_import(import_state, success=exception is None, import_errors=exception_message)
 
         import_result = (
             "import_management: import no. "

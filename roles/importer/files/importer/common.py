@@ -256,7 +256,11 @@ def roll_back_exception_handler(
             )
         else:
             FWOLogger.info("No config_importer found, skipping rollback.")
-        import_state.delete_import()  # delete whole import
+
+        # keep the row for genuine post-data failures so they stay visible; otherwise remove it
+        keep_import_record = import_state.state.rollback_required and not fwo_globals.shutdown_requested
+        if not keep_import_record:
+            import_state.delete_import()
     except Exception as rollbackError:
         FWOLogger.error(f"Error during rollback: {type(rollbackError).__name__} - {rollbackError}")
 

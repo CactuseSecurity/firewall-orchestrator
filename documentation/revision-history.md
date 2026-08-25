@@ -618,3 +618,8 @@ Not supported any longer are:
 - add nat import for checkpoint and forti firewall managements
 - fix checkpoint import policy install detection
 - fix nat rules report
+
+## 9.4.2 - 25.08.2026
+- improve import rollback: keep import_control records of failed imports so the error is visible in the UI
+- optimize full management rollback to roll back all imports in a single mutation call
+- report import rollback failures instead of silently showing success

@@ -1,0 +1,51 @@
+mutation rollbackImportData($importIds: [bigint!]!) {
+    delete_firewall_nw_object_group(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_nw_service_group(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_nw_user_group(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_objgrp_flat(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_svcgrp_flat(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_usergrp_flat(where: {import_created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_to(where: {rt_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_from(where: {rf_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_service(where: {rs_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_nw_object_resolved(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_nw_service_resolved(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_nw_user_resolved(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_from_zone(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_to_zone(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_time(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_enforced_on_gateway(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_nw_object(where: {obj_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_nw_service(where: {svc_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_nw_user(where: {user_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_zone(where: {zone_create: {_in: $importIds}}) { affected_rows }
+    delete_time_object(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule_metadata(where: {rule_created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rule(where: {rule_create: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rulebase_link(where: {created: {_in: $importIds}}) { affected_rows }
+    delete_firewall_rulebase(where: {created: {_in: $importIds}}) { affected_rows }
+    update_firewall_rule(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rulebase(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rulebase_link(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_object(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_service(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_user(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_zone(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_time_object(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_object_group(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_service_group(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_nw_user_group(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_objgrp_flat(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_svcgrp_flat(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_usergrp_flat(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_to(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_from(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_service(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_nw_object_resolved(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_nw_service_resolved(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_nw_user_resolved(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_from_zone(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_to_zone(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_time(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+    update_firewall_rule_enforced_on_gateway(where: {removed: {_in: $importIds}}, _set: {removed: null}) { affected_rows }
+}

@@ -21,7 +21,7 @@
 </div>
 <hr />
 
-@if (configData != null)
+@if (configData != null && initComplete)
 {
     <form onsubmit="return false">
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
@@ -41,7 +41,7 @@
                     CheckboxIdPrefix="cbx_mod_req_mail" Client="NotificationClient.InterfaceRequest" />
             </div>
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqEmailSubject" />
         </div>
@@ -113,21 +113,24 @@ else
     private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
     private EmailRecipientSelection modReqEmailRecipients = new();
     private EmailRecipientSelection modDecommEmailRecipients = new();
+    private bool initComplete;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            configData = await globalConfig.GetEditableConfig();
-            activeOwnerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            activeOwnerResponsibleTypes = activeOwnerResponsibleTypes
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            List<OwnerResponsibleType> ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
+            activeOwnerResponsibleTypes = ownerResponsibleTypes
                 .Where(type => type.Active)
                 .ToList();
             List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-            modReqEmailRecipients = EmailRecipientSelection.Parse(configData.ModReqEmailReceiver, activeTypeIds);
-            modDecommEmailRecipients = EmailRecipientSelection.Parse(configData.ModDecommEmailReceiver, activeTypeIds);
-            MergeLegacyOtherAddresses(modReqEmailRecipients, configData.ModReqEmailOtherAddresses);
-            MergeLegacyOtherAddresses(modDecommEmailRecipients, configData.ModDecommEmailOtherAddresses);
+            modReqEmailRecipients = EmailRecipientSelection.Parse(editableConfig.ModReqEmailReceiver, activeTypeIds);
+            modDecommEmailRecipients = EmailRecipientSelection.Parse(editableConfig.ModDecommEmailReceiver, activeTypeIds);
+            MergeLegacyOtherAddresses(modReqEmailRecipients, editableConfig.ModReqEmailOtherAddresses);
+            MergeLegacyOtherAddresses(modDecommEmailRecipients, editableConfig.ModDecommEmailOtherAddresses);
+            configData = editableConfig;
+            initComplete = true;
         }
         catch (Exception exception)
         {

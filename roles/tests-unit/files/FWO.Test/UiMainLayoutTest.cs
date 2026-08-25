@@ -29,6 +29,7 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMainLayoutTest
     {
+        private static readonly IEnumerable<string> AdminRequesterRoles = [Roles.Admin, Roles.Requester];
         private static readonly List<string> WorkflowRoles = [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
         private static readonly List<string> PersonalSettingsAmbientRoles = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
             Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
@@ -182,7 +183,7 @@ namespace FWO.Test
         [Test]
         public async Task NavigationToPersonalSettingsExpandsWorkflowRolesIntoAmbientRoleSelection()
         {
-            await using MainLayoutFixture fixture = new(roles: [Roles.Admin, Roles.Requester]);
+            await using MainLayoutFixture fixture = new(roles: AdminRequesterRoles);
             fixture.ApiConnection.AmbientRoleRequests.Clear();
             fixture.ApiConnection.AmbientRoleSelections.Clear();
 

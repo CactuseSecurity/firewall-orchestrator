@@ -211,7 +211,7 @@ namespace FWO.Test
             };
             DiffPipelineApiConnection apiConnection = new(intervalViolations);
 
-            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+            await report.Generate(2, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
 
             int countQueryIndex = apiConnection.Queries.IndexOf(ComplianceQueries.countComplianceDiffViolations);
             int violationQueryIndex = apiConnection.Queries.IndexOf(ComplianceQueries.getComplianceDiffViolationsByChunk);
@@ -223,6 +223,7 @@ namespace FWO.Test
                 Assert.That(ruleQueryIndex, Is.GreaterThan(violationQueryIndex));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.countActiveRules));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(ComplianceQueries.getActiveViolationsBeforeDate));
+                Assert.That(apiConnection.RequestedViolationOffsets, Is.EqualTo(new List<int> { 0, 2 }));
                 Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-a", "rule-b" }));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-a").Violations, Has.Count.EqualTo(2));
                 Assert.That(apiConnection.IntervalViolationsWhere, Does.Not.ContainKey("removed_date"));
@@ -407,6 +408,7 @@ namespace FWO.Test
 
             public List<string> Queries { get; } = new();
             public List<string> RequestedRuleUids { get; } = new();
+            public List<int> RequestedViolationOffsets { get; } = new();
             public Dictionary<string, object>? IntervalViolationsWhere { get; private set; }
             public Dictionary<string, object>? PreviousViolationsWhere { get; private set; }
 
@@ -447,6 +449,7 @@ namespace FWO.Test
                     Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
                     int offset = (int)queryVariables["offset"];
                     int limit = (int)queryVariables["limit"];
+                    RequestedViolationOffsets.Add(offset);
                     List<ComplianceViolation> page = _intervalViolations.Skip(offset).Take(limit).ToList();
                     return Task.FromResult((QueryResponseType)(object)page);
                 }

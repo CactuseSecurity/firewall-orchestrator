@@ -88,7 +88,7 @@ namespace FWO.Report
                 ["where"] = violationsWhere
             };
 
-            // we need the count to be able to parallelize the data fetch
+            // The count is used only to schedule all offset pages concurrently; report semantics do not depend on it.
             AggregateCount? countResult = await apiConnection.SendQueryAsync<AggregateCount>(
                 ComplianceQueries.countComplianceDiffViolations,
                 countVariables);
@@ -213,7 +213,7 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Creates one page of the interval-violation query.
+        /// Creates one offset page of the interval-violation query.
         /// </summary>
         private static Dictionary<string, object> CreateViolationPageVariables(
             int offset,

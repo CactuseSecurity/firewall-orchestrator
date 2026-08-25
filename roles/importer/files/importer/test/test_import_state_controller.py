@@ -263,10 +263,10 @@ class TestUid2IdMapperFirewallSchemaMappings:
         ]
         api_connection.call = mocker.Mock(side_effect=responses)
 
-        uid2id_mapper.update_network_object_mapping(["obj-uid"])
-        uid2id_mapper.update_service_object_mapping(["svc-uid"])
-        uid2id_mapper.update_user_mapping(["user-uid"])
-        uid2id_mapper.update_zone_mapping(["zone-name"])
+        uid2id_mapper.update_network_object_mapping(1, uids=["obj-uid"])
+        uid2id_mapper.update_service_object_mapping(1, uids=["svc-uid"])
+        uid2id_mapper.update_user_mapping(1, uids=["user-uid"])
+        uid2id_mapper.update_zone_mapping(1, names=["zone-name"])
 
         assert uid2id_mapper.get_network_object_id("obj-uid") == 101
         assert uid2id_mapper.get_service_object_id("svc-uid") == 102
@@ -286,6 +286,6 @@ class TestUid2IdMapperFirewallSchemaMappings:
             uid2id_mapper, Uid2IdMapper
         )
 
-        uid2id_mapper.update_rulebase_mapping(["rb-uid"])
+        uid2id_mapper.update_rulebase_mapping(1, uids=["rb-uid"])
 
         assert uid2id_mapper.get_rulebase_id("rb-uid") == 201

@@ -52,7 +52,9 @@ def import_state(
     mocker: MockerFixture,
 ) -> ImportState:
     mgm_id = 1
-    mock_mgm = mocker.Mock(mgm_id=mgm_id, current_mgm_id=mgm_id)
+    mock_mgm = mocker.Mock(mgm_id=mgm_id, current_mgm_id=mgm_id, uid="mock-uid", devices=[])
+    # "name" is a reserved Mock() kwarg (controls repr), so it must be set as an attribute instead.
+    mock_mgm.name = "Mock Management"
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)

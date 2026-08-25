@@ -54,7 +54,7 @@ def test_unsupported_common_importers_raise_clear_errors() -> None:
 
     for importer, name in importers_and_names:
         with pytest.raises(NotImplementedError, match=name):
-            importer.get_config(None, None)  # type: ignore[arg-type]
+            importer.get_config(None, None, None)  # type: ignore[arg-type]
 
 
 def test_import_models_and_gateway_controller_preserve_values() -> None:

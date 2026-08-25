@@ -614,6 +614,11 @@ Not supported any longer are:
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
+## 9.4.1 - 17.08.2026
+- add nat import for checkpoint and forti firewall managements
+- fix checkpoint import policy install detection
+- fix nat rules report
+
 ## 9.4.2 - 25.08.2026
 - normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
 - IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects

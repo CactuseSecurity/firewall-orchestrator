@@ -11,7 +11,7 @@ query getRulesWithViolationsInTimespanByChunk(
     limit: $limit
     offset: $offset
     order_by: { rule_uid: asc }
-    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }
+    where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } access_rule: { _eq: true }}
   ) {
     rule_src
     rule_dst

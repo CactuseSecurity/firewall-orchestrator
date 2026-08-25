@@ -535,6 +535,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
     <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
     <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
+    <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -544,6 +545,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
     <li>The maximum runtime of import scripts is configurable in the default settings.</li>
     <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
+    <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

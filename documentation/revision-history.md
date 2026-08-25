@@ -620,4 +620,4 @@ Not supported any longer are:
 - fix nat rules report
 
 ## 9.4.2 - 25.08.2026
-- Import OPNsense protocol-agnostic `Any` services with the dedicated `ANY` IP protocol.
+- Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.

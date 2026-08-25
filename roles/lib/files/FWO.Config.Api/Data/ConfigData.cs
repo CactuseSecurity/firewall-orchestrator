@@ -388,7 +388,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
 
-        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify"), UserConfigData]
         public bool ModIconify { get; set; } = true;
 
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]

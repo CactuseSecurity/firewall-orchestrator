@@ -1,6 +1,6 @@
 query getRulesEnforcedOnGateways($gwIds: [Int!]!) {
   firewall_rule_enforced_on_gateway(
-    where: { dev_id: { _in: $gwIds }, removed: { _is_null: true } }
+    where: { dev_id: { _in: $gwIds }, removed: { _is_null: true }, rule: { access_rule: { _eq: true } } }
   ) {
     rule {
       rule_id

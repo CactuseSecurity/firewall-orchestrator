@@ -32,16 +32,18 @@ def test_fix_rulebase_links_in_db_uses_firewall_rulebase_link_result(
             "importId": import_state.import_id,
         },
     )
-    assert import_state.statistics_controller.incons == 0
+    assert import_state.statistics_controller.statistics.inconsistent_rulebase_link_delete_count == 0
 
 
 def test_fix_rulebase_links_in_db_refreshes_previous_config_after_removal(
-    import_state_controller: ImportStateController,
+    import_state: ImportState,
+    management_state: ManagementState,
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
     importer = FwConfigImport()
     previous_config = FwConfigNormalized(gateways=[Gateway(Uid="gw-uid")])
+    management_state.previous_config = previous_config
     mocker.patch.object(FwoApi, "get_graphql_code", side_effect=["mutation", "query"])
     api_call.call = mocker.Mock(
         side_effect=[
@@ -69,9 +71,9 @@ def test_fix_rulebase_links_in_db_refreshes_previous_config_after_removal(
         ],
     )
 
-    importer.fix_rulebase_links_in_db(previous_config)
+    importer.fix_rulebase_links_in_db(import_state, management_state, api_call)
 
-    assert import_state_controller.state.stats.statistics.inconsistent_rulebase_link_delete_count == 1
+    assert import_state.statistics_controller.statistics.inconsistent_rulebase_link_delete_count == 1
     assert len(previous_config.gateways[0].RulebaseLinks) == 1
     refreshed_link = previous_config.gateways[0].RulebaseLinks[0]
     assert refreshed_link.from_rulebase_uid == "parent-rb"
@@ -81,8 +83,9 @@ def test_fix_rulebase_links_in_db_refreshes_previous_config_after_removal(
     assert refreshed_link.is_global is True
 
 
-@pytest.mark.usefixtures("import_state_controller")
 def test_fix_rulebase_links_in_db_raises_when_link_refresh_returns_errors(
+    import_state: ImportState,
+    management_state: ManagementState,
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
@@ -96,4 +99,4 @@ def test_fix_rulebase_links_in_db_raises_when_link_refresh_returns_errors(
     )
 
     with pytest.raises(FwoImporterError, match="error while trying to fetch rulebase links"):
-        importer.fix_rulebase_links_in_db(FwConfigNormalized(gateways=[Gateway(Uid="gw-uid")]))
+        importer.fix_rulebase_links_in_db(import_state, management_state, api_call)

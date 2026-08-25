@@ -41,7 +41,16 @@ namespace FWO.Report
         /// Flattened real rules (non-header) for each device in each management, used for export and JSON output.
         /// </summary>
         private readonly Dictionary<(int deviceId, int managementId), Rule[]> _rulesCache = [];
+
         private readonly IRuleTreeBuilder? ruleTreeBuilderFromScope = ruleTreeBuilder;
+
+        /// <summary>
+        /// The <see cref="IRuleTreeBuilder"/> actually used to build the rule trees in <see cref="TryBuildRuleTree"/>
+        /// (either the scoped instance passed to the constructor, or one resolved from DI). Subclasses use this
+        /// to read the header-inclusive flattened rules straight from the builder's own cache instead of retaining
+        /// a second copy of the rule arrays (see <see cref="GetAllRulesOfGateway"/>).
+        /// </summary>
+        protected IRuleTreeBuilder? UsedRuleTreeBuilder { get; private set; }
 
         public override async Task Generate(int elementsPerFetch, ApiConnection apiConnection, Func<ReportData, Task> callback, CancellationToken ct)
         {
@@ -52,7 +61,8 @@ namespace FWO.Report
             Stopwatch totalStopwatch = Stopwatch.StartNew();
             Stopwatch phaseStopwatch = Stopwatch.StartNew();
 
-            if (ReportType == ReportType.Rules && !string.IsNullOrWhiteSpace(Query.StandardRulesStructureQuery) && !string.IsNullOrWhiteSpace(Query.StandardRulesPageQuery))
+            if ((ReportType == ReportType.Rules || ReportType == ReportType.NatRules)
+                && !string.IsNullOrWhiteSpace(Query.StandardRulesStructureQuery) && !string.IsNullOrWhiteSpace(Query.StandardRulesPageQuery))
             {
                 await GenerateStandardRulesReport(elementsPerFetch, apiConnection, callback, phaseStopwatch, totalStopwatch, ct);
                 return;
@@ -311,6 +321,7 @@ namespace FWO.Report
 
             scopedRuleTreeBuilder.ClearCachedRuleTrees();
             _rulesCache.Clear();
+            UsedRuleTreeBuilder = scopedRuleTreeBuilder;
 
             int ruleCount = 0;
 
@@ -318,7 +329,7 @@ namespace FWO.Report
             {
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
-                    bool suppressEmptyHeaders = !string.IsNullOrWhiteSpace(Query.RawFilter);
+                    bool suppressEmptyHeaders = ReportType == ReportType.NatRules || !string.IsNullOrWhiteSpace(Query.RawFilter);
                     List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id, suppressEmptyHeaders);
                     ApplyPreferredCollapseState(scopedRuleTreeBuilder, managementReport.Id, deviceReport.Id);
 

@@ -13,6 +13,7 @@ query getActiveRulesByUids(
       mgm_id: { _in: $mgm_ids }
       rule_uid: { _in: $rule_uids }
       removed: { _is_null: true }
+      access_rule: { _eq: true }
     }
   ) {
     rule_src

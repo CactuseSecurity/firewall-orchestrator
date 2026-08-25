@@ -244,10 +244,10 @@ namespace FWO.Test
 
                 await InvokePrivateTask(component, "TestConnection");
 
-            Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
-            Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
-            messages.Clear();
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
+                Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
+                messages.Clear();
             }
         }
 

@@ -48,6 +48,9 @@
         create: true
         mode: "0644"
 
+    - name: validate Apache TLS private key for unattended startup
+      include_tasks: validate-unencrypted-tls-key.yml
+
     # RedHat does not enable httpd when the package is installed, so without enabled the ui, the
     # api and the middleware web listeners are all gone after a reboot
     - name: restart apache and make it start at host startup

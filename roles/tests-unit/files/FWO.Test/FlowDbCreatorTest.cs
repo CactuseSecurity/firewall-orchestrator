@@ -557,6 +557,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlowInFlowDb_CreatesCanonicalAnyServiceObjectAsImplemented()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ProtoId = GlobalConst.kAnyIpProtocolId;
+            service.Port = null;
+            service.PortEnd = null;
+            service.Name = "ALL";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowSvcObject insertedService = apiConn.InsertedServiceObjects.Single();
+            Assert.That(insertedService.State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(insertedService.Hash, Is.EqualTo(FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null)));
+            Assert.That(insertedService.RemovedDate, Is.Null);
+        }
+
+        [Test]
         public async Task CreateFlowInFlowDb_UsesPortRangeAndProtocolNameForFallbackServiceName()
         {
             FlowDbCreatorTestApiConn apiConn = new();

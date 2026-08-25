@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Logging;
@@ -365,6 +366,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task<FlowSvcObject> InsertServiceObject(string name, int protoId, int? portStart, int? portEnd, string hash, FlowSyncFlowData context)
         {
+            // we expect the canonical ANY service object to generally exist already, but as fallback, we need to create it as implemented (the any object may not be set to anything else)
+            string state = IsCanonicalAnyServiceObject(protoId, portStart, portEnd) ? FlowState.Implemented : FlowState.Requested;
             FlowSvcObjectInsert insert = new()
             {
                 Name = name,
@@ -372,7 +375,7 @@ namespace FWO.Services.Workflow
                 PortEnd = portEnd,
                 IpProtoId = protoId,
                 SvcObjHash = hash,
-                State = FlowState.Requested,
+                State = state,
                 RemovedDate = null,
                 ShowInRequestModule = true
             };
@@ -383,10 +386,15 @@ namespace FWO.Services.Workflow
             inserted.PortEnd = portEnd;
             inserted.ProtoId = protoId;
             inserted.Hash = hash;
-            inserted.State = FlowState.Requested;
+            inserted.State = state;
             inserted.ShowInRequestModule = true;
             context.Add(inserted);
             return inserted;
+        }
+
+        private static bool IsCanonicalAnyServiceObject(int protoId, int? portStart, int? portEnd)
+        {
+            return protoId == GlobalConst.kAnyIpProtocolId && !portStart.HasValue && !portEnd.HasValue;
         }
 
         private static bool CanCreateServiceObject(FlowServiceSnapshot snapshot)

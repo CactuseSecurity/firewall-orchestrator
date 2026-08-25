@@ -188,7 +188,7 @@ class FwConfigImportCheckConsistency:
 
         return all_used_obj_refs
 
-    def _check_objects_with_missing_ips(self, config: FwConfigNormalized):
+    def _check_objects_with_missing_ips(self, config: FwConfigNormalized) -> None:
         """
         Check for network objects for which IP addresses are expected but missing.
         Types without IP addresses are ignored (group, dynamic_net_obj, domain, access-role).

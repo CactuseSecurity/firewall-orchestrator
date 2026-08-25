@@ -385,7 +385,8 @@ class FwoApiCall:
 
         exception_message: str | None = None
         if exception is not None:
-            exception_message = getattr(exception, "message", None) if hasattr(exception, "message") else str(exception)
+            # prefer a custom .message but always fall back to str(exception) so the failure reason is never lost
+            exception_message = getattr(exception, "message", None) or str(exception)
 
         self.unlock_import(import_state, success=exception is None, import_errors=exception_message)
 

@@ -139,3 +139,26 @@ class TestCompleteImportForwardsErrors:
         unlock.assert_called_once()
         assert unlock.call_args.kwargs["success"] is True
         assert unlock.call_args.kwargs["import_errors"] is None
+
+    def test_empty_message_attribute_falls_back_to_str(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        # Arrange
+        api = MagicMock(spec=FwoApi)
+        fwo_api_call = FwoApiCall(api)
+        unlock = mocker.patch.object(fwo_api_call, "unlock_import")
+        mocker.patch.object(fwo_api_call, "log_import_attempt")
+        mocker.patch.object(fwo_api_call, "create_data_issue")
+        mocker.patch.object(fwo_api_call, "set_alert")
+
+        class EmptyMessageError(Exception):
+            message = None
+
+        # Act
+        fwo_api_call.complete_import(import_state_controller.state, exception=EmptyMessageError("boom"))
+
+        # Assert
+        # an exception with an empty/None .message must still forward the reason via str(exception)
+        unlock.assert_called_once()
+        assert unlock.call_args.kwargs["success"] is False
+        assert unlock.call_args.kwargs["import_errors"] == "boom"

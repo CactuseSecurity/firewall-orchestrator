@@ -118,13 +118,10 @@
             }
             else
             {
-                long? lastImportId = importList[0].ControlId;
-                if (lastImportId != null)
+                long lastImportId = importList[0].ControlId;
+                if (await RollbackSingleImport(lastImportId))
                 {
-                    if (await RollbackSingleImport((long)lastImportId))
-                    {
-                        DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
-                    }
+                    DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
                 }
             }
         }
@@ -152,25 +149,21 @@
             }
             else
             {
-                long? lastImportId = importList[0].ControlId;
-                if (lastImportId != null)
+                RollbackMode = false;
+                workInProgress = false;
+
+                var variablesGetManagement = new { mgmId = ManagementId };
+                List<ImportControl> managementImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getImportIdsByManagement, variablesGetManagement);
+                List<long> importIds = managementImports.Select(import => import.ControlId).ToList();
+
+                // only report success and delete the latest config if the rollback actually succeeded
+                bool rollbackSucceeded = importIds.Count == 0 || await RollbackImports(importIds);
+                if (rollbackSucceeded)
                 {
-                    RollbackMode = false;
+                    Log.WriteDebug("Delete Import", $"rolled back all imports of management with ID {ManagementId}");
                     workInProgress = false;
-
-                    var variablesGetManagement = new { mgmId = ManagementId };
-                    List<ImportControl> managementImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FWO.Api.Client.Queries.ImportQueries.getImportIdsByManagement, variablesGetManagement);
-                    List<long> importIds = managementImports.Select(import => import.ControlId).ToList();
-
-                    // only report success and delete the latest config if the rollback actually succeeded
-                    bool rollbackSucceeded = importIds.Count == 0 || await RollbackImports(importIds);
-                    if (rollbackSucceeded)
-                    {
-                        Log.WriteDebug("Delete Import", $"rolled back all imports of management with ID {ManagementId}");
-                        workInProgress = false;
-                        await deleteLatestConfigOfManagement(ManagementId);
-                        DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
-                    }
+                    await deleteLatestConfigOfManagement(ManagementId);
+                    DisplayMessageInUi(null, userConfig.GetText("rollback_import"), userConfig.GetText("U5107"), false);
                 }
             }
         }

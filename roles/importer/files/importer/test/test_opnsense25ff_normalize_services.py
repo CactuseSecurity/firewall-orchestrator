@@ -1,6 +1,6 @@
 # pyright: reportPrivateUsage=false
 # tests target internal service-normalization helpers, hence private-usage is allowed here
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_model import (
@@ -9,12 +9,14 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsensePort,
     OPNsensePortAlias,
 )
-from fw_modules.opnsense25ff.opnsense_normalize_services import _normalize_services_from_port_alias, normalize_services
+from fw_modules.opnsense25ff.opnsense_normalize_services import (
+    _normalize_services_from_port_alias,
+    _qualify_service,
+    normalize_services,
+)
 from fw_modules.opnsense25ff.opnsense_normalizer import _create_normalized_rule_from_access_rule
+from models.serviceobject import ServiceObject
 from pytest_mock import MockerFixture
-
-if TYPE_CHECKING:
-    from models.serviceobject import ServiceObject
 
 
 def _port_alias(name: str) -> OPNsensePortAlias:
@@ -219,6 +221,43 @@ def test_normalize_services_keeps_protocol_for_rules_without_port() -> None:
     assert services["Any/tcp"].ip_proto == 6
     assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (1, 65535)
     assert _create_normalized_rule_from_access_rule(rule).rule_svc == "Any/tcp"
+
+
+def test_qualify_service_preserves_ports_for_user_service_named_any() -> None:
+    base = ServiceObject(
+        svc_uid="user-any-uid",
+        svc_name="Any",
+        svc_port=443,
+        svc_port_end=443,
+        svc_color="",
+        svc_typ="simple",
+    )
+
+    qualified = _qualify_service(base, "tcp", None)
+
+    assert qualified.ip_proto == 6
+    assert (qualified.svc_port, qualified.svc_port_end) == (443, 443)
+
+
+def test_normalize_services_preserves_any_named_alias_and_implicit_any_service() -> None:
+    alias = _port_alias("Any")
+    alias.childs.append(OPNsensePort(name="443", is_range=False, port=443, port_end=None))
+    explicit_alias_rule = _port_rule("r-alias", "tcp", "Any")
+    implicit_any_rule = _port_rule("r-any", "tcp", None)
+    config = OPNsenseConfig(
+        hostname="fw",
+        port_aliases={alias.name: alias},
+        access_rules=[explicit_alias_rule, implicit_any_rule],
+    )
+
+    services = normalize_services(config)
+
+    assert services["Any/tcp"].svc_typ == "group"
+    assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (None, None)
+    assert (services["443/tcp"].svc_port, services["443/tcp"].svc_port_end) == (443, 443)
+    assert (services["_FWO_ANY_PORT_/tcp"].svc_port, services["_FWO_ANY_PORT_/tcp"].svc_port_end) == (1, 65535)
+    assert _create_normalized_rule_from_access_rule(explicit_alias_rule).rule_svc == "Any/tcp"
+    assert _create_normalized_rule_from_access_rule(implicit_any_rule).rule_svc == "_FWO_ANY_PORT_/tcp"
 
 
 def test_normalize_services_instantiates_port_alias_per_protocol() -> None:

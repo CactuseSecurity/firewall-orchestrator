@@ -25,6 +25,10 @@ from models.serviceobject import ServiceObject
 
 ANY_PROTOCOL_PORT_START = 1
 ANY_PROTOCOL_PORT_END = 65535
+OPNSENSE_ANY_SERVICE_NAME = "Any"
+OPNSENSE_ANY_SERVICE_UID = "Any"
+OPNSENSE_ANY_SERVICE_CONFLICT_NAME = "_FWO_ANY_PORT_"
+OPNSENSE_ANY_SERVICE_CONFLICT_UID = "_FWO_ANY_PORT_"
 
 
 def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
@@ -66,10 +70,10 @@ def rule_service_names(rule: OPNsenseAccessRule) -> list[str]:
     return [_protocol_service_name(rule)]
 
 
-def _create_any_svc_object() -> ServiceObject:
+def _create_any_svc_object(name: str, uid: str) -> ServiceObject:
     return ServiceObject(
-        svc_uid="Any",
-        svc_name="Any",
+        svc_uid=uid,
+        svc_name=name,
         svc_port=None,
         svc_port_end=None,
         svc_color="",
@@ -211,14 +215,14 @@ def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
 
 def _qualify_service(base: ServiceObject, protocol: str, member_names: str | None) -> ServiceObject:
     qualified_name = _qualified_service_name(base.svc_name, protocol)
-    is_protocol_specific_any_service = base.svc_name == "Any"
+    is_synthetic_any_service = base.svc_uid in {OPNSENSE_ANY_SERVICE_UID, OPNSENSE_ANY_SERVICE_CONFLICT_UID}
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": qualified_name}),
         svc_name=qualified_name,
         # The protocol-agnostic base service uses the dedicated ANY protocol without ports.
         # Its TCP/UDP variants still represent all ports for their specific protocol.
-        svc_port=ANY_PROTOCOL_PORT_START if is_protocol_specific_any_service else base.svc_port,
-        svc_port_end=ANY_PROTOCOL_PORT_END if is_protocol_specific_any_service else base.svc_port_end,
+        svc_port=ANY_PROTOCOL_PORT_START if is_synthetic_any_service else base.svc_port,
+        svc_port_end=ANY_PROTOCOL_PORT_END if is_synthetic_any_service else base.svc_port_end,
         svc_color="",
         svc_typ=base.svc_typ,
         # only the leaf services carry the protocol, groups stay without one like all other groups
@@ -306,6 +310,12 @@ def _update_service_objects_from_access_rules(
         _update_service_objects_from_rule_ports(rule, svc_objs)
 
 
+def _use_conflict_safe_any_service_name(rules: list[OPNsenseAccessRule]) -> None:
+    for rule in rules:
+        if "dest_port" not in rule.model_fields_set:
+            rule.dest_port = [OPNSENSE_ANY_SERVICE_CONFLICT_NAME]
+
+
 def normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
 
     normalized: dict[str, ServiceObject] = {}
@@ -314,8 +324,15 @@ def normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
         if a not in normalized:
             _normalize_services_from_port_alias(alias, normalized, 0)
 
-    # add special "Any" service objects
-    svc_any = _create_any_svc_object()
+    # Add the special "Any" service object. A user-defined alias named "Any"
+    # takes precedence; rules with no destination port then use an internal name.
+    svc_any_name = OPNSENSE_ANY_SERVICE_NAME
+    svc_any_uid = OPNSENSE_ANY_SERVICE_UID
+    if svc_any_name in normalized:
+        svc_any_name = OPNSENSE_ANY_SERVICE_CONFLICT_NAME
+        svc_any_uid = OPNSENSE_ANY_SERVICE_CONFLICT_UID
+        _use_conflict_safe_any_service_name(os_config.access_rules)
+    svc_any = _create_any_svc_object(svc_any_name, svc_any_uid)
     normalized[svc_any.svc_name] = svc_any
 
     _update_service_objects_from_access_rules(os_config.access_rules, normalized)

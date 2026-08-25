@@ -225,10 +225,33 @@ def test_handle_svc_protocol_ignores_unsupported_protocol():
     assert service_objects == []
 
 
-def test_normalize_service_object_uses_any_protocol_for_all_service():
+def test_normalize_service_object_uses_any_protocol_for_protocol_zero_service():
     service_objects: list[dict[str, object]] = []
 
-    normalize_service_object({"name": "ALL", "protocol": 0}, service_objects)
+    normalize_service_object({"name": "custom-any", "protocol": 0}, service_objects)
+
+    assert service_objects == [
+        {
+            "svc_typ": "simple",
+            "svc_name": "custom-any",
+            "svc_color": "foreground",
+            "svc_uid": "custom-any",
+            "svc_comment": None,
+            "ip_proto": -1,
+            "svc_port": None,
+            "svc_port_end": None,
+            "svc_member_refs": None,
+            "svc_member_names": None,
+            "svc_timeout": None,
+            "rpc_nr": None,
+        }
+    ]
+
+
+def test_normalize_service_object_preserves_ports_for_all_named_service():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "ALL", "protocol": 5, "tcp-portrange": ["443"]}, service_objects)
 
     assert service_objects == [
         {
@@ -237,9 +260,9 @@ def test_normalize_service_object_uses_any_protocol_for_all_service():
             "svc_color": "foreground",
             "svc_uid": "ALL",
             "svc_comment": None,
-            "ip_proto": -1,
-            "svc_port": None,
-            "svc_port_end": None,
+            "ip_proto": 6,
+            "svc_port": "443",
+            "svc_port_end": "443",
             "svc_member_refs": None,
             "svc_member_names": None,
             "svc_timeout": None,

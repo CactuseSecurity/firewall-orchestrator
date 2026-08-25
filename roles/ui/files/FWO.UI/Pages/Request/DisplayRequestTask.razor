@@ -546,7 +546,7 @@
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
             managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
             ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
-                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+                ProtocolDisplayHelper.GetSelectableProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols)),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
             selectableDevices =

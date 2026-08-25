@@ -388,7 +388,7 @@
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
-                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+                ProtocolDisplayHelper.GetSelectableProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols)),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
             firstParamSet = true;

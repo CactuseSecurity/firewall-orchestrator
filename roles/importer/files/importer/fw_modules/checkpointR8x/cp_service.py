@@ -96,7 +96,7 @@ def _get_protocol_number(obj: dict[str, Any]) -> int | None:
     Extract and validate protocol number from object.
     Returns validated protocol number or None.
     """
-    if obj.get("type") == "CpmiAnyObject":
+    if obj.get("uid") == cp_const.any_obj_uid:
         return ANY_IP_PROTOCOL_ID
 
     proto_map = {"service-tcp": 6, "service-udp": 17, "service-icmp": 1}

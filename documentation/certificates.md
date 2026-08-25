@@ -179,6 +179,14 @@ curl --request POST \
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
 
+## Private key requirement
+
+FWO restarts Apache during installation and upgrades, and Apache must also start unattended after a host reboot. Therefore, `server.key` must be an unencrypted private key: Apache cannot prompt for a passphrase during these operations.
+
+Keep the original encrypted key in a secure backup location, then provide Apache with an unencrypted copy owned by `root:root` and mode `0640`. Do not store the key passphrase in FWO configuration or Ansible variables. The installer checks this requirement before restarting Apache and stops with remediation guidance when an existing key cannot be read without a passphrase.
+
+After the change restart apache2
+
 The Guardicore provisioning scripts load these three TLS paths from the local
 `fworch.json`. When they run on another host, pass `--fwo-ca-cert`,
 `--fwo-client-cert`, and `--fwo-client-key` explicitly. The certificate and key

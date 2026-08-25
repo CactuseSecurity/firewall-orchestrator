@@ -79,6 +79,10 @@
 
 - name: internal service listener testing
   import_tasks: test-internal-service-listeners.yml
+  
+- name: Apache TLS key preflight testing
+  import_tasks: test-apache-tls-key-preflight.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
 
 - name: finalize handler for deleting test data
   set_fact:

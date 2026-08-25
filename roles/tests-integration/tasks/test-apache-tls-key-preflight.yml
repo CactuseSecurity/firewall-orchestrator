@@ -1,0 +1,80 @@
+---
+- name: Create a temporary directory for Apache TLS key preflight tests
+  tempfile:
+    state: directory
+    prefix: fworch-apache-tls-key-
+  register: apache_tls_key_test_directory
+  become: true
+
+- name: Verify the preflight accepts a missing Apache TLS key
+  include_tasks:
+    file: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    apply:
+      become: true
+  vars:
+    apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
+
+- name: Create an unencrypted Apache TLS key for the preflight test
+  command:
+    argv:
+      - openssl
+      - genpkey
+      - -algorithm
+      - RSA
+      - -out
+      - "{{ apache_tls_key_test_directory.path }}/server.key"
+      - -pkeyopt
+      - rsa_keygen_bits:2048
+  changed_when: false
+  become: true
+
+- name: Verify the preflight accepts an unencrypted Apache TLS key
+  include_tasks:
+    file: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+    apply:
+      become: true
+  vars:
+    apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
+
+- name: Create an encrypted Apache TLS key for the preflight test
+  command:
+    argv:
+      - openssl
+      - genpkey
+      - -algorithm
+      - RSA
+      - -aes-256-cbc
+      - -pass
+      - pass:installer-test-passphrase
+      - -out
+      - "{{ apache_tls_key_test_directory.path }}/server.key"
+      - -pkeyopt
+      - rsa_keygen_bits:2048
+  changed_when: false
+  no_log: true
+  become: true
+
+- name: Verify the preflight rejects an encrypted Apache TLS key
+  block:
+    - include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+      vars:
+        apache_ssl_dir: "{{ apache_tls_key_test_directory.path }}"
+    - set_fact:
+        apache_tls_key_preflight_rejected: false
+  rescue:
+    - set_fact:
+        apache_tls_key_preflight_rejected: true
+  become: true
+
+- name: Assert that the encrypted Apache TLS key was rejected before restart
+  assert:
+    that:
+      - apache_tls_key_preflight_rejected | bool
+    fail_msg: The Apache TLS key preflight accepted an encrypted private key.
+  become: true
+
+- name: Remove Apache TLS key preflight test files
+  file:
+    path: "{{ apache_tls_key_test_directory.path }}"
+    state: absent
+  become: true

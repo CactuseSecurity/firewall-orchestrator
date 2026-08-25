@@ -312,7 +312,7 @@ namespace FWO.Middleware.Server.Jobs
         {
             if (userConfig?.GlobalConfig is GlobalConfig globalConfig)
             {
-                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Report, globalConfig, apiConnectionScheduler, []);
+                NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.Report, globalConfig, apiConnectionScheduler);
                 await notificationService.SendBundledNotifications(reportSchedule.Notifications, null, null, report);
 
                 int updatedNotifications = await notificationService.UpdateNotificationsLastSent();

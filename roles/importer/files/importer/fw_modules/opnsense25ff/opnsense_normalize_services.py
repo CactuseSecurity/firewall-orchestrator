@@ -215,7 +215,9 @@ def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
 
 def _qualify_service(base: ServiceObject, protocol: str, member_names: str | None) -> ServiceObject:
     qualified_name = _qualified_service_name(base.svc_name, protocol)
-    is_synthetic_any_service = base.svc_uid in {OPNSENSE_ANY_SERVICE_UID, OPNSENSE_ANY_SERVICE_CONFLICT_UID}
+    is_synthetic_any_service = base.svc_uid == OPNSENSE_ANY_SERVICE_UID or base.svc_uid.startswith(
+        OPNSENSE_ANY_SERVICE_CONFLICT_UID
+    )
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": qualified_name}),
         svc_name=qualified_name,
@@ -310,10 +312,19 @@ def _update_service_objects_from_access_rules(
         _update_service_objects_from_rule_ports(rule, svc_objs)
 
 
-def _use_conflict_safe_any_service_name(rules: list[OPNsenseAccessRule]) -> None:
+def _use_conflict_safe_any_service_name(rules: list[OPNsenseAccessRule], service_name: str) -> None:
     for rule in rules:
         if "dest_port" not in rule.model_fields_set:
-            rule.dest_port = [OPNSENSE_ANY_SERVICE_CONFLICT_NAME]
+            rule.dest_port = [service_name]
+
+
+def _unused_any_service_conflict_name(normalized: dict[str, ServiceObject]) -> str:
+    service_name = OPNSENSE_ANY_SERVICE_CONFLICT_NAME
+    suffix = 1
+    while service_name in normalized:
+        service_name = f"{OPNSENSE_ANY_SERVICE_CONFLICT_NAME}{suffix}"
+        suffix += 1
+    return service_name
 
 
 def normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
@@ -329,9 +340,11 @@ def normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
     svc_any_name = OPNSENSE_ANY_SERVICE_NAME
     svc_any_uid = OPNSENSE_ANY_SERVICE_UID
     if svc_any_name in normalized:
-        svc_any_name = OPNSENSE_ANY_SERVICE_CONFLICT_NAME
-        svc_any_uid = OPNSENSE_ANY_SERVICE_CONFLICT_UID
-        _use_conflict_safe_any_service_name(os_config.access_rules)
+        svc_any_name = _unused_any_service_conflict_name(normalized)
+        svc_any_uid = (
+            OPNSENSE_ANY_SERVICE_CONFLICT_UID if svc_any_name == OPNSENSE_ANY_SERVICE_CONFLICT_NAME else svc_any_name
+        )
+        _use_conflict_safe_any_service_name(os_config.access_rules, svc_any_name)
     svc_any = _create_any_svc_object(svc_any_name, svc_any_uid)
     normalized[svc_any.svc_name] = svc_any
 

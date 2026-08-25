@@ -260,6 +260,27 @@ def test_normalize_services_preserves_any_named_alias_and_implicit_any_service()
     assert _create_normalized_rule_from_access_rule(implicit_any_rule).rule_svc == "_FWO_ANY_PORT_/tcp"
 
 
+def test_normalize_services_uses_unused_name_for_implicit_any_service() -> None:
+    any_alias = _port_alias("Any")
+    any_alias.childs.append(OPNsensePort(name="443", is_range=False, port=443, port_end=None))
+    fallback_alias = _port_alias("_FWO_ANY_PORT_")
+    fallback_alias.childs.append(OPNsensePort(name="8443", is_range=False, port=8443, port_end=None))
+    explicit_fallback_alias_rule = _port_rule("r-fallback-alias", "tcp", "_FWO_ANY_PORT_")
+    implicit_any_rule = _port_rule("r-any", "tcp", None)
+    config = OPNsenseConfig(
+        hostname="fw",
+        port_aliases={any_alias.name: any_alias, fallback_alias.name: fallback_alias},
+        access_rules=[explicit_fallback_alias_rule, implicit_any_rule],
+    )
+
+    services = normalize_services(config)
+
+    assert services["_FWO_ANY_PORT_/tcp"].svc_member_names == "8443/tcp"
+    assert (services["_FWO_ANY_PORT_1/tcp"].svc_port, services["_FWO_ANY_PORT_1/tcp"].svc_port_end) == (1, 65535)
+    assert _create_normalized_rule_from_access_rule(explicit_fallback_alias_rule).rule_svc == "_FWO_ANY_PORT_/tcp"
+    assert _create_normalized_rule_from_access_rule(implicit_any_rule).rule_svc == "_FWO_ANY_PORT_1/tcp"
+
+
 def test_normalize_services_instantiates_port_alias_per_protocol() -> None:
     alias = _port_alias("web-ports")
     alias.childs.append(OPNsensePort(name="80", is_range=False, port=80, port_end=None))

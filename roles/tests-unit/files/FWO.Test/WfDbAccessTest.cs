@@ -372,10 +372,23 @@ namespace FWO.Test
             ActionHandler actionHandler = new(apiConn, wfHandler);
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
 
-            List<WfTicket> tickets = await dbAccess.GetTicketsByParameters(WfTaskType.access.ToString(), 0, 10, DateTime.UtcNow, ticket => ticket.Id == 2);
+            List<WfTicket> tickets = await dbAccess.GetTicketsByParameters(
+                WfTaskType.access.ToString(),
+                0,
+                10,
+                DateTime.UtcNow.AddDays(-7),
+                DateTime.UtcNow,
+                ticket => ticket.Id == 2);
 
             Assert.That(tickets, Has.Count.EqualTo(1));
             Assert.That(tickets[0].Id, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void GetTicketsByParameters_UsesLowerBoundForCutoffDate()
+        {
+            Assert.That(RequestQueries.getTicketsByParameters, Does.Contain("date_created: { _gte: $createdFrom, _lte: $createdUntil }"));
+            Assert.That(RequestQueries.getTicketsByParameters, Does.Contain("owner_responsibles"));
         }
 
         [Test]

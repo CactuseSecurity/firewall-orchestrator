@@ -532,7 +532,8 @@ namespace FWO.Test
             SetPrivateField(component, "AddStateMode", true);
             SetPrivateField(component, "EditStateMode", false);
 
-            GetPrivateMethod("EditState").Invoke(component, new object?[] { existingState });
+            object?[] editStateArgs = [existingState];
+            GetPrivateMethod("EditState").Invoke(component, editStateArgs);
             Task task = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
             await task;
 
@@ -661,6 +662,10 @@ namespace FWO.Test
                 RequestQueries.addStateAction
             }));
 
+            object?[] moveArgs = [addedState.Actions[0], 1];
+            Task moveTask = (Task)GetPrivateMethod("MoveActionInState").Invoke(component, moveArgs)!;
+            await moveTask;
+
             Task secondAttempt = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
             await secondAttempt;
 
@@ -671,14 +676,16 @@ namespace FWO.Test
                     RequestQueries.createState,
                     RequestQueries.addStateAction,
                     RequestQueries.addStateAction,
+                    RequestQueries.updateStateActionSortOrder,
                     RequestQueries.addStateAction
                 }));
-                Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "stateId", 3)), Is.EqualTo(3));
-                Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "actionId", 20)), Is.EqualTo(1));
+                Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "stateId", 3)), Is.EqualTo(4));
+                Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "actionId", 20)), Is.EqualTo(2));
                 Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "actionId", 10)), Is.EqualTo(2));
                 Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
                 Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
                 Assert.That(GetPrivateField<List<WfState>>(component, "states").Select(state => state.Id).ToList(), Is.EqualTo(new List<int> { 3, 5 }));
+                Assert.That(addedState.Actions.Select(action => action.Action.Id).ToList(), Is.EqualTo(new List<int> { 10, 20 }));
                 Assert.That(addedState.Actions.Select(action => action.SortOrder).ToList(), Is.EqualTo(new List<int> { 1, 2 }));
             });
         }

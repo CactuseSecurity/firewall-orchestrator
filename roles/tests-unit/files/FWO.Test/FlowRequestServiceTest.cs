@@ -990,8 +990,8 @@ internal class FlowRequestServiceTest
 
     [Test]
     public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
-        {
-            FlowRequestServiceApiConn apiConnection = new()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }

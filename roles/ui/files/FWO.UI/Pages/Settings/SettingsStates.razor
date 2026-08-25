@@ -303,6 +303,16 @@ else
         persistedNewStateActionIds.Clear();
     }
 
+    private bool StateExistsInDatabase()
+    {
+        return !AddStateMode || NewStatePersisted;
+    }
+
+    private bool ShouldPersistStateAction(WfStateActionDataHelper action)
+    {
+        return StateExistsInDatabase() && (!AddStateMode || persistedNewStateActionIds.Contains(action.Action.Id));
+    }
+
     private async Task SaveState()
     {
         try
@@ -422,11 +432,20 @@ else
     {
         try
         {
-            if(!AddStateMode)
+            if (StateExistsInDatabase())
             {
                 await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0, sortOrder = NextActionSortOrder() });
             }
-            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected"), SortOrder = NextActionSortOrder() });
+            WfStateActionDataHelper newAction = new()
+            {
+                Action = selectedAction ?? throw new ArgumentException("no action selected"),
+                SortOrder = NextActionSortOrder()
+            };
+            actState.Actions.Add(newAction);
+            if (StateExistsInDatabase() && AddStateMode)
+            {
+                persistedNewStateActionIds.Add(newAction.Action.Id);
+            }
             NormalizeActionSortOrder(actState);
             SelectActionMode = false;
         }
@@ -440,15 +459,17 @@ else
     {
         try
         {
-            if(!AddStateMode)
+            bool shouldPersistAction = ShouldPersistStateAction(action);
+            if (shouldPersistAction)
             {
                 await apiConnection.SendQueryAsync<object>(RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                persistedNewStateActionIds.Remove(action.Action.Id);
             }
             actState.Actions.Remove(action);
             NormalizeActionSortOrder(actState);
-            if (!AddStateMode)
+            if (StateExistsInDatabase())
             {
-                await SaveActionSortOrder(actState.Actions);
+                await SaveActionSortOrder(actState.Actions.Where(ShouldPersistStateAction));
             }
         }
         catch (Exception exception)
@@ -493,9 +514,9 @@ else
         actState.Actions[index] = actState.Actions[targetIndex];
         actState.Actions[targetIndex] = movedAction;
         NormalizeActionSortOrder(actState);
-        if (!AddStateMode)
+        if (StateExistsInDatabase())
         {
-            await SaveActionSortOrder([actState.Actions[index], actState.Actions[targetIndex]]);
+            await SaveActionSortOrder(new[] { actState.Actions[index], actState.Actions[targetIndex] }.Where(ShouldPersistStateAction));
         }
     }
 

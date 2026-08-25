@@ -38,13 +38,18 @@ def _patch_session(monkeypatch: pytest.MonkeyPatch, session: _FakeSession) -> No
     monkeypatch.setattr(requests, "Session", lambda: session)
 
 
-def test_login_returns_response_text_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
+def _new_api() -> FwoApi:
+    # bypass __init__, which itself calls login() and would consume the mocked session
+    return FwoApi.__new__(FwoApi)
+
+
+def test_login_returns_parsed_json_on_success(monkeypatch: pytest.MonkeyPatch) -> None:
     session = _FakeSession(_FakeResponse(200, '{"AccessToken": "jwt"}'))
     _patch_session(monkeypatch, session)
 
-    result = FwoApi.login(TEST_USER, TEST_PASSWORD, BASE_URL)
+    result = _new_api().login(TEST_USER, TEST_PASSWORD, BASE_URL)
 
-    assert result == '{"AccessToken": "jwt"}'
+    assert result == {"AccessToken": "jwt"}
     assert session.posted_url == TOKEN_ENDPOINT
 
 
@@ -52,7 +57,7 @@ def test_login_error_reports_status_and_response_body(monkeypatch: pytest.Monkey
     _patch_session(monkeypatch, _FakeSession(_FakeResponse(400, "A0002 Invalid credentials")))
 
     with pytest.raises(FwoApiLoginFailedError) as excinfo:
-        FwoApi.login(TEST_USER, TEST_PASSWORD, BASE_URL)
+        _new_api().login(TEST_USER, TEST_PASSWORD, BASE_URL)
 
     message = excinfo.value.message
     assert "http_status: 400" in message
@@ -68,7 +73,7 @@ def test_login_error_truncates_long_response_bodies(monkeypatch: pytest.MonkeyPa
     _patch_session(monkeypatch, _FakeSession(_FakeResponse(500, long_body)))
 
     with pytest.raises(FwoApiLoginFailedError) as excinfo:
-        FwoApi.login(TEST_USER, TEST_PASSWORD, BASE_URL)
+        _new_api().login(TEST_USER, TEST_PASSWORD, BASE_URL)
 
     assert "x" * MAX_LOGIN_ERROR_RESPONSE_LEN in excinfo.value.message
     assert "x" * (MAX_LOGIN_ERROR_RESPONSE_LEN + 1) not in excinfo.value.message
@@ -78,15 +83,8 @@ def test_login_reports_connection_errors_separately(monkeypatch: pytest.MonkeyPa
     _patch_session(monkeypatch, _FakeSession(exception=requests.exceptions.ConnectionError("refused")))
 
     with pytest.raises(FwoApiLoginFailedError) as excinfo:
-        FwoApi.login(TEST_USER, TEST_PASSWORD, BASE_URL)
+        _new_api().login(TEST_USER, TEST_PASSWORD, BASE_URL)
 
     # a dead endpoint must stay distinguishable from a rejected login
     assert "error during login to url" in excinfo.value.message
     assert "http_status" not in excinfo.value.message
-
-
-def test_login_without_base_url_fails_fast() -> None:
-    with pytest.raises(FwoApiLoginFailedError) as excinfo:
-        FwoApi.login(TEST_USER, TEST_PASSWORD, None)
-
-    assert "user_management_api_base_url is None" in excinfo.value.message

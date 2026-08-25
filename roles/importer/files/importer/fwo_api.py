@@ -162,7 +162,7 @@ class FwoApi:
         refresh_token: str,
         user_management_api_base_url: str | None,
         method: str = "api/AuthenticationToken/Refresh",
-    ):
+    ) -> str:
         """
         Exchanges a still-valid refresh token for a new access/refresh token pair,
         so callers can recover from an expired JWT without a full re-login.

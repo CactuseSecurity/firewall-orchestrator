@@ -299,3 +299,75 @@ class TestCallEndpointRetriesOnJwtExpiry:
             api.call_endpoint("GET", "SomeEndpoint")
 
         assert session.calls == 1
+
+
+class TestCallChunkedRetriesOnJwtExpiry:
+    """
+    Covers _call_chunked()'s reactive retry when the JWT expires mid-loop.
+
+    Regression coverage for a bug where a JWT-expiry error raised out of _call_chunked() and
+    caught by call()'s top-level retry re-entered call() with query_variables already mutated
+    down to just the chunk that failed - silently dropping every remaining chunk instead of
+    resuming the loop.
+    """
+
+    _EXPIRED_BODY: ClassVar[dict[str, Any]] = {"errors": [{"message": "Could not verify JWT: JWTExpired"}]}
+
+    @staticmethod
+    def _chunk_response(affected_rows: int) -> _FakeResponse:
+        return _FakeResponse(
+            200,
+            json_data={"data": {"insert_item": {"affected_rows": affected_rows, "returning": [{"id": affected_rows}]}}},
+        )
+
+    def test_resumes_the_loop_and_processes_every_remaining_chunk(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # 1500 elements over a chunk size of 1000 => two chunks (1000, then 500).
+        # The JWT expires on the very first chunk; the retry must still process the second chunk.
+        session = _FakeSession(
+            [
+                _FakeResponse(200, json_data=self._EXPIRED_BODY),  # chunk 1, first attempt: expired
+                self._chunk_response(1000),  # chunk 1, retry: succeeds
+                self._chunk_response(500),  # chunk 2: succeeds
+            ]
+        )
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+        monkeypatch.setattr(api, "_try_refresh_jwt", lambda: True)
+        api.query_info = {
+            "query_name": "insertItems",
+            "chunking_info": {
+                "needs_chunking": True,
+                "adjusted_chunk_size": 1000,
+                "chunkable_variables": ["items"],
+                "total_elements": 1500,
+            },
+        }
+        query_variables = {"items": list(range(1500))}
+
+        result = api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
+
+        # all three posts happened: failed chunk 1, retried chunk 1, chunk 2 - nothing was skipped
+        assert session.calls == 3
+        assert result["data"]["insert_item"]["affected_rows"] == 1500
+        assert len(result["data"]["insert_item"]["returning"]) == 2
+
+    def test_raises_when_the_jwt_refresh_itself_fails_mid_chunk(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(200, json_data=self._EXPIRED_BODY)])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+        monkeypatch.setattr(api, "_try_refresh_jwt", lambda: False)
+        api.query_info = {
+            "query_name": "insertItems",
+            "chunking_info": {
+                "needs_chunking": True,
+                "adjusted_chunk_size": 1000,
+                "chunkable_variables": ["items"],
+                "total_elements": 1500,
+            },
+        }
+        query_variables = {"items": list(range(1500))}
+
+        with pytest.raises(FwoImporterError, match="JWT expired during chunked call"):
+            api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
+
+        assert session.calls == 1

@@ -504,9 +504,7 @@ class FwoApi:
                 9,
             )
 
-            # Post query.
-
-            response = self._post_query(session, {"query": query, "variables": query_variables})
+            response = self._post_chunk_with_jwt_retry(session, query, query_variables)
 
             FWOLogger.debug(f"Chunk {chunk_number}:  Query posted", 9)
 
@@ -539,6 +537,28 @@ class FwoApi:
             total_chunk_elements += len(chunk)
 
         return total_chunk_elements
+
+    def _post_chunk_with_jwt_retry(
+        self, session: requests.Session, query: str, query_variables: dict[str, list[Any] | Any]
+    ) -> dict[str, Any]:
+        """
+        Posts a single chunk, refreshing the JWT and retrying this same chunk once if it expired.
+
+        Keeping the retry local to one chunk (instead of raising _JwtExpiredResponseError out of
+        _call_chunked) preserves the surrounding loop's state - remaining chunkable_variables,
+        total_processed_elements and the return_object accumulated so far.
+        """
+        try:
+            return self._post_query(session, {"query": query, "variables": query_variables})
+        except _JwtExpiredResponseError:
+            if not self._try_refresh_jwt():
+                raise FwoImporterError("fwo_api: JWT expired during chunked call and could not be refreshed")
+            FWOLogger.info(
+                "fwo_api: JWT had expired during chunked call - refreshed token and retrying this chunk once"
+            )
+            # the session's headers were built with the now-stale JWT - refresh them before retrying
+            session.headers.update(self._build_request_headers())
+            return self._post_query(session, {"query": query, "variables": query_variables})
 
     def _handle_chunked_calls_response(self, return_object: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
         if return_object == {}:

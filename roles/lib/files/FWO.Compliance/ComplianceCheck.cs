@@ -615,7 +615,10 @@ namespace FWO.Compliance
         {
             List<IPAddressRange> ranges = [];
 
-            if (networkObject.Type.Name == ObjectType.IPRange || (networkObject.Type.Name == ObjectType.Network && networkObject.IP.Equals(networkObject.IpEnd) == false))
+            if ((networkObject.Type.Name == ObjectType.IPRange || networkObject.Type.Name == ObjectType.Network)
+                && !string.IsNullOrWhiteSpace(networkObject.IP)
+                && !string.IsNullOrWhiteSpace(networkObject.IpEnd)
+                && (networkObject.Type.Name == ObjectType.IPRange || !string.Equals(networkObject.IP, networkObject.IpEnd, StringComparison.Ordinal)))
             {
                 if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {

@@ -7,6 +7,7 @@ normalized JSON structure.
 
 from typing import Any
 
+import fwo_globals
 import requests
 import xmltodict
 from fw_modules.opnsense25ff.opnsense_normalizer import normalize_opnsense_config
@@ -15,43 +16,46 @@ from fwo_base import ensure_device_name
 from fwo_exceptions import FwoNativeConfigFetchError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from models.fw_common import FwCommon
 from models.fwconfigmanager import FwConfigManager
 from requests.auth import HTTPBasicAuth
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 
 class OPNsense25common(FwCommon):
     def get_config(
-        self, config_in: FwConfigManagerListController, import_state: ImportStateController
+        self, config_in: FwConfigManagerListController, import_state: ImportState, global_state: GlobalState
     ) -> tuple[int, FwConfigManagerListController]:
-        return get_config(config_in=config_in, import_state=import_state)
+        return get_config(config_in=config_in, global_state=global_state, import_state=import_state)
 
 
-def ensure_manager_set(config_in: FwConfigManagerListController, import_state: ImportStateController) -> None:
+def ensure_manager_set(config_in: FwConfigManagerListController, import_state: ImportState) -> None:
     """Add an empty manager to configs read from file, which carry native data only."""
     if len(config_in.ManagerSet) > 0:
         return
     config_in.add_manager(
         manager=FwConfigManager(
-            manager_uid=import_state.state.mgm_details.uid,
-            manager_name=import_state.state.mgm_details.name,
-            is_super_manager=import_state.state.mgm_details.is_super_manager,
-            sub_manager_ids=import_state.state.mgm_details.sub_manager_ids,
-            domain_name=import_state.state.mgm_details.domain_name,
-            domain_uid=import_state.state.mgm_details.domain_uid,
+            manager_uid=import_state.mgm_details.uid,
+            manager_name=import_state.mgm_details.name,
+            is_super_manager=import_state.mgm_details.is_super_manager,
+            sub_manager_ids=import_state.mgm_details.sub_manager_ids,
+            domain_name=import_state.mgm_details.domain_name,
+            domain_uid=import_state.mgm_details.domain_uid,
             configs=[],
         )
     )
 
 
-def fetch_native_config(import_state: ImportStateController) -> dict[str, Any]:
+def fetch_native_config(import_state: ImportState) -> dict[str, Any]:
     """Download the full config.xml from the OPNsense core backup API and parse it into a dict."""
     # curl -kv -u "$key:$secret" 'https://{opensense}/api/core/backup/download/this'
-    os_api_url = f"https://{import_state.state.mgm_details.hostname}:{import_state.state.mgm_details.port!s}/api/core/backup/download/this"
+    os_api_url = (
+        f"https://{import_state.mgm_details.hostname}:{import_state.mgm_details.port!s}/api/core/backup/download/this"
+    )
     with requests.Session() as session:
-        session.verify = import_state.state.verify_certs
-        session.auth = HTTPBasicAuth(import_state.state.mgm_details.import_user, import_state.state.mgm_details.secret)
+        session.verify = fwo_globals.verify_certs or False
+        session.auth = HTTPBasicAuth(import_state.mgm_details.import_user, import_state.mgm_details.secret)
 
         FWOLogger.debug("[*] receiving OPNsense config.xml ...")
         response = session.get(os_api_url, timeout=60)
@@ -62,10 +66,10 @@ def fetch_native_config(import_state: ImportStateController) -> dict[str, Any]:
 
 
 def get_config(
-    config_in: FwConfigManagerListController, import_state: ImportStateController
+    config_in: FwConfigManagerListController, global_state: GlobalState, import_state: ImportState
 ) -> tuple[int, FwConfigManagerListController]:
     try:
-        ensure_device_name(import_state)
+        ensure_device_name(global_state, import_state)
         ensure_manager_set(config_in, import_state)
 
         # Stage 1: config retrieval - only contact the firewall if no native config was supplied

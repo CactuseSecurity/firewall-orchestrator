@@ -3,14 +3,16 @@ from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
 from fwo_exceptions import FwoImporterError
 from model_controllers.fwconfig_import import FwConfigImport
-from model_controllers.import_state_controller import ImportStateController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.gateway import Gateway
 from pytest_mock import MockerFixture
+from states.import_state import ImportState
+from states.management_state import ManagementState
 
 
 def test_fix_rulebase_links_in_db_uses_firewall_rulebase_link_result(
-    import_state_controller: ImportStateController,
+    import_state: ImportState,
+    management_state: ManagementState,
     api_call: FwoApiCall,
     mocker: MockerFixture,
 ):
@@ -20,17 +22,17 @@ def test_fix_rulebase_links_in_db_uses_firewall_rulebase_link_result(
         return_value={"data": {"update_firewall_rulebase_link": {"affected_rows": 0}}},
     )
 
-    importer.fix_rulebase_links_in_db(FwConfigNormalized())
+    importer.fix_rulebase_links_in_db(import_state, management_state, api_call)
 
     graphql_mock.assert_called_once()
     api_call.call.assert_called_once_with(
         "mutation",
         query_variables={
-            "mgmId": import_state_controller.state.mgm_details.current_mgm_id,
-            "importId": import_state_controller.state.import_id,
+            "mgmId": import_state.mgm_details.mgm_id,
+            "importId": import_state.import_id,
         },
     )
-    assert import_state_controller.state.stats.statistics.inconsistent_rulebase_link_delete_count == 0
+    assert import_state.statistics_controller.incons == 0
 
 
 def test_fix_rulebase_links_in_db_refreshes_previous_config_after_removal(

@@ -1,41 +1,44 @@
+import fwo_globals
 import pytest
 import requests
 from fw_modules.opnsense25ff import fwcommon
 from fwo_exceptions import FwoNativeConfigFetchError
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
-from model_controllers.import_state_controller import ImportStateController
 from pytest_mock import MockerFixture
+from states.global_state import GlobalState
+from states.import_state import ImportState
 
 
 class TestEnsureDeviceName:
     def test_ensure_device_name_uses_gateway_uid(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
     ) -> None:
-        import_state = import_state_controller
-        import_state.state.gateway_map = {import_state.state.mgm_details.current_mgm_id: {"gw-uid": 1}}
-        import_state.state.mgm_details.devices = []
+        global_state.stm_mapper.gateway_map = {import_state.mgm_details.mgm_id: {"gw-uid": 1}}
+        import_state.mgm_details.devices = []
 
-        fwcommon.ensure_device_name(import_state)
+        fwcommon.ensure_device_name(global_state, import_state)
 
-        assert import_state.state.mgm_details.devices[0]["name"] == "gw-uid"
+        assert import_state.mgm_details.devices[0]["name"] == "gw-uid"
 
     def test_ensure_device_name_overrides_non_matching_device(
         self,
-        import_state_controller: ImportStateController,
+        global_state: GlobalState,
+        import_state: ImportState,
     ) -> None:
-        import_state = import_state_controller
-        import_state.state.gateway_map = {import_state.state.mgm_details.current_mgm_id: {"gw-uid": 1}}
-        import_state.state.mgm_details.devices = [{"name": "native-hostname"}]
+        global_state.stm_mapper.gateway_map = {import_state.mgm_details.mgm_id: {"gw-uid": 1}}
+        import_state.mgm_details.devices = [{"name": "native-hostname"}]
 
-        fwcommon.ensure_device_name(import_state)
+        fwcommon.ensure_device_name(global_state, import_state)
 
-        assert import_state.state.mgm_details.devices[0]["name"] == "gw-uid"
+        assert import_state.mgm_details.devices[0]["name"] == "gw-uid"
 
 
 def test_get_config_fetches_sanitizes_and_normalizes_config(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config = FwConfigManagerListController.generate_empty_config()
     response = mocker.Mock()
@@ -53,7 +56,7 @@ def test_get_config_fetches_sanitizes_and_normalizes_config(
     )
     normalizer = mocker.patch.object(fwcommon, "normalize_opnsense_config", return_value=config)
 
-    rc, result = fwcommon.get_config(config, import_state_controller)
+    rc, result = fwcommon.get_config(config, global_state, import_state)
 
     assert rc == 0
     assert result is config
@@ -63,16 +66,17 @@ def test_get_config_fetches_sanitizes_and_normalizes_config(
         timeout=60,
     )
     response.raise_for_status.assert_called_once_with()
-    assert session.verify == import_state_controller.state.verify_certs
+    assert session.verify == (fwo_globals.verify_certs or False)
     assert session.auth.username == "mock-user"
     assert session.auth.password == "mock-secret"  # noqa: S105
     sanitizer.assert_called_once_with({"opnsense": {"system": {}}})
-    normalizer.assert_called_once_with(config, import_state=import_state_controller)
+    normalizer.assert_called_once_with(config, import_state=import_state)
 
 
 def test_get_config_uses_native_config_from_file_without_api_call(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config = FwConfigManagerListController.generate_empty_config()
     config.native_config = {"opnsense": {"system": {"hostname": "fw"}}}
@@ -84,19 +88,20 @@ def test_get_config_uses_native_config_from_file_without_api_call(
     )
     normalizer = mocker.patch.object(fwcommon, "normalize_opnsense_config", return_value=config)
 
-    rc, result = fwcommon.get_config(config, import_state_controller)
+    rc, result = fwcommon.get_config(config, global_state, import_state)
 
     assert rc == 0
     assert result is config
     session_factory.assert_not_called()
     sanitizer.assert_called_once_with({"opnsense": {"system": {"hostname": "fw"}}})
-    normalizer.assert_called_once_with(config, import_state=import_state_controller)
+    normalizer.assert_called_once_with(config, import_state=import_state)
     assert config.native_config == {"opnsense": {"sanitized": True}}
 
 
 def test_get_config_adds_manager_set_for_native_file_configs(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config = FwConfigManagerListController.generate_empty_config()
     config.ManagerSet = []
@@ -104,15 +109,16 @@ def test_get_config_adds_manager_set_for_native_file_configs(
     mocker.patch.object(fwcommon, "remove_opnsense_sensitive_data", return_value=config.native_config)
     mocker.patch.object(fwcommon, "normalize_opnsense_config", return_value=config)
 
-    fwcommon.get_config(config, import_state_controller)
+    fwcommon.get_config(config, global_state, import_state)
 
     assert len(config.ManagerSet) == 1
-    assert config.ManagerSet[0].manager_uid == import_state_controller.state.mgm_details.uid
+    assert config.ManagerSet[0].manager_uid == import_state.mgm_details.uid
 
 
 def test_get_config_wraps_request_errors(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config = FwConfigManagerListController.generate_empty_config()
     session = mocker.MagicMock()
@@ -122,14 +128,15 @@ def test_get_config_wraps_request_errors(
     logger = mocker.patch.object(fwcommon.FWOLogger, "exception")
 
     with pytest.raises(FwoNativeConfigFetchError, match="API request failed"):
-        fwcommon.get_config(config, import_state_controller)
+        fwcommon.get_config(config, global_state, import_state)
 
     logger.assert_called_once_with("[-] get_config: API request failed: timeout", exc_info=True)
 
 
 def test_get_config_logs_unexpected_processing_errors_with_traceback(
     mocker: MockerFixture,
-    import_state_controller: ImportStateController,
+    global_state: GlobalState,
+    import_state: ImportState,
 ) -> None:
     config = FwConfigManagerListController.generate_empty_config()
     response = mocker.Mock()
@@ -143,7 +150,7 @@ def test_get_config_logs_unexpected_processing_errors_with_traceback(
     logger = mocker.patch.object(fwcommon.FWOLogger, "exception")
 
     with pytest.raises(ValueError, match="invalid XML"):
-        fwcommon.get_config(config, import_state_controller)
+        fwcommon.get_config(config, global_state, import_state)
 
     logger.assert_called_once_with(
         "[-] get_config: failed to process OPNsense configuration",

@@ -61,7 +61,22 @@ def import_state(
     mocker: MockerFixture,
 ) -> ImportState:
     super_management_id = 1
-    mock_mgm = mocker.Mock(mgm_id=super_management_id, current_mgm_id=super_management_id)
+    mock_mgm = mocker.Mock(
+        mgm_id=super_management_id,
+        current_mgm_id=super_management_id,
+        uid="mock-uid",
+        hostname="mock.example.com",
+        port=443,
+        import_user="mock-user",
+        secret="mock-secret",  # noqa: S106
+        is_super_manager=False,
+        sub_manager_ids=[],
+        domain_name="mock-domain",
+        domain_uid="mock-domain-uid",
+        devices=[],
+    )
+    # "name" is a reserved Mock() kwarg (controls repr), so it must be set as an attribute instead.
+    mock_mgm.name = "Mock Management"
 
     mocker.patch("states.import_state.ManagementController.get_mgm_details", return_value={})
     mocker.patch("states.import_state.ManagementController.from_json", return_value=mock_mgm)

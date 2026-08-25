@@ -534,6 +534,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
     <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
     <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
+    <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -542,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
     <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
     <li>The maximum runtime of import scripts is configurable in the default settings.</li>
+    <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

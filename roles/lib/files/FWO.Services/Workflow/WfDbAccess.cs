@@ -88,7 +88,17 @@ namespace FWO.Services.Workflow
             return ticket;
         }
 
-        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime cutOffDate,
+        /// <summary>
+        /// Loads tickets filtered by task type, state range and creation window.
+        /// </summary>
+        /// <param name="taskType">Workflow task type to query.</param>
+        /// <param name="startState">Lower state bound.</param>
+        /// <param name="endState">Upper state bound.</param>
+        /// <param name="createdFrom">Inclusive lower creation timestamp bound.</param>
+        /// <param name="createdUntil">Inclusive upper creation timestamp bound.</param>
+        /// <param name="ticketFilter">Optional in-memory filter applied after loading.</param>
+        /// <returns>Matching tickets.</returns>
+        public async Task<List<WfTicket>> GetTicketsByParameters(string taskType, int startState, int endState, DateTime? createdFrom, DateTime? createdUntil,
             Func<WfTicket, bool>? ticketFilter = null)
         {
             List<WfTicket> tickets = [];
@@ -96,7 +106,8 @@ namespace FWO.Services.Workflow
             {
                 var Variables = new
                 {
-                    cutOffDate = cutOffDate,
+                    createdFrom = createdFrom,
+                    createdUntil = createdUntil,
                     taskType = taskType,
                     fromState = startState,
                     toState = endState

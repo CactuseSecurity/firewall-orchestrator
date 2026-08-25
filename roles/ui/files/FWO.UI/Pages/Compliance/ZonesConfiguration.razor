@@ -279,6 +279,7 @@
         }
         catch(Exception exception)
         {
+            await ConfigChanged();
             DisplayMessageInUi(exception, userConfig.GetText("add_auto_calculated_internet_zone"), "", true);
         }
         finally

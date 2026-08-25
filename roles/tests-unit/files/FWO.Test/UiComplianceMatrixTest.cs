@@ -134,6 +134,42 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void AddAutoCalculatedInternetZone_InternetZoneCreationFailsAfterUndefinedInternalZoneCreated_ReloadsZones()
+        {
+            MatrixApiConnection apiConnection = new() { ThrowWhenAddingAutoCalculatedInternetZone = true };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            userConfig.User.Roles = new List<string> { Roles.Admin };
+            userConfig.SetExecutionMode(Roles.Admin);
+            NetworkZoneService networkZoneService = new();
+
+            using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton(userConfig);
+            context.Services.AddSingleton(networkZoneService);
+            context.Services.AddSingleton<AuthenticationStateProvider>(new AllowAllAuthStateProvider(Roles.Admin));
+            context.Services.AddLocalization();
+
+            IRenderedComponent<CascadingAuthenticationState> root = context.Render<CascadingAuthenticationState>(parameters => parameters.AddChildContent<ComplianceMatrix>());
+
+            int networkZoneLoadsBeforeAdding = apiConnection.NetworkZoneLoads;
+            root.Find("#add-auto-calculated-internet-zone").Click();
+
+            root.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.AutoCalculatedInternetZoneAdditions, Is.EqualTo(1));
+                Assert.That(apiConnection.NetworkZoneLoads, Is.EqualTo(networkZoneLoadsBeforeAdding + 2));
+            });
+        }
+
         private sealed class MatrixApiConnection : SimulatedApiConnection
         {
             private readonly List<ComplianceNetworkZone> networkZones = new()
@@ -143,7 +179,9 @@ namespace FWO.Test
 
             public int AutoCalculatedInternetZoneAdditions { get; private set; }
             public int AutoCalculatedUndefinedInternalZoneRemovals { get; private set; }
+            public int NetworkZoneLoads { get; private set; }
             public bool DelayAutoCalculatedInternetZoneAddition { get; init; }
+            public bool ThrowWhenAddingAutoCalculatedInternetZone { get; init; }
             public TaskCompletionSource<object?> AutoCalculatedInternetZoneAdditionStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
             public TaskCompletionSource<object?> ReleaseAutoCalculatedInternetZoneAddition { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -160,16 +198,28 @@ namespace FWO.Test
 
                 if (query == ComplianceQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
                 {
+                    NetworkZoneLoads++;
                     return Task.FromResult((QueryResponseType)(object)networkZones);
                 }
 
                 if (query == ComplianceQueries.addNetworkZone)
                 {
                     PropertyInfo? isInternetZoneProperty = variables?.GetType().GetProperty("isAutoCalculatedInternetZone");
+                    PropertyInfo? isUndefinedInternalZoneProperty = variables?.GetType().GetProperty("isAutoCalculatedUndefinedInternalZone");
+
+                    if (isUndefinedInternalZoneProperty?.GetValue(variables) is true)
+                    {
+                        AddAutoCalculatedUndefinedInternalZone();
+                        return Task.FromResult(default(QueryResponseType)!);
+                    }
 
                     if (isInternetZoneProperty?.GetValue(variables) is true)
                     {
                         AutoCalculatedInternetZoneAdditions++;
+                        if (ThrowWhenAddingAutoCalculatedInternetZone)
+                        {
+                            throw new InvalidOperationException("Unable to add auto-calculated Internet zone.");
+                        }
                         if (DelayAutoCalculatedInternetZoneAddition)
                         {
                             AutoCalculatedInternetZoneAdditionStarted.TrySetResult(null);
@@ -211,6 +261,17 @@ namespace FWO.Test
                     IdString = "AUTO_CALCULATED_ZONE_INTERNET",
                     Name = "Auto-calculated Internet Zone",
                     IsAutoCalculatedInternetZone = true
+                });
+            }
+
+            private void AddAutoCalculatedUndefinedInternalZone()
+            {
+                networkZones.Add(new ComplianceNetworkZone
+                {
+                    Id = 3,
+                    IdString = NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString,
+                    Name = "Auto-calculated Undefined-internal Zone",
+                    IsAutoCalculatedUndefinedInternalZone = true
                 });
             }
 

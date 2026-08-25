@@ -627,12 +627,11 @@ namespace FWO.Compliance
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
-                for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+                foreach (NetworkObject groupMember in networkObject.ObjectGroupFlats
+                    .Select(groupFlat => groupFlat.Object)
+                    .OfType<NetworkObject>())
                 {
-                    if (networkObject.ObjectGroupFlats[j].Object != null)
-                    {
-                        ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-                    }
+                    ranges.AddRange(ParseIpRange(groupMember));
                 }
             }
             else if (networkObject.IP != null)

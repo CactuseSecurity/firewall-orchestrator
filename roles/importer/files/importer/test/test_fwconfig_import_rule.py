@@ -46,17 +46,17 @@ class TestFwConfigImportRule:
 
     def test_prepare_rule_for_import_populates_zone_text(
         self,
+        import_state: ImportState,
+        global_state: GlobalState,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
     ):
         # The retained rule_src_zone/rule_dst_zone text columns must keep being written on import.
-        fwconfig_import_rule.uid2id_mapper = mocker.Mock()
-        fwconfig_import_rule.uid2id_mapper.get_rulebase_id.return_value = 1
-        fwconfig_import_rule.import_details = mocker.Mock()
-        fwconfig_import_rule.import_details.state.mgm_details.current_mgm_id = 1
-        fwconfig_import_rule.import_details.state.import_id = 1
-        fwconfig_import_rule.import_details.state.lookup_action.return_value = 1
-        fwconfig_import_rule.import_details.state.lookup_track.return_value = 1
+        import_state.mgm_details.mgm_id = 1
+        import_state.import_id = 1
+        global_state.stm_mapper.lookup_action = mocker.Mock(return_value=1)
+        global_state.stm_mapper.lookup_track = mocker.Mock(return_value=1)
+        fwconfig_import_rule.uid2id_mapper.add_rulebase_mappings([{"uid": "rulebase-uid", "id": 1}])
 
         normalized_rule = build_normalized_rule("rule-uid", rule_src_zone="src_zone", rule_dst_zone="dst_zone")
 

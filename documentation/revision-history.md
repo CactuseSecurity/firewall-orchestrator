@@ -619,6 +619,9 @@ Not supported any longer are:
 - fix checkpoint import policy install detection
 - fix nat rules report
 
+## 9.4.2 - 25.08.2026
+- add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
+
 # 9.5.0
 - introducing
   - an internal CA and certificate checks for all internal communication

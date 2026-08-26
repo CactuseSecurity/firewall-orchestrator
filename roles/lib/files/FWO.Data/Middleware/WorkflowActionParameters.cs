@@ -13,6 +13,8 @@ namespace FWO.Data.Middleware
         public bool StateChangedByCreation { get; set; }
         public string Phase { get; set; } = WorkflowPhases.request.ToString();
         public string ExecutionMode { get; set; } = "";
+        public string EmailBundleId { get; set; } = "";
+        public bool EmailBundleEnd { get; set; }
     }
 
     public class WorkflowActionResult

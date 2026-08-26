@@ -30,6 +30,8 @@ namespace FWO.Services.Workflow
         private static readonly object MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
+        public WorkflowEmailBundleCollector? EmailBundleCollector { get; set; }
+        private List<WfReqTask>? RequestTaskEmailBundle { get; set; }
 
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
@@ -98,6 +100,42 @@ namespace FWO.Services.Workflow
 
             await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
             await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+        }
+
+        public async Task FlushEmailBundleCollector()
+        {
+            if (EmailBundleCollector == null || EmailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            WorkflowEmailBundleCollector collector = EmailBundleCollector;
+            collector.IsFlushing = true;
+            try
+            {
+                foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
+                {
+                    WorkflowEmailBundleItem item = group.OrderBy(item => item.RequestTask.TaskNumber).First();
+                    RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
+                    await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                    RequestTaskEmailBundle = null;
+                }
+            }
+            finally
+            {
+                RequestTaskEmailBundle = null;
+                collector.PendingItems.Clear();
+                collector.IsFlushing = false;
+            }
+        }
+
+        private static List<WfReqTask> BuildRequestTaskEmailBundle(IEnumerable<WorkflowEmailBundleItem> bundleItems)
+        {
+            return bundleItems
+                .Select(item => item.RequestTask)
+                .DistinctBy(task => task.Id)
+                .OrderBy(task => task.TaskNumber)
+                .ToList();
         }
 
         private List<WfStateAction> StateActionsForEvent(WfStatefulObject statefulObject, WfObjectScopes scope, StateActionEvents actionEvent, bool currentState)
@@ -244,7 +282,9 @@ namespace FWO.Services.Workflow
                 NewStateId = statefulObject.StateId,
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
-                ExecutionMode = wfHandler.userConfig.ExecutionMode
+                ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                EmailBundleId = wfHandler.WorkflowEmailBundleId ?? "",
+                EmailBundleEnd = wfHandler.WorkflowEmailBundleEnd
             };
         }
 

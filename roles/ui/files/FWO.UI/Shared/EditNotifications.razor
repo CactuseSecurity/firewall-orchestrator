@@ -2,11 +2,9 @@
 @using FWO.Api.Client.Queries
 @using FWO.Basics
 @using FWO.Data
-@using FWO.Recert
 @using FWO.Services
 @using FWO.Ui.Pages.Settings
 @using FWO.Ui.Services
-@using System.Text.Json
 
 
 @inject ApiConnection apiConnection
@@ -770,11 +768,11 @@
     private async Task Delete()
     {
         int notificationId = actNotification.Id;
-        bool removedReference = false;
+        List<int>? previousNotificationIds = NotificationIds?.ToList();
+
         try
         {
             await RemoveNotificationId(notificationId);
-            removedReference = true;
             await NotificationMutationHelper.DeleteAsync(apiConnection, notificationId);
             Notifications.Remove(actNotification);
             DeleteNotifMode = false;
@@ -782,10 +780,20 @@
         }
         catch (Exception exception)
         {
-            if (removedReference)
+            try
             {
-                await AddNotificationId(notificationId);
+                if (previousNotificationIds != null)
+                {
+                    NotificationIds = previousNotificationIds;
+                    await NotificationIdsChanged.InvokeAsync(NotificationIds);
+                }
             }
+            catch (Exception rollbackException)
+            {
+                DisplayMessageInUi(rollbackException, userConfig.GetText("delete_notification"), "", true);
+                return;
+            }
+
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }
     }

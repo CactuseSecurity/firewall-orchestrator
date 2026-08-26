@@ -31,6 +31,17 @@
         </div>
     </div>
 </div>
+@if (ActAction.Scope == WfObjectScopes.RequestTask.ToString())
+{
+    <div class="col-sm-4">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5539"))">
+            <label class="col-sm-10 col-form-label col-form-label-sm" for="bundleRequestTasksByType">@(userConfig.GetText("bundle_request_tasks_by_type")):</label>
+            <div class="col-sm-2">
+                <input id="bundleRequestTasksByType" class="form-check-input mt-2" type="checkbox" checked="@actBundleRequestTasksByType" @onchange="OnBundleRequestTasksByTypeChanged" />
+            </div>
+        </div>
+    </div>
+}
 <div class="col-sm-12">
     <EditNotifications Client="NotificationClient.WfAction"
                        NotificationIds="@actActionNotificationIds"
@@ -45,25 +56,34 @@
     public WfStateAction ActAction { get; set; } = new();
 
     [Parameter]
-    public WfStateAction PersistedAction { get; set; } = new();
+    public WfStateAction? PersistedAction { get; set; }
 
     private List<int> actActionNotificationIds = [];
+    private List<int> temporaryNotificationIds = [];
+    private WfStateAction? initializedAction;
     private EmailAttachedContent actAttachedContent = EmailAttachedContent.None;
     private bool actConfirmSentMail;
     private FwoNotification? legacyActionNotification;
+    private bool actBundleRequestTasksByType;
 
     protected override void OnParametersSet()
     {
-        ResetLocalState();
+        if (!ReferenceEquals(initializedAction, ActAction))
+        {
+            ResetLocalState();
+            initializedAction = ActAction;
+        }
         LoadFromExternalParams();
     }
 
     private void ResetLocalState()
     {
         actActionNotificationIds = [];
+        temporaryNotificationIds = [];
         actAttachedContent = EmailAttachedContent.None;
         actConfirmSentMail = false;
         legacyActionNotification = null;
+        actBundleRequestTasksByType = false;
     }
 
     private void LoadFromExternalParams()
@@ -77,6 +97,7 @@
         actActionNotificationIds = [.. emailActionParams.NotificationIds.Where(id => id > 0).Distinct()];
         actAttachedContent = emailActionParams.AttachedContent;
         actConfirmSentMail = emailActionParams.ConfirmSentMail;
+        actBundleRequestTasksByType = emailActionParams.RequestTaskBundleMode == EmailRequestTaskBundleMode.SameTaskType;
         if (actActionNotificationIds.Count == 0)
         {
             legacyActionNotification = emailActionParams.ToNotification();
@@ -97,10 +118,25 @@
         return Task.CompletedTask;
     }
 
-    private Task SetActionNotificationIds(List<int> notificationIds)
+    private Task OnBundleRequestTasksByTypeChanged(ChangeEventArgs changeEventArgs)
     {
-        actActionNotificationIds = [.. notificationIds.Distinct()];
-        return PersistActionNotificationIds();
+        actBundleRequestTasksByType = bool.TryParse(changeEventArgs.Value?.ToString(), out bool parsedValue) && parsedValue;
+        UpdateExternalParams();
+        return Task.CompletedTask;
+    }
+
+    private async Task SetActionNotificationIds(List<int> notificationIds)
+    {
+        List<int> previousNotificationIds = [.. actActionNotificationIds];
+        actActionNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+
+        temporaryNotificationIds.AddRange(
+            actActionNotificationIds
+                .Except(previousNotificationIds)
+                .Except(temporaryNotificationIds));
+
+        UpdateExternalParams();
+        await PersistNotificationIdsForExistingAction();
     }
 
     public async Task<bool> PrepareForSaveAsync()
@@ -135,28 +171,11 @@
     {
         if (ActAction.Id > 0)
         {
+            await DeleteActionNotifications(temporaryNotificationIds);
             return;
         }
 
-        await DeleteActionNotifications(actActionNotificationIds);
-    }
-
-    private async Task PersistActionNotificationIds()
-    {
-        if (PersistedAction.Id <= 0 || PersistedAction.ActionType != nameof(StateActionTypes.SendEmail))
-        {
-            return;
-        }
-
-        string externalParams = EmailExternalParams();
-        int updatedId = await UpdateAction(PersistedAction, externalParams);
-        if (updatedId != PersistedAction.Id)
-        {
-            DisplayMessageInUi(null, userConfig.GetText("save_action"), userConfig.GetText("E8011"), true);
-            return;
-        }
-
-        ActAction.ExternalParams = externalParams;
+        await DeleteActionNotifications(actActionNotificationIds.Union(temporaryNotificationIds));
     }
 
     private void UpdateExternalParams()
@@ -170,8 +189,44 @@
         {
             notification_ids = actActionNotificationIds,
             attached_content = actAttachedContent,
-            confirm_sent_mail = actConfirmSentMail
+            confirm_sent_mail = actConfirmSentMail,
+            request_task_bundle_mode = ActAction.Scope == WfObjectScopes.RequestTask.ToString() && actBundleRequestTasksByType
+                ? EmailRequestTaskBundleMode.SameTaskType
+                : EmailRequestTaskBundleMode.None
         });
+    }
+
+    private async Task PersistNotificationIdsForExistingAction()
+    {
+        if (!CanPersistNotificationIdsImmediately())
+        {
+            return;
+        }
+
+        string externalParams = EmailExternalParamsForPersistedAction();
+        int updatedId = await UpdateAction(PersistedAction!, externalParams);
+        if (updatedId != PersistedAction!.Id)
+        {
+            throw new InvalidOperationException(userConfig.GetText("E8011"));
+        }
+
+        PersistedAction.ExternalParams = externalParams;
+        temporaryNotificationIds.RemoveAll(id => actActionNotificationIds.Contains(id));
+    }
+
+    private bool CanPersistNotificationIdsImmediately()
+    {
+        return PersistedAction?.Id > 0
+            && PersistedAction.ActionType == nameof(StateActionTypes.SendEmail);
+    }
+
+    private string EmailExternalParamsForPersistedAction()
+    {
+        EmailActionParams emailActionParams = string.IsNullOrWhiteSpace(PersistedAction?.ExternalParams) || PersistedAction.ExternalParams == "{}"
+            ? new()
+            : JsonSerializer.Deserialize<EmailActionParams>(PersistedAction.ExternalParams) ?? new();
+        emailActionParams.NotificationIds = actActionNotificationIds;
+        return JsonSerializer.Serialize(emailActionParams);
     }
 
     private async Task<int> UpdateAction(WfStateAction action, string externalParams)

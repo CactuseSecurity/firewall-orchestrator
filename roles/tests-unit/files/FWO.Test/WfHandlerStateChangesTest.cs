@@ -104,6 +104,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task PromoteReqTask_WithStartedHandlerDisabled_DoesNotSetStartOrHandler()
+        {
+            WfHandler handler = new();
+            handler.MasterStateMatrix = new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5,
+                PhaseActive = new() { { WorkflowPhases.planning, false } }
+            };
+            handler.ActStateMatrix = new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 5
+            };
+            handler.ActReqTask = new WfReqTask { Id = 7, TicketId = 10, StateId = 0 };
+            handler.ActTicket = new WfTicket { Id = 10, Tasks = { handler.ActReqTask } };
+            handler.DisplayPromoteReqTaskMode = true;
+
+            await handler.PromoteReqTask(new WfStatefulObject { StateId = 2 }, setStartedHandler: false);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.StateId, Is.EqualTo(2));
+                Assert.That(handler.ActReqTask.Start, Is.Null);
+                Assert.That(handler.ActReqTask.CurrentHandler, Is.Null);
+                Assert.That(handler.DisplayPromoteReqTaskMode, Is.False);
+            });
+        }
+
+        [Test]
         public async Task PromoteImplTask_SetsStopAndUpdatesReqAndTicket()
         {
             WfHandler handler = new() { Phase = WorkflowPhases.implementation };

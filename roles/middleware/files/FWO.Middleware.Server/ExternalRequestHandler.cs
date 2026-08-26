@@ -34,6 +34,23 @@ namespace FWO.Middleware.Server
         private List<UserGroup>? ownerGroups = [];
         private bool actInternalWork = false;
 
+        private enum CreateNextRequestResult
+        {
+            Continue,
+            ReturnTrue,
+            ReturnHandledTask,
+            ReturnFalse
+        }
+
+        private sealed class CreateNextRequestState
+        {
+            public WfTicket Ticket { get; set; } = new();
+            public ExternalRequest? OldRequest { get; set; }
+            public int LastTaskNumber { get; set; }
+            public bool HandledTask { get; set; }
+            public bool HandledInternalWork { get; set; }
+        }
+
         /// <summary>
         /// constructor for object with all data necessary for request handling
         /// </summary>
@@ -232,59 +249,96 @@ namespace FWO.Middleware.Server
         {
             int lastTaskNumber = UserConfig.ModRolloutBundleTasks && oldRequest != null && oldRequest.ExtQueryVariables != "" ?
                 GetLastTaskNumber(oldRequest.ExtQueryVariables, oldTaskNumber) : oldTaskNumber;
-
-            bool handledTask = false;
-            bool handledInternalWork = false;
-
-            while (true)
+            WorkflowEmailBundleCollector emailBundleCollector = new();
+            CreateNextRequestState state = new()
             {
-                WfReqTask? nextTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == lastTaskNumber + 1);
-                if (nextTask is null)
+                Ticket = ticket,
+                OldRequest = oldRequest,
+                LastTaskNumber = lastTaskNumber
+            };
+
+            try
+            {
+                while (true)
                 {
-                    Log.WriteDebug("CreateNextRequest", "No more task found.");
-                    return handledTask;
+                    CreateNextRequestResult result = await ProcessNextRequestTask(state, emailBundleCollector);
+                    if (result == CreateNextRequestResult.Continue)
+                    {
+                        continue;
+                    }
+                    return result switch
+                    {
+                        CreateNextRequestResult.ReturnHandledTask => state.HandledTask,
+                        CreateNextRequestResult.ReturnTrue => true,
+                        _ => false
+                    };
                 }
-
-                if (handledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
-                {
-                    Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
-                    return true;
-                }
-
-                List<ManagementFwConfigChangeState> managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new();
-
-                List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? new();
-                GetExtSystemFromTask(nextTask, managementSettings, extTicketSystems);
-
-                if (actInternalWork)
-                {
-                    await PromoteInternalWorkTaskToPlanning(ticket, nextTask);
-                    Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {ticket.Id} to planning.");
-
-                    handledTask = true;
-                    handledInternalWork = true;
-                    lastTaskNumber = nextTask.TaskNumber;
-                    oldRequest = null;
-                    ticket = await wfHandler.ResolveTicket(ticket.Id) ?? ticket;
-                    continue;
-                }
-
-                int waitCycles = GetWaitCycles(nextTask.TaskType, oldRequest);
-                if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
-                {
-                    List<WfReqTask> bundledTasks = [];
-                    List<WfReqTask> handledTasks = [nextTask];
-                    BundleTasks(ticket, lastTaskNumber, nextTask, bundledTasks, handledTasks, managementSettings, extTicketSystems);
-                    await CreateExtRequest(ticket, bundledTasks, handledTasks, waitCycles);
-                }
-                else
-                {
-                    await CreateExtRequest(ticket, [nextTask], [nextTask], waitCycles);
-                }
-
-                Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {ticket.Id}.");
-                return true;
             }
+            catch
+            {
+                if (!await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector))
+                {
+                    return false;
+                }
+                throw;
+            }
+        }
+
+        private async Task<CreateNextRequestResult> ProcessNextRequestTask(CreateNextRequestState state, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            WfReqTask? nextTask = state.Ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == state.LastTaskNumber + 1);
+            if (nextTask is null)
+            {
+                return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
+                    ? CreateNextRequestResult.ReturnHandledTask
+                    : CreateNextRequestResult.ReturnFalse;
+            }
+
+            if (state.HandledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
+            {
+                return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
+                    ? CreateNextRequestResult.ReturnTrue
+                    : CreateNextRequestResult.ReturnFalse;
+            }
+
+            List<ManagementFwConfigChangeState> managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new();
+            List<ExternalTicketSystem> extTicketSystems = JsonSerializer.Deserialize<List<ExternalTicketSystem>>(UserConfig.ExtTicketSystems) ?? new();
+            GetExtSystemFromTask(nextTask, managementSettings, extTicketSystems);
+
+            if (actInternalWork)
+            {
+                WorkflowPhases internalWorkPhase = await PromoteInternalWorkTaskToApproval(state.Ticket, nextTask, emailBundleCollector);
+                Log.WriteInfo("CreateNextRequest", $"Promoted internal work task {nextTask.TaskNumber} for ticket {state.Ticket.Id} to {internalWorkPhase}.");
+                state.HandledTask = true;
+                state.HandledInternalWork = true;
+                state.LastTaskNumber = nextTask.TaskNumber;
+                state.OldRequest = null;
+                state.Ticket = await wfHandler.ResolveTicket(state.Ticket.Id) ?? state.Ticket;
+                return CreateNextRequestResult.Continue;
+            }
+
+            int waitCycles = GetWaitCycles(nextTask.TaskType, state.OldRequest);
+            if (nextTask.TaskType == WfTaskType.access.ToString() || nextTask.TaskType == WfTaskType.rule_modify.ToString() || nextTask.TaskType == WfTaskType.rule_delete.ToString())
+            {
+                List<WfReqTask> bundledTasks = [];
+                List<WfReqTask> handledTasks = [nextTask];
+                BundleTasks(state.Ticket, state.LastTaskNumber, nextTask, bundledTasks, handledTasks, managementSettings, extTicketSystems);
+                await CreateExtRequest(state.Ticket, bundledTasks, handledTasks, waitCycles);
+            }
+            else
+            {
+                await CreateExtRequest(state.Ticket, [nextTask], [nextTask], waitCycles);
+            }
+
+            Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {state.Ticket.Id}.");
+            return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
+                ? CreateNextRequestResult.ReturnTrue
+                : CreateNextRequestResult.ReturnFalse;
+        }
+
+        private async Task<bool> FlushInternalWorkEmailBundle(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            return await RunInternalWorkStateChangeActionsSafe(ticketId, emailBundleCollector);
         }
 
         private bool IsInternalWorkConfiguredForTask(WfReqTask task)
@@ -310,7 +364,6 @@ namespace FWO.Middleware.Server
         {
             return task.GetAddInfoValue(AdditionalInfoKeys.FwConfigChangeTarget) == ManagementFwConfigChangeTargets.InternalWork;
         }
-
 
         /// <summary>
         /// Continues the external request chain after an internal work request task has completed.
@@ -419,6 +472,96 @@ namespace FWO.Middleware.Server
                     bundledTasks.Add(actBundledTask);
                     taskFound = false;
                 }
+            }
+        }
+
+        private async Task RunInternalWorkStateChangeActions(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            if (emailBundleCollector.PendingItems.Count == 0)
+            {
+                return;
+            }
+
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+
+            if (!await approvalHandler.InitForActionExecution())
+            {
+                throw new InvalidOperationException("Could not initialize approval workflow handler for bundled internal work emails.");
+            }
+
+            WfTicket approvalTicket = await approvalHandler.ResolveTicket(ticketId) ?? throw new InvalidOperationException($"Ticket {ticketId} not found.");
+            approvalHandler.SetTicketEnv(approvalTicket);
+            approvalHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+
+            await approvalHandler.ActionHandler.FlushEmailBundleCollector();
+        }
+
+        private async Task<bool> RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            if (emailBundleCollector.PendingItems.Count == 0)
+            {
+                return true;
+            }
+
+            try
+            {
+                await RunInternalWorkStateChangeActions(ticketId, emailBundleCollector);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("RunInternalWorkStateChangeActions", $"Could not send bundled internal work emails for ticket {ticketId}.", exception);
+                if (await TrySendPendingInternalWorkEmailsIndividually(ticketId, emailBundleCollector))
+                {
+                    emailBundleCollector.PendingItems.Clear();
+                    return true;
+                }
+
+                Log.WriteError("RunInternalWorkStateChangeActions",
+                    $"Could not send {emailBundleCollector.PendingItems.Count} pending internal work approval email bundle item(s) for ticket {ticketId}. No automatic retry is available.");
+                emailBundleCollector.PendingItems.Clear();
+                return false;
+            }
+        }
+
+        private async Task<bool> TrySendPendingInternalWorkEmailsIndividually(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            if (emailBundleCollector.PendingItems.Count == 0)
+            {
+                return true;
+            }
+
+            try
+            {
+                if (wfHandler.ActionHandler == null && !await wfHandler.Init())
+                {
+                    return false;
+                }
+
+                if (wfHandler.ActionHandler == null)
+                {
+                    return false;
+                }
+
+                wfHandler.ActionHandler.EmailBundleCollector = null;
+                WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
+
+                foreach (WorkflowEmailBundleItem item in emailBundleCollector.PendingItems
+                    .GroupBy(pendingItem => pendingItem.BundleKey)
+                    .Select(group => group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First()))
+                {
+                    WfReqTask requestTask = ticket?.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
+                        ?? ticket?.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
+                        ?? item.RequestTask;
+                    await wfHandler.ActionHandler.SendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                }
+
+                return true;
+            }
+            catch (Exception fallbackException)
+            {
+                Log.WriteError("RunInternalWorkStateChangeActions", $"Fallback email delivery failed for ticket {ticketId}.", fallbackException);
+                return false;
             }
         }
 
@@ -538,7 +681,7 @@ namespace FWO.Middleware.Server
                 contentString.Contains("\"object_updated_status\":\"NEW\"") || contentString.Contains("object_updated_status\\u0022:\\u0022NEW\\u0022");
         }
 
-        private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task)
+        private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
         {
             WfHandler planningHandler = new(UserConfig, ApiConnection, WorkflowPhases.planning, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
 
@@ -553,6 +696,7 @@ namespace FWO.Middleware.Server
 
             StateMatrix planningMatrix = planningHandler.StateMatrix(planningTask.TaskType);
             planningTask.StateId = planningMatrix.LowestInputState;
+            planningHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
 
             planningHandler.SetTicketEnv(planningTicket);
             planningHandler.SetReqTaskEnv(planningTask);
@@ -566,7 +710,53 @@ namespace FWO.Middleware.Server
 
             await planningHandler.PromoteReqTask(planningTask);
 
-            await LogRequestTasks([planningTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+            await LogRequestTasks(new List<WfReqTask> { planningTask }, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+        }
+
+        private async Task<WorkflowPhases> PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
+        {
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+
+            if (!await approvalHandler.Init())
+            {
+                throw new InvalidOperationException("Could not initialize approval workflow handler.");
+            }
+
+            WfTicket approvalTicket = await approvalHandler.ResolveTicket(ticket.Id) ?? throw new InvalidOperationException($"Ticket {ticket.Id} not found.");
+
+            WfReqTask approvalTask = approvalTicket.Tasks.FirstOrDefault(ta => ta.TaskNumber == task.TaskNumber) ?? throw new InvalidOperationException($"Task {task.TaskNumber} not found in ticket {ticket.Id}.");
+
+            StateMatrix approvalMatrix = approvalHandler.StateMatrix(approvalTask.TaskType);
+            if (!PhaseIsActive(approvalHandler.MasterStateMatrix, WorkflowPhases.approval) || !PhaseIsActive(approvalMatrix, WorkflowPhases.approval))
+            {
+                await PromoteInternalWorkTaskToPlanning(ticket, task, emailBundleCollector);
+                return WorkflowPhases.planning;
+            }
+
+            approvalHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+
+            approvalHandler.SetTicketEnv(approvalTicket);
+            approvalHandler.SetReqTaskEnv(approvalTask);
+
+            await approvalHandler.SetAddInfoInReqTask(approvalTask, AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+
+            if (!IsInternalWorkTask(approvalTask))
+            {
+                throw new InvalidOperationException($"Internal work marker could not be set for task {task.TaskNumber} in ticket {ticket.Id}.");
+            }
+
+            approvalHandler.SetReqTaskEnv(approvalTask);
+
+            approvalTask.StateId = approvalMatrix.LowestStartedState;
+            await approvalHandler.PromoteReqTask(approvalTask, setStartedHandler: false);
+
+            await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+            return WorkflowPhases.approval;
+        }
+
+        private static bool PhaseIsActive(StateMatrix stateMatrix, WorkflowPhases phase)
+        {
+            return stateMatrix.PhaseActive.TryGetValue(phase, out bool active) && active;
         }
 
         private async Task CreateExtRequest(WfTicket ticket, List<WfReqTask> tasks, List<WfReqTask> handledTasks, int waitCycles)

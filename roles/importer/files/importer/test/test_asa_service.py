@@ -37,7 +37,7 @@ def test_create_any_protocol_service_uses_any_protocol_for_ip():
     assert services[service_name].ip_proto == -1
 
 
-def test_acl_ip_protocol_uses_simple_any_service():
+def test_acl_ip_protocol_reuses_seeded_any_service():
     entry = AccessListEntry(
         acl_name="inside_access_in",
         action="permit",
@@ -46,11 +46,12 @@ def test_acl_ip_protocol_uses_simple_any_service():
         dst=EndpointKind(kind="any", value="any"),
         dst_port=EndpointKind(kind="any", value="any"),
     )
-    services: dict[str, ServiceObject] = {}
+    services = create_protocol_any_service_objects()
 
     service_name = create_service_for_protocol_entry(entry, services)
 
-    assert service_name == "ANY"
+    assert service_name == "any-ip"
+    assert len(services) == 4
     any_service = services[service_name]
     assert any_service.svc_typ == "simple"
     assert any_service.svc_port is None

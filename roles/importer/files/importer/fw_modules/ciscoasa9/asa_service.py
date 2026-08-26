@@ -309,14 +309,7 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     if entry.protocol.value == "ip":
-        service_objects["ANY"] = ServiceObject(
-            svc_uid="ANY",
-            svc_name="ANY",
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_typ="simple",
-            ip_proto=fwo_const.ANY_IP_PROTOCOL_ID,
-        )
-        return "ANY"
+        return create_any_protocol_service("ip", service_objects)
     # Unknown protocol, default to any for the protocol
     return create_any_protocol_service(entry.protocol.value, service_objects)
 

@@ -619,6 +619,9 @@ Not supported any longer are:
 - fix checkpoint import policy install detection
 - fix nat rules report
 
+## 9.4.2 - 25.08.2026
+- add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
+
 ## 9.4.3 - 26.08.2026
 - Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.
 - Keep the canonical ANY flow service object implemented and protect it from removal.

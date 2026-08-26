@@ -668,6 +668,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
+        [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
+        public bool AllowFullRollback { get; set; } = false;
 
         public ConfigData(bool editable = false)
         {

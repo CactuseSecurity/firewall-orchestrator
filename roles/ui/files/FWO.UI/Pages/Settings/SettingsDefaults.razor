@@ -175,6 +175,13 @@
             </div>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5853"))">
+            <label for="cbx_allow_full_rollback" class="col-form-label col-sm-4">@(userConfig.GetText("allowFullRollback")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_allow_full_rollback" type="checkbox" class="w-100" @bind="configData!.AllowFullRollback">
+            </div>
+        </div>
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
             <label for="cbx_allow_manual_owner_admin" class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
             <div class="col-sm-1">

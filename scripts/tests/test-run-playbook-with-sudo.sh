@@ -31,12 +31,16 @@ make_stub_bin() {
     return 0
 }
 
-# Fixture repo dir with collections/requirements.yml and an optional
-# community.general manifest at version $1 ("" = no manifest).
+# Fixture repo dir with collections/requirements.yml and optional repository-local
+# and fallback community.general manifests ("" = no manifest).
 make_fixture() {
-    local cg_version="$1" dir manifest
+    local local_cg_version="$1" fallback_cg_version="$2" dir manifest
     dir="$(mktemp -d)"
-    mkdir -p "$dir/collections"
+    mkdir -p "$dir/collections" "$dir/fallback"
+    cat >"$dir/ansible.cfg" <<'INI'
+[defaults]
+collections_path = ./collections:./fallback
+INI
     cat >"$dir/collections/requirements.yml" <<'YAML'
 ---
 collections:
@@ -44,29 +48,41 @@ collections:
     version: 11.4.2
 YAML
 
-    if [[ -n "$cg_version" ]]; then
+    if [[ -n "$local_cg_version" ]]; then
         manifest="$dir/collections/ansible_collections/community/general"
         mkdir -p "$manifest"
         printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
-            "$cg_version" >"$manifest/MANIFEST.json"
+            "$local_cg_version" >"$manifest/MANIFEST.json"
+    fi
+
+    if [[ -n "$fallback_cg_version" ]]; then
+        manifest="$dir/fallback/ansible_collections/community/general"
+        mkdir -p "$manifest"
+        printf '{\n  "collection_info": {\n    "version": "%s"\n  }\n}\n' \
+            "$fallback_cg_version" >"$manifest/MANIFEST.json"
     fi
 
     printf '%s' "$dir"
     return 0
 }
 
-# assert_case <name> <expected_rc> <expect_galaxy: yes|no> <core_version> <cg_version> <func>
+# assert_case <name> <expected_rc> <expect_galaxy: yes|no> <core_version> <local_cg_version> <fallback_cg_version> <fallback_only_env: no|singular|plural> <func>
 assert_case() {
-    local name="$1" expected_rc="$2" expect_galaxy="$3" core_version="$4" cg_version="$5" func="$6"
+    local name="$1" expected_rc="$2" expect_galaxy="$3" core_version="$4" local_cg_version="$5" fallback_cg_version="$6" fallback_only_env="$7" func="$8"
     local bin fixture marker rc galaxy_seen="no"
 
     marker="$(mktemp -u)"
     bin="$(make_stub_bin "$core_version" "$marker")"
-    fixture="$(make_fixture "$cg_version")"
+    fixture="$(make_fixture "$local_cg_version" "$fallback_cg_version")"
 
     (
         cd "$fixture" || exit 99
         PATH="$bin:$PATH"
+        if [[ "$fallback_only_env" == "singular" ]]; then
+            ANSIBLE_COLLECTIONS_PATH="$fixture/fallback"
+        elif [[ "$fallback_only_env" == "plural" ]]; then
+            ANSIBLE_COLLECTIONS_PATHS="$fixture/fallback"
+        fi
         # shellcheck disable=SC1090
         source "$launcher"
         "$func"
@@ -93,13 +109,16 @@ assert_case() {
     return 0
 }
 
-#           name                              rc  galaxy core     cg        func
-assert_case "core >=2.16 passes"               0  no     2.19.7   11.4.2    require_ansible_core
-assert_case "core <2.16 rejected"              1  no     2.14.18  11.4.2    require_ansible_core
-assert_case "missing/unknown ansible rejected" 1  no     none     11.4.2    require_ansible_core
-assert_case "correct manifest: no galaxy call" 0  no     2.19.7   11.4.2    ensure_collections
-assert_case "stale manifest: reinstalls"       0  yes    2.19.7   6.6.2     ensure_collections
-assert_case "missing manifest: installs"       0  yes    2.19.7   ""        ensure_collections
+#           name                                                  rc  galaxy core     local   fallback env  func
+assert_case "core >=2.16 passes"                                   0  no     2.19.7   11.4.2  ""       no   require_ansible_core
+assert_case "core <2.16 rejected"                                  1  no     2.14.18  11.4.2  ""       no   require_ansible_core
+assert_case "missing/unknown ansible rejected"                     1  no     none     11.4.2  ""       no   require_ansible_core
+assert_case "correct local manifest: no galaxy call"               0  no     2.19.7   11.4.2  ""       no   ensure_collections
+assert_case "matching fallback manifest: no galaxy call"           0  no     2.19.7   ""      11.4.2   no   ensure_collections
+assert_case "stale local shadows fallback: reinstalls"             0  yes    2.19.7   6.6.2   11.4.2   no   ensure_collections
+assert_case "stale local outside configured path: no galaxy call"  0  no     2.19.7   6.6.2   11.4.2   singular ensure_collections
+assert_case "legacy fallback path variable: no galaxy call"        0  no     2.19.7   ""      11.4.2   plural   ensure_collections
+assert_case "missing manifests: installs"                          0  yes    2.19.7   ""      ""       no   ensure_collections
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ "$fail" -eq 0 ]]

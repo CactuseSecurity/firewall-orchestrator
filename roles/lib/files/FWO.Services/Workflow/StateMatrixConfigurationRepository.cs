@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
 
@@ -48,6 +48,26 @@ namespace FWO.Services.Workflow
                 transitions = changes.Transitions
             });
             stateMatrix.AcceptChanges(changes.TransitionSortOrders);
+        }
+
+        /// <summary>
+        /// Returns the active workflow phases whose configured state range contains the given state id.
+        /// </summary>
+        public static List<WorkflowPhases> GetMatchingActiveWorkflowPhases(StateMatrixConfigurationSnapshot stateMatrix, int stateId)
+        {
+            List<WorkflowPhases> matchingPhases = [];
+            foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+            {
+                if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix)
+                    && matrix.Active
+                    && stateId >= matrix.LowestInputState
+                    && stateId < matrix.LowestEndState)
+                {
+                    matchingPhases.Add(phase);
+                }
+            }
+
+            return matchingPhases;
         }
 
         private static StateMatrixConfigurationSnapshot BuildSnapshot(WorkflowConfiguration configuration)

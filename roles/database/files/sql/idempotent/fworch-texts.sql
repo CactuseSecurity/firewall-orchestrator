@@ -535,6 +535,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
     <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
     <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
+    <li>Ein kompletter Rollback (L&ouml;schung aller Importdaten einer Management) kann jetzt &uuml;ber eine Standardeinstellung freigeschaltet werden und ist standardm&auml;&szlig;ig deaktiviert.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -544,6 +545,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
     <li>The maximum runtime of import scripts is configurable in the default settings.</li>
     <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
+    <li>A full rollback (deletion of all import data of a management) can now be enabled via a default setting and is disabled by default.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2718,6 +2720,8 @@ INSERT INTO txt VALUES ('time_object_precision','German',   'Zeitobjekt-Genauigk
 INSERT INTO txt VALUES ('time_object_precision','English',  'Time object precision');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','German', 'Manuelle Eigent&uuml;merverwaltung erlauben');
 INSERT INTO txt VALUES ('reqAllowManualOwnerAdmin','English','Allow manual owner administration');
+INSERT INTO txt VALUES ('allowFullRollback','German', 'Kompletten Rollback erlauben');
+INSERT INTO txt VALUES ('allowFullRollback','English','Allow full rollback');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;merschaftsmodus');
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
@@ -3945,6 +3949,10 @@ INSERT INTO txt VALUES ('U5107', 'German',  'Der Import wurde zur&uuml;ckgesetzt
 INSERT INTO txt VALUES ('U5107', 'English', 'The import has been rolled back');
 INSERT INTO txt VALUES ('U5108', 'German',  'L&ouml;scht alle Beispiel-Logindaten (auf "_demo" endend)');
 INSERT INTO txt VALUES ('U5108', 'English', 'Deletes all sample credentials (ending with "_demo")');
+INSERT INTO txt VALUES ('U5109', 'German',  'Warnung: Ein kompletter Rollback l&ouml;scht unwiderruflich alle Importdaten dieses Managements. Diese Aktion kann nicht r&uuml;ckg&auml;ngig gemacht werden.');
+INSERT INTO txt VALUES ('U5109', 'English', 'Warning: A full rollback permanently deletes all import data of this management. This action cannot be undone.');
+INSERT INTO txt VALUES ('U5110', 'German',  'Ich habe verstanden und m&ouml;chte den kompletten Rollback durchf&uuml;hren');
+INSERT INTO txt VALUES ('U5110', 'English', 'I understand and want to perform the full rollback');
 INSERT INTO txt VALUES ('U5111', 'German',  'Verwaltung aller verbundenen Managements');
 INSERT INTO txt VALUES ('U5111', 'English', 'Administrate the connected managements');
 INSERT INTO txt VALUES ('U5112', 'German',  'Verwaltung aller verbundenen Gateways');
@@ -6726,8 +6734,8 @@ INSERT INTO txt VALUES ('H5544', 'English', 'Derived states: Regarding the handl
 ');
 INSERT INTO txt VALUES ('H5545', 'German',  'Spezielle Status: F&uuml;r jede Phase werden drei Bereiche unterschieden: Eingang, Bearbeitung, Ausgang. Sie werden durch die speziellen Status markiert:');
 INSERT INTO txt VALUES ('H5545', 'English', 'Special states: For each phase there are three different ranges to be distinguished: Input, started, exit. They are indicated by special states:');
-INSERT INTO txt VALUES ('H5546', 'German',  'API-Tickets: Hier wird der optionale Anfangsstatus f&uuml;r &uuml;ber die API erzeugte Tickets festgelegt. Ist kein Status gesetzt, wird weiterhin der Standard-Startstatus verwendet.');
-INSERT INTO txt VALUES ('H5546', 'English', 'API tickets: Here the optional initial state for tickets created via the API is defined. If no state is set, the default start state is still used.');
+INSERT INTO txt VALUES ('H5546', 'German',  'API-Tickets: Hier wird der optionale Anfangsstatus f&uuml;r &uuml;ber die API erzeugte Tickets festgelegt. Ausw&auml;hlbar sind nur Status, die genau einer aktiven Workflow-Phase zugeordnet sind. Ist kein Status gesetzt, wird weiterhin der Standard-Startstatus verwendet.');
+INSERT INTO txt VALUES ('H5546', 'English', 'API tickets: Here the optional initial state for tickets created via the API is defined. Only states that belong to exactly one active workflow phase can be selected. If no state is set, the default start state is still used.');
 INSERT INTO txt VALUES ('H5551', 'German',  '"Niedrigster Eingangsstatus": Ab diesem Status wird der Auftrag f&uuml;r den Bearbeiter dieser Phase sichtbar.');
 INSERT INTO txt VALUES ('H5551', 'English', '"Lowest input state": From this state on the ticket is visible for the actor in the current phase');
 INSERT INTO txt VALUES ('H5552', 'German',  '"Niedrigster Bearbeitungsstatus": Ab diesem Status gilt der Auftrag als in dieser Phase in Bearbeitung. Phasenspezifische &Auml;nderungen k&ouml;nnen ausgef&uuml;hrt werden.');
@@ -7355,6 +7363,8 @@ INSERT INTO txt VALUES ('H5850', 'German',  'Check starten');
 INSERT INTO txt VALUES ('H5850', 'English', 'Run Check');
 INSERT INTO txt VALUES ('H5851', 'German',  'Sollen festgestellte Objekt&auml;nderungen im &Auml;nderungsreport angezeigt werden, ist diese Einstellung zu aktivieren. Default-Wert = "inaktiv".');
 INSERT INTO txt VALUES ('H5851', 'English', 'Include object changes: When the import detects object changes, they will be included in the change report. Default value = "inactive".');
+INSERT INTO txt VALUES ('H5853', 'German',  'Kompletten Rollback erlauben: Es wird die komplette L&ouml;schung der Importdaten durch den Administrator gestattet.');
+INSERT INTO txt VALUES ('H5853', 'English', 'Allow full rollback: The deletion of all import data by the admin can be permitted.');
 
 
 INSERT INTO txt VALUES ('H6001', 'German',  'Firewall Orchestrator verf&uuml;gt &uuml;ber zwei APIs:

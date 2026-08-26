@@ -117,11 +117,21 @@ ON CONFLICT (name) DO NOTHING;
 ALTER TABLE network_zone.ip_range
 ADD COLUMN IF NOT EXISTS id BIGSERIAL;
 
-ALTER TABLE network_zone.ip_range
-DROP CONSTRAINT IF EXISTS ip_range_pkey;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.ip_range'::regclass
+          AND conname = 'ip_range_id_pkey'
+    ) THEN
+        ALTER TABLE network_zone.ip_range
+            DROP CONSTRAINT IF EXISTS ip_range_pkey;
 
-ALTER TABLE network_zone.ip_range
-ADD CONSTRAINT ip_range_pkey PRIMARY KEY (id);
+        ALTER TABLE network_zone.ip_range
+            ADD CONSTRAINT ip_range_id_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_root
 (
@@ -147,3 +157,17 @@ ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT dev_id_device_ip_ra
 ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT ip_range_id_device_ip_range_root FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT dev_id_device_ip_range_internet FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT ip_range_id_device_ip_range_internet FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_ip_range_id
+ON network_zone.device_ip_range_root (ip_range_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_ip_range_id
+ON network_zone.device_ip_range_internet (ip_range_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_root_device_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, dev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_internet_device_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, dev_id);

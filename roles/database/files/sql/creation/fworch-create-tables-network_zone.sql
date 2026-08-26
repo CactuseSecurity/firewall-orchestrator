@@ -25,7 +25,7 @@ create table network_zone.ip_range
     created timestamp with time zone default now(),
     criterion_id INT,
     name TEXT,
-    id BIGSERIAL PRIMARY KEY
+    id BIGSERIAL CONSTRAINT ip_range_id_pkey PRIMARY KEY
 );
 
 CREATE TABLE network_zone.device_ip_range_root

@@ -337,6 +337,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Generate_DiffReportWarnsWhenExistingViolationFilterFails()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a")
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, failPreviousViolationFetch: true);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-a" }));
+                Assert.That(report.SetDescription(), Does.Contain("Existing-violation filter could not be applied"));
+            });
+        }
+
+        [Test]
         public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
         {
             MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);
@@ -485,6 +512,7 @@ namespace FWO.Test
             private readonly List<ComplianceViolation> _intervalViolations;
             private readonly List<ComplianceViolation> _previousViolations;
             private readonly List<Rule> _activeRules;
+            private readonly bool _failPreviousViolationFetch;
 
             public List<string> Queries { get; } = new();
             public List<string> RequestedRuleUids { get; } = new();
@@ -495,11 +523,13 @@ namespace FWO.Test
             public DiffPipelineApiConnection(
                 List<ComplianceViolation> intervalViolations,
                 List<ComplianceViolation>? previousViolations = null,
-                List<Rule>? activeRules = null)
+                List<Rule>? activeRules = null,
+                bool failPreviousViolationFetch = false)
             {
                 _intervalViolations = intervalViolations;
                 _previousViolations = previousViolations ?? new List<ComplianceViolation>();
                 _activeRules = activeRules ?? new List<Rule>();
+                _failPreviousViolationFetch = failPreviousViolationFetch;
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
@@ -538,6 +568,11 @@ namespace FWO.Test
 
                 if (query == ComplianceQueries.getActiveViolationsBeforeDate && typeof(QueryResponseType) == typeof(List<ComplianceViolation>))
                 {
+                    if (_failPreviousViolationFetch)
+                    {
+                        throw new InvalidOperationException("Previous-violation lookup failed.");
+                    }
+
                     Dictionary<string, object> queryVariables = (Dictionary<string, object>)variables!;
                     PreviousViolationsWhere = (Dictionary<string, object>)queryVariables["where"];
                     Dictionary<string, object> ruleUidFilter = (Dictionary<string, object>)PreviousViolationsWhere["rule_uid"];

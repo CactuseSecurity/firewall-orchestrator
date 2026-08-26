@@ -11,7 +11,9 @@ namespace FWO.Report
 {
     public class ReportComplianceDiff : ReportCompliance
     {
+        private const string kExistingViolationsFilterFailedWarning = "WARNING: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.";
         private readonly record struct RuleIdentity(string ManagementUid, string RuleUid);
+        private bool _existingViolationsFilterFailed;
 
         public int DiffReferenceInDays { get; set; } = 0;
 
@@ -47,6 +49,8 @@ namespace FWO.Report
         /// </summary>
         protected override async Task<List<Rule>[]?> FetchRuleChunks(int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct)
         {
+            _existingViolationsFilterFailed = false;
+
             // Fix both boundaries once. Every parallel page therefore observes exactly the same report interval.
             DateTime reportEnd = DateTime.Now;
             DateTime reportStart = reportEnd.AddDays(-DiffReferenceInDays);
@@ -150,9 +154,20 @@ namespace FWO.Report
             catch (Exception exception)
             {
                 // Preserve the default diff rather than returning an empty report when only the optional filter fails.
+                _existingViolationsFilterFailed = true;
                 Log.TryWriteLog(LogType.Error, "Compliance Diff Report", $"Failed to fetch previous violations: {exception.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return intervalViolations;
             }
+        }
+
+        /// <summary>
+        /// Marks archived and exported reports when their requested existing-violation filter was unavailable.
+        /// </summary>
+        public override string SetDescription()
+        {
+            return _existingViolationsFilterFailed
+                ? $"{base.SetDescription()} - {kExistingViolationsFilterFailedWarning}"
+                : base.SetDescription();
         }
 
         /// <summary>

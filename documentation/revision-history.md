@@ -619,7 +619,7 @@ Not supported any longer are:
 - fix checkpoint import policy install detection
 - fix nat rules report
 
-## 9.4.2 - 25.08.2026
+## 9.4.3 - 26.08.2026
 - normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
 - IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
 - add 'add auto calculated internet zone' button to compliance matrix ui

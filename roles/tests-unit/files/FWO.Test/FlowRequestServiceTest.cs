@@ -200,17 +200,21 @@ internal class FlowRequestServiceTest
         });
     }
 
-    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc)]
-    [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "tcp", 6)]
+    [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified, "tcp", 6)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "0", 0)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "HOPOPT", 0)]
     public async Task CreateRequest_ReturnsCreatedTicketAndResolvesTemporaryIds(
         string startTime,
         string endTime,
-        DateTimeKind expectedDateTimeKind)
+        DateTimeKind expectedDateTimeKind,
+        string protocol,
+        int expectedProtocolId)
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig());
 
@@ -237,7 +241,7 @@ internal class FlowRequestServiceTest
                 {
                     Id = "-2",
                     Name = "https",
-                    Protocol = "tcp",
+                    Protocol = protocol,
                     PortStart = 443,
                     PortEnd = 443
                 }
@@ -282,6 +286,7 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(1));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList, Has.Count.EqualTo(3));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].NetworkGroupId, Is.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].ServiceGroupId, Is.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.Not.Null);
@@ -844,13 +849,14 @@ internal class FlowRequestServiceTest
         });
     }
 
-    [Test]
-    public async Task CreateRequest_ReturnsBadRequestForUnknownNumericProtocolId()
+    [TestCase("999")]
+    [TestCase("ANY")]
+    public async Task CreateRequest_ReturnsBadRequestForInvalidProtocol(string protocol)
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
         FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
@@ -873,7 +879,7 @@ internal class FlowRequestServiceTest
             RequestorId = "payload-requester",
             RuleContactName = "Bob Approver",
             RuleContactId = "bob",
-            Title = "Unknown protocol request",
+            Title = "Invalid protocol request",
             AddressObjects =
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
@@ -890,7 +896,7 @@ internal class FlowRequestServiceTest
                 {
                     Id = "-2",
                     Name = "https",
-                    Protocol = "999",
+                    Protocol = protocol,
                     PortStart = 443,
                     PortEnd = 443
                 }

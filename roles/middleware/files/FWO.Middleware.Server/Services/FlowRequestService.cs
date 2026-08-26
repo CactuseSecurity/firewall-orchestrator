@@ -716,20 +716,25 @@ public sealed class FlowRequestService
         {
             if (int.TryParse(protocol, out int protocolId))
             {
-                if (protocolId > 0 && protocolIds.ContainsValue(protocolId))
-                {
-                    return protocolId;
-                }
-
-                throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+                return ValidateResolvedProtocolId(protocol, protocolId, protocolIds.ContainsValue(protocolId));
             }
 
             if (protocolIds.TryGetValue(protocol, out protocolId))
             {
-                return protocolId;
+                return ValidateResolvedProtocolId(protocol, protocolId, true);
             }
 
             throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+        }
+
+        private static int ValidateResolvedProtocolId(string protocol, int protocolId, bool isConfigured)
+        {
+            if (isConfigured && protocolId >= 0)
+            {
+                return protocolId;
+            }
+
+            throw new ArgumentException($"The service object protocol '{protocol}' must match a non-negative configured STM protocol name or id.");
         }
     }
 

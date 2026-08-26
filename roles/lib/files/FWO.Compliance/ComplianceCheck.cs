@@ -1558,7 +1558,7 @@ namespace FWO.Compliance
         /// <param name="networkObject">Network object to evaluate.</param>
         private AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
         {
-            if (networkObject.IP == null && networkObject.IpEnd == null)
+            if (networkObject.IP == null || networkObject.IpEnd == null)
                 return AssessabilityIssue.IPNull;
 
             if (networkObject.IP == "::/128" && networkObject.IpEnd == "::/128")

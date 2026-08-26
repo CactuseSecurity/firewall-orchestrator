@@ -59,6 +59,24 @@ namespace FWO.Test
             Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
         }
 
+        [TestCase(null, "0.0.0.0/32")]
+        [TestCase("0.0.0.0/32", null)]
+        public void TryGetAssessabilityIssue_PartiallyMissingIpRange_ReturnsIPNull(string? ip, string? ipEnd)
+        {
+            NetworkObject networkObject = new()
+            {
+                IP = ip,
+                IpEnd = ipEnd
+            };
+            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            object?[] parameters = new object?[1];
+            parameters[0] = networkObject;
+
+            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
+
+            Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
+        }
+
         #endregion
 
         #region Tests - CheckAll

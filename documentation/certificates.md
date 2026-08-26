@@ -201,6 +201,26 @@ curl --request POST \
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
 
+## Importing the client certificate into Firefox
+
+Firefox imports client identities from a PKCS#12 file. Run the following as
+root or as the FWO service account in the client certificate directory. OpenSSL
+prompts for an export password; retain it because Firefox requests it during
+the import.
+
+```
+cd /usr/local/fworch/etc/secrets/client
+openssl pkcs12 -export \
+  -out client.p12 \
+  -inkey client.key \
+  -in client.crt
+```
+
+Import `client.p12` from Firefox's **Settings → Privacy & Security →
+Certificates → View Certificates → Your Certificates → Import**. Handle the
+exported file as a private key and remove it from the host once it has been
+transferred through an approved secure channel.
+
 ## Private key requirement
 
 FWO restarts Apache during installation and upgrades, and Apache must also start unattended after a host reboot. Therefore, `server.key` must be an unencrypted private key: Apache cannot prompt for a passphrase during these operations.

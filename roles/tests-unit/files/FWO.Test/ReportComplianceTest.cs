@@ -337,6 +337,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Generate_DiffReportTreatsInitialViolationsAsPreviousWhenExcludedFromOutput()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true,
+                ComplianceFilterOutInitialViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8), isInitial: true)
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Dictionary<string, object> initialViolationsFilter =
+                (Dictionary<string, object>)apiConnection.IntervalViolationsWhere!["is_initial"];
+            Assert.Multiple(() =>
+            {
+                Assert.That(initialViolationsFilter["_eq"], Is.EqualTo(false));
+                Assert.That(apiConnection.PreviousViolationsWhere!.ContainsKey("is_initial"), Is.False);
+                Assert.That(report.Rules, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task Generate_DiffReportWarnsWhenExistingViolationFilterFails()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -466,7 +501,8 @@ namespace FWO.Test
             int ruleId,
             string ruleUid,
             DateTime? removedDate = null,
-            DateTime? foundDate = null)
+            DateTime? foundDate = null,
+            bool isInitial = false)
         {
             return new ComplianceViolation
             {
@@ -476,6 +512,7 @@ namespace FWO.Test
                 MgmtUid = "mgmt-1",
                 FoundDate = foundDate ?? DateTime.Now.AddHours(-2),
                 RemovedDate = removedDate,
+                IsInitial = isInitial,
                 Details = $"Violation {id}",
                 Criterion = new ComplianceCriterion
                 {

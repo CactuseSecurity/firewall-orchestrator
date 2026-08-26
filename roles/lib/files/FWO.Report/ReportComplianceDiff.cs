@@ -272,6 +272,8 @@ namespace FWO.Report
         /// <summary>
         /// Creates one historical lookup batch. The positive removal-date predicate selects violations that were still
         /// active at reportStart and avoids the expensive relationship-level NOT condition used by the old rule query.
+        /// Initial violations intentionally remain in this lookup because they establish that a rule was non-compliant
+        /// at reportStart, even when initial violations are excluded from the displayed interval.
         /// </summary>
         private Dictionary<string, object> CreatePreviousViolationVariables(
             List<string> candidateRuleUids,

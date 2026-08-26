@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -42,12 +42,12 @@ public sealed class FlowRequestService
             throw new ArgumentException("'requesterId' must be a positive integer.");
         }
 
-        int ticketStateId = await ResolveInitialRequestStateIdAsync();
+        (WorkflowPhases ticketPhase, int ticketStateId) = await ResolveInitialRequestPhaseAndStateAsync();
         Dictionary<int, FwoOwner> ownersById = await ResolveOwnersAsync();
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds);
-        ticket = await SaveTicketAsync(ticket);
+        ticket = await SaveTicketAsync(ticket, ticketPhase);
         string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateRequestResponse
@@ -107,24 +107,52 @@ public sealed class FlowRequestService
     }
 
     /// <summary>
-    /// Resolves the initial state id for a newly created request ticket.
+    /// Resolves the initial workflow phase and state id for a newly created request ticket.
     /// </summary>
-    private async Task<int> ResolveInitialRequestStateIdAsync()
+    private async Task<(WorkflowPhases Phase, int StateId)> ResolveInitialRequestPhaseAndStateAsync()
     {
         List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates) ?? [];
+        StateMatrixConfigurationSnapshot stateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
         int configuredStateId = globalConfig.ReqApiTicketInitialStateId;
         if (configuredStateId >= 0)
         {
             if (states.Any(state => state.Id == configuredStateId))
             {
-                return configuredStateId;
+                List<WorkflowPhases> matchingPhases = StateMatrixConfigurationRepository.GetMatchingActiveWorkflowPhases(stateMatrix, configuredStateId);
+                if (matchingPhases.Count == 1)
+                {
+                    return (matchingPhases[0], configuredStateId);
+                }
+
+                if (matchingPhases.Count > 1)
+                {
+                    throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
+                }
+
+                throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not belong to any active workflow phase.");
             }
 
             throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not exist in the current state list.");
         }
 
-        StateMatrixConfigurationSnapshot stateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
-        return stateMatrix.Matrices[WorkflowPhases.request].LowestInputState;
+        WorkflowPhases phase = ResolveInitialWorkflowPhase(stateMatrix);
+        return (phase, stateMatrix.Matrices[phase].LowestInputState);
+    }
+
+    /// <summary>
+    /// Resolves the first active workflow phase starting at request.
+    /// </summary>
+    private static WorkflowPhases ResolveInitialWorkflowPhase(StateMatrixConfigurationSnapshot stateMatrix)
+    {
+        foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+        {
+            if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix) && matrix.Active)
+            {
+                return phase;
+            }
+        }
+
+        throw new InvalidOperationException("No active workflow phase is configured for request creation.");
     }
 
     /// <summary>
@@ -578,15 +606,19 @@ public sealed class FlowRequestService
     /// <summary>
     /// Persists the created ticket through the workflow save path so request actions are executed consistently.
     /// </summary>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket)
+    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
     {
         using UserConfig userConfig = new();
-        WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, (List<UserGroup>?)null);
-        ActionHandler actionHandler = new(apiConnection, wfHandler, null, true);
-        await actionHandler.Init();
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, actionHandler, true);
+        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
+        if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
+        {
+            throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
+        }
+
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, true);
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
+
         long ticketId = createdTicket.Id;
         if (ticketId <= 0)
         {

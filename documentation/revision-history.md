@@ -619,5 +619,5 @@ Not supported any longer are:
 - fix checkpoint import policy install detection
 - fix nat rules report
 
-## 9.4.2 - 25.08.2026
+## 9.4.3 - 26.08.2026
 - add an optional compliance-diff filter for rules with existing violations

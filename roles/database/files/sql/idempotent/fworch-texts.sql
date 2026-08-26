@@ -7291,8 +7291,6 @@ INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen
 INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
 INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termingesteuerten Compliance Check genutzt wird.');
 INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
-INSERT INTO txt VALUES ('H5811', 'German',  'Das Netzwerkobjekt, dass die Netzwerkzone "Internet" darstellt.');
-INSERT INTO txt VALUES ('H5811', 'English', 'The network object that is taken for the network zone "Internet".');
 INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON Datei. ');
 INSERT INTO txt VALUES ('H5812', 'English', 'Import of a matrix via JSON file. ');
 INSERT INTO txt VALUES ('H5813', 'German',  'Definition vom Kriterien mit fixem Inhalt');

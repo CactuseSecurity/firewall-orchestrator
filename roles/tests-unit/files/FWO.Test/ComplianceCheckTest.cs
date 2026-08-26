@@ -334,6 +334,24 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_MatchesCanonicalAnyService()
+        {
+            Rule rule = CreateRuleWithService("any-ip", "any ip", GlobalConst.kAnyIpProtocolId, "ANY");
+            ComplianceCriterion criterion = new()
+            {
+                Id = 1,
+                CriterionType = nameof(CriterionType.ForbiddenService),
+                Content = "443/TCP"
+            };
+            List<ComplianceCriterion> criteria = new() { criterion };
+
+            bool ruleIsCompliant = await ComplianceCheck.CheckRuleCompliance(rule, criteria);
+
+            Assert.That(ruleIsCompliant, Is.False);
+            Assert.That(GetCurrentViolations(), Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public async Task CheckRuleCompliance_ForbiddenServiceProtocolPortCriterion_MatchesOverlappingRange()
         {
             Rule rule = CreateRuleWithService("svc-range", "Ephemeral TCP", 6, "TCP", 1500, 1600);

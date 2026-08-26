@@ -1979,11 +1979,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public void DisplayAccessElements_ManualServiceSelectorUsesSelectableProtocols()
+        public async Task DisplayAccessElements_ManualServiceSelectorUsesSelectableProtocols()
         {
-            using BunitContext context = new();
+            await using BunitContext context = new();
+            context.JSInterop.SetupVoid("initializeEventHandlers", _ => true).SetVoidResult();
             context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
             context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            context.Services.AddSingleton<DomEventService>();
             List<IpProtocol> displayProtocols = new()
             {
                 new() { Id = -1, Name = "ANY" },

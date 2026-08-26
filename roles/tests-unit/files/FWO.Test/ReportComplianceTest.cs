@@ -544,7 +544,7 @@ namespace FWO.Test
 
         private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
         {
-            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
+            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:HH:mm}) Test violation {violationId}";
         }
 
         private sealed class DiffPipelineApiConnection : SimulatedApiConnection

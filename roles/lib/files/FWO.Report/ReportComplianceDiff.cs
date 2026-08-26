@@ -422,7 +422,7 @@ namespace FWO.Report
         /// </summary>
         private static string FormatViolationDetails(ComplianceViolation violation)
         {
-            return $"Found: ({violation.FoundDate:dd.MM.yyyy - hh:mm}) {violation.Details}";
+            return $"Found: ({violation.FoundDate:dd.MM.yyyy - HH:mm}) {violation.Details}";
         }
     }
 }

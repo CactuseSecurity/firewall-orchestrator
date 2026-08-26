@@ -421,6 +421,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AutoCreateOrUpdateImplTasks_IgnoresMissingPlanningPhaseInStateMatrix()
+        {
+            WfReqTask reqTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 4,
+                Title = "Access"
+            };
+            WfHandler handler = new()
+            {
+                Phase = WorkflowPhases.request,
+                userConfig = new SimulatedUserConfig
+                {
+                    ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.oneTaskForAllDevices
+                },
+                MasterStateMatrix = new StateMatrix
+                {
+                    LowestEndState = 3,
+                    MinTicketCompleted = 99
+                },
+                ActTicket = new WfTicket
+                {
+                    Id = 7,
+                    StateId = 4,
+                    Tasks = { reqTask }
+                }
+            };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 0,
+                LowestStartedState = 2,
+                LowestEndState = 10,
+                MinImplTasksNeeded = 3,
+                MinTicketCompleted = 99
+            });
+
+            await InvokeAutoCreateOrUpdateImplTasks(handler);
+
+            Assert.That(reqTask.ImplementationTasks, Has.Count.EqualTo(1));
+        }
+
+        [Test]
         public async Task AutoCreateOrUpdateImplTasks_ConsiderBundlingFalse_CreatesPerRequestTask()
         {
             WfReqTask firstTask = CreateBundledAccessTask(11, "bundle-11-12", "src-1");

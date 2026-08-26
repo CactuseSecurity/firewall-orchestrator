@@ -138,7 +138,8 @@ namespace FWO.Test
         [TestCase(true, 4, "NA", "ARX", "E5602")]
         [TestCase(true, 4, "NA", "AR", null)]
         [TestCase(true, 2, "NA", "AR", null)]
-        [TestCase(true, 4, "NA", "A", null)]
+        [TestCase(true, 4, "NA", "A", "E5602")]
+        [TestCase(true, 5, "NET", "AR", "E5602")]
         [TestCase(true, 0, null, null, null)]
         [TestCase(false, 1, "NA", "ARX", null)]
         public void GetNamingConventionError_ChecksPatternLengths(bool networkAreaRequired, int fixedPartLength,

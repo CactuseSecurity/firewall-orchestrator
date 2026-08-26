@@ -221,5 +221,62 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(expectedAppRole, ModellingManagedIdString.ConvertAreaToAppRole(areaIdString, namingConvention));
         }
+
+        /// <summary>
+        /// Verifies that every convention accepted by the validation converts an area into an app role identifier
+        /// and back without losing the area specific content. A pattern shorter than the network area pattern
+        /// would leave the fixed part too short, so that it is padded with a filler and no longer maps back.
+        /// </summary>
+        [TestCase(4, "NA", "AR", "NA12")]
+        [TestCase(5, "NET", "ARO", "NET12")]
+        [TestCase(2, "NA", "AR", "NA")]
+        public void TestAreaToAppRoleRoundTrip(int fixedPartLength, string networkAreaPattern, string appRolePattern, string areaIdString)
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = fixedPartLength,
+                NetworkAreaPattern = networkAreaPattern,
+                AppRolePattern = appRolePattern
+            };
+            ModellingManagedIdString managedIdString = new() { NamingConvention = namingConvention };
+
+            managedIdString.ConvertAreaToAppRoleFixedPart(areaIdString);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(namingConvention.IsAreaConversionValid(), Is.True);
+                Assert.That(managedIdString.Whole, Does.Not.Contain("?"));
+                Assert.That(ModellingManagedIdString.ConvertAppRoleToArea(managedIdString.Whole + "-00001", namingConvention),
+                    Is.EqualTo(areaIdString));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a convention rejected by the validation is exactly the one that would pad the fixed part
+        /// with a filler, which is what breaks the way back to the area.
+        /// </summary>
+        [Test]
+        public void TestShorterAppRolePatternIsRejected()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = 5,
+                NetworkAreaPattern = "NET",
+                AppRolePattern = "AR"
+            };
+            ModellingManagedIdString managedIdString = new() { NamingConvention = namingConvention };
+
+            managedIdString.ConvertAreaToAppRoleFixedPart("NET12");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(namingConvention.IsAreaConversionValid(), Is.False);
+                Assert.That(managedIdString.Whole, Is.EqualTo("AR12?"));
+                Assert.That(ModellingManagedIdString.ConvertAppRoleToArea(managedIdString.Whole + "-00001", namingConvention),
+                    Is.EqualTo("NET12?"));
+            });
+        }
     }
 }

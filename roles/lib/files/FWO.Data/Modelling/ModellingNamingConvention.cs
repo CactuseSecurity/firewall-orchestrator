@@ -75,13 +75,14 @@ namespace FWO.Data.Modelling
         }
 
         /// <summary>
-        /// Checks that the app role pattern is not longer than the network area pattern.
-        /// Otherwise the converted identifier exceeds the fixed part and its area specific end is cut off.
+        /// Checks that the app role pattern has exactly the length of the network area pattern.
+        /// A longer pattern pushes the area specific end out of the fixed part, a shorter one leaves the
+        /// converted identifier too short, so that it is padded with a filler and no longer maps back to its area.
         /// </summary>
-        /// <returns>true if the app role pattern fits into the fixed part</returns>
+        /// <returns>true if the app role pattern replaces the network area pattern without shifting the rest</returns>
         public bool IsAppRolePatternLengthValid()
         {
-            return (AppRolePattern?.Length ?? 0) <= (NetworkAreaPattern?.Length ?? 0);
+            return (AppRolePattern?.Length ?? 0) == (NetworkAreaPattern?.Length ?? 0);
         }
 
         /// <summary>

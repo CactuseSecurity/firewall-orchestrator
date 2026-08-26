@@ -3162,8 +3162,8 @@ INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Te
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
 INSERT INTO txt VALUES ('E5601',                'German',   'Die L&auml;nge des fixen Teils muss mindestens der L&auml;nge des Netzwerkarea-Musters entsprechen.');
 INSERT INTO txt VALUES ('E5601',                'English',  'The fixed part length must be at least the length of the network area pattern.');
-INSERT INTO txt VALUES ('E5602',                'German',   'Das Muster App Rolle darf nicht l&auml;nger als das Muster Netzwerkarea sein.');
-INSERT INTO txt VALUES ('E5602',                'English',  'The app role pattern must not be longer than the network area pattern.');
+INSERT INTO txt VALUES ('E5602',                'German',   'Das Muster App Rolle muss genauso lang wie das Muster Netzwerkarea sein.');
+INSERT INTO txt VALUES ('E5602',                'English',  'The app role pattern must have the same length as the network area pattern.');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
 INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
 INSERT INTO txt VALUES ('useAppPart',           'German',   'Eigent&uuml;mernamen verwenden');
@@ -6926,12 +6926,12 @@ INSERT INTO txt VALUES ('H5609', 'English', 'Network Area Pattern: Defines the b
 INSERT INTO txt VALUES ('H5610', 'German',  'Muster App Rolle: Definiert, wie der Name einer App Rolle beginnt (z.B. "AR").
     Zu einer Netzwerkarea (z.B. "NAxx") wird dann ein Name der App Rolle (z.B. "ARxx") mit der oben definierten L&auml;nge des fixen Teils vorgegeben.
     Ist die L&auml;nge des Musters gr&ouml;sser als die L&auml;nge des fixen Teils, wird der &uuml;bersch&uuml;ssige Teil nicht ber&uuml;cksichtigt.
-    Bei Verwendung von Netzwerkareas darf es nicht l&auml;nger als das Muster Netzwerkarea sein, da sonst der areaspezifische Teil des Namens abgeschnitten w&uuml;rde.
+    Bei Verwendung von Netzwerkareas muss es genauso lang wie das Muster Netzwerkarea sein, da sonst der areaspezifische Teil des Namens verschoben oder abgeschnitten w&uuml;rde.
 ');
 INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the beginning of an App Role name (e.g. "AR").
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
     If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
-    If network areas are used, it must not be longer than the network area pattern, otherwise the area specific part of the name would be cut off.
+    If network areas are used, it must have the same length as the network area pattern, otherwise the area specific part of the name would be shifted or cut off.
 ');
 INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden Importskripte und -dateien unterhalb von scripts/customizing oder etc im konfigurierten Produkt-Verzeichnis eingetragen.
     Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb eines dieser erlaubten Verzeichnisse liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft f&uuml;r jede eingetragene Datenquelle zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus.

@@ -541,6 +541,8 @@ namespace FWO.Services.Modelling
                     appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
                 if (!AddAppRoleMode && !AppRoleHandler.AreaConversionValid)
                 {
+                    // the area of an existing app role cannot be derived, so neither the edit nor the display dialog would be usable
+                    DisplayAppRoleMode = false;
                     return;
                 }
                 EditAppRoleMode = true;

@@ -124,12 +124,16 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that an app role pattern longer than the network area pattern is detected,
-        /// as it would push the area specific content out of the fixed part.
+        /// Verifies that an app role pattern of a different length than the network area pattern is detected.
+        /// A longer one pushes the area specific content out of the fixed part, a shorter one leaves the
+        /// converted identifier too short, so that it is padded with a filler.
         /// </summary>
         [TestCase("NA", "AR", true)]
-        [TestCase("NA", "A", true)]
-        [TestCase("NA", "", true)]
+        [TestCase("NET", "ARO", true)]
+        [TestCase("", "", true)]
+        [TestCase("NA", "A", false)]
+        [TestCase("NA", "", false)]
+        [TestCase("NET", "AR", false)]
         [TestCase("NA", "ARX", false)]
         [TestCase("", "AR", false)]
         public void IsAppRolePatternLengthValid_ComparesWithNetworkAreaPattern(string networkAreaPattern, string appRolePattern, bool expectedResult)
@@ -150,6 +154,7 @@ namespace FWO.Test
         [TestCase(true, 4, "NA", "AR", true)]
         [TestCase(true, 1, "NA", "AR", false)]
         [TestCase(true, 4, "NA", "ARX", false)]
+        [TestCase(true, 5, "NET", "AR", false)]
         [TestCase(false, 1, "NA", "ARX", true)]
         [TestCase(false, 0, "NA", "AR", true)]
         public void IsAreaConversionValid_CombinesRules(bool networkAreaRequired, int fixedPartLength,

@@ -136,7 +136,7 @@
             <label for="taskService" class="col-sm-12 col-form-label col-form-label-sm">@(userConfig.GetText("service"))*:</label>
             @if (CanEditServices && ShowManualServices)
             {
-                <ServiceSelector Services="Services" @bind-ServicesToAdd="ServicesToAdd" @bind-ServicesToDelete="ServicesToDelete" IpProtos="IpProtos" TaskId="TaskId" WithLabel="false"/>
+                <ServiceSelector Services="Services" @bind-ServicesToAdd="ServicesToAdd" @bind-ServicesToDelete="ServicesToDelete" IpProtos="SelectableIpProtos" TaskId="TaskId" WithLabel="false"/>
             }
             else if (CanEditServices && ShowFlowServices)
             {
@@ -221,6 +221,9 @@ else
 
     [Parameter]
     public List<IpProtocol> IpProtos { get; set; } = [];
+
+    [Parameter]
+    public List<IpProtocol> SelectableIpProtos { get; set; } = [];
 
     [Parameter]
     public long TaskId { get; set; } = 0;

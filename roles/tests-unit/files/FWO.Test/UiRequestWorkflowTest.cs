@@ -1979,6 +1979,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayAccessElements_ManualServiceSelectorUsesSelectableProtocols()
+        {
+            using BunitContext context = new();
+            context.Services.AddSingleton<ApiConnection>(new RequestWorkflowApiConn());
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig());
+            List<IpProtocol> displayProtocols = new()
+            {
+                new() { Id = -1, Name = "ANY" },
+                new() { Id = 6, Name = "TCP" }
+            };
+            List<IpProtocol> selectableProtocols = new()
+            {
+                new() { Id = 6, Name = "TCP" }
+            };
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, displayProtocols)
+                .Add(p => p.SelectableIpProtos, selectableProtocols)
+                .Add(p => p.EditMode, true));
+
+            IRenderedComponent<ServiceSelector> serviceSelector = component.FindComponent<ServiceSelector>();
+
+            Assert.That(serviceSelector.Instance.IpProtos.Select(protocol => protocol.Id), Is.EqualTo(new List<int> { 6 }));
+        }
+
+        [Test]
         public async Task DisplayAccessElements_SelectedFlowObjectsAreAddedWithFlowIds()
         {
             await using BunitContext context = new();

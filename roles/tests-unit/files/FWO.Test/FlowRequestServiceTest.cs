@@ -1029,6 +1029,7 @@ internal class FlowRequestServiceTest
     }
 
     [TestCase("999")]
+    [TestCase("-1")]
     [TestCase("ANY")]
     public async Task CreateRequest_ReturnsBadRequestForInvalidProtocol(string protocol)
     {

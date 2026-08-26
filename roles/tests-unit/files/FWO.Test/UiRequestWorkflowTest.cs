@@ -1952,6 +1952,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayAccessElements_UsesAnyProtocolNameForPortlessFlowServiceFallbackName()
+        {
+            await using BunitContext context = new();
+            RequestWorkflowApiConn apiConn = new()
+            {
+                FlowSvcObjects = new List<FlowSvcObject>
+                {
+                    new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = -1, ShowInRequestModule = true }
+                }
+            };
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqUseFlowDb = true });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = -1, Name = "ANY" } })
+                .Add(p => p.EditMode, true));
+
+            List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
+
+            Assert.That(loadedServices.Single().Name, Is.EqualTo("/ANY"));
+        }
+
+        [Test]
         public async Task DisplayAccessElements_SelectedFlowObjectsAreAddedWithFlowIds()
         {
             await using BunitContext context = new();

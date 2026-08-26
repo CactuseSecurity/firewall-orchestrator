@@ -2,7 +2,9 @@
 UPDATE nw_object
 SET
     obj_ip = NULL,
-    obj_ip_end = NULL
+    obj_ip_end = NULL,
+    flow_nwobj_id = NULL,
+    flow_active = FALSE
 WHERE obj_typ_id IN (5, 10, 21);
 
 -- Recalculate ownership matches after removing the previously imported full address ranges.

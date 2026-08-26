@@ -115,6 +115,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SelectReqTask_AddBindsNewTaskToCurrentTicket()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            handler.ActTicket = new WfTicket { Id = 7 };
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+
+            handler.SelectReqTask(reqTask, ObjAction.add);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActReqTask.TicketId, Is.EqualTo(7));
+                Assert.That(handler.ActTicket, Is.Not.Null);
+                Assert.That(handler.AddReqTaskMode, Is.True);
+            });
+        }
+
+        [Test]
         public async Task SelectReqTask_AsyncWithoutReloadUsesProvidedTask()
         {
             WfHandler handler = new();
@@ -305,6 +324,108 @@ namespace FWO.Test
                 Assert.That(found, Is.True);
                 Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
                 Assert.That(handler.ActTicket, Is.SameAs(ticket));
+                Assert.That(handler.ActStateMatrix, Is.SameAs(matrix));
+            });
+        }
+
+        [Test]
+        public void TrySetReqTaskEnv_ReturnsFalseWhenTicketCannotBeResolved()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.That(found, Is.False);
+        }
+
+        [Test]
+        public void TrySetReqTaskEnv_UsesUnsavedCurrentTicketWhenRequestTaskHasNoTicketId()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+            handler.ActTicket = new WfTicket { Id = 0 };
+            handler.AddTicketMode = true;
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(found, Is.True);
+                Assert.That(handler.ActTicket, Is.Not.Null);
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+            });
+        }
+
+        [Test]
+        public void TrySetReqTaskEnv_ReturnsFalseWhenZeroTicketIdUsesDefaultPlaceholderTicket()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 0, TaskType = taskType };
+            handler.ActTicket = new WfTicket { Id = 0 };
+
+            bool found = handler.TrySetReqTaskEnv(reqTask);
+
+            Assert.That(found, Is.False);
+        }
+
+        [Test]
+        public void SetReqTaskEnv_ThrowsWhenTicketCannotBeResolved()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => handler.SetReqTaskEnv(reqTask))!;
+
+            Assert.That(exception.Message, Does.Contain("Could not resolve ticket 7"));
+        }
+
+        [Test]
+        public void SetReqTaskEnv_UsesCurrentTicketWhenRequestTaskHasNoTicketId()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new();
+            SetMatrix(handler, taskType, matrix);
+            WfReqTask reqTask = new() { Id = 11, TaskType = taskType };
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            handler.ActTicket = ticket;
+
+            handler.SetReqTaskEnv(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket, Is.SameAs(ticket));
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
+                Assert.That(handler.ActStateMatrix, Is.SameAs(matrix));
+            });
+        }
+
+        [Test]
+        public void SetReqTaskEnv_UsesCurrentTicketWhenItMatchesTheTicketId()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            StateMatrix matrix = new();
+            SetMatrix(handler, taskType, matrix);
+            WfReqTask reqTask = new() { Id = 11, TicketId = 7, TaskType = taskType };
+            WfTicket ticket = new() { Id = 7, Tasks = { reqTask } };
+            handler.ActTicket = ticket;
+
+            handler.SetReqTaskEnv(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ActTicket, Is.SameAs(ticket));
+                Assert.That(handler.ActReqTask.Id, Is.EqualTo(11));
                 Assert.That(handler.ActStateMatrix, Is.SameAs(matrix));
             });
         }

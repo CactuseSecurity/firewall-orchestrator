@@ -20,13 +20,13 @@ public sealed class ServiceObjectResponse
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the PortStart value.
+    /// Gets the inclusive starting port, or <see langword="null"/> when the service is protocol-only.
     /// </summary>
     [JsonPropertyName("portStart")]
     public int? PortStart { get; set; }
 
     /// <summary>
-    /// Gets the PortEnd value.
+    /// Gets the inclusive ending port, or <see langword="null"/> when the service is protocol-only.
     /// </summary>
     [JsonPropertyName("portEnd")]
     public int? PortEnd { get; set; }

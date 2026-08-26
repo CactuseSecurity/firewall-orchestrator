@@ -30,8 +30,12 @@ public class FlowCatalogController : ControllerBase
         nameof(GetServiceObjectId),
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
-            new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
+            new RequestKeyDefinition(
+                "portStart",
+                "Required inclusive starting port. Send both port bounds as null only for an unambiguous portless service; otherwise provide both."),
+            new RequestKeyDefinition(
+                "portEnd",
+                "Required inclusive ending port. Send both port bounds as null only for an unambiguous portless service; otherwise provide both."),
             new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
         ]);
     private static readonly RequestRootValidationSchema TimeObjectIdRootSchema = new(
@@ -146,6 +150,7 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves a service object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// It is not intended to identify custom protocol-only services because their technical definitions are ambiguous.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjectId")]

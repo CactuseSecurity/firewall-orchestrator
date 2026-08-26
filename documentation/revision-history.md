@@ -625,3 +625,4 @@ Not supported any longer are:
 ## 9.4.3 - 26.08.2026
 - Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.
 - Keep the canonical ANY flow service object implemented and protect it from removal.
+- Return `null` service port bounds for protocol-only flow catalog objects instead of 0

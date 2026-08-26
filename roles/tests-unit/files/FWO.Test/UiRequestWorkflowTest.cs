@@ -2330,7 +2330,6 @@ namespace FWO.Test
             SetMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
             SetMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 50, Port = 0 } });
             SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
-            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 50, Name = "esp" } });
 
             bool isValid = InvokePrivateBool(component, "RejectInvalidAccessTask");
 
@@ -2364,7 +2363,6 @@ namespace FWO.Test
             SetMember(component, "actDestinations", new List<NwObjectElement> { new("10.0.1.1", 1) });
             SetMember(component, "actServices", new List<NwServiceElement> { new() { ProtoId = 6, Port = 0 } });
             SetMember(component, "selectedDevices", new List<Device> { new() { Id = 1, Name = "FW-1" } });
-            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 6, Name = "tcp" } });
 
             bool isValid = InvokePrivateBool(component, "RejectInvalidAccessTask");
 
@@ -2418,7 +2416,6 @@ namespace FWO.Test
                 }
             });
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
-            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 50, Name = "esp" } });
 
             bool isValid = InvokePrivateBool(component, "CheckImplTaskValues");
 
@@ -2444,7 +2441,6 @@ namespace FWO.Test
                 }
             });
             SetMember(component, "userConfig", new RequestWorkflowUserConfig());
-            SetMember(component, "ipProtos", new List<IpProtocol> { new() { Id = 6, Name = "tcp" } });
 
             bool isValid = InvokePrivateBool(component, "CheckImplTaskValues");
 

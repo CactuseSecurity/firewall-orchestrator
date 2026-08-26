@@ -161,7 +161,13 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'protocol' is required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart, request.PortEnd, "service", 0, out string? serviceErrorMessage))
+        if (request.PortStart.HasValue != request.PortEnd.HasValue)
+        {
+            return BadRequest("'portStart' and 'portEnd' must both be provided or both be null.");
+        }
+
+        if (request.PortStart.HasValue
+            && !FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart.Value, request.PortEnd!.Value, "service", 0, out string? serviceErrorMessage))
         {
             return BadRequest(serviceErrorMessage);
         }

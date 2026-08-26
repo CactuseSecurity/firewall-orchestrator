@@ -23,13 +23,13 @@ public sealed class ServiceObjectResponse
     /// Gets the PortStart value.
     /// </summary>
     [JsonPropertyName("portStart")]
-    public int PortStart { get; set; }
+    public int? PortStart { get; set; }
 
     /// <summary>
     /// Gets the PortEnd value.
     /// </summary>
     [JsonPropertyName("portEnd")]
-    public int PortEnd { get; set; }
+    public int? PortEnd { get; set; }
 
     /// <summary>
     /// Gets the Protocol value.

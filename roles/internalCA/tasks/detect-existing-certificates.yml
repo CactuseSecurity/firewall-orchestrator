@@ -39,6 +39,12 @@
         | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
         | default(internalca_legacy_apache_private_key, true)
       }}
+    internalca_existing_peer_ca_intermediate_certificates: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
+        | default('', true)
+      }}
   when: internalca_existing_apache_configuration is defined
 
 - name: Check existing Apache certificate and private key
@@ -127,6 +133,12 @@
   set_fact:
     internalca_apache_certificate: "{{ internalca_existing_apache_certificate }}"
     internalca_apache_private_key: "{{ internalca_existing_apache_private_key }}"
+    internalca_peer_ca_intermediate_certificates: >-
+      {{
+        internalca_peer_ca_intermediate_certificates
+        if internalca_peer_ca_intermediate_certificates | length > 0
+        else internalca_existing_peer_ca_intermediate_certificates
+      }}
     internalca_issue_apache_certificate: false
   when: internalca_preserve_apache_certificate | default(false) | bool
 

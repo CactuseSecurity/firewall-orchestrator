@@ -533,6 +533,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
+    <li>Bei eigenen Apache-Zertifikaten kann der Installer nun eine Zwischenzertifikatskette pr&uuml;fen und f&uuml;r alle TLS-Clients bereitstellen.</li>
     <li>App-Rollen d&uuml;rfen nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer ge&auml;ndert werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
@@ -542,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
+    <li>For administrator-managed Apache certificates, the installer can now validate and serve an intermediate certificate chain to every TLS client.</li>
     <li>Application roles may now only be changed by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
@@ -7453,12 +7455,12 @@ INSERT INTO txt VALUES ('H6324', 'English', 'The private key is readable only by
 INSERT INTO txt VALUES ('H6325', 'German',  'Typische Fehlerbilder:');
 INSERT INTO txt VALUES ('H6325', 'English', 'Typical failure modes:');
 INSERT INTO txt VALUES ('H6326', 'German',  '<li><b>HTTP 400 "No required SSL certificate was sent"</b> bzw. Abbruch des TLS-Handshakes: es wurde kein Client-Zertifikat mitgesendet (<code>--cert</code> / <code>--key</code> fehlen).</li>
-    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: das CA-Zertifikat wurde nicht angegeben (<code>--cacert</code> fehlt).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: das CA-Zertifikat wurde nicht angegeben (<code>--cacert</code> fehlt), oder Apache liefert die ben&ouml;tigten Zwischenzertifikate nicht aus.</li>
     <li><b>"Permission denied"</b> beim Lesen von <code>client.key</code>: das Skript l&auml;uft nicht unter dem FWO-Dienstkonto.</li>
     <li><b>Namensabweichung</b> (hostname mismatch): die verwendete Adresse steht nicht im Zertifikat des Servers. Es sind die in der Installation hinterlegten Hostnamen zu verwenden.</li>
 ');
 INSERT INTO txt VALUES ('H6326', 'English', '<li><b>HTTP 400 "No required SSL certificate was sent"</b>, or an aborted TLS handshake: no client certificate was presented (<code>--cert</code> / <code>--key</code> missing).</li>
-    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: the CA certificate was not supplied (<code>--cacert</code> missing).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: the CA certificate was not supplied (<code>--cacert</code> missing), or Apache is not serving the required intermediate certificates.</li>
     <li><b>"Permission denied"</b> reading <code>client.key</code>: the script is not running as the FWO service account.</li>
     <li><b>Host name mismatch</b>: the address you used is not listed in the server certificate. Use the host names configured during installation.</li>
 ');

@@ -41,6 +41,9 @@
 	{{ apache_ssl_cipher_suite }}
 	SSLCertificateFile {{ internalca_apache_certificate }}
 	SSLCertificateKeyFile {{ internalca_apache_private_key }}
+{% if internalca_peer_ca_intermediate_certificates | length > 0 %}
+	SSLCertificateChainFile {{ internalca_peer_ca_intermediate_certificates }}
+{% endif %}
 {% if graphql_api_requires_client_certificate | bool %}
 	SSLCACertificateFile {{ internalca_ca_certificate_local }}
 	SSLVerifyClient require

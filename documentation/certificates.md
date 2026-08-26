@@ -78,6 +78,22 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
+When the customer-managed leaf was issued by one or more intermediate CAs, set
+`internalca_peer_ca_intermediate_certificates` to a PEM bundle containing those
+certificates in leaf-to-root order, without the root itself. The file is needed
+only on hosts serving an FWO Apache endpoint. The installer verifies that the
+leaf chains through this bundle to `internalca_peer_ca_certificate` before it
+restarts Apache, and configures Apache to send the intermediates to every TLS
+client. For example:
+
+```
+-e internalca_peer_ca_certificate=/etc/ssl/certs/customer-root.pem \
+-e internalca_peer_ca_intermediate_certificates=/etc/ssl/certs/customer-intermediates.pem
+```
+
+An upgrade also retains an existing `SSLCertificateChainFile` reference from an
+FWO Apache vhost when the new variable is not supplied explicitly.
+
 That issuer is **added to** FWO's trust configuration, not substituted for the
 internal CA. The installer concatenates both into a trust bundle at
 `/etc/fworch/fworch-trust-bundle.crt` (`internalca_trust_bundle`), and that is the
@@ -118,6 +134,12 @@ recognise as customer-managed; without this check the endpoint would silently
 be repointed at an FWO-issued certificate. Remove the passphrase, or set
 `internalca_issue_apache_certificate: false` to keep the role away from that
 identity entirely.
+
+If the leaf, intermediate bundle, and configured root do not form one chain, the
+installer stops before changing the Apache vhost. An `unable to get local issuer
+certificate` error from a client can therefore also mean that Apache was not
+given the required intermediate bundle; it does not necessarily mean that the
+client is missing the root CA.
 
 Apache server identities are stored at
 `/usr/local/fworch/etc/secrets/apache/server.{crt,key}`. The private

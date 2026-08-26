@@ -104,6 +104,12 @@ graphql_api_requires_client_certificate: true
 # read by roles/api, roles/middleware and roles/ui apache templates
 internalca_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"
 internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
+# Optional PEM bundle containing the intermediate CA certificates Apache must
+# send after a customer-managed leaf certificate. Keep the issuing root in
+# internalca_peer_ca_certificate; roots are trust anchors and are not part of
+# the server chain. The path must exist on every host serving an FWO Apache
+# endpoint. Existing SSLCertificateChainFile settings are retained on upgrade.
+internalca_peer_ca_intermediate_certificates: ""
 
 # read by roles/common (fworch.json) and roles/tests-integration
 internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"

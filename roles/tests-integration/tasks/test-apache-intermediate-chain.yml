@@ -1,0 +1,205 @@
+---
+- name: Create a temporary directory for Apache intermediate chain tests
+  tempfile:
+    state: directory
+    prefix: fworch-apache-chain-
+  register: test_apache_chain_directory
+  become: true
+
+- name: Write certificate extension files for Apache intermediate chain tests
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ test_apache_chain_directory.path }}/{{ item.name }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - name: intermediate-extensions.cnf
+      content: |
+        basicConstraints=critical,CA:TRUE,pathlen:0
+        keyUsage=critical,keyCertSign,cRLSign
+        subjectKeyIdentifier=hash
+        authorityKeyIdentifier=keyid,issuer
+    - name: leaf-extensions.cnf
+      content: |
+        basicConstraints=critical,CA:FALSE
+        keyUsage=critical,digitalSignature,keyEncipherment
+        extendedKeyUsage=serverAuth
+        subjectKeyIdentifier=hash
+        authorityKeyIdentifier=keyid,issuer
+  become: true
+
+- name: Create a root CA for Apache intermediate chain tests
+  command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -keyout
+      - "{{ test_apache_chain_directory.path }}/root.key"
+      - -out
+      - "{{ test_apache_chain_directory.path }}/root.crt"
+      - -subj
+      - /CN=FWO intermediate chain test root
+      - -days
+      - "1"
+      - -addext
+      - basicConstraints=critical,CA:TRUE
+      - -addext
+      - keyUsage=critical,keyCertSign,cRLSign
+  changed_when: false
+  become: true
+
+- name: Create an intermediate CA request for Apache intermediate chain tests
+  command:
+    argv:
+      - openssl
+      - req
+      - -new
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -keyout
+      - "{{ test_apache_chain_directory.path }}/intermediate.key"
+      - -out
+      - "{{ test_apache_chain_directory.path }}/intermediate.csr"
+      - -subj
+      - /CN=FWO intermediate chain test intermediate
+  changed_when: false
+  become: true
+
+- name: Sign the intermediate CA for Apache intermediate chain tests
+  command:
+    argv:
+      - openssl
+      - x509
+      - -req
+      - -in
+      - "{{ test_apache_chain_directory.path }}/intermediate.csr"
+      - -CA
+      - "{{ test_apache_chain_directory.path }}/root.crt"
+      - -CAkey
+      - "{{ test_apache_chain_directory.path }}/root.key"
+      - -CAcreateserial
+      - -out
+      - "{{ test_apache_chain_directory.path }}/intermediate.crt"
+      - -days
+      - "1"
+      - -sha256
+      - -extfile
+      - "{{ test_apache_chain_directory.path }}/intermediate-extensions.cnf"
+  changed_when: false
+  become: true
+
+- name: Create an Apache leaf request for intermediate chain tests
+  command:
+    argv:
+      - openssl
+      - req
+      - -new
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -keyout
+      - "{{ test_apache_chain_directory.path }}/leaf.key"
+      - -out
+      - "{{ test_apache_chain_directory.path }}/leaf.csr"
+      - -subj
+      - /CN=FWO intermediate chain test leaf
+  changed_when: false
+  become: true
+
+- name: Sign the Apache leaf for intermediate chain tests
+  command:
+    argv:
+      - openssl
+      - x509
+      - -req
+      - -in
+      - "{{ test_apache_chain_directory.path }}/leaf.csr"
+      - -CA
+      - "{{ test_apache_chain_directory.path }}/intermediate.crt"
+      - -CAkey
+      - "{{ test_apache_chain_directory.path }}/intermediate.key"
+      - -CAcreateserial
+      - -out
+      - "{{ test_apache_chain_directory.path }}/leaf.crt"
+      - -days
+      - "1"
+      - -sha256
+      - -extfile
+      - "{{ test_apache_chain_directory.path }}/leaf-extensions.cnf"
+  changed_when: false
+  become: true
+
+- name: Verify the preflight accepts a complete Apache intermediate chain
+  include_tasks:
+    file: "{{ role_path }}/../internalCA/tasks/validate-apache-intermediates.yml"
+    apply:
+      become: true
+  vars:
+    internalca_apache_chain_leaf_path: "{{ test_apache_chain_directory.path }}/leaf.crt"
+    internalca_apache_chain_intermediates_path: "{{ test_apache_chain_directory.path }}/intermediate.crt"
+    internalca_apache_chain_root_path: "{{ test_apache_chain_directory.path }}/root.crt"
+
+- name: Verify the preflight rejects an unrelated Apache root
+  block:
+    - include_tasks: "{{ role_path }}/../internalCA/tasks/validate-apache-intermediates.yml"
+      vars:
+        internalca_apache_chain_leaf_path: "{{ test_apache_chain_directory.path }}/leaf.crt"
+        internalca_apache_chain_intermediates_path: "{{ test_apache_chain_directory.path }}/intermediate.crt"
+        internalca_apache_chain_root_path: "{{ internalca_ca_certificate_local }}"
+    - set_fact:
+        test_apache_invalid_chain_rejected: false
+  rescue:
+    - set_fact:
+        test_apache_invalid_chain_rejected: true
+  become: true
+
+- name: Assert the preflight rejected an unrelated Apache root
+  assert:
+    that:
+      - test_apache_invalid_chain_rejected | bool
+    fail_msg: The Apache intermediate chain preflight accepted an unrelated root CA.
+
+- name: Select installed FWO Apache configuration files
+  set_fact:
+    test_apache_tls_configuration_files: >-
+      {{
+        ([http_conf_dir ~ product_name ~ '-api.conf'] if 'apiserver' in group_names else [])
+        + ([http_conf_dir ~ product_name ~ '-mw.conf'] if 'middlewareserver' in group_names else [])
+        + ([http_conf_dir ~ product_name ~ '-ui.conf'] if 'frontends' in group_names else [])
+      }}
+
+- name: Read installed FWO Apache configuration files
+  slurp:
+    src: "{{ item }}"
+  loop: "{{ test_apache_tls_configuration_files }}"
+  register: test_apache_tls_configurations
+  become: true
+
+- name: Assert Apache intermediate chain references match the installer setting
+  assert:
+    that:
+      - >-
+        (internalca_peer_ca_intermediate_certificates | length > 0
+         and expected_apache_chain_directive in (item.content | b64decode))
+        or
+        (internalca_peer_ca_intermediate_certificates | length == 0
+         and 'SSLCertificateChainFile' not in (item.content | b64decode))
+    fail_msg: >-
+      {{ item.item }} does not match the configured Apache intermediate
+      certificate chain reference.
+  vars:
+    expected_apache_chain_directive: >-
+      SSLCertificateChainFile {{ internalca_peer_ca_intermediate_certificates }}
+  loop: "{{ test_apache_tls_configurations.results }}"
+
+- name: Remove Apache intermediate chain test files
+  file:
+    path: "{{ test_apache_chain_directory.path }}"
+    state: absent
+  become: true

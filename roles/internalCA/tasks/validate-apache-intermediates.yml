@@ -1,0 +1,34 @@
+---
+# community.crypto can inspect the first certificate in a PEM file, but it cannot
+# prove a leaf through an untrusted bundle to a specific root. openssl verify is
+# therefore used for this chain preflight before any Apache template is installed.
+- name: Verify the Apache leaf through the intermediates to the configured root
+  command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ internalca_apache_chain_root_path | default(internalca_peer_ca_certificate) }}"
+      - -untrusted
+      - "{{ internalca_apache_chain_intermediates_path | default(internalca_peer_ca_intermediate_certificates) }}"
+      - "{{ internalca_apache_chain_leaf_path | default(internalca_apache_certificate) }}"
+  register: internalca_apache_chain_verification
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Fail when the configured Apache intermediate chain is invalid
+  fail:
+    msg: >-
+      The Apache certificate
+      {{ internalca_apache_chain_leaf_path | default(internalca_apache_certificate) }}
+      does not chain through
+      internalca_peer_ca_intermediate_certificates
+      ({{ internalca_apache_chain_intermediates_path
+          | default(internalca_peer_ca_intermediate_certificates) }}) to the root configured as
+      internalca_peer_ca_certificate
+      ({{ internalca_apache_chain_root_path | default(internalca_peer_ca_certificate) }}) on
+      {{ inventory_hostname }}. OpenSSL reported:
+      {{ internalca_apache_chain_verification.stderr
+         | default(internalca_apache_chain_verification.stdout, true) }}
+  when: internalca_apache_chain_verification.rc != 0

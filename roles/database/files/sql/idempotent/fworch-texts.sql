@@ -536,6 +536,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
     <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
     <li>Ein kompletter Rollback (L&ouml;schung aller Importdaten einer Management) kann jetzt &uuml;ber eine Standardeinstellung freigeschaltet werden und ist standardm&auml;&szlig;ig deaktiviert.</li>
+    <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -546,6 +547,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The maximum runtime of import scripts is configurable in the default settings.</li>
     <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
     <li>A full rollback (deletion of all import data of a management) can now be enabled via a default setting and is disabled by default.</li>
+    <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

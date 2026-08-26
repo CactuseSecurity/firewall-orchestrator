@@ -26,9 +26,7 @@ from models.serviceobject import ServiceObject
 ANY_PROTOCOL_PORT_START = 1
 ANY_PROTOCOL_PORT_END = 65535
 OPNSENSE_ANY_SERVICE_NAME = "Any"
-OPNSENSE_ANY_SERVICE_UID = "Any"
 OPNSENSE_ANY_SERVICE_CONFLICT_NAME = "_FWO_ANY_PORT_"
-OPNSENSE_ANY_SERVICE_CONFLICT_UID = "_FWO_ANY_PORT_"
 
 
 def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
@@ -213,11 +211,11 @@ def _port_service_from_dest_port(dest_port: str) -> ServiceObject | None:
     return None
 
 
-def _qualify_service(base: ServiceObject, protocol: str, member_names: str | None) -> ServiceObject:
+def _qualify_service(
+    base: ServiceObject, protocol: str, member_names: str | None, synthetic_any_service_uid: str
+) -> ServiceObject:
     qualified_name = _qualified_service_name(base.svc_name, protocol)
-    is_synthetic_any_service = base.svc_uid == OPNSENSE_ANY_SERVICE_UID or base.svc_uid.startswith(
-        OPNSENSE_ANY_SERVICE_CONFLICT_UID
-    )
+    is_synthetic_any_service = base.svc_uid == synthetic_any_service_uid
     return ServiceObject(
         svc_uid=fwo_base_generate_hash_from_dict({"svc_obj": qualified_name}),
         svc_name=qualified_name,
@@ -238,7 +236,7 @@ def _qualify_service(base: ServiceObject, protocol: str, member_names: str | Non
 
 
 def _register_qualified_service(
-    name: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int
+    name: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int, synthetic_any_service_uid: str
 ) -> ServiceObject | None:
     # port aliases carry no protocol in OPNsense - the protocol comes from the referencing rule,
     # so an alias used by a TCP and a UDP rule needs one service object per protocol
@@ -255,17 +253,20 @@ def _register_qualified_service(
     member_names: str | None = None
     if base.svc_member_names:
         members = [
-            _qualified_member_name(member, protocol, svc_objs, depth) for member in base.svc_member_names.split("|")
+            _qualified_member_name(member, protocol, svc_objs, depth, synthetic_any_service_uid)
+            for member in base.svc_member_names.split("|")
         ]
         member_names = sort_and_join(members)
 
-    qualified = _qualify_service(base, protocol, member_names)
+    qualified = _qualify_service(base, protocol, member_names, synthetic_any_service_uid)
     svc_objs[qualified_name] = qualified
     return qualified
 
 
-def _qualified_member_name(member: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int) -> str:
-    qualified_member = _register_qualified_service(member, protocol, svc_objs, depth + 1)
+def _qualified_member_name(
+    member: str, protocol: str, svc_objs: dict[str, ServiceObject], depth: int, synthetic_any_service_uid: str
+) -> str:
+    qualified_member = _register_qualified_service(member, protocol, svc_objs, depth + 1, synthetic_any_service_uid)
     return qualified_member.svc_name if qualified_member is not None else member
 
 
@@ -280,7 +281,9 @@ def _create_port_service_for_rule(dest_port: str, rule: OPNsenseAccessRule) -> S
     return svc
 
 
-def _update_service_objects_from_rule_ports(rule: OPNsenseAccessRule, svc_objs: dict[str, ServiceObject]) -> None:
+def _update_service_objects_from_rule_ports(
+    rule: OPNsenseAccessRule, svc_objs: dict[str, ServiceObject], synthetic_any_service_uid: str
+) -> None:
     protocol = _rule_service_protocol(rule)
 
     for ref in rule.dest_port:
@@ -289,16 +292,16 @@ def _update_service_objects_from_rule_ports(rule: OPNsenseAccessRule, svc_objs: 
             continue
         if protocol is not None and dest_port in svc_objs:
             # known alias (or the special "Any" service): derive the protocol variant from it
-            _register_qualified_service(dest_port, protocol, svc_objs, 0)
+            _register_qualified_service(dest_port, protocol, svc_objs, 0, synthetic_any_service_uid)
             continue
         svc = _create_port_service_for_rule(dest_port, rule)
         if protocol is not None:
-            svc = _qualify_service(svc, protocol, None)
+            svc = _qualify_service(svc, protocol, None, synthetic_any_service_uid)
         svc_objs[svc.svc_name] = svc
 
 
 def _update_service_objects_from_access_rules(
-    rules: list[OPNsenseAccessRule], svc_objs: dict[str, ServiceObject]
+    rules: list[OPNsenseAccessRule], svc_objs: dict[str, ServiceObject], synthetic_any_service_uid: str
 ) -> None:
 
     for rule in rules:
@@ -309,7 +312,7 @@ def _update_service_objects_from_access_rules(
                 svc_objs[protocol_name] = _create_service_from_protocol(protocol_name)
             continue
 
-        _update_service_objects_from_rule_ports(rule, svc_objs)
+        _update_service_objects_from_rule_ports(rule, svc_objs, synthetic_any_service_uid)
 
 
 def _use_conflict_safe_any_service_name(rules: list[OPNsenseAccessRule], service_name: str) -> None:
@@ -338,16 +341,12 @@ def normalize_services(os_config: OPNsenseConfig) -> dict[str, ServiceObject]:
     # Add the special "Any" service object. A user-defined alias named "Any"
     # takes precedence; rules with no destination port then use an internal name.
     svc_any_name = OPNSENSE_ANY_SERVICE_NAME
-    svc_any_uid = OPNSENSE_ANY_SERVICE_UID
     if svc_any_name in normalized:
         svc_any_name = _unused_any_service_conflict_name(normalized)
-        svc_any_uid = (
-            OPNSENSE_ANY_SERVICE_CONFLICT_UID if svc_any_name == OPNSENSE_ANY_SERVICE_CONFLICT_NAME else svc_any_name
-        )
         _use_conflict_safe_any_service_name(os_config.access_rules, svc_any_name)
-    svc_any = _create_any_svc_object(svc_any_name, svc_any_uid)
+    svc_any = _create_any_svc_object(svc_any_name, svc_any_name)
     normalized[svc_any.svc_name] = svc_any
 
-    _update_service_objects_from_access_rules(os_config.access_rules, normalized)
+    _update_service_objects_from_access_rules(os_config.access_rules, normalized, svc_any.svc_uid)
 
     return normalized

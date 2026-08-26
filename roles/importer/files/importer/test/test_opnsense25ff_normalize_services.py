@@ -233,9 +233,24 @@ def test_qualify_service_preserves_ports_for_user_service_named_any() -> None:
         svc_typ="simple",
     )
 
-    qualified = _qualify_service(base, "tcp", None)
+    qualified = _qualify_service(base, "tcp", None, "synthetic-any-uid")
 
     assert qualified.ip_proto == 6
+    assert (qualified.svc_port, qualified.svc_port_end) == (443, 443)
+
+
+def test_qualify_service_does_not_treat_similar_uid_as_synthetic_any() -> None:
+    base = ServiceObject(
+        svc_uid="_FWO_ANY_PORT_user-alias",
+        svc_name="user-service",
+        svc_port=443,
+        svc_port_end=443,
+        svc_color="",
+        svc_typ="simple",
+    )
+
+    qualified = _qualify_service(base, "tcp", None, "_FWO_ANY_PORT_")
+
     assert (qualified.svc_port, qualified.svc_port_end) == (443, 443)
 
 

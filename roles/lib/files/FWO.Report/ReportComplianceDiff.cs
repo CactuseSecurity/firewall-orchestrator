@@ -36,11 +36,17 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Formats each violation with the time at which it first appeared in the report interval.
+        /// Formats each violation with the time at which it first appeared in the report interval and marks retained
+        /// non-impact rules with a localized no-changes message.
         /// </summary>
         protected override void SetComplianceDataForRule(Rule rule, Func<ComplianceViolation, string>? formatter = null)
         {
             base.SetComplianceDataForRule(rule, FormatViolationDetails);
+
+            if (ShowNonImpactRules && rule.Violations.Count == 0)
+            {
+                rule.ViolationDetails = userConfig.GetText("no_changes_found");
+            }
         }
 
         /// <summary>

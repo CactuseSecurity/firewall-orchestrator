@@ -264,6 +264,9 @@ namespace FWO.Test
                 Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-a", "rule-b" }));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-a").Violations.Select(violation => violation.Id), Is.EqualTo(new List<int> { 1 }));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-b").Violations, Is.Empty);
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-b").ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("no_changes_found")));
             });
         }
 

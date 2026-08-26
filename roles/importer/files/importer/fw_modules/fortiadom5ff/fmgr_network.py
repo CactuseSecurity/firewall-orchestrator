@@ -10,7 +10,12 @@ from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 
-IPV6_OBJECT_TYPE_SUFFIXES = ("firewall/address6", "firewall/addrgrp6", "firewall/vipgrp6")
+IPV6_OBJECT_TYPE_SUFFIXES = (
+    "firewall/address6",
+    "firewall/addrgrp6",
+    "firewall/ippool6",
+    "firewall/vipgrp6",
+)
 
 
 def normalize_network_objects(

@@ -64,7 +64,11 @@ def test_find_addr_ref_resolves_addressless_objects_by_address_family():
         "nw_obj_global_firewall/address6",
         {"name": "ipv6-fqdn", "uuid": "ipv6-fqdn-uid", "fqdn": "ipv6.example.test"},
     )
-    normalized_config_adom = {"network_objects": [dynamic_object, ipv4_fqdn, ipv6_fqdn]}
+    ipv6_pool = normalize_fortimanager_object(
+        "nw_obj_global_firewall/ippool6",
+        {"name": "ipv6-pool", "uuid": "ipv6-pool-uid", "startip": "2001:db8::1", "endip": "2001:db8::ff"},
+    )
+    normalized_config_adom = {"network_objects": [dynamic_object, ipv4_fqdn, ipv6_fqdn, ipv6_pool]}
     normalized_config_global: dict[str, list[dict[str, Any]]] = {"network_objects": []}
 
     assert (
@@ -93,4 +97,13 @@ def test_find_addr_ref_resolves_addressless_objects_by_address_family():
             normalized_config_global=normalized_config_global,
         )
         == "ipv6-fqdn-uid"
+    )
+    assert (
+        find_addr_ref(
+            "ipv6-pool",
+            is_v4=False,
+            normalized_config_adom=normalized_config_adom,
+            normalized_config_global=normalized_config_global,
+        )
+        == "ipv6-pool-uid"
     )

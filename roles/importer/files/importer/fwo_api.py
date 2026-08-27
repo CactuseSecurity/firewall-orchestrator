@@ -546,7 +546,12 @@ class FwoApi:
 
         Keeping the retry local to one chunk (instead of raising _JwtExpiredResponseError out of
         _call_chunked) preserves the surrounding loop's state - remaining chunkable_variables,
-        total_processed_elements and the return_object accumulated so far.
+        total_processed_elements and the return_object accumulated so far. It also means a
+        _JwtExpiredResponseError from the retried POST below must never be allowed to escape this
+        method: by that point query_variables has already been narrowed down to just the current
+        chunk (see _update_query_variables_by_chunk), so letting it bubble up into call()'s
+        whole-call retry would resend only that leftover slice as if it were the entire request,
+        silently dropping every element from the chunks processed before it.
         """
         try:
             return self._post_query(session, {"query": query, "variables": query_variables})
@@ -558,7 +563,14 @@ class FwoApi:
             )
             # the session's headers were built with the now-stale JWT - refresh them before retrying
             session.headers.update(self._build_request_headers())
-            return self._post_query(session, {"query": query, "variables": query_variables})
+            try:
+                return self._post_query(session, {"query": query, "variables": query_variables})
+            except _JwtExpiredResponseError:
+                # a freshly refreshed JWT was rejected again - not recoverable by retrying further,
+                # and must not propagate as _JwtExpiredResponseError (see docstring above)
+                raise FwoImporterError(
+                    "fwo_api: JWT expired again immediately after refresh during chunked call - aborting"
+                ) from None
 
     def _handle_chunked_calls_response(self, return_object: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
         if return_object == {}:

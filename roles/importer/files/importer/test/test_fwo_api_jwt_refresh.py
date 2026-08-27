@@ -371,3 +371,39 @@ class TestCallChunkedRetriesOnJwtExpiry:
             api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
 
         assert session.calls == 1
+
+    def test_raises_without_a_whole_call_retry_when_the_retried_chunk_expires_again(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # 1500 elements over a chunk size of 1000 => two chunks. Chunk 1 succeeds; chunk 2 expires
+        # on both its first attempt and its post-refresh retry. That second expiry must fail this
+        # chunk outright instead of escaping as _JwtExpiredResponseError - by then query_variables
+        # has been narrowed down to just chunk 2's 500 items, so letting it reach call()'s
+        # whole-call retry would resend only those 500 items as if they were the entire request,
+        # silently dropping chunk 1's already-processed 1000 items from the reported result.
+        session = _FakeSession(
+            [
+                self._chunk_response(1000),  # chunk 1: succeeds
+                _FakeResponse(200, json_data=self._EXPIRED_BODY),  # chunk 2, first attempt: expired
+                _FakeResponse(200, json_data=self._EXPIRED_BODY),  # chunk 2, retry: expired again
+            ]
+        )
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+        monkeypatch.setattr(api, "_try_refresh_jwt", lambda: True)
+        api.query_info = {
+            "query_name": "insertItems",
+            "chunking_info": {
+                "needs_chunking": True,
+                "adjusted_chunk_size": 1000,
+                "chunkable_variables": ["items"],
+                "total_elements": 1500,
+            },
+        }
+        query_variables = {"items": list(range(1500))}
+
+        with pytest.raises(FwoImporterError, match="JWT expired again immediately after refresh"):
+            api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
+
+        # no fourth post: the failure must not trigger call()'s whole-call retry
+        assert session.calls == 3

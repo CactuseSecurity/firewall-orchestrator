@@ -176,12 +176,14 @@ def _find_canonical_any_protocol_service_uid(proto: str, service_objects: dict[s
     return None
 
 
-def _unused_any_protocol_conflict_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str:
+def _unused_any_protocol_conflict_uid(
+    proto: str, service_objects: dict[str, ServiceObject], reserved_names: frozenset[str] = frozenset()
+) -> str:
     """Probe for a free conflict-safe UID, reusing a slot that already holds the canonical object."""
     prefix = f"_FWO_ANY_{proto.upper()}_PROTOCOL_"
     uid = prefix
     suffix = 1
-    while uid in service_objects and _canonical_any_protocol(service_objects[uid]) != proto:
+    while (uid in service_objects and _canonical_any_protocol(service_objects[uid]) != proto) or uid in reserved_names:
         suffix += 1
         uid = f"{prefix}{suffix}"
     return uid
@@ -213,7 +215,9 @@ def _unused_any_protocol_uid(proto: str, service_objects: dict[str, ServiceObjec
     return _unused_any_protocol_conflict_uid(proto, service_objects)
 
 
-def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObject]) -> None:
+def _make_room_for_named_object(
+    name: str, service_objects: dict[str, ServiceObject], reserved_names: frozenset[str] = frozenset()
+) -> None:
     """
     Relocate a synthetic 'any-<proto>' service object out of the way before an ASA-configured
     object/group claims its name, so neither one silently overwrites the other.
@@ -221,6 +225,8 @@ def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObj
     Args:
         name: The name an ASA-configured object/group is about to be stored under
         service_objects: Service objects dictionary to update in place
+        reserved_names: Names about to be claimed by other configured objects/groups, so the
+            relocation target never lands on one of them either
 
     """
     existing = service_objects.get(name)
@@ -230,7 +236,7 @@ def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObj
     if proto is None:
         return
     del service_objects[name]
-    relocated_uid = _unused_any_protocol_conflict_uid(proto, service_objects)
+    relocated_uid = _unused_any_protocol_conflict_uid(proto, service_objects, reserved_names)
     existing.svc_uid = relocated_uid
     service_objects[relocated_uid] = existing
 
@@ -561,8 +567,11 @@ def normalize_service_object_groups(
     # Relocate every colliding synthetic any-<proto> object up front, before any group's
     # members are resolved. Otherwise a group processed earlier than the colliding one would
     # capture the canonical object's pre-relocation UID as a member reference and go stale.
+    # The relocation target must also avoid every group's own name, so it never lands on a
+    # group that has not been written yet (e.g. one literally named after the conflict UID).
+    reserved_names = frozenset(group.name for group in service_groups)
     for group in service_groups:
-        _make_room_for_named_object(group.name, service_objects)
+        _make_room_for_named_object(group.name, service_objects, reserved_names)
 
     # Process each service group
     for group in service_groups:

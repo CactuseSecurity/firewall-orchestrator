@@ -189,6 +189,42 @@ def test_earlier_group_enabling_ip_protocol_does_not_capture_stale_any_uid():
     assert canonical_any_ip.ip_proto == -1
 
 
+def test_group_named_after_conflict_uid_does_not_self_reference():
+    sentinel_group = AsaServiceObjectGroup(
+        name="_FWO_ANY_IP_PROTOCOL_",
+        proto_mode=None,
+        ports_eq={},
+        ports_range={},
+        nested_refs=[],
+        protocols=["ip"],
+        description=None,
+    )
+    any_group = AsaServiceObjectGroup(
+        name="ANY",
+        proto_mode="tcp",
+        ports_eq={"tcp": ["80"]},
+        ports_range={},
+        nested_refs=[],
+        protocols=[],
+        description=None,
+    )
+
+    for groups in ([sentinel_group, any_group], [any_group, sentinel_group]):
+        services: dict[str, ServiceObject] = {}
+        create_protocol_any_service_objects(services)
+
+        normalize_service_object_groups(list(groups), services)
+
+        sentinel = services["_FWO_ANY_IP_PROTOCOL_"]
+        assert sentinel.svc_typ == "group"
+        assert sentinel.svc_member_refs != "_FWO_ANY_IP_PROTOCOL_"
+        assert sentinel.svc_member_refs is not None
+        canonical_any_ip = services[sentinel.svc_member_refs]
+        assert canonical_any_ip.svc_typ == "simple"
+        assert canonical_any_ip.svc_name == "any-ip"
+        assert canonical_any_ip.ip_proto == -1
+
+
 def test_config_group_named_any_processed_before_seeding_is_preserved():
     services: dict[str, ServiceObject] = {}
     any_group = AsaServiceObjectGroup(

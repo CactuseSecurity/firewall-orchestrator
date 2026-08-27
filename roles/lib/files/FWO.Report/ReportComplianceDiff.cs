@@ -11,7 +11,6 @@ namespace FWO.Report
 {
     public class ReportComplianceDiff : ReportCompliance
     {
-        private const string kExistingViolationsFilterFailedWarning = "WARNING: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.";
         private readonly record struct RuleIdentity(string ManagementUid, string RuleUid);
         private bool _existingViolationsFilterFailed;
         private HashSet<RuleIdentity> _previouslyNonCompliantRuleIdentities = [];
@@ -192,7 +191,7 @@ namespace FWO.Report
         public override string SetDescription()
         {
             return _existingViolationsFilterFailed
-                ? $"{base.SetDescription()} - {kExistingViolationsFilterFailedWarning}"
+                ? $"{base.SetDescription()} - {userConfig.GetText("existing_violations_filter_failed")}"
                 : base.SetDescription();
         }
 

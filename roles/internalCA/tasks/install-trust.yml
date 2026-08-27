@@ -36,6 +36,18 @@
     - internalca_peer_ca_certificate != internalca_ca_certificate_local
     - internalca_peer_ca_content.content is not defined
 
+- name: Verify the configured peer CA is a valid PEM certificate bundle
+  command:
+    argv:
+      - openssl
+      - crl2pkcs7
+      - -nocrl
+      - -certfile
+      - "{{ internalca_peer_ca_certificate }}"
+  changed_when: false
+  become: true
+  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
+
 - name: Install the internal CA in the FWO trust bundle
   copy:
     # Keep the default bundle identical to the tested single-anchor copy above.
@@ -63,6 +75,24 @@
     group: "{{ fworch_group }}"
     mode: "0644"
   become: true
+  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
+
+- name: Read the FWO trust bundle containing the configured peer CA
+  slurp:
+    src: "{{ internalca_trust_bundle }}"
+  register: internalca_trust_bundle_content
+  become: true
+  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
+
+- name: Verify the configured peer CA is present in the FWO trust bundle
+  assert:
+    that:
+      - >-
+        (internalca_peer_ca_content.content | b64decode | trim)
+        in (internalca_trust_bundle_content.content | b64decode)
+    fail_msg: >-
+      The configured peer CA from {{ internalca_peer_ca_certificate }} was not
+      written to {{ internalca_trust_bundle }} on {{ inventory_hostname }}.
   when: internalca_peer_ca_certificate != internalca_ca_certificate_local
 
 - name: Verify the FWO trust bundle contains a CA certificate

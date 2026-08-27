@@ -40,7 +40,7 @@
 
     - name: wait for middleware web server to become available
       ansible.builtin.uri:
-          url: "{{ middleware_uri }}/swagger/"
+          url: "{{ test_middleware_native_uri }}/api-docs/"
           method: GET
           validate_certs: true
           ca_path: "{{ internalca_trust_bundle }}"

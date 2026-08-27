@@ -56,6 +56,7 @@ namespace FWO.Report
         protected override async Task<List<Rule>[]?> FetchRuleChunks(int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct)
         {
             _existingViolationsFilterFailed = false;
+            ReportData.ExistingViolationsFilterFailed = false;
 
             // Fix both boundaries once. Every parallel page therefore observes exactly the same report interval.
             DateTime reportEnd = DateTime.Now;
@@ -161,6 +162,7 @@ namespace FWO.Report
             {
                 // Preserve the default diff rather than returning an empty report when only the optional filter fails.
                 _existingViolationsFilterFailed = true;
+                ReportData.ExistingViolationsFilterFailed = true;
                 Log.TryWriteLog(LogType.Error, "Compliance Diff Report", $"Failed to fetch previous violations: {exception.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return intervalViolations;
             }

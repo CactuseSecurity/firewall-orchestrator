@@ -398,6 +398,7 @@ namespace FWO.Test
             {
                 Assert.That(report.Rules.Select(rule => rule.Uid), Is.EqualTo(new List<string?> { "rule-a" }));
                 Assert.That(report.SetDescription(), Does.Contain("Existing-violation filter could not be applied"));
+                Assert.That(report.ReportData.ExistingViolationsFilterFailed, Is.True);
             });
         }
 

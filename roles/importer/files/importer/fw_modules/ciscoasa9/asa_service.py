@@ -157,8 +157,9 @@ def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
     for proto in ("tcp", "udp", "icmp", "ip"):
         obj_name = f"any-{proto}"
         is_any_ip_protocol = proto == "ip"
+        obj_uid = ASA_ANY_PROTOCOL_SERVICE_UID if is_any_ip_protocol else obj_name
         obj = ServiceObject(
-            svc_uid=ASA_ANY_PROTOCOL_SERVICE_UID if is_any_ip_protocol else obj_name,
+            svc_uid=obj_uid,
             svc_name=obj_name,
             svc_port=None if is_any_ip_protocol else 0,
             svc_port_end=None if is_any_ip_protocol else 65535,
@@ -167,7 +168,7 @@ def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
             ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
-        service_objects[obj_name] = obj
+        service_objects[obj_uid] = obj
 
     return service_objects
 
@@ -248,10 +249,11 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
 
     """
     obj_name = f"any-{proto}"
-    if obj_name not in service_objects:
+    obj_uid = ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else obj_name
+    if obj_uid not in service_objects:
         port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
-            svc_uid=ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else obj_name,
+            svc_uid=obj_uid,
             svc_name=obj_name,
             svc_port=port_range[0],
             svc_port_end=port_range[1],
@@ -260,8 +262,8 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
             ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
-        service_objects[obj_name] = obj
-    return obj_name
+        service_objects[obj_uid] = obj
+    return obj_uid
 
 
 def create_service_for_protocol_entry_with_single_protocol(

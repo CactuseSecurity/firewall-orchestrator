@@ -131,7 +131,7 @@ def _get_non_port_protocol_service_object(svc_obj: SvcObjCustom) -> ServiceObjec
             svc_name=svc_obj.name,
             svc_uid=svc_obj.name,
             svc_typ="simple",
-            ip_proto=0,
+            ip_proto=fwo_const.ANY_IP_PROTOCOL_ID,
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_comment=svc_obj.comment,
         )

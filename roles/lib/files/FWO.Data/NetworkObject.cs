@@ -15,10 +15,10 @@ namespace FWO.Data
         public string Name { get; set; } = "";
 
         [JsonProperty("obj_ip"), JsonPropertyName("obj_ip")]
-        public string IP { get; set; } = "";
+        public string? IP { get; set; } = "";
 
         [JsonProperty("obj_ip_end"), JsonPropertyName("obj_ip_end")]
-        public string IpEnd { get; set; } = "";
+        public string? IpEnd { get; set; } = "";
 
         [JsonProperty("obj_uid"), JsonPropertyName("obj_uid")]
         public string Uid { get; set; } = "";
@@ -104,8 +104,8 @@ namespace FWO.Data
 
         public bool IsAnyObject()
         {
-            return IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32" ||
-                IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128";
+            return (IP == "0.0.0.0/32" && IpEnd == "255.255.255.255/32") ||
+                (IP == "::/128" && IpEnd == "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128");
         }
 
         /// <summary>

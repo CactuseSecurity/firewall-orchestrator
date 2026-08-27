@@ -855,7 +855,7 @@ namespace FWO.Services
         /// </summary>
         private static string NormalizeNwObjectIpEnd(NetworkObject obj)
         {
-            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP : obj.IpEnd;
+            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP ?? "" : obj.IpEnd;
         }
 
         /// <summary>
@@ -870,6 +870,13 @@ namespace FWO.Services
                 return false;
             }
             var portEnd = NormalizeSvcObjectPortEnd(svc);
+            if (svc.ProtoId.Value == GlobalConst.kAnyIpProtocolId
+                && !svc.DestinationPort.HasValue
+                && !portEnd.HasValue)
+            {
+                hash = FlowHashGenerator.GenerateSvcObjectHash(svc.ProtoId.Value, null, null);
+                return true;
+            }
             if (!svc.DestinationPort.HasValue || !portEnd.HasValue)
             {
                 if (flowData.SvcObjectHashes.TryGetValue(svc.Id, out var storedHash) && !string.IsNullOrWhiteSpace(storedHash))

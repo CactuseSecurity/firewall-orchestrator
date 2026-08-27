@@ -114,7 +114,7 @@ namespace FWO.Compliance
 
         private static ServiceWrapper? BuildService(NwServiceElement element)
         {
-            if (element.Port == 0 && element.ProtoId == 0)
+            if (element.Port is null or 0 && element.ProtoId == 0)
             {
                 return null;
             }

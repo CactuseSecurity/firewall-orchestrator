@@ -7222,6 +7222,8 @@ INSERT INTO txt VALUES ('H5690', 'German',  'Bei Auswahl von "Internal workflow 
 INSERT INTO txt VALUES ('H5690', 'English', 'If "Internal workflow only" is selected, the affected tasks are not handed over to an external ticket system but continue in the internal workflow.');
 INSERT INTO txt VALUES ('H5691', 'German',  'Aktuell wird diese Option nur f&uuml;r Rule Changes unterst&uuml;tzt.');
 INSERT INTO txt VALUES ('H5691', 'English', 'Currently this option is only supported for rule changes.');
+INSERT INTO txt VALUES ('H5693', 'German',  'Suche: Filtert die Eigent&uuml;merliste nach sichtbaren Spalteninhalten wie Id, Name, Lifecycle-Status, Verantwortlichen, Tenant, Rezertifizierungsintervall, externer App-Id und Importquelle.');
+INSERT INTO txt VALUES ('H5693', 'English', 'Search: Filters the owner list by visible column content such as id, name, lifecycle state, responsibles, tenant, recertification interval, external app id, and import source.');
 
 INSERT INTO txt VALUES ('H5701', 'German',  'Die in der Datenbank hinterlegten sprachabh&auml;ngigen Texte k&ouml;nnen individuell &uuml;berschrieben werden.
     Dabei werden die vom System vorgegebenen Texte nicht ge&auml;ndert, sondern nur durch die hier definierten Texte - falls vorhanden - &uuml;berblendet.

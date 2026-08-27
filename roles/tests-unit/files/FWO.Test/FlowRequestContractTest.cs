@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using NUnit.Framework;
@@ -11,9 +12,13 @@ internal class FlowRequestContractTest
     private static readonly string[] kMissingProtocolError = new string[] { "Required field 'protocol' is missing." };
 
     [Test]
-    public void GetRequestStatusRequest_RequiresTicketId()
+    public void GetRequestStatusRequest_ReportsMissingTicketIdThroughTheRequestValidator()
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetRequestStatusRequest>("{}"));
+        GetRequestStatusRequest request = JsonSerializer.Deserialize<GetRequestStatusRequest>("{}")!;
+
+        RequestValidationErrors errors = RequestValidator.Validate(request, FlowRequestController.RequestStatusSchema);
+
+        Assert.That(errors.ToDictionary().Keys, Does.Contain("ticketId"));
     }
 
     [Test]
@@ -24,6 +29,72 @@ internal class FlowRequestContractTest
         GetRequestStatusRequest? request = JsonSerializer.Deserialize<GetRequestStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
 
         Assert.That(request?.TicketId, Is.EqualTo(ticketId));
+    }
+
+    [Test]
+    public void GetRequestStatusRequest_DefaultsOmittedOptionsToAnEmptyObject()
+    {
+        GetRequestStatusRequest omittedOptions = JsonSerializer.Deserialize<GetRequestStatusRequest>("""{"ticketId":12345}""")!;
+        GetRequestStatusRequest emptyOptions = JsonSerializer.Deserialize<GetRequestStatusRequest>("""{"ticketId":12345,"options":{}}""")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(omittedOptions.Options, Is.Not.Null);
+            Assert.That(RequestValidator.Validate(omittedOptions, FlowRequestController.RequestStatusSchema).HasErrors, Is.False);
+            Assert.That(RequestValidator.Validate(emptyOptions, FlowRequestController.RequestStatusSchema).HasErrors, Is.False);
+        });
+    }
+
+    [Test]
+    public void GetRequestStatusRequest_RejectsUnknownOptionsFields()
+    {
+        GetRequestStatusRequest request = JsonSerializer.Deserialize<GetRequestStatusRequest>("""
+        { "ticketId": 12345, "options": { "unsupportedOption": true } }
+        """)!;
+
+        RequestValidationErrors errors = RequestValidator.Validate(request, FlowRequestController.RequestStatusSchema);
+
+        Assert.That(errors.ToDictionary().Keys, Does.Contain("options.unsupportedOption"));
+    }
+
+    [Test]
+    public void CreateRequestRequest_RejectsUnknownRootAndNestedFieldsTogether()
+    {
+        CreateRequestRequest request = JsonSerializer.Deserialize<CreateRequestRequest>("""
+        {
+          "requestorName": "Alice",
+          "requestorId": "alice",
+          "ruleContactName": "Bob",
+          "ruleContactId": "bob",
+          "title": "Allow HTTPS",
+          "rules": [{ "action": "accept", "unsupportedRuleField": true }],
+          "unsupportedRootField": true
+        }
+        """)!;
+
+        RequestValidationErrors errors = RequestValidator.Validate(request, FlowRequestController.CreateRequestSchema);
+
+        Assert.That(errors.ToDictionary().Keys, Is.EquivalentTo(new List<string>
+        {
+            "unsupportedRootField",
+            "rules[0].unsupportedRuleField"
+        }));
+    }
+
+    [Test]
+    [TestCase("""{"title":"Change address object","addressObjects":[{"id":"-1"}]}""")]
+    [TestCase("""{"title":"Change service object","serviceObjects":[{"id":"-2"}]}""")]
+    public void CreateRequestRequest_AcceptsObjectOnlyChanges(string json)
+    {
+        CreateRequestRequest request = JsonSerializer.Deserialize<CreateRequestRequest>(json)!;
+
+        RequestValidationErrors errors = RequestValidator.Validate(request, FlowRequestController.CreateRequestSchema);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.Options, Is.Not.Null);
+            Assert.That(errors.HasErrors, Is.False);
+        });
     }
 
     [Test]

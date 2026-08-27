@@ -44,6 +44,7 @@ public class ApiExampleCatalogTest
 
         Assert.That(json, Does.Contain("\"requestorName\""));
         Assert.That(json, Does.Contain("\"timeObjectId\""));
+        Assert.That(json, Does.Contain("\"options\":{}"));
         Assert.That(json, Does.Not.Contain("\"RequestorName\""));
         Assert.That(json, Does.Not.Contain("\"TimeObjectId\""));
 

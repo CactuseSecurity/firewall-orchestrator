@@ -171,6 +171,30 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     }
 
     /// <summary>
+    /// Verifies migrated flow-request endpoints document their validation contract.
+    /// </summary>
+    [Test]
+    public async Task TransformAsync_WithFlowRequestEndpoint_AddsValidationDocumentation()
+    {
+        OpenApiOperation operation = CreateOperation();
+        OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
+        OpenApiOperationTransformerContext context = CreateContext(new ControllerActionDescriptor
+        {
+            ControllerTypeInfo = typeof(FlowRequestController).GetTypeInfo(),
+            ActionName = nameof(FlowRequestController.GetRequestStatus)
+        });
+
+        await transformer.TransformAsync(operation, context, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(operation.Description, Does.Contain("ValidationProblemDetails"));
+            Assert.That(operation.RequestBody!.Description, Does.Contain("optional options object"));
+            Assert.That(operation.Responses!["400"].Description, Does.Contain("ValidationProblemDetails"));
+        });
+    }
+
+    /// <summary>
     /// Verifies migrated compliance zone endpoint documentation is discovered by controller action.
     /// </summary>
     [Test]

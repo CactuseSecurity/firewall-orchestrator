@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -149,7 +149,23 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("ticketId"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("positive"));
+            Assert.That(apiConnection.SentQueries, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_ReturnsValidationProblemWhenNoChangeIsRequested()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest { Title = "No changes" });
+
+        ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(problemDetails.Errors["$"], Does.Contain("At least one change"));
             Assert.That(apiConnection.SentQueries, Is.Empty);
         });
     }
@@ -1089,7 +1105,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("protocol"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("protocol"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -1162,7 +1178,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("owner"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("owner"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -1234,7 +1250,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -1306,7 +1322,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -1377,7 +1393,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("source"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("source"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -1448,9 +1464,15 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("service"));
+            Assert.That(GetValidationErrorText(result), Does.Contain("service"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
+    }
+
+    private static string GetValidationErrorText<TResponse>(ActionResult<TResponse> result)
+    {
+        ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
+        return string.Join(Environment.NewLine, problemDetails.Errors.Values.SelectMany(messages => messages));
     }
 
     private static WfCommentDataHelper NewComment(string text, DateTime creationDate)

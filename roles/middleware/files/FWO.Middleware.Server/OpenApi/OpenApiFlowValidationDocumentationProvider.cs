@@ -67,6 +67,12 @@ public sealed class OpenApiFlowValidationDocumentationProvider : IOpenApiEndpoin
                 || actionName == nameof(FlowCatalogController.GetTimeObjectId);
         }
 
+        if (controllerType == typeof(FlowRequestController))
+        {
+            return actionName == nameof(FlowRequestController.CreateRequest)
+                || actionName == nameof(FlowRequestController.GetRequestStatus);
+        }
+
         return controllerType == typeof(ComplianceZoneController)
             && actionName == nameof(ComplianceZoneController.ResolveZonesForObjects);
     }

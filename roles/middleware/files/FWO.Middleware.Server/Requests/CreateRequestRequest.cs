@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
@@ -5,7 +6,7 @@ namespace FWO.Middleware.Server.Requests;
 /// <summary>
 /// Represents the CreateRequestRequest type.
 /// </summary>
-public sealed class CreateRequestRequest
+public sealed class CreateRequestRequest : RequestDto<RequestOptionsDto>
 {
     /// <summary>
     /// Gets the RequestorName value.
@@ -35,7 +36,7 @@ public sealed class CreateRequestRequest
     /// Gets the Title value.
     /// </summary>
     [JsonPropertyName("title")]
-    public string Title { get; set; } = string.Empty;
+    public string Title { get; set; } = null!;
 
     /// <summary>
     /// Gets the Rules value.
@@ -76,7 +77,7 @@ public sealed class CreateRequestRequest
     /// <summary>
     /// Represents the CreateRequestRuleRequest type.
     /// </summary>
-    public sealed class CreateRequestRuleRequest
+    public sealed class CreateRequestRuleRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Action value.
@@ -125,12 +126,16 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("violationJustification")]
         public string ViolationJustification { get; set; } = string.Empty;
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     /// <summary>
     /// Represents the CreateAddressObjectRequest type.
     /// </summary>
-    public sealed class CreateAddressObjectRequest
+    public sealed class CreateAddressObjectRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Id value.
@@ -155,12 +160,16 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("ipEnd")]
         public string IpEnd { get; set; } = string.Empty;
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     /// <summary>
     /// Represents the CreateAddressGroupRequest type.
     /// </summary>
-    public sealed class CreateAddressGroupRequest
+    public sealed class CreateAddressGroupRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Id value.
@@ -179,12 +188,16 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("memberIds")]
         public List<int> MemberIds { get; set; } = [];
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     /// <summary>
     /// Represents the CreateServiceObjectRequest type.
     /// </summary>
-    public sealed class CreateServiceObjectRequest
+    public sealed class CreateServiceObjectRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Id value.
@@ -215,12 +228,16 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("portEnd")]
         public int PortEnd { get; set; }
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     /// <summary>
     /// Represents the CreateServiceGroupRequest type.
     /// </summary>
-    public sealed class CreateServiceGroupRequest
+    public sealed class CreateServiceGroupRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Id value.
@@ -239,12 +256,16 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("memberIds")]
         public List<int> MemberIds { get; set; } = [];
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     /// <summary>
     /// Represents the CreateTimeObjectRequest type.
     /// </summary>
-    public sealed class CreateTimeObjectRequest
+    public sealed class CreateTimeObjectRequest : IRequestWithAdditionalData
     {
         /// <summary>
         /// Gets the Id value.
@@ -269,5 +290,9 @@ public sealed class CreateRequestRequest
         /// </summary>
         [JsonPropertyName("endTime")]
         public string EndTime { get; set; } = string.Empty;
+
+        /// <inheritdoc />
+        [JsonExtensionData]
+        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 }

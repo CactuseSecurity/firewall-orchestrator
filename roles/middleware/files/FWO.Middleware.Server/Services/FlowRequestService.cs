@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -80,30 +80,24 @@ public sealed class FlowRequestService
     /// </summary>
     private static void ValidateCreateRequest(CreateRequestRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.RequestorName))
-        {
-            throw new ArgumentException("'requestorName' must not be empty.");
-        }
-        if (string.IsNullOrWhiteSpace(request.RequestorId))
-        {
-            throw new ArgumentException("'requestorId' must not be empty.");
-        }
-        if (string.IsNullOrWhiteSpace(request.RuleContactName))
-        {
-            throw new ArgumentException("'ruleContactName' must not be empty.");
-        }
-        if (string.IsNullOrWhiteSpace(request.RuleContactId))
-        {
-            throw new ArgumentException("'ruleContactId' must not be empty.");
-        }
         if (string.IsNullOrWhiteSpace(request.Title))
         {
             throw new ArgumentException("'title' must not be empty.");
         }
-        if (request.Rules.Count == 0)
+        if (!HasRequestedChanges(request))
         {
-            throw new ArgumentException("At least one rule is required.");
+            throw new ArgumentException("At least one change is required.");
         }
+    }
+
+    private static bool HasRequestedChanges(CreateRequestRequest request)
+    {
+        return request.Rules.Count > 0
+            || request.AddressObjects.Count > 0
+            || request.AddressGroups.Count > 0
+            || request.ServiceObjects.Count > 0
+            || request.ServiceGroups.Count > 0
+            || request.TimeObjects.Count > 0;
     }
 
     /// <summary>

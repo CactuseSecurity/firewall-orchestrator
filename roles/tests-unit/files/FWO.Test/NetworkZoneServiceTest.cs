@@ -1,3 +1,4 @@
+using System.Collections;
 using NUnit.Framework;
 using FWO.Services;
 using FWO.Data;
@@ -17,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     public class NetworkZoneServiceTest
     {
+        private static readonly IPAddressRange[] kDummyInternetZoneRanges = [IpOperations.GetIPAdressRange("8.8.8.0/24")];
+
         [Test]
         public void CalculateInternetZone_BasicZonesWithoutOverlaps_InternetZoneCalculatedCorrectly()
         {
@@ -298,6 +301,123 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddAutoCalculatedInternetZone_UndefinedInternalZoneNotPersisted_ExcludesInternalRanges()
+        {
+            // Arrange
+
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = false
+            };
+
+            mock.Sub
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
+
+            // Act
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            // Assert
+
+            (string, object) addedInternetZone = mock.SentQueries.Single(query => query.Item1 == ComplianceQueries.addNetworkZone);
+            IEnumerable addedRanges = (IEnumerable)GetFromGeneric(addedInternetZone.Item2, "ipRanges")!;
+            List<IPAddressRange> internetRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_end")!.ToString()!))).ToList();
+
+            Assert.That(internetRanges.Any(range => range.Contains(IPAddress.Parse("10.0.0.1"))), Is.False);
+        }
+
+        [Test]
+        public async Task AddAutoCalculatedInternetZone_UndefinedInternalZonePersisted_WhenConfigured()
+        {
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = true
+            };
+            mock.Sub
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            List<(string Query, object Variables)> addedZones = mock.SentQueries
+                .Where(query => query.Query == ComplianceQueries.addNetworkZone)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(addedZones, Has.Count.EqualTo(2));
+                Assert.That(GetFromGeneric(addedZones[0].Variables, "isAutoCalculatedUndefinedInternalZone"), Is.EqualTo(true));
+                Assert.That(GetFromGeneric(addedZones[0].Variables, "name"), Is.EqualTo("Auto-calculated Undefined-internal Zone"));
+                Assert.That(GetFromGeneric(addedZones[1].Variables, "isAutoCalculatedInternetZone"), Is.EqualTo(true));
+            });
+        }
+
+        [Test]
+        public async Task AddAutoCalculatedInternetZone_ExistingDummy_ReplacesDummyRanges()
+        {
+            MockApiConnection mock = new();
+            ApiConnection apiConnection = mock;
+            GlobalConfig globalConfig = new()
+            {
+                AutoCalculateInternetZone = true,
+                AutoCalculateUndefinedInternalZone = false
+            };
+            List<IPAddressRange> dummyRanges = new()
+            {
+                IpOperations.GetIPAdressRange("8.8.8.0/24"),
+                IpOperations.GetIPAdressRange("10.0.0.0/8")
+            };
+            ComplianceNetworkZone dummyInternetZone = new()
+            {
+                Id = 1,
+                CriterionId = 1,
+                IdString = "AUTO_CALCULATED_ZONE_INTERNET",
+                Name = "Internet placeholder",
+                IPRanges = dummyRanges.ToArray()
+            };
+            List<ComplianceNetworkZone> existingZones = new()
+            {
+                dummyInternetZone
+            };
+            mock.Sub
+                .SendQueryAsync<List<ComplianceNetworkZone>>(
+                    ComplianceQueries.getNetworkZonesForMatrix,
+                    Arg.Any<object>())
+                .Returns(Task.FromResult(existingZones));
+
+            await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
+
+            (string, object) updatedInternetZone = mock.SentQueries.Single(query => query.Item1 == ComplianceQueries.updateNetworkZone);
+            IEnumerable addedRanges = (IEnumerable)GetFromGeneric(updatedInternetZone.Item2, "addIpRanges")!;
+            IEnumerable deletedRanges = (IEnumerable)GetFromGeneric(updatedInternetZone.Item2, "deleteIpRangesExp")!;
+            List<IPAddressRange> calculatedRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_end")!.ToString()!))).ToList();
+            IEnumerable<string> deletedRangeStarts = deletedRanges.Cast<object>().Select(range =>
+                GetFromGeneric(GetFromGeneric(range, "ip_range_start")!, "_eq")!.ToString()!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("8.8.8.8"))), Is.True);
+                Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("10.0.0.1"))), Is.False);
+                Assert.That(deletedRangeStarts, Does.Contain("8.8.8.0"));
+            });
+        }
+
+        [Test]
         public async Task UpdateSpecialZones_InternetZoneDummyExists_UpdateDummyToInternetZone()
         {
             // Arrange
@@ -311,6 +431,7 @@ namespace FWO.Test
             ComplianceNetworkZone internetZoneDummy = predefinedZones.Last();
             internetZoneDummy.IdString = "AUTO_CALCULATED_ZONE_INTERNET";
             internetZoneDummy.AllowedCommunicationDestinations = [zoneOne];
+            internetZoneDummy.IPRanges = kDummyInternetZoneRanges;
 
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
@@ -350,6 +471,19 @@ namespace FWO.Test
             Assert.That(secondSentQuery.Item1 == ComplianceQueries.updateNetworkZone);
             AssertThatGeneric.PropertyIsTrue(secondSentQuery.Item2, "isAutoCalculatedInternetZone");
             AssertThatGeneric.PropertyIsEqual(secondSentQuery.Item2, "networkZoneId", 4);
+            IEnumerable addedRanges = (IEnumerable)GetFromGeneric(secondSentQuery.Item2, "addIpRanges")!;
+            IEnumerable deletedRanges = (IEnumerable)GetFromGeneric(secondSentQuery.Item2, "deleteIpRangesExp")!;
+            List<IPAddressRange> calculatedRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
+                IPAddress.Parse(GetFromGeneric(range, "ip_range_end")!.ToString()!))).ToList();
+            IEnumerable<string> deletedRangeStarts = deletedRanges.Cast<object>().Select(range =>
+                GetFromGeneric(GetFromGeneric(range, "ip_range_start")!, "_eq")!.ToString()!);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(calculatedRanges.Any(range => range.Contains(IPAddress.Parse("8.8.8.8"))), Is.True);
+                Assert.That(deletedRangeStarts, Does.Contain("8.8.8.0"));
+            });
         }
 
         private static object? GetFromGeneric(object o, string name) => o.GetType().GetProperty(name)?.GetValue(o);

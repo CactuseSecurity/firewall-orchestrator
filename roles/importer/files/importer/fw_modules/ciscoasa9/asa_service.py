@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 
 ASA_ANY_PROTOCOL_SERVICE_UID = "ANY"
+ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID = "_FWO_ANY_IP_PROTOCOL_"
 
 
 def _get_ip_protocol_id(protocol: str) -> int:
@@ -144,20 +145,75 @@ def normalize_service_objects(service_objects: list[AsaServiceObject]) -> dict[s
     return normalized
 
 
-def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
+def _is_canonical_any_ip_service(obj: ServiceObject) -> bool:
+    """
+    Identify the synthetic protocol-agnostic 'any ip' service object, as opposed to a
+    same-named object/group taken from the actual ASA configuration.
+    """
+    return obj.svc_name == "any-ip" and obj.svc_typ == "simple" and obj.ip_proto == fwo_const.ANY_IP_PROTOCOL_ID
+
+
+def _unused_any_ip_protocol_uid(service_objects: dict[str, ServiceObject]) -> str:
+    """
+    Resolve a UID for the synthetic 'any ip protocol' service object.
+
+    Prefers the legacy UID for backward compatibility with existing imports, but falls back
+    to a conflict-safe UID if an ASA-configured object/group already uses that exact name.
+
+    Args:
+        service_objects: Existing service objects dictionary
+
+    Returns:
+        A UID that either already holds the canonical object or is free to use
+
+    """
+    existing = service_objects.get(ASA_ANY_PROTOCOL_SERVICE_UID)
+    if existing is None or _is_canonical_any_ip_service(existing):
+        return ASA_ANY_PROTOCOL_SERVICE_UID
+
+    uid = ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID
+    suffix = 1
+    while uid in service_objects and not _is_canonical_any_ip_service(service_objects[uid]):
+        suffix += 1
+        uid = f"{ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID}{suffix}"
+    return uid
+
+
+def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObject]) -> None:
+    """
+    Relocate the synthetic 'any ip protocol' service object out of the way before an
+    ASA-configured object/group claims its name, so neither one silently overwrites the other.
+
+    Args:
+        name: The name an ASA-configured object/group is about to be stored under
+        service_objects: Service objects dictionary to update in place
+
+    """
+    existing = service_objects.get(name)
+    if existing is not None and _is_canonical_any_ip_service(existing):
+        del service_objects[name]
+        relocated_uid = _unused_any_ip_protocol_uid(service_objects)
+        existing.svc_uid = relocated_uid
+        service_objects[relocated_uid] = existing
+
+
+def create_protocol_any_service_objects(service_objects: dict[str, ServiceObject]) -> dict[str, ServiceObject]:
     """
     Create default 'any' service objects for common protocols.
 
+    Args:
+        service_objects: Existing service objects dictionary to update
+
     Returns:
-        Dictionary of protocol-any service objects
+        Updated service objects dictionary including the protocol-any service objects
 
     """
-    service_objects: dict[str, ServiceObject] = {}
-
     for proto in ("tcp", "udp", "icmp", "ip"):
         obj_name = f"any-{proto}"
         is_any_ip_protocol = proto == "ip"
-        obj_uid = ASA_ANY_PROTOCOL_SERVICE_UID if is_any_ip_protocol else obj_name
+        obj_uid = _unused_any_ip_protocol_uid(service_objects) if is_any_ip_protocol else obj_name
+        if obj_uid in service_objects:
+            continue
         obj = ServiceObject(
             svc_uid=obj_uid,
             svc_name=obj_name,
@@ -249,7 +305,7 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
 
     """
     obj_name = f"any-{proto}"
-    obj_uid = ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else obj_name
+    obj_uid = _unused_any_ip_protocol_uid(service_objects) if proto == "ip" else obj_name
     if obj_uid not in service_objects:
         port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
@@ -479,6 +535,7 @@ def normalize_service_object_groups(
             FWOLogger.debug(f"Removed duplicate service object references found in group {group.name}: {duplicates}")
 
         # Create the group object
+        _make_room_for_named_object(group.name, service_objects)
         group_obj = create_service_group_object(group.name, unique_obj_names, group.description)
         service_objects[group.name] = group_obj
 

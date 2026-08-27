@@ -41,7 +41,7 @@ public sealed class OpenApiOwnerDocumentationProvider : IOpenApiEndpointDocument
         }
 
         ApplyResponseDescription(operation, "200", "Returns a JSON array of owners visible to the caller.");
-        ApplyResponseDescription(operation, "400", "The request body contains an unsupported property, an invalid id, or an invalid text filter.");
+        ApplyResponseDescription(operation, "400", "The request body has an invalid shape or contains an invalid owner filter.");
         ApplyResponseDescription(operation, "401", "The caller did not provide a valid JWT access token.");
         ApplyResponseDescription(operation, "403", "The caller is authenticated but does not have the required role.");
         ApplyResponseDescription(operation, "500", "The middleware server could not fetch owner data.");
@@ -60,7 +60,7 @@ Returns owners visible to the authenticated caller. Use this endpoint when exter
 
 Requires one of the roles `admin`, `auditor`, or `modeller`. `modeller` callers only receive owners listed in their `x-hasura-editable-owners` JWT claim. `admin` and `auditor` callers are not restricted by that claim.
 
-All request fields are optional and filters are combined with logical AND. Unknown JSON properties are rejected with `400 Bad Request`.
+The optional root-level `options` object defaults to `{}` when omitted. Filters belong in `options.filter`, are combined with logical AND, and each nullable filter field is ignored when omitted or `null`. Unknown JSON properties and endpoint-local semantic validation failures are returned as `ValidationProblemDetails` with `400 Bad Request`.
 
 Request body examples:
 
@@ -72,25 +72,26 @@ Response example:
 
 Field behavior:
 
-- `ownerId` and `ownerLifecycleStateId` must be greater than `0` when supplied.
-- `name` and `appIdExternal` are case-insensitive text filters.
+- `options.filter.ownerId` and `options.filter.ownerLifecycleStateId` must be greater than `0` when supplied.
+- `options.filter.name` and `options.filter.appIdExternal` are case-insensitive text filters.
 - Plain text filters are matched as contains.
 - `*` matches any character sequence and `?` matches one character.
 - Literal `%`, `_`, and `\` characters are matched verbatim.
 - Text filters must not exceed {{OwnersController.kMaxFilterTextLength}} characters and must not contain control characters.
-- `showDetails` defaults to `false`. Set it to `true` to include responsibles, tenant id, recertification fields, criticality, lifecycle state id, import source, decommission date, and additional info.
-- `showOnlyActiveState` defaults to `true`. Owners whose lifecycle state is inactive are excluded; owners without any lifecycle state are still returned. Set it to `false` to include inactive lifecycle states.
+- `options.showDetails` defaults to `false`. Set it to `true` to include responsibles, tenant id, recertification fields, criticality, lifecycle state id, import source, decommission date, and additional info.
+- `options.showOnlyActiveState` defaults to `true`. Owners whose lifecycle state is inactive are excluded; owners without any lifecycle state are still returned. Set it to `false` to include inactive lifecycle states.
+- Malformed JSON and incorrect JSON value types are handled by ASP.NET model binding.
 
 Response behavior:
 
 - The response body is always a JSON array.
 - The `type` field is derived from `appIdExternal`: `standard` when the external app id contains `app` case-insensitively, otherwise `infrastructure`.
-- Detail fields are omitted unless `showDetails` is `true`.
+- Detail fields are omitted unless `options.showDetails` is `true`.
 - Nullable detail fields are omitted when their value is empty.
 """;
 
     private const string OwnerRequestDescription = """
-Optional owner lookup filters. Submit `{}` or an empty body to use the default filter behavior. Set `showDetails` to `true` to return the complete owner response shape.
+Optional owner lookup controls. Submit `{}` to use the default behavior. Use `options.filter` for nullable owner filters, and set `options.showDetails` to `true` to return the complete owner response shape.
 """;
 
     private static JsonSerializerOptions CreateDocumentationJsonSerializerOptions()
@@ -105,24 +106,39 @@ Optional owner lookup filters. Submit `{}` or an empty body to use the default f
     {
         return
         [
-            new(),
+            new() { Options = null },
             new()
             {
-                Active = true,
-                OwnerLifeCycleStateId = 1
+                Options = new GetOwnersOptions
+                {
+                    Filter = new GetOwnersFilter
+                    {
+                        Active = true,
+                        OwnerLifeCycleStateId = 1
+                    }
+                }
             },
             new()
             {
-                OwnerId = 42
+                Options = new GetOwnersOptions
+                {
+                    Filter = new GetOwnersFilter { OwnerId = 42 }
+                }
             },
             new()
             {
-                Name = "Finance*",
-                AppIdExternal = "APP-?"
+                Options = new GetOwnersOptions
+                {
+                    Filter = new GetOwnersFilter
+                    {
+                        Name = "Finance*",
+                        AppIdExternal = "APP-?"
+                    }
+                }
             },
             new()
             {
-                ShowDetails = true
+                Options = new GetOwnersOptions { ShowDetails = true }
             }
         ];
     }

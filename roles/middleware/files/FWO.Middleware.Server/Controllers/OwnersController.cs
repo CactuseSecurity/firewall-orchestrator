@@ -24,6 +24,16 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     private const string StandardOwnerType = "standard";
     private const string InfrastructureOwnerType = "infrastructure";
     internal const int kMaxFilterTextLength = 256;
+    private static readonly RequestValidationSchema OwnersSchema = RequestValidationSchema
+        .EndpointWithOptions(nameof(Get), options => options
+            .OptionalObject("filter", filter => filter
+                .OptionalInt("ownerId")
+                .OptionalInt("ownerLifecycleStateId")
+                .OptionalBool("active")
+                .OptionalString("name")
+                .OptionalString("appIdExternal"))
+            .OptionalBool("showDetails")
+            .OptionalBool("showOnlyActiveState"));
 
     /// <summary>
     /// Returns all owners visible to the caller with optional AND-combined filters.
@@ -37,16 +47,16 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// {}
     /// </code>
     /// <code>
-    /// {"active":true,"ownerLifecycleStateId":1}
+    /// {"options":{"filter":{"active":true,"ownerLifecycleStateId":1}}}
     /// </code>
     /// <code>
-    /// {"ownerId":42}
+    /// {"options":{"filter":{"ownerId":42}}}
     /// </code>
     /// <code>
-    /// {"name":"Finance*","appIdExternal":"APP-?"}
+    /// {"options":{"filter":{"name":"Finance*","appIdExternal":"APP-?"}}}
     /// </code>
     /// <code>
-    /// {"showDetails":true}
+    /// {"options":{"showDetails":true}}
     /// </code>
     /// Example response:
     /// <code>
@@ -58,20 +68,23 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// The <c>type</c> field is derived from the owner's <c>appIdExternal</c>: it is <c>standard</c> when the
     /// external app id contains <c>app</c> (case-insensitive), and <c>infrastructure</c> otherwise (including
     /// owners without an external app id).
-    /// Set <c>showDetails</c> to <c>true</c> to additionally return all owner fields (responsibles, tenant id,
+    /// The <c>options</c> root key defaults to <c>{}</c> when omitted. Every field in <c>options.filter</c> is
+    /// nullable; omitted or null filter fields do not restrict the result. Set <c>options.showDetails</c> to
+    /// <c>true</c> to additionally return all owner fields (responsibles, tenant id,
     /// recertification data, criticality, lifecycle state id, additional info, etc.). By default only the core fields are returned.
-    /// By default owners with an inactive lifecycle state are excluded; set <c>showOnlyActiveState</c> to
+    /// By default owners with an inactive lifecycle state are excluded; set <c>options.showOnlyActiveState</c> to
     /// <c>false</c> to also include them. Owners without any lifecycle state are always returned.
-    /// The <c>name</c> and <c>appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
+    /// The <c>options.filter.name</c> and <c>options.filter.appIdExternal</c> filters are case-insensitive and accept <c>*</c> for any
     /// character sequence and <c>?</c> for a single character. Plain text without wildcards is matched as a contains
     /// search, and literal <c>%</c>, <c>_</c>, and <c>\</c> characters are matched verbatim.
-    /// Unknown request properties are rejected with <c>400 Bad Request</c>, as are non-positive ids and text
-    /// filters that exceed 256 characters or contain control characters.
+    /// Unknown request properties and semantic validation failures return <see cref="ValidationProblemDetails"/>
+    /// with <c>400 Bad Request</c>. Semantic validation rejects non-positive ids and text filters that exceed 256
+    /// characters or contain control characters. Malformed JSON and incorrect JSON value types are handled by ASP.NET model binding.
     /// </remarks>
     [HttpPost("get")]
     [Consumes("application/json")]
     [ProducesResponseType(typeof(List<GetOwnerResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
@@ -80,17 +93,20 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     {
         try
         {
-            GetOwnersRequest effectiveRequest = request ?? new GetOwnersRequest();
-            if (ValidateRequest(effectiveRequest) is string validationError)
+            if (!RequestValidator.TryValidate(request, OwnersSchema, out ActionResult? errorResult))
             {
-                return BadRequest(validationError);
+                return errorResult!;
+            }
+            if (TryValidateSemantics(request!, out errorResult))
+            {
+                return errorResult!;
             }
 
             List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(
                 OwnerQueries.getOwnersFiltered,
-                BuildQueryVariables(effectiveRequest, User)) ?? [];
+                BuildQueryVariables(request!, User)) ?? [];
 
-            return Ok(owners.Select(owner => ToResponse(owner, effectiveRequest.ShowDetails == true)).ToList());
+            return Ok(owners.Select(owner => ToResponse(owner, request!.Options?.ShowDetails == true)).ToList());
         }
         catch (Exception exception)
         {
@@ -100,41 +116,53 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     }
 
     /// <summary>
-    /// Validates and sanitizes the supplied filter values before they are used to build the query.
+    /// Validates supplied filter values after request shape validation and before they are used to build the query.
     /// </summary>
     /// <param name="request">The request to validate.</param>
-    /// <returns>An error message describing the first invalid value, or <c>null</c> when the request is valid.</returns>
-    internal static string? ValidateRequest(GetOwnersRequest request)
+    /// <param name="errorResult">The aggregated validation error result when validation fails.</param>
+    /// <returns><c>true</c> when validation failed; otherwise <c>false</c>.</returns>
+    internal static bool TryValidateSemantics(GetOwnersRequest request, out ActionResult? errorResult)
     {
-        if (request.OwnerId is <= 0)
+        RequestValidationErrors errors = new();
+        GetOwnersFilter? filter = request.Options?.Filter;
+        if (filter?.OwnerId is <= 0)
         {
-            return "ownerId must be a positive integer.";
+            errors.Add("options.filter.ownerId", "The owner database id must be a positive integer.");
         }
-        if (request.OwnerLifeCycleStateId is <= 0)
+        if (filter?.OwnerLifeCycleStateId is <= 0)
         {
-            return "ownerLifecycleStateId must be a positive integer.";
+            errors.Add("options.filter.ownerLifecycleStateId", "The owner lifecycle-state database id must be a positive integer.");
         }
-        return ValidateFilterText(request.Name, "name") ?? ValidateFilterText(request.AppIdExternal, "appIdExternal");
+        AddFilterTextError(errors, filter?.Name, "options.filter.name", "owner name");
+        AddFilterTextError(errors, filter?.AppIdExternal, "options.filter.appIdExternal", "external application id");
+
+        if (!errors.HasErrors)
+        {
+            errorResult = null;
+            return false;
+        }
+
+        errorResult = RequestValidationProblemDetailsFactory.BadRequest(errors);
+        return true;
     }
 
     /// <summary>
     /// Ensures a text filter stays within the allowed length and contains no control characters.
     /// </summary>
-    private static string? ValidateFilterText(string? value, string fieldName)
+    private static void AddFilterTextError(RequestValidationErrors errors, string? value, string fieldPath, string description)
     {
         if (value is null)
         {
-            return null;
+            return;
         }
         if (value.Length > kMaxFilterTextLength)
         {
-            return $"{fieldName} must not exceed {kMaxFilterTextLength} characters.";
+            errors.Add(fieldPath, $"The {description} must not exceed {kMaxFilterTextLength} characters.");
         }
         if (value.Any(char.IsControl))
         {
-            return $"{fieldName} must not contain control characters.";
+            errors.Add(fieldPath, $"The {description} must not contain control characters.");
         }
-        return null;
     }
 
     /// <summary>
@@ -142,7 +170,7 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
     /// </summary>
     internal static Dictionary<string, object> BuildQueryVariables(GetOwnersRequest request, ClaimsPrincipal user)
     {
-        List<Dictionary<string, object>> predicates = BuildFilterPredicates(request);
+        List<Dictionary<string, object>> predicates = BuildFilterPredicates(request.Options?.Filter, request.Options?.ShowOnlyActiveState);
         if (ShouldRestrictToEditableOwners(user))
         {
             predicates.Add(GraphQlFilterBuilder.BuildInExpression("id", JwtClaimParser.ExtractIntClaimValues(user.Claims, "x-hasura-editable-owners")));
@@ -212,15 +240,15 @@ public class OwnersController(ApiConnection apiConnection) : ControllerBase
         response.AdditionalInfo = owner.AdditionalInfo;
     }
 
-    private static List<Dictionary<string, object>> BuildFilterPredicates(GetOwnersRequest request)
+    private static List<Dictionary<string, object>> BuildFilterPredicates(GetOwnersFilter? filter, bool? showOnlyActiveState)
     {
         List<Dictionary<string, object>> predicates = [];
-        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", request.OwnerId);
-        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "owner_lifecycle_state_id", request.OwnerLifeCycleStateId);
-        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "active", request.Active);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", request.Name);
-        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", request.AppIdExternal);
-        GraphQlFilterBuilder.AddOwnerActiveStatePredicate(predicates, request.ShowOnlyActiveState);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "id", filter?.OwnerId);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "owner_lifecycle_state_id", filter?.OwnerLifeCycleStateId);
+        GraphQlFilterBuilder.AddEqualsPredicate(predicates, "active", filter?.Active);
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "name", filter?.Name);
+        GraphQlFilterBuilder.AddWildcardPredicate(predicates, "app_id_external", filter?.AppIdExternal);
+        GraphQlFilterBuilder.AddOwnerActiveStatePredicate(predicates, showOnlyActiveState);
         return predicates;
     }
 

@@ -264,13 +264,19 @@ public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersReques
     /// <inheritdoc />
     public override GetOwnersRequest GetExample() => new()
     {
-        OwnerId = 42,
-        OwnerLifeCycleStateId = 1,
-        Active = true,
-        Name = "Payments",
-        AppIdExternal = "APP-42",
-        ShowDetails = true,
-        ShowOnlyActiveState = true
+        Options = new GetOwnersOptions
+        {
+            Filter = new GetOwnersFilter
+            {
+                OwnerId = 42,
+                OwnerLifeCycleStateId = 1,
+                Active = true,
+                Name = "Payments",
+                AppIdExternal = "APP-42"
+            },
+            ShowDetails = true,
+            ShowOnlyActiveState = true
+        }
     };
 }
 

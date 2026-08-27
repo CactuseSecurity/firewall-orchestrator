@@ -3,21 +3,46 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents owner lookup filters for the owners/get endpoint.
-/// Unknown properties are rejected so callers are notified of typos or unsupported filters
-/// instead of having them silently ignored.
+/// Represents a request for owners visible to the authenticated caller.
 /// </summary>
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed class GetOwnersRequest
+public sealed class GetOwnersRequest : RequestDto<GetOwnersOptions>
+{
+}
+
+/// <summary>
+/// Represents optional controls for the owner lookup response.
+/// </summary>
+public sealed class GetOwnersOptions : RequestOptionsDto<GetOwnersFilter>
 {
     /// <summary>
-    /// Gets or sets the optional owner database id filter.
+    /// Gets or sets a value indicating whether all owner detail fields are returned. When <c>null</c> or
+    /// <c>false</c> (the default), only core owner fields are returned.
+    /// </summary>
+    [JsonPropertyName("showDetails")]
+    public bool? ShowDetails { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether owners with inactive lifecycle states are excluded. When <c>null</c>
+    /// or <c>true</c> (the default), inactive lifecycle states are excluded while owners without a lifecycle state
+    /// remain included. Set to <c>false</c> to include inactive lifecycle states.
+    /// </summary>
+    [JsonPropertyName("showOnlyActiveState")]
+    public bool? ShowOnlyActiveState { get; set; }
+}
+
+/// <summary>
+/// Represents nullable owner lookup filters. Omitted or <c>null</c> fields do not restrict the result.
+/// </summary>
+public sealed class GetOwnersFilter : RequestFilterDto
+{
+    /// <summary>
+    /// Gets or sets the optional owner database-id filter.
     /// </summary>
     [JsonPropertyName("ownerId")]
     public int? OwnerId { get; set; }
 
     /// <summary>
-    /// Gets or sets the optional owner lifecycle state id filter.
+    /// Gets or sets the optional owner lifecycle-state database-id filter.
     /// </summary>
     [JsonPropertyName("ownerLifecycleStateId")]
     public int? OwnerLifeCycleStateId { get; set; }
@@ -40,18 +65,4 @@ public sealed class GetOwnersRequest
     [JsonPropertyName("appIdExternal")]
     public string? AppIdExternal { get; set; }
 
-    /// <summary>
-    /// Gets or sets a value indicating whether all owner fields should be returned.
-    /// When <c>null</c> or <c>false</c> (default) only the core fields are returned.
-    /// </summary>
-    [JsonPropertyName("showDetails")]
-    public bool? ShowDetails { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether owners with an inactive lifecycle state should be excluded.
-    /// When <c>null</c> or <c>true</c> (default) owners whose lifecycle state is inactive are filtered out;
-    /// owners without a lifecycle state are kept. Set to <c>false</c> to also include owners with an inactive state.
-    /// </summary>
-    [JsonPropertyName("showOnlyActiveState")]
-    public bool? ShowOnlyActiveState { get; set; }
 }

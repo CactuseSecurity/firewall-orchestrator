@@ -50,14 +50,14 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            await controller.Get(new GetOwnersRequest
+            await controller.Get(CreateOwnerRequest(new GetOwnersFilter
             {
                 OwnerId = 42,
                 OwnerLifeCycleStateId = 3,
                 Active = true,
                 Name = "Accounting",
                 AppIdExternal = "APP-42"
-            });
+            }));
 
             Assert.That(apiConnection.Query, Is.EqualTo(OwnerQueries.getOwnersFiltered));
             string variables = SerializeVariables(apiConnection.Variables);
@@ -89,7 +89,7 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            await controller.Get(new GetOwnersRequest { ShowOnlyActiveState = false });
+            await controller.Get(CreateOwnerRequest(showOnlyActiveState: false));
 
             string variables = SerializeVariables(apiConnection.Variables);
             Assert.That(variables, Does.Not.Contain("active_state"));
@@ -101,11 +101,11 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            await controller.Get(new GetOwnersRequest
+            await controller.Get(CreateOwnerRequest(new GetOwnersFilter
             {
                 Name = "Finance*",
                 AppIdExternal = "APP-?"
-            });
+            }));
 
             string variables = SerializeVariables(apiConnection.Variables);
             Assert.That(variables, Does.Contain("\"name\":{\"_ilike\":\"Finance%\"}"));
@@ -118,11 +118,11 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            await controller.Get(new GetOwnersRequest
+            await controller.Get(CreateOwnerRequest(new GetOwnersFilter
             {
                 Name = "APP_1",
                 AppIdExternal = "50%"
-            });
+            }));
 
             string variables = SerializeVariables(apiConnection.Variables);
             Assert.Multiple(() =>
@@ -138,7 +138,7 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { OwnerId = 0 });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(CreateOwnerRequest(new GetOwnersFilter { OwnerId = 0 }));
 
             Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
             Assert.That(apiConnection.Query, Is.Empty);
@@ -150,7 +150,7 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { OwnerLifeCycleStateId = 0 });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(CreateOwnerRequest(new GetOwnersFilter { OwnerLifeCycleStateId = 0 }));
 
             Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
             Assert.That(apiConnection.Query, Is.Empty);
@@ -162,7 +162,7 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { Name = "badname" });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(CreateOwnerRequest(new GetOwnersFilter { Name = "badname" }));
 
             Assert.That(result.Result, Is.InstanceOf<BadRequestObjectResult>());
             Assert.That(apiConnection.Query, Is.Empty);
@@ -174,22 +174,68 @@ namespace FWO.Test
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { AppIdExternal = new string('a', GetMaxFilterTextLength() + 1) });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(CreateOwnerRequest(new GetOwnersFilter { AppIdExternal = new string('a', GetMaxFilterTextLength() + 1) }));
 
             BadRequestObjectResult badRequest = (BadRequestObjectResult)result.Result!;
+            ValidationProblemDetails problemDetails = (ValidationProblemDetails)badRequest.Value!;
             Assert.Multiple(() =>
             {
-                Assert.That(badRequest.Value, Does.Contain(GetMaxFilterTextLength().ToString()));
+                Assert.That(problemDetails.Errors["options.filter.appIdExternal"], Does.Contain(GetMaxFilterTextLength().ToString()));
                 Assert.That(apiConnection.Query, Is.Empty);
             });
         }
 
         [Test]
-        public void GetOwnersRequestRejectsUnknownJsonProperties()
+        public void GetOwnersRequestCapturesUnknownJsonPropertiesForValidation()
         {
-            string json = """{"ownerId":1,"unsupported":true}""";
+            string json = """{"options":{"filter":{"ownerId":1,"unsupported":true}}}""";
+            GetOwnersRequest request = JsonSerializer.Deserialize<GetOwnersRequest>(json)!;
+            RequestValidationErrors errors = RequestValidator.Validate(request, GetOwnersSchema());
 
-            Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetOwnersRequest>(json));
+            Assert.That(errors.ToDictionary().Keys, Does.Contain("options.filter.unsupported"));
+        }
+
+        [Test]
+        public void GetOwnersRequest_DefaultsOmittedOptionsAndAcceptsAnEmptyFilter()
+        {
+            GetOwnersRequest omittedOptions = JsonSerializer.Deserialize<GetOwnersRequest>("{}")!;
+            GetOwnersRequest emptyFilter = JsonSerializer.Deserialize<GetOwnersRequest>("""{"options":{"filter":{}}}""")!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(omittedOptions.Options, Is.Not.Null);
+                Assert.That(RequestValidator.Validate(omittedOptions, GetOwnersSchema()).HasErrors, Is.False);
+                Assert.That(RequestValidator.Validate(emptyFilter, GetOwnersSchema()).HasErrors, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task GetReturnsAggregatedValidationProblemsBeforeQuerying()
+        {
+            OwnersApiConnection apiConnection = new();
+            OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
+            GetOwnersRequest request = CreateOwnerRequest(new GetOwnersFilter
+            {
+                OwnerId = 0,
+                OwnerLifeCycleStateId = 0,
+                Name = "badname",
+                AppIdExternal = new string('a', GetMaxFilterTextLength() + 1)
+            });
+
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(request);
+            ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(problemDetails.Errors.Keys, Is.EquivalentTo(new List<string>
+                {
+                    "options.filter.ownerId",
+                    "options.filter.ownerLifecycleStateId",
+                    "options.filter.name",
+                    "options.filter.appIdExternal"
+                }));
+                Assert.That(apiConnection.Query, Is.Empty);
+            });
         }
 
         [Test]
@@ -332,7 +378,7 @@ namespace FWO.Test
             };
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Auditor));
 
-            ActionResult<List<GetOwnerResponse>> result = await controller.Get(new GetOwnersRequest { ShowDetails = true });
+            ActionResult<List<GetOwnerResponse>> result = await controller.Get(CreateOwnerRequest(showDetails: true));
 
             OkObjectResult okResult = (OkObjectResult)result.Result!;
             GetOwnerResponse owner = ((List<GetOwnerResponse>)okResult.Value!)[0];
@@ -366,17 +412,19 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetTreatsNullRequestAsEmptyRequest()
+        public async Task GetReturnsValidationProblemForMissingRequestBody()
         {
             OwnersApiConnection apiConnection = new();
             OwnersController controller = CreateController(apiConnection, PrincipalWithRoles(Roles.Admin));
 
             ActionResult<List<GetOwnerResponse>> result = await controller.Get(null);
 
+            ValidationProblemDetails problemDetails = (ValidationProblemDetails)((BadRequestObjectResult)result.Result!).Value!;
+
             Assert.Multiple(() =>
             {
-                Assert.That(result.Result, Is.InstanceOf<OkObjectResult>());
-                Assert.That(SerializeVariables(apiConnection.Variables), Does.Contain("active_state"));
+                Assert.That(problemDetails.Errors.Keys, Does.Contain("$"));
+                Assert.That(apiConnection.Query, Is.Empty);
             });
         }
 
@@ -418,6 +466,35 @@ namespace FWO.Test
                     HttpContext = new DefaultHttpContext { User = user }
                 }
             };
+        }
+
+        private static GetOwnersRequest CreateOwnerRequest(
+            GetOwnersFilter? filter = null,
+            bool? showDetails = null,
+            bool? showOnlyActiveState = null)
+        {
+            return new GetOwnersRequest
+            {
+                Options = new GetOwnersOptions
+                {
+                    Filter = filter,
+                    ShowDetails = showDetails,
+                    ShowOnlyActiveState = showOnlyActiveState
+                }
+            };
+        }
+
+        private static RequestValidationSchema GetOwnersSchema()
+        {
+            return RequestValidationSchema.EndpointWithOptions("getOwners", options => options
+                .OptionalObject("filter", filter => filter
+                    .OptionalInt("ownerId")
+                    .OptionalInt("ownerLifecycleStateId")
+                    .OptionalBool("active")
+                    .OptionalString("name")
+                    .OptionalString("appIdExternal"))
+                .OptionalBool("showDetails")
+                .OptionalBool("showOnlyActiveState"));
         }
 
         private static ClaimsPrincipal PrincipalWithRoles(params string[] roles)

@@ -105,9 +105,15 @@ public class ApiExampleCatalogTest
     {
         GetOwnersRequest request = new()
         {
-            OwnerLifeCycleStateId = 2,
-            AppIdExternal = "APP-2",
-            ShowOnlyActiveState = true
+            Options = new GetOwnersOptions
+            {
+                Filter = new GetOwnersFilter
+                {
+                    OwnerLifeCycleStateId = 2,
+                    AppIdExternal = "APP-2"
+                },
+                ShowOnlyActiveState = true
+            }
         };
 
         string json = JsonSerializer.Serialize(request, serializerOptions);
@@ -127,9 +133,9 @@ public class ApiExampleCatalogTest
 
         GetOwnersRequest request = (GetOwnersRequest)example!;
 
-        Assert.That(request.OwnerLifeCycleStateId, Is.EqualTo(1));
-        Assert.That(request.ShowDetails, Is.True);
-        Assert.That(request.ShowOnlyActiveState, Is.True);
+        Assert.That(request.Options?.Filter?.OwnerLifeCycleStateId, Is.EqualTo(1));
+        Assert.That(request.Options?.ShowDetails, Is.True);
+        Assert.That(request.Options?.ShowOnlyActiveState, Is.True);
     }
 
     /// <summary>

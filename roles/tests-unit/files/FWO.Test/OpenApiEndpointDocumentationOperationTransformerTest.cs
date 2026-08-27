@@ -47,9 +47,9 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             Assert.That(operation.Description, Does.Contain("\"showDetails\": true"));
             Assert.That(operation.Description, Does.Contain("Response behavior"));
             Assert.That(operation.Description, Does.Contain(GetMaxFilterTextLength().ToString()));
-            Assert.That(operation.RequestBody!.Description, Does.Contain("Optional owner lookup filters"));
+            Assert.That(operation.RequestBody!.Description, Does.Contain("Optional owner lookup controls"));
             Assert.That(operation.Responses!["200"].Description, Does.Contain("JSON array"));
-            Assert.That(operation.Responses["400"].Description, Does.Contain("unsupported property"));
+            Assert.That(operation.Responses["400"].Description, Does.Contain("invalid shape"));
         });
     }
 
@@ -71,8 +71,12 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             Assert.That(normalizedDescription, Does.Contain("""
 ```json
 {
-  "ownerLifecycleStateId": 1,
-  "active": true
+  "options": {
+    "filter": {
+      "ownerLifecycleStateId": 1,
+      "active": true
+    }
+  }
 }
 ```
 """));
@@ -196,17 +200,17 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 
         await transformer.TransformAsync(operation, CreateOwnerContext(), CancellationToken.None);
 
-        string wildcardVariables = SerializeOwnerQueryVariables(new GetOwnersRequest
+        string wildcardVariables = SerializeOwnerQueryVariables(CreateOwnerRequest(new GetOwnersFilter
         {
             Name = "Finance*",
             AppIdExternal = "APP-?"
-        });
-        string containsVariables = SerializeOwnerQueryVariables(new GetOwnersRequest { Name = "Accounting" });
-        string escapedVariables = SerializeOwnerQueryVariables(new GetOwnersRequest
+        }));
+        string containsVariables = SerializeOwnerQueryVariables(CreateOwnerRequest(new GetOwnersFilter { Name = "Accounting" }));
+        string escapedVariables = SerializeOwnerQueryVariables(CreateOwnerRequest(new GetOwnersFilter
         {
             Name = "APP_1",
             AppIdExternal = "50%"
-        });
+        }));
 
         Assert.Multiple(() =>
         {
@@ -234,11 +238,11 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, CreateOwnerContext(), CancellationToken.None);
 
         string defaultVariables = SerializeOwnerQueryVariables(new GetOwnersRequest());
-        string disabledVariables = SerializeOwnerQueryVariables(new GetOwnersRequest { ShowOnlyActiveState = false });
+        string disabledVariables = SerializeOwnerQueryVariables(CreateOwnerRequest(showOnlyActiveState: false));
 
         Assert.Multiple(() =>
         {
-            Assert.That(operation.Description, Does.Contain("`showOnlyActiveState` defaults to `true`"));
+            Assert.That(operation.Description, Does.Contain("`options.showOnlyActiveState` defaults to `true`"));
             Assert.That(defaultVariables, Does.Contain("\"owner_lifecycle_state\":{\"active_state\":{\"_eq\":true}}"));
             Assert.That(defaultVariables, Does.Contain("\"owner_lifecycle_state_id\":{\"_is_null\":true}"));
             Assert.That(operation.Description, Does.Contain("Set it to `false` to include inactive lifecycle states."));
@@ -262,8 +266,8 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(operation.Description, Does.Contain("`showDetails` defaults to `false`"));
-            Assert.That(operation.Description, Does.Contain("Detail fields are omitted unless `showDetails` is `true`."));
+            Assert.That(operation.Description, Does.Contain("`options.showDetails` defaults to `false`"));
+            Assert.That(operation.Description, Does.Contain("Detail fields are omitted unless `options.showDetails` is `true`."));
             Assert.That(coreResponse, Does.Not.Contain("\"tenantId\""));
             Assert.That(coreResponse, Does.Not.Contain("\"criticality\""));
             Assert.That(detailResponse, Does.Contain("\"tenantId\""));
@@ -553,6 +557,18 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             ?? throw new InvalidOperationException("Owner query variable builder returned null.");
 
         return JsonSerializer.Serialize(variables);
+    }
+
+    private static GetOwnersRequest CreateOwnerRequest(GetOwnersFilter? filter = null, bool? showOnlyActiveState = null)
+    {
+        return new GetOwnersRequest
+        {
+            Options = new GetOwnersOptions
+            {
+                Filter = filter,
+                ShowOnlyActiveState = showOnlyActiveState
+            }
+        };
     }
 
     private static object MapOwnerResponse(bool showDetails)

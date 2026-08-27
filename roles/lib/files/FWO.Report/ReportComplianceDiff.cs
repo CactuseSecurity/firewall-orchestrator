@@ -168,7 +168,14 @@ namespace FWO.Report
                     .SelectMany(chunk => chunk)
                     .Select(CreateRuleIdentity)
                     .ToHashSet();
-                _previouslyNonCompliantRuleIdentities = previouslyNonCompliantRules;
+
+                // Label only identities whose interval violations were actually suppressed. The historical set alone
+                // can also contain identities from other managements that merely share a rule UID (see
+                // CreatePreviousViolationVariables), which never had an interval violation to hide.
+                _previouslyNonCompliantRuleIdentities = intervalViolations
+                    .Select(CreateRuleIdentity)
+                    .Where(previouslyNonCompliantRules.Contains)
+                    .ToHashSet();
 
                 // Remove all new violations for the rule, not just the first one that happened to match.
                 return intervalViolations

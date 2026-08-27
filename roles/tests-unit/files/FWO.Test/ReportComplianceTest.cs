@@ -447,6 +447,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Generate_DiffReportDoesNotLabelOtherManagementRuleSharingUidAsFiltered()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7,
+                ShowNonImpactRules = true
+            };
+            List<Management> managements = new()
+            {
+                new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" },
+                new Management { Id = 2, Uid = "mgmt-2", Name = "Management 2" }
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-shared", mgmtUid: "mgmt-1")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-shared", foundDate: DateTime.Now.AddDays(-8), mgmtUid: "mgmt-2")
+            };
+            List<Rule> activeRules = new()
+            {
+                CreateActiveRule("rule-shared", mgmtId: 1),
+                CreateActiveRule("rule-shared", mgmtId: 2)
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules, managements: managements);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(
+                report.Rules.Single(rule => rule.MgmtId == 2).ViolationDetails,
+                Is.EqualTo(userConfig.GetText("no_changes_found")),
+                "mgmt-2's rule never had an interval violation to hide, even though mgmt-1 has a rule sharing the same UID.");
+        }
+
+        [Test]
         public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
         {
             MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);
@@ -550,14 +591,15 @@ namespace FWO.Test
             string ruleUid,
             DateTime? removedDate = null,
             DateTime? foundDate = null,
-            bool isInitial = false)
+            bool isInitial = false,
+            string mgmtUid = "mgmt-1")
         {
             return new ComplianceViolation
             {
                 Id = id,
                 RuleId = ruleId,
                 RuleUid = ruleUid,
-                MgmtUid = "mgmt-1",
+                MgmtUid = mgmtUid,
                 FoundDate = foundDate ?? DateTime.Now.AddHours(-2),
                 RemovedDate = removedDate,
                 IsInitial = isInitial,
@@ -570,13 +612,13 @@ namespace FWO.Test
             };
         }
 
-        private static Rule CreateActiveRule(string ruleUid, ComplianceViolation? currentViolation = null)
+        private static Rule CreateActiveRule(string ruleUid, ComplianceViolation? currentViolation = null, int mgmtId = 1)
         {
             Rule rule = new()
             {
-                Id = 1000,
+                Id = 1000 + mgmtId,
                 Uid = ruleUid,
-                MgmtId = 1,
+                MgmtId = mgmtId,
                 Name = ruleUid,
                 Action = "accept"
             };
@@ -598,6 +640,7 @@ namespace FWO.Test
             private readonly List<ComplianceViolation> _previousViolations;
             private readonly List<Rule> _activeRules;
             private readonly bool _failPreviousViolationFetch;
+            private readonly List<Management> _managements;
 
             public List<string> Queries { get; } = new();
             public List<string> RequestedRuleUids { get; } = new();
@@ -609,12 +652,14 @@ namespace FWO.Test
                 List<ComplianceViolation> intervalViolations,
                 List<ComplianceViolation>? previousViolations = null,
                 List<Rule>? activeRules = null,
-                bool failPreviousViolationFetch = false)
+                bool failPreviousViolationFetch = false,
+                List<Management>? managements = null)
             {
                 _intervalViolations = intervalViolations;
                 _previousViolations = previousViolations ?? new List<ComplianceViolation>();
                 _activeRules = activeRules ?? new List<Rule>();
                 _failPreviousViolationFetch = failPreviousViolationFetch;
+                _managements = managements ?? new List<Management> { new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" } };
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
@@ -623,11 +668,7 @@ namespace FWO.Test
 
                 if (query == DeviceQueries.getManagementNames && typeof(QueryResponseType) == typeof(List<Management>))
                 {
-                    List<Management> managements = new()
-                    {
-                        new Management { Id = 1, Uid = "mgmt-1", Name = "Management 1" }
-                    };
-                    return Task.FromResult((QueryResponseType)(object)managements);
+                    return Task.FromResult((QueryResponseType)(object)_managements);
                 }
 
                 if (query == ComplianceQueries.countComplianceDiffViolations && typeof(QueryResponseType) == typeof(AggregateCount))

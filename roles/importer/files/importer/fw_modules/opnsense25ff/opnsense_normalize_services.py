@@ -299,21 +299,25 @@ def _create_port_service_for_rule(dest_port: str, rule: OPNsenseAccessRule) -> S
     return svc
 
 
+def _service_protocols_for_rule_port(
+    rule: OPNsenseAccessRule, base_service: ServiceObject | None, synthetic_any_service_uid: str
+) -> tuple[str | None, ...]:
+    if (
+        rule.protocol.lower() == "tcp/udp"
+        and base_service is not None
+        and base_service.svc_uid == synthetic_any_service_uid
+    ):
+        return TCP_UDP_PROTOCOLS
+    return (_rule_service_protocol(rule),)
+
+
 def _update_service_objects_from_rule_ports(
     rule: OPNsenseAccessRule, svc_objs: dict[str, ServiceObject], synthetic_any_service_uid: str
 ) -> None:
-    protocol = _rule_service_protocol(rule)
-
     for ref in rule.dest_port:
         dest_port = _service_ref_name(ref)
         base_service = svc_objs.get(dest_port)
-        protocols: tuple[str | None, ...] = (protocol,)
-        if (
-            rule.protocol.lower() == "tcp/udp"
-            and base_service is not None
-            and base_service.svc_uid == synthetic_any_service_uid
-        ):
-            protocols = TCP_UDP_PROTOCOLS
+        protocols = _service_protocols_for_rule_port(rule, base_service, synthetic_any_service_uid)
 
         for service_protocol in protocols:
             if _qualified_service_name(dest_port, service_protocol) in svc_objs:

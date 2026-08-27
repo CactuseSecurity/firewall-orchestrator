@@ -96,6 +96,33 @@ def test_config_object_named_any_does_not_collide_with_canonical_any_ip_service(
     assert canonical_any_ip.ip_proto == -1
 
 
+def test_config_group_named_any_enabling_ip_protocol_does_not_self_reference():
+    services: dict[str, ServiceObject] = {}
+    create_protocol_any_service_objects(services)
+    any_group = AsaServiceObjectGroup(
+        name="ANY",
+        proto_mode=None,
+        ports_eq={},
+        ports_range={},
+        nested_refs=[],
+        protocols=["ip"],
+        description=None,
+    )
+
+    normalize_service_object_groups([any_group], services)
+
+    configured_any = services["ANY"]
+    assert configured_any.svc_typ == "group"
+    assert configured_any.svc_member_refs != "ANY"
+
+    member_uid = configured_any.svc_member_refs
+    assert member_uid is not None
+    canonical_any_ip = services[member_uid]
+    assert canonical_any_ip.svc_typ == "simple"
+    assert canonical_any_ip.svc_name == "any-ip"
+    assert canonical_any_ip.ip_proto == -1
+
+
 def test_config_group_named_any_processed_before_seeding_is_preserved():
     services: dict[str, ServiceObject] = {}
     any_group = AsaServiceObjectGroup(

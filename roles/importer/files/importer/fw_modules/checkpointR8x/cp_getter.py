@@ -1071,3 +1071,38 @@ def get_object_details_from_api(uid_missing_obj: str, sid: str = "", apiurl: str
         return obj
     FWOLogger.warning(f"missing nw obj of unexpected type '{obj_type}': {uid_missing_obj}")
     return {}
+
+
+def get_gateways_and_servers(sid: str = "", apiurl: str = "") -> list[dict[str, Any]]:
+    """Fetch gateways and servers from the API."""
+    current = 0
+    total = 1
+
+    gateways_and_servers: list[dict[str, Any]] = []
+
+    while current < total:
+        try:
+            result = cp_api_call(apiurl, "show-gateways-and-servers", {"details-level": "full", "offset": current}, sid)
+        except Exception as e:
+            raise FwoImporterError(f"error while trying to get gateways and servers: {e}") from e
+
+        if result is None or "objects" not in result:
+            raise FwoImporterError("no objects received while trying to get gateways and servers")
+
+        gateways_and_servers.extend(result["objects"])
+
+        if "total" not in result or "to" not in result:
+            raise FwoImporterError("result does not contain total or to field while trying to get gateways and servers")
+
+        total = result["total"]
+        if total == 0:
+            break
+        new_current = result["to"]
+        if new_current <= current:
+            raise FwoImporterError(
+                f"pagination did not advance while trying to get gateways and servers: "
+                f"'to'={new_current} did not exceed previous offset={current}"
+            )
+        current = new_current
+
+    return gateways_and_servers

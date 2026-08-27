@@ -613,3 +613,11 @@ Not supported any longer are:
 - make replacement of existing log entries for applications contained in an import file configurable
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
+
+## 9.4.1 - 17.08.2026
+- add nat import for checkpoint and forti firewall managements
+- fix checkpoint import policy install detection
+- fix nat rules report
+
+## 9.4.2 - 25.08.2026
+- add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.

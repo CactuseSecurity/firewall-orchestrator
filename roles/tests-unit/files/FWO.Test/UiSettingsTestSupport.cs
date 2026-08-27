@@ -40,6 +40,9 @@ namespace FWO.Test
         public ReturnId UpdateServiceResult { get; set; } = new() { UpdatedId = 1 };
         public ReturnIdWrapper AddHistoryResult { get; set; } = new() { ReturnIds = [new ReturnId()] };
         public List<ConfigItem> LastUpsertConfigItems { get; private set; } = [];
+        public int UpsertConfigCallCount { get; private set; }
+        public int UpdateUserLanguageCallCount { get; private set; }
+        public string? LastUpdatedLanguage { get; private set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
@@ -76,11 +79,30 @@ namespace FWO.Test
 
             if (query == ConfigQueries.upsertConfigItems)
             {
+                UpsertConfigCallCount++;
                 PropertyInfo? configItemsProperty = variables?.GetType().GetProperty("config_items");
                 LastUpsertConfigItems = configItemsProperty == null
                     ? []
                     : ((IEnumerable<ConfigItem>)configItemsProperty.GetValue(variables)!).ToList();
                 return Task.FromResult(default(QueryResponseType)!);
+            }
+
+            if (query == ConfigQueries.getConfigItemsByUser && typeof(QueryResponseType) == typeof(ConfigItem[]))
+            {
+                return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+            }
+
+            if (query == AuthQueries.updateUserLanguage && typeof(QueryResponseType) == typeof(ReturnId))
+            {
+                UpdateUserLanguageCallCount++;
+                PropertyInfo? languageProperty = variables?.GetType().GetProperty("language");
+                LastUpdatedLanguage = languageProperty?.GetValue(variables)?.ToString();
+                return Task.FromResult((QueryResponseType)(object)new ReturnId { UpdatedId = 1 });
+            }
+
+            if (query == ConfigQueries.getCustomTextsPerLanguage && typeof(QueryResponseType) == typeof(List<UiText>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<UiText>());
             }
 
             throw new NotImplementedException($"Unhandled query {query} for {typeof(QueryResponseType).Name}");

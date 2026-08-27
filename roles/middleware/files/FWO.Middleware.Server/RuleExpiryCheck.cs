@@ -31,8 +31,8 @@ namespace FWO.Middleware.Server
         {
             int emailsSent = 0;
             Dictionary<string, string> ruleExpiryInitiatorKeys = ParseRuleExpiryInitiatorKeys(GlobalConfig.RuleExpiryInitiatorKeys);
-            List<UserGroup> ownerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
-            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.RuleTimer, GlobalConfig, apiConnection, ownerGroups);
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.RuleTimer, GlobalConfig, apiConnection);
             List<RuleOwnerWithRuleTimes> rulesByOwner = await apiConnection.SendQueryAsync<List<RuleOwnerWithRuleTimes>>(
                 RuleQueries.getTimeBasedRulesByOwner);
 

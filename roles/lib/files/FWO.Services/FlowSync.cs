@@ -855,7 +855,7 @@ namespace FWO.Services
         /// </summary>
         private static string NormalizeNwObjectIpEnd(NetworkObject obj)
         {
-            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP : obj.IpEnd;
+            return string.IsNullOrWhiteSpace(obj.IpEnd) ? obj.IP ?? "" : obj.IpEnd;
         }
 
         /// <summary>

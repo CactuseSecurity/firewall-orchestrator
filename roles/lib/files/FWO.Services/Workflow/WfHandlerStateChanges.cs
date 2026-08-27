@@ -116,6 +116,7 @@ namespace FWO.Services.Workflow
             if (toStateId != null)
             {
                 statefulObject.StateId = (int)toStateId;
+                Log.WriteDebug("AutoPromote", $"Using configured target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)}.");
                 promotePossible = true;
             }
             else
@@ -124,6 +125,7 @@ namespace FWO.Services.Workflow
                 if (possibleStates.Count >= 1)
                 {
                     statefulObject.StateId = possibleStates[0];
+                    Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
                     promotePossible = true;
                 }
             }
@@ -141,6 +143,7 @@ namespace FWO.Services.Workflow
                         ActReqTask.StateId = statefulObject.StateId;
                         ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
                         await UpdateActReqTaskState();
+                        await UpdateActTicketStateFromReqTasks();
                         break;
                     case WfObjectScopes.ImplementationTask:
                         SetImplTaskEnv((WfImplTask)statefulObject);
@@ -366,7 +369,7 @@ namespace FWO.Services.Workflow
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed by actions from synced state {newReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
+                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
                     && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
                     requestTasksNeedingInitialImplTasks.Add(reqtask);

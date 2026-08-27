@@ -622,5 +622,5 @@ Not supported any longer are:
 ## 9.4.2 - 25.08.2026
 - add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
 
-## 9.4.3 - 26.08.2026
+## 9.4.5 - 27.08.2026
 - add an optional compliance-diff filter for rules with existing violations

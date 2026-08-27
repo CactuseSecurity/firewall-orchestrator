@@ -63,7 +63,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task DoCreatedRequestTaskActions(WfTicket ticket)
         {
-            foreach (WfReqTask reqTask in ticket.Tasks)
+            List<WfReqTask> createdTasks = new(ticket.Tasks);
+            foreach (WfReqTask reqTask in createdTasks)
             {
                 int newStateId = reqTask.StateId;
                 reqTask.MarkCreatedStateChanged(newStateId);

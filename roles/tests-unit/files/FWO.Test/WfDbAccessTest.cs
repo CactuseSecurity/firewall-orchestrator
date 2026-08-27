@@ -45,6 +45,7 @@ namespace FWO.Test
             public bool ReturnNullNewReqElementIds { get; set; }
             public int NewReqTaskCallCount { get; private set; }
             public int UpdateReqTaskCallCount { get; private set; }
+            public int UpdateReqTaskStateCallCount { get; private set; }
             public int UpdateReqTaskAdditionalInfoCallCount { get; private set; }
             public int DeleteReqTaskCallCount { get; private set; }
             public int NewReqElementCallCount { get; private set; }
@@ -58,6 +59,7 @@ namespace FWO.Test
             public int DeleteImplElementCallCount { get; private set; }
             public int NewCommentCallCount { get; private set; }
             public int AssignImplCommentCallCount { get; private set; }
+            public int UpdateTicketStateCallCount { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -92,6 +94,11 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.updateTicket)
                 {
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedTicketId });
+                }
+                if (query == RequestQueries.updateTicketState)
+                {
+                    UpdateTicketStateCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedTicketId });
                 }
                 if (query == RequestQueries.newImplementationTask)
@@ -172,6 +179,11 @@ namespace FWO.Test
                 if (query == RequestQueries.updateRequestTask)
                 {
                     UpdateReqTaskCallCount++;
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqTaskId });
+                }
+                if (query == RequestQueries.updateRequestTaskState)
+                {
+                    UpdateReqTaskStateCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedReqTaskId });
                 }
                 if (query == RequestQueries.updateRequestTaskAdditionalInfo)
@@ -352,6 +364,62 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddTicketToDb_DoesNotRejectWorkflowActionFailuresWhenNotConfigured()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    StateId = 1,
+                    Requester = new UiUser { DbId = 42 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>
+            {
+                new()
+                {
+                    Id = 1,
+                    Name = "requested",
+                    Actions = new List<WfStateActionDataHelper>
+                    {
+                        new()
+                        {
+                            SortOrder = 1,
+                            Action = new WfStateAction
+                            {
+                                Name = "broken add approval",
+                                ActionType = StateActionTypes.AddApproval.ToString(),
+                                Scope = WfObjectScopes.Ticket.ToString(),
+                                Event = StateActionEvents.OnSet.ToString(),
+                                ExternalParams = "{invalid"
+                            }
+                        }
+                    }
+                }
+            });
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, false);
+
+            WfTicket ticket = new()
+            {
+                Id = 0,
+                StateId = 1,
+                Requester = new UiUser { DbId = 42 },
+                Tasks = new List<WfReqTask>()
+            };
+
+            WfTicket result = await dbAccess.AddTicketToDb(ticket);
+
+            Assert.That(result.Id, Is.EqualTo(101));
+            Assert.That(result.StateId, Is.EqualTo(1));
+        }
+
+        [Test]
         public async Task AddTicketToDb_DoesNotWrapTicketCreationFailuresWhenConfigured()
         {
             WfDbAccessTestApiConn apiConn = new()
@@ -450,6 +518,117 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddTicketToDb_ProcessesAllCreatedRequestTasksWhenTaskActionsPromoteState()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewTicketId = 101,
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    StateId = 48,
+                    Requester = new UiUser { DbId = 42 },
+                    Tasks = new List<WfReqTask>
+                    {
+                        new WfReqTask
+                        {
+                            Id = 11,
+                            TicketId = 101,
+                            StateId = 48,
+                            TaskType = WfTaskType.group_create.ToString()
+                        },
+                        new WfReqTask
+                        {
+                            Id = 12,
+                            TicketId = 101,
+                            StateId = 48,
+                            TaskType = WfTaskType.group_create.ToString()
+                        },
+                        new WfReqTask
+                        {
+                            Id = 13,
+                            TicketId = 101,
+                            StateId = 48,
+                            TaskType = WfTaskType.group_create.ToString()
+                        }
+                    }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new()
+            {
+                MasterStateMatrix = CreateStateMatrix(48, 60, 100),
+                ActStateMatrix = CreateStateMatrix(48, 60, 100)
+            };
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            SetWorkflowContext(wfHandler, dbAccess);
+            SetRequestTaskStateMatrix(wfHandler, CreateStateMatrix(48, 60, 100));
+            await actionHandler.Init(new List<WfState>
+            {
+                new()
+                {
+                    Id = 48,
+                    Name = "requested",
+                    Actions = new List<WfStateActionDataHelper>
+                    {
+                        new()
+                        {
+                            SortOrder = 1,
+                            Action = new WfStateAction
+                            {
+                                Name = "promote created task",
+                                ActionType = StateActionTypes.AutoPromote.ToString(),
+                                Scope = WfObjectScopes.RequestTask.ToString(),
+                                TaskType = WfTaskType.group_create.ToString(),
+                                Event = StateActionEvents.OnSet.ToString(),
+                                ExternalParams = "100"
+                            }
+                        }
+                    }
+                },
+                new() { Id = 60, Name = "in work" },
+                new() { Id = 100, Name = "done" }
+            });
+
+            WfTicket result = await dbAccess.AddTicketToDb(new WfTicket
+            {
+                Id = 0,
+                StateId = 48,
+                Requester = new UiUser { DbId = 42 },
+                Tasks = new List<WfReqTask>
+                {
+                    new WfReqTask
+                    {
+                        StateId = 48,
+                        TaskType = WfTaskType.group_create.ToString()
+                    },
+                    new WfReqTask
+                    {
+                        StateId = 48,
+                        TaskType = WfTaskType.group_create.ToString()
+                    },
+                    new WfReqTask
+                    {
+                        StateId = 48,
+                        TaskType = WfTaskType.group_create.ToString()
+                    }
+                }
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Id, Is.EqualTo(101));
+                Assert.That(result.Tasks, Has.Count.EqualTo(3));
+                Assert.That(result.Tasks.All(task => task.StateId == 100), Is.True);
+                Assert.That(apiConn.UpdateReqTaskStateCallCount, Is.EqualTo(3));
+                Assert.That(apiConn.UpdateTicketStateCallCount, Is.EqualTo(3));
+            });
+        }
+
+        [Test]
         public async Task UpdateTicketInDb_ReturnsTicket_WhenUpdateIdMatches()
         {
             WfDbAccessTestApiConn apiConn = new()
@@ -476,6 +655,39 @@ namespace FWO.Test
             WfTicket result = await dbAccess.UpdateTicketInDb(ticket);
 
             Assert.That(result, Is.SameAs(ticket));
+        }
+
+        private static StateMatrix CreateStateMatrix(int lowestInputState, int lowestStartedState, int lowestEndState)
+        {
+            return new StateMatrix
+            {
+                LowestInputState = lowestInputState,
+                LowestStartedState = lowestStartedState,
+                LowestEndState = lowestEndState
+            };
+        }
+
+        private static void SetRequestTaskStateMatrix(WfHandler wfHandler, StateMatrix requestTaskMatrix)
+        {
+            FieldInfo? stateMatrixField = typeof(WfHandler).GetField("stateMatrixDict", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(stateMatrixField, Is.Not.Null);
+
+            StateMatrixDict stateMatrixDict = new()
+            {
+                Matrices = new Dictionary<string, StateMatrix>
+                {
+                    { WfTaskType.group_create.ToString(), requestTaskMatrix }
+                }
+            };
+
+            stateMatrixField!.SetValue(wfHandler, stateMatrixDict);
+        }
+
+        private static void SetWorkflowContext(WfHandler wfHandler, WfDbAccess dbAccess)
+        {
+            FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(dbAccField, Is.Not.Null);
+            dbAccField!.SetValue(wfHandler, dbAccess);
         }
 
         [Test]

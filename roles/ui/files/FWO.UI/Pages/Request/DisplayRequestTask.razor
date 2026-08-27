@@ -752,7 +752,7 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrEmpty(element.Name) && element.Port == 0)
+        if (!string.IsNullOrEmpty(element.Name) && element.Port is null or 0)
         {
             return element.Name;
         }

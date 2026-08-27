@@ -441,7 +441,7 @@ else
             ServiceId = userConfig.ReqUseFlowDb ? null : networkService.Id,
             FlowServiceObjectId = userConfig.ReqUseFlowDb ? networkService.FlowServiceObjectId ?? networkService.Id : null,
             Name = networkService.Name,
-            Port = networkService.DestinationPort ?? 0,
+            Port = networkService.DestinationPort,
             PortEnd = networkService.DestinationPortEnd,
             ProtoId = networkService.ProtoId ?? 0,
             TaskId = TaskId

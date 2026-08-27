@@ -134,8 +134,13 @@ namespace FWO.ExternalSystems.Tufin.SecureChange
             return FillIpProtocolTemplate(template, IpProtos.FirstOrDefault(x => x.Id == svc.ProtoId)?.Name ?? svc.ProtoId.ToString(), svc.ProtoId.ToString(), svc.Name ?? "");
         }
 
-        public static string DisplayPortRange(int port, int? portEnd)
+        public static string DisplayPortRange(int? port, int? portEnd)
         {
+            if (port == null)
+            {
+                return "";
+            }
+
             return portEnd == null || portEnd == 0 || port == portEnd ? $"{port}" : $"{port}-{portEnd}";
         }
 

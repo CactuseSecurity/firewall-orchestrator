@@ -1,8 +1,10 @@
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Test.Fixtures;
+using NSubstitute;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -44,6 +46,49 @@ namespace FWO.Test
             };
 
             bool result = await checker.AreRequestTasksCompliant([5], [incompleteTask]);
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task AreRequestTasksCompliant_CanonicalAnyServiceViolatesTechnicalForbiddenService()
+        {
+            CompliancePolicy policy = new()
+            {
+                Id = 5,
+                Criteria =
+                {
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 1,
+                            CriterionType = nameof(CriterionType.ForbiddenService),
+                            Content = "443/TCP"
+                        }
+                    }
+                }
+            };
+            List<Management> managements = new()
+            {
+                new Management { Id = 1, Name = "Mgmt1" }
+            };
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames)
+                .Returns(managements);
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+            WfReqTask task = CreateEligibleRequestTask(13);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.Name = "ANY";
+            service.Port = null;
+            service.PortEnd = null;
+            service.ProtoId = GlobalConst.kAnyIpProtocolId;
+            List<int> policyIds = new() { policy.Id };
+            List<WfReqTask> requestTasks = new() { task };
+
+            bool result = await checker.AreRequestTasksCompliant(policyIds, requestTasks);
 
             Assert.That(result, Is.False);
         }

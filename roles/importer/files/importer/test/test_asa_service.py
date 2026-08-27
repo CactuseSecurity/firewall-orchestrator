@@ -5,6 +5,7 @@ from fw_modules.ciscoasa9.asa_service import (
     create_any_protocol_service,
     create_protocol_any_service_objects,
     create_service_for_protocol_entry,
+    create_service_object,
     normalize_service_object_groups,
 )
 
@@ -121,6 +122,34 @@ def test_config_group_named_any_enabling_ip_protocol_does_not_self_reference():
     assert canonical_any_ip.svc_typ == "simple"
     assert canonical_any_ip.svc_name == "any-ip"
     assert canonical_any_ip.ip_proto == -1
+
+
+def test_config_object_named_any_tcp_with_narrow_port_does_not_narrow_any_any_acl():
+    services: dict[str, ServiceObject] = {}
+    services["any-tcp"] = create_service_object("any-tcp", 443, 443, "tcp", "user object")
+
+    create_protocol_any_service_objects(services)
+
+    # the configured object keeps its name and its narrow port range
+    assert services["any-tcp"].svc_port == 443
+    assert services["any-tcp"].svc_port_end == 443
+
+    entry = AccessListEntry(
+        acl_name="inside_access_in",
+        action="permit",
+        protocol=EndpointKind(kind="protocol", value="tcp"),
+        src=EndpointKind(kind="any", value="any"),
+        dst=EndpointKind(kind="any", value="any"),
+        dst_port=EndpointKind(kind="any", value="any"),
+    )
+    service_name = create_service_for_protocol_entry(entry, services)
+
+    # "permit tcp any any" must resolve to the wide-open synthetic object, not the narrow one
+    assert service_name != "any-tcp"
+    any_tcp_service = services[service_name]
+    assert any_tcp_service.svc_typ == "simple"
+    assert any_tcp_service.svc_port == 0
+    assert any_tcp_service.svc_port_end == 65535
 
 
 def test_config_group_named_any_processed_before_seeding_is_preserved():

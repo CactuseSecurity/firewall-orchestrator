@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 
 ASA_ANY_PROTOCOL_SERVICE_UID = "ANY"
-ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID = "_FWO_ANY_IP_PROTOCOL_"
 
 
 def _get_ip_protocol_id(protocol: str) -> int:
@@ -145,60 +144,79 @@ def normalize_service_objects(service_objects: list[AsaServiceObject]) -> dict[s
     return normalized
 
 
-def _is_canonical_any_ip_service(obj: ServiceObject) -> bool:
+def _canonical_any_protocol(obj: ServiceObject) -> str | None:
     """
-    Identify the synthetic protocol-agnostic 'any ip' service object, as opposed to a
-    same-named object/group taken from the actual ASA configuration.
+    Identify the protocol of a synthetic protocol-agnostic 'any-<proto>' service object, as
+    opposed to a same-named object/group taken from the actual ASA configuration.
+
+    Returns:
+        The protocol name if obj is a canonical any-protocol service, else None
+
     """
-    return obj.svc_name == "any-ip" and obj.svc_typ == "simple" and obj.ip_proto == fwo_const.ANY_IP_PROTOCOL_ID
+    if obj.svc_typ != "simple" or not obj.svc_name.startswith("any-"):
+        return None
+    proto = obj.svc_name.removeprefix("any-")
+    if proto not in ("tcp", "udp", "icmp", "ip") or obj.ip_proto != _get_ip_protocol_id(proto):
+        return None
+    expected_port, expected_port_end = (0, 65535) if proto in ("tcp", "udp") else (None, None)
+    if obj.svc_port != expected_port or obj.svc_port_end != expected_port_end:
+        return None
+    return proto
 
 
-def _find_canonical_any_ip_service_uid(service_objects: dict[str, ServiceObject]) -> str | None:
-    """Return the UID currently holding the canonical any-ip-protocol object, wherever it lives."""
+def _preferred_any_protocol_uid(proto: str) -> str:
+    return ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else f"any-{proto}"
+
+
+def _find_canonical_any_protocol_service_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str | None:
+    """Return the UID currently holding the canonical any-<proto> object, wherever it lives."""
     for uid, obj in service_objects.items():
-        if _is_canonical_any_ip_service(obj):
+        if _canonical_any_protocol(obj) == proto:
             return uid
     return None
 
 
-def _unused_any_ip_protocol_conflict_uid(service_objects: dict[str, ServiceObject]) -> str:
+def _unused_any_protocol_conflict_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str:
     """Probe for a free conflict-safe UID, reusing a slot that already holds the canonical object."""
-    uid = ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID
+    prefix = f"_FWO_ANY_{proto.upper()}_PROTOCOL_"
+    uid = prefix
     suffix = 1
-    while uid in service_objects and not _is_canonical_any_ip_service(service_objects[uid]):
+    while uid in service_objects and _canonical_any_protocol(service_objects[uid]) != proto:
         suffix += 1
-        uid = f"{ASA_ANY_PROTOCOL_SERVICE_CONFLICT_UID}{suffix}"
+        uid = f"{prefix}{suffix}"
     return uid
 
 
-def _unused_any_ip_protocol_uid(service_objects: dict[str, ServiceObject]) -> str:
+def _unused_any_protocol_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str:
     """
-    Resolve the UID for the synthetic 'any ip protocol' service object.
+    Resolve the UID for the synthetic 'any-<proto>' service object.
 
     Reuses the canonical object wherever it currently lives (it may have been relocated away
-    from the legacy UID due to a name conflict), otherwise prefers the legacy UID for backward
-    compatibility with existing imports, falling back to a conflict-safe UID if an
+    from its preferred UID due to a name conflict), otherwise prefers the legacy/natural UID for
+    backward compatibility with existing imports, falling back to a conflict-safe UID if an
     ASA-configured object/group already uses that exact name.
 
     Args:
+        proto: Protocol name
         service_objects: Existing service objects dictionary
 
     Returns:
         A UID that either already holds the canonical object or is free to use
 
     """
-    existing_uid = _find_canonical_any_ip_service_uid(service_objects)
+    existing_uid = _find_canonical_any_protocol_service_uid(proto, service_objects)
     if existing_uid is not None:
         return existing_uid
-    if ASA_ANY_PROTOCOL_SERVICE_UID not in service_objects:
-        return ASA_ANY_PROTOCOL_SERVICE_UID
-    return _unused_any_ip_protocol_conflict_uid(service_objects)
+    preferred_uid = _preferred_any_protocol_uid(proto)
+    if preferred_uid not in service_objects:
+        return preferred_uid
+    return _unused_any_protocol_conflict_uid(proto, service_objects)
 
 
 def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObject]) -> None:
     """
-    Relocate the synthetic 'any ip protocol' service object out of the way before an
-    ASA-configured object/group claims its name, so neither one silently overwrites the other.
+    Relocate a synthetic 'any-<proto>' service object out of the way before an ASA-configured
+    object/group claims its name, so neither one silently overwrites the other.
 
     Args:
         name: The name an ASA-configured object/group is about to be stored under
@@ -206,11 +224,15 @@ def _make_room_for_named_object(name: str, service_objects: dict[str, ServiceObj
 
     """
     existing = service_objects.get(name)
-    if existing is not None and _is_canonical_any_ip_service(existing):
-        del service_objects[name]
-        relocated_uid = _unused_any_ip_protocol_conflict_uid(service_objects)
-        existing.svc_uid = relocated_uid
-        service_objects[relocated_uid] = existing
+    if existing is None:
+        return
+    proto = _canonical_any_protocol(existing)
+    if proto is None:
+        return
+    del service_objects[name]
+    relocated_uid = _unused_any_protocol_conflict_uid(proto, service_objects)
+    existing.svc_uid = relocated_uid
+    service_objects[relocated_uid] = existing
 
 
 def create_protocol_any_service_objects(service_objects: dict[str, ServiceObject]) -> dict[str, ServiceObject]:
@@ -225,14 +247,13 @@ def create_protocol_any_service_objects(service_objects: dict[str, ServiceObject
 
     """
     for proto in ("tcp", "udp", "icmp", "ip"):
-        obj_name = f"any-{proto}"
         is_any_ip_protocol = proto == "ip"
-        obj_uid = _unused_any_ip_protocol_uid(service_objects) if is_any_ip_protocol else obj_name
+        obj_uid = _unused_any_protocol_uid(proto, service_objects)
         if obj_uid in service_objects:
             continue
         obj = ServiceObject(
             svc_uid=obj_uid,
-            svc_name=obj_name,
+            svc_name=f"any-{proto}",
             svc_port=None if is_any_ip_protocol else 0,
             svc_port_end=None if is_any_ip_protocol else 65535,
             svc_color=fwo_const.DEFAULT_COLOR,
@@ -321,7 +342,7 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
 
     """
     obj_name = f"any-{proto}"
-    obj_uid = _unused_any_ip_protocol_uid(service_objects) if proto == "ip" else obj_name
+    obj_uid = _unused_any_protocol_uid(proto, service_objects)
     if obj_uid not in service_objects:
         port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(

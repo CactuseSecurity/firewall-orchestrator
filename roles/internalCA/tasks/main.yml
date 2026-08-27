@@ -170,7 +170,7 @@
 - name: Validate the configured Apache intermediate certificate chain
   include_tasks: validate-apache-intermediates.yml
   when:
-    - internalca_peer_ca_intermediate_certificates | length > 0
+    - internalca_apache_intermediate_certificates | length > 0
     - "['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0"
 
 # Only on an existing installation: on a fresh one the services do not exist yet and

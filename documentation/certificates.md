@@ -94,6 +94,30 @@ client. For example:
 An upgrade also retains an existing `SSLCertificateChainFile` reference from an
 FWO Apache vhost when the new variable is not supplied explicitly.
 
+The setting is a global input, but it is applied **per host**: only a host that
+actually keeps a customer-managed certificate serves the intermediates and has its
+leaf verified against them. A host in the same distributed installation whose leaf
+FWO issues keeps no chain file and is verified against the internal CA, so one
+endpoint can stay customer-managed while another is FWO-issued. If several endpoints
+carry certificates from different customer roots, concatenate those roots into the
+single file `internalca_peer_ca_certificate` points at: it is read as a PEM bundle
+and every certificate in it becomes a trust anchor.
+
+Both `internalca_peer_ca_certificate` and
+`internalca_peer_ca_intermediate_certificates` must be **PEM** files. OpenSSL also
+reads DER, but FWO's own TLS clients read the trust bundle as PEM only, so a DER
+certificate would be silently ignored at run time; the installer therefore rejects
+one. Convert it first:
+
+```
+openssl x509 -inform DER -in customer-root.der -out customer-root.pem
+```
+
+To go back to an FWO-issued certificate, remove the customer certificate from the
+vhost and return `internalca_peer_ca_certificate` to its default. The next installer
+run reduces the trust bundle to the internal CA and removes the retired issuer from
+the operating-system trust store again.
+
 That issuer is **added to** FWO's trust configuration, not substituted for the
 internal CA. The installer concatenates both into a trust bundle at
 `/etc/fworch/fworch-trust-bundle.crt` (`internalca_trust_bundle`), and that is the
@@ -208,18 +232,28 @@ root or as the FWO service account in the client certificate directory. OpenSSL
 prompts for an export password; retain it because Firefox requests it during
 the import.
 
+This exports **the host's own client identity** - the same one the middleware, the UI
+and the importer present to the API. A browser holding it cannot be told apart from the
+platform in the API logs, and it cannot be revoked without revoking the platform's own
+access. Prefer issuing a separate client certificate from the internal CA for a person,
+and use the export below only as a stop-gap.
+
 ```
 cd /usr/local/fworch/etc/secrets/client
+umask 077
 openssl pkcs12 -export \
   -out client.p12 \
   -inkey client.key \
   -in client.crt
+# after the file has been transferred through an approved secure channel
+rm client.p12
 ```
 
+`umask 077` matters: without it `client.p12` is created world-readable within its
+directory, and the export password is the only thing protecting the private key.
+
 Import `client.p12` from Firefox's **Settings → Privacy & Security →
-Certificates → View Certificates → Your Certificates → Import**. Handle the
-exported file as a private key and remove it from the host once it has been
-transferred through an approved secure channel.
+Certificates → View Certificates → Your Certificates → Import**.
 
 ## Private key requirement
 

@@ -17,96 +17,8 @@
 # trust store. Retention is decided per host, so a distributed installation can
 # have one Apache endpoint on a customer-managed certificate and another still on
 # an internal CA one.
-- name: Read the configured peer CA certificate
-  slurp:
-    src: "{{ internalca_peer_ca_certificate }}"
-  register: internalca_peer_ca_content
-  failed_when: false
-  become: true
-  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
-
-- name: Fail when the configured peer CA certificate cannot be read
-  fail:
-    msg: >-
-      internalca_peer_ca_certificate is set to {{ internalca_peer_ca_certificate }},
-      but that file cannot be read on {{ inventory_hostname }}. Place the issuing root
-      CA certificate of the retained Apache certificate at that path on every FWO host,
-      or leave the setting at its default to trust the {{ product_name }} internal CA alone.
-  when:
-    - internalca_peer_ca_certificate != internalca_ca_certificate_local
-    - internalca_peer_ca_content.content is not defined
-
-- name: Verify the configured peer CA is a valid PEM certificate bundle
-  command:
-    argv:
-      - openssl
-      - crl2pkcs7
-      - -nocrl
-      - -certfile
-      - "{{ internalca_peer_ca_certificate }}"
-  changed_when: false
-  become: true
-  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
-
-- name: Install the internal CA in the FWO trust bundle
-  copy:
-    # Keep the default bundle identical to the tested single-anchor copy above.
-    # The previous list expression rendered an empty file on fresh installations.
-    content: "{{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode }}"
-    dest: "{{ internalca_trust_bundle }}"
-    owner: root
-    group: "{{ fworch_group }}"
-    mode: "0644"
-  become: true
-
-- name: Add the configured peer CA to the FWO trust bundle
-  copy:
-    # Use a YAML literal block so the PEM blocks are separated by real line
-    # endings. Ansible renders a '\n' inside a Jinja expression literally.
-    content: |
-      {{ hostvars[internalca_ca_host].internalca_ca_certificate_pem | b64decode | trim }}
-      {{ internalca_peer_ca_content.content | b64decode | trim }}
-    dest: "{{ internalca_trust_bundle }}"
-    owner: root
-    group: "{{ fworch_group }}"
-    mode: "0644"
-  become: true
-  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
-
-- name: Verify the assembled FWO trust bundle is valid PEM
-  command:
-    argv:
-      - openssl
-      - crl2pkcs7
-      - -nocrl
-      - -certfile
-      - "{{ internalca_trust_bundle }}"
-  changed_when: false
-  become: true
-
-- name: Read the FWO trust bundle containing the configured peer CA
-  slurp:
-    src: "{{ internalca_trust_bundle }}"
-  register: internalca_trust_bundle_content
-  become: true
-  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
-
-- name: Verify the configured peer CA is present in the FWO trust bundle
-  assert:
-    that:
-      - >-
-        (internalca_peer_ca_content.content | b64decode | trim)
-        in (internalca_trust_bundle_content.content | b64decode)
-    fail_msg: >-
-      The configured peer CA from {{ internalca_peer_ca_certificate }} was not
-      written to {{ internalca_trust_bundle }} on {{ inventory_hostname }}.
-  when: internalca_peer_ca_certificate != internalca_ca_certificate_local
-
-- name: Verify the FWO trust bundle contains a CA certificate
-  community.crypto.x509_certificate_info:
-    path: "{{ internalca_trust_bundle }}"
-  changed_when: false
-  become: true
+- name: Assemble the FWO trust bundle
+  include_tasks: assemble-trust-bundle.yml
 
 - name: Install internal CA on Debian trust store
   copy:
@@ -121,7 +33,7 @@
 
 - name: Install configured peer CA on Debian trust store
   copy:
-    content: "{{ internalca_peer_ca_content.content | b64decode }}"
+    content: "{{ internalca_bundle_peer_ca_content.content | b64decode }}"
     dest: "/usr/local/share/ca-certificates/{{ internalca_peer_ca_trust_anchor }}"
     owner: root
     group: root
@@ -132,6 +44,20 @@
     - ansible_facts['os_family'] == 'Debian'
     - internalca_peer_ca_certificate != internalca_ca_certificate_local
 
+# The counterpart of the task above. Without it, returning the setting to its default -
+# the documented way to go back to an FWO-issued certificate - would leave the retired
+# issuer trusted system wide, so platform-validated clients such as MiddlewareClient
+# would keep accepting certificates the operator meant to stop trusting.
+- name: Remove a retired peer CA from the Debian trust store
+  file:
+    path: "/usr/local/share/ca-certificates/{{ internalca_peer_ca_trust_anchor }}"
+    state: absent
+  register: internalca_debian_peer_ca_retired
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
 - name: Refresh Debian CA trust store
   command: update-ca-certificates
   changed_when: false
@@ -141,6 +67,7 @@
     - >-
       internalca_debian_ca_anchor.changed
       or internalca_debian_peer_ca_anchor.changed | default(false)
+      or internalca_debian_peer_ca_retired.changed | default(false)
 
 - name: Install internal CA on RedHat trust store
   copy:
@@ -155,7 +82,7 @@
 
 - name: Install configured peer CA on RedHat trust store
   copy:
-    content: "{{ internalca_peer_ca_content.content | b64decode }}"
+    content: "{{ internalca_bundle_peer_ca_content.content | b64decode }}"
     dest: "/etc/pki/ca-trust/source/anchors/{{ internalca_peer_ca_trust_anchor }}"
     owner: root
     group: root
@@ -166,6 +93,16 @@
     - ansible_facts['os_family'] == 'RedHat'
     - internalca_peer_ca_certificate != internalca_ca_certificate_local
 
+- name: Remove a retired peer CA from the RedHat trust store
+  file:
+    path: "/etc/pki/ca-trust/source/anchors/{{ internalca_peer_ca_trust_anchor }}"
+    state: absent
+  register: internalca_redhat_peer_ca_retired
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
 - name: Refresh RedHat CA trust store
   command: update-ca-trust extract
   changed_when: false
@@ -175,3 +112,4 @@
     - >-
       internalca_redhat_ca_anchor.changed
       or internalca_redhat_peer_ca_anchor.changed | default(false)
+      or internalca_redhat_peer_ca_retired.changed | default(false)

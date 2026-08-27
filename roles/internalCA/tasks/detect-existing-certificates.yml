@@ -3,16 +3,11 @@
 # must be left alone. Anything FWO issued itself - the historical self-signed
 # certificate or a leaf from our own internal CA - is replaced so it keeps
 # being renewed.
+# Shared with the private-key preflight in roles/common, which must inspect the key of
+# the very same vhost before it restarts Apache.
 - name: Select installed Apache configuration file
   set_fact:
-    internalca_existing_apache_configuration: >-
-      {{
-        http_conf_dir ~ product_name ~ '-api.conf'
-        if 'apiserver' in group_names
-        else http_conf_dir ~ product_name ~ '-mw.conf'
-        if 'middlewareserver' in group_names
-        else http_conf_dir ~ product_name ~ '-ui.conf'
-      }}
+    internalca_existing_apache_configuration: "{{ apache_vhost_conf_file }}"
   when: "'apiserver' in group_names or 'middlewareserver' in group_names or 'frontends' in group_names"
 
 - name: Read installed Apache configuration
@@ -129,11 +124,16 @@
       }}
   when: internalca_existing_apache_configuration is defined
 
+# Only a host that keeps its customer-managed leaf resolves an intermediate chain. On a
+# host FWO issues the leaf for, internalca_apache_intermediate_certificates stays empty:
+# serving the customer chain there would be wrong, and validating the FWO leaf against
+# the customer root - which is what the configured global asks for - must fail. That is
+# why the global stays an input and the per-host value is a separate name.
 - name: Retain customer managed Apache certificate paths
   set_fact:
     internalca_apache_certificate: "{{ internalca_existing_apache_certificate }}"
     internalca_apache_private_key: "{{ internalca_existing_apache_private_key }}"
-    internalca_peer_ca_intermediate_certificates: >-
+    internalca_apache_intermediate_certificates: >-
       {{
         internalca_peer_ca_intermediate_certificates
         if internalca_peer_ca_intermediate_certificates | length > 0

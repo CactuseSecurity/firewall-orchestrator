@@ -763,6 +763,7 @@ public sealed class FlowRequestService
         {
             if (isConfigured && protocolId >= 0)
             {
+                ValidatePortRange(protocol, portStart, portEnd);
                 return protocolId;
             }
 
@@ -773,6 +774,19 @@ public sealed class FlowRequestService
             }
 
             throw new ArgumentException($"The service object protocol '{protocol}' must match a non-negative configured STM protocol name or id, or be the canonical any-IP-protocol service without ports.");
+        }
+
+        /// <summary>
+        /// Rejects a 'portEnd' without a 'portStart': it cannot be resolved to a deterministic
+        /// service hash and would otherwise be persisted as an internally inconsistent service.
+        /// A 'portStart' without a 'portEnd' is a valid single-port shorthand and is left as-is.
+        /// </summary>
+        private static void ValidatePortRange(string protocol, int? portStart, int? portEnd)
+        {
+            if (portStart is null && portEnd is not null)
+            {
+                throw new ArgumentException($"The service object protocol '{protocol}' has a 'portEnd' value without a 'portStart' value.");
+            }
         }
     }
 

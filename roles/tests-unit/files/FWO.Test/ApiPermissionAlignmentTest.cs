@@ -23,6 +23,7 @@ namespace FWO.Test
         private const string kApiCallSuffix = ".graphql";
         private const string kPermissionSuffix = "_permissions";
         private const string kSelectOperation = "select";
+        private const string kUpdateOperation = "update";
         private const string kPublicSchema = "public";
         private const string kManyRootSuffix = "_many";
         private const int kMaxFilterDepth = 100;
@@ -34,23 +35,14 @@ namespace FWO.Test
         private static readonly List<string> kLogicalOperators = new() { "_and", "_or", "_not" };
 
         /// <summary>
-        /// Mismatches which exist in the metadata already. Every entry breaks the API call named with it
-        /// for the role named with it, and closing one widens the read access of that role, which is a
-        /// decision for the owner of the respective workflow. They are listed here so the check passes on
-        /// the current metadata while still failing for every mismatch added from now on.
+        /// Mismatches which are accepted although they exist. Every entry breaks the API call named with
+        /// it for the role named with it, and closing one widens the read access of that role, which is a
+        /// decision for the owner of the respective workflow. The list is empty because the metadata
+        /// currently holds no such mismatch; it stays here so an accepted one can be recorded with the
+        /// reason for accepting it instead of being silenced by weakening the check.
         /// ApiCalls_KnownPermissionGapsStillExist removes the risk of the list outliving the mismatches.
         /// </summary>
-        private static readonly List<string> kKnownPermissionGaps = new()
-        {
-            // monitor/updateAlert.graphql, reporter-viewall may acknowledge alerts but not read any
-            "alert|reporter-viewall|alert_id",
-            // monitor/acknowledgeAllOpenAlerts.graphql, same role and table as above
-            "alert|reporter-viewall|ack_by",
-            // modelling/removeSelectedNwGroupObject.graphql, middleware-server selects nwgroup_id only
-            "modelling_selected_objects|middleware-server|app_id",
-            // modelling/replaceUsedInterface.graphql, implementer may update conn_prop but not read
-            "modelling_connection|implementer|used_interface_id"
-        };
+        private static readonly List<string> kKnownPermissionGaps = new();
 
         /// <summary>
         /// Every column an API call filters a delete or update on has to be selectable by the roles which
@@ -134,7 +126,7 @@ namespace FWO.Test
                 return mismatches;
             }
 
-            foreach (string role in roles)
+            foreach (string role in roles.Where(role => MayRunMutation(mutation, table, role)))
             {
                 table.SelectableColumns.TryGetValue(role, out HashSet<string>? selectable);
                 mismatches.AddRange(mutation.Columns
@@ -142,6 +134,21 @@ namespace FWO.Test
                     .Select(column => FormatGap(mutation.TableRoot, role, column)));
             }
             return mismatches;
+        }
+
+        /// <summary>
+        /// Decides whether a role can run a mutation at all. An update writing a column the role may not
+        /// write is rejected for that column already, so its where clause never reaches the role and
+        /// demanding a select permission for it would only invite widening the read access for nothing.
+        /// </summary>
+        private static bool MayRunMutation(FilteredMutation mutation, TableMetadata table, string role)
+        {
+            if (mutation.Operation != kUpdateOperation || mutation.UpdatedColumns.Count == 0)
+            {
+                return true;
+            }
+            return table.UpdatableColumns.TryGetValue(role, out HashSet<string>? updatable)
+                && mutation.UpdatedColumns.TrueForAll(updatable.Contains);
         }
 
         /// <summary>
@@ -201,6 +208,10 @@ namespace FWO.Test
                     {
                         metadata.SelectableColumns[role] = ReadPermittedColumns(entry);
                     }
+                    else if (operation == kUpdateOperation)
+                    {
+                        metadata.UpdatableColumns[role] = ReadPermittedColumns(entry);
+                    }
                 }
             }
             return metadata;
@@ -259,7 +270,8 @@ namespace FWO.Test
             List<FilteredMutation> mutations = new();
             foreach (Match mutation in MutationRegex().Matches(apiCall).Cast<Match>())
             {
-                string? filter = ReadFilter(apiCall, mutation.Index + mutation.Length - 1);
+                string? arguments = ReadArguments(apiCall, mutation.Index + mutation.Length - 1);
+                string? filter = arguments == null ? null : ReadObjectArgument(arguments, FilterRegex());
                 if (filter == null)
                 {
                     continue;
@@ -268,7 +280,8 @@ namespace FWO.Test
                 HashSet<string> columns = new();
                 CollectFilterColumns(filter, columns, 0);
                 mutations.Add(new FilteredMutation(source, mutation.Groups[1].Value,
-                    ReadMutationRoot(mutation.Groups[2].Value), columns.ToList()));
+                    ReadMutationRoot(mutation.Groups[2].Value), columns.ToList(),
+                    ReadUpdatedColumns(arguments!)));
             }
             return mutations;
         }
@@ -283,27 +296,41 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Reads the body of the where clause out of the argument list starting at the given bracket.
+        /// Reads the argument list of a mutation, starting at its opening bracket.
         /// </summary>
-        /// <returns>The body of the where clause, or null when the mutation has none.</returns>
-        private static string? ReadFilter(string apiCall, int argumentStart)
+        /// <returns>The arguments without the enclosing brackets, or null when they are not closed.</returns>
+        private static string? ReadArguments(string apiCall, int argumentStart)
         {
             int argumentEnd = IndexOfMatchingBracket(apiCall, argumentStart);
-            if (argumentEnd < 0)
+            return argumentEnd < 0 ? null : apiCall[(argumentStart + 1)..argumentEnd];
+        }
+
+        /// <summary>
+        /// Reads the body of the object argument the given expression introduces.
+        /// </summary>
+        /// <returns>The body of the argument, or null when the mutation does not carry it.</returns>
+        private static string? ReadObjectArgument(string arguments, Regex argumentRegex)
+        {
+            Match argument = argumentRegex.Match(arguments);
+            if (!argument.Success)
             {
                 return null;
             }
 
-            string arguments = apiCall[(argumentStart + 1)..argumentEnd];
-            Match filter = FilterRegex().Match(arguments);
-            if (!filter.Success)
-            {
-                return null;
-            }
+            int bodyStart = argument.Index + argument.Length - 1;
+            int bodyEnd = IndexOfMatchingBracket(arguments, bodyStart);
+            return bodyEnd < 0 ? null : arguments[(bodyStart + 1)..bodyEnd];
+        }
 
-            int filterStart = filter.Index + filter.Length - 1;
-            int filterEnd = IndexOfMatchingBracket(arguments, filterStart);
-            return filterEnd < 0 ? null : arguments[(filterStart + 1)..filterEnd];
+        /// <summary>
+        /// Reads the columns a mutation writes, which is empty for a delete.
+        /// </summary>
+        private static List<string> ReadUpdatedColumns(string arguments)
+        {
+            string? assignment = ReadObjectArgument(arguments, AssignmentRegex());
+            return assignment == null
+                ? new()
+                : EnumerateMembers(assignment).Select(member => member.Name).ToList();
         }
 
         /// <summary>
@@ -455,13 +482,17 @@ namespace FWO.Test
         [GeneratedRegex(@"\bwhere\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
         private static partial Regex FilterRegex();
 
+        [GeneratedRegex(@"\b_set\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
+        private static partial Regex AssignmentRegex();
+
         [GeneratedRegex(@"([A-Za-z_][A-Za-z0-9_]*)\s*:\s*", RegexOptions.None, kRegexTimeoutMilliseconds)]
         private static partial Regex MemberRegex();
 
         /// <summary>
         /// A delete or update mutation of an API call together with the columns its where clause filters on.
         /// </summary>
-        private sealed record FilteredMutation(string Source, string Operation, string TableRoot, List<string> Columns);
+        private sealed record FilteredMutation(string Source, string Operation, string TableRoot,
+            List<string> Columns, List<string> UpdatedColumns);
 
         /// <summary>
         /// The permissions of one table: which roles hold which permission and which columns they may select.
@@ -470,6 +501,7 @@ namespace FWO.Test
         {
             public Dictionary<string, List<string>> RolesByOperation { get; } = new();
             public Dictionary<string, HashSet<string>> SelectableColumns { get; } = new();
+            public Dictionary<string, HashSet<string>> UpdatableColumns { get; } = new();
         }
     }
 }

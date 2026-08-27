@@ -2926,6 +2926,25 @@
                   "comment": ""
                 },
                 {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "app_id",
+                      "proposed_app_id",
+                      "name",
+                      "is_interface",
+                      "is_requested",
+                      "is_published",
+                      "removed",
+                      "ticket_id",
+                      "conn_prop"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
@@ -3814,7 +3833,8 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "nwgroup_id"
+                      "nwgroup_id",
+                      "app_id"
                     ],
                     "filter": {}
                   },
@@ -4964,6 +4984,28 @@
                 },
                 {
                   "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ref_alert_id",
+                      "ref_log_id",
+                      "description",
+                      "source",
+                      "title",
+                      "ack_by",
+                      "alert_code",
+                      "alert_dev_id",
+                      "alert_mgm_id",
+                      "user_id",
+                      "json_data",
+                      "ack_timestamp",
+                      "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "alert_id",

@@ -558,12 +558,14 @@ def normalize_service_object_groups(
         Updated service objects dictionary including groups
 
     """
-    # Process each service group
+    # Relocate every colliding synthetic any-<proto> object up front, before any group's
+    # members are resolved. Otherwise a group processed earlier than the colliding one would
+    # capture the canonical object's pre-relocation UID as a member reference and go stale.
     for group in service_groups:
-        # Relocate a conflicting synthetic any-ip-protocol object before this group's own
-        # members are resolved, so a member referencing it never captures a stale UID.
         _make_room_for_named_object(group.name, service_objects)
 
+    # Process each service group
+    for group in service_groups:
         if group.proto_mode:
             obj_names = process_single_protocol_group(group, service_objects)
         else:

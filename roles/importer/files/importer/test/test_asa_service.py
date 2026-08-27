@@ -152,6 +152,43 @@ def test_config_object_named_any_tcp_with_narrow_port_does_not_narrow_any_any_ac
     assert any_tcp_service.svc_port_end == 65535
 
 
+def test_earlier_group_enabling_ip_protocol_does_not_capture_stale_any_uid():
+    services: dict[str, ServiceObject] = {}
+    create_protocol_any_service_objects(services)
+    grp_ip = AsaServiceObjectGroup(
+        name="grp_ip",
+        proto_mode=None,
+        ports_eq={},
+        ports_range={},
+        nested_refs=[],
+        protocols=["ip"],
+        description=None,
+    )
+    any_group = AsaServiceObjectGroup(
+        name="ANY",
+        proto_mode="tcp",
+        ports_eq={"tcp": ["80"]},
+        ports_range={},
+        nested_refs=[],
+        protocols=[],
+        description=None,
+    )
+
+    normalize_service_object_groups([grp_ip, any_group], services)
+
+    configured_any = services["ANY"]
+    assert configured_any.svc_typ == "group"
+    assert configured_any.svc_member_refs == "80-tcp"
+
+    grp_ip_obj = services["grp_ip"]
+    assert grp_ip_obj.svc_member_refs != "ANY"
+    assert grp_ip_obj.svc_member_refs is not None
+    canonical_any_ip = services[grp_ip_obj.svc_member_refs]
+    assert canonical_any_ip.svc_typ == "simple"
+    assert canonical_any_ip.svc_name == "any-ip"
+    assert canonical_any_ip.ip_proto == -1
+
+
 def test_config_group_named_any_processed_before_seeding_is_preserved():
     services: dict[str, ServiceObject] = {}
     any_group = AsaServiceObjectGroup(

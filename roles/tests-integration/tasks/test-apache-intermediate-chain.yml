@@ -226,6 +226,37 @@
   changed_when: false
   become: true
 
+- name: Read the test root and intermediate certificates
+  slurp:
+    src: "{{ item }}"
+  loop:
+    - "{{ test_apache_chain_directory.path }}/root.crt"
+    - "{{ test_apache_chain_directory.path }}/intermediate.crt"
+  register: test_apache_trust_bundle_certificates
+  become: true
+
+- name: Assemble a temporary trust bundle from the test root and intermediate
+  copy:
+    content: |
+      {{ test_apache_trust_bundle_certificates.results[0].content | b64decode | trim }}
+      {{ test_apache_trust_bundle_certificates.results[1].content | b64decode | trim }}
+    dest: "{{ test_apache_chain_directory.path }}/trust-bundle.crt"
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+
+- name: Verify a multi-certificate trust bundle uses PEM line endings
+  command:
+    argv:
+      - openssl
+      - crl2pkcs7
+      - -nocrl
+      - -certfile
+      - "{{ test_apache_chain_directory.path }}/trust-bundle.crt"
+  changed_when: false
+  become: true
+
 - name: Remove Apache intermediate chain test files
   file:
     path: "{{ test_apache_chain_directory.path }}"

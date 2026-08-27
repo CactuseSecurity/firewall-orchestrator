@@ -403,6 +403,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Generate_DiffReportLabelsPreviouslyNonCompliantRuleDistinctlyFromUnchangedRule()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7,
+                ShowNonImpactRules = true
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a"),
+                CreateDiffViolation(2, 102, "rule-b")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
+            };
+            List<Rule> activeRules = new()
+            {
+                CreateActiveRule("rule-a"),
+                CreateActiveRule("rule-b"),
+                CreateActiveRule("rule-c")
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-a").ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter")));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-c").ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("no_changes_found")));
+                Assert.That(report.Rules.Single(rule => rule.Uid == "rule-b").Violations.Select(violation => violation.Id), Is.EqualTo(new List<int> { 2 }));
+            });
+        }
+
+        [Test]
         public void ExportToCsv_IncludesExpirationTimeColumnAndValue()
         {
             MockReportCompliance report = new(new(""), new(), Basics.ReportType.ComplianceReport);

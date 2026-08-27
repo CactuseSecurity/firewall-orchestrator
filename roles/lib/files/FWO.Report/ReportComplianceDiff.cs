@@ -14,6 +14,7 @@ namespace FWO.Report
         private const string kExistingViolationsFilterFailedWarning = "WARNING: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.";
         private readonly record struct RuleIdentity(string ManagementUid, string RuleUid);
         private bool _existingViolationsFilterFailed;
+        private HashSet<RuleIdentity> _previouslyNonCompliantRuleIdentities = [];
 
         public int DiffReferenceInDays { get; set; } = 0;
 
@@ -37,7 +38,8 @@ namespace FWO.Report
 
         /// <summary>
         /// Formats each violation with the time at which it first appeared in the report interval and marks retained
-        /// non-impact rules with a localized no-changes message.
+        /// non-impact rules with a localized message. A rule left without violations because the existing-violations
+        /// filter suppressed them is labelled distinctly from a rule that genuinely had no violations in the interval.
         /// </summary>
         protected override void SetComplianceDataForRule(Rule rule, Func<ComplianceViolation, string>? formatter = null)
         {
@@ -45,8 +47,22 @@ namespace FWO.Report
 
             if (ShowNonImpactRules && rule.Violations.Count == 0)
             {
-                rule.ViolationDetails = userConfig.GetText("no_changes_found");
+                rule.ViolationDetails = IsPreviouslyNonCompliantRule(rule)
+                    ? userConfig.GetText("existing_violation_hidden_by_filter")
+                    : userConfig.GetText("no_changes_found");
             }
+        }
+
+        /// <summary>
+        /// Determines whether a rule was already non-compliant at reportStart and therefore had all its interval
+        /// violations suppressed by the existing-violations filter, rather than genuinely having none.
+        /// </summary>
+        private bool IsPreviouslyNonCompliantRule(Rule rule)
+        {
+            string? managementUid = Managements.FirstOrDefault(management => management.Id == rule.MgmtId)?.Uid;
+            return !string.IsNullOrEmpty(managementUid)
+                && !string.IsNullOrEmpty(rule.Uid)
+                && _previouslyNonCompliantRuleIdentities.Contains(new RuleIdentity(managementUid, rule.Uid));
         }
 
         /// <summary>
@@ -57,6 +73,7 @@ namespace FWO.Report
         {
             _existingViolationsFilterFailed = false;
             ReportData.ExistingViolationsFilterFailed = false;
+            _previouslyNonCompliantRuleIdentities = [];
 
             // Fix both boundaries once. Every parallel page therefore observes exactly the same report interval.
             DateTime reportEnd = DateTime.Now;
@@ -152,6 +169,7 @@ namespace FWO.Report
                     .SelectMany(chunk => chunk)
                     .Select(CreateRuleIdentity)
                     .ToHashSet();
+                _previouslyNonCompliantRuleIdentities = previouslyNonCompliantRules;
 
                 // Remove all new violations for the rule, not just the first one that happened to match.
                 return intervalViolations

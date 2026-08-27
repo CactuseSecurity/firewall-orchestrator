@@ -13,11 +13,27 @@
       state: restarted
   become: true
 
+- name: Read the configured middleware native URI
+  ansible.builtin.slurp:
+    src: "{{ fworch_conf_file }}"
+  register: test_middleware_config_file
+  become: true
+
+- name: Parse the configured middleware native URI
+  ansible.builtin.set_fact:
+    test_middleware_native_uri: >-
+      {{ (test_middleware_config_file.content | b64decode | from_json).middleware_native_uri }}
+
+- name: Derive the configured middleware native endpoint
+  ansible.builtin.set_fact:
+    test_middleware_native_host: "{{ test_middleware_native_uri | urlsplit('hostname') }}"
+    test_middleware_native_port: "{{ test_middleware_native_uri | urlsplit('port') }}"
+
 - block:
     - name: wait for middleware port to become available
       ansible.builtin.wait_for:
-          port: "{{ middleware_internal_port }}"
-          host: "127.0.0.1"
+          port: "{{ test_middleware_native_port }}"
+          host: "{{ test_middleware_native_host }}"
           connect_timeout: 1
           delay: 10
           timeout: 120
@@ -57,7 +73,9 @@
 
     - name: fail middleware readiness check
       ansible.builtin.fail:
-          msg: "Middleware did not become ready on 127.0.0.1:{{ middleware_internal_port }}."
+          msg: >-
+            Middleware did not become ready on
+            {{ test_middleware_native_host }}:{{ test_middleware_native_port }}.
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:

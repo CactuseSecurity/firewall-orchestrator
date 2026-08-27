@@ -18,10 +18,10 @@
 		<PackageReference Include="IPAddressRange" Version="6.3.0" />
 		<PackageReference Include="BlazorTable" Version="1.17.0" />
 		<PackageReference Include="PuppeteerSharp" Version="25.8.0" />
+		<PackageReference Include="SoPro.FancyTable" Version="1.0.7" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\..\SoPro.FancyTable\SoPro.FancyTable.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Basics\FWO.Basics.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Config.Api\FWO.Config.Api.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Report.Filter\FWO.Report.Filter.csproj" />

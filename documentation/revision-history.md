@@ -627,7 +627,7 @@ Not supported any longer are:
 - IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
 - add 'add auto calculated internet zone' button to compliance matrix ui
 
-# 9.5.0 - 27.08.2026
+## 9.5.0 - 27.08.2026
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access

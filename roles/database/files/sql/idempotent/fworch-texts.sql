@@ -547,6 +547,16 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Application roles may now only be changed by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
+</ul>
+');
+
+INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
+INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
+INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
+Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
+    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
     <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
     <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
     <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>

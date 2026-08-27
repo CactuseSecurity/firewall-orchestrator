@@ -86,9 +86,9 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceMatrixAllowNetworkZones"))</label>
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("zoneMatrixAllowNestedZones"))</label>
             <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.ComplianceMatrixAllowNetworkZones" />
+                <input type="checkbox" @bind="configData!.zoneMatrixAllowNestedZones" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5814"))">
@@ -98,9 +98,9 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5815"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckSortMatrixByID"))</label>
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("sortMatrixByID"))</label>
             <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.ComplianceCheckSortMatrixByID" />
+                <input type="checkbox" @bind="configData!.sortMatrixByID" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5811"))">

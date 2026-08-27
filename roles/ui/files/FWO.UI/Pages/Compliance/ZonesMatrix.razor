@@ -116,7 +116,7 @@
     {
         List<ComplianceNetworkZone> complianceNetworkZones = networkZoneService.NetworkZones.ToList();
 
-        if(userConfig.GlobalConfig!.ComplianceCheckSortMatrixByID)
+        if(userConfig.GlobalConfig!.sortMatrixByID)
         {
             complianceNetworkZones = complianceNetworkZones.OrderBy(zone => zone.Id).ToList();
         }

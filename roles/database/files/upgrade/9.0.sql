@@ -1714,7 +1714,7 @@ ON CONFLICT (config_key, config_user) DO NOTHING;
 -- add parameter to choose order by column of network matrix between name and id
 
 INSERT INTO config (config_key, config_value, config_user)
-VALUES ('complianceCheckSortMatrixByID', 'false', 0)
+VALUES ('sortMatrixByID', 'false', 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 -- internal zone parameters

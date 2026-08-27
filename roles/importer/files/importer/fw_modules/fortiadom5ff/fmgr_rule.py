@@ -581,9 +581,13 @@ def find_addr_ref(
 
 
 def ip_type(nw_obj: dict[str, Any]) -> int:
+    ip_version = nw_obj.get("_ip_version")
+    if ip_version in (4, 6):
+        return ip_version
+
     # default to v4
     first_ip = nw_obj.get("obj_ip", "0.0.0.0/32")
-    if first_ip == "":
+    if first_ip is None or first_ip == "":
         first_ip = "0.0.0.0/32"
     net = ipaddress.ip_network(str(first_ip))
     return net.version

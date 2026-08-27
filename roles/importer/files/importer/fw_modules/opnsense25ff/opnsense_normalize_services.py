@@ -27,6 +27,7 @@ ANY_PROTOCOL_PORT_START = 1
 ANY_PROTOCOL_PORT_END = 65535
 OPNSENSE_ANY_SERVICE_NAME = "Any"
 OPNSENSE_ANY_SERVICE_CONFLICT_NAME = "_FWO_ANY_PORT_"
+TCP_UDP_PROTOCOLS: tuple[str, str] = ("tcp", "udp")
 
 
 def _service_ref_name(ref: str | OPNsensePortAlias) -> str:
@@ -48,7 +49,8 @@ def _protocol_service_name(rule: OPNsenseAccessRule) -> str:
 
 def _rule_service_protocol(rule: OPNsenseAccessRule) -> str | None:
     # A service object carries a single IP protocol, so only rules restricted to TCP or UDP
-    # can be qualified; "any" and "tcp/udp" stay protocol-agnostic.
+    # can be qualified; "any" and port-specific "tcp/udp" services stay protocol-agnostic.
+    # The synthetic all-port service for "tcp/udp" is expanded into TCP and UDP variants below.
     protocol = rule.protocol.lower()
     if protocol in QUALIFIABLE_PORT_PROTOCOLS:
         return protocol
@@ -59,12 +61,21 @@ def _qualified_service_name(name: str, protocol: str | None) -> str:
     return name if protocol is None else f"{name}{SERVICE_PROTOCOL_SEPARATOR}{protocol}"
 
 
-def rule_service_names(rule: OPNsenseAccessRule) -> list[str]:
+def rule_service_names(rule: OPNsenseAccessRule, synthetic_any_service_name: str | None = None) -> list[str]:
     # Port-based protocols (TCP/UDP and the "any" default) derive their services from the
     # destination ports. Non-port protocols (e.g. ICMP, ESP, GRE) become a protocol service.
     if _is_port_based_protocol(rule.protocol):
         protocol = _rule_service_protocol(rule)
-        return [_qualified_service_name(_service_ref_name(ref), protocol) for ref in rule.dest_port]
+        service_names: list[str] = []
+        for ref in rule.dest_port:
+            service_name = _service_ref_name(ref)
+            if rule.protocol.lower() == "tcp/udp" and service_name == synthetic_any_service_name:
+                service_names.extend(
+                    _qualified_service_name(service_name, tcp_udp_protocol) for tcp_udp_protocol in TCP_UDP_PROTOCOLS
+                )
+            else:
+                service_names.append(_qualified_service_name(service_name, protocol))
+        return service_names
     return [_protocol_service_name(rule)]
 
 
@@ -83,6 +94,13 @@ def _create_any_svc_object(name: str, uid: str) -> ServiceObject:
         svc_timeout=None,
         rpc_nr=None,
     )
+
+
+def get_synthetic_any_service_name(service_objects: dict[str, ServiceObject]) -> str | None:
+    for service in service_objects.values():
+        if service.ip_proto == ANY_IP_PROTOCOL_ID and service.svc_port is None and service.svc_port_end is None:
+            return service.svc_name
+    return None
 
 
 def _create_service_from_protocol(name: str) -> ServiceObject:
@@ -288,16 +306,26 @@ def _update_service_objects_from_rule_ports(
 
     for ref in rule.dest_port:
         dest_port = _service_ref_name(ref)
-        if _qualified_service_name(dest_port, protocol) in svc_objs:
-            continue
-        if protocol is not None and dest_port in svc_objs:
-            # known alias (or the special "Any" service): derive the protocol variant from it
-            _register_qualified_service(dest_port, protocol, svc_objs, 0, synthetic_any_service_uid)
-            continue
-        svc = _create_port_service_for_rule(dest_port, rule)
-        if protocol is not None:
-            svc = _qualify_service(svc, protocol, None, synthetic_any_service_uid)
-        svc_objs[svc.svc_name] = svc
+        base_service = svc_objs.get(dest_port)
+        protocols: tuple[str | None, ...] = (protocol,)
+        if (
+            rule.protocol.lower() == "tcp/udp"
+            and base_service is not None
+            and base_service.svc_uid == synthetic_any_service_uid
+        ):
+            protocols = TCP_UDP_PROTOCOLS
+
+        for service_protocol in protocols:
+            if _qualified_service_name(dest_port, service_protocol) in svc_objs:
+                continue
+            if service_protocol is not None and base_service is not None:
+                # Known aliases, including the synthetic ANY service, derive one object per protocol.
+                _register_qualified_service(dest_port, service_protocol, svc_objs, 0, synthetic_any_service_uid)
+                continue
+            svc = _create_port_service_for_rule(dest_port, rule)
+            if service_protocol is not None:
+                svc = _qualify_service(svc, service_protocol, None, synthetic_any_service_uid)
+            svc_objs[svc.svc_name] = svc
 
 
 def _update_service_objects_from_access_rules(

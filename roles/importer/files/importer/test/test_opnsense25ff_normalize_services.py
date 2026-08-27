@@ -12,6 +12,7 @@ from fw_modules.opnsense25ff.opnsense_model import (
 from fw_modules.opnsense25ff.opnsense_normalize_services import (
     _normalize_services_from_port_alias,
     _qualify_service,
+    get_synthetic_any_service_name,
     normalize_services,
 )
 from fw_modules.opnsense25ff.opnsense_normalizer import _create_normalized_rule_from_access_rule
@@ -221,6 +222,27 @@ def test_normalize_services_keeps_protocol_for_rules_without_port() -> None:
     assert services["Any/tcp"].ip_proto == 6
     assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (1, 65535)
     assert _create_normalized_rule_from_access_rule(rule).rule_svc == "Any/tcp"
+
+
+def test_normalize_services_splits_portless_tcp_udp_rule_into_qualified_services() -> None:
+    rule = _port_rule("r-tcp-udp-any", "tcp/udp", None)
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = normalize_services(config)
+
+    synthetic_any_service_name = get_synthetic_any_service_name(services)
+    assert synthetic_any_service_name == "Any"
+    assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end, services["Any/tcp"].ip_proto) == (
+        1,
+        65535,
+        6,
+    )
+    assert (services["Any/udp"].svc_port, services["Any/udp"].svc_port_end, services["Any/udp"].ip_proto) == (
+        1,
+        65535,
+        17,
+    )
+    assert _create_normalized_rule_from_access_rule(rule, synthetic_any_service_name).rule_svc == "Any/tcp|Any/udp"
 
 
 def test_qualify_service_preserves_ports_for_user_service_named_any() -> None:

@@ -2520,12 +2520,14 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "log_time",
                       "owner_id"
                     ],
                     "filter": {}
                   },
                   "comment": ""
-                },                {
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [

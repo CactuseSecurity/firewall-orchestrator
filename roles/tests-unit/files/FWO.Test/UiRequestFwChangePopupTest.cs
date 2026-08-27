@@ -213,8 +213,9 @@ namespace FWO.Test
                 new Action<Exception?, string, string, bool>((_, title, message, error) => messages.Add((title, message, error))));
             SetPrivateProperty(component.Instance, "middlewareClient", null);
 
-            component.FindAll("button.btn-primary").Single(button => !button.HasAttribute("disabled")).Click();
-            component.WaitForAssertion(() => Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1)));
+            await (Task)InvokePrivate(component.Instance, "StartRequests")!;
+
+            Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1));
 
             Assert.Multiple(() =>
             {
@@ -250,11 +251,12 @@ namespace FWO.Test
                 {
                     refreshCalls++;
                     return Task.CompletedTask;
-                });
+            });
 
             component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True));
-            component.FindAll("button.btn-primary").Single(button => !button.HasAttribute("disabled")).Click();
-            component.WaitForAssertion(() => Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1)));
+            await (Task)InvokePrivate(component.Instance, "StartRequests")!;
+
+            Assert.That(apiConn.NewTicketCalls, Is.EqualTo(1));
 
             Assert.Multiple(() =>
             {

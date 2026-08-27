@@ -19,6 +19,13 @@ namespace FWO.Config.Api
         public GlobalConfig? GlobalConfig => globalConfig;
         private readonly GlobalConfig? globalConfig;
 
+        /// <summary>
+        /// Indicates whether the administrator is allowed to perform a full rollback
+        /// (deletion of all import data) of a management. Reads the authoritative value
+        /// from the global config; defaults to false when no global config is available.
+        /// </summary>
+        public bool FullRollbackAllowed => globalConfig?.AllowFullRollback ?? false;
+
         public Dictionary<string, string> Translate { get; set; } = [];
         public Dictionary<string, string> Overwrite { get; set; } = [];
 

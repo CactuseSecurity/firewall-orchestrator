@@ -24,6 +24,7 @@ namespace FWO.Basics
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
+        public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
@@ -101,7 +102,9 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string DynamicNetObj = "dynamic_net_obj";
         public const string AccessRole = "access-role";
+        public const string Domain = "domain";
     }
 
     public struct ServiceType

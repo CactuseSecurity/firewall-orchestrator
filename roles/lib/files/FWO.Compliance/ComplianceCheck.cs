@@ -1224,6 +1224,11 @@ namespace FWO.Compliance
         /// <param name="protocolToken">Restricted protocol token.</param>
         private static bool MatchesRestrictedServiceDefinition(NetworkService service, int rangeStart, int rangeEnd, string protocolToken)
         {
+            if (IsCanonicalAnyService(service))
+            {
+                return true;
+            }
+
             if (!ServiceProtocolMatches(service, protocolToken) || service.DestinationPort == null)
             {
                 return false;
@@ -1233,6 +1238,17 @@ namespace FWO.Compliance
             int serviceRangeEnd = service.DestinationPortEnd ?? serviceRangeStart;
 
             return serviceRangeStart <= rangeEnd && serviceRangeEnd >= rangeStart;
+        }
+
+        /// <summary>
+        /// Determines whether a service represents the imported, protocol-agnostic ANY service.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        private static bool IsCanonicalAnyService(NetworkService service)
+        {
+            return (service.ProtoId ?? service.Protocol?.Id) == GlobalConst.kAnyIpProtocolId
+                && service.DestinationPort == null
+                && service.DestinationPortEnd == null;
         }
 
         /// <summary>

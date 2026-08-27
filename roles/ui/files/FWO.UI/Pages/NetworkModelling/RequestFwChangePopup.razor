@@ -365,7 +365,7 @@
         IpProtocol? ipProtocol = ipProtos.Find(x => x.Id == elem.ProtoId);
         bool showPort = elem.Port != null && (IpProtocol.HasPorts(ipProtocol?.Id) || ipProtocol == null);
         string portRange = showPort
-            ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port ?? 0, elem.PortEnd) + "/"
+            ? SCAccessRequestTicketTask.DisplayPortRange(elem.Port, elem.PortEnd) + "/"
             : "";
 
         string protocolName = ipProtocol?.Name ?? elem.ProtoId?.ToString() ?? "";

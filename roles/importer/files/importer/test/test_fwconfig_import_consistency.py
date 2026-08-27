@@ -420,7 +420,7 @@ class TestCheckConsistencyNetworkObjects:
             config=config, global_config=None, fix_unresolvable_refs=False
         )
         assert len(consistency_checker.issues) == 1
-        assert consistency_checker.issues == {"non-group network object with undefined IP addresse(s)": [nw_obj]}
+        assert consistency_checker.issues == {"network object with undefined IP addresse(s)": [nw_obj]}
 
 
 class TestCheckConsistencyServiceObjects:

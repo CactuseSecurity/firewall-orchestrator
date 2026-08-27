@@ -621,3 +621,8 @@ Not supported any longer are:
 
 ## 9.4.2 - 25.08.2026
 - add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
+
+## 9.4.3 - 26.08.2026
+- normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
+- IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
+- add 'add auto calculated internet zone' button to compliance matrix ui

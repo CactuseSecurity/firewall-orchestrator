@@ -75,7 +75,6 @@ namespace FWO.Compliance
         /// Parameter for treating domain and dynamic network objects as part of the auto-calculated internet zone.
         /// </summary>
         private bool _treatDomainAndDynamicObjectsAsInternet = false;
-        private static readonly List<string> kDynamicAndDomainObjectTypes = [ObjectType.DynamicNetObj, ObjectType.Domain];
         /// <summary>
         /// True if the feature auto-calculated internet zone is activated.
         /// </summary>
@@ -616,7 +615,10 @@ namespace FWO.Compliance
         {
             List<IPAddressRange> ranges = [];
 
-            if (networkObject.Type.Name == ObjectType.IPRange || (networkObject.Type.Name == ObjectType.Network && networkObject.IP.Equals(networkObject.IpEnd) == false))
+            if ((networkObject.Type.Name == ObjectType.IPRange || networkObject.Type.Name == ObjectType.Network)
+                && !string.IsNullOrWhiteSpace(networkObject.IP)
+                && !string.IsNullOrWhiteSpace(networkObject.IpEnd)
+                && (networkObject.Type.Name == ObjectType.IPRange || !string.Equals(networkObject.IP, networkObject.IpEnd, StringComparison.Ordinal)))
             {
                 if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {
@@ -625,12 +627,11 @@ namespace FWO.Compliance
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
-                for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+                foreach (NetworkObject groupMember in networkObject.ObjectGroupFlats
+                    .Select(groupFlat => groupFlat.Object)
+                    .OfType<NetworkObject>())
                 {
-                    if (networkObject.ObjectGroupFlats[j].Object != null)
-                    {
-                        ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-                    }
+                    ranges.AddRange(ParseIpRange(groupMember));
                 }
             }
             else if (networkObject.IP != null)
@@ -1434,11 +1435,11 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone> networkZones = [];
 
-                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && kDynamicAndDomainObjectTypes.Contains(dataItem.networkObject.Type.Name))
+                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && ObjectType.IsDynamicallyResolvedObject(dataItem.networkObject.Type.Name))
                 {
-                    List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
+                    List<ComplianceNetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
 
-                    foreach (ComplianceNetworkZone zone in complianceNetworkZones)
+                    foreach (ComplianceNetworkZone zone in autoCalculatedInternetZones)
                     {
                         networkZones.Add(zone);
                     }
@@ -1544,7 +1545,7 @@ namespace FWO.Compliance
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
             {
                 networkObjects = networkObjects
-                    .Where(n => !kDynamicAndDomainObjectTypes.Contains(n.Type.Name))
+                    .Where(n => !ObjectType.IsDynamicallyResolvedObject(n.Type.Name))
                     .ToList();
             }
 
@@ -1557,7 +1558,10 @@ namespace FWO.Compliance
         /// <param name="networkObject">Network object to evaluate.</param>
         private AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
         {
-            if (networkObject.IP == null && networkObject.IpEnd == null)
+            if (networkObject.IP == null || networkObject.IpEnd == null)
+                return AssessabilityIssue.IPNull;
+
+            if (networkObject.IP == "::/128" && networkObject.IpEnd == "::/128")
                 return AssessabilityIssue.IPNull;
 
             if (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")

@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -297,6 +297,68 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_AcceptsCanonicalAnyIpProtocolServiceWithNullPorts()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow any IP protocol to app server",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "any-ip",
+                    Protocol = "ANY",
+                    PortStart = null,
+                    PortEnd = null
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.service.ToString());
+            Assert.That(serviceElement.ProtoId, Is.EqualTo(-1));
+            Assert.That(serviceElement.Port, Is.Null);
+            Assert.That(serviceElement.PortEnd, Is.Null);
         });
     }
 

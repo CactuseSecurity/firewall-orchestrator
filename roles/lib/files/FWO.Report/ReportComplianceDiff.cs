@@ -14,6 +14,7 @@ namespace FWO.Report
         private readonly record struct RuleIdentity(string ManagementUid, string RuleUid);
         private bool _existingViolationsFilterFailed;
         private HashSet<RuleIdentity> _suppressedRuleIdentities = [];
+        private Dictionary<RuleIdentity, ComplianceViolationType> _currentComplianceBySuppressedRuleIdentity = [];
 
         public int DiffReferenceInDays { get; set; } = 0;
 
@@ -46,9 +47,19 @@ namespace FWO.Report
 
             if (ShowNonImpactRules && rule.Violations.Count == 0)
             {
-                rule.ViolationDetails = HasSuppressedIntervalViolations(rule)
-                    ? userConfig.GetText("existing_violation_hidden_by_filter")
-                    : userConfig.GetText("no_changes_found");
+                if (HasSuppressedIntervalViolations(rule))
+                {
+                    if (TryGetCurrentComplianceForSuppressedRule(rule, out ComplianceViolationType currentCompliance))
+                    {
+                        rule.Compliance = currentCompliance;
+                    }
+
+                    rule.ViolationDetails = userConfig.GetText("existing_violation_hidden_by_filter");
+                }
+                else
+                {
+                    rule.ViolationDetails = userConfig.GetText("no_changes_found");
+                }
             }
         }
 
@@ -65,6 +76,23 @@ namespace FWO.Report
         }
 
         /// <summary>
+        /// Gets the current compliance state retained before interval violations were attached to a suppressed rule.
+        /// </summary>
+        private bool TryGetCurrentComplianceForSuppressedRule(Rule rule, out ComplianceViolationType currentCompliance)
+        {
+            string? managementUid = Managements.FirstOrDefault(management => management.Id == rule.MgmtId)?.Uid;
+            if (string.IsNullOrEmpty(managementUid) || string.IsNullOrEmpty(rule.Uid))
+            {
+                currentCompliance = ComplianceViolationType.None;
+                return false;
+            }
+
+            return _currentComplianceBySuppressedRuleIdentity.TryGetValue(
+                new RuleIdentity(managementUid, rule.Uid),
+                out currentCompliance);
+        }
+
+        /// <summary>
         /// Fetches diff data in the selective direction: violations first, then only the active rules referenced by
         /// those violations. This avoids paging through the entire active rule table when few rules changed.
         /// </summary>
@@ -73,6 +101,7 @@ namespace FWO.Report
             _existingViolationsFilterFailed = false;
             ReportData.ExistingViolationsFilterFailed = false;
             _suppressedRuleIdentities = [];
+            _currentComplianceBySuppressedRuleIdentity = [];
 
             // Fix both boundaries once. Every parallel page therefore observes exactly the same report interval.
             DateTime reportEnd = DateTime.Now;
@@ -383,6 +412,7 @@ namespace FWO.Report
                 {
                     foreach (Rule rule in ruleChunk)
                     {
+                        PreserveCurrentComplianceForSuppressedRule(rule, managementUidsById);
                         TryAttachRuleViolations(rule, managementUidsById, violationsByRule);
                     }
                 }
@@ -393,6 +423,44 @@ namespace FWO.Report
                     ruleChunk.RemoveAll(rule => !TryAttachRuleViolations(rule, managementUidsById, violationsByRule));
                 }
             }
+        }
+
+        /// <summary>
+        /// Stores the current compliance state before replacing active-rule violations with interval violations.
+        /// </summary>
+        private void PreserveCurrentComplianceForSuppressedRule(
+            Rule rule,
+            Dictionary<int, string> managementUidsById)
+        {
+            if (!managementUidsById.TryGetValue(rule.MgmtId, out string? managementUid)
+                || string.IsNullOrEmpty(rule.Uid))
+            {
+                return;
+            }
+
+            RuleIdentity identity = new(managementUid, rule.Uid);
+            if (_suppressedRuleIdentities.Contains(identity) && rule.Violations.Count > 0)
+            {
+                _currentComplianceBySuppressedRuleIdentity[identity] = DetermineCompliance(rule.Violations);
+            }
+        }
+
+        /// <summary>
+        /// Determines the compliance state using the same precedence as the base report formatter.
+        /// </summary>
+        private static ComplianceViolationType DetermineCompliance(List<ComplianceViolation> violations)
+        {
+            if (violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
+            {
+                return ComplianceViolationType.NotAssessable;
+            }
+
+            return violations.Count switch
+            {
+                0 => ComplianceViolationType.None,
+                1 => violations[0].Type,
+                _ => ComplianceViolationType.MultipleViolations
+            };
         }
 
         /// <summary>

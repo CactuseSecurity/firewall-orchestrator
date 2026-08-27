@@ -426,7 +426,7 @@ namespace FWO.Test
             };
             List<Rule> activeRules = new()
             {
-                CreateActiveRule("rule-a"),
+                CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a")),
                 CreateActiveRule("rule-b"),
                 CreateActiveRule("rule-c")
             };
@@ -439,6 +439,12 @@ namespace FWO.Test
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-a").ViolationDetails,
                     Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter")));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-a").Compliance,
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    report.RuleViewData.Single(rule => rule.Uid == "rule-a").Compliance,
+                    Is.EqualTo("FALSE"));
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-c").ViolationDetails,
                     Is.EqualTo(userConfig.GetText("no_changes_found")));

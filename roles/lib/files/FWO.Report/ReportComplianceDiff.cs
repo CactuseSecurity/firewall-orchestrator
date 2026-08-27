@@ -186,7 +186,7 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Marks archived and exported reports when their requested existing-violation filter was unavailable.
+        /// Marks archived reports when their requested existing-violation filter was unavailable.
         /// </summary>
         public override string SetDescription()
         {

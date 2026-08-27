@@ -7,6 +7,31 @@
   become: true
   environment: "{{ proxy_env }}"
 
+- name: Read the configured middleware URI
+  ansible.builtin.slurp:
+    src: "{{ fworch_conf_file }}"
+  register: test_fwo_config_file
+  become: true
+
+- name: Parse the configured middleware URI
+  ansible.builtin.set_fact:
+    test_middleware_uri: >-
+      {{ (test_fwo_config_file.content | b64decode | from_json).middleware_uri }}
+
+- name: Derive the configured HTTPS middleware endpoint
+  ansible.builtin.set_fact:
+    test_middleware_host: "{{ test_middleware_uri | urlsplit('hostname') }}"
+    test_middleware_port: "{{ (test_middleware_uri | urlsplit('port')) | default(443, true) }}"
+
+- name: Require an HTTPS middleware endpoint in the FWO configuration
+  ansible.builtin.assert:
+    that:
+      - test_middleware_uri | urlsplit('scheme') == 'https'
+      - test_middleware_host | length > 0
+    fail_msg: >-
+      {{ fworch_conf_file }} must define middleware_uri as an HTTPS Apache
+      endpoint, but contains {{ test_middleware_uri }}.
+
 - name: randomize test names to avoid interference with production data
   set_fact:
     test_postfix: "_test_{{ randomly_generated_pwd }}"

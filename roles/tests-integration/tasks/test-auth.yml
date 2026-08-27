@@ -13,34 +13,18 @@
       state: restarted
   become: true
 
-- name: Read the configured middleware native URI
-  ansible.builtin.slurp:
-    src: "{{ fworch_conf_file }}"
-  register: test_middleware_config_file
-  become: true
-
-- name: Parse the configured middleware native URI
-  ansible.builtin.set_fact:
-    test_middleware_native_uri: >-
-      {{ (test_middleware_config_file.content | b64decode | from_json).middleware_native_uri }}
-
-- name: Derive the configured middleware native endpoint
-  ansible.builtin.set_fact:
-    test_middleware_native_host: "{{ test_middleware_native_uri | urlsplit('hostname') }}"
-    test_middleware_native_port: "{{ test_middleware_native_uri | urlsplit('port') }}"
-
 - block:
     - name: wait for middleware port to become available
       ansible.builtin.wait_for:
-          port: "{{ test_middleware_native_port }}"
-          host: "{{ test_middleware_native_host }}"
+          port: "{{ test_middleware_port }}"
+          host: "{{ test_middleware_host }}"
           connect_timeout: 1
           delay: 10
           timeout: 120
 
     - name: wait for middleware web server to become available
       ansible.builtin.uri:
-          url: "{{ test_middleware_native_uri }}api-docs/"
+          url: "{{ test_middleware_uri }}api-docs/"
           method: GET
           validate_certs: true
           ca_path: "{{ internalca_trust_bundle }}"
@@ -75,11 +59,11 @@
       ansible.builtin.fail:
           msg: >-
             Middleware did not become ready on
-            {{ test_middleware_native_host }}:{{ test_middleware_native_port }}.
+            {{ test_middleware_host }}:{{ test_middleware_port }}.
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
       method: POST
       status_code: 200
       headers:
@@ -145,7 +129,7 @@
 # --- negative test: wrong credentials ---
 - name: middleware test get jwt wrong creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
       method: POST
       headers:
           Content-Type: application/json

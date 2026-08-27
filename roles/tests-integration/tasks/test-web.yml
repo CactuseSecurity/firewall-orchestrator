@@ -4,7 +4,7 @@
 
 - name: test middleware web server availability
   uri:
-    url: "{{ middleware_uri }}/swagger/"
+    url: "{{ test_middleware_uri }}api-docs/"
     method: GET
     headers:
       Content-Type: html/text

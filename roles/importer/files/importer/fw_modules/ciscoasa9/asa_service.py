@@ -20,6 +20,9 @@ if TYPE_CHECKING:
     from fw_modules.ciscoasa9.asa_models import AccessListEntry, AsaServiceObject, AsaServiceObjectGroup
 
 
+ASA_ANY_PROTOCOL_SERVICE_UID = "ANY"
+
+
 def _get_ip_protocol_id(protocol: str) -> int:
     return fwo_const.ANY_IP_PROTOCOL_ID if protocol == "ip" else protocol_map.get(protocol, 0)
 
@@ -155,7 +158,7 @@ def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
         obj_name = f"any-{proto}"
         is_any_ip_protocol = proto == "ip"
         obj = ServiceObject(
-            svc_uid=obj_name,
+            svc_uid=ASA_ANY_PROTOCOL_SERVICE_UID if is_any_ip_protocol else obj_name,
             svc_name=obj_name,
             svc_port=None if is_any_ip_protocol else 0,
             svc_port_end=None if is_any_ip_protocol else 65535,
@@ -248,7 +251,7 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
     if obj_name not in service_objects:
         port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
-            svc_uid=obj_name,
+            svc_uid=ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else obj_name,
             svc_name=obj_name,
             svc_port=port_range[0],
             svc_port_end=port_range[1],

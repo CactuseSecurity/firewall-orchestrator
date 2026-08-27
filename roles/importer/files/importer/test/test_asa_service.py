@@ -16,6 +16,7 @@ def test_protocol_any_service_uses_any_protocol_for_ip():
 
     any_ip_service = services["any-ip"]
     assert any_ip_service.svc_typ == "simple"
+    assert any_ip_service.svc_uid == "ANY"
     assert any_ip_service.svc_port is None
     assert any_ip_service.svc_port_end is None
     assert any_ip_service.ip_proto == -1
@@ -32,6 +33,7 @@ def test_create_any_protocol_service_uses_any_protocol_for_ip():
     service_name = create_any_protocol_service("ip", services)
 
     assert service_name == "any-ip"
+    assert services[service_name].svc_uid == "ANY"
     assert services[service_name].svc_port is None
     assert services[service_name].svc_port_end is None
     assert services[service_name].ip_proto == -1
@@ -54,6 +56,7 @@ def test_acl_ip_protocol_reuses_seeded_any_service():
     assert len(services) == 4
     any_service = services[service_name]
     assert any_service.svc_typ == "simple"
+    assert any_service.svc_uid == "ANY"
     assert any_service.svc_port is None
     assert any_service.svc_port_end is None
     assert any_service.ip_proto == -1

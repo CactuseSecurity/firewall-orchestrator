@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
@@ -104,7 +105,7 @@ namespace FWO.Services.Workflow
                 ActImplTask.StateId = actPossibleStates[0];
             }
             await UpdateActImplTaskState();
-            if (!ActStateMatrix.PhaseActive[WorkflowPhases.planning] && ActReqTask.Start == null)
+            if (!IsPlanningPhaseActive(ActStateMatrix) && ActReqTask.Start == null)
             {
                 ActReqTask.Start = ActImplTask.Start;
             }
@@ -266,7 +267,7 @@ namespace FWO.Services.Workflow
 
         private async Task AutoCreateOrUpdateImplTasks()
         {
-            if (Phase <= WorkflowPhases.approval && !MasterStateMatrix.PhaseActive[WorkflowPhases.planning]
+            if (Phase <= WorkflowPhases.approval && !IsPlanningPhaseActive(MasterStateMatrix)
                 && ActTicket.StateId >= MasterStateMatrix.LowestEndState)
             {
                 List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
@@ -401,8 +402,22 @@ namespace FWO.Services.Workflow
             return reqTask.ImplementationTasks.Count == 0
                 && (reqTask.TaskType != WfTaskType.access.ToString() || userConfig.ReqAutoCreateImplTasks != AutoCreateImplTaskOptions.never)
                 && stateMatrixDict.Matrices.TryGetValue(reqTask.TaskType, out StateMatrix? matrix)
-                && !matrix.PhaseActive[WorkflowPhases.planning]
+                && !IsPlanningPhaseActive(matrix)
                 && RequestTaskNeedsInitialImplTasks(reqTask);
+        }
+
+        /// <summary>
+        /// Determines whether the planning phase is enabled for the supplied state matrix.
+        /// </summary>
+        private static bool IsPlanningPhaseActive(StateMatrix matrix)
+        {
+            if (!matrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive))
+            {
+                Log.WriteWarning("Workflow State", "Planning phase key is missing from the state matrix; treating planning as inactive.");
+                return false;
+            }
+
+            return planningActive;
         }
 
         public bool CanAutoCreateInitialImplTasks(WfTicket ticket, WfReqTask reqTask)

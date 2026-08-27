@@ -729,6 +729,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Test_Generate_NatRules_FetchesStructureOnceAndAttachesFlatRulePages()
+        {
+            DynGraphqlQuery query = new("")
+            {
+                FullQuery = "legacy-full-query",
+                StandardRulesStructureQuery = "standard-rules-structure-query $import_id_start $import_id_end",
+                StandardRulesPageQuery = "standard-rules-page-query",
+                RelevantManagementIds = [1],
+                QueryVariables = { ["fullTextFilter0"] = "%accept%" }
+            };
+            RuleTreeBuilder ruleTreeBuilder = new();
+            ReportRules reportRules = new(query, new SimulatedUserConfig(), ReportType.NatRules, ruleTreeBuilder);
+            StandardRulesSplitApiConnection apiConnection = new();
+            int callbackCount = 0;
+
+            await reportRules.Generate(2, apiConnection, _ =>
+            {
+                callbackCount++;
+                return Task.CompletedTask;
+            }, CancellationToken.None);
+
+            ManagementReport managementReport = reportRules.ReportData.ManagementData.Single();
+            Assert.That(apiConnection.StructureQueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.RulePageOffsets, Is.EqualTo(ExpectedStandardRulePageOffsets));
+            Assert.That(apiConnection.RulePageRulebaseIds, Has.Count.EqualTo(2));
+            Assert.That(apiConnection.RulePageRulebaseIds[0], Is.EqualTo(ExpectedStandardRulebaseIds));
+            Assert.That(apiConnection.RulePageRulebaseIds[1], Is.EqualTo(ExpectedStandardRulebaseIds));
+            Assert.That(apiConnection.LegacyFullQueryCount, Is.EqualTo(0));
+            Assert.That(callbackCount, Is.EqualTo(2));
+            Assert.That(managementReport.Rulebases.Single(rulebase => rulebase.Id == 10).Rules.Select(rule => rule.Id), Is.EqualTo(ExpectedFirstStandardRulebaseRuleIds));
+            Assert.That(managementReport.Rulebases.Single(rulebase => rulebase.Id == 20).Rules.Select(rule => rule.Id), Is.EqualTo(ExpectedSecondStandardRulebaseRuleIds));
+            Assert.That(reportRules.ReportData.ElementsCount, Is.EqualTo(3));
+        }
+
+        [Test]
         public async Task Test_Generate_StandardRules_SkipsRulePaging_WhenNoSelectedRulebases()
         {
             DynGraphqlQuery query = new("")

@@ -76,6 +76,12 @@
                 </Dropdown>
             </div>
         </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+            <label for="cbx_default_iconify" class="col-form-label col-sm-4">@(userConfig.GetText("modIconify")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_default_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
+            </div>
+        </div>
         <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch"))*:</label>
@@ -166,6 +172,13 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("importScriptTimeout")):</label>
             <div class="col-sm-2">
                 <input type="number" min="1" max="@GlobalConst.kMaxImportScriptTimeoutMinutes" @bind="configData!.ImportScriptTimeout" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5853"))">
+            <label for="cbx_allow_full_rollback" class="col-form-label col-sm-4">@(userConfig.GetText("allowFullRollback")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_allow_full_rollback" type="checkbox" class="w-100" @bind="configData!.AllowFullRollback">
             </div>
         </div>
         <hr />

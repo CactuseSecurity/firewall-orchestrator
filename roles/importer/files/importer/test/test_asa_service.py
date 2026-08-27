@@ -124,6 +124,16 @@ def test_config_group_named_any_enabling_ip_protocol_does_not_self_reference():
     assert canonical_any_ip.ip_proto == -1
 
 
+def test_create_any_protocol_service_reuses_object_for_non_tcp_udp_protocol():
+    services: dict[str, ServiceObject] = {}
+
+    first_uid = create_any_protocol_service("esp", services)
+    second_uid = create_any_protocol_service("esp", services)
+
+    assert first_uid == second_uid == "any-esp"
+    assert sum(1 for obj in services.values() if obj.svc_name == "any-esp") == 1
+
+
 def test_config_object_named_any_tcp_with_narrow_port_does_not_narrow_any_any_acl():
     services: dict[str, ServiceObject] = {}
     services["any-tcp"] = create_service_object("any-tcp", 443, 443, "tcp", "user object")

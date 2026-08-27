@@ -156,7 +156,7 @@ def _canonical_any_protocol(obj: ServiceObject) -> str | None:
     if obj.svc_typ != "simple" or not obj.svc_name.startswith("any-"):
         return None
     proto = obj.svc_name.removeprefix("any-")
-    if proto not in ("tcp", "udp", "icmp", "ip") or obj.ip_proto != _get_ip_protocol_id(proto):
+    if (proto != "ip" and proto not in protocol_map) or obj.ip_proto != _get_ip_protocol_id(proto):
         return None
     expected_port, expected_port_end = (0, 65535) if proto in ("tcp", "udp") else (None, None)
     if obj.svc_port != expected_port or obj.svc_port_end != expected_port_end:

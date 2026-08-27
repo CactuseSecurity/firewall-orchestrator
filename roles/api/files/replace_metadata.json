@@ -2517,6 +2517,15 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },                {
                   "role": "modeller",
                   "permission": {
                     "columns": [

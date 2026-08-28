@@ -1,19 +1,31 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using NUnit.Framework;
-using ApiQueries = FWO.Api.Client.Queries.Queries;
 
 namespace FWO.Test
 {
     /// <summary>
     /// Guards the alignment between the API call definitions and the Hasura role permissions.
-    /// Hasura builds the columns of a role specific &lt;table&gt;_bool_exp from the select permission of
-    /// that role, so a role which may delete or update a table but cannot select the columns its where
-    /// clause filters on has the mutation rejected while it is validated. Nothing but a runtime error
-    /// inside a background job reports that mismatch, which is why it is checked here instead.
+    /// Hasura derives what a role sees of a table from the select permission of that role, which makes
+    /// a missing select permission break calls that never read anything on purpose:
+    /// <list type="bullet">
+    /// <item>the columns of a role specific &lt;table&gt;_bool_exp are the selectable ones, so a role which
+    /// may delete or update a table but cannot select the columns its where clause filters on has the
+    /// mutation rejected while it is validated,</item>
+    /// <item>a mutation response passes through the select permission as well, so a role which cannot
+    /// select the columns behind a returning block cannot run the mutation either, and a _by_pk root
+    /// field is not even part of the schema of a role without select permission on the table.</item>
+    /// </list>
+    /// Nothing but a runtime error inside a background job or a page reports either mismatch, which is why
+    /// they are checked here instead.
     /// The metadata and the API calls are read from the repository, or from the places the installer
     /// deploys them to, because an installed system holds only the sources of the tests themselves.
     /// Where neither is reachable the checks are skipped instead of passing on no input at all.
+    /// What the checks cannot see is listed by ReportUncheckableCalls instead of passing silently:
+    /// filters and object lists handed over as a variable are only known at run time, and a selection set
+    /// behind a fragment spread lives in another file, so of it only the fact that something is returned
+    /// is used. Queries are covered by ApiCalls_QueriesAreRunnableByAtLeastOneRole alone, because the
+    /// metadata does not record which role issues which query and demanding the filter of a query from
+    /// every role holding select permission would report far more roles than ever run it.
     /// </summary>
     [TestFixture]
     internal partial class ApiPermissionAlignmentTest
@@ -27,16 +39,65 @@ namespace FWO.Test
             "The API call definitions are not reachable in this environment, so the permission alignment cannot be checked.";
         private const string kPermissionSuffix = "_permissions";
         private const string kSelectOperation = "select";
+        private const string kInsertOperation = "insert";
         private const string kUpdateOperation = "update";
+        private const string kDeleteOperation = "delete";
+        private const string kQueryOperationType = "query";
+        private const string kMutationOperationType = "mutation";
         private const string kPublicSchema = "public";
-        private const string kManyRootSuffix = "_many";
+        private const string kByPkRootSuffix = "_by_pk";
+        private const string kFragmentSpread = "...";
+        private const string kAffectedRowsField = "affected_rows";
+        private const string kReturningField = "returning";
+        private const string kTypeNameField = "__typename";
+        private const string kAllColumnsMarker = "*";
+
+        /// <summary>
+        /// Stands for "the role needs select permission on this table at all" in a gap, which is what a
+        /// _by_pk root field and a returning block behind a fragment spread require without naming a
+        /// single column.
+        /// </summary>
+        private const string kAnyColumn = "<any column>";
+
+        /// <summary>
+        /// Stands for "no role at all" in a gap reported for a query, whose issuing role is not recorded
+        /// anywhere in the metadata.
+        /// </summary>
+        private const string kAnyRole = "<any role>";
+
         private const int kMaxFilterDepth = 100;
         private const int kRegexTimeoutMilliseconds = 1000;
 
         /// <summary>
-        /// Operators combining several conditions. Their operands are conditions again and not columns.
+        /// Operators combining several conditions. Their operands are conditions again and not columns,
+        /// and they appear in a boolean expression only, never inside the comparison of a single column,
+        /// which is what tells a relationship apart from a column.
         /// </summary>
         private static readonly List<string> kLogicalOperators = new() { "_and", "_or", "_not" };
+
+        /// <summary>
+        /// Suffixes Hasura appends to the name of a table for a root field addressing it in another way.
+        /// They are cut off to arrive at the table the root field belongs to.
+        /// </summary>
+        private static readonly List<string> kRootFieldSuffixes =
+            new() { "_many", "_one", "_aggregate", "_stream" };
+
+        /// <summary>
+        /// The kinds of relationship a table declares, which are read the same way.
+        /// </summary>
+        private static readonly List<string> kRelationshipKinds =
+            new() { "object_relationships", "array_relationships" };
+
+        /// <summary>
+        /// Fields of a mutation response which are no columns of the table.
+        /// </summary>
+        private static readonly List<string> kResponseMetaFields = new() { kAffectedRowsField, kTypeNameField };
+
+        /// <summary>
+        /// Marks a role which may select every column of a table, which Hasura writes as "*" instead of
+        /// listing the columns. Compared by reference, so it cannot collide with a real column set.
+        /// </summary>
+        private static readonly HashSet<string> kAllColumns = new() { kAllColumnsMarker };
 
         /// <summary>
         /// The sources under test. They are looked up once and are read from wherever the environment
@@ -45,16 +106,39 @@ namespace FWO.Test
         /// </summary>
         private static readonly Lazy<FileInfo?> kMetadataFileInfo = new(LocateMetadata);
         private static readonly Lazy<DirectoryInfo?> kApiCallDirectory = new(LocateApiCalls);
+        private static readonly Lazy<ApiCallSurvey> kApiCallSurvey = new(ReadApiCalls);
 
         /// <summary>
         /// Mismatches which are accepted although they exist. Every entry breaks the API call named with
         /// it for the role named with it, and closing one widens the read access of that role, which is a
-        /// decision for the owner of the respective workflow. The list is empty because the metadata
-        /// currently holds no such mismatch; it stays here so an accepted one can be recorded with the
-        /// reason for accepting it instead of being silenced by weakening the check.
-        /// ApiCalls_KnownPermissionGapsStillExist removes the risk of the list outliving the mismatches.
+        /// decision for the owner of the respective workflow rather than one to take while repairing an
+        /// unrelated call. ApiCalls_KnownPermissionGapsStillExist removes the risk of an entry outliving
+        /// the mismatch it accepts.
         /// </summary>
-        private static readonly List<string> kKnownPermissionGaps = new();
+        private static readonly List<string> kKnownPermissionGaps = new()
+        {
+            // The importer role holds insert permission on recertification but none of the three calls is
+            // issued by the importer: FWO.Recert sends them under the role of the logged in user
+            // (RecertRefresh.cs, RecertHandler.cs). Granting the importer select on recertification would
+            // widen its read access for a call it never makes. Dropping its insert permission instead is
+            // the cleaner repair and belongs to the owner of the recertification workflow.
+            "recertification|importer|<any column>",
+
+            // The middleware-server role holds insert permission on report but report/addGeneratedReport
+            // is sent over the user context connection of the scheduling user (ReportJob.cs), never under
+            // the technical role. Granting it select on report would widen its read access to every
+            // generated report for a call it never makes; dropping the insert permission is the cleaner
+            // repair and belongs to the owner of the report scheduling workflow.
+            "report|middleware-server|<any column>",
+
+            // v_rule_with_rule_owner_1 is tracked with no permission at all, so owner/getRuleOwnerships
+            // exists in the schema of no role of this metadata. /settings/owners is open to admin and
+            // auditor: admin is the built in role of Hasura and passes every permission, auditor is not
+            // and its EditOwner.razor fails to load the rules of an owner. Which role should read the view
+            // is a decision for the owner of the ownership workflow; the gap is recorded here so it is not
+            // lost while it is open.
+            "v_rule_with_rule_owner_1|<any role>|owner_id"
+        };
 
         /// <summary>
         /// Every column an API call filters a delete or update on has to be selectable by the roles which
@@ -63,24 +147,31 @@ namespace FWO.Test
         [Test]
         public void ApiCalls_FilterOnlyColumnsTheirRolesMaySelect()
         {
-            SkipWithoutSources();
+            AssertNoGaps(CollectGaps(FindFilterGaps),
+                "A role may run these mutations but cannot select the columns they filter on:");
+        }
 
-            Dictionary<string, TableMetadata> tables = ReadMetadata();
-            List<string> mismatches = new();
+        /// <summary>
+        /// Every column a mutation returns has to be selectable by the roles which are allowed to run it,
+        /// because a mutation response is read through the select permission of the role.
+        /// </summary>
+        [Test]
+        public void ApiCalls_ReturnOnlyColumnsTheirRolesMaySelect()
+        {
+            AssertNoGaps(CollectGaps(FindReturnGaps),
+                "A role may run these mutations but cannot select the columns they return:");
+        }
 
-            foreach (FilteredMutation mutation in ReadFilteredMutations())
-            {
-                if (tables.TryGetValue(mutation.TableRoot, out TableMetadata? table))
-                {
-                    mismatches.AddRange(FindMismatches(mutation, table)
-                        .Where(gap => !kKnownPermissionGaps.Contains(gap))
-                        .Select(gap => $"{mutation.Source}: {gap}"));
-                }
-            }
-
-            Assert.That(mismatches, Is.Empty,
-                "A role may run these mutations but cannot select the columns they filter on:"
-                + Environment.NewLine + string.Join(Environment.NewLine, mismatches));
+        /// <summary>
+        /// A query filtering on columns no role at all may select cannot be issued by anybody, so it is
+        /// broken however it is called. Which role issues a query is recorded nowhere, which is why only
+        /// this direction of the check is decidable.
+        /// </summary>
+        [Test]
+        public void ApiCalls_QueriesAreRunnableByAtLeastOneRole()
+        {
+            AssertNoGaps(CollectGaps(FindUnrunnableQueryGaps),
+                "No role can select all the columns these queries filter on:");
         }
 
         /// <summary>
@@ -93,10 +184,10 @@ namespace FWO.Test
             SkipWithoutSources();
 
             Dictionary<string, TableMetadata> tables = ReadMetadata();
-
-            List<string> unknownTables = ReadFilteredMutations()
-                .Where(mutation => !tables.ContainsKey(mutation.TableRoot))
-                .Select(mutation => $"{mutation.Source}: {mutation.TableRoot}")
+            List<string> unknownTables = kApiCallSurvey.Value.Operations
+                .Where(operation => operation.Operation != kSelectOperation)
+                .Where(operation => !tables.ContainsKey(operation.TableRoot))
+                .Select(operation => $"{operation.Source}: {operation.TableRoot}")
                 .Distinct()
                 .ToList();
 
@@ -114,17 +205,10 @@ namespace FWO.Test
         {
             SkipWithoutSources();
 
-            Dictionary<string, TableMetadata> tables = ReadMetadata();
-            List<string> existingGaps = new();
-
-            foreach (FilteredMutation mutation in ReadFilteredMutations())
-            {
-                if (tables.TryGetValue(mutation.TableRoot, out TableMetadata? table))
-                {
-                    existingGaps.AddRange(FindMismatches(mutation, table));
-                }
-            }
-
+            HashSet<string> existingGaps = new(CollectGaps(FindFilterGaps, false)
+                .Concat(CollectGaps(FindReturnGaps, false))
+                .Concat(CollectGaps(FindUnrunnableQueryGaps, false))
+                .Select(gap => gap.Gap));
             List<string> repairedGaps = kKnownPermissionGaps.Where(gap => !existingGaps.Contains(gap)).ToList();
 
             Assert.That(repairedGaps, Is.Empty,
@@ -133,40 +217,113 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Collects the roles which may run the mutation but cannot select one of the filtered columns.
+        /// Fails with the gaps a check found, naming the API call which uncovered each of them.
         /// </summary>
-        /// <returns>One entry per missing permission, in the format of FormatGap.</returns>
-        private static List<string> FindMismatches(FilteredMutation mutation, TableMetadata table)
+        private static void AssertNoGaps(List<ReportedGap> gaps, string message)
         {
-            List<string> mismatches = new();
-            if (!table.RolesByOperation.TryGetValue(mutation.Operation, out List<string>? roles))
-            {
-                return mismatches;
-            }
-
-            foreach (string role in roles.Where(role => MayRunMutation(mutation, table, role)))
-            {
-                table.SelectableColumns.TryGetValue(role, out HashSet<string>? selectable);
-                mismatches.AddRange(mutation.Columns
-                    .Where(column => selectable == null || !selectable.Contains(column))
-                    .Select(column => FormatGap(mutation.TableRoot, role, column)));
-            }
-            return mismatches;
+            List<string> reported = gaps.Select(gap => $"{gap.Source}: {gap.Gap}").ToList();
+            Assert.That(reported, Is.Empty,
+                message + Environment.NewLine + string.Join(Environment.NewLine, reported));
         }
 
         /// <summary>
-        /// Decides whether a role can run a mutation at all. An update writing a column the role may not
-        /// write is rejected for that column already, so its where clause never reaches the role and
+        /// Runs one check over every API call operation addressing a tracked table.
+        /// </summary>
+        /// <param name="findGaps">The check, returning one entry per gap in the format of FormatGap.</param>
+        /// <param name="skipKnownGaps">Whether the accepted mismatches are filtered out.</param>
+        private static List<ReportedGap> CollectGaps(
+            Func<ApiOperation, TableMetadata, IEnumerable<string>> findGaps, bool skipKnownGaps = true)
+        {
+            SkipWithoutSources();
+            ReportUncheckableCalls();
+
+            Dictionary<string, TableMetadata> tables = ReadMetadata();
+            List<ReportedGap> gaps = new();
+            foreach (ApiOperation operation in kApiCallSurvey.Value.Operations)
+            {
+                if (tables.TryGetValue(operation.TableRoot, out TableMetadata? table))
+                {
+                    gaps.AddRange(findGaps(operation, table)
+                        .Where(gap => !skipKnownGaps || !kKnownPermissionGaps.Contains(gap))
+                        .Select(gap => new ReportedGap(operation.Source, gap)));
+                }
+            }
+            return gaps;
+        }
+
+        /// <summary>
+        /// Collects the roles which may run the mutation but cannot select one of the filtered columns.
+        /// </summary>
+        private static IEnumerable<string> FindFilterGaps(ApiOperation operation, TableMetadata table)
+        {
+            if (operation.Operation == kSelectOperation)
+            {
+                yield break;
+            }
+
+            foreach (string role in RolesRunning(operation, table))
+            {
+                foreach (string column in operation.FilterColumns.Where(column => !table.MaySelect(role, column)))
+                {
+                    yield return FormatGap(operation.TableRoot, role, column);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Collects the roles which may run the mutation but cannot select what it returns. A mutation
+        /// returning nothing but affected_rows reads nothing and needs no select permission at all.
+        /// </summary>
+        private static IEnumerable<string> FindReturnGaps(ApiOperation operation, TableMetadata table)
+        {
+            if (operation.Operation == kSelectOperation || !operation.ReadsItsResult)
+            {
+                yield break;
+            }
+
+            foreach (string role in RolesRunning(operation, table))
+            {
+                if (!table.MaySelectAnything(role))
+                {
+                    yield return FormatGap(operation.TableRoot, role, kAnyColumn);
+                    continue;
+                }
+                foreach (string column in operation.ReturnedColumns.Where(column => !table.MaySelect(role, column)))
+                {
+                    yield return FormatGap(operation.TableRoot, role, column);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reports a query whose filter no role can satisfy, which makes it unusable for everybody.
+        /// </summary>
+        private static IEnumerable<string> FindUnrunnableQueryGaps(ApiOperation operation, TableMetadata table)
+        {
+            if (operation.Operation != kSelectOperation || operation.FilterColumns.Count == 0
+                || table.AnyRoleMaySelectAll(operation.FilterColumns))
+            {
+                yield break;
+            }
+
+            foreach (string column in operation.FilterColumns)
+            {
+                yield return FormatGap(operation.TableRoot, kAnyRole, column);
+            }
+        }
+
+        /// <summary>
+        /// The roles which can run a mutation. A mutation writing a column the role may not write is
+        /// rejected for that column already, so its where clause and its response never reach the role and
         /// demanding a select permission for it would only invite widening the read access for nothing.
         /// </summary>
-        private static bool MayRunMutation(FilteredMutation mutation, TableMetadata table, string role)
+        private static IEnumerable<string> RolesRunning(ApiOperation operation, TableMetadata table)
         {
-            if (mutation.Operation != kUpdateOperation || mutation.UpdatedColumns.Count == 0)
+            if (!table.RolesByOperation.TryGetValue(operation.Operation, out List<string>? roles))
             {
-                return true;
+                return new List<string>();
             }
-            return table.UpdatableColumns.TryGetValue(role, out HashSet<string>? updatable)
-                && mutation.UpdatedColumns.TrueForAll(updatable.Contains);
+            return roles.Where(role => table.MayWrite(operation, role));
         }
 
         /// <summary>
@@ -179,7 +336,21 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Reads the tables of the metadata by the name their mutations carry in the GraphQL schema.
+        /// Writes what the checks could not look at to the test output, so a call growing beyond what the
+        /// reader understands is visible instead of counting as checked.
+        /// </summary>
+        private static void ReportUncheckableCalls()
+        {
+            List<string> uncheckable = kApiCallSurvey.Value.Uncheckable;
+            TestContext.Out.WriteLine($"{uncheckable.Count} part(s) of the API calls cannot be checked statically:");
+            foreach (string note in uncheckable)
+            {
+                TestContext.Out.WriteLine($"  {note}");
+            }
+        }
+
+        /// <summary>
+        /// Reads the tables of the metadata by the name their root fields carry in the GraphQL schema.
         /// </summary>
         private static Dictionary<string, TableMetadata> ReadMetadata()
         {
@@ -193,15 +364,15 @@ namespace FWO.Test
             {
                 foreach (JsonElement table in source.GetProperty("tables").EnumerateArray())
                 {
-                    tables.Add(ReadTableRoot(table.GetProperty("table")), ReadTablePermissions(table));
+                    tables[ReadTableRoot(table.GetProperty("table"))] = ReadTablePermissions(table);
                 }
             }
             return tables;
         }
 
         /// <summary>
-        /// Builds the name the mutations of a table carry, which Hasura prefixes with the schema for every
-        /// schema but public.
+        /// Builds the name the root fields of a table carry, which Hasura prefixes with the schema for
+        /// every schema but public.
         /// </summary>
         private static string ReadTableRoot(JsonElement table)
         {
@@ -211,7 +382,8 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Reads which roles hold which permission on a table and which columns each role may select.
+        /// Reads which roles hold which permission on a table, which columns each role may select or
+        /// write, and the relationships of the table, which are no columns of it.
         /// </summary>
         private static TableMetadata ReadTablePermissions(JsonElement table)
         {
@@ -224,17 +396,45 @@ namespace FWO.Test
                 {
                     string role = entry.GetProperty("role").GetString() ?? "";
                     AddRole(metadata.RolesByOperation, operation, role);
-                    if (operation == kSelectOperation)
+                    AddPermittedColumns(metadata, operation, role, entry);
+                }
+            }
+            ReadRelationships(table, metadata.Relationships);
+            return metadata;
+        }
+
+        /// <summary>
+        /// Records the columns one permission entry grants, for the operations whose columns are checked.
+        /// </summary>
+        private static void AddPermittedColumns(TableMetadata metadata, string operation, string role,
+            JsonElement entry)
+        {
+            if (operation == kSelectOperation)
+            {
+                metadata.SelectableColumns[role] = ReadPermittedColumns(entry);
+            }
+            else if (operation == kUpdateOperation || operation == kInsertOperation)
+            {
+                metadata.WritableColumns[(operation, role)] = ReadPermittedColumns(entry);
+            }
+        }
+
+        /// <summary>
+        /// Reads the names of the relationships of a table, which appear in a filter and in a selection set
+        /// like a column but address another table.
+        /// </summary>
+        private static void ReadRelationships(JsonElement table, ISet<string> relationships)
+        {
+            foreach (string kind in kRelationshipKinds)
+            {
+                if (table.TryGetProperty(kind, out JsonElement declared))
+                {
+                    foreach (JsonElement relationship in declared.EnumerateArray())
                     {
-                        metadata.SelectableColumns[role] = ReadPermittedColumns(entry);
-                    }
-                    else if (operation == kUpdateOperation)
-                    {
-                        metadata.UpdatableColumns[role] = ReadPermittedColumns(entry);
+                        relationships.Add(relationship.GetProperty("name").GetString() ?? "");
                     }
                 }
             }
-            return metadata;
         }
 
         /// <summary>
@@ -251,13 +451,22 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Reads the columns of one permission entry. A delete permission carries no columns at all.
+        /// Reads the columns of one permission entry. A delete permission carries no columns at all, and
+        /// Hasura writes a permission covering every column as "*" instead of listing them.
         /// </summary>
         private static HashSet<string> ReadPermittedColumns(JsonElement permissionEntry)
         {
+            if (!permissionEntry.GetProperty("permission").TryGetProperty("columns", out JsonElement declared))
+            {
+                return new();
+            }
+            if (declared.ValueKind == JsonValueKind.String)
+            {
+                return declared.GetString() == kAllColumnsMarker ? kAllColumns : new();
+            }
+
             HashSet<string> columns = new();
-            if (permissionEntry.GetProperty("permission").TryGetProperty("columns", out JsonElement declared)
-                && declared.ValueKind == JsonValueKind.Array)
+            if (declared.ValueKind == JsonValueKind.Array)
             {
                 foreach (JsonElement column in declared.EnumerateArray())
                 {
@@ -267,318 +476,95 @@ namespace FWO.Test
             return columns;
         }
 
-        /// <summary>
-        /// Reads every delete and update mutation of the embedded API calls which carries a where clause.
-        /// </summary>
-        private static List<FilteredMutation> ReadFilteredMutations()
-        {
-            DirectoryInfo apiCalls = kApiCallDirectory.Value
-                ?? throw new InvalidOperationException(kApiCallsOutOfReach);
 
-            List<FilteredMutation> mutations = new();
-            foreach (FileInfo apiCall in apiCalls.EnumerateFiles($"*{kApiCallSuffix}", SearchOption.AllDirectories))
-            {
-                mutations.AddRange(ReadFilteredMutations(FormatSource(apiCalls, apiCall),
-                    ApiQueries.Compact(File.ReadAllText(apiCall.FullName))));
-            }
-            return mutations;
+        /// <summary>
+        /// One root field of an API call: what it does to which table, what it filters on, what it returns
+        /// and what it writes.
+        /// </summary>
+        /// <param name="ReadsItsResult">Whether the call reads anything of the rows it touches, which a
+        /// mutation returning nothing but affected_rows does not.</param>
+        private sealed record ApiOperation(string Source, string Operation, string TableRoot,
+            List<string> FilterColumns, List<string> ReturnedColumns, List<string> WrittenColumns,
+            bool ReadsItsResult);
+
+        /// <summary>
+        /// One field of a selection set, or the placeholder for a fragment spread standing in for fields
+        /// which are defined in another file.
+        /// </summary>
+        private sealed record ApiField(string Name, string? Arguments, string? SubSelection, bool IsFragmentSpread)
+        {
+            public static ApiField FragmentSpread { get; } = new("", null, null, true);
         }
 
         /// <summary>
-        /// Reads the filtered mutations of a single API call. The call is compacted the same way it is
-        /// before it is sent, so the comments of the file cannot be mistaken for a mutation.
+        /// One missing permission together with the API call which uncovered it.
         /// </summary>
-        private static List<FilteredMutation> ReadFilteredMutations(string source, string apiCall)
-        {
-            List<FilteredMutation> mutations = new();
-            foreach (Match mutation in MutationRegex().Matches(apiCall).Cast<Match>())
-            {
-                string? arguments = ReadArguments(apiCall, mutation.Index + mutation.Length - 1);
-                string? filter = arguments == null ? null : ReadObjectArgument(arguments, FilterRegex());
-                if (filter == null)
-                {
-                    continue;
-                }
+        private sealed record ReportedGap(string Source, string Gap);
 
-                HashSet<string> columns = new();
-                CollectFilterColumns(filter, columns, 0);
-                mutations.Add(new FilteredMutation(source, mutation.Groups[1].Value,
-                    ReadMutationRoot(mutation.Groups[2].Value), columns.ToList(),
-                    ReadUpdatedColumns(arguments!)));
-            }
-            return mutations;
+        /// <summary>
+        /// What the API call definitions hold: the operations to check, and the parts of them no static
+        /// check can read.
+        /// </summary>
+        private sealed class ApiCallSurvey
+        {
+            public List<ApiOperation> Operations { get; } = new();
+            public List<string> Uncheckable { get; } = new();
         }
 
         /// <summary>
-        /// Reads the table a mutation addresses. Hasura appends _many to the mutation updating several
-        /// filters at once and _by_pk to the one addressing a single row without a where clause.
-        /// </summary>
-        private static string ReadMutationRoot(string mutationName)
-        {
-            return mutationName.EndsWith(kManyRootSuffix) ? mutationName[..^kManyRootSuffix.Length] : mutationName;
-        }
-
-        /// <summary>
-        /// Reads the argument list of a mutation, starting at its opening bracket.
-        /// </summary>
-        /// <returns>The arguments without the enclosing brackets, or null when they are not closed.</returns>
-        private static string? ReadArguments(string apiCall, int argumentStart)
-        {
-            int argumentEnd = IndexOfMatchingBracket(apiCall, argumentStart);
-            return argumentEnd < 0 ? null : apiCall[(argumentStart + 1)..argumentEnd];
-        }
-
-        /// <summary>
-        /// Reads the body of the object argument the given expression introduces.
-        /// </summary>
-        /// <returns>The body of the argument, or null when the mutation does not carry it.</returns>
-        private static string? ReadObjectArgument(string arguments, Regex argumentRegex)
-        {
-            Match argument = argumentRegex.Match(arguments);
-            if (!argument.Success)
-            {
-                return null;
-            }
-
-            int bodyStart = argument.Index + argument.Length - 1;
-            int bodyEnd = IndexOfMatchingBracket(arguments, bodyStart);
-            return bodyEnd < 0 ? null : arguments[(bodyStart + 1)..bodyEnd];
-        }
-
-        /// <summary>
-        /// Reads the columns a mutation writes, which is empty for a delete.
-        /// </summary>
-        private static List<string> ReadUpdatedColumns(string arguments)
-        {
-            string? assignment = ReadObjectArgument(arguments, AssignmentRegex());
-            return assignment == null
-                ? new()
-                : EnumerateMembers(assignment).Select(member => member.Name).ToList();
-        }
-
-        /// <summary>
-        /// Collects the columns a filter compares. A member comparing a column carries operators only,
-        /// every other member walks a relationship into another table and is left to the API call of it.
-        /// </summary>
-        private static void CollectFilterColumns(string filter, ISet<string> columns, int depth)
-        {
-            if (depth >= kMaxFilterDepth)
-            {
-                throw new InvalidOperationException($"Filter is nested deeper than {kMaxFilterDepth} levels.");
-            }
-
-            foreach ((string name, string? body) in EnumerateMembers(filter))
-            {
-                if (body == null)
-                {
-                    continue;
-                }
-                if (kLogicalOperators.Contains(name))
-                {
-                    CollectFilterColumns(body, columns, depth + 1);
-                }
-                else if (!name.StartsWith('_') && ComparesAColumn(body))
-                {
-                    columns.Add(name);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Decides whether the members of a filter member are comparison operators, which makes the member
-        /// itself a column and not a relationship.
-        /// </summary>
-        private static bool ComparesAColumn(string memberBody)
-        {
-            bool hasMember = false;
-            foreach ((string name, string? _) in EnumerateMembers(memberBody))
-            {
-                hasMember = true;
-                if (!name.StartsWith('_'))
-                {
-                    return false;
-                }
-            }
-            return hasMember;
-        }
-
-        /// <summary>
-        /// Walks the members of a GraphQL object.
-        /// </summary>
-        /// <returns>The name of every member with its body, which is null for a member holding a value.</returns>
-        private static IEnumerable<(string Name, string? Body)> EnumerateMembers(string objectBody)
-        {
-            int position = 0;
-            while (position < objectBody.Length)
-            {
-                Match member = MemberRegex().Match(objectBody, position);
-                if (!member.Success)
-                {
-                    yield break;
-                }
-
-                int valueStart = member.Index + member.Length;
-                int valueEnd = IsBracket(objectBody, valueStart) ? IndexOfMatchingBracket(objectBody, valueStart) : -1;
-                if (valueEnd < 0)
-                {
-                    yield return (member.Groups[1].Value, null);
-                    position = valueStart;
-                    continue;
-                }
-
-                yield return (member.Groups[1].Value, objectBody[(valueStart + 1)..valueEnd]);
-                position = valueEnd + 1;
-            }
-        }
-
-        /// <summary>
-        /// Decides whether an object or a list starts at the given position.
-        /// </summary>
-        private static bool IsBracket(string text, int position)
-        {
-            return position < text.Length && (text[position] == '{' || text[position] == '[');
-        }
-
-        /// <summary>
-        /// Finds the bracket closing the one at the given position. Brackets of another kind in between do
-        /// not change the nesting of the searched one and are therefore not counted.
-        /// </summary>
-        /// <returns>The position of the closing bracket, or -1 when it is missing.</returns>
-        private static int IndexOfMatchingBracket(string text, int openingPosition)
-        {
-            char opening = text[openingPosition];
-            char closing = ClosingBracketOf(opening);
-            int depth = 0;
-
-            for (int position = openingPosition; position < text.Length; position++)
-            {
-                if (text[position] == opening)
-                {
-                    depth++;
-                }
-                else if (text[position] == closing && --depth == 0)
-                {
-                    return position;
-                }
-            }
-            return -1;
-        }
-
-        /// <summary>
-        /// Reads the bracket closing an opening one.
-        /// </summary>
-        private static char ClosingBracketOf(char opening)
-        {
-            return opening switch
-            {
-                '{' => '}',
-                '[' => ']',
-                '(' => ')',
-                _ => throw new ArgumentException($"{opening} is no opening bracket.", nameof(opening))
-            };
-        }
-
-        /// <summary>
-        /// Names an API call by its path below fwo-api-calls, so a failure points at the file to repair.
-        /// </summary>
-        private static string FormatSource(DirectoryInfo apiCalls, FileInfo apiCall)
-        {
-            return Path.GetRelativePath(apiCalls.FullName, apiCall.FullName)
-                .Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        }
-
-        /// <summary>
-        /// Locates the Hasura metadata in the repository or in the directory the installer copies it to
-        /// next to the tests.
-        /// </summary>
-        /// <returns>The metadata file, or null when it is out of reach.</returns>
-        private static FileInfo? LocateMetadata()
-        {
-            return LocateBesideOrAbove(directory =>
-            {
-                FileInfo repository = new(Path.Combine(directory.FullName, "roles", "api", "files", kMetadataFile));
-                FileInfo installed = new(Path.Combine(directory.FullName, kMetadataFile));
-                return repository.Exists ? repository : installed.Exists ? installed : null;
-            });
-        }
-
-        /// <summary>
-        /// Locates the API call definitions in the repository or where the installer deploys them for the
-        /// UI, middleware and importer.
-        /// </summary>
-        /// <returns>The directory holding the API calls, or null when it is out of reach.</returns>
-        private static DirectoryInfo? LocateApiCalls()
-        {
-            return LocateBesideOrAbove(directory =>
-            {
-                DirectoryInfo repository = new(Path.Combine(directory.FullName, "roles", "common", "files", kApiCallDirectoryName));
-                DirectoryInfo installed = new(Path.Combine(directory.FullName, kApiCallDirectoryName));
-                return repository.Exists ? repository : installed.Exists ? installed : null;
-            });
-        }
-
-        /// <summary>
-        /// Walks from the directory of the test assembly up to the root and returns what the given lookup
-        /// finds first. The tests run from a repository checkout as well as from an installed system, where
-        /// the sources of the other components are not laid out the same way.
-        /// </summary>
-        private static TFound? LocateBesideOrAbove<TFound>(Func<DirectoryInfo, TFound?> lookup) where TFound : class
-        {
-            DirectoryInfo? directory = new(AppContext.BaseDirectory);
-            while (directory is not null)
-            {
-                TFound? found = lookup(directory);
-                if (found is not null)
-                {
-                    return found;
-                }
-                directory = directory.Parent;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Skips a test when the metadata or the API calls cannot be read, which happens wherever only
-        /// part of the sources is deployed. Reporting that plainly is better than passing on no input.
-        /// </summary>
-        private static void SkipWithoutSources()
-        {
-            if (kMetadataFileInfo.Value is null)
-            {
-                Assert.Ignore(kMetadataOutOfReach);
-            }
-            if (kApiCallDirectory.Value is null)
-            {
-                Assert.Ignore(kApiCallsOutOfReach);
-            }
-        }
-
-        [GeneratedRegex(@"\b(delete|update)_([A-Za-z0-9_]+)\s*\(", RegexOptions.None, kRegexTimeoutMilliseconds)]
-        private static partial Regex MutationRegex();
-
-        [GeneratedRegex(@"\bwhere\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
-        private static partial Regex FilterRegex();
-
-        [GeneratedRegex(@"\b_set\s*:\s*\{", RegexOptions.None, kRegexTimeoutMilliseconds)]
-        private static partial Regex AssignmentRegex();
-
-        [GeneratedRegex(@"([A-Za-z_][A-Za-z0-9_]*)\s*:\s*", RegexOptions.None, kRegexTimeoutMilliseconds)]
-        private static partial Regex MemberRegex();
-
-        /// <summary>
-        /// A delete or update mutation of an API call together with the columns its where clause filters on.
-        /// </summary>
-        private sealed record FilteredMutation(string Source, string Operation, string TableRoot,
-            List<string> Columns, List<string> UpdatedColumns);
-
-        /// <summary>
-        /// The permissions of one table: which roles hold which permission and which columns they may select.
+        /// The permissions of one table: which roles hold which permission, which columns they may select
+        /// or write, and the relationships which are no columns of the table.
         /// </summary>
         private sealed class TableMetadata
         {
             public Dictionary<string, List<string>> RolesByOperation { get; } = new();
             public Dictionary<string, HashSet<string>> SelectableColumns { get; } = new();
-            public Dictionary<string, HashSet<string>> UpdatableColumns { get; } = new();
+            public Dictionary<(string Operation, string Role), HashSet<string>> WritableColumns { get; } = new();
+            public HashSet<string> Relationships { get; } = new();
+
+            /// <summary>
+            /// Whether a role may select a column, which a relationship never is.
+            /// </summary>
+            public bool MaySelect(string role, string column)
+            {
+                if (Relationships.Contains(column))
+                {
+                    return true;
+                }
+                return SelectableColumns.TryGetValue(role, out HashSet<string>? columns)
+                    && (ReferenceEquals(columns, kAllColumns) || columns.Contains(column));
+            }
+
+            /// <summary>
+            /// Whether a role holds select permission on the table at all, which a _by_pk root field and a
+            /// returning block need before any single column matters.
+            /// </summary>
+            public bool MaySelectAnything(string role)
+            {
+                return SelectableColumns.ContainsKey(role);
+            }
+
+            /// <summary>
+            /// Whether any role at all may select every one of the given columns.
+            /// </summary>
+            public bool AnyRoleMaySelectAll(List<string> columns)
+            {
+                return SelectableColumns.Keys.Any(role => columns.TrueForAll(column => MaySelect(role, column)));
+            }
+
+            /// <summary>
+            /// Whether a role may write every column a mutation writes. A mutation writing a column the
+            /// role may not write is rejected for that column already and never runs for that role.
+            /// </summary>
+            public bool MayWrite(ApiOperation operation, string role)
+            {
+                if (operation.WrittenColumns.Count == 0)
+                {
+                    return true;
+                }
+                return WritableColumns.TryGetValue((operation.Operation, role), out HashSet<string>? columns)
+                    && (ReferenceEquals(columns, kAllColumns) || operation.WrittenColumns.TrueForAll(columns.Contains));
+            }
         }
     }
 }

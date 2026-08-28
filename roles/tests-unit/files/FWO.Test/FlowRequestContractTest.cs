@@ -56,6 +56,21 @@ internal class FlowRequestContractTest
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetServiceObjectIdRequest>(json));
     }
 
+    [Test]
+    public void GetServiceObjectIdRequest_AllowsExplicitNullPortBounds()
+    {
+        GetServiceObjectIdRequest? request = JsonSerializer.Deserialize<GetServiceObjectIdRequest>(
+            """{"protocol":"ANY","portStart":null,"portEnd":null}""");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request, Is.Not.Null);
+            Assert.That(request!.PortStart, Is.Null);
+            Assert.That(request.PortEnd, Is.Null);
+            Assert.That(request.Protocol, Is.EqualTo("ANY"));
+        });
+    }
+
     [TestCase("""{"ipEnd":"10.0.0.2"}""")]
     [TestCase("""{"ipStart":"10.0.0.1"}""")]
     public void GetAddressObjectIdRequest_RequiresIpBounds(string json)

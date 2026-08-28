@@ -8,6 +8,10 @@
         @if (Display)
         {
             <p>@(DeleteMessage)</p>
+            @if (!string.IsNullOrWhiteSpace(WarningMessage))
+            {
+                <div class="alert alert-warning" role="alert">@(WarningMessage)</div>
+            }
         }
     </Body>
     <Footer>
@@ -53,6 +57,9 @@
 
     [Parameter]
     public string DeleteMessage { get; set; } = "";
+
+    [Parameter]
+    public string WarningMessage { get; set; } = "";
 
     [Parameter]
     public bool DeleteAllowed { get; set; } = true;

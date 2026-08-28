@@ -622,7 +622,20 @@ Not supported any longer are:
 ## 9.4.2 - 25.08.2026
 - add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
 
-# 9.5.0
+## 9.4.3 - 26.08.2026
+- normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
+- IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
+- add 'add auto calculated internet zone' button to compliance matrix ui
+
+## 9.4.4 - 27.08.2026
+- Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.
+- Keep the canonical ANY flow service object implemented and protect it from removal.
+- Return `null` service port bounds for protocol-only flow catalog objects instead of 0
+- Rule and connection reports filtered by destination port or protocol now also match the canonical ANY service, so these filters can return more rows than before the upgrade.
+- Cisco ASA: keep the legacy `ANY` UID for the imported "any ip protocol" service object while showing it as `any-ip` in reports; existing compliance criteria or queries pinned to the old `any-ip` UID need to be updated to use `ANY` instead.
+- OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
+
+## 9.5.0
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access

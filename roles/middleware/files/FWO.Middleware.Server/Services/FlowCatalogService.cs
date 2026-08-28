@@ -96,7 +96,7 @@ public sealed class FlowCatalogService
     /// <summary>
     /// Performs the GetServiceObjectIdAsync operation.
     /// </summary>
-    public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int portStart, int portEnd, bool? visibleInRequest)
+    public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
     {
         int? protocolId = await ResolveProtocolIdAsync(protocol);
         if (!protocolId.HasValue)
@@ -346,8 +346,8 @@ public sealed class FlowCatalogService
         {
             Id = flowObject.Id,
             Name = flowObject.Name,
-            PortStart = flowObject.PortStart ?? 0,
-            PortEnd = flowObject.PortEnd ?? 0,
+            PortStart = flowObject.PortStart,
+            PortEnd = flowObject.PortEnd,
             Protocol = protocol,
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule

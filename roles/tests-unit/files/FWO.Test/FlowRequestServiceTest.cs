@@ -10,6 +10,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+
 using System.Security.Claims;
 
 namespace FWO.Test;
@@ -200,17 +201,21 @@ internal class FlowRequestServiceTest
         });
     }
 
-    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc)]
-    [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "tcp", 6)]
+    [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified, "tcp", 6)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "0", 0)]
+    [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "HOPOPT", 0)]
     public async Task CreateRequest_ReturnsCreatedTicketAndResolvesTemporaryIds(
         string startTime,
         string endTime,
-        DateTimeKind expectedDateTimeKind)
+        DateTimeKind expectedDateTimeKind,
+        string protocol,
+        int expectedProtocolId)
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig());
 
@@ -237,7 +242,7 @@ internal class FlowRequestServiceTest
                 {
                     Id = "-2",
                     Name = "https",
-                    Protocol = "tcp",
+                    Protocol = protocol,
                     PortStart = 443,
                     PortEnd = 443
                 }
@@ -282,6 +287,7 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(1));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList, Has.Count.EqualTo(3));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.All(element => element.NetworkId == null && element.ServiceId == null), Is.True);
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString()).ProtoId, Is.EqualTo(expectedProtocolId));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].NetworkGroupId, Is.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].ServiceGroupId, Is.Null);
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.Not.Null);
@@ -291,6 +297,186 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_AcceptsCanonicalAnyIpProtocolServiceWithNullPorts()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow any IP protocol to app server",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "any-ip",
+                    Protocol = "ANY",
+                    PortStart = null,
+                    PortEnd = null
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.service.ToString());
+            Assert.That(serviceElement.ProtoId, Is.EqualTo(-1));
+            Assert.That(serviceElement.Port, Is.Null);
+            Assert.That(serviceElement.PortEnd, Is.Null);
+        });
+    }
+
+    [Test]
+    public void CreateRequest_RejectsPortEndWithoutPortStart()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        ArgumentException exception = Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Port end without port start",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = null,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(exception.Message, Does.Contain("portEnd"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_AllowsPortStartWithoutPortEndAsSinglePortShorthand()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Port start without port end",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = null
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            WfReqElementWriter serviceElement = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList
+                .Single(element => element.Field == ElemFieldType.service.ToString());
+            Assert.That(serviceElement.Port, Is.EqualTo(443));
+            Assert.That(serviceElement.PortEnd, Is.Null);
         });
     }
 
@@ -378,7 +564,12 @@ internal class FlowRequestServiceTest
                 new WfState { Id = 17, Name = "requested" },
                 new WfState { Id = 0, Name = "draft" }
             ],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
         };
         FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
@@ -430,6 +621,172 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
             Assert.That(apiConnection.CreatedTicket!.Requester?.DbId, Is.EqualTo(77));
         });
+    }
+
+    [Test]
+    public async Task CreateRequest_UsesFirstActivePhaseWhenRequestIsInactive()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 1, Name = "request" },
+                new WfState { Id = 11, Name = "approval" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("approval-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 21),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 22))
+            ]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        CreateRequestResponse response = await service.CreateRequestAsync(CreateBaseRequest("Approval phase request"), 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("approval"));
+            Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(11));
+            Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
+            Assert.That(apiConnection.CreatedTicket!.StateId, Is.EqualTo(11));
+        });
+    }
+
+    [Test]
+    public void CreateRequest_RejectsWhenNoActiveWorkflowPhaseExists()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = new List<WfState>
+            {
+                new() { Id = 1, Name = "request" },
+                new() { Id = 11, Name = "approval" }
+            },
+            Protocols = new List<IpProtocol>
+            {
+                new() { Id = 6, Name = "tcp" }
+            },
+            WorkflowConfigurations = new List<WorkflowConfiguration>
+            {
+                CreateWorkflowConfiguration("inactive",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 21),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 11, 12, 22))
+            }
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(CreateBaseRequest("Inactive workflow"), 77))!;
+
+        Assert.That(exception.Message, Does.Contain("No active workflow phase is configured"));
+    }
+
+    [Test]
+    public async Task CreateRequest_RejectsConfiguredInitialStateWhenConfiguredStateBelongsToInactivePhase()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 1, Name = "request" },
+                new WfState { Id = 11, Name = "approval" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("approval-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 21),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 22))
+            ]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 1 });
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(CreateBaseRequest("Invalid initial state"), 77))!;
+
+        Assert.That(exception.Message, Does.Contain("does not belong to any active workflow phase"));
+    }
+
+    [Test]
+    public void CreateRequest_RejectsConfiguredInitialStateWhenStateIsUnknown()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 11, Name = "approval" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Unknown state request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        }, 77))!;
+
+        Assert.That(exception.Message, Does.Contain("does not exist in the current state list"));
+    }
+
+    [Test]
+    public void CreateRequest_RejectsConfiguredInitialStateWhenMultipleActivePhasesMatch()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState { Id = 17, Name = "shared-state" },
+                new WfState { Id = 20, Name = "fallback" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("overlap",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, false, 1, 2, 31),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 10, 20, 32),
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.planning, true, 15, 25, 33))
+            ]
+        };
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await service.CreateRequestAsync(CreateBaseRequest("Overlapping phase request"), 77))!;
+
+        Assert.That(exception.Message, Does.Contain("matches multiple active workflow phases"));
     }
 
     [Test]
@@ -776,7 +1133,12 @@ internal class FlowRequestServiceTest
                 new WfState { Id = 17, Name = "requested" },
                 new WfState { Id = 0, Name = "draft" }
             ],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
         };
         FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
@@ -841,16 +1203,20 @@ internal class FlowRequestServiceTest
             Assert.That(response.RequestId, Is.EqualTo(100));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(17));
+            Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
+            Assert.That(apiConnection.CreatedTicket!.Id, Is.EqualTo(100));
         });
     }
 
-    [Test]
-    public async Task CreateRequest_ReturnsBadRequestForUnknownNumericProtocolId()
+    [TestCase("999")]
+    [TestCase("-1")]
+    [TestCase("ANY")]
+    public async Task CreateRequest_ReturnsBadRequestForInvalidProtocol(string protocol)
     {
         FlowRequestServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
-            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+            Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
         FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
@@ -873,7 +1239,7 @@ internal class FlowRequestServiceTest
             RequestorId = "payload-requester",
             RuleContactName = "Bob Approver",
             RuleContactId = "bob",
-            Title = "Unknown protocol request",
+            Title = "Invalid protocol request",
             AddressObjects =
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
@@ -890,7 +1256,7 @@ internal class FlowRequestServiceTest
                 {
                     Id = "-2",
                     Name = "https",
-                    Protocol = "999",
+                    Protocol = protocol,
                     PortStart = 443,
                     PortEnd = 443
                 }
@@ -1291,6 +1657,102 @@ internal class FlowRequestServiceTest
         }
 
         return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
+    }
+
+    /// <summary>
+    /// Builds a minimal create-request payload used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest CreateBaseRequest(string title)
+    {
+        return new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = title,
+            AddressObjects = [CreateAddressObjectRequest()],
+            ServiceObjects = [CreateServiceObjectRequest()],
+            Rules = [CreateAcceptRuleRequest()]
+        };
+    }
+
+    /// <summary>
+    /// Creates the default address object used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateAddressObjectRequest CreateAddressObjectRequest()
+    {
+        return new CreateRequestRequest.CreateAddressObjectRequest
+        {
+            Id = "-1",
+            Name = "app-server-1",
+            IpStart = "192.0.2.10",
+            IpEnd = "192.0.2.10"
+        };
+    }
+
+    /// <summary>
+    /// Creates the default service object used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateServiceObjectRequest CreateServiceObjectRequest()
+    {
+        return new CreateRequestRequest.CreateServiceObjectRequest
+        {
+            Id = "-2",
+            Name = "https",
+            Protocol = "tcp",
+            PortStart = 443,
+            PortEnd = 443
+        };
+    }
+
+    /// <summary>
+    /// Creates the default accept rule used by the workflow phase tests.
+    /// </summary>
+    private static CreateRequestRequest.CreateRequestRuleRequest CreateAcceptRuleRequest()
+    {
+        return new CreateRequestRequest.CreateRequestRuleRequest
+        {
+            Action = "accept",
+            SourceObjects = [-1],
+            DestinationObjects = [-1],
+            ServiceObjects = [-2]
+        };
+    }
+
+    /// <summary>
+    /// Creates a workflow configuration with the supplied phases.
+    /// </summary>
+    private static WorkflowConfiguration CreateWorkflowConfiguration(string name, params WorkflowConfigurationPhase[] phases)
+    {
+        return new WorkflowConfiguration
+        {
+            Id = 1,
+            Name = name,
+            Phases = [.. phases]
+        };
+    }
+
+    /// <summary>
+    /// Creates one workflow configuration phase entry for the supplied phase.
+    /// </summary>
+    private static WorkflowConfigurationPhase CreateWorkflowConfigurationPhase(WorkflowPhases phase, bool active, int lowestInputState, int lowestEndState, int id)
+    {
+        return new WorkflowConfigurationPhase
+        {
+            TaskType = WfTaskType.master.ToString(),
+            Phase = phase.ToString(),
+            PhaseMatrix = new StateMatrixPhase
+            {
+                Id = id,
+                Name = phase.ToString(),
+                Phase = phase.ToString(),
+                Active = active,
+                LowestInputState = lowestInputState,
+                LowestStartState = lowestInputState,
+                LowestEndState = lowestEndState
+            }
+        };
     }
 
     private sealed class FlowRequestServiceApiConn : SimulatedApiConnection

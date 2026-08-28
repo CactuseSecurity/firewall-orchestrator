@@ -110,6 +110,14 @@ internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
 # the server chain. The path must exist on every host serving an FWO Apache
 # endpoint. Existing SSLCertificateChainFile settings are retained on upgrade.
 internalca_peer_ca_intermediate_certificates: ""
+# The intermediates this host's Apache actually serves, resolved per host by
+# roles/internalCA. It carries internalca_peer_ca_intermediate_certificates only on a
+# host that keeps a customer-managed certificate; a host serving an FWO-issued leaf
+# keeps it empty, because that leaf must neither present a customer chain nor be
+# validated against a customer root. It is a separate name because
+# internalca_peer_ca_intermediate_certificates may be passed with --extra-vars, and
+# no set_fact can narrow an extra variable.
+internalca_apache_intermediate_certificates: ""
 
 # read by roles/common (fworch.json) and roles/tests-integration
 internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
@@ -348,6 +356,20 @@ fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
 http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/sites-available/' }}"
+# The FWO Apache vhost this host serves, empty on a host without one. Defined once
+# because roles/common validates the private key it references before Apache is
+# restarted and roles/internalCA reads its certificate paths; deriving it twice is how
+# the two ended up inspecting different files.
+apache_vhost_conf_file: >-
+  {{
+    http_conf_dir ~ product_name ~ '-api.conf'
+    if 'apiserver' in group_names
+    else http_conf_dir ~ product_name ~ '-mw.conf'
+    if 'middlewareserver' in group_names
+    else http_conf_dir ~ product_name ~ '-ui.conf'
+    if 'frontends' in group_names
+    else ''
+  }}
 wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_facts['os_family'] == 'RedHat' else 'libapache2-mod-wsgi' }}"
 apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_facts['os_family'] == 'RedHat' else []) }}"
 apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/ports.conf' }}"

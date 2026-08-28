@@ -10,7 +10,7 @@
       - -CAfile
       - "{{ internalca_apache_chain_root_path | default(internalca_peer_ca_certificate) }}"
       - -untrusted
-      - "{{ internalca_apache_chain_intermediates_path | default(internalca_peer_ca_intermediate_certificates) }}"
+      - "{{ internalca_apache_chain_intermediates_path | default(internalca_apache_intermediate_certificates) }}"
       - "{{ internalca_apache_chain_leaf_path | default(internalca_apache_certificate) }}"
   register: internalca_apache_chain_verification
   changed_when: false
@@ -23,9 +23,9 @@
       The Apache certificate
       {{ internalca_apache_chain_leaf_path | default(internalca_apache_certificate) }}
       does not chain through
-      internalca_peer_ca_intermediate_certificates
+      internalca_apache_intermediate_certificates
       ({{ internalca_apache_chain_intermediates_path
-          | default(internalca_peer_ca_intermediate_certificates) }}) to the root configured as
+          | default(internalca_apache_intermediate_certificates) }}) to the root configured as
       internalca_peer_ca_certificate
       ({{ internalca_apache_chain_root_path | default(internalca_peer_ca_certificate) }}) on
       {{ inventory_hostname }}. OpenSSL reported:

@@ -55,7 +55,7 @@
 
 - name: get sample jwt
   uri:
-    url: https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/
+    url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
     method: POST
     headers:
       Content-Type: application/json

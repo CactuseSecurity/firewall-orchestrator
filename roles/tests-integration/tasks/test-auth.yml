@@ -16,15 +16,15 @@
 - block:
     - name: wait for middleware port to become available
       ansible.builtin.wait_for:
-          port: "{{ middleware_internal_port }}"
-          host: "127.0.0.1"
+          port: "{{ test_middleware_port }}"
+          host: "{{ test_middleware_host }}"
           connect_timeout: 1
           delay: 10
           timeout: 120
 
     - name: wait for middleware web server to become available
       ansible.builtin.uri:
-          url: "{{ middleware_uri }}/swagger/"
+          url: "{{ test_middleware_uri }}api-docs/"
           method: GET
           validate_certs: true
           ca_path: "{{ internalca_trust_bundle }}"
@@ -57,11 +57,13 @@
 
     - name: fail middleware readiness check
       ansible.builtin.fail:
-          msg: "Middleware did not become ready on 127.0.0.1:{{ middleware_internal_port }}."
+          msg: >-
+            Middleware did not become ready on
+            {{ test_middleware_host }}:{{ test_middleware_port }}.
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/GetTokenPair/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/GetTokenPair/"
       method: POST
       status_code: 200
       headers:
@@ -127,7 +129,7 @@
 # --- negative test: wrong credentials ---
 - name: middleware test get jwt wrong creds
   ansible.builtin.uri:
-      url: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/api/AuthenticationToken/Get/"
+      url: "{{ test_middleware_uri }}api/AuthenticationToken/Get/"
       method: POST
       headers:
           Content-Type: application/json

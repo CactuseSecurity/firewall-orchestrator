@@ -73,6 +73,74 @@
     fail_msg: The Apache TLS key preflight accepted an encrypted private key.
   become: true
 
+# The preflight used to inspect only the FWO default path, so a passphrase-protected key
+# reached by an SSLCertificateKeyFile elsewhere - what a retained customer vhost has -
+# was skipped and reached the Apache restart. Overriding only the vhost proves the
+# configured key is the one being read.
+- name: Create a temporary directory for the Apache vhost key preflight test
+  tempfile:
+    state: directory
+    prefix: fworch-apache-vhost-key-
+  register: apache_vhost_key_test_directory
+  become: true
+
+- name: Create an encrypted Apache TLS key outside the default directory
+  command:
+    argv:
+      - openssl
+      - genpkey
+      - -algorithm
+      - RSA
+      - -aes-256-cbc
+      - -pass
+      - pass:installer-test-passphrase
+      - -out
+      - "{{ apache_vhost_key_test_directory.path }}/custom.key"
+      - -pkeyopt
+      - rsa_keygen_bits:2048
+  changed_when: false
+  no_log: true
+  become: true
+
+- name: Write an Apache vhost referencing the key outside the default directory
+  copy:
+    content: |
+      <VirtualHost *:443>
+        SSLCertificateKeyFile {{ apache_vhost_key_test_directory.path }}/custom.key
+      </VirtualHost>
+    dest: "{{ apache_vhost_key_test_directory.path }}/vhost.conf"
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+
+- name: Verify the preflight rejects an encrypted key referenced by the vhost
+  block:
+    - include_tasks: "{{ role_path }}/../common/tasks/apache/validate-unencrypted-tls-key.yml"
+      vars:
+        apache_ssl_dir: "{{ apache_vhost_key_test_directory.path }}/absent"
+        apache_vhost_conf_file: "{{ apache_vhost_key_test_directory.path }}/vhost.conf"
+    - set_fact:
+        apache_vhost_key_preflight_rejected: false
+  rescue:
+    - set_fact:
+        apache_vhost_key_preflight_rejected: true
+  become: true
+
+- name: Assert that the encrypted vhost key was rejected before restart
+  assert:
+    that:
+      - apache_vhost_key_preflight_rejected | bool
+    fail_msg: >-
+      The Apache TLS key preflight ignored the private key the active vhost references.
+  become: true
+
+- name: Remove Apache vhost key preflight test files
+  file:
+    path: "{{ apache_vhost_key_test_directory.path }}"
+    state: absent
+  become: true
+
 - name: Remove Apache TLS key preflight test files
   file:
     path: "{{ apache_tls_key_test_directory.path }}"

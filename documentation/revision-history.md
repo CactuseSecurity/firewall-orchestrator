@@ -635,7 +635,7 @@ Not supported any longer are:
 - Cisco ASA: keep the legacy `ANY` UID for the imported "any ip protocol" service object while showing it as `any-ip` in reports; existing compliance criteria or queries pinned to the old `any-ip` UID need to be updated to use `ANY` instead.
 - OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
 
-## 9.5.0
+## 9.5.0 - 27.08.2026
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access

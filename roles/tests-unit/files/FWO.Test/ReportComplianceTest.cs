@@ -462,6 +462,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Generate_DiffReportRetainsTruncatedCurrentComplianceForSuppressedRule()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1,
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7,
+                ShowNonImpactRules = true
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
+            };
+            Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
+            activeRule.Violations.Add(CreateDiffViolation(13, 101, "rule-a"));
+            activeRule.Violations.Add(CreateDiffViolation(14, 101, "rule-a"));
+            List<Rule> activeRules = new()
+            {
+                activeRule
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Rule suppressedRule = report.Rules.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(suppressedRule.Compliance, Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    suppressedRule.ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter")));
+            });
+        }
+
+        [Test]
         public async Task Generate_DiffReportDoesNotLabelOtherManagementRuleSharingUidAsFiltered()
         {
             SimulatedGlobalConfig globalConfig = new()

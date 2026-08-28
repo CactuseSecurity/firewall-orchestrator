@@ -41,7 +41,7 @@ namespace FWO.Report
         private bool _includeHeaderInExport;
         private char _separator;
         private int _maxCellSize;
-        private readonly int _maxPrintedViolations;
+        protected readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
 
         #endregion

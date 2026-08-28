@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -12,15 +11,20 @@ namespace FWO.Test
     /// that role, so a role which may delete or update a table but cannot select the columns its where
     /// clause filters on has the mutation rejected while it is validated. Nothing but a runtime error
     /// inside a background job reports that mismatch, which is why it is checked here instead.
-    /// The metadata and the API calls are embedded into this assembly at build time
-    /// (see FWO.Test.csproj), so no file of another component is read at runtime.
+    /// The metadata and the API calls are read from the repository, or from the places the installer
+    /// deploys them to, because an installed system holds only the sources of the tests themselves.
+    /// Where neither is reachable the checks are skipped instead of passing on no input at all.
     /// </summary>
     [TestFixture]
     internal partial class ApiPermissionAlignmentTest
     {
-        private const string kMetadataResource = "FWO.Test.replace_metadata.json";
-        private const string kApiCallPrefix = "FWO.Test.ApiCalls.";
+        private const string kMetadataFile = "replace_metadata.json";
+        private const string kApiCallDirectoryName = "fwo-api-calls";
         private const string kApiCallSuffix = ".graphql";
+        private const string kMetadataOutOfReach =
+            "The Hasura metadata is not reachable in this environment, so the permission alignment cannot be checked.";
+        private const string kApiCallsOutOfReach =
+            "The API call definitions are not reachable in this environment, so the permission alignment cannot be checked.";
         private const string kPermissionSuffix = "_permissions";
         private const string kSelectOperation = "select";
         private const string kUpdateOperation = "update";
@@ -33,6 +37,14 @@ namespace FWO.Test
         /// Operators combining several conditions. Their operands are conditions again and not columns.
         /// </summary>
         private static readonly List<string> kLogicalOperators = new() { "_and", "_or", "_not" };
+
+        /// <summary>
+        /// The sources under test. They are looked up once and are read from wherever the environment
+        /// keeps them, because the tests run from a repository checkout as well as from an installed
+        /// system, where the components do not share the layout of the repository.
+        /// </summary>
+        private static readonly Lazy<FileInfo?> kMetadataFileInfo = new(LocateMetadata);
+        private static readonly Lazy<DirectoryInfo?> kApiCallDirectory = new(LocateApiCalls);
 
         /// <summary>
         /// Mismatches which are accepted although they exist. Every entry breaks the API call named with
@@ -51,6 +63,8 @@ namespace FWO.Test
         [Test]
         public void ApiCalls_FilterOnlyColumnsTheirRolesMaySelect()
         {
+            SkipWithoutSources();
+
             Dictionary<string, TableMetadata> tables = ReadMetadata();
             List<string> mismatches = new();
 
@@ -76,6 +90,8 @@ namespace FWO.Test
         [Test]
         public void ApiCalls_AddressOnlyTrackedTables()
         {
+            SkipWithoutSources();
+
             Dictionary<string, TableMetadata> tables = ReadMetadata();
 
             List<string> unknownTables = ReadFilteredMutations()
@@ -96,6 +112,8 @@ namespace FWO.Test
         [Test]
         public void ApiCalls_KnownPermissionGapsStillExist()
         {
+            SkipWithoutSources();
+
             Dictionary<string, TableMetadata> tables = ReadMetadata();
             List<string> existingGaps = new();
 
@@ -165,7 +183,9 @@ namespace FWO.Test
         /// </summary>
         private static Dictionary<string, TableMetadata> ReadMetadata()
         {
-            using JsonDocument metadata = JsonDocument.Parse(ReadResource(kMetadataResource));
+            FileInfo metadataFile = kMetadataFileInfo.Value
+                ?? throw new InvalidOperationException(kMetadataOutOfReach);
+            using JsonDocument metadata = JsonDocument.Parse(File.ReadAllText(metadataFile.FullName));
             Dictionary<string, TableMetadata> tables = new();
 
             foreach (JsonElement source in metadata.RootElement.GetProperty("args")
@@ -252,11 +272,14 @@ namespace FWO.Test
         /// </summary>
         private static List<FilteredMutation> ReadFilteredMutations()
         {
+            DirectoryInfo apiCalls = kApiCallDirectory.Value
+                ?? throw new InvalidOperationException(kApiCallsOutOfReach);
+
             List<FilteredMutation> mutations = new();
-            foreach (string resource in Assembly.GetExecutingAssembly().GetManifestResourceNames()
-                .Where(name => name.StartsWith(kApiCallPrefix) && name.EndsWith(kApiCallSuffix)))
+            foreach (FileInfo apiCall in apiCalls.EnumerateFiles($"*{kApiCallSuffix}", SearchOption.AllDirectories))
             {
-                mutations.AddRange(ReadFilteredMutations(FormatSource(resource), ApiQueries.Compact(ReadResource(resource))));
+                mutations.AddRange(ReadFilteredMutations(FormatSource(apiCalls, apiCall),
+                    ApiQueries.Compact(File.ReadAllText(apiCall.FullName))));
             }
             return mutations;
         }
@@ -457,23 +480,77 @@ namespace FWO.Test
 
         /// <summary>
         /// Names an API call by its path below fwo-api-calls, so a failure points at the file to repair.
-        /// The directories of the path are separators of the resource name and are restored here.
         /// </summary>
-        private static string FormatSource(string resourceName)
+        private static string FormatSource(DirectoryInfo apiCalls, FileInfo apiCall)
         {
-            string path = resourceName[kApiCallPrefix.Length..^kApiCallSuffix.Length];
-            return path.Replace('.', Path.AltDirectorySeparatorChar) + kApiCallSuffix;
+            return Path.GetRelativePath(apiCalls.FullName, apiCall.FullName)
+                .Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
 
         /// <summary>
-        /// Reads an embedded resource of this assembly.
+        /// Locates the Hasura metadata in the repository or in the directory the installer copies it to
+        /// next to the tests.
         /// </summary>
-        private static string ReadResource(string resourceName)
+        /// <returns>The metadata file, or null when it is out of reach.</returns>
+        private static FileInfo? LocateMetadata()
         {
-            using Stream? resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
-                ?? throw new InvalidOperationException($"Embedded resource {resourceName} is missing.");
-            using StreamReader reader = new(resource);
-            return reader.ReadToEnd();
+            return LocateBesideOrAbove(directory =>
+            {
+                FileInfo repository = new(Path.Combine(directory.FullName, "roles", "api", "files", kMetadataFile));
+                FileInfo installed = new(Path.Combine(directory.FullName, kMetadataFile));
+                return repository.Exists ? repository : installed.Exists ? installed : null;
+            });
+        }
+
+        /// <summary>
+        /// Locates the API call definitions in the repository or where the installer deploys them for the
+        /// UI, middleware and importer.
+        /// </summary>
+        /// <returns>The directory holding the API calls, or null when it is out of reach.</returns>
+        private static DirectoryInfo? LocateApiCalls()
+        {
+            return LocateBesideOrAbove(directory =>
+            {
+                DirectoryInfo repository = new(Path.Combine(directory.FullName, "roles", "common", "files", kApiCallDirectoryName));
+                DirectoryInfo installed = new(Path.Combine(directory.FullName, kApiCallDirectoryName));
+                return repository.Exists ? repository : installed.Exists ? installed : null;
+            });
+        }
+
+        /// <summary>
+        /// Walks from the directory of the test assembly up to the root and returns what the given lookup
+        /// finds first. The tests run from a repository checkout as well as from an installed system, where
+        /// the sources of the other components are not laid out the same way.
+        /// </summary>
+        private static TFound? LocateBesideOrAbove<TFound>(Func<DirectoryInfo, TFound?> lookup) where TFound : class
+        {
+            DirectoryInfo? directory = new(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                TFound? found = lookup(directory);
+                if (found is not null)
+                {
+                    return found;
+                }
+                directory = directory.Parent;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Skips a test when the metadata or the API calls cannot be read, which happens wherever only
+        /// part of the sources is deployed. Reporting that plainly is better than passing on no input.
+        /// </summary>
+        private static void SkipWithoutSources()
+        {
+            if (kMetadataFileInfo.Value is null)
+            {
+                Assert.Ignore(kMetadataOutOfReach);
+            }
+            if (kApiCallDirectory.Value is null)
+            {
+                Assert.Ignore(kApiCallsOutOfReach);
+            }
         }
 
         [GeneratedRegex(@"\b(delete|update)_([A-Za-z0-9_]+)\s*\(", RegexOptions.None, kRegexTimeoutMilliseconds)]

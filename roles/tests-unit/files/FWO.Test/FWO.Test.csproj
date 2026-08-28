@@ -32,13 +32,6 @@
 		<EmbeddedResource Include="..\..\..\ui\files\FWO.UI\wwwroot\css\site.css" LogicalName="FWO.Test.site.css" />
 	</ItemGroup>
 
-	<!-- Hasura metadata and API call definitions checked by ApiPermissionAlignmentTest. They are
-	     embedded at build time, so the test does not have to read any file of another component. -->
-	<ItemGroup>
-		<EmbeddedResource Include="..\..\..\api\files\replace_metadata.json" LogicalName="FWO.Test.replace_metadata.json" />
-		<EmbeddedResource Include="..\..\..\common\files\fwo-api-calls\**\*.graphql" LinkBase="ApiCalls" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\lib\files\FWO.Compliance\FWO.Compliance.csproj" />
 		<ProjectReference Include="..\..\..\lib\files\FWO.Report\FWO.Report.csproj" />

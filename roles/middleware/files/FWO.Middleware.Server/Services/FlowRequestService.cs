@@ -696,7 +696,7 @@ public sealed class FlowRequestService
 
         public static CreateRequestEntity FromServiceObject(int id, CreateRequestRequest.CreateServiceObjectRequest request, Dictionary<string, int> protocolIds)
         {
-            int protocolId = ResolveProtocolId(request.Protocol, protocolIds);
+            int protocolId = ResolveProtocolId(request.Protocol, protocolIds, request.PortStart, request.PortEnd);
             return new CreateRequestEntity(
                 id,
                 CreateRequestEntityKind.ServiceObject,
@@ -744,24 +744,49 @@ public sealed class FlowRequestService
             }
         }
 
-        private static int ResolveProtocolId(string protocol, Dictionary<string, int> protocolIds)
+        private static int ResolveProtocolId(string protocol, Dictionary<string, int> protocolIds, int? portStart, int? portEnd)
         {
             if (int.TryParse(protocol, out int protocolId))
             {
-                if (protocolId > 0 && protocolIds.ContainsValue(protocolId))
-                {
-                    return protocolId;
-                }
-
-                throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+                return ValidateResolvedProtocolId(protocol, protocolId, protocolIds.ContainsValue(protocolId), portStart, portEnd);
             }
 
             if (protocolIds.TryGetValue(protocol, out protocolId))
             {
-                return protocolId;
+                return ValidateResolvedProtocolId(protocol, protocolId, true, portStart, portEnd);
             }
 
             throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+        }
+
+        private static int ValidateResolvedProtocolId(string protocol, int protocolId, bool isConfigured, int? portStart, int? portEnd)
+        {
+            if (isConfigured && protocolId >= 0)
+            {
+                ValidatePortRange(protocol, portStart, portEnd);
+                return protocolId;
+            }
+
+            bool isCanonicalAnyIpProtocol = isConfigured && protocolId == GlobalConst.kAnyIpProtocolId && portStart is null && portEnd is null;
+            if (isCanonicalAnyIpProtocol)
+            {
+                return protocolId;
+            }
+
+            throw new ArgumentException($"The service object protocol '{protocol}' must match a non-negative configured STM protocol name or id, or be the canonical any-IP-protocol service without ports.");
+        }
+
+        /// <summary>
+        /// Rejects a 'portEnd' without a 'portStart': it cannot be resolved to a deterministic
+        /// service hash and would otherwise be persisted as an internally inconsistent service.
+        /// A 'portStart' without a 'portEnd' is a valid single-port shorthand and is left as-is.
+        /// </summary>
+        private static void ValidatePortRange(string protocol, int? portStart, int? portEnd)
+        {
+            if (portStart is null && portEnd is not null)
+            {
+                throw new ArgumentException($"The service object protocol '{protocol}' has a 'portEnd' value without a 'portStart' value.");
+            }
         }
     }
 

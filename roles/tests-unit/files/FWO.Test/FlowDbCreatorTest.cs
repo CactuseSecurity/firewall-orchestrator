@@ -1,6 +1,7 @@
 using System.Globalization;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Workflow;
@@ -524,6 +525,56 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
             Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == service.Id).FlowServiceObjectId, Is.EqualTo(66));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_ReusesCanonicalAnyServiceObjectRegardlessOfName()
+        {
+            string anyServiceHash = FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null);
+            FlowDbCreatorTestApiConn apiConn = new();
+            apiConn.ExistingServiceObjects.Add(new FlowSvcObject
+            {
+                Id = 66,
+                Name = "ANY",
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                Hash = anyServiceHash,
+                State = FlowState.Implemented,
+                ShowInRequestModule = true
+            });
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ProtoId = GlobalConst.kAnyIpProtocolId;
+            service.Port = null;
+            service.PortEnd = null;
+            service.Name = "ALL";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            Assert.That(apiConn.InsertedServiceObjects, Is.Empty);
+            Assert.That(apiConn.UpdatedRequestElements.Single(update => update.Id == service.Id).FlowServiceObjectId, Is.EqualTo(66));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_CreatesCanonicalAnyServiceObjectAsImplemented()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.ProtoId = GlobalConst.kAnyIpProtocolId;
+            service.Port = null;
+            service.PortEnd = null;
+            service.Name = "ALL";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowSvcObject insertedService = apiConn.InsertedServiceObjects.Single();
+            Assert.That(insertedService.State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(insertedService.Hash, Is.EqualTo(FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null)));
+            Assert.That(insertedService.RemovedDate, Is.Null);
         }
 
         [Test]

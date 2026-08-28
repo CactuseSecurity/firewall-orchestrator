@@ -389,7 +389,10 @@ else
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols), null, false);
+            availableProtocols = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols)),
+                null,
+                false);
             ExtraConfigs = JsonSerializer.Deserialize<List<string>>(configData.ModExtraConfigs) ?? [];
             namingConvention = ModellingNamingConvention.FromJson(configData.ModNamingConvention);
             if (configData.ModAppServerTypes != "")

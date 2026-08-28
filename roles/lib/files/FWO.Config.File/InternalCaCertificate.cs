@@ -82,26 +82,39 @@ namespace FWO.Config.File
         /// <param name="configurationError">The failure of the config lookup, null when it succeeded.</param>
         private static void ReadConfiguration(out string path, out DateTime writeTimeUtc, out Exception? configurationError)
         {
+            writeTimeUtc = DateTime.MinValue;
             try
             {
                 path = ConfigFile.TlsCaCertificate;
-                // A missing file reports the minimum value rather than throwing, which is
-                // the same key an unconfigured anchor gets and keeps both on the back-off
-                // path. Inside the try because a configured but empty path is not null and
-                // therefore reaches here, and GetLastWriteTimeUtc rejects it with an
-                // ArgumentException - which is not a ConfigException, so it would escape
-                // Get() untranslated, never reach the back-off, and surface out of the tls
-                // validation callback as the opaque AuthenticationException the callers
-                // catch ConfigException to avoid.
-                writeTimeUtc = System.IO.File.GetLastWriteTimeUtc(path);
                 configurationError = null;
-                return;
             }
             catch (Exception exception)
             {
+                // Only a failure of the config lookup itself means the setting is absent,
+                // so only this one is reported as the missing setting.
                 path = "";
-                writeTimeUtc = DateTime.MinValue;
                 configurationError = exception;
+                return;
+            }
+
+            try
+            {
+                // A missing file reports the minimum value rather than throwing, which is
+                // the same key an unconfigured anchor gets and keeps both on the back-off
+                // path.
+                writeTimeUtc = System.IO.File.GetLastWriteTimeUtc(path);
+            }
+            catch (Exception exception)
+            {
+                // The config layer only null-checks, so a configured but malformed path -
+                // empty, or too long - is rejected here instead. configurationError stays
+                // null deliberately: the setting is present, and claiming it is missing
+                // would send the operator to the installer over a typo. LoadCertificates
+                // fails on the same path, so Load still reports it as a ConfigException,
+                // still names the path, and the back-off and the tls callback contract
+                // both continue to hold.
+                Log.WriteDebug(LogCategory,
+                    $"Could not read the last write time of the configured trust anchor ({path}): {exception.Message}");
             }
         }
 

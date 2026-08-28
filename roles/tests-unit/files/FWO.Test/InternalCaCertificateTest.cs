@@ -150,35 +150,49 @@ namespace FWO.Test
 
         /// <summary>
         /// An empty tls_ca_certificate is not null, so it passes the config layer's null
-        /// check and reaches the file lookup, which rejects a zero length path with an
-        /// ArgumentException. That is not a ConfigException, so it would escape Get()
-        /// untranslated, skip the back-off, and leave the tls validation callbacks - which
-        /// catch ConfigException precisely to avoid it - throwing out of a handshake.
+        /// check and reaches the file lookup, which rejects a zero length path. That has to
+        /// come back as a ConfigException - anything else escapes Get() untranslated, skips
+        /// the back-off, and leaves the tls validation callbacks, which catch ConfigException
+        /// precisely to avoid it, throwing out of a handshake. It also has to be reported as
+        /// the configured value being unusable rather than absent: the setting is present,
+        /// and sending the operator to the installer over a typo wastes the diagnosis.
         /// </summary>
         [Test]
-        public void Get_WithAnEmptyConfiguredAnchorPath_ReportsTheMissingSetting()
+        public void Get_WithAnEmptyConfiguredAnchorPath_ReportsTheValueAsUnusable()
         {
             SetConfiguredAnchorPath("");
             ClearCache();
 
             ConfigException thrown = Assert.Throws<ConfigException>(() => InternalCaCertificate.Get())!;
 
-            Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+                Assert.That(thrown.Message, Does.Contain("Could not load"));
+                Assert.That(thrown.Message, Does.Not.Contain("has no tls_ca_certificate"));
+            });
         }
 
         /// <summary>
-        /// The same for a path of blanks, which reaches the file lookup just as an empty
-        /// one does.
+        /// A path of blanks is a legal file name on Linux, so unlike the empty path it does
+        /// not fail the file lookup - it reaches the load as a file that is simply not there.
+        /// Both routes have to end in the same report, naming the configured value rather
+        /// than calling the setting absent.
         /// </summary>
         [Test]
-        public void Get_WithABlankConfiguredAnchorPath_ReportsTheMissingSetting()
+        public void Get_WithABlankConfiguredAnchorPath_ReportsTheValueAsUnusable()
         {
             SetConfiguredAnchorPath("   ");
             ClearCache();
 
             ConfigException thrown = Assert.Throws<ConfigException>(() => InternalCaCertificate.Get())!;
 
-            Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+                Assert.That(thrown.Message, Does.Contain("Could not load"));
+                Assert.That(thrown.Message, Does.Not.Contain("has no tls_ca_certificate"));
+            });
         }
 
         /// <summary>

@@ -366,6 +366,9 @@ namespace FWO.Services.Workflow
                 || ruleAction.Allowed;
         }
 
+        /// <summary>
+        /// Resolves or creates the Flow time object for a workflow payload using UTC time bounds.
+        /// </summary>
         private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(FlowCreationPayload payload, FlowSyncFlowData context)
         {
             if (!payload.TimeStart.HasValue && !payload.TimeEnd.HasValue)
@@ -373,7 +376,9 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
-            string hash = FlowHashGenerator.GenerateTimeObjectHash(payload.TimeStart, payload.TimeEnd);
+            DateTime? utcStartTime = payload.TimeStart?.ToUniversalTime();
+            DateTime? utcEndTime = payload.TimeEnd?.ToUniversalTime();
+            string hash = FlowHashGenerator.GenerateTimeObjectHash(utcStartTime, utcEndTime);
             if (context.TimeObjects.TryGetValue(hash, out FlowTimeObject? existingTimeObject))
             {
                 return existingTimeObject;
@@ -382,8 +387,8 @@ namespace FWO.Services.Workflow
             FlowTimeObjectInsert insert = new()
             {
                 Name = payload.TimeName,
-                StartTime = payload.TimeStart,
-                EndTime = payload.TimeEnd,
+                StartTime = utcStartTime,
+                EndTime = utcEndTime,
                 TimeObjHash = hash,
                 State = FlowState.Requested,
                 RemovedDate = null,
@@ -392,8 +397,8 @@ namespace FWO.Services.Workflow
 
             FlowTimeObject inserted = (await apiConnection.SendQueryAsync<FlowTimeObjectInsertResult>(FlowQueries.insertFlowTimeObjects, new { objects = new[] { insert } })).Returning.First();
             inserted.Name = payload.TimeName;
-            inserted.StartTime = payload.TimeStart;
-            inserted.EndTime = payload.TimeEnd;
+            inserted.StartTime = utcStartTime;
+            inserted.EndTime = utcEndTime;
             inserted.Hash = hash;
             inserted.State = FlowState.Requested;
             inserted.ShowInRequestModule = true;

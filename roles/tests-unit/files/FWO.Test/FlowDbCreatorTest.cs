@@ -625,6 +625,30 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlowInFlowDb_WritesUnspecifiedTargetDatesAsUtc()
+        {
+            DateTime targetBegin = new(2026, 6, 8, 8, 15, 30, DateTimeKind.Unspecified);
+            DateTime targetEnd = new(2026, 7, 9, 17, 45, 15, DateTimeKind.Unspecified);
+            DateTime expectedBegin = targetBegin.ToUniversalTime();
+            DateTime expectedEnd = targetEnd.ToUniversalTime();
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            task.TargetBeginDate = targetBegin;
+            task.TargetEndDate = targetEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowTimeObject insertedTimeObject = apiConn.InsertedTimeObjects.Single();
+            Assert.That(insertedTimeObject.StartTime, Is.EqualTo(expectedBegin));
+            Assert.That(insertedTimeObject.EndTime, Is.EqualTo(expectedEnd));
+            Assert.That(insertedTimeObject.StartTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(insertedTimeObject.EndTime!.Value.Kind, Is.EqualTo(DateTimeKind.Utc));
+            Assert.That(insertedTimeObject.Hash, Is.EqualTo(FlowHashGenerator.GenerateTimeObjectHash(expectedBegin, expectedEnd)));
+        }
+
+        [Test]
         public async Task CreateFlowInFlowDb_ReusesExistingTimeObjectForTargetDates()
         {
             DateTime targetBegin = new(2026, 6, 8, 0, 0, 0, DateTimeKind.Utc);

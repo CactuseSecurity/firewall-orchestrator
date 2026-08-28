@@ -17,6 +17,8 @@ The mandatory CSV headers are `App ID`, `Log count`, `Src IP`, `Dst IP`, and `Po
 
 If any row cannot be converted, the complete CSV file is excluded from the generated JSON and from acknowledgement. Other valid CSV files in the same run are still imported and removed. The rejected file remains in the repository so it can be corrected and retried without losing the application IDs needed by replacement mode.
 
+At the end of a run the script logs an `INFO` summary of what it converted and what it had to leave behind: the number of skipped CSV files, the total number of lines which could not be imported, and one line per skipped file naming up to five of its not importable lines with their line number and reason. A file rejected before its rows were read - because a mandatory column is missing or the file cannot be read - is reported with that reason instead of example lines. The middleware reads the script output into its own log, so the summary appears in `middleware.log`.
+
 The database keeps one row per application, source, destination and service. Repeated entries for the same flow are not stored a second time: entries which are repeated inside one import file are merged into a single entry with the summed log count, and an entry which is already stored is updated with the imported log count, action, log time and rule name instead of being inserted again. An entry without a protocol or without a port counts as one distinct flow, not as a wildcard.
 
 The generated JSON interface is:

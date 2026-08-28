@@ -8,6 +8,7 @@ import logging
 import sys
 import urllib.parse
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO, cast
@@ -32,6 +33,7 @@ OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
 # acknowledgement deletes and pushes, so it must not be something the log repository can provide
 MANIFEST_FILE: Path = OUTPUT_FILE.with_name(".fwo-log-import-manifest.json")
 MAX_PENDING_REUSES: int = 3
+MAX_REPORTED_EXAMPLE_ROWS: int = 5
 REUSES_KEY: str = "reuses"
 ACKNOWLEDGE_FAILURES_KEY: str = "acknowledge_failures"
 COMMIT_MESSAGE: str = "chore: remove imported log data"
@@ -39,6 +41,36 @@ REQUIRED_COLUMNS: set[str] = {"App ID", "Log count", "Src IP", "Dst IP", "Port"}
 OPTIONAL_COLUMNS: dict[str, str] = {"Log timestamp": "log_time", "Rule name": "rule_name"}
 PORT_PROTOCOLS: tuple[int, int] = (6, 17)
 LogDataEntry = dict[str, str | int | None]
+
+
+@dataclass
+class RejectedFile:
+    """
+    What could not be imported from one CSV file.
+
+    A file with an unconvertible row is kept in the repository as a whole, so the reason has to
+    survive the rejection of the file: the summary at the end of the run is the only place which
+    reports how much data is still waiting and which lines hold it back.
+    """
+
+    reason: str = ""
+    row_count: int = 0
+    examples: list[str] = field(default_factory=list[str])
+
+    def add_row(self, line_number: int, reason: str) -> None:
+        """Count one line which cannot be imported, keeping the first few as examples."""
+        self.row_count += 1
+        if len(self.examples) < MAX_REPORTED_EXAMPLE_ROWS:
+            self.examples.append(f"line {line_number}: {reason}")
+
+
+@dataclass
+class ConversionResult:
+    """What one run made of the CSV files found in the log data repository."""
+
+    entries: list[LogDataEntry] = field(default_factory=list[LogDataEntry])
+    converted_files: list[Path] = field(default_factory=list[Path])
+    rejected_files: dict[str, RejectedFile] = field(default_factory=dict[str, RejectedFile])
 
 
 def get_optional_value(config_file: str, key: str, default: str, logger: logging.Logger) -> str:
@@ -75,10 +107,14 @@ def parse_optional_int(value: str) -> int | None:
     return int(stripped_value) if stripped_value else None
 
 
-def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging.Logger) -> list[LogDataEntry]:
+def convert_csv_file(
+    csv_file: Path,
+    repository_directory: Path,
+    rejected: RejectedFile,
+    logger: logging.Logger,
+) -> list[LogDataEntry]:
     """Convert every row of one CSV file, rejecting the complete file if any row is invalid."""
     converted: list[LogDataEntry] = []
-    rejected_row_count: int = 0
     with csv_file.open(newline="", encoding="utf-8-sig") as file_handle:
         typed_file_handle: TextIO = file_handle
         reader: csv.DictReader[str] = csv.DictReader(typed_file_handle)
@@ -86,28 +122,80 @@ def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging
             raise ValueError(f"{csv_file} is missing one or more mandatory columns")
         for line_number, row in enumerate(reader, start=2):
             converted_row: LogDataEntry | None = convert_row_or_log_error(
-                row, csv_file, repository_directory, line_number, logger
+                row, csv_file, repository_directory, line_number, rejected, logger
             )
-            if converted_row is None:
-                rejected_row_count += 1
-            else:
+            if converted_row is not None:
                 converted.append(converted_row)
-    if rejected_row_count > 0:
-        raise ValueError(f"{rejected_row_count} row(s) could not be converted")
+    if rejected.row_count > 0:
+        raise ValueError(f"{rejected.row_count} row(s) could not be converted")
     return converted
 
 
 def convert_csv_file_or_log_error(
     csv_file: Path,
     repository_directory: Path,
+    rejected: RejectedFile,
     logger: logging.Logger,
 ) -> list[LogDataEntry] | None:
     """Convert one file, an unusable file is reported and skipped so the other files still import."""
     try:
-        return convert_csv_file(csv_file, repository_directory, logger)
+        return convert_csv_file(csv_file, repository_directory, rejected, logger)
     except (OSError, UnicodeDecodeError, ValueError) as exception:
         logger.warning("ignoring %s: %s", csv_file.relative_to(repository_directory), exception)
+        rejected.reason = str(exception)
         return None
+
+
+def convert_repository_files(
+    csv_files: list[Path],
+    repository_directory: Path,
+    logger: logging.Logger,
+) -> ConversionResult:
+    """Convert every CSV file found in the repository, keeping track of the skipped ones."""
+    result: ConversionResult = ConversionResult()
+    for csv_file in csv_files:
+        rejected: RejectedFile = RejectedFile()
+        file_entries: list[LogDataEntry] | None = convert_csv_file_or_log_error(
+            csv_file, repository_directory, rejected, logger
+        )
+        if file_entries is None:
+            result.rejected_files[csv_file.relative_to(repository_directory).as_posix()] = rejected
+            continue
+        result.entries.extend(file_entries)
+        result.converted_files.append(csv_file)
+    return result
+
+
+def report_conversion_summary(result: ConversionResult, logger: logging.Logger) -> None:
+    """
+    Report what the run imported and what it had to leave behind.
+
+    The middleware reads the output of this script into its own log, so this summary is what an
+    operator finds in middleware.log. The per-row warnings alone do not say how much data is still
+    waiting in the repository, and a file which keeps being skipped is invisible between the runs.
+    """
+    logger.info("converted %s CSV files into %s log entries", len(result.converted_files), len(result.entries))
+    if not result.rejected_files:
+        return
+    rejected_row_count: int = sum(rejected.row_count for rejected in result.rejected_files.values())
+    logger.info(
+        "%s CSV file(s) with %s not importable line(s) were kept in the log data repository for the next run",
+        len(result.rejected_files),
+        rejected_row_count,
+    )
+    for source_name, rejected in sorted(result.rejected_files.items()):
+        logger.info("not imported from %s: %s", source_name, describe_rejected_file(rejected))
+
+
+def describe_rejected_file(rejected: RejectedFile) -> str:
+    """Describe one skipped file, naming up to MAX_REPORTED_EXAMPLE_ROWS of its lines as examples."""
+    if not rejected.examples:
+        return rejected.reason
+    examples: str = "; ".join(rejected.examples)
+    remaining_row_count: int = rejected.row_count - len(rejected.examples)
+    if remaining_row_count > 0:
+        return f"{rejected.row_count} not importable line(s), for example {examples}; {remaining_row_count} more"
+    return f"{rejected.row_count} not importable line(s): {examples}"
 
 
 def convert_row_or_log_error(
@@ -115,12 +203,15 @@ def convert_row_or_log_error(
     csv_file: Path,
     repository_directory: Path,
     line_number: int,
+    rejected: RejectedFile,
     logger: logging.Logger,
 ) -> LogDataEntry | None:
+    """Convert one row, recording an unconvertible one for the summary of the run."""
     try:
         return convert_row(row)
     except (TypeError, ValueError) as exception:
         logger.warning("ignoring %s line %s: %s", csv_file.relative_to(repository_directory), line_number, exception)
+        rejected.add_row(line_number, str(exception))
         return None
 
 
@@ -361,16 +452,9 @@ def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> 
     if search_directory is None:
         return 1
     csv_files: list[Path] = sorted(search_directory.rglob(CSV_PATTERN))
-    entries: list[LogDataEntry] = []
-    converted_files: list[Path] = []
-    for csv_file in csv_files:
-        file_entries: list[LogDataEntry] | None = convert_csv_file_or_log_error(csv_file, repository_directory, logger)
-        if file_entries is None:
-            continue
-        entries.extend(file_entries)
-        converted_files.append(csv_file)
-    write_import_file(entries, converted_files, repository_directory)
-    logger.info("converted %s CSV files into %s log entries", len(converted_files), len(entries))
+    conversion: ConversionResult = convert_repository_files(csv_files, repository_directory, logger)
+    write_import_file(conversion.entries, conversion.converted_files, repository_directory)
+    report_conversion_summary(conversion, logger)
     return 0
 
 

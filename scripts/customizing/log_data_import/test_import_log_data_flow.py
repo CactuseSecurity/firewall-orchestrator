@@ -19,18 +19,19 @@ def return_false(*_args: object, **_kwargs: object) -> bool:
     return False
 
 
-def write_config(tmp_path: Path, repository_directory: Path) -> str:
+def write_config(tmp_path: Path, repository_directory: Path, start_path: str | None = None) -> str:
     config_file: Path = tmp_path / "customizingConfigLogData.json"
+    config: dict[str, str] = {
+        "logDataGitRepo": "local.logdata/log_repo",
+        "logDataGitUser": "local",
+        "logDataGitPassword": "local",
+        "logDataGitRepoTargetDir": str(repository_directory),
+        "logDataGitBranch": "main",
+    }
+    if start_path is not None:
+        config[importer.START_PATH_CONFIG_KEY] = start_path
     config_file.write_text(
-        json.dumps(
-            {
-                "logDataGitRepo": "local.logdata/log_repo",
-                "logDataGitUser": "local",
-                "logDataGitPassword": "local",
-                "logDataGitRepoTargetDir": str(repository_directory),
-                "logDataGitBranch": "main",
-            }
-        ),
+        json.dumps(config),
         encoding="utf-8",
     )
     return str(config_file)
@@ -59,6 +60,52 @@ def test_import_data_writes_entries_and_manifest(tmp_path: Path, monkeypatch: py
     assert entries["logs"][0]["app_id"] == "APP-1"
     assert entries["logs"][0]["log_count"] == 42
     assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
+
+
+def test_import_data_searches_the_whole_repository_without_a_start_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "other.csv").write_text(CSV_CONTENT.replace("APP-1", "APP-2"), encoding="utf-8")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert [entry["app_id"] for entry in entries["logs"]] == ["APP-1", "APP-2"]
+
+
+def test_import_data_limits_csv_search_to_the_configured_start_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    config_file: str = write_config(tmp_path, repository_directory, "2026-08-12")
+    (repository_directory / "other.csv").write_text(CSV_CONTENT.replace("APP-1", "APP-2"), encoding="utf-8")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert [entry["app_id"] for entry in entries["logs"]] == ["APP-1"]
+    assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
+
+
+def test_import_data_rejects_a_start_path_outside_the_repository(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    _config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    config_file: str = write_config(tmp_path, repository_directory, "../outside")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        result: int = importer.import_data(config_file, None, LOGGER)
+
+    assert result == 1
+    assert "must name a directory within the log data repository" in caplog.text
+    assert not output_file.exists()
 
 
 def test_import_data_builds_the_repository_url_from_the_credentials(

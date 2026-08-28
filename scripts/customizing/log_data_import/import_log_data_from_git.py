@@ -12,7 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO, cast
 
-from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.basic_helpers import (
+    get_logger,
+    read_custom_config,
+    read_custom_config_with_default,
+)
 from scripts.customizing.fwo_custom_lib.git_helpers import (
     commit_and_push_deletions,
     parse_git_depth_arg,
@@ -21,6 +25,7 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
 
 DEFAULT_CONFIG_FILE: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 DEFAULT_REPOSITORY_DIRECTORY: str = "/usr/local/fworch/etc/logDataRepo"
+START_PATH_CONFIG_KEY: str = "logDataGitRepoStartPath"
 CSV_PATTERN: str = "*.csv"
 OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
 # the manifest is deliberately kept outside the cloned repository: it decides which files the
@@ -37,10 +42,32 @@ LogDataEntry = dict[str, str | int | None]
 
 
 def get_optional_value(config_file: str, key: str, default: str, logger: logging.Logger) -> str:
-    try:
-        return read_custom_config(config_file, key, logger=logger)
-    except (KeyError, ValueError):
+    """Read an optional string setting, returning its default when it is absent or invalid."""
+    configured_value: object = read_custom_config_with_default(config_file, key, default, logger)
+    if not isinstance(configured_value, str):
+        logger.warning("%s must be a string in config file %s; using the default", key, config_file)
         return default
+    return configured_value
+
+
+def get_csv_search_directory(config_file: str, repository_directory: Path, logger: logging.Logger) -> Path | None:
+    """Return the configured CSV directory, refusing paths outside the cloned repository."""
+    configured_start_path: str = get_optional_value(config_file, START_PATH_CONFIG_KEY, "", logger).strip()
+    if not configured_start_path:
+        return repository_directory
+    start_path: Path = Path(configured_start_path)
+    if start_path.is_absolute():
+        logger.error("%s must be a repository-relative directory", START_PATH_CONFIG_KEY)
+        return None
+    resolved_repository_directory: Path = repository_directory.resolve()
+    resolved_search_directory: Path = (repository_directory / start_path).resolve()
+    if not resolved_search_directory.is_relative_to(resolved_repository_directory):
+        logger.error("%s must name a directory within the log data repository", START_PATH_CONFIG_KEY)
+        return None
+    if not resolved_search_directory.is_dir():
+        logger.error("%s does not name an existing directory in the log data repository", START_PATH_CONFIG_KEY)
+        return None
+    return resolved_search_directory
 
 
 def parse_optional_int(value: str) -> int | None:
@@ -330,7 +357,10 @@ def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> 
     repo_url: str = f"https://{git_user}:{urllib.parse.quote(git_password, safe='')}@{git_repo}"
     if not update_git_repo(repo_url, str(repository_directory), logger, branch=branch or None, depth=depth):
         return 1
-    csv_files: list[Path] = sorted(repository_directory.rglob(CSV_PATTERN))
+    search_directory: Path | None = get_csv_search_directory(config_file, repository_directory, logger)
+    if search_directory is None:
+        return 1
+    csv_files: list[Path] = sorted(search_directory.rglob(CSV_PATTERN))
     entries: list[LogDataEntry] = []
     converted_files: list[Path] = []
     for csv_file in csv_files:

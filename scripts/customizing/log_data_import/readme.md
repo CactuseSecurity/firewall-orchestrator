@@ -7,6 +7,7 @@ Configure these keys in `customizingConfig.json`:
 - `logDataGitRepo`, `logDataGitUser`, `logDataGitPassword` (required)
 - `logDataGitRepoTargetDir` (optional; default `/usr/local/fworch/etc/logDataRepo`)
 - `logDataGitBranch` (optional)
+- `logDataGitRepoStartPath` (optional): repository-relative directory from which CSV files are searched recursively. If omitted or empty, the whole repository is searched.
 
 The script uses `GitPython`, which is not part of the system python. The installer creates a virtual environment for the customizing scripts at `/usr/local/fworch/scripts/customizing-venv` from `scripts/requirements.txt` and rewrites the shebangs of the deployed scripts to that environment, so the middleware picks up the dependencies when it executes the script. Custom scripts placed below `scripts/customizing` are treated the same way; add their dependencies to `scripts/requirements.txt`.
 

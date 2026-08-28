@@ -221,7 +221,7 @@ def test_handle_svc_protocol_uses_any_protocol_for_generic_protocol_number_zero(
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol(
-        {"protocol": 2, "protocol-number": 0, "udp-portrange": []},
+        {"protocol": 2, "protocol-number": 0},
         service_objects,
         "simple",
         "svc",

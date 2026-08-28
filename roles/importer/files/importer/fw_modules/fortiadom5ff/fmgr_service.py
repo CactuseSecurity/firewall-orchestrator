@@ -7,8 +7,8 @@ from fwo_base import sort_and_join
 from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 
 FORTI_PROTOCOL_ANY = 0
-FORTI_PROTOCOL_IP = 1
-FORTI_PROTOCOL_GENERIC = 2
+FORTI_PROTOCOL_ICMP = 1
+FORTI_PROTOCOL_IP = 2
 FORTI_PROTOCOL_ICMP6 = 6
 FORTI_GENERIC_PROTOCOL_NUMBER_ANY = 0
 
@@ -85,16 +85,16 @@ def handle_svc_protocol(
     added_svc_obj = 0
 
     # FortiManager's `protocol` is a service-type selector, not always an IP
-    # protocol number. Selector 0 directly represents ANY; selector 2 uses
-    # `protocol-number`. Its default is 0, so an omitted or zero value for a
-    # generic service is a second FortiManager encoding of ANY and maps to
+    # protocol number. Selector 0 directly represents ANY; selector 2 is IP and uses
+    # `protocol-number`. Its default is 0, so an omitted or zero value for an
+    # IP service is a second FortiManager encoding of ANY and maps to
     # FWO's -1 sentinel.
 
     protocol = obj_orig["protocol"]
-    if protocol == FORTI_PROTOCOL_IP:
+    if protocol == FORTI_PROTOCOL_ICMP:
         add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
         added_svc_obj += 1
-    elif protocol == FORTI_PROTOCOL_GENERIC:
+    elif protocol == FORTI_PROTOCOL_IP:
         proto = obj_orig.get("protocol-number", FORTI_GENERIC_PROTOCOL_NUMBER_ANY)
         if proto == FORTI_GENERIC_PROTOCOL_NUMBER_ANY:
             proto = ANY_IP_PROTOCOL_ID

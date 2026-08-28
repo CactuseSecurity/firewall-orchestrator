@@ -423,7 +423,7 @@ namespace FWO.Test
         /// Reads the names of the relationships of a table, which appear in a filter and in a selection set
         /// like a column but address another table.
         /// </summary>
-        private static void ReadRelationships(JsonElement table, ISet<string> relationships)
+        private static void ReadRelationships(JsonElement table, HashSet<string> relationships)
         {
             foreach (string kind in kRelationshipKinds)
             {

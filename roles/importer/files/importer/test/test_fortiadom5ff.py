@@ -217,6 +217,23 @@ def test_handle_svc_protocol_uses_zero_for_generic_without_protocol_number():
     assert service_objects[0]["ip_proto"] == 0
 
 
+def test_handle_svc_protocol_uses_any_protocol_for_generic_protocol_number_zero():
+    service_objects: list[dict[str, object]] = []
+
+    handle_svc_protocol(
+        {"protocol": 2, "protocol-number": 0, "udp-portrange": []},
+        service_objects,
+        "simple",
+        "svc",
+        "foreground",
+        None,
+    )
+
+    assert service_objects[0]["ip_proto"] == -1
+    assert service_objects[0]["svc_port"] is None
+    assert service_objects[0]["svc_port_end"] is None
+
+
 def test_handle_svc_protocol_ignores_unsupported_protocol():
     service_objects: list[dict[str, object]] = []
 

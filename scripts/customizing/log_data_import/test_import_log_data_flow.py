@@ -93,6 +93,46 @@ def test_import_data_limits_csv_search_to_the_configured_start_path(
     assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
 
 
+def test_import_data_finds_csv_files_below_a_symlinked_repository_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A start path must not make the found files unreachable from the configured repository."""
+    _config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    linked_repository_directory: Path = tmp_path / "linked_repo"
+    linked_repository_directory.symlink_to(repository_directory)
+    config_file: str = write_config(tmp_path, linked_repository_directory, "2026-08-12")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert [entry["app_id"] for entry in entries["logs"]] == ["APP-1"]
+    assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
+
+
+def test_import_data_reports_a_rejected_file_below_an_abbreviated_repository_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A repository directory which is not written out in its shortest form is a valid one as well."""
+    _config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    (repository_directory / "2026-08-12" / "fw.csv").write_text(
+        CSV_CONTENT.replace(",443,6", ",443,1"), encoding="utf-8"
+    )
+    abbreviated_repository_directory: Path = repository_directory / "2026-08-12" / ".."
+    config_file: str = write_config(tmp_path, abbreviated_repository_directory, "2026-08-12")
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    result: int = importer.import_data(config_file, None, LOGGER)
+
+    manifest: dict[str, Any] = json.loads(importer.MANIFEST_FILE.read_text(encoding="utf-8"))
+    entries: dict[str, Any] = json.loads(output_file.read_text(encoding="utf-8"))
+    assert result == 0
+    assert entries["logs"] == []
+    assert manifest["csv_files"] == []
+
+
 def test_import_data_rejects_a_start_path_outside_the_repository(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

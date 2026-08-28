@@ -83,7 +83,15 @@ def get_optional_value(config_file: str, key: str, default: str, logger: logging
 
 
 def get_csv_search_directory(config_file: str, repository_directory: Path, logger: logging.Logger) -> Path | None:
-    """Return the configured CSV directory, refusing paths outside the cloned repository."""
+    """
+    Return the configured CSV directory, refusing paths outside the cloned repository.
+
+    The returned directory keeps the repository directory as its prefix instead of being resolved:
+    the files found below it are reported and acknowledged relative to the repository directory, and
+    a resolved prefix is no prefix of it any more as soon as the configured repository directory is
+    a symbolic link or is not written out in its shortest form. Only the containment check resolves,
+    because a symbolic link inside the repository must not be able to lead the search out of it.
+    """
     configured_start_path: str = get_optional_value(config_file, START_PATH_CONFIG_KEY, "", logger).strip()
     if not configured_start_path:
         return repository_directory
@@ -91,15 +99,16 @@ def get_csv_search_directory(config_file: str, repository_directory: Path, logge
     if start_path.is_absolute():
         logger.error("%s must be a repository-relative directory", START_PATH_CONFIG_KEY)
         return None
+    search_directory: Path = repository_directory / start_path
     resolved_repository_directory: Path = repository_directory.resolve()
-    resolved_search_directory: Path = (repository_directory / start_path).resolve()
+    resolved_search_directory: Path = search_directory.resolve()
     if not resolved_search_directory.is_relative_to(resolved_repository_directory):
         logger.error("%s must name a directory within the log data repository", START_PATH_CONFIG_KEY)
         return None
     if not resolved_search_directory.is_dir():
         logger.error("%s does not name an existing directory in the log data repository", START_PATH_CONFIG_KEY)
         return None
-    return resolved_search_directory
+    return search_directory
 
 
 def parse_optional_int(value: str) -> int | None:

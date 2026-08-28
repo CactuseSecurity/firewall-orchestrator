@@ -39,7 +39,8 @@ namespace FWO.Report
         /// <summary>
         /// Formats each violation with the time at which it first appeared in the report interval and marks retained
         /// non-impact rules with a localized message. A rule left without violations because the existing-violations
-        /// filter suppressed them is labelled distinctly from a rule that genuinely had no violations in the interval.
+        /// filter suppressed them is labelled distinctly from a rule that genuinely had no violations in the interval
+        /// when the current state remains non-compliant.
         /// </summary>
         protected override void SetComplianceDataForRule(Rule rule, Func<ComplianceViolation, string>? formatter = null)
         {
@@ -52,7 +53,9 @@ namespace FWO.Report
                     if (TryGetCurrentComplianceForSuppressedRule(rule, out ComplianceViolationType currentCompliance))
                     {
                         rule.Compliance = currentCompliance;
-                        rule.ViolationDetails = userConfig.GetText("existing_violation_hidden_by_filter");
+                        rule.ViolationDetails = currentCompliance == ComplianceViolationType.NotAssessable
+                            ? userConfig.GetText("no_changes_found")
+                            : userConfig.GetText("existing_violation_hidden_by_filter");
                     }
                     else
                     {

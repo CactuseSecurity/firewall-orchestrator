@@ -419,19 +419,24 @@ namespace FWO.Test
             {
                 CreateDiffViolation(1, 101, "rule-a"),
                 CreateDiffViolation(2, 102, "rule-b"),
-                CreateDiffViolation(3, 103, "rule-d")
+                CreateDiffViolation(3, 103, "rule-d"),
+                CreateDiffViolation(4, 104, "rule-e")
             };
             List<ComplianceViolation> previousViolations = new()
             {
                 CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8)),
-                CreateDiffViolation(13, 13, "rule-d", foundDate: DateTime.Now.AddDays(-8))
+                CreateDiffViolation(13, 13, "rule-d", foundDate: DateTime.Now.AddDays(-8)),
+                CreateDiffViolation(14, 14, "rule-e", foundDate: DateTime.Now.AddDays(-8))
             };
+            ComplianceViolation notAssessableViolation = CreateDiffViolation(15, 104, "rule-e");
+            notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
             List<Rule> activeRules = new()
             {
                 CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a")),
                 CreateActiveRule("rule-b"),
                 CreateActiveRule("rule-c"),
-                CreateActiveRule("rule-d")
+                CreateActiveRule("rule-d"),
+                CreateActiveRule("rule-e", notAssessableViolation)
             };
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
 
@@ -457,6 +462,15 @@ namespace FWO.Test
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-d").Compliance,
                     Is.EqualTo(ComplianceViolationType.None));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-e").ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("no_changes_found")));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-e").Compliance,
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+                Assert.That(
+                    report.RuleViewData.Single(rule => rule.Uid == "rule-e").Compliance,
+                    Is.EqualTo("NOT ASSESSABLE"));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-b").Violations.Select(violation => violation.Id), Is.EqualTo(new List<int> { 2 }));
             });
         }

@@ -15,7 +15,7 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
-    [Parallelizable]
+    [NonParallelizable]
     internal class NotificationTest
     {
         readonly NotificationTestApiConn apiConnection = new();
@@ -588,6 +588,9 @@ namespace FWO.Test
         public async Task CollectRecipientsReturnsDummyRecipientsWhenDummyEmailIsEnabled()
         {
             List<UserGroup> ownerGroups = [];
+
+            globalConfig.UseDummyEmailAddress = true;
+
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoNotification notification = new()
             {
@@ -609,7 +612,6 @@ namespace FWO.Test
         }
 
         [Test]
-        [NonParallelizable]
         public async Task CollectRecipientsLogsWarningForConfiguredResponsiblesWhenNoRecipientsResolve()
         {
             globalConfig.UseDummyEmailAddress = false;
@@ -639,7 +641,6 @@ namespace FWO.Test
         }
 
         [Test]
-        [NonParallelizable]
         public async Task CollectRecipientsLogsWarningForJsonOtherAddressesWhenNoRecipientsResolve()
         {
             globalConfig.UseDummyEmailAddress = false;
@@ -668,7 +669,6 @@ namespace FWO.Test
         }
 
         [Test]
-        [NonParallelizable]
         public async Task CollectRecipientsLogsWarningForGenericRecipientOptionWhenNoRecipientsResolve()
         {
             globalConfig.UseDummyEmailAddress = false;
@@ -697,8 +697,7 @@ namespace FWO.Test
             Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option Requester"));
         }
 
-        [Test]
-        [NonParallelizable]
+        [Test]        
         public async Task CollectRecipientsDoesNotWarnForNoneRecipientOption()
         {
             globalConfig.UseDummyEmailAddress = false;

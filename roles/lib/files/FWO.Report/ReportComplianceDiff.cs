@@ -52,9 +52,12 @@ namespace FWO.Report
                     if (TryGetCurrentComplianceForSuppressedRule(rule, out ComplianceViolationType currentCompliance))
                     {
                         rule.Compliance = currentCompliance;
+                        rule.ViolationDetails = userConfig.GetText("existing_violation_hidden_by_filter");
                     }
-
-                    rule.ViolationDetails = userConfig.GetText("existing_violation_hidden_by_filter");
+                    else
+                    {
+                        rule.ViolationDetails = userConfig.GetText("no_changes_found");
+                    }
                 }
                 else
                 {

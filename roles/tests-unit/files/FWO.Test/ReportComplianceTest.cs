@@ -418,17 +418,20 @@ namespace FWO.Test
             List<ComplianceViolation> intervalViolations = new()
             {
                 CreateDiffViolation(1, 101, "rule-a"),
-                CreateDiffViolation(2, 102, "rule-b")
+                CreateDiffViolation(2, 102, "rule-b"),
+                CreateDiffViolation(3, 103, "rule-d")
             };
             List<ComplianceViolation> previousViolations = new()
             {
-                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8)),
+                CreateDiffViolation(13, 13, "rule-d", foundDate: DateTime.Now.AddDays(-8))
             };
             List<Rule> activeRules = new()
             {
                 CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a")),
                 CreateActiveRule("rule-b"),
-                CreateActiveRule("rule-c")
+                CreateActiveRule("rule-c"),
+                CreateActiveRule("rule-d")
             };
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
 
@@ -448,6 +451,12 @@ namespace FWO.Test
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-c").ViolationDetails,
                     Is.EqualTo(userConfig.GetText("no_changes_found")));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-d").ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("no_changes_found")));
+                Assert.That(
+                    report.Rules.Single(rule => rule.Uid == "rule-d").Compliance,
+                    Is.EqualTo(ComplianceViolationType.None));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-b").Violations.Select(violation => violation.Id), Is.EqualTo(new List<int> { 2 }));
             });
         }

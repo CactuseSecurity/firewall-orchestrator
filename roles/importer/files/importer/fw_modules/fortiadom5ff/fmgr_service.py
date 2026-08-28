@@ -10,6 +10,7 @@ FORTI_PROTOCOL_ANY = 0
 FORTI_PROTOCOL_IP = 1
 FORTI_PROTOCOL_GENERIC = 2
 FORTI_PROTOCOL_ICMP6 = 6
+FORTI_GENERIC_PROTOCOL_NUMBER_ANY = 0
 
 
 def normalize_service_objects(
@@ -94,8 +95,8 @@ def handle_svc_protocol(
         add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
         added_svc_obj += 1
     elif protocol == FORTI_PROTOCOL_GENERIC:
-        proto = obj_orig.get("protocol-number", FORTI_PROTOCOL_ANY)
-        if proto == FORTI_PROTOCOL_ANY:
+        proto = obj_orig.get("protocol-number", FORTI_GENERIC_PROTOCOL_NUMBER_ANY)
+        if proto == FORTI_GENERIC_PROTOCOL_NUMBER_ANY:
             proto = ANY_IP_PROTOCOL_ID
         add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
         added_svc_obj += 1

@@ -91,6 +91,13 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA network_zone TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT SELECT ON TABLES TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
 
+-- renamed compliance settings
+UPDATE config SET config_key = 'matrixAllowNestedZones'
+WHERE config_key = 'complianceMatrixAllowNetworkZones';
+
+UPDATE config SET config_key = 'sortMatrixByID'
+WHERE config_key = 'complianceCheckSortMatrixByID';
+
 -- path analysis algorithm
 CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
 (

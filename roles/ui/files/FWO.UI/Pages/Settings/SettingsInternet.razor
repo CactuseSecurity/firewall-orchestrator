@@ -1,5 +1,5 @@
 @page "/settings/internet"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @inject ApiConnection ApiConnection
 @inject GlobalConfig globalConfig
@@ -9,7 +9,7 @@
     <h3>@(userConfig.GetText("internet"))</h3>
     <HelpLink Page="settings/internet" />
 </div>
-@(userConfig.GetText("U5324"))
+@(userConfig.GetText("U5331"))
 <hr />
 @if (configData != null)
 {

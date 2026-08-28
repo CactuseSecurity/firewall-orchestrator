@@ -550,8 +550,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
         public string ComplianceCheckMailBody { get; set; } = "";
 
-        [JsonProperty("zoneMatrixAllowNestedZones"), JsonPropertyName("zoneMatrixAllowNestedZones")]
-        public bool zoneMatrixAllowNestedZones { get; set; } = false;
+        [JsonProperty("matrixAllowNestedZones"), JsonPropertyName("matrixAllowNestedZones")]
+        public bool MatrixAllowNestedZones { get; set; } = false;
 
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
@@ -563,7 +563,7 @@ namespace FWO.Config.Api.Data
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
 
         [JsonProperty("sortMatrixByID"), JsonPropertyName("sortMatrixByID")]
-        public bool sortMatrixByID { get; set; } = false;
+        public bool SortMatrixByID { get; set; } = false;
 
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";

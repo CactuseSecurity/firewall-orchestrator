@@ -1,5 +1,5 @@
 @page "/settings/matrix"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
 
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
@@ -49,15 +49,15 @@
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5809"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("zoneMatrixAllowNestedZones"))</label>
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("matrixAllowNestedZones"))</label>
             <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.zoneMatrixAllowNestedZones" />
+                <input type="checkbox" @bind="configData!.MatrixAllowNestedZones" />
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5815"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("sortMatrixByID"))</label>
             <div class="col-sm-7">
-                <input type="checkbox" @bind="configData!.sortMatrixByID" />
+                <input type="checkbox" @bind="configData!.SortMatrixByID" />
             </div>
         </div>
     </form>
@@ -174,8 +174,8 @@ else
 
             currentConfig.ImportedMatrixReadOnly = configData.ImportedMatrixReadOnly;
             currentConfig.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
-            currentConfig.zoneMatrixAllowNestedZones = configData.zoneMatrixAllowNestedZones;
-            currentConfig.sortMatrixByID = configData.sortMatrixByID;
+            currentConfig.MatrixAllowNestedZones = configData.MatrixAllowNestedZones;
+            currentConfig.SortMatrixByID = configData.SortMatrixByID;
 
             await globalConfig.WriteToDatabase(currentConfig, ApiConnection);
 

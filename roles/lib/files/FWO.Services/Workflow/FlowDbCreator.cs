@@ -214,7 +214,9 @@ namespace FWO.Services.Workflow
             FlowNetworkReference groupReference;
             if (context.NwGroups.TryGetValue(hash, out FlowNwGroup? existingGroup))
             {
-                groupReference = FlowNetworkReference.FromGroup(existingGroup!, members.SelectMany(member => member.Hashes).Distinct());
+                groupReference = FlowNetworkReference.FromGroup(existingGroup!,
+                    existingGroup!.NwGroupMembers.Select(member => member.NwObjectId),
+                    members.SelectMany(member => member.Hashes).Distinct());
             }
             else
             {
@@ -234,7 +236,9 @@ namespace FWO.Services.Workflow
                 inserted.Name = groupName;
                 inserted.Hash = hash;
                 context.Add(inserted);
-                groupReference = FlowNetworkReference.FromGroup(inserted, members.SelectMany(member => member.Hashes).Distinct());
+                groupReference = FlowNetworkReference.FromGroup(inserted,
+                    members.SelectMany(member => member.ObjectIds).Distinct(),
+                    members.SelectMany(member => member.Hashes).Distinct());
             }
 
             groupMaps.NetworkGroups[groupName] = groupReference;
@@ -259,7 +263,9 @@ namespace FWO.Services.Workflow
             FlowServiceReference groupReference;
             if (context.SvcGroups.TryGetValue(hash, out FlowSvcGroup? existingGroup))
             {
-                groupReference = FlowServiceReference.FromGroup(existingGroup!, members.SelectMany(member => member.Hashes).Distinct());
+                groupReference = FlowServiceReference.FromGroup(existingGroup!,
+                    existingGroup!.SvcGroupMembers.Select(member => member.SvcObjectId),
+                    members.SelectMany(member => member.Hashes).Distinct());
             }
             else
             {
@@ -279,7 +285,9 @@ namespace FWO.Services.Workflow
                 inserted.Name = groupName;
                 inserted.Hash = hash;
                 context.Add(inserted);
-                groupReference = FlowServiceReference.FromGroup(inserted, members.SelectMany(member => member.Hashes).Distinct());
+                groupReference = FlowServiceReference.FromGroup(inserted,
+                    members.SelectMany(member => member.ObjectIds).Distinct(),
+                    members.SelectMany(member => member.Hashes).Distinct());
             }
 
             groupMaps.ServiceGroups[groupName] = groupReference;
@@ -342,11 +350,11 @@ namespace FWO.Services.Workflow
                 State = FlowState.Requested,
                 RemovedDate = null,
                 AllowsTraffic = allowsTraffic,
-                AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
+                AccessSources = FlowAccessInsertHelper.BuildMembersContainer(sources.SelectMany(reference => reference.ObjectIds).Distinct().Select(id => new NwRef { NwObjId = id })),
                 AccessSourceGroups = FlowAccessInsertHelper.BuildMembersContainer(sources.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new NwGroupRef { NwGroupId = id })),
-                AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinations.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new NwRef { NwObjId = id })),
+                AccessDestinations = FlowAccessInsertHelper.BuildMembersContainer(destinations.SelectMany(reference => reference.ObjectIds).Distinct().Select(id => new NwRef { NwObjId = id })),
                 AccessDestinationGroups = FlowAccessInsertHelper.BuildMembersContainer(destinations.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new NwGroupRef { NwGroupId = id })),
-                AccessServices = FlowAccessInsertHelper.BuildMembersContainer(services.Where(reference => reference.ObjectId.HasValue).Select(reference => reference.ObjectId!.Value).Distinct().Select(id => new SvcRef { SvcObjId = id })),
+                AccessServices = FlowAccessInsertHelper.BuildMembersContainer(services.SelectMany(reference => reference.ObjectIds).Distinct().Select(id => new SvcRef { SvcObjId = id })),
                 AccessServiceGroups = FlowAccessInsertHelper.BuildMembersContainer(services.Where(reference => reference.GroupId.HasValue).Select(reference => reference.GroupId!.Value).Distinct().Select(id => new SvcGroupRef { SvcGroupId = id })),
                 AccessTimeObjects = FlowAccessInsertHelper.BuildMembersContainer(BuildTimeRefs(timeObject))
             };
@@ -591,16 +599,33 @@ namespace FWO.Services.Workflow
         {
             public long? ObjectId { get; private set; }
             public long? GroupId { get; private set; }
+            public List<long> ObjectIds { get; private set; } = new List<long>();
             public List<string> Hashes { get; private set; } = [];
 
+            /// <summary>
+            /// Builds a reference to a direct network object.
+            /// </summary>
             public static FlowNetworkReference FromObject(FlowNwObject flowObject)
             {
-                return new FlowNetworkReference { ObjectId = flowObject.Id, Hashes = [flowObject.Hash] };
+                return new FlowNetworkReference
+                {
+                    ObjectId = flowObject.Id,
+                    ObjectIds = new List<long> { flowObject.Id },
+                    Hashes = new List<string> { flowObject.Hash }
+                };
             }
 
-            public static FlowNetworkReference FromGroup(FlowNwGroup group, IEnumerable<string> memberHashes)
+            /// <summary>
+            /// Builds a group reference that also exposes its flattened member objects.
+            /// </summary>
+            public static FlowNetworkReference FromGroup(FlowNwGroup group, IEnumerable<long> memberObjectIds, IEnumerable<string> memberHashes)
             {
-                return new FlowNetworkReference { GroupId = group.Id, Hashes = [.. memberHashes] };
+                return new FlowNetworkReference
+                {
+                    GroupId = group.Id,
+                    ObjectIds = memberObjectIds.Distinct().ToList(),
+                    Hashes = memberHashes.Distinct().ToList()
+                };
             }
         }
 
@@ -608,16 +633,33 @@ namespace FWO.Services.Workflow
         {
             public long? ObjectId { get; private set; }
             public long? GroupId { get; private set; }
+            public List<long> ObjectIds { get; private set; } = new List<long>();
             public List<string> Hashes { get; private set; } = [];
 
+            /// <summary>
+            /// Builds a reference to a direct service object.
+            /// </summary>
             public static FlowServiceReference FromObject(FlowSvcObject flowObject)
             {
-                return new FlowServiceReference { ObjectId = flowObject.Id, Hashes = [flowObject.Hash] };
+                return new FlowServiceReference
+                {
+                    ObjectId = flowObject.Id,
+                    ObjectIds = new List<long> { flowObject.Id },
+                    Hashes = new List<string> { flowObject.Hash }
+                };
             }
 
-            public static FlowServiceReference FromGroup(FlowSvcGroup group, IEnumerable<string> memberHashes)
+            /// <summary>
+            /// Builds a group reference that also exposes its flattened member objects.
+            /// </summary>
+            public static FlowServiceReference FromGroup(FlowSvcGroup group, IEnumerable<long> memberObjectIds, IEnumerable<string> memberHashes)
             {
-                return new FlowServiceReference { GroupId = group.Id, Hashes = [.. memberHashes] };
+                return new FlowServiceReference
+                {
+                    GroupId = group.Id,
+                    ObjectIds = memberObjectIds.Distinct().ToList(),
+                    Hashes = memberHashes.Distinct().ToList()
+                };
             }
         }
 

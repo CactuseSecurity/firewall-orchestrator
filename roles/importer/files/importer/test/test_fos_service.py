@@ -65,3 +65,22 @@ def test_custom_service_ip_protocol_creates_simple_object():
     assert service_objects[0].svc_typ == "simple"
     assert service_objects[0].ip_proto == 47
     assert service_objects[0].svc_comment == "gre"
+
+
+def test_custom_service_all_uses_any_protocol():
+    svc_obj = SvcObjCustom.model_validate(
+        {
+            "name": "ALL",
+            "q_origin_key": "ALL",
+            "protocol": "ALL",
+            "comment": "all protocols",
+        }
+    )
+
+    service_objects = list(normalize_single_custom_service_object(svc_obj))
+
+    assert len(service_objects) == 1
+    assert service_objects[0].svc_typ == "simple"
+    assert service_objects[0].svc_port is None
+    assert service_objects[0].svc_port_end is None
+    assert service_objects[0].ip_proto == -1

@@ -80,6 +80,23 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetServiceObjectsAsync_PreservesNullPorts()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.ServiceObjects =
+        [
+            new FlowSvcObject { Id = 12, Name = "ANY", ProtoId = 0 }
+        ];
+
+        FlowCatalogService service = new(apiConnection);
+
+        List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(null);
+
+        Assert.That(result[0].PortStart, Is.Null);
+        Assert.That(result[0].PortEnd, Is.Null);
+    }
+
+    [Test]
     public async Task GetAddressGroupsAsync_MapsNestedMembers()
     {
         FlowCatalogServiceApiConn apiConnection = new();
@@ -435,6 +452,28 @@ internal class FlowCatalogServiceTest
                 ("port_end", 443),
                 ("ip_proto_id", 6),
                 ("show_in_request_module", false));
+        });
+    }
+
+    [Test]
+    public async Task GetServiceObjectIdAsync_LooksUpNullPorts()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.Protocols = [new IpProtocol { Id = 0, Name = "ANY" }];
+        apiConnection.ServiceObjects = [new FlowSvcObject { Id = 51, Name = "ANY", ProtoId = 0 }];
+
+        FlowCatalogService service = new(apiConnection);
+
+        ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("ANY", null, null, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Id, Is.EqualTo(51));
+            Assert.That(apiConnection.SentQueries[1], Is.EqualTo(FlowQueries.getFlowServiceObjectId));
+            AssertWhereClauseContainsLookup(GetWhereClause(apiConnection.SentVariables[1]),
+                ("port_start", null),
+                ("port_end", null),
+                ("ip_proto_id", 0));
         });
     }
 

@@ -209,12 +209,12 @@ def test_handle_svc_protocol_maps_forti_protocol_numbers(
     assert service_objects[0]["ip_proto"] == expected_protocol
 
 
-def test_handle_svc_protocol_uses_zero_for_generic_without_protocol_number():
+def test_handle_svc_protocol_uses_any_protocol_for_generic_without_protocol_number():
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol({"protocol": 2}, service_objects, "simple", "svc", "foreground", None)
 
-    assert service_objects[0]["ip_proto"] == 0
+    assert service_objects[0]["ip_proto"] == -1
 
 
 def test_handle_svc_protocol_uses_any_protocol_for_generic_protocol_number_zero():

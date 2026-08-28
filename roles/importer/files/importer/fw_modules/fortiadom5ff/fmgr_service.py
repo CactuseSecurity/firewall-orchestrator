@@ -80,25 +80,23 @@ def handle_svc_protocol(
     color: str,
     session_timeout: Any,
 ) -> None:
-    proto = 0
     range_names = ""
     added_svc_obj = 0
 
     # FortiManager's `protocol` is a service-type selector, not always an IP
     # protocol number. Selector 0 directly represents ANY; selector 2 uses
-    # `protocol-number`. For a generic service, `protocol-number: 0` is a
-    # second FortiManager encoding of ANY and maps to FWO's -1 sentinel.
-    # A generic service without `protocol-number` retains the legacy value 0.
+    # `protocol-number`. Its default is 0, so an omitted or zero value for a
+    # generic service is a second FortiManager encoding of ANY and maps to
+    # FWO's -1 sentinel.
 
     protocol = obj_orig["protocol"]
     if protocol == FORTI_PROTOCOL_IP:
         add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
         added_svc_obj += 1
     elif protocol == FORTI_PROTOCOL_GENERIC:
-        if "protocol-number" in obj_orig:
-            proto = obj_orig["protocol-number"]
-            if proto == FORTI_PROTOCOL_ANY:
-                proto = ANY_IP_PROTOCOL_ID
+        proto = obj_orig.get("protocol-number", FORTI_PROTOCOL_ANY)
+        if proto == FORTI_PROTOCOL_ANY:
+            proto = ANY_IP_PROTOCOL_ID
         add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
         added_svc_obj += 1
     elif protocol in {5, 11, 15}:  # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP

@@ -239,12 +239,14 @@ def test_handle_svc_protocol_uses_any_protocol_for_ip_protocol_number_zero():
     assert service_objects[0]["svc_port_end"] is None
 
 
-def test_handle_svc_protocol_ignores_unsupported_protocol():
+def test_handle_svc_protocol_ignores_unsupported_protocol(mocker: MockerFixture):
+    warning_mock = mocker.patch("fwo_log.FWOLogger.warning")
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol({"protocol": 99}, service_objects, "simple", "svc", "foreground", None)
 
     assert service_objects == []
+    warning_mock.assert_called_once()
 
 
 def test_normalize_service_object_uses_any_protocol_for_protocol_zero_service():

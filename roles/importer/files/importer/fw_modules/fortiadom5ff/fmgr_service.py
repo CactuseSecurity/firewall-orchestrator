@@ -5,6 +5,7 @@ from typing import Any
 
 from fwo_base import sort_and_join
 from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
+from fwo_log import FWOLogger
 
 FORTI_PROTOCOL_ANY = 0
 FORTI_PROTOCOL_ICMP = 1
@@ -103,6 +104,8 @@ def handle_svc_protocol(
         )
     elif protocol == FORTI_PROTOCOL_ICMP6:
         add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
+    else:
+        FWOLogger.warning(f"dropping service object '{name}' with unsupported Forti protocol selector {protocol!r}")
 
 
 def parse_standard_protocols_with_ports(

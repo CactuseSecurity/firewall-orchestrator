@@ -452,28 +452,6 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Determines the compliance state using the same precedence as the base report formatter.
-        /// </summary>
-        private ComplianceViolationType DetermineCompliance(List<ComplianceViolation> violations)
-        {
-            if (violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
-            {
-                return ComplianceViolationType.NotAssessable;
-            }
-
-            int processedViolationCount = _maxPrintedViolations > 0
-                ? Math.Min(violations.Count, _maxPrintedViolations)
-                : violations.Count;
-
-            return processedViolationCount switch
-            {
-                0 => ComplianceViolationType.None,
-                1 => violations[0].Type,
-                _ => ComplianceViolationType.MultipleViolations
-            };
-        }
-
-        /// <summary>
         /// Attaches violations to one rule and returns whether its exact identity was part of the diff.
         /// </summary>
         private static bool TryAttachRuleViolations(

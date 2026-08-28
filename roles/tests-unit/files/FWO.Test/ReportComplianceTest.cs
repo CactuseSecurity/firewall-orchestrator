@@ -500,18 +500,26 @@ namespace FWO.Test
             Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
             activeRule.Violations.Add(CreateDiffViolation(13, 101, "rule-a"));
             activeRule.Violations.Add(CreateDiffViolation(14, 101, "rule-a"));
+            Rule comparisonRule = CreateActiveRule("rule-b", CreateDiffViolation(22, 102, "rule-b"));
+            comparisonRule.Violations.Add(CreateDiffViolation(23, 102, "rule-b"));
+            comparisonRule.Violations.Add(CreateDiffViolation(24, 102, "rule-b"));
             List<Rule> activeRules = new()
             {
                 activeRule
             };
+            List<Rule>[] comparisonRuleChunks = new List<Rule>[1];
+            comparisonRuleChunks[0] = new List<Rule> { comparisonRule };
             DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
+            MockReportCompliance baseReport = new(new(""), userConfig, Basics.ReportType.ComplianceReport);
 
             await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+            await baseReport.ProcessChunksParallelized(comparisonRuleChunks, CancellationToken.None);
 
             Rule suppressedRule = report.Rules.Single();
             Assert.Multiple(() =>
             {
-                Assert.That(suppressedRule.Compliance, Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(comparisonRule.Compliance, Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(suppressedRule.Compliance, Is.EqualTo(comparisonRule.Compliance));
                 Assert.That(
                     suppressedRule.ViolationDetails,
                     Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter")));

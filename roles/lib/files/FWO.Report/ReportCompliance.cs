@@ -41,7 +41,7 @@ namespace FWO.Report
         private bool _includeHeaderInExport;
         private char _separator;
         private int _maxCellSize;
-        protected readonly int _maxPrintedViolations;
+        private readonly int _maxPrintedViolations;
         private readonly List<int> _relevanteManagementIDs = new();
 
         #endregion
@@ -520,13 +520,14 @@ namespace FWO.Report
 
                 if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
                 {
-                    rule.Compliance = ComplianceViolationType.NotAssessable;
                     violations = rule.Violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
                 }
                 else
                 {
                     violations = rule.Violations.ToList();
                 }
+
+                rule.Compliance = DetermineCompliance(violations);
 
                 foreach (ComplianceViolation violation in violations)
                 {
@@ -543,17 +544,6 @@ namespace FWO.Report
                     if (rule.ViolationDetails != "")
                     {
                         rule.ViolationDetails += "<br>";
-                    }
-
-                    // Set rule compliance.
-
-                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 0)
-                    {
-                        rule.Compliance = ComplianceViolationType.MultipleViolations;
-                    }
-                    else
-                    {
-                        rule.Compliance = violation.Type;
                     }
 
                     // Add to violation details.
@@ -574,6 +564,28 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        /// <summary>
+        /// Determines compliance using the same precedence and violation-detail limit as the report formatter.
+        /// </summary>
+        protected ComplianceViolationType DetermineCompliance(List<ComplianceViolation> violations)
+        {
+            if (violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
+            {
+                return ComplianceViolationType.NotAssessable;
+            }
+
+            int processedViolationCount = _maxPrintedViolations > 0
+                ? Math.Min(violations.Count, _maxPrintedViolations)
+                : violations.Count;
+
+            return processedViolationCount switch
+            {
+                0 => ComplianceViolationType.None,
+                1 => violations[0].Type,
+                _ => ComplianceViolationType.MultipleViolations
+            };
         }
 
         protected virtual bool ShowRule(Rule rule)

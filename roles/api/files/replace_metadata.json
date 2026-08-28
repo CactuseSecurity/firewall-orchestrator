@@ -29537,39 +29537,30 @@
             },
             {
               "table": {
-                "name": "v_rule_ownership_mode",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "v_rule_with_dst_owner",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "v_rule_with_ip_owner",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "v_rule_with_rule_owner",
-                "schema": "public"
-              }
-            },
-            {
-              "table": {
                 "name": "v_rule_with_rule_owner_1",
                 "schema": "public"
-              }
-            },
-            {
-              "table": {
-                "name": "v_rule_with_src_owner",
-                "schema": "public"
-              }
+              },
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "rule_id",
+                      "rule_name",
+                      "rule_uid",
+                      "mgm_id",
+                      "rulebase_id",
+                      "owner_id",
+                      "rule_metadata_id"
+                    ],
+                    "filter": {
+                      "mgm_id": {
+                        "_in": "x-hasura-visible-managements"
+                      }
+                    }
+                  }
+                }
+              ]
             },
             {
               "table": {

@@ -1,16 +1,11 @@
 @page "/settings/matrix"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
-@using FWO.Data.Middleware
-@using FWO.Middleware.Client
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using FWO.Ui.Data
-@using RestSharp
-@using FWO.Logging;
 
 @implements IDisposable
-@inject MiddlewareClient MiddlewareClient
 @inject ApiConnection ApiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
@@ -25,18 +20,18 @@
 <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5812"))">
     <label class="col-form-label col-sm-4">@userConfig.GetText("import_matrix"):</label>
     <div class="row col-sm-6">
-        <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportComplianceMatrix" />
+        <ImportFileUpload SupportedFileFormats=".json" AuthorizedRoles="@Roles.Admin" UploadCase="FileUploadCase.ImportMatrix" />
     </div>
 </div>
-<div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5842"))">
-    <label for="lbl_imported_matrix_readonly" class="col-form-label col-sm-4">@(userConfig.GetText("importedMatrixReadOnly")):</label>
-    <div class="col-sm-7">
-        <input id="lbl_imported_matrix_readonly" type="checkbox" @bind="configData!.ImportedMatrixReadOnly" />
-    </div>
-</div>
-<hr />
 @if (configData != null)
 {
+    <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5842"))">
+        <label for="lbl_imported_matrix_readonly" class="col-form-label col-sm-4">@(userConfig.GetText("importedMatrixReadOnly")):</label>
+        <div class="col-sm-7">
+            <input id="lbl_imported_matrix_readonly" type="checkbox" @bind="configData.ImportedMatrixReadOnly" />
+        </div>
+    </div>
+    <hr />
     <form onsubmit="return false">
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5891"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("designated_zone_matrix")):</label>
@@ -112,30 +107,17 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private DateTime complianceCheckStartDate = DateTime.Today;
-    private DateTime complianceCheckStartTime = DateTime.UtcNow.AddSeconds(-DateTime.UtcNow.Second);
     private List<ComplianceCriterion> matrices = [];
-    private List<CompliancePolicy> policies = [];
     private ComplianceCriterion? designatedZoneMatrix;
-    private CompliancePolicy? actPolicy;
     private bool ShowImportPopUp { get; set; }
-    private ErrorBaseModel? ImportError;
     private string ImportMessage = "";
     private bool ImportSuccess = false;
-    private bool complianceCheckRunning;
-    private bool violationsDeleteRunning;
-    private string? complianceCheckJobId;
-    private ComplianceCheckJobStatus? complianceCheckStatus;
-    private ComplianceCheckJobStatus? violationsDeleteStatus;
-    private PeriodicTimer? compliancePollingTimer;
-    private CancellationTokenSource? compliancePollingCts;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             configData = await globalConfig.GetEditableConfig();
-            complianceCheckStartDate = complianceCheckStartTime = configData.ComplianceCheckStartAt;
             matrices = (await ApiConnection.SendQueryAsync<List<ComplianceCriterion>>(ComplianceQueries.getMatrices) ?? [])
                 .OrderBy(matrix => matrix.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(matrix => matrix.Id)
@@ -145,7 +127,7 @@ else
                 designatedZoneMatrix = matrices.FirstOrDefault(matrix => matrix.Id == configData.ComplianceDesignatedZoneMatrixId);
             }
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
-            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportComplianceMatrix), _ => OnMatrixImportEvent(_.EventArgs));
+            EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportMatrix), _ => OnMatrixImportEvent(_.EventArgs));
         }
         catch (Exception exception)
         {
@@ -161,7 +143,7 @@ else
         }
         if (!e.Success && e.Error is not null)
         {
-            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("modelling_settings"), e.Error.Message ?? "", true);
+            DisplayMessageInUi(e.Error.InternalException, userConfig.GetText("import_matrix"), e.Error.Message ?? "", true);
             return;
         }
     }
@@ -173,7 +155,6 @@ else
             return;
         }
         ImportSuccess = e.Success;
-        ImportError = e.Error;
         ImportMessage = e.Data?.ToString() ?? "";
         ShowImportPopUp = true;
         StateHasChanged();
@@ -183,16 +164,24 @@ else
     {
         try
         {
-            if (configData != null)
+            if (configData is null)
             {
-                configData.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
-                await globalConfig.WriteToDatabase(configData, ApiConnection);
-                DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
+                throw new InvalidOperationException(
+                    "Network matrix settings were saved before loading completed.");
             }
-            else
-            {
-                throw new ArgumentException("Data saved before loaded. This should be impossible.");
-            }
+
+            ConfigData currentConfig = await globalConfig.GetEditableConfig();
+
+            currentConfig.ImportedMatrixReadOnly = configData.ImportedMatrixReadOnly;
+            currentConfig.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
+            currentConfig.zoneMatrixAllowNestedZones = configData.zoneMatrixAllowNestedZones;
+            currentConfig.sortMatrixByID = configData.sortMatrixByID;
+
+            await globalConfig.WriteToDatabase(currentConfig, ApiConnection);
+
+            configData = currentConfig;
+
+            DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
@@ -201,163 +190,11 @@ else
     }
 
     /// <summary>
-    /// Sends a query to the middleware server to run a compliance check
-    /// </summary>
-    /// <returns>
-    /// A task that represents the asynchronous operation.
-    /// </returns>
-    private async Task RunComplianceCheck()
-    {
-        complianceCheckStatus = new()
-        {
-            Status = ComplianceCheckExecutionStatus.Running
-        };
-
-        complianceCheckRunning = true;
-
-        try
-        {
-            RestResponse<ComplianceCheckStartResult> response = await MiddlewareClient.StartComplianceCheck();
-
-            if (!response.IsSuccessful || string.IsNullOrWhiteSpace(response.Data?.JobId))
-            {
-                InvalidOperationException invalidOperation = new(response.ErrorMessage ?? response.StatusDescription ?? "Compliance check start failed.");
-
-                DisplayMessageInUi(invalidOperation, userConfig.GetText("H5849"), response.Content ?? string.Empty, true);
-
-                return;
-            }
-
-            complianceCheckJobId = response.Data.JobId;
-
-            await StartComplianceStatusPolling();
-        }
-        catch (Exception exception)
-        {
-            complianceCheckStatus.Status = ComplianceCheckExecutionStatus.Failed;
-            complianceCheckStatus.Message = exception.Message;
-            DisplayMessageInUi(exception, userConfig.GetText("H5849"), exception.Message, true);
-        }
-    }
-
-    private async Task StartComplianceStatusPolling()
-    {
-        compliancePollingCts?.CancelAsync();
-        compliancePollingTimer?.Dispose();
-
-        compliancePollingCts = new CancellationTokenSource();
-        compliancePollingTimer = new PeriodicTimer(TimeSpan.FromSeconds(3));
-
-        await RefreshComplianceStatus();
-        _ = PollComplianceStatus(compliancePollingCts.Token);
-    }
-
-    private async Task PollComplianceStatus(CancellationToken token)
-    {
-        PeriodicTimer? timer = compliancePollingTimer;
-
-        if (timer == null)
-        {
-            return;
-        }
-
-        try
-        {
-            while (await timer.WaitForNextTickAsync(token))
-            {
-                await InvokeAsync(async () =>
-                {
-                    await RefreshComplianceStatus();
-                    StateHasChanged();
-                });
-            }
-        }
-        catch (OperationCanceledException opCancelEx)
-        {
-            Log.WriteDebug(userConfig.GetText("H5849"), "Compliance Polling stopped.", opCancelEx.Message);
-        }
-        catch (Exception ex)
-        {
-            Log.WriteError(userConfig.GetText("H5849"), ex.Message, ex);
-            DisplayMessageInUi(ex, userConfig.GetText("H5849"), ex.Message, true);
-        }
-
-    }
-
-    private async Task RefreshComplianceStatus()
-    {
-        if (string.IsNullOrWhiteSpace(complianceCheckJobId))
-        {
-            return;
-        }
-
-        RestResponse<ComplianceCheckJobStatus> response = await MiddlewareClient.GetComplianceCheckStatus(complianceCheckJobId);
-
-        if (!response.IsSuccessful || response.Data == null)
-        {
-            InvalidOperationException invalidOperationException = new(response.ErrorMessage ?? response.StatusDescription ?? "Compliance status fetch failed.");
-
-            DisplayMessageInUi(invalidOperationException, userConfig.GetText("H5849"), response.Content ?? string.Empty, true);
-
-            StopComplianceStatusPolling();
-
-            complianceCheckRunning = false;
-
-            return;
-        }
-
-        complianceCheckStatus = response.Data;
-        complianceCheckRunning = complianceCheckStatus.Status is ComplianceCheckExecutionStatus.Queued or ComplianceCheckExecutionStatus.Running;
-
-        if (!complianceCheckRunning)
-        {
-            StopComplianceStatusPolling();
-        }
-    }
-
-    private void StopComplianceStatusPolling()
-    {
-        compliancePollingCts?.Cancel();
-        compliancePollingTimer?.Dispose();
-        compliancePollingTimer = null;
-
-        if (compliancePollingCts != null)
-        {
-            compliancePollingCts.Dispose();
-            compliancePollingCts = null;
-        }
-    }
-
-    private string GetComplianceStatusTextKey()
-    {
-        return complianceCheckStatus?.Status switch
-        {
-            ComplianceCheckExecutionStatus.Queued => "compliance_check_status_queued",
-            ComplianceCheckExecutionStatus.Running => "in_progress",
-            ComplianceCheckExecutionStatus.Succeeded => "compliance_check_status_succeeded",
-            ComplianceCheckExecutionStatus.Failed => "compliance_check_status_failed",
-            _ => "in_progress"
-        };
-    }
-
-    private string GetStatusCssClasses(ComplianceCheckExecutionStatus complianceCheckStatus)
-    {
-        return complianceCheckStatus switch
-        {
-            ComplianceCheckExecutionStatus.Succeeded => "alert alert-success",
-            ComplianceCheckExecutionStatus.Failed => "alert alert-danger",
-            _ => "alert alert-info"
-        };
-    }
-
-    /// <summary>
     /// Unsubscribes from file upload events when the component is disposed.
     /// </summary>
     public void Dispose()
     {
         EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes));
-        EventMediator.Unsubscribe<AppServerImportEvent>(nameof(FileUploadService.ImportComplianceMatrix));
-
-        StopComplianceStatusPolling();
+        EventMediator.Unsubscribe<FileUploadEvent>(nameof(FileUploadService.ImportMatrix));
     }
 }

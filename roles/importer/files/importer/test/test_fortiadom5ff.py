@@ -23,7 +23,7 @@ from fw_modules.fortiadom5ff.fmgr_rule import (
     rule_parse_tracking_info,
 )
 from fw_modules.fortiadom5ff.fmgr_service import (
-    FORTI_GENERIC_PROTOCOL_NUMBER_ANY,
+    FORTI_IP_PROTOCOL_NUMBER_ANY,
     FORTI_PROTOCOL_IP,
     handle_svc_protocol,
     normalize_service_object,
@@ -214,7 +214,7 @@ def test_handle_svc_protocol_maps_forti_protocol_numbers(
     assert service_objects[0]["ip_proto"] == expected_protocol
 
 
-def test_handle_svc_protocol_uses_any_protocol_for_generic_without_protocol_number():
+def test_handle_svc_protocol_uses_any_protocol_for_ip_without_protocol_number():
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol({"protocol": FORTI_PROTOCOL_IP}, service_objects, "simple", "svc", "foreground", None)
@@ -222,11 +222,11 @@ def test_handle_svc_protocol_uses_any_protocol_for_generic_without_protocol_numb
     assert service_objects[0]["ip_proto"] == -1
 
 
-def test_handle_svc_protocol_uses_any_protocol_for_generic_protocol_number_zero():
+def test_handle_svc_protocol_uses_any_protocol_for_ip_protocol_number_zero():
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol(
-        {"protocol": FORTI_PROTOCOL_IP, "protocol-number": FORTI_GENERIC_PROTOCOL_NUMBER_ANY},
+        {"protocol": FORTI_PROTOCOL_IP, "protocol-number": FORTI_IP_PROTOCOL_NUMBER_ANY},
         service_objects,
         "simple",
         "svc",

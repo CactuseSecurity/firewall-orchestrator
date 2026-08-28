@@ -1,3 +1,4 @@
+using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Sockets;
@@ -31,7 +32,8 @@ public static class FlowComplianceRequestValidator
     private static readonly RequestKeyDefinition[] IpRangeKeys =
     [
         new("ipStart", "Start IP address of the range."),
-        new("ipEnd", "End IP address of the range.")
+        new("ipEnd", "End IP address of the range."),
+        new("ipNetwork", "CIDR network to evaluate instead of ipStart and ipEnd.")
     ];
 
     private static readonly RequestKeyDefinition[] ServiceRangeKeys =
@@ -94,7 +96,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates a single IPv4 range using the same semantics as flow compliance requests.
+    /// Validates a single IPv4 or IPv6 range using the same semantics as flow compliance requests.
     /// </summary>
     public static bool TryValidateIpRange(string ipStart, string ipEnd, string context, out string? errorMessage)
     {
@@ -104,7 +106,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates a single IP range and returns bounds with optional /32 CIDR suffixes removed.
+    /// Validates a single IPv4 or IPv6 range and returns its inclusive bounds.
     /// </summary>
     public static bool TryValidateAndNormalizeIpRange(
         string ipStart,
@@ -126,7 +128,27 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates a single IP range and returns bounds with optional /32 CIDR suffixes removed.
+    /// Validates an IPv4 or IPv6 CIDR network and returns its inclusive range bounds.
+    /// </summary>
+    public static bool TryValidateAndNormalizeIpNetwork(
+        string ipNetwork,
+        string context,
+        out string normalizedIpStart,
+        out string normalizedIpEnd,
+        out string? errorMessage)
+    {
+        if (!TryNormalizeIpNetwork(ipNetwork, out normalizedIpStart, out normalizedIpEnd, out string? validationError))
+        {
+            errorMessage = $"'{context}' {validationError}";
+            return false;
+        }
+
+        errorMessage = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Validates a single IPv4 or IPv6 range and returns its inclusive bounds.
     /// </summary>
     public static bool TryValidateAndNormalizeIpRange(
         string ipStart,
@@ -217,10 +239,6 @@ public static class FlowComplianceRequestValidator
 
         switch (item)
         {
-            case GetFlowComplianceStateRequest.IpRangeRequest ipRange
-                when string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd):
-                errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'ipStart' and 'ipEnd'.");
-                return false;
             case GetFlowComplianceStateRequest.ServiceRangeRequest serviceRange
                 when string.IsNullOrWhiteSpace(serviceRange.Protocol):
                 errorResult = new BadRequestObjectResult($"'{collectionName}' entries require non-empty 'protocol'.");
@@ -240,10 +258,40 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
+        bool hasIpNetwork = !string.IsNullOrWhiteSpace(ipRange.IpNetwork);
+        bool hasIpRange = !string.IsNullOrWhiteSpace(ipRange.IpStart) || !string.IsNullOrWhiteSpace(ipRange.IpEnd);
+        string context = $"'{collectionName}' entry at index {itemIndex}";
+        if (hasIpNetwork && hasIpRange)
+        {
+            return (false, $"{context} must define either 'ipNetwork' or 'ipStart' and 'ipEnd', not both.");
+        }
+
+        if (hasIpNetwork)
+        {
+            bool isNetworkValid = TryValidateAndNormalizeIpNetwork(
+                ipRange.IpNetwork,
+                context,
+                out string normalizedNetworkStart,
+                out string normalizedNetworkEnd,
+                out string? networkError);
+            if (isNetworkValid)
+            {
+                ipRange.IpStart = normalizedNetworkStart;
+                ipRange.IpEnd = normalizedNetworkEnd;
+            }
+
+            return (isNetworkValid, networkError);
+        }
+
+        if (string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd))
+        {
+            return (false, $"{context} requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'.");
+        }
+
         (bool isValid, string? errorMessage) = ValidateIpRange(
             ipRange.IpStart,
             ipRange.IpEnd,
-            detail => $"'{collectionName}' entry at index {itemIndex} {detail}",
+            detail => $"{context} {detail}",
             out string normalizedIpStart,
             out string normalizedIpEnd);
         if (isValid)
@@ -267,17 +315,25 @@ public static class FlowComplianceRequestValidator
         out string normalizedIpStart,
         out string normalizedIpEnd)
     {
-        if (!TryRemoveAllowedHostMask(ipStartValue, "ipStart", out normalizedIpStart, out string? ipStartMaskError))
+        if (!TryValidateIpRangeBound(ipStartValue, "ipStart", out normalizedIpStart, out string? ipStartMaskError))
         {
             normalizedIpEnd = string.Empty;
             return (false, errorFactory(ipStartMaskError!));
         }
 
-        if (!TryRemoveAllowedHostMask(ipEndValue, "ipEnd", out normalizedIpEnd, out string? ipEndMaskError))
+        if (!TryValidateIpRangeBound(ipEndValue, "ipEnd", out normalizedIpEnd, out string? ipEndMaskError))
         {
             return (false, errorFactory(ipEndMaskError!));
         }
 
+        return ValidateNormalizedIpRange(normalizedIpStart, normalizedIpEnd, errorFactory);
+    }
+
+    private static (bool IsValid, string? ErrorMessage) ValidateNormalizedIpRange(
+        string normalizedIpStart,
+        string normalizedIpEnd,
+        Func<string, string> errorFactory)
+    {
         if (!IPAddress.TryParse(normalizedIpStart, out IPAddress? ipStart))
         {
             return (false, errorFactory("has an invalid 'ipStart' value."));
@@ -293,17 +349,67 @@ public static class FlowComplianceRequestValidator
             return (false, errorFactory("must use the same address family for 'ipStart' and 'ipEnd'."));
         }
 
-        if (ipStart.AddressFamily == AddressFamily.InterNetworkV6)
-        {
-            return (false, errorFactory("does not support IPv6 addresses. Only IPv4 values are allowed for 'ipStart' and 'ipEnd'."));
-        }
-
         if (CompareIpAddresses(ipStart, ipEnd) > 0)
         {
             return (false, errorFactory("must satisfy 'ipStart' <= 'ipEnd'."));
         }
 
         return (true, null);
+    }
+
+    private static bool TryValidateIpRangeBound(
+        string ipAddressValue,
+        string fieldName,
+        out string normalizedIpAddress,
+        out string? errorMessage)
+    {
+        if (ipAddressValue.IndexOf('/') < 0)
+        {
+            normalizedIpAddress = ipAddressValue;
+            errorMessage = null;
+            return true;
+        }
+
+        normalizedIpAddress = string.Empty;
+        errorMessage = $"must not use CIDR notation in '{fieldName}'. Use 'ipNetwork' for networks.";
+        return false;
+    }
+
+    private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)
+    {
+        int maskSeparatorIndex = ipNetwork.IndexOf('/');
+        if (maskSeparatorIndex <= 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        {
+            normalizedIpStart = string.Empty;
+            normalizedIpEnd = string.Empty;
+            errorMessage = "requires a valid CIDR network in 'ipNetwork'.";
+            return false;
+        }
+
+        string address = ipNetwork[..maskSeparatorIndex];
+        string prefix = ipNetwork[(maskSeparatorIndex + 1)..];
+        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress) || !int.TryParse(prefix, out int prefixLength))
+        {
+            normalizedIpStart = string.Empty;
+            normalizedIpEnd = string.Empty;
+            errorMessage = "has an invalid 'ipNetwork' value.";
+            return false;
+        }
+
+        int maximumPrefixLength = parsedAddress.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
+        if (prefixLength is < 0 or > 128 || prefixLength > maximumPrefixLength)
+        {
+            normalizedIpStart = string.Empty;
+            normalizedIpEnd = string.Empty;
+            errorMessage = "has an invalid CIDR prefix in 'ipNetwork'.";
+            return false;
+        }
+
+        (IPAddress rangeStart, IPAddress rangeEnd) = ipNetwork.CidrToRange();
+        normalizedIpStart = rangeStart.ToString();
+        normalizedIpEnd = rangeEnd.ToString();
+        errorMessage = null;
+        return true;
     }
 
     private static bool TryRemoveAllowedHostMask(string ipAddress, string fieldName, out string normalizedIpAddress, out string? errorMessage)

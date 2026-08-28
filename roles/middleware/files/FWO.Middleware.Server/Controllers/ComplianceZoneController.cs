@@ -43,8 +43,7 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
     /// <summary>
     /// Returns the zones occupied by object trees.
-    /// Only IPv4 leaf addresses are supported; IPv6 ranges are rejected during validation.
-    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
+    /// IPv4 and IPv6 leaf ranges are accepted through ipStart and ipEnd.
     /// </summary>
     /// <param name="request">The object tree to resolve.</param>
     [HttpPost("resolveZonesForObjects")]

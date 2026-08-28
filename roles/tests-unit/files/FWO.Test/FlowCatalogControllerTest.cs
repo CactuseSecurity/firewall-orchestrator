@@ -46,12 +46,12 @@ namespace FWO.Test
                 IpStart = "10.0.0.1",
                 IpEnd = "10.0.0.2"
             });
-            GetAddressObjectIdRequest maskedAddressObjectIdRequest = new()
+            GetAddressObjectIdRequest ipv6AddressObjectIdRequest = new()
             {
-                IpStart = "10.0.0.1/32",
-                IpEnd = "10.0.0.2/32"
+                IpStart = "2001:db8::",
+                IpEnd = "2001:db8::3"
             };
-            ActionResult<AddressObjectIdResponse> maskedAddressObjectIdResult = await controller.GetAddressObjectId(maskedAddressObjectIdRequest);
+            ActionResult<AddressObjectIdResponse> ipv6AddressObjectIdResult = await controller.GetAddressObjectId(ipv6AddressObjectIdRequest);
 
             Assert.Multiple(() =>
             {
@@ -81,9 +81,7 @@ namespace FWO.Test
                 Assert.That(addressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(ExtractValue<AddressObjectIdResponse>(addressObjectIdResult).Name, Is.EqualTo("Host"));
 
-                Assert.That(maskedAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
-                Assert.That(maskedAddressObjectIdRequest.IpStart, Is.EqualTo("10.0.0.1"));
-                Assert.That(maskedAddressObjectIdRequest.IpEnd, Is.EqualTo("10.0.0.2"));
+                Assert.That(ipv6AddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
             });
 
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowAddressObjects));

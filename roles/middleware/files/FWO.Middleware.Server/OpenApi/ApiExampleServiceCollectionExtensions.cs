@@ -171,8 +171,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpNetwork = "192.0.2.0/24"
             }
         ],
         Destination =
@@ -180,7 +179,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
                 IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.20"
+                IpEnd = "198.51.100.29"
             }
         ],
         Service =

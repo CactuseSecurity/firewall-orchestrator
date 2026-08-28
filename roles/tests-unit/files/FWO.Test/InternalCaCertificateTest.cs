@@ -149,6 +149,39 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// An empty tls_ca_certificate is not null, so it passes the config layer's null
+        /// check and reaches the file lookup, which rejects a zero length path with an
+        /// ArgumentException. That is not a ConfigException, so it would escape Get()
+        /// untranslated, skip the back-off, and leave the tls validation callbacks - which
+        /// catch ConfigException precisely to avoid it - throwing out of a handshake.
+        /// </summary>
+        [Test]
+        public void Get_WithAnEmptyConfiguredAnchorPath_ReportsTheMissingSetting()
+        {
+            SetConfiguredAnchorPath("");
+            ClearCache();
+
+            ConfigException thrown = Assert.Throws<ConfigException>(() => InternalCaCertificate.Get())!;
+
+            Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+        }
+
+        /// <summary>
+        /// The same for a path of blanks, which reaches the file lookup just as an empty
+        /// one does.
+        /// </summary>
+        [Test]
+        public void Get_WithABlankConfiguredAnchorPath_ReportsTheMissingSetting()
+        {
+            SetConfiguredAnchorPath("   ");
+            ClearCache();
+
+            ConfigException thrown = Assert.Throws<ConfigException>(() => InternalCaCertificate.Get())!;
+
+            Assert.That(thrown.Message, Does.Contain("tls_ca_certificate"));
+        }
+
+        /// <summary>
         /// An upgrade that retains a customer managed certificate on part of its Apache
         /// endpoints has to trust that issuer alongside the internal CA, so the configured
         /// file is a bundle rather than a single certificate.

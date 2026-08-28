@@ -85,18 +85,24 @@ namespace FWO.Config.File
             try
             {
                 path = ConfigFile.TlsCaCertificate;
+                // A missing file reports the minimum value rather than throwing, which is
+                // the same key an unconfigured anchor gets and keeps both on the back-off
+                // path. Inside the try because a configured but empty path is not null and
+                // therefore reaches here, and GetLastWriteTimeUtc rejects it with an
+                // ArgumentException - which is not a ConfigException, so it would escape
+                // Get() untranslated, never reach the back-off, and surface out of the tls
+                // validation callback as the opaque AuthenticationException the callers
+                // catch ConfigException to avoid.
+                writeTimeUtc = System.IO.File.GetLastWriteTimeUtc(path);
                 configurationError = null;
+                return;
             }
             catch (Exception exception)
             {
                 path = "";
                 writeTimeUtc = DateTime.MinValue;
                 configurationError = exception;
-                return;
             }
-            // A missing file reports the minimum value rather than throwing, which is the
-            // same key an unconfigured anchor gets and keeps both on the back-off path.
-            writeTimeUtc = System.IO.File.GetLastWriteTimeUtc(path);
         }
 
         /// <summary>

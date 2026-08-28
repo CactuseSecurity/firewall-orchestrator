@@ -21,6 +21,12 @@
   become: true
   no_log: true
 
+# RFC 5280 4.2.1.9 requires a conforming CA to mark basicConstraints critical in
+# a CA certificate whose key signs other certificates, and 4.2.1.3 says the same
+# for keyUsage where it is present. community.crypto defaults both flags to false,
+# so they are set here: without them a strict validator - a TLS inspection
+# appliance or an embedded stack - may refuse this anchor, which is precisely the
+# kind of peer internalca_key_type exists to accommodate.
 - name: Generate internal CA signing request
   community.crypto.openssl_csr:
     path: "{{ internalca_ca_csr }}"
@@ -28,9 +34,11 @@
     common_name: "{{ internalca_ca_common_name }}"
     basic_constraints:
       - CA:TRUE
+    basic_constraints_critical: true
     key_usage:
       - keyCertSign
       - cRLSign
+    key_usage_critical: true
   become: true
 
 - name: Generate internal CA certificate

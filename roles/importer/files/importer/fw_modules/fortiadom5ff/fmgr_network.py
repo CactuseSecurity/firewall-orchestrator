@@ -10,6 +10,13 @@ from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
 
+IPV6_OBJECT_TYPE_SUFFIXES = (
+    "firewall/address6",
+    "firewall/addrgrp6",
+    "firewall/ippool6",
+    "firewall/vipgrp6",
+)
+
 
 def normalize_network_objects(
     native_config: dict[str, Any],
@@ -98,6 +105,8 @@ def normalize_network_object(
 ) -> None:
     obj: dict[str, Any] = {}
     obj.update({"obj_name": obj_orig["name"]})
+    # Retain this only while rules are normalized. FwConfigNormalized discards unknown fields before persistence.
+    obj.update({"_ip_version": 6 if current_obj_type.endswith(IPV6_OBJECT_TYPE_SUFFIXES) else 4})
     if "subnet" in obj_orig:  # ipv4 object
         _parse_subnet(obj, obj_orig)
     elif "ip6" in obj_orig:  # ipv6 object
@@ -123,12 +132,12 @@ def normalize_network_object(
         normalize_vip_object(obj_orig, obj, nw_objects)
     elif "wildcard-fqdn" in obj_orig or "fqdn" in obj_orig:  # domain or wildcard-domain
         obj.update({"obj_typ": "domain"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     elif "q_origin_key" in obj_orig:
         obj.update({"obj_typ": "dynamic_net_obj"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     else:  # unknown types
         obj.update({"obj_typ": "network"})
         obj.update({"obj_ip": ANY_IP_START})

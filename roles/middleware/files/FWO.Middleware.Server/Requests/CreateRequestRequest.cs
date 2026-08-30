@@ -205,16 +205,18 @@ public sealed class CreateRequestRequest
         public string Protocol { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the PortStart value.
+        /// Gets the PortStart value. Null for a protocol-only service (e.g. ICMP or the
+        /// canonical any-IP-protocol service).
         /// </summary>
         [JsonPropertyName("portStart")]
-        public int PortStart { get; set; }
+        public int? PortStart { get; set; }
 
         /// <summary>
-        /// Gets the PortEnd value.
+        /// Gets the PortEnd value. Null for a protocol-only service (e.g. ICMP or the
+        /// canonical any-IP-protocol service).
         /// </summary>
         [JsonPropertyName("portEnd")]
-        public int PortEnd { get; set; }
+        public int? PortEnd { get; set; }
     }
 
     /// <summary>

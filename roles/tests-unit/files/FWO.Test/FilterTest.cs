@@ -16,6 +16,7 @@ namespace FWO.Test
     public partial class FilterTest
     {
         private const int kRegexTimeoutMilliseconds = 1000;
+        private static readonly List<string> kDynamicObjectTypes = ["dynamic_net_obj", "domain"];
 
         private delegate void StubExtractDelegate(ref DynGraphqlQuery query, ReportType? reportType);
 
@@ -331,7 +332,9 @@ namespace FWO.Test
             ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("refdate1"));
             ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("ownerWhere"));
             ClassicAssert.AreEqual("1000", query.QueryVariables["dport0"]);
-            ClassicAssert.AreEqual("_and: [{rule_head_text: {_is_null: true}}, { rule_metadatum: { recertifications: { next_recert_date: { _lte: $refdate1 } } } }, {_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId: { svc_port: {_lte: $dport0}, svc_port_end: {_gte: $dport0 } } } } }}}] ", query.RuleWhereStatement);
+            StringAssert.Contains("_not: {rule_services: { service: { svcgrp_flats: { serviceBySvcgrpFlatMemberId:", query.RuleWhereStatement);
+            StringAssert.Contains("svc_port: { _lte: $dport0 }", query.RuleWhereStatement);
+            StringAssert.Contains("ip_proto_id: { _eq: -1 }", query.RuleWhereStatement);
         }
 
         [Test]
@@ -799,7 +802,13 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(t);
 
             StringAssert.Contains("ip_proto_name: { _ilike: $proto0 }", query.RuleWhereStatement);
+            StringAssert.Contains("ip_proto_id: { _eq: -1 }", query.RuleWhereStatement);
+            StringAssert.Contains("svc_port: { _is_null: true }", query.RuleWhereStatement);
+            StringAssert.Contains("svc_port_end: { _is_null: true }", query.RuleWhereStatement);
             StringAssert.Contains("ip_proto_name: { _ilike: $proto0 }", query.ConnectionWhereStatement);
+            StringAssert.Contains("proto_id: { _eq: -1 }", query.ConnectionWhereStatement);
+            StringAssert.Contains("port: { _is_null: true }", query.ConnectionWhereStatement);
+            StringAssert.Contains("port_end: { _is_null: true }", query.ConnectionWhereStatement);
             Assert.That(query.QueryVariables["proto0"], Is.EqualTo("%tcp%"));
         }
 
@@ -1194,7 +1203,7 @@ namespace FWO.Test
 
             DynGraphqlQuery query = Compiler.Compile(template);
 
-            StringAssert.Contains("{_or: [{rule_action: { _ilike: $action0 }}, {rule_services: {service: {stm_ip_proto: {ip_proto_name: { _ilike: $proto1 } } } }}] }", query.RuleWhereStatement);
+            StringAssert.Contains("{_or: [{rule_action: { _ilike: $action0 }}, {rule_services: { service: { _or: [ { stm_ip_proto: { ip_proto_name: { _ilike: $proto1 } } }", query.RuleWhereStatement);
             StringAssert.Contains("rule_action: { _ilike: $action0 }", query.RuleWhereStatement);
             StringAssert.Contains("ip_proto_name: { _ilike: $proto1 }", query.RuleWhereStatement);
         }
@@ -1432,9 +1441,32 @@ namespace FWO.Test
             DynGraphqlQuery query = Compiler.Compile(template);
 
             Assert.That(query.QueryVariables["dport0"], Is.EqualTo("443"));
-            StringAssert.Contains("svc_port: {_lte: $dport0}", query.RuleWhereStatement);
-            StringAssert.Contains("service_connections: {service: { port: { _lte: $dport0 }, port_end: { _gte: $dport0 } } }", query.ConnectionWhereStatement);
-            StringAssert.Contains("service_group_connections: {service_group: { service_service_groups:", query.ConnectionWhereStatement);
+            StringAssert.Contains("svc_port: { _lte: $dport0 }", query.RuleWhereStatement);
+            StringAssert.Contains("ip_proto_id: { _eq: -1 }", query.RuleWhereStatement);
+            StringAssert.Contains("service_connections: { service: { _or: [ { port: { _lte: $dport0 }, port_end: { _gte: $dport0 } }", query.ConnectionWhereStatement);
+            StringAssert.Contains("proto_id: { _eq: -1 }", query.ConnectionWhereStatement);
+            StringAssert.Contains("service_group_connections: { service_group: { service_service_groups:", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ProtocolAndPortFilter_MatchesCanonicalAnyService()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "protocol=tcp and port=22"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(query.QueryVariables["proto0"], Is.EqualTo("%tcp%"));
+                Assert.That(query.QueryVariables["dport1"], Is.EqualTo("22"));
+                StringAssert.Contains("ip_proto_id: { _eq: -1 }, svc_port: { _is_null: true }, svc_port_end: { _is_null: true }", query.RuleWhereStatement);
+                StringAssert.Contains("proto_id: { _eq: -1 }, port: { _is_null: true }, port_end: { _is_null: true }", query.ConnectionWhereStatement);
+            });
         }
 
         [Test]
@@ -1472,6 +1504,62 @@ namespace FWO.Test
             StringAssert.Contains("obj_name: { _nilike: $dst0 }", query.RuleWhereStatement);
             StringAssert.Contains("owner_network: {name: { _nilike: $dst0 } }", query.ConnectionWhereStatement);
             StringAssert.Contains("id_string: { _nilike: $dst0 }", query.ConnectionWhereStatement);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_ObjectTypesBuildDirectAndFlattenedSourceAndDestinationFilters()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type=dynamic_net_obj,domain or dst_type=dynamic_net_obj,domain"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            CollectionAssert.AreEqual(kDynamicObjectTypes, (List<string>)query.QueryVariables["srcType0"]);
+            CollectionAssert.AreEqual(kDynamicObjectTypes, (List<string>)query.QueryVariables["dstType1"]);
+            string normalizedRuleWhere = NormalizeGraphQl(query.RuleWhereStatement);
+            StringAssert.Contains("rule_froms: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } } } }] } }", normalizedRuleWhere);
+            StringAssert.Contains("rule_tos: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $dstType1 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $dstType1 } } } } }] } }", normalizedRuleWhere);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void NetworkFilter_NegatedObjectTypeNegatesDirectAndFlattenedSourcePredicate()
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type!=domain"
+            };
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.QueryVariables["srcType0"], Is.EqualTo(new List<string> { "domain" }));
+            string normalizedRuleWhere = NormalizeGraphQl(query.RuleWhereStatement);
+            StringAssert.Contains("_not: { rule_froms: { object: { _or: [{ stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } }, { objgrp_flats: { objectByObjgrpFlatMemberId: { stm_obj_typ: { obj_typ_name: { _in: $srcType0 } } } } }] } } }", normalizedRuleWhere);
+            StringAssert.DoesNotContain("_nin", normalizedRuleWhere);
+        }
+
+        [Parallelizable]
+        [TestCase(ReportType.Connections)]
+        [TestCase(ReportType.Owners)]
+        [TestCase(ReportType.OwnerRecertification)]
+        [TestCase(ReportType.TicketReport)]
+        [TestCase(ReportType.TicketChangeReport)]
+        public void NetworkFilter_ObjectTypesRejectReportsWithoutRulePredicates(ReportType reportType)
+        {
+            ReportTemplate template = new()
+            {
+                Filter = "src_type=dynamic_net_obj,domain"
+            };
+            template.ReportParams.ReportType = (int)reportType;
+
+            SemanticException exception = Assert.Throws<SemanticException>(() => Compiler.Compile(template))!;
+
+            Assert.That(exception.Message, Does.Contain("report queries that use firewall rule predicates"));
         }
 
         [Test]

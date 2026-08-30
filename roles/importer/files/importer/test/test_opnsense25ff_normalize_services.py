@@ -1,6 +1,6 @@
 # pyright: reportPrivateUsage=false
 # tests target internal service-normalization helpers, hence private-usage is allowed here
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import pytest
 from fw_modules.opnsense25ff.opnsense_model import (
@@ -9,12 +9,15 @@ from fw_modules.opnsense25ff.opnsense_model import (
     OPNsensePort,
     OPNsensePortAlias,
 )
-from fw_modules.opnsense25ff.opnsense_normalize_services import _normalize_services_from_port_alias, normalize_services
+from fw_modules.opnsense25ff.opnsense_normalize_services import (
+    _normalize_services_from_port_alias,
+    _qualify_service,
+    get_synthetic_any_service_name,
+    normalize_services,
+)
 from fw_modules.opnsense25ff.opnsense_normalizer import _create_normalized_rule_from_access_rule
+from models.serviceobject import ServiceObject
 from pytest_mock import MockerFixture
-
-if TYPE_CHECKING:
-    from models.serviceobject import ServiceObject
 
 
 def _port_alias(name: str) -> OPNsensePortAlias:
@@ -78,6 +81,16 @@ def test_normalize_services_adds_builtin_imap_port() -> None:
     assert services["imap"].svc_port == 143
     assert services["imap"].svc_port_end == 143
     assert "placeholder" not in (services["imap"].svc_comment or "")
+
+
+def test_normalize_services_uses_any_protocol_for_any_service() -> None:
+    services = normalize_services(OPNsenseConfig(hostname="fw"))
+
+    any_service = services["Any"]
+    assert any_service.svc_typ == "simple"
+    assert any_service.svc_port is None
+    assert any_service.svc_port_end is None
+    assert any_service.ip_proto == -1
 
 
 def test_normalize_services_creates_placeholder_for_unknown_named_port() -> None:
@@ -209,6 +222,100 @@ def test_normalize_services_keeps_protocol_for_rules_without_port() -> None:
     assert services["Any/tcp"].ip_proto == 6
     assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (1, 65535)
     assert _create_normalized_rule_from_access_rule(rule).rule_svc == "Any/tcp"
+
+
+def test_normalize_services_splits_portless_tcp_udp_rule_into_qualified_services() -> None:
+    rule = _port_rule("r-tcp-udp-any", "tcp/udp", None)
+    config = OPNsenseConfig(hostname="fw", access_rules=[rule])
+
+    services = normalize_services(config)
+
+    synthetic_any_service_name = get_synthetic_any_service_name(services)
+    assert synthetic_any_service_name == "Any"
+    assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end, services["Any/tcp"].ip_proto) == (
+        1,
+        65535,
+        6,
+    )
+    assert (services["Any/udp"].svc_port, services["Any/udp"].svc_port_end, services["Any/udp"].ip_proto) == (
+        1,
+        65535,
+        17,
+    )
+    assert _create_normalized_rule_from_access_rule(rule, synthetic_any_service_name).rule_svc == "Any/tcp|Any/udp"
+
+
+def test_qualify_service_preserves_ports_for_user_service_named_any() -> None:
+    base = ServiceObject(
+        svc_uid="user-any-uid",
+        svc_name="Any",
+        svc_port=443,
+        svc_port_end=443,
+        svc_color="",
+        svc_typ="simple",
+    )
+
+    qualified = _qualify_service(base, "tcp", None, "synthetic-any-uid")
+
+    assert qualified.ip_proto == 6
+    assert (qualified.svc_port, qualified.svc_port_end) == (443, 443)
+
+
+def test_qualify_service_does_not_treat_similar_uid_as_synthetic_any() -> None:
+    base = ServiceObject(
+        svc_uid="_FWO_ANY_PORT_user-alias",
+        svc_name="user-service",
+        svc_port=443,
+        svc_port_end=443,
+        svc_color="",
+        svc_typ="simple",
+    )
+
+    qualified = _qualify_service(base, "tcp", None, "_FWO_ANY_PORT_")
+
+    assert (qualified.svc_port, qualified.svc_port_end) == (443, 443)
+
+
+def test_normalize_services_preserves_any_named_alias_and_implicit_any_service() -> None:
+    alias = _port_alias("Any")
+    alias.childs.append(OPNsensePort(name="443", is_range=False, port=443, port_end=None))
+    explicit_alias_rule = _port_rule("r-alias", "tcp", "Any")
+    implicit_any_rule = _port_rule("r-any", "tcp", None)
+    config = OPNsenseConfig(
+        hostname="fw",
+        port_aliases={alias.name: alias},
+        access_rules=[explicit_alias_rule, implicit_any_rule],
+    )
+
+    services = normalize_services(config)
+
+    assert services["Any/tcp"].svc_typ == "group"
+    assert (services["Any/tcp"].svc_port, services["Any/tcp"].svc_port_end) == (None, None)
+    assert (services["443/tcp"].svc_port, services["443/tcp"].svc_port_end) == (443, 443)
+    assert (services["_FWO_ANY_PORT_/tcp"].svc_port, services["_FWO_ANY_PORT_/tcp"].svc_port_end) == (1, 65535)
+    assert _create_normalized_rule_from_access_rule(explicit_alias_rule).rule_svc == "Any/tcp"
+    assert _create_normalized_rule_from_access_rule(implicit_any_rule).rule_svc == "_FWO_ANY_PORT_/tcp"
+
+
+def test_normalize_services_uses_unused_name_for_implicit_any_service() -> None:
+    any_alias = _port_alias("Any")
+    any_alias.childs.append(OPNsensePort(name="443", is_range=False, port=443, port_end=None))
+    fallback_alias = _port_alias("_FWO_ANY_PORT_")
+    fallback_alias.childs.append(OPNsensePort(name="8443", is_range=False, port=8443, port_end=None))
+    explicit_fallback_alias_rule = _port_rule("r-fallback-alias", "tcp", "_FWO_ANY_PORT_")
+    implicit_any_rule = _port_rule("r-any", "tcp", None)
+    config = OPNsenseConfig(
+        hostname="fw",
+        port_aliases={any_alias.name: any_alias, fallback_alias.name: fallback_alias},
+        access_rules=[explicit_fallback_alias_rule, implicit_any_rule],
+    )
+
+    services = normalize_services(config)
+
+    assert services["_FWO_ANY_PORT_/tcp"].svc_member_names == "8443/tcp"
+    assert (services["_FWO_ANY_PORT_1/tcp"].svc_port, services["_FWO_ANY_PORT_1/tcp"].svc_port_end) == (1, 65535)
+    assert _create_normalized_rule_from_access_rule(explicit_fallback_alias_rule).rule_svc == "_FWO_ANY_PORT_/tcp"
+    assert _create_normalized_rule_from_access_rule(implicit_any_rule).rule_svc == "_FWO_ANY_PORT_1/tcp"
 
 
 def test_normalize_services_instantiates_port_alias_per_protocol() -> None:

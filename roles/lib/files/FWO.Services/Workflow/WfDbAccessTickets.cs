@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using System.Linq;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
@@ -49,10 +50,7 @@ namespace FWO.Services.Workflow
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, UserConfig.GetText("save_request"), "", true);
-                if (failOnActionError)
-                {
-                    throw new InvalidOperationException("Workflow actions failed while creating the request ticket.", exception);
-                }
+                Log.WriteError("Create Request", "Workflow actions failed while creating the request ticket.", exception);
             }
 
             return ticket;
@@ -63,7 +61,9 @@ namespace FWO.Services.Workflow
         /// </summary>
         private async Task DoCreatedRequestTaskActions(WfTicket ticket)
         {
-            foreach (WfReqTask reqTask in ticket.Tasks)
+            // SyncActTicketFromReqTask writes back into ticket.Tasks, so iterate over a snapshot.
+            List<WfReqTask> createdTasks = new(ticket.Tasks);
+            foreach (WfReqTask reqTask in createdTasks)
             {
                 int newStateId = reqTask.StateId;
                 reqTask.MarkCreatedStateChanged(newStateId);

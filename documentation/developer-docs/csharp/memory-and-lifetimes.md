@@ -1,0 +1,21 @@
+## C# Memory & Resource Management
+- every long-lived registration must have a matching cleanup in the same type
+- every `+=` must have a matching `-=`
+- every `Subscribe(...)` must have a matching `Unsubscribe(...)`
+- every created `CancellationTokenSource` must be cancelled and disposed
+- every created `Timer`, `PeriodicTimer`, subscription or background runner must have a defined shutdown path
+- if asynchronous cleanup is required, use `IAsyncDisposable` instead of `IDisposable`
+- `Dispose()` and `DisposeAsync()` must be idempotent and must not fail on repeated calls
+- `async void` should only be used for real UI event handlers
+- avoid anonymous event handlers for long-lived publishers; use named handlers or stored delegates so they can be unsubscribed
+- objects created from DI must not be disposed manually if their lifetime is managed by the container
+- do not resolve short-lived `IDisposable` services from the root container
+- classes owning disposable fields must dispose them explicitly
+- avoid storing user, request or component state in singleton services
+- collections in long-lived services must be bounded or cleaned up regularly
+- do not overwrite running subscriptions, timers or background tasks without disposing the previous instance first
+- do not keep large object graphs, result lists or caches alive longer than necessary
+- background loops must support cancellation and must stop cleanly during shutdown
+- JS interop references (`IJSObjectReference`, `DotNetObjectReference`) must always be disposed explicitly
+- every change involving events, subscriptions, timers, background services or component lifecycle must be reviewed for memory retention risks
+- add unit tests for lifecycle-sensitive code: start, stop, dispose, repeated dispose, and replacement of active instances

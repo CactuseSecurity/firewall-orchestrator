@@ -30,6 +30,7 @@ namespace FWO.Api.Client
         private string ambientRole = "";
         private string forcedExecutionMode = "";
         private bool restrictElevatedRoleSwitches = false;
+        private bool _disposed;
 
         private readonly SemaphoreSlim _reconnectLock = new(1, 1);
 
@@ -50,6 +51,14 @@ namespace FWO.Api.Client
 
             client.HttpClient.Timeout = new TimeSpan(1, 0, 0);
             return client;
+        }
+
+        /// <summary>
+        /// Creates the replacement client used when subscriptions reconnect.
+        /// </summary>
+        protected virtual GraphQLHttpClient CreateSubscriptionClient(string apiServerUri)
+        {
+            return CreateClient(apiServerUri);
         }
 
         private void Initialize(string ApiServerUri)
@@ -462,9 +471,6 @@ namespace FWO.Api.Client
 
             try
             {
-                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
                 ct.ThrowIfCancellationRequested();
 
                 GraphQLHttpClient oldSubscriptionClient;
@@ -473,10 +479,14 @@ namespace FWO.Api.Client
 
                 lock (subscriptionsLock)
                 {
+                    ObjectDisposedException.ThrowIf(_disposed, this);
+                    ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
                     subscriptions.RemoveAll(subscription => subscription.IsDisposed);
                     activeSubscriptions = [.. subscriptions];
                     oldSubscriptionClient = graphQlSubscriptionClient;
-                    newSubscriptionClient = CreateClient(ApiServerUri);
+                    newSubscriptionClient = CreateSubscriptionClient(ApiServerUri);
                     UpdateJwtRoleState(jwt);
                     ApplyAuthHeader(graphQlClient, jwt);
                     ApplyAuthHeader(newSubscriptionClient, jwt);
@@ -820,27 +830,36 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                List<ApiSubscription> subscriptionsToDispose;
-                GraphQLHttpClient? currentGraphQlClient;
-                GraphQLHttpClient? currentGraphQlSubscriptionClient;
-
-                lock (subscriptionsLock)
+                _reconnectLock.Wait();
+                try
                 {
-                    subscriptionsToDispose = [.. subscriptions];
-                    subscriptions.Clear();
-                    currentGraphQlClient = graphQlClient;
-                    currentGraphQlSubscriptionClient = graphQlSubscriptionClient;
-                    graphQlClient = null;
-                    graphQlSubscriptionClient = null;
-                }
+                    List<ApiSubscription> subscriptionsToDispose;
+                    GraphQLHttpClient? currentGraphQlClient;
+                    GraphQLHttpClient? currentGraphQlSubscriptionClient;
 
-                foreach (ApiSubscription subscription in subscriptionsToDispose)
+                    lock (subscriptionsLock)
+                    {
+                        _disposed = true;
+                        subscriptionsToDispose = [.. subscriptions];
+                        subscriptions.Clear();
+                        currentGraphQlClient = graphQlClient;
+                        currentGraphQlSubscriptionClient = graphQlSubscriptionClient;
+                        graphQlClient = null;
+                        graphQlSubscriptionClient = null;
+                    }
+
+                    foreach (ApiSubscription subscription in subscriptionsToDispose)
+                    {
+                        subscription.Dispose();
+                    }
+
+                    currentGraphQlClient?.Dispose();
+                    currentGraphQlSubscriptionClient?.Dispose();
+                }
+                finally
                 {
-                    subscription.Dispose();
+                    _reconnectLock.Release();
                 }
-
-                currentGraphQlClient?.Dispose();
-                currentGraphQlSubscriptionClient?.Dispose();
             }
         }
 

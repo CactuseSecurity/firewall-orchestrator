@@ -8,7 +8,7 @@ namespace FWO.Api.Client
 {
     [SuppressMessage("Design", "S3060:DoNotCallOverridableMethodsInConstructors",
         Justification = "CreateSubscription is virtual for unit tests only. This is a design choice.")]
-    public partial class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
+    public class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
     {
         public delegate void SubscriptionUpdate(SubscriptionResponseType response);
         public event SubscriptionUpdate? OnUpdate;

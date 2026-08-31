@@ -1,6 +1,8 @@
 using FWO.Api.Client;
 using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
 using NUnit.Framework;
+using System.Net;
 
 namespace FWO.Test
 {
@@ -83,6 +85,35 @@ namespace FWO.Test
             Assert.That(active.DisposeCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task ReconnectAndDisposeDoNotPublishAClientAfterDisposal()
+        {
+            RaceTestGraphQlApiConnection connection = new();
+            TrackingSubscription subscription = new();
+            connection.AddSubscription(subscription);
+            connection.BlockReplacementClient();
+
+            Task reconnect = Task.Run(() => connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None));
+            await connection.ReplacementCreationStarted.Task;
+
+            Task dispose = Task.Run(connection.Dispose);
+            connection.AllowReplacementCreation();
+
+            await Task.WhenAll(reconnect, dispose);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(connection.SubscriptionCount, Is.EqualTo(0));
+                Assert.That(subscription.DisposeCount, Is.EqualTo(1));
+                Assert.That(connection.ReplacementClientHandler?.WasDisposed, Is.True);
+                Assert.That(connection.HasApiClient, Is.False);
+                Assert.That(connection.HasSubscriptionClient, Is.False);
+            });
+
+            Assert.Throws<ObjectDisposedException>(() => connection.GetSubscription<object>(
+                _ => { }, _ => { }, "subscription"));
+        }
+
         private sealed class TestGraphQlApiConnection : GraphQlApiConnection
         {
             public TestGraphQlApiConnection() : base("http://localhost")
@@ -94,6 +125,83 @@ namespace FWO.Test
             public void AddSubscription(ApiSubscription subscription)
             {
                 subscriptions.Add(subscription);
+            }
+        }
+
+        private sealed class RaceTestGraphQlApiConnection : GraphQlApiConnection
+        {
+            private bool blockReplacementClient;
+            private readonly TaskCompletionSource<bool> allowReplacementCreation = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public RaceTestGraphQlApiConnection() : base("http://localhost")
+            { }
+
+            public TaskCompletionSource<bool> ReplacementCreationStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public TrackingHandler? ReplacementClientHandler { get; private set; }
+            public int SubscriptionCount => subscriptions.Count;
+            public bool HasApiClient => GetPrivateClient("graphQlClient") != null;
+            public bool HasSubscriptionClient => GetPrivateSubscriptionClient() != null;
+
+            public void AddSubscription(ApiSubscription subscription)
+            {
+                subscriptions.Add(subscription);
+            }
+
+            public void BlockReplacementClient()
+            {
+                blockReplacementClient = true;
+            }
+
+            public void AllowReplacementCreation()
+            {
+                allowReplacementCreation.SetResult(true);
+            }
+
+            protected override GraphQLHttpClient CreateSubscriptionClient(string apiServerUri)
+            {
+                if (blockReplacementClient)
+                {
+                    blockReplacementClient = false;
+                    ReplacementCreationStarted.SetResult(true);
+                    allowReplacementCreation.Task.GetAwaiter().GetResult();
+                }
+
+                ReplacementClientHandler = new TrackingHandler();
+                return new GraphQLHttpClient(
+                    new GraphQLHttpClientOptions
+                    {
+                        EndPoint = new Uri(apiServerUri),
+                        HttpMessageHandler = ReplacementClientHandler
+                    },
+                    new SystemTextJsonSerializer());
+            }
+
+            private GraphQLHttpClient? GetPrivateSubscriptionClient()
+            {
+                return GetPrivateClient("graphQlSubscriptionClient");
+            }
+
+            private GraphQLHttpClient? GetPrivateClient(string fieldName)
+            {
+                return typeof(GraphQlApiConnection)
+                    .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?.GetValue(this) as GraphQLHttpClient;
+            }
+        }
+
+        private sealed class TrackingHandler : HttpMessageHandler
+        {
+            public bool WasDisposed { get; private set; }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                WasDisposed = true;
+                base.Dispose(disposing);
             }
         }
 

@@ -34,15 +34,11 @@ Enable the existing network listener behavior for services split across hosts:
 
     distributed_install: true
 
-set specific IP or hostname for database host, e.g.
-
-replace
-
-    fworch_db_host: 127.0.0.1
-
-with
-
-    fworch_db_host: 10.1.1.83
+Nothing else has to be set here. Every endpoint name - the database host, the API, the
+middleware and the UI - is derived from the host names in `inventory/hosts.yml` above,
+and `distributed_install: true` is what makes the internal clients address those names
+instead of loopback. Name the hosts there by the DNS names their certificates are
+issued for; see `documentation/certificates.md`.
 
 ## roles/database/tasks/main.yml
 

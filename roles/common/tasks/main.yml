@@ -89,6 +89,25 @@
         # to remove the very installation the guard is complaining about.
         - installation_mode != 'uninstall'
 
+    # fwo_endpoint_hostname is a single-host convenience: it gives the api, the middleware
+    # and the ui one and the same name. On a distributed inventory that is silently wrong
+    # rather than broken - each endpoint would be certified for, and addressed under,
+    # another host's name - so it is refused here instead of applied.
+    - name: fail when the shared endpoint name is set on a multi host inventory
+      fail:
+        msg: >-
+          fwo_endpoint_hostname is set to {{ fwo_endpoint_hostname }}, but this inventory
+          spreads {{ product_name }} over {{ fworch_inventory_hosts | length }} hosts
+          ({{ fworch_inventory_hosts | join(', ') }}). It gives the api, middleware and ui
+          endpoints one and the same name, which is only correct when they are installed on
+          one host. Name the hosts in inventory/hosts.yml instead, or set api_hostname,
+          api_network_listening_ip_address, middleware_hostname and ui_hostname
+          individually in {{ fwo_install_settings_file }}.
+      when:
+        - fwo_endpoint_hostname | default('') | length > 0
+        - fworch_inventory_hosts | length > 1
+        - installation_mode != 'uninstall'
+
     - name: fail if already installed and installation_mode is new
       fail:
         msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
@@ -428,6 +447,19 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
         mode: "0755"
+
+    # Reference only - the installer reads fwo-install-settings.yml, never the template.
+    # Deployed next to where the real file belongs so an administrator on the host finds it
+    # without the repository, and refreshed on every run so it documents the release that
+    # is installed. It deliberately does not create or touch the settings file itself:
+    # that one is the operator's, and an installer that wrote it would fight them.
+    - name: install the host wide installer settings template for reference
+      copy:
+        src: fwo-install-settings.template.yml
+        dest: "{{ fworch_conf_dir }}/fwo-install-settings.template.yml"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0644"
 
     - name: create dir for passwords
       file:

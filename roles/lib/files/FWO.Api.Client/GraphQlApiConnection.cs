@@ -462,7 +462,8 @@ namespace FWO.Api.Client
 
                 ct.ThrowIfCancellationRequested();
 
-                List<ApiSubscription> activeSubscriptions = [.. subscriptions.Where(subscription => !subscription.IsDisposed)];
+                subscriptions.RemoveAll(subscription => subscription.IsDisposed);
+                List<ApiSubscription> activeSubscriptions = [.. subscriptions];
 
                 Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
 
@@ -472,20 +473,32 @@ namespace FWO.Api.Client
                 ApplyAuthHeader(graphQlClient, jwt);
                 ApplyAuthHeader(newSubscriptionClient, jwt);
 
-                List<ApiSubscription> recreatedSubscriptions = [];
                 graphQlSubscriptionClient = newSubscriptionClient;
 
                 foreach (ApiSubscription subscription in activeSubscriptions)
                 {
+                    if (subscription is IRebindableApiSubscription rebindableSubscription)
+                    {
+                        rebindableSubscription.Rebind(newSubscriptionClient);
+                    }
+                }
+
+                List<ApiSubscription> recreatedSubscriptions = [];
+                foreach (ApiSubscription subscription in activeSubscriptions.Where(subscription => subscription is not IRebindableApiSubscription))
+                {
                     recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
                 }
 
-                subscriptions.Clear();
-                subscriptions.AddRange(recreatedSubscriptions);
-
-                foreach (ApiSubscription subscription in activeSubscriptions)
+                if (recreatedSubscriptions.Count > 0)
                 {
-                    subscription.Dispose();
+                    subscriptions.Clear();
+                    subscriptions.AddRange(activeSubscriptions.Where(subscription => subscription is IRebindableApiSubscription));
+                    subscriptions.AddRange(recreatedSubscriptions);
+
+                    foreach (ApiSubscription subscription in activeSubscriptions.Where(subscription => subscription is not IRebindableApiSubscription))
+                    {
+                        subscription.Dispose();
+                    }
                 }
 
                 oldSubscriptionClient.Dispose();

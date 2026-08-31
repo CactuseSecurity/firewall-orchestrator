@@ -691,6 +691,54 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SaveState_InAddMode_DropsUnsavedActionsWhenDialogIsClosedAfterPartialFailure()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                AddStateActionFailOnCallNumber = 2
+            };
+            WfState addedState = new()
+            {
+                Id = 3,
+                Name = "Review",
+                AutomaticOnly = true,
+                Actions =
+                [
+                    StateAction(20, 1),
+                    StateAction(10, 2)
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState> { new() { Id = 5, Name = "Later" } });
+            SetPrivateField(component, "actState", addedState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", true);
+
+            Task firstAttempt = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await firstAttempt;
+
+            GetPrivateMethod("CloseEditState").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
+                {
+                    RequestQueries.createState,
+                    RequestQueries.addStateAction,
+                    RequestQueries.addStateAction
+                }));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 3).Actions.Select(action => action.Action.Id).ToList(),
+                    Is.EqualTo(new List<int> { 20 }));
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 3).Actions.Select(action => action.SortOrder).ToList(),
+                    Is.EqualTo(new List<int> { 1 }));
+            });
+        }
+
+        [Test]
         public async Task DeleteState_RemovesStateAndClosesDeleteMode()
         {
             SettingsStatesRenderApiConn apiConn = new();
@@ -958,7 +1006,8 @@ namespace FWO.Test
             SetPrivateField(component, "actState", actState);
             SetPrivateField(component, "AddStateMode", false);
 
-            Task task = (Task)GetPrivateMethod("RemoveActionFromState").Invoke(component, [first])!;
+            object?[] removeArgs = [first];
+            Task task = (Task)GetPrivateMethod("RemoveActionFromState").Invoke(component, removeArgs)!;
             await task;
 
             Assert.Multiple(() =>
@@ -996,7 +1045,8 @@ namespace FWO.Test
             SetPrivateField(component, "actState", actState);
             SetPrivateField(component, "AddStateMode", false);
 
-            Task task = (Task)GetPrivateMethod("MoveActionInState").Invoke(component, [second, -1])!;
+            object?[] moveArgs = [second, -1];
+            Task task = (Task)GetPrivateMethod("MoveActionInState").Invoke(component, moveArgs)!;
             await task;
 
             Assert.Multiple(() =>
@@ -1029,7 +1079,8 @@ namespace FWO.Test
             SetInjectedApiConnection(component, apiConn);
             SetPrivateField(component, "actState", actState);
 
-            Task task = (Task)GetPrivateMethod("MoveActionInState").Invoke(component, [first, -1])!;
+            object?[] moveArgs = [first, -1];
+            Task task = (Task)GetPrivateMethod("MoveActionInState").Invoke(component, moveArgs)!;
             await task;
 
             Assert.Multiple(() =>

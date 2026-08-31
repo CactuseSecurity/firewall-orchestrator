@@ -61,12 +61,36 @@ namespace FWO.Test
             Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task ReconnectSubscriptionsAsyncRebindsRebindableSubscriptionsInPlace()
+        {
+            TestGraphQlApiConnection connection = new();
+            RebindableSubscription active = new();
+            connection.AddSubscription(active);
+
+            await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(active.RebindCount, Is.EqualTo(1));
+                Assert.That(active.RecreateCount, Is.EqualTo(0));
+                Assert.That(active.DisposeCount, Is.EqualTo(0));
+                Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
+                Assert.That(connection.FirstSubscription, Is.SameAs(active));
+            });
+
+            active.Dispose();
+
+            Assert.That(active.DisposeCount, Is.EqualTo(1));
+        }
+
         private sealed class TestGraphQlApiConnection : GraphQlApiConnection
         {
             public TestGraphQlApiConnection() : base("http://localhost")
             { }
 
             public int SubscriptionCount => subscriptions.Count;
+            public ApiSubscription? FirstSubscription => subscriptions.Count > 0 ? subscriptions[0] : null;
 
             public void AddSubscription(ApiSubscription subscription)
             {
@@ -116,6 +140,29 @@ namespace FWO.Test
             {
                 RecreateCount++;
                 return new TrackingSubscription();
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                DisposeCount++;
+            }
+        }
+
+        private sealed class RebindableSubscription : ApiSubscription, IRebindableApiSubscription
+        {
+            public int DisposeCount { get; private set; }
+            public int RebindCount { get; private set; }
+            public int RecreateCount { get; private set; }
+
+            void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+            {
+                RebindCount++;
+            }
+
+            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            {
+                RecreateCount++;
+                return new RebindableSubscription();
             }
 
             protected override void Dispose(bool disposing)

@@ -2,6 +2,11 @@ using GraphQL.Client.Http;
 
 namespace FWO.Api.Client
 {
+    internal interface IRebindableApiSubscription
+    {
+        void Rebind(GraphQLHttpClient graphQlClient);
+    }
+
     public abstract class ApiSubscription : IDisposable
     {
         private bool _disposed;

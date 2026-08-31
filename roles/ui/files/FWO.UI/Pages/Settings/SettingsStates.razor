@@ -382,6 +382,7 @@ else
 
     private void Cancel()
     {
+        ReconcilePartiallyPersistedNewState();
         EditStateMode = false;
         AddStateMode = false;
         DeleteStateMode = false;
@@ -391,9 +392,27 @@ else
 
     private void CloseEditState()
     {
+        ReconcilePartiallyPersistedNewState();
         EditStateMode = false;
         AddStateMode = false;
         ResetNewStateTracking();
+    }
+
+    private void ReconcilePartiallyPersistedNewState()
+    {
+        if (!AddStateMode || !NewStatePersisted)
+        {
+            return;
+        }
+
+        HashSet<int> persistedActionIds = persistedNewStateActionIds.ToHashSet();
+        if (persistedActionIds.Count == actState.Actions.Count)
+        {
+            return;
+        }
+
+        actState.Actions = actState.Actions.Where(action => persistedActionIds.Contains(action.Action.Id)).ToList();
+        NormalizeActionSortOrder(actState);
     }
 
     private void RequestDeleteState(WfState state)
@@ -516,7 +535,12 @@ else
         NormalizeActionSortOrder(actState);
         if (StateExistsInDatabase())
         {
-            await SaveActionSortOrder(new[] { actState.Actions[index], actState.Actions[targetIndex] }.Where(ShouldPersistStateAction));
+            List<WfStateActionDataHelper> changedActions =
+            [
+                actState.Actions[index],
+                actState.Actions[targetIndex]
+            ];
+            await SaveActionSortOrder(changedActions.Where(ShouldPersistStateAction));
         }
     }
 

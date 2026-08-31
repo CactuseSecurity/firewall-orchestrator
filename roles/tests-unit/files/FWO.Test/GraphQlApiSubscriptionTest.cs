@@ -230,7 +230,7 @@ namespace FWO.Test
                 this.onUpdate = onUpdate;
             }
 
-            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
             {
                 ManualGraphQlObservable stream = Streams.Dequeue();
                 stream.ExceptionHandler = exceptionHandler;

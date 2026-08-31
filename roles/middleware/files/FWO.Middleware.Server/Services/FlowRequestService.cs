@@ -22,7 +22,7 @@ public sealed class FlowRequestService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
-    private readonly GraphQlApiSubscription<ConfigItem[]>? configSubscription;
+    private readonly ApiSubscription? configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -49,7 +49,7 @@ public sealed class FlowRequestService : IDisposable
     /// </summary>
     private void OnGlobalConfigChange(ConfigItem[] configItems)
     {
-        globalConfig.SubscriptionUpdateHandler(configItems);
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
     }
 
     /// <summary>

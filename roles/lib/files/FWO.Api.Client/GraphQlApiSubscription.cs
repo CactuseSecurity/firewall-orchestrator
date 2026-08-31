@@ -9,7 +9,7 @@ namespace FWO.Api.Client
 {
     [SuppressMessage("Design", "S3060:DoNotCallOverridableMethodsInConstructors",
         Justification = "CreateSubscription is virtual for unit tests only. This is a design choice.")]
-    public partial class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
+    public partial class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription, IRebindableApiSubscription
     {
         [GeneratedRegex(@"subscription\s(?'subscriptionName'.*?)[\s\(\{]")]
         private static partial Regex SubscriptionNameRegex();
@@ -45,6 +45,16 @@ namespace FWO.Api.Client
 
         protected virtual void CreateSubscription()
         {
+            InitializeSubscription(_graphQlClient);
+        }
+
+        void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+        {
+            InitializeSubscription(graphQlClient);
+        }
+
+        private void InitializeSubscription(GraphQLHttpClient graphQlClient)
+        {
             lock (_lock)
             {
                 if (_disposed) return;
@@ -54,7 +64,7 @@ namespace FWO.Api.Client
 
                 Log.WriteDebug("API", $"Creating API subscription {Request.OperationName}.");
                 Action<Exception> subscriptionExceptionHandler = HandleSubscriptionException;
-                _subscriptionStream = CreateSubscriptionStream(subscriptionExceptionHandler);
+                _subscriptionStream = CreateSubscriptionStream(graphQlClient, subscriptionExceptionHandler);
                 Log.WriteDebug("API", "API subscription created.");
 
                 _subscription = _subscriptionStream.Subscribe(Subscribe);
@@ -99,9 +109,9 @@ namespace FWO.Api.Client
             }
         }
 
-        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
+        protected virtual IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
         {
-            return _graphQlClient.CreateSubscriptionStream<dynamic>(Request, exceptionHandler);
+            return graphQlClient.CreateSubscriptionStream<dynamic>(Request, exceptionHandler);
         }
 
         private void HandleSubscriptionException(Exception exception)

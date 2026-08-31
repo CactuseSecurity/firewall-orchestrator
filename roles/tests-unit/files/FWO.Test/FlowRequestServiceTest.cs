@@ -726,6 +726,38 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public void GlobalConfigSubscription_MergesRawSnapshotWithoutDroppingUnrelatedItems()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        GlobalConfig globalConfig = new()
+        {
+            ReqApiTicketInitialStateId = -1
+        };
+        globalConfig.RawConfigItems =
+        [
+            new ConfigItem { Key = "welcomeMessage", Value = "keep-me", User = 0 }
+        ];
+        FlowRequestService service = new(apiConnection, globalConfig);
+
+        apiConnection.EmitGlobalConfigChange(new ConfigItem
+        {
+            Key = "reqApiTicketInitialStateId",
+            Value = "49",
+            User = 0
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(globalConfig.ReqApiTicketInitialStateId, Is.EqualTo(49));
+            Assert.That(globalConfig.RawConfigItems, Has.Length.EqualTo(2));
+            Assert.That(Array.Exists(globalConfig.RawConfigItems, item => item.Key == "welcomeMessage"), Is.True);
+            Assert.That(Array.Exists(globalConfig.RawConfigItems, item => item.Key == "reqApiTicketInitialStateId"), Is.True);
+        });
+
+        service.Dispose();
+    }
+
+    [Test]
     public async Task Constructor_IgnoresConfigSubscriptionFailures()
     {
         FlowRequestServiceApiConn apiConnection = new()

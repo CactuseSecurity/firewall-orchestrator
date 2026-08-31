@@ -990,6 +990,35 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddActionToState_InAddMode_RejectsDuplicateAction()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new();
+            WfStateActionDataHelper existingAction = StateAction(10, 1);
+            WfState actState = new()
+            {
+                Id = 4,
+                Actions = [existingAction]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "actState", actState);
+            SetPrivateField(component, "selectedAction", new WfStateAction { Id = 10, Name = "Notify" });
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "SelectActionMode", true);
+
+            Task task = (Task)GetPrivateMethod("AddActionToState").Invoke(component, null)!;
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(actState.Actions.Select(action => action.Action.Id).ToList(), Is.EqualTo(new List<int> { 10 }));
+                Assert.That(apiConn.Queries, Is.Empty);
+                Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.True);
+            });
+        }
+
+        [Test]
         public async Task RemoveActionFromState_ForExistingState_RemovesActionAndPersistsRemainingOrder()
         {
             SettingsStates component = new();

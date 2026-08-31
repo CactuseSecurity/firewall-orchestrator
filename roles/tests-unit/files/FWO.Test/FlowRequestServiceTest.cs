@@ -758,6 +758,24 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task GlobalConfigSubscription_RebindAndDisposeUsesSingleHandle()
+    {
+        FlowRequestServiceApiConn apiConnection = new();
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+
+        await apiConnection.ReconnectSubscriptionsAsync("jwt", default);
+        service.Dispose();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.ConfigSubscriptionCreateCount, Is.EqualTo(1));
+            Assert.That(apiConnection.ConfigSubscriptionRebindCount, Is.EqualTo(1));
+            Assert.That(apiConnection.ConfigSubscriptionDisposeCount, Is.EqualTo(1));
+            Assert.That(apiConnection.ConfigSubscriptionIsDisposed, Is.True);
+        });
+    }
+
+    [Test]
     public async Task Constructor_IgnoresConfigSubscriptionFailures()
     {
         FlowRequestServiceApiConn apiConnection = new()
@@ -2407,7 +2425,9 @@ internal class FlowRequestServiceTest
         public string? ConfigSubscriptionQuery { get; private set; }
         public object? ConfigSubscriptionVariables { get; private set; }
         public int ConfigSubscriptionCreateCount { get; private set; }
-        public int ConfigSubscriptionDisposeCount { get; private set; }
+        public int ConfigSubscriptionDisposeCount => configSubscription?.DisposeCount ?? 0;
+        public int ConfigSubscriptionRebindCount => configSubscription?.RebindCount ?? 0;
+        public bool ConfigSubscriptionIsDisposed => configSubscription?.DisposedState ?? false;
         public bool ThrowOnConfigSubscriptionInit { get; set; }
         private long nextId = 99;
         private Action<ConfigItem[]>? configSubscriptionUpdateHandler;
@@ -2535,22 +2555,14 @@ internal class FlowRequestServiceTest
         {
         }
 
-        public override void DisposeSubscriptions<T>()
-        {
-            if (typeof(T) != typeof(ConfigItem[]))
-            {
-                return;
-            }
-
-            if (configSubscription is { IsDisposed: false })
-            {
-                configSubscription.Dispose();
-                ConfigSubscriptionDisposeCount++;
-            }
-        }
-
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
+            if (configSubscription is IRebindableApiSubscription rebindableSubscription)
+            {
+                using GraphQLHttpClient rebindingClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+                rebindableSubscription.Rebind(rebindingClient);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -2615,14 +2627,21 @@ internal class FlowRequestServiceTest
             };
         }
 
-        private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>
+        private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>, IRebindableApiSubscription
         {
             public int DisposeCount { get; private set; }
+            public int RebindCount { get; private set; }
+            public bool DisposedState => IsDisposed;
 
             public TrackingConfigSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
                 Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             { }
+
+            void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+            {
+                RebindCount++;
+            }
 
             protected override void Dispose(bool disposing)
             {
@@ -2632,86 +2651,4 @@ internal class FlowRequestServiceTest
         }
     }
 
-    private sealed class FlowRequestServiceReconnectApiConn : SimulatedApiConnection
-    {
-        public int ConfigSubscriptionCreateCount { get; private set; }
-        public int ConfigSubscriptionDisposeCount { get; private set; }
-        private GraphQLRequest? request;
-        private Action<Exception>? exceptionHandler;
-        private GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate? subscriptionUpdateHandler;
-        private TrackingConfigSubscription? currentSubscription;
-
-        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
-            GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
-        {
-            if (typeof(SubscriptionResponseType) != typeof(ConfigItem[]))
-            {
-                throw new NotImplementedException();
-            }
-
-            request = new GraphQLRequest(subscription, variables, operationName);
-            this.exceptionHandler = exceptionHandler;
-            this.subscriptionUpdateHandler = (GraphQlApiSubscription<ConfigItem[]>.SubscriptionUpdate)(object)subscriptionUpdateHandler;
-
-            currentSubscription = CreateSubscription();
-            ConfigSubscriptionCreateCount++;
-            return (GraphQlApiSubscription<SubscriptionResponseType>)(object)currentSubscription;
-        }
-
-        public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
-        {
-            if (request == null || exceptionHandler == null || subscriptionUpdateHandler == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            if (currentSubscription is { IsDisposed: false })
-            {
-                currentSubscription.Dispose();
-                ConfigSubscriptionDisposeCount++;
-            }
-
-            currentSubscription = CreateSubscription();
-            ConfigSubscriptionCreateCount++;
-            return Task.CompletedTask;
-        }
-
-        public override void DisposeSubscriptions<T>()
-        {
-            if (typeof(T) != typeof(ConfigItem[]))
-            {
-                return;
-            }
-
-            if (currentSubscription is { IsDisposed: false })
-            {
-                currentSubscription.Dispose();
-                ConfigSubscriptionDisposeCount++;
-            }
-        }
-
-        private TrackingConfigSubscription CreateSubscription()
-        {
-            return new TrackingConfigSubscription(
-                this,
-                request!,
-                exceptionHandler!,
-                subscriptionUpdateHandler!);
-        }
-    }
-
-    private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>
-    {
-        public int DisposeCount { get; private set; }
-
-        public TrackingConfigSubscription(ApiConnection apiConnection, GraphQLRequest request, Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
-            : base(apiConnection, new GraphQLHttpClient(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient()), request, exceptionHandler, onUpdate)
-        { }
-
-        protected override void Dispose(bool disposing)
-        {
-            DisposeCount++;
-            base.Dispose(disposing);
-        }
-    }
 }

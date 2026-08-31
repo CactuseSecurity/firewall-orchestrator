@@ -47,6 +47,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GraphQlApiSubscriptionRebindUpdatesClientUsedForFutureSubscriptionCreation()
+        {
+            TestApiConnection apiConnection = new();
+            using GraphQLHttpClient initialClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+            using RebindTrackingGraphQlApiSubscription<string> subscription = new(
+                apiConnection,
+                initialClient,
+                new GraphQLRequest("subscription Test { test }"),
+                _ => { },
+                _ => { });
+            using GraphQLHttpClient reboundClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+
+            ((IRebindableApiSubscription)subscription).Rebind(reboundClient);
+            subscription.RestartSubscription();
+
+            Assert.That(subscription.LastGraphQlClient, Is.SameAs(reboundClient));
+        }
+
+        [Test]
         public void GraphQlApiSubscriptionDispatchesConvertedResponse()
         {
             ManualGraphQlObservable stream = new();
@@ -161,6 +180,32 @@ namespace FWO.Test
                 new GraphQLRequest("subscription Test { test }"),
                 exceptionHandler ?? (_ => { }),
                 onUpdate);
+        }
+
+        private sealed class RebindTrackingGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
+        {
+            public GraphQLHttpClient? LastGraphQlClient { get; private set; }
+
+            public RebindTrackingGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
+                Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+            { }
+
+            public void RestartSubscription()
+            {
+                CreateSubscription();
+            }
+
+            protected override void CreateSubscription()
+            {
+                base.CreateSubscription();
+            }
+
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
+            {
+                LastGraphQlClient = graphQlClient;
+                return (IObservable<GraphQLResponse<dynamic>>)(object)new NoopObservable();
+            }
         }
 
         private sealed class TrackingSubscription : ApiSubscription
@@ -288,6 +333,21 @@ namespace FWO.Test
             {
                 DisposeCount++;
                 IsDisposed = true;
+            }
+        }
+
+        private sealed class NoopObservable : IObservable<GraphQLResponse<object>>
+        {
+            public IDisposable Subscribe(IObserver<GraphQLResponse<object>> observer)
+            {
+                return new NoopDisposable();
+            }
+        }
+
+        private sealed class NoopDisposable : IDisposable
+        {
+            public void Dispose()
+            {
             }
         }
 

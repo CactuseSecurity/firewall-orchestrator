@@ -20,7 +20,7 @@ namespace FWO.Api.Client
         private IObservable<GraphQLResponse<dynamic>>? _subscriptionStream;
         private IDisposable? _subscription;
 
-        private readonly GraphQLHttpClient _graphQlClient;
+        private GraphQLHttpClient _graphQlClient;
         public GraphQLRequest Request { get; init; }
         private readonly ApiConnection _apiConnection;
         private readonly SubscriptionUpdate _subscriptionUpdateHandler;
@@ -59,6 +59,7 @@ namespace FWO.Api.Client
             {
                 if (_disposed) return;
 
+                _graphQlClient = graphQlClient;
                 _subscription?.Dispose();
                 _subscription = null;
 

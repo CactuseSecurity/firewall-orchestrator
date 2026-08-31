@@ -451,13 +451,20 @@ else
     {
         try
         {
+            WfStateAction selectedActionValue = selectedAction ?? throw new ArgumentException("no action selected");
+            if (actState.Actions.Any(action => action.Action.Id == selectedActionValue.Id))
+            {
+                DisplayMessageInUi(null, userConfig.GetText("edit_state"), userConfig.GetText("duplicate_objects"), true);
+                return;
+            }
+
             if (StateExistsInDatabase())
             {
-                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0, sortOrder = NextActionSortOrder() });
+                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedActionValue.Id, sortOrder = NextActionSortOrder() });
             }
             WfStateActionDataHelper newAction = new()
             {
-                Action = selectedAction ?? throw new ArgumentException("no action selected"),
+                Action = selectedActionValue,
                 SortOrder = NextActionSortOrder()
             };
             actState.Actions.Add(newAction);

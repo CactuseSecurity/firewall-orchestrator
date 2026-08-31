@@ -436,11 +436,16 @@ namespace FWO.Api.Client
         {
             try
             {
-                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+                GraphQlApiSubscription<SubscriptionResponseType> newSub;
 
-                GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
-                subscriptions.Add(newSub);
+                lock (subscriptionsLock)
+                {
+                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+                    GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
+                    newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
+                    subscriptions.Add(newSub);
+                }
 
                 return newSub;
             }
@@ -462,18 +467,24 @@ namespace FWO.Api.Client
 
                 ct.ThrowIfCancellationRequested();
 
-                subscriptions.RemoveAll(subscription => subscription.IsDisposed);
-                List<ApiSubscription> activeSubscriptions = [.. subscriptions];
+                GraphQLHttpClient oldSubscriptionClient;
+                GraphQLHttpClient newSubscriptionClient;
+                List<ApiSubscription> activeSubscriptions;
+
+                lock (subscriptionsLock)
+                {
+                    subscriptions.RemoveAll(subscription => subscription.IsDisposed);
+                    activeSubscriptions = [.. subscriptions];
+                    oldSubscriptionClient = graphQlSubscriptionClient;
+                    newSubscriptionClient = CreateClient(ApiServerUri);
+                    UpdateJwtRoleState(jwt);
+                    ApplyAuthHeader(graphQlClient, jwt);
+                    ApplyAuthHeader(newSubscriptionClient, jwt);
+
+                    graphQlSubscriptionClient = newSubscriptionClient;
+                }
 
                 Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
-
-                GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
-                GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
-                UpdateJwtRoleState(jwt);
-                ApplyAuthHeader(graphQlClient, jwt);
-                ApplyAuthHeader(newSubscriptionClient, jwt);
-
-                graphQlSubscriptionClient = newSubscriptionClient;
 
                 foreach (ApiSubscription subscription in activeSubscriptions)
                 {
@@ -809,28 +820,45 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                foreach (ApiSubscription subscription in subscriptions)
+                List<ApiSubscription> subscriptionsToDispose;
+                GraphQLHttpClient? currentGraphQlClient;
+                GraphQLHttpClient? currentGraphQlSubscriptionClient;
+
+                lock (subscriptionsLock)
+                {
+                    subscriptionsToDispose = [.. subscriptions];
+                    subscriptions.Clear();
+                    currentGraphQlClient = graphQlClient;
+                    currentGraphQlSubscriptionClient = graphQlSubscriptionClient;
+                    graphQlClient = null;
+                    graphQlSubscriptionClient = null;
+                }
+
+                foreach (ApiSubscription subscription in subscriptionsToDispose)
                 {
                     subscription.Dispose();
                 }
 
-                subscriptions.Clear();
-
-                graphQlClient?.Dispose();
-                graphQlClient = null;
-                graphQlSubscriptionClient?.Dispose();
-                graphQlSubscriptionClient = null;
+                currentGraphQlClient?.Dispose();
+                currentGraphQlSubscriptionClient?.Dispose();
             }
         }
 
         public override void DisposeSubscriptions<T>()
         {
-            foreach (ApiSubscription subscription in subscriptions.Where(_ => _.GetType() == typeof(T)))
+            List<ApiSubscription> subscriptionsToDispose;
+
+            lock (subscriptionsLock)
+            {
+                subscriptionsToDispose = [.. subscriptions.Where(_ => _.GetType() == typeof(T))];
+
+                subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
+            }
+
+            foreach (ApiSubscription subscription in subscriptionsToDispose)
             {
                 subscription.Dispose();
             }
-
-            subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
         }
 
         private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)

@@ -78,7 +78,7 @@
                     </div>
                 </div>
                 <br><br>
-                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!HasSelectableActions())" @onclick="SelectAction">
                     @(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add, "action"))</button>
                 <br><br>
                 <div class="m-2 vheight75">
@@ -126,7 +126,7 @@
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="@(GetSelectableActions())">
+                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="@selectableActions">
                         <ElementTemplate Context="action">
                             @action.Name
                         </ElementTemplate>
@@ -138,7 +138,7 @@
             <div class="btn-group">
                 <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        @if(selectedAction != null)
+                        @if(selectedAction != null && !addActionInProgress)
                         {
                             <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         }
@@ -172,8 +172,10 @@ else
     private List<int> usedStateIds = [];
     private WfStateDict statesDict = new ();
     private WfState actState = new ();
+    private WfState persistedNewState = new ();
 
     private List<WfStateAction> actions = [];
+    private List<WfStateAction> selectableActions = [];
     private WfStateAction? selectedAction;
 
     private bool EditStateMode = false;
@@ -183,6 +185,8 @@ else
     private bool InitComplete = false;
     private bool SelectActionMode = false;
     private bool EditExtStatesMode = false;
+    private bool addActionInProgress = false;
+    private bool saveInProgress = false;
     private readonly HashSet<int> persistedNewStateActionIds = [];
 
     protected override async Task OnInitializedAsync()
@@ -292,14 +296,30 @@ else
     private void EditState(WfState state)
     {
         ResetNewStateTracking();
-        actState = state;
+        actState = CloneState(state);
         AddStateMode = false;
         EditStateMode = true;
+    }
+
+    private static WfState CloneState(WfState state)
+    {
+        return new WfState
+        {
+            Id = state.Id,
+            Name = state.Name,
+            AutomaticOnly = state.AutomaticOnly,
+            Actions = [.. state.Actions.Select(action => new WfStateActionDataHelper
+            {
+                SortOrder = action.SortOrder,
+                Action = new WfStateAction(action.Action)
+            })]
+        };
     }
 
     private void ResetNewStateTracking()
     {
         NewStatePersisted = false;
+        persistedNewState = new WfState();
         persistedNewStateActionIds.Clear();
     }
 
@@ -315,6 +335,12 @@ else
 
     private async Task SaveState()
     {
+        if (saveInProgress)
+        {
+            return;
+        }
+
+        saveInProgress = true;
         try
         {
             if (AddStateMode && !NewStatePersisted && states.Any(state => state.Id == actState.Id))
@@ -339,6 +365,10 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
+        finally
+        {
+            saveInProgress = false;
+        }
     }
 
     private async Task SaveAddStateAsync()
@@ -359,6 +389,7 @@ else
             NewStatePersisted = true;
             states.Add(actState);
             states = states.OrderBy(x => x.Id).ToList();
+            persistedNewState = CloneState(actState);
             NormalizeActionSortOrder(actState);
             return;
         }
@@ -390,11 +421,16 @@ else
         }
 
         states[stateIndex] = actState;
+        if (AddStateMode && NewStatePersisted)
+        {
+            persistedNewState = CloneState(actState);
+        }
     }
 
     private void Cancel()
     {
         ReconcilePartiallyPersistedNewState();
+        CancelSelect();
         EditStateMode = false;
         AddStateMode = false;
         DeleteStateMode = false;
@@ -405,6 +441,7 @@ else
     private void CloseEditState()
     {
         ReconcilePartiallyPersistedNewState();
+        CancelSelect();
         EditStateMode = false;
         AddStateMode = false;
         ResetNewStateTracking();
@@ -418,13 +455,20 @@ else
         }
 
         HashSet<int> persistedActionIds = persistedNewStateActionIds.ToHashSet();
-        if (persistedActionIds.Count == actState.Actions.Count)
+        if (persistedActionIds.Count != actState.Actions.Count)
         {
-            return;
+            actState.Actions = actState.Actions.Where(action => persistedActionIds.Contains(action.Action.Id)).ToList();
+            NormalizeActionSortOrder(actState);
         }
 
-        actState.Actions = actState.Actions.Where(action => persistedActionIds.Contains(action.Action.Id)).ToList();
-        NormalizeActionSortOrder(actState);
+        RestorePersistedNewStateFields();
+    }
+
+    private void RestorePersistedNewStateFields()
+    {
+        actState.Id = persistedNewState.Id;
+        actState.Name = persistedNewState.Name;
+        actState.AutomaticOnly = persistedNewState.AutomaticOnly;
     }
 
     private void RequestDeleteState(WfState state)
@@ -450,17 +494,26 @@ else
 
     private void SelectAction()
     {
-        selectedAction = GetSelectableActions().FirstOrDefault();
-        SelectActionMode = true;
+        selectableActions = GetSelectableActions();
+        selectedAction = selectableActions.FirstOrDefault();
+        SelectActionMode = selectedAction != null;
     }
 
     private void CancelSelect()
     {
+        selectableActions = [];
+        selectedAction = null;
         SelectActionMode = false;
     }
 
     private async Task AddActionToState()
     {
+        if (addActionInProgress)
+        {
+            return;
+        }
+
+        addActionInProgress = true;
         try
         {
             WfStateAction selectedActionValue = selectedAction ?? throw new ArgumentException("no action selected");
@@ -484,11 +537,17 @@ else
                 persistedNewStateActionIds.Add(newAction.Action.Id);
             }
             NormalizeActionSortOrder(actState);
+            selectableActions = GetSelectableActions();
+            selectedAction = selectableActions.FirstOrDefault();
             SelectActionMode = false;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
+        }
+        finally
+        {
+            addActionInProgress = false;
         }
     }
 
@@ -533,6 +592,11 @@ else
     private List<WfStateAction> GetSelectableActions()
     {
         return actions.Where(action => !actState.Actions.Any(existingAction => existingAction.Action.Id == action.Id)).ToList();
+    }
+
+    private bool HasSelectableActions()
+    {
+        return actions.Any(action => !actState.Actions.Any(existingAction => existingAction.Action.Id == action.Id));
     }
 
     private static void NormalizeActionSortOrder(WfState state)

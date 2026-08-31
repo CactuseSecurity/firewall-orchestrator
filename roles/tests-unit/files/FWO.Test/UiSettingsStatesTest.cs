@@ -440,7 +440,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SelectAction_AllowsEmptyActionCatalogAndStillOpensPopup()
+        public void SelectAction_DisablesPopupWhenNoSelectableActionsRemain()
         {
             SettingsStates component = new();
             SetPrivateField(component, "actions", new List<WfStateAction>());
@@ -450,7 +450,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetPrivateField<WfStateAction?>(component, "selectedAction"), Is.Null);
-                Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.True);
+                Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.False);
             });
         }
 
@@ -471,6 +471,40 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
                 Assert.That(GetPrivateField<bool>(component, "DeleteStateMode"), Is.False);
                 Assert.That(GetPrivateField<bool>(component, "EditExtStatesMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public void Cancel_RevertsEditsToExistingStateWithoutMutatingListItem()
+        {
+            SettingsStates component = new();
+            WfState originalState = new()
+            {
+                Id = 2,
+                Name = "Old",
+                AutomaticOnly = false,
+                Actions = [StateAction(10, 1)]
+            };
+            SetPrivateField(component, "states", new List<WfState>
+            {
+                new() { Id = 1, Name = "Open" },
+                originalState
+            });
+
+            object?[] editStateArgs = [originalState];
+            GetPrivateMethod("EditState").Invoke(component, editStateArgs);
+
+            WfState actState = GetPrivateField<WfState>(component, "actState");
+            actState.Name = "Edited";
+            actState.AutomaticOnly = true;
+
+            GetPrivateMethod("Cancel").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(originalState.Name, Is.EqualTo("Old"));
+                Assert.That(originalState.AutomaticOnly, Is.False);
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 2).Name, Is.EqualTo("Old"));
             });
         }
 
@@ -775,6 +809,9 @@ namespace FWO.Test
             Task firstAttempt = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
             await firstAttempt;
 
+            addedState.Name = "Renamed";
+            addedState.AutomaticOnly = false;
+
             GetPrivateMethod("CloseEditState").Invoke(component, null);
 
             Assert.Multiple(() =>
@@ -791,6 +828,52 @@ namespace FWO.Test
                     Is.EqualTo(new List<int> { 20 }));
                 Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 3).Actions.Select(action => action.SortOrder).ToList(),
                     Is.EqualTo(new List<int> { 1 }));
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 3).Name, Is.EqualTo("Review"));
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 3).AutomaticOnly, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SaveState_InAddMode_IgnoresConcurrentReentrantCalls()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                CreateStateGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+            };
+            WfState addedState = new()
+            {
+                Id = 3,
+                Name = "Review",
+                AutomaticOnly = true,
+                Actions =
+                [
+                    StateAction(10, 1)
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState> { new() { Id = 5, Name = "Later" } });
+            SetPrivateField(component, "actState", addedState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", true);
+
+            Task firstCall = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await Task.Yield();
+            Task secondCall = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+
+            apiConn.CreateStateGate.SetResult(true);
+            await Task.WhenAll(firstCall, secondCall);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
+                {
+                    RequestQueries.createState,
+                    RequestQueries.addStateAction
+                }));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
             });
         }
 
@@ -1069,6 +1152,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SelectAction_DoesNotOpenPopupWhenNoSelectableActionsRemain()
+        {
+            SettingsStates component = new();
+            SetPrivateField(component, "actions", new List<WfStateAction>
+            {
+                new() { Id = 10, Name = "Approve" }
+            });
+            SetPrivateField(component, "actState", new WfState
+            {
+                Actions = [StateAction(10, 1)]
+            });
+
+            GetPrivateMethod("SelectAction").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<WfStateAction?>(component, "selectedAction"), Is.Null);
+                Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.False);
+            });
+        }
+
+        [Test]
         public async Task AddActionToState_InAddMode_RejectsDuplicateAction()
         {
             SettingsStates component = new();
@@ -1094,6 +1199,39 @@ namespace FWO.Test
                 Assert.That(actState.Actions.Select(action => action.Action.Id).ToList(), Is.EqualTo(new List<int> { 10 }));
                 Assert.That(apiConn.Queries, Is.Empty);
                 Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.True);
+            });
+        }
+
+        [Test]
+        public async Task AddActionToState_IgnoresConcurrentReentrantCalls()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                AddStateActionGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously)
+            };
+            WfState actState = new()
+            {
+                Id = 4,
+                Actions = [StateAction(10, 1)]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetPrivateField(component, "actState", actState);
+            SetPrivateField(component, "selectedAction", new WfStateAction { Id = 30, Name = "Notify" });
+            SetPrivateField(component, "AddStateMode", false);
+            SetPrivateField(component, "SelectActionMode", true);
+
+            Task firstCall = (Task)GetPrivateMethod("AddActionToState").Invoke(component, null)!;
+            await Task.Yield();
+            Task secondCall = (Task)GetPrivateMethod("AddActionToState").Invoke(component, null)!;
+
+            apiConn.AddStateActionGate.SetResult(true);
+            await Task.WhenAll(firstCall, secondCall);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string> { RequestQueries.addStateAction }));
+                Assert.That(actState.Actions.Select(action => action.Action.Id).ToList(), Is.EqualTo(new List<int> { 10, 30 }));
             });
         }
 
@@ -1208,13 +1346,24 @@ namespace FWO.Test
         public bool ThrowOnAddStateAction { get; set; }
         public int AddStateActionFailOnCallNumber { get; set; }
         public int AddStateActionCallCount { get; private set; }
+        public TaskCompletionSource<bool>? CreateStateGate { get; set; }
+        public TaskCompletionSource<bool>? AddStateActionGate { get; set; }
 
-        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
             Queries.Add(query);
             if (variables != null)
             {
                 Variables.Add(variables);
+            }
+
+            if (query == RequestQueries.createState && CreateStateGate != null)
+            {
+                await CreateStateGate.Task;
+            }
+            if (query == RequestQueries.addStateAction && AddStateActionGate != null)
+            {
+                await AddStateActionGate.Task;
             }
 
             object result = query switch
@@ -1228,7 +1377,7 @@ namespace FWO.Test
                 _ => default(QueryResponseType)!
             };
 
-            return Task.FromResult((QueryResponseType)result);
+            return (QueryResponseType)result;
         }
     }
 

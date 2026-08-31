@@ -37,6 +37,9 @@ namespace FWO.Test
             "The Hasura metadata is not reachable in this environment, so the permission alignment cannot be checked.";
         private const string kApiCallsOutOfReach =
             "The API call definitions are not reachable in this environment, so the permission alignment cannot be checked.";
+        private const string kAmbiguousTableRoot =
+            "Two tracked tables of the metadata reach the same root field name in the GraphQL schema, "
+            + "so the permissions of one of them would be checked against the calls of the other: ";
         private const string kPermissionSuffix = "_permissions";
         private const string kSelectOperation = "select";
         private const string kInsertOperation = "insert";
@@ -100,6 +103,34 @@ namespace FWO.Test
         private static readonly HashSet<string> kAllColumns = new() { kAllColumnsMarker };
 
         /// <summary>
+        /// Root field names two tables of kMetadataWithDistinctTableRoots reach, where the table of a
+        /// schema other than public carries its schema and the one of public does not.
+        /// </summary>
+        private static readonly List<string> kDistinctTableRoots = new() { "alert", "modelling_connection" };
+
+        /// <summary>
+        /// A metadata document tracking two tables which reach two root field names, as the tracked tables
+        /// of replace_metadata.json do.
+        /// </summary>
+        private const string kMetadataWithDistinctTableRoots = @"{""args"": {""metadata"": {""sources"": [
+            {""tables"": [
+                {""table"": {""schema"": ""public"", ""name"": ""alert""}},
+                {""table"": {""schema"": ""modelling"", ""name"": ""connection""}}
+            ]}
+        ]}}}";
+
+        /// <summary>
+        /// A metadata document tracking two tables which reach one root field name, because the schema a
+        /// table outside public is prefixed with is part of the name of the other one.
+        /// </summary>
+        private const string kMetadataWithAmbiguousTableRoot = @"{""args"": {""metadata"": {""sources"": [
+            {""tables"": [
+                {""table"": {""schema"": ""modelling"", ""name"": ""connection""}},
+                {""table"": {""schema"": ""public"", ""name"": ""modelling_connection""}}
+            ]}
+        ]}}}";
+
+        /// <summary>
         /// The sources under test. They are looked up once and are read from wherever the environment
         /// keeps them, because the tests run from a repository checkout as well as from an installed
         /// system, where the components do not share the layout of the repository.
@@ -121,22 +152,22 @@ namespace FWO.Test
             // issued by the importer: FWO.Recert sends them under the role of the logged in user
             // (RecertRefresh.cs, RecertHandler.cs). Granting the importer select on recertification would
             // widen its read access for a call it never makes. Dropping its insert permission instead is
-            // the cleaner repair and belongs to the owner of the recertification workflow.
+            // the cleaner repair and belongs to the owner of the recertification workflow. Tracked as
+            // issue #5220.
             "recertification|importer|<any column>",
 
             // The middleware-server role holds insert permission on report but report/addGeneratedReport
             // is sent over the user context connection of the scheduling user (ReportJob.cs), never under
             // the technical role. Granting it select on report would widen its read access to every
             // generated report for a call it never makes; dropping the insert permission is the cleaner
-            // repair and belongs to the owner of the report scheduling workflow.
+            // repair and belongs to the owner of the report scheduling workflow. Tracked as issue #5220.
             "report|middleware-server|<any column>",
 
             // v_rule_with_rule_owner_1 is tracked with no permission at all, so owner/getRuleOwnerships
             // exists in the schema of no role of this metadata. /settings/owners is open to admin and
             // auditor: admin is the built in role of Hasura and passes every permission, auditor is not
             // and its EditOwner.razor fails to load the rules of an owner. Which role should read the view
-            // is a decision for the owner of the ownership workflow; the gap is recorded here so it is not
-            // lost while it is open.
+            // is a decision for the owner of the ownership workflow. Tracked as issue #5210.
             "v_rule_with_rule_owner_1|<any role>|owner_id"
         };
 
@@ -214,6 +245,31 @@ namespace FWO.Test
             Assert.That(repairedGaps, Is.Empty,
                 "These accepted mismatches no longer exist and have to be removed from kKnownPermissionGaps:"
                 + Environment.NewLine + string.Join(Environment.NewLine, repairedGaps));
+        }
+
+        /// <summary>
+        /// Tables outside the public schema carry their schema in the root field name Hasura gives them,
+        /// which is the name the API calls address them by and the name they are read under here.
+        /// </summary>
+        [Test]
+        public void Metadata_ReadsTablesByTheirRootFieldName()
+        {
+            Dictionary<string, TableMetadata> tables = ReadMetadata(kMetadataWithDistinctTableRoots);
+
+            Assert.That(tables.Keys, Is.EquivalentTo(kDistinctTableRoots));
+        }
+
+        /// <summary>
+        /// Two tracked tables reaching one root field name are refused, because the calls of one of them
+        /// would otherwise be checked against the permissions of the other and pass on them.
+        /// </summary>
+        [Test]
+        public void Metadata_RefusesTwoTablesReachingOneRootFieldName()
+        {
+            InvalidOperationException? refusal = Assert.Throws<InvalidOperationException>(
+                () => ReadMetadata(kMetadataWithAmbiguousTableRoot));
+
+            Assert.That(refusal?.Message, Does.Contain("modelling_connection"));
         }
 
         /// <summary>
@@ -350,13 +406,25 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Reads the tables of the metadata by the name their root fields carry in the GraphQL schema.
+        /// Reads the tables of the metadata file by the name their root fields carry in the GraphQL schema.
         /// </summary>
         private static Dictionary<string, TableMetadata> ReadMetadata()
         {
             FileInfo metadataFile = kMetadataFileInfo.Value
                 ?? throw new InvalidOperationException(kMetadataOutOfReach);
-            using JsonDocument metadata = JsonDocument.Parse(File.ReadAllText(metadataFile.FullName));
+            return ReadMetadata(File.ReadAllText(metadataFile.FullName));
+        }
+
+        /// <summary>
+        /// Reads the tables of a metadata document by the name their root fields carry in the GraphQL
+        /// schema. Two tracked tables reaching the same root name are refused instead of one of them
+        /// replacing the other, because the calls of one table would then be checked against the
+        /// permissions of the other and pass on them, which is the one thing this guard must not do.
+        /// </summary>
+        /// <param name="metadataJson">The content of the metadata file.</param>
+        private static Dictionary<string, TableMetadata> ReadMetadata(string metadataJson)
+        {
+            using JsonDocument metadata = JsonDocument.Parse(metadataJson);
             Dictionary<string, TableMetadata> tables = new();
 
             foreach (JsonElement source in metadata.RootElement.GetProperty("args")
@@ -364,7 +432,11 @@ namespace FWO.Test
             {
                 foreach (JsonElement table in source.GetProperty("tables").EnumerateArray())
                 {
-                    tables[ReadTableRoot(table.GetProperty("table"))] = ReadTablePermissions(table);
+                    string tableRoot = ReadTableRoot(table.GetProperty("table"));
+                    if (!tables.TryAdd(tableRoot, ReadTablePermissions(table)))
+                    {
+                        throw new InvalidOperationException(kAmbiguousTableRoot + tableRoot);
+                    }
                 }
             }
             return tables;

@@ -1208,6 +1208,108 @@ internal class FlowRequestServiceTest
         });
     }
 
+    [Test]
+    public async Task CreateRequest_ReturnsSuccessWhenWorkflowActionsFail()
+    {
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States =
+            [
+                new WfState
+                {
+                    Id = 17,
+                    Name = "requested",
+                    Actions = new List<WfStateActionDataHelper>
+                    {
+                        new()
+                        {
+                            SortOrder = 1,
+                            Action = new WfStateAction
+                            {
+                                Name = "broken add approval",
+                                ActionType = StateActionTypes.AddApproval.ToString(),
+                                Scope = WfObjectScopes.Ticket.ToString(),
+                                Event = StateActionEvents.OnSet.ToString(),
+                                ExternalParams = "{invalid"
+                            }
+                        }
+                    }
+                },
+                new WfState { Id = 0, Name = "draft" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
+        };
+        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    [
+                        new Claim("x-hasura-user-id", "77"),
+                        new Claim(ClaimTypes.Name, "Trusted Requester"),
+                        new Claim("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
+                    ],
+                    "test"))
+            }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Configured state request",
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            CreateRequestResponse response = (CreateRequestResponse)((OkObjectResult)result.Result!).Value!;
+            Assert.That(response.Status, Is.EqualTo("requested"));
+            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
+            Assert.That(apiConnection.CreatedTicket!.StateId, Is.EqualTo(17));
+        });
+    }
+
     [TestCase("999")]
     [TestCase("-1")]
     [TestCase("ANY")]

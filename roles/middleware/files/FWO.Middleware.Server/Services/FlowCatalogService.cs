@@ -13,11 +13,12 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Represents the FlowCatalogService type.
 /// </summary>
-public sealed class FlowCatalogService
+public sealed class FlowCatalogService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
     private IpProtocolCache? ipProtocolCache;
+    private bool disposed;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
     {
@@ -38,6 +39,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<List<AddressObjectResponse>> GetAddressObjectsAsync(bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowNwObject> flowObjects = await LoadFlowNwObjectsAsync(visibleInRequest);
         return flowObjects.Select(ToAddressObjectResponse).ToList();
     }
@@ -47,6 +49,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<List<AddressGroupResponse>> GetAddressGroupsAsync(bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToAddressGroupResponse).ToList();
     }
@@ -56,6 +59,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<List<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowSvcObject> flowObjects = await LoadFlowSvcObjectsAsync(visibleInRequest);
         IpProtocolCache protocolCache = await GetIpProtocolCacheAsync();
         return flowObjects.Select(flowObject => ToServiceObjectResponse(flowObject, protocolCache)).ToList();
@@ -66,6 +70,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<List<ServiceGroupResponse>> GetServiceGroupsAsync(bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToServiceGroupResponse).ToList();
     }
@@ -75,6 +80,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<List<TimeObjectResponse>> GetTimeObjectsAsync(bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowTimeObject> flowObjects = await LoadFlowTimeObjectsAsync(visibleInRequest);
         return flowObjects.Select(ToTimeObjectResponse).ToList();
     }
@@ -84,6 +90,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<AddressObjectIdResponse> GetAddressObjectIdAsync(string ipStart, string ipEnd, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowNwObject> result = await apiConnection.SendQueryAsync<List<FlowNwObject>>(
             FlowQueries.getFlowAddressObjectId,
             BuildLookupQueryVariables(visibleInRequest, ("ip_start", ipStart), ("ip_end", ipEnd))) ?? [];
@@ -98,6 +105,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<ServiceObjectIdResponse> GetServiceObjectIdAsync(string protocol, int? portStart, int? portEnd, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         int? protocolId = await ResolveProtocolIdAsync(protocol);
         if (!protocolId.HasValue)
         {
@@ -122,6 +130,7 @@ public sealed class FlowCatalogService
     /// </summary>
     public async Task<TimeObjectIdResponse> GetTimeObjectIdAsync(DateTimeOffset? startTime, DateTimeOffset? endTime, bool? visibleInRequest)
     {
+        ObjectDisposedException.ThrowIf(disposed, this);
         List<FlowTimeObject> result = await apiConnection.SendQueryAsync<List<FlowTimeObject>>(
             FlowQueries.getFlowTimeObjectId,
             BuildLookupQueryVariables(visibleInRequest, ("start_time", startTime), ("end_time", endTime))) ?? [];
@@ -383,5 +392,18 @@ public sealed class FlowCatalogService
             State = flowObject.State,
             ShowInRequest = flowObject.ShowInRequestModule
         };
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        ipProtocolCacheLock.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

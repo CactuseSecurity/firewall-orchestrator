@@ -10,13 +10,19 @@ namespace FWO.Api.Client
 
         internal abstract ApiSubscription Recreate(GraphQLHttpClient graphQlClient);
 
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+        }
 
         public void Dispose()
         {
-            if (_disposed) return;
             Dispose(true);
-            _disposed = true;
             GC.SuppressFinalize(this);
         }
     }

@@ -27,7 +27,7 @@ namespace FWO.Test
             public int UpsertConfigCallCount { get; private set; }
             public List<ConfigItem> LastConfigItems { get; private set; } = [];
             public object? LastGetConfigItemsByUserVariables { get; private set; }
-            public bool IsDisposed { get; private set; }
+            public bool WasDisposed { get; private set; }
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -69,7 +69,8 @@ namespace FWO.Test
             public override void DisposeSubscriptions<T>() { }
             protected override void Dispose(bool disposing)
             {
-                IsDisposed = true;
+                WasDisposed = true;
+                base.Dispose(disposing);
             }
 
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
@@ -179,7 +180,7 @@ namespace FWO.Test
 
             userConfig.Dispose();
 
-            Assert.That(apiConnection.IsDisposed, Is.False);
+            Assert.That(apiConnection.WasDisposed, Is.False);
         }
 
         [Test]
@@ -206,7 +207,7 @@ namespace FWO.Test
 
             userConfig.Dispose();
 
-            Assert.That(apiConnection.IsDisposed, Is.True);
+            Assert.That(apiConnection.WasDisposed, Is.True);
         }
 
         [Test]
@@ -224,7 +225,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
-                Assert.That(apiConnection.IsDisposed, Is.False);
+                Assert.That(apiConnection.WasDisposed, Is.False);
             });
         }
 
@@ -245,7 +246,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetOnChangeSubscriberCount(globalConfig), Is.EqualTo(initialSubscriberCount));
-                Assert.That(apiConnection.IsDisposed, Is.False);
+                Assert.That(apiConnection.WasDisposed, Is.False);
             });
         }
 

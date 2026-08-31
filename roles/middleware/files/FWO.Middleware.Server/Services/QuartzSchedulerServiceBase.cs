@@ -256,6 +256,8 @@ namespace FWO.Middleware.Server.Services
                     Log.WriteError(options.SchedulerName, "Error during disposal", ex);
                 }
             }
+
+            GC.SuppressFinalize(this);
             return ValueTask.CompletedTask;
         }
 

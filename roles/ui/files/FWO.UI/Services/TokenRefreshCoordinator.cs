@@ -29,6 +29,7 @@ namespace FWO.Ui.Services
 
         private IPeriodicTaskRunner? runner;
         private bool started;
+        private bool disposed;
 
         /// <summary>
         /// Creates a new token refresh coordinator.
@@ -54,6 +55,7 @@ namespace FWO.Ui.Services
         /// <inheritdoc />
         public async Task StartAsync()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await startStopLock.WaitAsync();
             try
             {
@@ -78,6 +80,11 @@ namespace FWO.Ui.Services
         /// <inheritdoc />
         public async Task StopAsync()
         {
+            if (disposed)
+            {
+                return;
+            }
+
             IPeriodicTaskRunner? runnerToStop = await DetachRunnerAsync();
             if (runnerToStop != null)
             {
@@ -90,7 +97,15 @@ namespace FWO.Ui.Services
         /// <inheritdoc />
         public async ValueTask DisposeAsync()
         {
+            if (disposed)
+            {
+                return;
+            }
+
             await StopAsync();
+            disposed = true;
+            startStopLock.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -99,6 +114,11 @@ namespace FWO.Ui.Services
         /// </summary>
         public void Dispose()
         {
+            if (disposed)
+            {
+                return;
+            }
+
             // detaching only takes the lock for the short bookkeeping below, so the bounded wait of the
             // runner's synchronous shutdown stays the only thing this thread can block on for long
             IPeriodicTaskRunner? runnerToStop;
@@ -113,6 +133,9 @@ namespace FWO.Ui.Services
             }
 
             runnerToStop?.Dispose();
+            disposed = true;
+            startStopLock.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

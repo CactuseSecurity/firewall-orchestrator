@@ -12,7 +12,7 @@ namespace FWO.Ui.Services
     /// <summary>
     /// Manages token pairs (access + refresh tokens) for the current user session.
     /// </summary>
-    public class TokenService
+    public sealed class TokenService : IDisposable
     {
         private readonly MiddlewareClient middlewareClient;
         private readonly ISessionStorage sessionStorage;
@@ -22,6 +22,7 @@ namespace FWO.Ui.Services
         private readonly SemaphoreSlim initializationSemaphore = new(1, 1);
         private const string TOKEN_PAIR_KEY = "token_pair";
         private bool initialized;
+        private bool disposed;
 
         /// <summary>
         /// Initializes a new instance of the TokenService class.
@@ -96,6 +97,7 @@ namespace FWO.Ui.Services
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task SetTokenPair(TokenPair tokenPair)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             currentTokenPair = tokenPair;
             initialized = true;
 
@@ -116,6 +118,7 @@ namespace FWO.Ui.Services
         /// <returns>The access token or null if not available.</returns>
         public async Task<string?> GetAccessToken()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             return currentTokenPair?.AccessToken;
@@ -127,6 +130,7 @@ namespace FWO.Ui.Services
         /// <returns>Token Pair object</returns>
         public async Task<TokenPair?> GetTokenPair()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             return currentTokenPair;
@@ -138,6 +142,7 @@ namespace FWO.Ui.Services
         /// <returns>True if a refresh token is available; otherwise false.</returns>
         public async Task<bool> HasRefreshToken()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.RefreshToken);
@@ -149,6 +154,7 @@ namespace FWO.Ui.Services
         /// <returns>True if a access token is available; otherwise false.</returns>
         public async Task<bool> HasAccessToken()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             return currentTokenPair != null && !string.IsNullOrWhiteSpace(currentTokenPair.AccessToken);
@@ -160,6 +166,7 @@ namespace FWO.Ui.Services
         /// <returns>The current access and refresh token expiration timestamps, or null values when no token pair is stored.</returns>
         public async Task<(DateTime? AccessTokenExpiresAtUtc, DateTime? RefreshTokenExpiresAtUtc)> GetTokenExpirations()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             if (currentTokenPair is null)
@@ -180,6 +187,7 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         public async Task<bool> IsAccessTokenExpired()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             if (currentTokenPair is null || string.IsNullOrEmpty(currentTokenPair.AccessToken))
@@ -207,6 +215,7 @@ namespace FWO.Ui.Services
         /// <returns>The refreshed token pair, or the current pair if no refresh is required. Returns null on failure.</returns>
         public async Task<TokenPair?> RefreshTokenPair(bool force = false)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             if (currentTokenPair is null || !await HasRefreshToken())
@@ -288,6 +297,7 @@ namespace FWO.Ui.Services
         /// <returns></returns>
         public async Task RevokeTokens()
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             await EnsureInitializedAsync();
 
             try
@@ -344,6 +354,20 @@ namespace FWO.Ui.Services
             {
                 Log.WriteDebug("Token", $"Failed to clear stored token pair: {ex.Message}. {GlobalConst.BrowserResourceSaving}.");
             }
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            disposed = true;
+            refreshSemaphore.Dispose();
+            initializationSemaphore.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

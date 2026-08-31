@@ -817,18 +817,14 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                foreach (ApiSubscription subscription in subscriptions)
-                {
-                    subscription.Dispose();
-                }
-
-                subscriptions.Clear();
-
                 graphQlClient?.Dispose();
                 graphQlClient = null;
                 graphQlSubscriptionClient?.Dispose();
                 graphQlSubscriptionClient = null;
+                _reconnectLock.Dispose();
             }
+
+            base.Dispose(disposing);
         }
 
         public override void DisposeSubscriptions<T>()

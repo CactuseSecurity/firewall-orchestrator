@@ -9,7 +9,7 @@ using NUnit.Framework.Legacy;
 namespace FWO.Test
 {
     [SetUpFixture]
-    class TestInitializer
+    sealed class TestInitializer : IDisposable
     {
         private const string kConfigFilePathEnvVar = "FWO_CONFIG_FILE_PATH";
         private const string kLogLockDirEnvVar = "FWO_LOG_LOCK_DIR";
@@ -26,6 +26,7 @@ namespace FWO.Test
         private FakeLocalTimeZone? fakeLocalTimeZone;
         private string? testConfigFilePath;
         private bool logLockDirSet;
+        private bool disposed;
 
         [OneTimeSetUp]
         public void OnStart()
@@ -40,7 +41,18 @@ namespace FWO.Test
         [OneTimeTearDown]
         public void OnFinish()
         {
+            Dispose();
+        }
+
+        public void Dispose()
+        {
+            if (disposed)
+            {
+                return;
+            }
+
             fakeLocalTimeZone?.Dispose();
+            fakeLocalTimeZone = null;
 
             if (testConfigFilePath != null)
             {
@@ -55,6 +67,9 @@ namespace FWO.Test
             {
                 Environment.SetEnvironmentVariable(kLogLockDirEnvVar, null);
             }
+
+            disposed = true;
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>

@@ -6,6 +6,8 @@ namespace FWO.Api.Client
     {
         private bool disposed = false;
 
+        protected bool IsDisposed => disposed;
+
         public event EventHandler<string>? OnAuthHeaderChanged;
         public event EventHandler<string>? OnExecutionModeChanged;
 
@@ -112,20 +114,38 @@ namespace FWO.Api.Client
         public abstract GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
             GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null);
 
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                foreach (ApiSubscription subscription in subscriptions)
+                {
+                    subscription.Dispose();
+                }
+
+                subscriptions.Clear();
+                OnAuthHeaderChanged = null;
+                OnExecutionModeChanged = null;
+            }
+
+            disposed = true;
+        }
+
         public abstract void DisposeSubscriptions<T>();
 
         ~ApiConnection()
         {
-            if (disposed) return;
             Dispose(false);
         }
 
         public void Dispose()
         {
-            if (disposed) return;
             Dispose(true);
-            disposed = true;
             GC.SuppressFinalize(this);
         }
     }

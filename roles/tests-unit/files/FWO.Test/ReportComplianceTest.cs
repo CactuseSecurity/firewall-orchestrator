@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     [TestFixture]
-    internal class ReportComplianceTest
+    internal sealed class ReportComplianceTest : IDisposable
     {
         private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
@@ -26,6 +26,13 @@ namespace FWO.Test
             _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
             ;
             _testDiffReport.MockPostProcessDiffReportsRule = true;
+        }
+
+        public void Dispose()
+        {
+            _testReport?.Dispose();
+            _testDiffReport?.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         [Test]

@@ -85,7 +85,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
         }
 
@@ -103,7 +109,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
         }
 
@@ -120,7 +132,13 @@ namespace FWO.Test
 
             protected override void Dispose(bool disposing)
             {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
                 DisposeCount++;
+                base.Dispose(disposing);
             }
         }
     }

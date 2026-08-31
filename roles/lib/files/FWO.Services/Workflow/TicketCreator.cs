@@ -8,11 +8,12 @@ using FWO.Middleware.Client;
 
 namespace FWO.Services.Workflow
 {
-    public class TicketCreator
+    public class TicketCreator : IDisposable
     {
         private readonly WfHandler wfHandler;
         private readonly UserConfig userConfig;
         private readonly ApiConnection apiConnection;
+        private bool disposed;
         private int stateId;
         private string ticketTitle = "";
         private string ticketReason = "";
@@ -315,6 +316,27 @@ namespace FWO.Services.Workflow
             {
                 Log.WriteError(title, message, exception);
             }
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                wfHandler.Dispose();
+            }
+
+            disposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

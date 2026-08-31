@@ -499,7 +499,10 @@ namespace FWO.Test
             }
             public override Task<ApiResponse<QueryResponseType>> SendQuerySafeAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null) => throw new NotImplementedException();
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null) => throw new NotImplementedException();
-            protected override void Dispose(bool disposing) { }
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+            }
             public override void DisposeSubscriptions<T>() { }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => throw new NotImplementedException();
         }

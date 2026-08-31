@@ -6683,13 +6683,13 @@ INSERT INTO txt VALUES ('H5530', 'English', 'Confirm sent email via UI message: 
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
-    Beim Anlegen neuer Status sollte jede ID eindeutig sein.
+    Beim Anlegen neuer Status sollte jede ID eindeutig sein. Beim Hinzuf&uuml;gen von Aktionen zu einem Status darf jede Aktion nur einmal ausgew&auml;hlt werden.
     Es werden nur Status zum L&ouml;schen angeboten, die in keiner Status-Matrix verwendet werden (auch nicht in deaktivierten Phasen oder Aktionen).
 ');
 INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can be created, renamed or deleted where appropriate. Names and numbers of the states can be selected freely.
     But it has to be considered, that the numbers fit into the ranges (Input, Started, Exit) of the phases defined in the <a href="/help/settings/statematrix">state matrices</a>.
     As internally solely the numbers are processed, duplicates in state names are (technically) possible.
-    When creating new states, each id should be unique.
+    When creating new states, each id should be unique. When adding actions to a state, each action may only be selected once.
     Only states are offered for deletion, who are not used in any state matrix (even in deactivated phases or in actions).
 ');
 INSERT INTO txt VALUES ('H5532', 'German',  'Externe Status: Um interne Status &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Status zugeordnet werden.');

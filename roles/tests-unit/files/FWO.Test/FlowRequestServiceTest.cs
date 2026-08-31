@@ -2557,11 +2557,8 @@ internal class FlowRequestServiceTest
 
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
-            if (configSubscription is IRebindableApiSubscription rebindableSubscription)
-            {
-                using GraphQLHttpClient rebindingClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
-                rebindableSubscription.Rebind(rebindingClient);
-            }
+            using GraphQLHttpClient rebindingClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+            configSubscription?.Rebind(rebindingClient);
 
             return Task.CompletedTask;
         }
@@ -2627,7 +2624,7 @@ internal class FlowRequestServiceTest
             };
         }
 
-        private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>, IRebindableApiSubscription
+        private sealed class TrackingConfigSubscription : SimulatedApiSubscription<ConfigItem[]>
         {
             public int DisposeCount { get; private set; }
             public int RebindCount { get; private set; }
@@ -2638,7 +2635,7 @@ internal class FlowRequestServiceTest
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             { }
 
-            void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
                 RebindCount++;
             }

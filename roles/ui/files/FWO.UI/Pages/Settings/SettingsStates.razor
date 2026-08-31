@@ -58,7 +58,7 @@
             {
                 <div class="form-group row">
                     <div class="col-sm-2">
-                        @if(AddStateMode)
+                        @if(AddStateMode && !NewStatePersisted)
                         {
                             <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
                         }
@@ -126,7 +126,7 @@
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
+                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="@(GetSelectableActions())">
                         <ElementTemplate Context="action">
                             @action.Name
                         </ElementTemplate>
@@ -325,7 +325,7 @@ else
 
             if (AddStateMode)
             {
-                await SaveNewStateAsync();
+                await SaveAddStateAsync();
             }
             else
             {
@@ -341,7 +341,13 @@ else
         }
     }
 
-    private async Task SaveNewStateAsync()
+    private async Task SaveAddStateAsync()
+    {
+        await SaveStateRowAsync();
+        await SaveMissingStateActionsAsync();
+    }
+
+    private async Task SaveStateRowAsync()
     {
         if (!NewStatePersisted)
         {
@@ -354,8 +360,14 @@ else
             states.Add(actState);
             states = states.OrderBy(x => x.Id).ToList();
             NormalizeActionSortOrder(actState);
+            return;
         }
 
+        await UpdateStateAsync();
+    }
+
+    private async Task SaveMissingStateActionsAsync()
+    {
         foreach (var action in actState.Actions.Where(action => !persistedNewStateActionIds.Contains(action.Action.Id)).ToList())
         {
             await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
@@ -438,7 +450,7 @@ else
 
     private void SelectAction()
     {
-        selectedAction = actions.Count > 0 ? actions.First() : null;
+        selectedAction = GetSelectableActions().FirstOrDefault();
         SelectActionMode = true;
     }
 
@@ -454,7 +466,6 @@ else
             WfStateAction selectedActionValue = selectedAction ?? throw new ArgumentException("no action selected");
             if (actState.Actions.Any(action => action.Action.Id == selectedActionValue.Id))
             {
-                DisplayMessageInUi(null, userConfig.GetText("edit_state"), userConfig.GetText("duplicate_objects"), true);
                 return;
             }
 
@@ -517,6 +528,11 @@ else
     private int NextActionSortOrder()
     {
         return actState.Actions.Count == 0 ? 1 : actState.Actions.Max(action => action.SortOrder) + 1;
+    }
+
+    private List<WfStateAction> GetSelectableActions()
+    {
+        return actions.Where(action => !actState.Actions.Any(existingAction => existingAction.Action.Id == action.Id)).ToList();
     }
 
     private static void NormalizeActionSortOrder(WfState state)

@@ -9,7 +9,7 @@ namespace FWO.Api.Client
 {
     [SuppressMessage("Design", "S3060:DoNotCallOverridableMethodsInConstructors",
         Justification = "CreateSubscription is virtual for unit tests only. This is a design choice.")]
-    public partial class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription, IRebindableApiSubscription
+    public partial class GraphQlApiSubscription<SubscriptionResponseType> : ApiSubscription
     {
         [GeneratedRegex(@"subscription\s(?'subscriptionName'.*?)[\s\(\{]")]
         private static partial Regex SubscriptionNameRegex();
@@ -48,7 +48,7 @@ namespace FWO.Api.Client
             InitializeSubscription(_graphQlClient);
         }
 
-        void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+        internal override void Rebind(GraphQLHttpClient graphQlClient)
         {
             InitializeSubscription(graphQlClient);
         }
@@ -142,33 +142,6 @@ namespace FWO.Api.Client
             }
 
             return match.Success;
-        }
-
-        internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
-        {
-            string creationText = "";
-
-            if (TryGetSubscriptionNameFromQuery(Request.Query, out string subscriptionName))
-            {
-                creationText = $"Recreating {subscriptionName}";
-            }
-            else if (!string.IsNullOrWhiteSpace(Request.OperationName))
-            {
-                creationText = $"Recreating {Request.OperationName}";
-            }
-            else
-            {
-                creationText = $"Recreating {nameof(GraphQlApiSubscription<>)}<{nameof(SubscriptionResponseType)}>";
-            }
-
-            Log.WriteInfo("GraphQL Subscription", creationText);
-
-            return new GraphQlApiSubscription<SubscriptionResponseType>(
-                _apiConnection,
-                graphQlClient,
-                Request,
-                ExternalExceptionHandler,
-                _subscriptionUpdateHandler);
         }
 
         protected override void Dispose(bool disposing)

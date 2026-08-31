@@ -33,20 +33,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionRecreateCreatesFreshSubscription()
-        {
-            TestApiConnection apiConnection = new();
-            using TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
-            GraphQLHttpClient recreatedClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
-
-            TestGraphQlApiSubscription<string> recreated = (TestGraphQlApiSubscription<string>)subscription.Recreate(recreatedClient);
-
-            Assert.That(recreated, Is.Not.SameAs(subscription));
-            Assert.That(recreated.CreateSubscriptionCount, Is.EqualTo(1));
-            Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(1));
-        }
-
-        [Test]
         public void GraphQlApiSubscriptionRebindUpdatesClientUsedForFutureSubscriptionCreation()
         {
             TestApiConnection apiConnection = new();
@@ -59,8 +45,7 @@ namespace FWO.Test
                 _ => { });
             using GraphQLHttpClient reboundClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
 
-            ((IRebindableApiSubscription)subscription).Rebind(reboundClient);
-            subscription.RestartSubscription();
+            subscription.RebindTo(reboundClient);
 
             Assert.That(subscription.LastGraphQlClient, Is.SameAs(reboundClient));
         }
@@ -191,14 +176,9 @@ namespace FWO.Test
                 : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
             { }
 
-            public void RestartSubscription()
+            public void RebindTo(GraphQLHttpClient graphQlClient)
             {
-                CreateSubscription();
-            }
-
-            protected override void CreateSubscription()
-            {
-                base.CreateSubscription();
+                Rebind(graphQlClient);
             }
 
             protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
@@ -213,15 +193,17 @@ namespace FWO.Test
             public int DisposeCount { get; private set; }
             public bool DisposedState => IsDisposed;
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new TrackingSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class TestGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
@@ -247,9 +229,9 @@ namespace FWO.Test
                 CreateSubscriptionCount++;
             }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new TestGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -257,6 +239,8 @@ namespace FWO.Test
                 DisposeCount++;
                 base.Dispose(disposing);
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class StreamBackedGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
@@ -282,9 +266,9 @@ namespace FWO.Test
                 return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
             }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new StreamBackedGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -292,6 +276,8 @@ namespace FWO.Test
                 base.Dispose(disposing);
                 Streams.Clear();
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class ManualGraphQlObservable : IObservable<GraphQLResponse<object>>

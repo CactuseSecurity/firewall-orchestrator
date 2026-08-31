@@ -54,9 +54,9 @@ namespace FWO.Test
 
             await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
 
-            Assert.That(active.RecreateCount, Is.EqualTo(1));
-            Assert.That(active.DisposeCount, Is.EqualTo(1));
-            Assert.That(disposed.RecreateCount, Is.EqualTo(0));
+            Assert.That(active.RebindCount, Is.EqualTo(1));
+            Assert.That(active.DisposeCount, Is.EqualTo(0));
+            Assert.That(disposed.RebindCount, Is.EqualTo(0));
             Assert.That(disposed.DisposeCount, Is.EqualTo(1));
             Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
         }
@@ -73,7 +73,6 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(active.RebindCount, Is.EqualTo(1));
-                Assert.That(active.RecreateCount, Is.EqualTo(0));
                 Assert.That(active.DisposeCount, Is.EqualTo(0));
                 Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
                 Assert.That(connection.FirstSubscription, Is.SameAs(active));
@@ -102,15 +101,17 @@ namespace FWO.Test
         {
             public int DisposeCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new FirstSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class DerivedFirstSubscription : FirstSubscription
@@ -120,26 +121,27 @@ namespace FWO.Test
         {
             public int DisposeCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new SecondSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class TrackingSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
-            public int RecreateCount { get; private set; }
+            public int RebindCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                RecreateCount++;
-                return new TrackingSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -148,21 +150,14 @@ namespace FWO.Test
             }
         }
 
-        private sealed class RebindableSubscription : ApiSubscription, IRebindableApiSubscription
+        private sealed class RebindableSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
             public int RebindCount { get; private set; }
-            public int RecreateCount { get; private set; }
 
-            void IRebindableApiSubscription.Rebind(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
                 RebindCount++;
-            }
-
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
-            {
-                RecreateCount++;
-                return new RebindableSubscription();
             }
 
             protected override void Dispose(bool disposing)

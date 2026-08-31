@@ -477,28 +477,7 @@ namespace FWO.Api.Client
 
                 foreach (ApiSubscription subscription in activeSubscriptions)
                 {
-                    if (subscription is IRebindableApiSubscription rebindableSubscription)
-                    {
-                        rebindableSubscription.Rebind(newSubscriptionClient);
-                    }
-                }
-
-                List<ApiSubscription> recreatedSubscriptions = [];
-                foreach (ApiSubscription subscription in activeSubscriptions.Where(subscription => subscription is not IRebindableApiSubscription))
-                {
-                    recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
-                }
-
-                if (recreatedSubscriptions.Count > 0)
-                {
-                    subscriptions.Clear();
-                    subscriptions.AddRange(activeSubscriptions.Where(subscription => subscription is IRebindableApiSubscription));
-                    subscriptions.AddRange(recreatedSubscriptions);
-
-                    foreach (ApiSubscription subscription in activeSubscriptions.Where(subscription => subscription is not IRebindableApiSubscription))
-                    {
-                        subscription.Dispose();
-                    }
+                    subscription.Rebind(newSubscriptionClient);
                 }
 
                 oldSubscriptionClient.Dispose();

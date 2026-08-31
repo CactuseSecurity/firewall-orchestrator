@@ -677,6 +677,7 @@ namespace FWO.Test
                     RequestQueries.addStateAction,
                     RequestQueries.addStateAction,
                     RequestQueries.updateStateActionSortOrder,
+                    RequestQueries.updateState,
                     RequestQueries.addStateAction
                 }));
                 Assert.That(apiConn.Variables.Count(v => HasVariableValue(v, "stateId", 3)), Is.EqualTo(4));
@@ -687,6 +688,61 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<List<WfState>>(component, "states").Select(state => state.Id).ToList(), Is.EqualTo(new List<int> { 3, 5 }));
                 Assert.That(addedState.Actions.Select(action => action.Action.Id).ToList(), Is.EqualTo(new List<int> { 10, 20 }));
                 Assert.That(addedState.Actions.Select(action => action.SortOrder).ToList(), Is.EqualTo(new List<int> { 1, 2 }));
+            });
+        }
+
+        [Test]
+        public async Task SaveState_InAddMode_PersistsEditedStateFieldsOnRetryAfterPartialFailure()
+        {
+            SettingsStates component = new();
+            SettingsStatesTestApiConn apiConn = new()
+            {
+                AddStateActionFailOnCallNumber = 2
+            };
+            WfState addedState = new()
+            {
+                Id = 7,
+                Name = "Foo",
+                AutomaticOnly = true,
+                Actions =
+                [
+                    StateAction(20, 1),
+                    StateAction(10, 2)
+                ]
+            };
+            SetInjectedApiConnection(component, apiConn);
+            SetMember(component, "userConfig", new SimulatedUserConfig());
+            SetPrivateField(component, "states", new List<WfState> { new() { Id = 5, Name = "Later" } });
+            SetPrivateField(component, "actState", addedState);
+            SetPrivateField(component, "AddStateMode", true);
+            SetPrivateField(component, "EditStateMode", true);
+
+            Task firstAttempt = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await firstAttempt;
+
+            addedState.Name = "Bar";
+            addedState.AutomaticOnly = false;
+
+            Task secondAttempt = (Task)GetPrivateMethod("SaveState").Invoke(component, null)!;
+            await secondAttempt;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries, Is.EqualTo(new List<string>
+                {
+                    RequestQueries.createState,
+                    RequestQueries.addStateAction,
+                    RequestQueries.addStateAction,
+                    RequestQueries.updateState,
+                    RequestQueries.addStateAction
+                }));
+                int updateStateQueryIndex = apiConn.Queries.IndexOf(RequestQueries.updateState);
+                Assert.That(updateStateQueryIndex, Is.GreaterThanOrEqualTo(0));
+                Assert.That(GetVariable<string>(apiConn.Variables[updateStateQueryIndex], "name"), Is.EqualTo("Bar"));
+                Assert.That(GetVariable<bool>(apiConn.Variables[updateStateQueryIndex], "automaticOnly"), Is.False);
+                Assert.That(GetPrivateField<List<WfState>>(component, "states").Single(state => state.Id == 7).Name, Is.EqualTo("Bar"));
+                Assert.That(GetPrivateField<bool>(component, "AddStateMode"), Is.False);
+                Assert.That(GetPrivateField<bool>(component, "EditStateMode"), Is.False);
             });
         }
 
@@ -986,6 +1042,29 @@ namespace FWO.Test
                 Assert.That(GetVariable<int>(apiConn.Variables[0], "stateId"), Is.EqualTo(4));
                 Assert.That(GetVariable<int>(apiConn.Variables[0], "actionId"), Is.EqualTo(30));
                 Assert.That(GetVariable<int>(apiConn.Variables[0], "sortOrder"), Is.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public void SelectAction_SkipsActionsAlreadyPresentInState()
+        {
+            SettingsStates component = new();
+            SetPrivateField(component, "actions", new List<WfStateAction>
+            {
+                new() { Id = 10, Name = "Approve" },
+                new() { Id = 20, Name = "Notify" }
+            });
+            SetPrivateField(component, "actState", new WfState
+            {
+                Actions = [StateAction(10, 1)]
+            });
+
+            GetPrivateMethod("SelectAction").Invoke(component, null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<WfStateAction?>(component, "selectedAction")?.Id, Is.EqualTo(20));
+                Assert.That(GetPrivateField<bool>(component, "SelectActionMode"), Is.True);
             });
         }
 

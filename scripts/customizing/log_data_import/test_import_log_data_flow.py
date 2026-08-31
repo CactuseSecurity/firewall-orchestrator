@@ -93,6 +93,30 @@ def test_import_data_limits_csv_search_to_the_configured_start_path(
     assert manifest["csv_files"] == ["2026-08-12/fw.csv"]
 
 
+@pytest.mark.parametrize("target_outside_repository", [False, True])
+def test_import_data_rejects_a_csv_symlink_escaping_the_configured_start_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    target_outside_repository: bool,
+) -> None:
+    _config_file, repository_directory, output_file = prepare_repository(tmp_path, monkeypatch)
+    config_file: str = write_config(tmp_path, repository_directory, "2026-08-12")
+    target_directory: Path = tmp_path if target_outside_repository else repository_directory
+    target_file: Path = target_directory / "outside.csv"
+    target_file.write_text(CSV_CONTENT.replace("APP-1", "APP-2"), encoding="utf-8")
+    link_target: Path = Path("../../outside.csv") if target_outside_repository else Path("../outside.csv")
+    (repository_directory / "2026-08-12" / "linked.csv").symlink_to(link_target)
+    monkeypatch.setattr(importer, "update_git_repo", return_true)
+
+    with caplog.at_level(logging.ERROR, logger=LOGGER.name):
+        result: int = importer.import_data(config_file, None, LOGGER)
+
+    assert result == 1
+    assert "linked.csv resolves outside the selected log data search directory" in caplog.text
+    assert not output_file.exists()
+
+
 def test_import_data_finds_csv_files_below_a_symlinked_repository_directory(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

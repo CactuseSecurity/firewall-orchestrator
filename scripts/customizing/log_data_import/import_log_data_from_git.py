@@ -111,6 +111,20 @@ def get_csv_search_directory(config_file: str, repository_directory: Path, logge
     return search_directory
 
 
+def find_csv_files(search_directory: Path, logger: logging.Logger) -> list[Path] | None:
+    """Find CSV files without allowing symbolic links to escape the selected directory."""
+    resolved_search_directory: Path = search_directory.resolve()
+    csv_files: list[Path] = sorted(search_directory.rglob(CSV_PATTERN))
+    for csv_file in csv_files:
+        if not csv_file.resolve().is_relative_to(resolved_search_directory):
+            logger.error(
+                "CSV file %s resolves outside the selected log data search directory",
+                csv_file.relative_to(search_directory),
+            )
+            return None
+    return csv_files
+
+
 def parse_optional_int(value: str) -> int | None:
     stripped_value: str = value.strip()
     return int(stripped_value) if stripped_value else None
@@ -460,7 +474,9 @@ def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> 
     search_directory: Path | None = get_csv_search_directory(config_file, repository_directory, logger)
     if search_directory is None:
         return 1
-    csv_files: list[Path] = sorted(search_directory.rglob(CSV_PATTERN))
+    csv_files: list[Path] | None = find_csv_files(search_directory, logger)
+    if csv_files is None:
+        return 1
     conversion: ConversionResult = convert_repository_files(csv_files, repository_directory, logger)
     write_import_file(conversion.entries, conversion.converted_files, repository_directory)
     report_conversion_summary(conversion, logger)

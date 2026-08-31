@@ -346,9 +346,32 @@ namespace FWO.Test
             {
                 Assert.That(handler.AreaConversionValid, Is.False);
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo("edit_app_role"));
+                Assert.That(messages[0].Title, Is.EqualTo("add_app_role"));
                 Assert.That(messages[0].Message, Is.EqualTo(expectedMessage));
                 Assert.That(messages[0].IsError, Is.True);
+            });
+        }
+
+        /// <summary>
+        /// Verifies that the message title follows the dialog it belongs to instead of always naming the edit dialog.
+        /// </summary>
+        [TestCase(false, false, "edit_app_role")]
+        [TestCase(true, false, "add_app_role")]
+        [TestCase(false, true, "app_role")]
+        public void ApplyNamingConvention_WithInvalidConvention_TitlesMessageByMode(bool addMode, bool readOnly, string expectedTitleKey)
+        {
+            List<(string Title, string Message, bool IsError)> messages = new();
+            SimulatedUserConfig config = InvalidConventionConfig(1, "AR");
+            ModellingAppRole appRole = new() { Id = 1, IdString = "AR1234-001", Name = "AppRole1" };
+            ModellingAppRoleHandler handler = new(apiConnection, config, Application,
+                new List<ModellingAppRole>(), appRole, AvailableAppServers, new List<KeyValuePair<int, long>>(), addMode,
+                (exception, title, message, isError) => messages.Add((title, message, isError)), IsOwner, readOnly);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AreaConversionValid, Is.False);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(config.GetText(expectedTitleKey)));
             });
         }
 

@@ -135,13 +135,16 @@ namespace FWO.Test
         /// </summary>
         [TestCase(true, 1, "NA", "AR", "E5601")]
         [TestCase(true, 0, "NA", "AR", "E5601")]
+        [TestCase(true, 2, "NA", "AR", "E5601")]
+        [TestCase(true, 0, null, null, "E5601")]
         [TestCase(true, 4, "NA", "ARX", "E5602")]
         [TestCase(true, 4, "NA", "AR", null)]
-        [TestCase(true, 2, "NA", "AR", null)]
+        [TestCase(true, 3, "NA", "AR", null)]
+        [TestCase(true, 1, null, null, null)]
         [TestCase(true, 4, "NA", "A", "E5602")]
         [TestCase(true, 5, "NET", "AR", "E5602")]
-        [TestCase(true, 0, null, null, null)]
         [TestCase(false, 1, "NA", "ARX", null)]
+        [TestCase(false, 2, "NA", "AR", null)]
         public void GetNamingConventionError_ChecksPatternLengths(bool networkAreaRequired, int fixedPartLength,
             string? networkAreaPattern, string? appRolePattern, string? expectedKey)
         {
@@ -163,6 +166,7 @@ namespace FWO.Test
         /// Verifies that saving rejects a naming convention that would discard the area-specific identifier.
         /// </summary>
         [TestCase(1, "NA", "AR", "E5601", "Invalid fixed part length")]
+        [TestCase(2, "NA", "AR", "E5601", "Invalid fixed part length")]
         [TestCase(4, "NA", "ARX", "E5602", "Invalid app role pattern")]
         public async Task Save_WithInvalidNamingConvention_ReportsValidationError(int fixedPartLength,
             string networkAreaPattern, string appRolePattern, string expectedKey, string expectedMessage)
@@ -196,10 +200,12 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that a negative fixed part length is repaired before the naming convention is validated.
+        /// Verifies that negative lengths are repaired before the naming convention is validated.
+        /// The repaired values are observable although the validation aborts the save, which is only
+        /// possible if the repair runs ahead of the validation.
         /// </summary>
         [Test]
-        public async Task Save_WithNegativeFixedPartLength_RepairsItBeforeValidating()
+        public async Task Save_WithNegativeLengths_RepairsThemBeforeValidating()
         {
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.LangDict[GlobalConst.kEnglish]["modelling_settings"] = "Modelling Settings";
@@ -225,9 +231,10 @@ namespace FWO.Test
             {
                 Assert.That(namingConvention.FixedPartLength, Is.Zero);
                 Assert.That(namingConvention.FreePartLength, Is.Zero);
-                // the validation passed, the remaining message only reports the config data missing in this isolated test
                 Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Exception, Is.Not.Null);
+                Assert.That(messages[0].Exception, Is.Null);
+                Assert.That(messages[0].Message, Is.EqualTo("Invalid fixed part length"));
+                Assert.That(messages[0].IsError, Is.True);
             });
         }
 

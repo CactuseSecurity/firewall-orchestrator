@@ -453,6 +453,7 @@ namespace FWO.Test
         /// Verifies that an existing app role cannot open without a recoverable network area.
         /// </summary>
         [TestCase(1, false)]
+        [TestCase(2, false)]
         [TestCase(4, true)]
         public void EditAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
         {
@@ -486,6 +487,28 @@ namespace FWO.Test
             {
                 Assert.That(handler.DisplayAppRoleMode, Is.EqualTo(expectedDialogState));
                 Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a new app role cannot be created without a usable naming convention, as neither the
+        /// area specific identifier could be proposed nor could the created app role be opened again afterwards.
+        /// </summary>
+        [TestCase(2, false)]
+        [TestCase(4, true)]
+        public void CreateAppRole_OnlyOpensWhenAreaCanBeConverted(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AddAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.DisplayAppRoleMode, Is.False);
                 Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
             });
         }

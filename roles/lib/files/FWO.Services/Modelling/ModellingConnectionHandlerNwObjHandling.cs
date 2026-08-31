@@ -539,10 +539,11 @@ namespace FWO.Services.Modelling
                 EditAppRoleMode = false;
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
                     appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
-                if (!AddAppRoleMode && !AppRoleHandler.AreaConversionValid)
+                if (!AppRoleHandler.AreaConversionValid)
                 {
-                    // the area of an existing app role cannot be derived, so neither the edit nor the display dialog would be usable
+                    // no dialog is usable: an existing area cannot be derived and a new identifier cannot be proposed
                     DisplayAppRoleMode = false;
+                    AddAppRoleMode = false;
                     return;
                 }
                 EditAppRoleMode = true;

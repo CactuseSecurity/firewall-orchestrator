@@ -105,12 +105,15 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that a fixed part shorter than the network area pattern is detected.
+        /// Verifies that a fixed part which does not exceed the network area pattern is detected.
+        /// At equal length no area specific position is left over.
         /// </summary>
-        [TestCase(0, "", true)]
+        [TestCase(0, "", false)]
+        [TestCase(1, "", true)]
         [TestCase(0, "NA", false)]
         [TestCase(1, "NA", false)]
-        [TestCase(2, "NA", true)]
+        [TestCase(2, "NA", false)]
+        [TestCase(3, "NA", true)]
         [TestCase(4, "NA", true)]
         public void IsFixedPartLengthValid_ChecksNetworkAreaPattern(int fixedPartLength, string networkAreaPattern, bool expectedResult)
         {
@@ -153,10 +156,12 @@ namespace FWO.Test
         /// </summary>
         [TestCase(true, 4, "NA", "AR", true)]
         [TestCase(true, 1, "NA", "AR", false)]
+        [TestCase(true, 2, "NA", "AR", false)]
         [TestCase(true, 4, "NA", "ARX", false)]
         [TestCase(true, 5, "NET", "AR", false)]
         [TestCase(false, 1, "NA", "ARX", true)]
         [TestCase(false, 0, "NA", "AR", true)]
+        [TestCase(false, 2, "NA", "AR", true)]
         public void IsAreaConversionValid_CombinesRules(bool networkAreaRequired, int fixedPartLength,
             string networkAreaPattern, string appRolePattern, bool expectedResult)
         {
@@ -189,18 +194,20 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Verifies that a null network area pattern does not break the validity check.
+        /// Verifies that a null network area pattern does not break the validity check,
+        /// while a fixed part of length zero still leaves no position for the area.
         /// </summary>
-        [Test]
-        public void IsFixedPartLengthValid_WithNullPattern_ReturnsTrue()
+        [TestCase(0, false)]
+        [TestCase(1, true)]
+        public void IsFixedPartLengthValid_WithNullPattern_ChecksRemainingPositions(int fixedPartLength, bool expectedResult)
         {
             ModellingNamingConvention namingConvention = new()
             {
-                FixedPartLength = 0,
+                FixedPartLength = fixedPartLength,
                 NetworkAreaPattern = null!
             };
 
-            ClassicAssert.IsTrue(namingConvention.IsFixedPartLengthValid());
+            ClassicAssert.AreEqual(expectedResult, namingConvention.IsFixedPartLengthValid());
         }
     }
 }

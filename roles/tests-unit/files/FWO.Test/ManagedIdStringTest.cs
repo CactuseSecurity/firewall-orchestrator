@@ -229,7 +229,7 @@ namespace FWO.Test
         /// </summary>
         [TestCase(4, "NA", "AR", "NA12")]
         [TestCase(5, "NET", "ARO", "NET12")]
-        [TestCase(2, "NA", "AR", "NA")]
+        [TestCase(3, "NA", "AR", "NA1")]
         public void TestAreaToAppRoleRoundTrip(int fixedPartLength, string networkAreaPattern, string appRolePattern, string areaIdString)
         {
             ModellingNamingConvention namingConvention = new()
@@ -249,6 +249,36 @@ namespace FWO.Test
                 Assert.That(managedIdString.Whole, Does.Not.Contain("?"));
                 Assert.That(ModellingManagedIdString.ConvertAppRoleToArea(managedIdString.Whole + "-00001", namingConvention),
                     Is.EqualTo(areaIdString));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a fixed part consisting of the network area pattern alone is rejected, as it converts
+        /// every area into the same app role fixed part and cannot be mapped back to the area it came from.
+        /// </summary>
+        [Test]
+        public void TestFixedPartWithoutAreaContentIsRejected()
+        {
+            ModellingNamingConvention namingConvention = new()
+            {
+                NetworkAreaRequired = true,
+                FixedPartLength = 2,
+                NetworkAreaPattern = "NA",
+                AppRolePattern = "AR"
+            };
+            ModellingManagedIdString firstArea = new() { NamingConvention = namingConvention };
+            ModellingManagedIdString secondArea = new() { NamingConvention = namingConvention };
+
+            firstArea.ConvertAreaToAppRoleFixedPart("NA1234");
+            secondArea.ConvertAreaToAppRoleFixedPart("NA5678");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(namingConvention.IsAreaConversionValid(), Is.False);
+                Assert.That(firstArea.Whole, Is.EqualTo("AR"));
+                Assert.That(secondArea.Whole, Is.EqualTo(firstArea.Whole));
+                Assert.That(ModellingManagedIdString.ConvertAppRoleToArea(firstArea.Whole + "-00001", namingConvention),
+                    Is.EqualTo("NA"));
             });
         }
 

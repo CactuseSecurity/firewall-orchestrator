@@ -65,13 +65,14 @@ namespace FWO.Data.Modelling
         }
 
         /// <summary>
-        /// Checks that the fixed part is long enough to hold the network area pattern.
-        /// Otherwise the fixed part of an area identifier does not even contain the full pattern.
+        /// Checks that the fixed part is longer than the network area pattern.
+        /// At equal length the fixed part consists of the pattern alone, so that every area is
+        /// converted into the same app role fixed part and its area specific end is lost.
         /// </summary>
-        /// <returns>true if the fixed part can hold the network area pattern</returns>
+        /// <returns>true if the fixed part keeps at least one area specific position</returns>
         public bool IsFixedPartLengthValid()
         {
-            return FixedPartLength >= (NetworkAreaPattern?.Length ?? 0);
+            return FixedPartLength > (NetworkAreaPattern?.Length ?? 0);
         }
 
         /// <summary>

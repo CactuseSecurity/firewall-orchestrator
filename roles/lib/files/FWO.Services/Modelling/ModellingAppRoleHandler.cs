@@ -60,7 +60,7 @@ namespace FWO.Services.Modelling
                 // reporting once per dialog: neither the proposed id nor the derived area would be usable
                 Log.WriteWarning("Apply Naming Convention", $"Area conversion is not possible: fixed part length {NamingConvention.FixedPartLength}, " +
                     $"network area pattern '{NamingConvention.NetworkAreaPattern}', app role pattern '{NamingConvention.AppRolePattern}'.");
-                DisplayMessageInUi(null, userConfig.GetText("edit_app_role"), userConfig.GetText(NamingConventionErrorKey()), true);
+                DisplayMessageInUi(null, userConfig.GetText(DialogTitleKey()), userConfig.GetText(NamingConventionErrorKey()), true);
             }
         }
 
@@ -71,6 +71,19 @@ namespace FWO.Services.Modelling
         private string NamingConventionErrorKey()
         {
             return NamingConvention.IsFixedPartLengthValid() ? "E5602" : "E5601";
+        }
+
+        /// <summary>
+        /// Determines the title of the dialog the message belongs to, so that both carry the same wording.
+        /// </summary>
+        /// <returns>the key of the title to display</returns>
+        private string DialogTitleKey()
+        {
+            if (ReadOnly)
+            {
+                return "app_role";
+            }
+            return AddMode ? "add_app_role" : "edit_app_role";
         }
 
         /// <summary>

@@ -653,3 +653,7 @@ Not supported any longer are:
 - the middleware no longer waits for an unreachable API forever before starting its web server;
   it now names the endpoint and what to check in the log and exits, instead of reporting itself
   as running while its reverse proxy answers 503
+- installer: an internal CA certificate is now reissued as soon as it stops covering a name
+  the installation addresses its endpoint under, not only when it approaches expiry, so
+  renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
+  leaves every FWO client failing on a TLS host name mismatch

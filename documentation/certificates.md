@@ -249,8 +249,20 @@ On upgrade, the role reuses the existing CA and issued identities. Issued
 certificates are valid for `internalca_certificate_validity_days` (825) and are
 re-signed automatically by any installer run that happens within
 `internalca_renewal_threshold_days` (30) of expiry, so a host that is upgraded
-at least once a year never expires. To rotate a certificate ahead of that
-schedule, remove the affected certificate from
+at least once a year never expires.
+
+An identity is also re-signed, whatever its remaining validity, as soon as it
+stops covering a name the installation asks it for - an endpoint renamed in
+`inventory/hosts.yml`, an `fwo_endpoint_hostname` set or changed, or an upgrade
+to a release that derives an endpoint name differently. Expiry alone would not
+notice any of these: the certificate is still valid, only for the wrong name, and
+every FWO client verifying that endpoint would fail on a host name mismatch until
+the certificate was removed by hand. The integration tests assert the same
+property from the other side, checking the served certificate against the
+endpoints `fworch.json` and the inventory actually address.
+
+To rotate a certificate ahead of the renewal schedule without renaming anything,
+remove the affected certificate from
 `/usr/local/fworch/etc/secrets/ca/issued/<host>/` and rerun the installer.
 Rotating the CA is a deliberate manual operation: replace the CA on every FWO
 host before issuing replacement leaves, otherwise existing internal connections

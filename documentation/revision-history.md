@@ -634,3 +634,7 @@ Not supported any longer are:
 - Rule and connection reports filtered by destination port or protocol now also match the canonical ANY service, so these filters can return more rows than before the upgrade.
 - Cisco ASA: keep the legacy `ANY` UID for the imported "any ip protocol" service object while showing it as `any-ip` in reports; existing compliance criteria or queries pinned to the old `any-ip` UID need to be updated to use `ANY` instead.
 - OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
+
+## 9.4.5 - 01.09.2026
+- Insert missing src/dst/svc references to flow.access entries created by workflow module
+- Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written.

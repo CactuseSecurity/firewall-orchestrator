@@ -143,7 +143,6 @@ def parse_standard_protocols_with_ports(
         added_svc_obj += 1
     if added_svc_obj == 0:  # assuming RPC service which here has no properties at all
         add_object(svc_objects, "rpc", name, color, None, None, None, None)
-        added_svc_obj += 1
 
 
 def check_split(obj_orig: dict[str, Any]) -> bool:

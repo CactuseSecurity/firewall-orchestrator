@@ -19,7 +19,8 @@ namespace FWO.Data.Flow
         /// <summary>All stored hashes already match the current hash logic, nothing was written.</summary>
         NoChanges,
 
-        /// <summary>The changed hashes were written to the flow database.</summary>
+        /// <summary>The changed hashes were sent to the flow database, which is not the same as confirming
+        /// that they were applied: the mutation result is not evaluated.</summary>
         Updated,
 
         /// <summary>The recalculated hashes would not be unique, nothing was written.</summary>

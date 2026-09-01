@@ -27,10 +27,11 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Recalculates all flow hashes and writes back the ones that changed.
+        /// Recalculates all flow hashes and sends the ones that changed to the flow database. The mutation result
+        /// is not evaluated, so a returned outcome states what was sent, not what the database applied.
         /// </summary>
         /// <param name="flowData">Flow data holding all flow entries with their stored hashes.</param>
-        /// <returns>Whether hashes were written, were already up to date, or could not be made unique.</returns>
+        /// <returns>Whether changed hashes were sent, were already up to date, or could not be made unique.</returns>
         public async Task<FlowHashRecalculationOutcome> RecalculateFlowHashesAsync(FlowSyncFlowData flowData)
         {
             FlowHashRecalculationResult recalculation = FlowHashRecalculation.Calculate(flowData);
@@ -47,12 +48,16 @@ namespace FWO.Services
                 return FlowHashRecalculationOutcome.NoChanges;
             }
 
+            // the mutation writes all entry types in one transaction, of which only the first result is returned,
+            // so the number of rows the database actually changed is not available here
             await apiConnection.SendQueryAsync<List<MutationResult>>(FlowQueries.updateFlowHashes, BuildUpdateVariables(recalculation));
 
-            Log.WriteInfo(LogMessageTitle, $"Updated {recalculation.ChangeCount} flow hashes " +
+            Log.WriteInfo(LogMessageTitle, $"Sent {recalculation.ChangeCount} intended flow hash changes " +
                 $"({recalculation.NwObjects.Count} network objects, {recalculation.NwGroups.Count} network groups, " +
                 $"{recalculation.SvcObjects.Count} service objects, {recalculation.SvcGroups.Count} service groups, " +
-                $"{recalculation.TimeObjects.Count} time objects, {recalculation.Accesses.Count} accesses).");
+                $"{recalculation.TimeObjects.Count} time objects, {recalculation.Accesses.Count} accesses). " +
+                "These are the changes the recalculation asked for, not confirmed row counts: whether they were " +
+                "applied is reported by the next hash consistency check.");
             return FlowHashRecalculationOutcome.Updated;
         }
 

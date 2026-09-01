@@ -206,16 +206,18 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
+            List<long> memberObjectIds = [];
             List<string> memberHashes = [];
             foreach (FlowNwGroupMember member in group.NwGroupMembers)
             {
                 if (context.NwObjectsById.TryGetValue(member.NwObjectId, out FlowNwObject? memberObject))
                 {
+                    memberObjectIds.Add(member.NwObjectId);
                     memberHashes.Add(memberObject!.Hash);
                 }
             }
 
-            return memberHashes.Count == 0 ? null : FlowNetworkReference.FromGroup(group!, memberHashes);
+            return memberHashes.Count == 0 ? null : FlowNetworkReference.FromGroup(group!, memberObjectIds, memberHashes);
         }
 
         private async Task<List<FlowServiceReference>> ResolveServiceReferences(IEnumerable<FlowServiceSnapshot> snapshots, FlowSyncFlowData context,
@@ -415,16 +417,18 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
+            List<long> memberObjectIds = [];
             List<string> memberHashes = [];
             foreach (FlowSvcGroupMember member in group.SvcGroupMembers)
             {
                 if (context.SvcObjectsById.TryGetValue(member.SvcObjectId, out FlowSvcObject? memberObject))
                 {
+                    memberObjectIds.Add(member.SvcObjectId);
                     memberHashes.Add(memberObject!.Hash);
                 }
             }
 
-            return memberHashes.Count == 0 ? null : FlowServiceReference.FromGroup(group!, memberHashes);
+            return memberHashes.Count == 0 ? null : FlowServiceReference.FromGroup(group!, memberObjectIds, memberHashes);
         }
     }
 }

@@ -81,7 +81,7 @@ The installed mode is intended to run on the target host after installation or u
     dotnet tool install --global CycloneDX
     cd fwo-cactus
     git pull
-    dotnet-CycloneDX -j roles/FWO.sln 
+    dotnet-CycloneDX roles/FWO.sln 
 
 ## list of python packages with venv (importer module)
 ### Core runtime

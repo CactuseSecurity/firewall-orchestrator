@@ -20,5 +20,6 @@ query getHistory (
     workflow_phase
     old_data
     new_data
+    audit_prove_critical
   }
 }

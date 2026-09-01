@@ -9,12 +9,12 @@ namespace FWO.Services.Workflow
     public partial class WfDbAccess
     {
         /// <summary>
-        /// Stores a structured workflow change made after the request phase by someone other than the requester.
+        /// Stores a structured workflow change and classifies selected UI content edits as audit-prove critical.
         /// </summary>
-        private async Task LogWorkflowChange(long ticketId, ChangeHistoryObjectType objectType, long objectId,
-            string changeText, object oldValue, object newValue, UiUser? requester)
+        private async Task LogWorkflowChange(long ticketId, ModellingTypes.ChangeType changeType, ChangeHistoryObjectType objectType,
+            long objectId, string changeText, object? oldValue, object? newValue, UiUser? requester, bool contentChange)
         {
-            if (WorkflowPhase is null || WorkflowPhase == WorkflowPhases.request || requester?.DbId == UserConfig.UserId)
+            if (WorkflowPhase is null)
             {
                 return;
             }
@@ -30,7 +30,7 @@ namespace FWO.Services.Workflow
             {
                 appId = (int?)null,
                 ticketId,
-                changeType = (int)ModellingTypes.ChangeType.Update,
+                changeType = (int)changeType,
                 objectType = (int)objectType,
                 objectId,
                 changeText,
@@ -38,7 +38,8 @@ namespace FWO.Services.Workflow
                 changeSource = "workflow",
                 workflowPhase = (int)WorkflowPhase,
                 oldData,
-                newData
+                newData,
+                auditProveCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId
             };
             await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, variables);
         }
@@ -51,7 +52,6 @@ namespace FWO.Services.Workflow
             return new
             {
                 ticket.Title,
-                ticket.StateId,
                 ticket.Reason,
                 ticket.Deadline,
                 ticket.Priority
@@ -66,7 +66,6 @@ namespace FWO.Services.Workflow
             return new
             {
                 task.Title,
-                task.StateId,
                 task.TaskType,
                 task.RequestAction,
                 task.RuleAction,
@@ -74,7 +73,11 @@ namespace FWO.Services.Workflow
                 task.Start,
                 task.Stop,
                 task.FreeText,
+                task.Reason,
+                task.AdditionalInfo,
+                task.ManagementId,
                 task.SelectedDevices,
+                Owners = task.Owners.Select(owner => owner.Owner.Id),
                 Elements = task.Elements.Select(element => new
                 {
                     element.Id,
@@ -101,7 +104,6 @@ namespace FWO.Services.Workflow
             return new
             {
                 task.Title,
-                task.StateId,
                 task.TaskType,
                 task.ImplAction,
                 task.RuleAction,
@@ -125,6 +127,37 @@ namespace FWO.Services.Workflow
                     element.Name,
                     element.GroupName
                 })
+            };
+        }
+
+        /// <summary>
+        /// Selects standard workflow state and assignment fields for history entries.
+        /// </summary>
+        private static object WorkflowStateSnapshot(WfStatefulObject item)
+        {
+            return new
+            {
+                item.StateId,
+                CurrentHandler = item.CurrentHandler?.DbId,
+                RecentHandler = item.RecentHandler?.DbId,
+                item.AssignedGroup
+            };
+        }
+
+        /// <summary>
+        /// Selects persisted approval fields for history entries.
+        /// </summary>
+        private static object ApprovalHistorySnapshot(WfApproval approval)
+        {
+            return new
+            {
+                approval.StateId,
+                approval.ApprovalDate,
+                approval.ApproverDn,
+                approval.ApproverGroup,
+                approval.AssignedGroup,
+                approval.Deadline,
+                approval.InitialApproval
             };
         }
     }

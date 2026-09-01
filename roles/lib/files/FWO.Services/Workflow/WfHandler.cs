@@ -162,7 +162,7 @@ namespace FWO.Services.Workflow
                             List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
                             ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
                             await ActionHandler.Init(states);
-                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true, Phase) { };
+                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true, Phase, false) { };
                             await stateMatrixDict.Init(Phase, apiConnection, states);
                             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
                         });

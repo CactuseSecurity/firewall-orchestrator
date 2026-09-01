@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 
 namespace FWO.Services.Workflow
 {
@@ -15,6 +16,7 @@ namespace FWO.Services.Workflow
         public async Task<long> AddReqTaskToDb(WfReqTask reqtask)
         {
             long returnId = 0;
+            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
             try
             {
                 var variables = BuildReqTaskInsertVariables(reqtask);
@@ -37,12 +39,14 @@ namespace FWO.Services.Workflow
                     foreach (var approval in reqtask.Approvals)
                     {
                         approval.TaskId = returnId;
-                        await AddApprovalToDb(approval);
+                        await AddApprovalToDb(approval, reqtask.TicketId, previousTicket.Requester);
                     }
                     foreach (var owner in reqtask.Owners)
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
+                    await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                        "Added workflow request task", null, RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
                     reqtask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
@@ -82,8 +86,8 @@ namespace FWO.Services.Workflow
                     await UpdateOwnersInDb(reqtask);
                     if (previousTask != null)
                     {
-                        await LogWorkflowChange(reqtask.TicketId, ChangeHistoryObjectType.RequestTask, reqtask.Id,
-                            "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester);
+                        await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                            "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
                     }
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
@@ -99,6 +103,8 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task UpdateReqTaskAdditionalInfo(WfReqTask reqtask)
         {
+            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
+            WfReqTask? previousTask = previousTicket.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var variables = new
@@ -110,6 +116,11 @@ namespace FWO.Services.Workflow
                 if (udId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
+                }
+                else if (previousTask != null)
+                {
+                    await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                        "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
                 }
             }
             catch (Exception exception)
@@ -123,12 +134,18 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task DeleteReqTaskFromDb(WfReqTask reqtask)
         {
+            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
             try
             {
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedIdLong;
                 if (delId != reqtask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
+                }
+                else
+                {
+                    await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                        "Deleted workflow request task", RequestTaskHistorySnapshot(reqtask), null, previousTicket.Requester, true);
                 }
             }
             catch (Exception exception)

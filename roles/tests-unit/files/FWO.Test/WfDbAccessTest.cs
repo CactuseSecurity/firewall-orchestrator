@@ -23,6 +23,7 @@ namespace FWO.Test
             public bool FindRuleUidHasMatch { get; set; }
             public long NewTicketId { get; set; } = 101;
             public long UpdatedTicketId { get; set; } = 101;
+            public long UpdatedApprovalId { get; set; } = 301;
             public bool ThrowOnNewTicket { get; set; }
             public bool ReturnNullNewTicketIds { get; set; }
             public long NewCommentId { get; set; } = 601;
@@ -103,6 +104,10 @@ namespace FWO.Test
                 if (query == RequestQueries.updateTicket)
                 {
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedTicketId });
+                }
+                if (query == RequestQueries.updateApproval)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedApprovalId });
                 }
                 if (query == RequestQueries.updateTicketState)
                 {
@@ -627,10 +632,11 @@ namespace FWO.Test
 
             Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
             Assert.That(apiConn.LastHistoryVariables, Is.Not.Null);
+            Assert.That(HistoryCriticalFlag(apiConn), Is.True);
         }
 
         [Test]
-        public async Task UpdateTicketInDb_DoesNotLogRequesterChange()
+        public async Task UpdateTicketInDb_LogsRequesterChangeAsNonCritical()
         {
             WfDbAccessTestApiConn apiConn = new()
             {
@@ -658,7 +664,204 @@ namespace FWO.Test
 
             await dbAccess.UpdateTicketInDb(ticket);
 
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryCriticalFlag(apiConn), Is.False);
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_LogsOtherUserChangeDuringRequestPhase()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Title = "Original title",
+                    Requester = new UiUser { DbId = 7 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_DoesNotLogStateOnlyChange()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Title = "Same title",
+                    StateId = 1,
+                    Requester = new UiUser { DbId = 7 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Same title", StateId = 2 });
+
             Assert.That(apiConn.AddHistoryEntryCallCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_LogsMiddlewareChangeAsNonCritical()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Title = "Original title",
+                    Requester = new UiUser { DbId = 7 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval, false);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryCriticalFlag(apiConn), Is.False);
+        }
+
+        [Test]
+        public async Task UpdateReqTaskInDb_LogsContentChangeByOtherUser()
+        {
+            WfReqTask previousTask = new() { Id = 100, TicketId = 101, Title = "Original task" };
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = new List<WfReqTask> { previousTask }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            WfReqTask changedTask = new() { Id = 100, TicketId = 101, Title = "Corrected task" };
+
+            await dbAccess.UpdateReqTaskInDb(changedTask);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UpdateTicketStateInDb_LogsStandardChangeAsNonCritical()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    StateId = 1,
+                    Requester = new UiUser { DbId = 7 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval);
+            WfTicket changedTicket = new() { Id = 101, StateId = 2 };
+
+            await dbAccess.UpdateTicketStateInDb(changedTicket, false);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryCriticalFlag(apiConn), Is.False);
+        }
+
+        [Test]
+        public async Task UpdateApprovalInDb_LogsStandardChangeAsNonCritical()
+        {
+            WfApproval previousApproval = new() { Id = 301, TaskId = 100, StateId = 1 };
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedApprovalId = 301,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = new List<WfReqTask>
+                    {
+                        new() { Id = 100, Approvals = new List<WfApproval> { previousApproval } }
+                    }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval);
+            WfApproval changedApproval = new() { Id = 301, TaskId = 100, StateId = 2 };
+
+            await dbAccess.UpdateApprovalInDb(changedApproval, 101, apiConn.Ticket.Requester, false);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryCriticalFlag(apiConn), Is.False);
+        }
+
+        [Test]
+        public async Task UpdateImplTaskInDb_LogsContentChangeByOtherUser()
+        {
+            WfImplTask previousImplTask = new() { Id = 200, TicketId = 101, Title = "Original implementation" };
+            WfReqTask previousReqTask = new()
+            {
+                Id = 100,
+                TicketId = 101,
+                ImplementationTasks = new List<WfImplTask> { previousImplTask }
+            };
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedImplTaskId = 200,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = new List<WfReqTask> { previousReqTask }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.implementation);
+            WfImplTask changedTask = new() { Id = 200, TicketId = 101, Title = "Corrected implementation" };
+            WfReqTask reqTask = new() { Id = 100, TicketId = 101 };
+
+            await dbAccess.UpdateImplTaskInDb(changedTask, reqTask);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
         }
 
         [Test]
@@ -1730,6 +1933,13 @@ namespace FWO.Test
                 LowestStartedState = lowestStartedState,
                 LowestEndState = lowestEndState
             };
+        }
+
+        private static bool HistoryCriticalFlag(WfDbAccessTestApiConn apiConnection)
+        {
+            PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty("auditProveCritical");
+            Assert.That(property, Is.Not.Null);
+            return (bool)property!.GetValue(apiConnection.LastHistoryVariables)!;
         }
 
         private static void SetRequestTaskStateMatrix(WfHandler wfHandler, StateMatrix requestTaskMatrix)

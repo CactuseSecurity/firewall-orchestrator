@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using System.Linq;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Logging;
 
 namespace FWO.Services.Workflow
@@ -104,8 +105,8 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(ticket.Id, ChangeHistoryObjectType.Ticket, ticket.Id,
-                        "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester);
+                    await LogWorkflowChange(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id,
+                        "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester, true);
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }

@@ -10,6 +10,7 @@ mutation addHistoryEntry(
   $workflowPhase: Int
   $oldData: jsonb
   $newData: jsonb
+  $auditProveCritical: Boolean! = false
 ) {
   insert_change_history(
     objects: {
@@ -24,6 +25,7 @@ mutation addHistoryEntry(
       workflow_phase: $workflowPhase
       old_data: $oldData
       new_data: $newData
+      audit_prove_critical: $auditProveCritical
     }
   ) {
     returning {

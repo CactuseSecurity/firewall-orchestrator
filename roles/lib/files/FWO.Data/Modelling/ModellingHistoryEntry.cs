@@ -44,5 +44,8 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("new_data"), JsonPropertyName("new_data")]
         public object? NewData { get; set; }
+
+        [JsonProperty("audit_prove_critical"), JsonPropertyName("audit_prove_critical")]
+        public bool AuditProveCritical { get; set; }
     }
 }

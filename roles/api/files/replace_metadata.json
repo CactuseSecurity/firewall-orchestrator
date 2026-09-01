@@ -2639,7 +2639,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ]
                   },
                   "comment": ""
@@ -2648,7 +2649,7 @@
                   "role": "approver",
                   "permission": {
                     "check": {},
-                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data", "audit_prove_critical"]
                   },
                   "comment": ""
                 },
@@ -2656,7 +2657,7 @@
                   "role": "planner",
                   "permission": {
                     "check": {},
-                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data", "audit_prove_critical"]
                   },
                   "comment": ""
                 },
@@ -2664,7 +2665,7 @@
                   "role": "implementer",
                   "permission": {
                     "check": {},
-                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data", "audit_prove_critical"]
                   },
                   "comment": ""
                 },
@@ -2672,7 +2673,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
-                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data", "audit_prove_critical"]
                   },
                   "comment": ""
                 },
@@ -2693,7 +2694,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ]
                   },
                   "comment": ""
@@ -2715,7 +2717,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ]
                   },
                   "comment": ""
@@ -2738,7 +2741,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ],
                     "filter": {}
                   },
@@ -2802,7 +2806,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ],
                     "filter": {}
                   },
@@ -2824,7 +2829,8 @@
                       "ticket_id",
                       "workflow_phase",
                       "old_data",
-                      "new_data"
+                      "new_data",
+                      "audit_prove_critical"
                     ],
                     "filter": {}
                   },

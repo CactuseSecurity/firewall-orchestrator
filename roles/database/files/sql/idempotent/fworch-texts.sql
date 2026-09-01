@@ -540,7 +540,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
-    <li>&Auml;nderungen an Workflow-Tickets nach der Antragsphase werden mit Benutzer, Phase und vorherigen sowie neuen Werten dokumentiert.</li>
+    <li>Alle &Auml;nderungen an erstellten Workflow-Tickets werden dokumentiert; auditkritische Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden gesondert markiert.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -555,7 +555,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Rule reports can be filtered by source and destination object types.</li>
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
-    <li>Changes to workflow tickets after the request phase are documented with the user, phase, and previous and new values.</li>
+    <li>All changes to created workflow tickets are documented; audit-critical content changes by users other than the requester are marked separately.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -7999,8 +7999,8 @@ INSERT INTO txt VALUES ('H8014', 'German',  '<a href="/help/workflow/actions">Ak
 INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Actions</a>: To support processing of the requests, different kinds of actions can be defined.
     This includes automatic state forwarding or the request of further approvals. Also configuration of calls to external components is in preparation.
 ');
-INSERT INTO txt VALUES ('H8015', 'German',  'Nach der Antragsphase werden &Auml;nderungen durch Bearbeiter, die nicht der urspr&uuml;ngliche Antragsteller sind, zentral mit Workflow-Phase und vorherigen sowie neuen Werten dokumentiert.');
-INSERT INTO txt VALUES ('H8015', 'English', 'After the request phase, changes made by handlers other than the original requester are recorded centrally with the workflow phase and the previous and new values.');
+INSERT INTO txt VALUES ('H8015', 'German',  'Nach Erstellung eines Tickets werden alle Inhalts- und Standard-Workflow-&Auml;nderungen wie Statuswechsel und Genehmigungen zentral mit Workflow-Phase und vorherigen sowie neuen Werten dokumentiert. In der Benutzeroberfl&auml;che vorgenommene Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden als auditkritisch markiert.');
+INSERT INTO txt VALUES ('H8015', 'English', 'After a ticket has been created, all content and standard workflow changes, including state transitions and approvals, are recorded centrally with the workflow phase and previous and new values. Content changes made in the user interface by users other than the requester are marked as audit-critical.');
 INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
     Entsprechend der Objekthierarchie sind die Status voneinander abh&auml;ngig.
 ');

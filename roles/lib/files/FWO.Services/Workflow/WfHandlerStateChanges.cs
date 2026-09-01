@@ -400,7 +400,7 @@ namespace FWO.Services.Workflow
                 foreach (WfApproval approval in approvalsToUpdate)
                 {
                     AuditUnexpectedStateTransition(approval, WfObjectScopes.Approval, reqTaskMatrix);
-                    await dbAcc.UpdateApprovalInDb(approval, triggerActions);
+                    await dbAcc.UpdateApprovalInDb(approval, ActTicket.Id, ActTicket.Requester, triggerActions);
                 }
             }
         }

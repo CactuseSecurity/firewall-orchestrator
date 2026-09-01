@@ -397,5 +397,6 @@ CREATE TABLE change_history
     change_source VARCHAR DEFAULT 'manual',
     workflow_phase INTEGER,
     old_data JSONB,
-    new_data JSONB
+    new_data JSONB,
+    audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE
 );

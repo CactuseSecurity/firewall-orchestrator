@@ -22,13 +22,15 @@ CREATE TABLE IF NOT EXISTS public.change_history
     change_source VARCHAR DEFAULT 'manual',
     workflow_phase INTEGER,
     old_data JSONB,
-    new_data JSONB
+    new_data JSONB,
+    audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS ticket_id BIGINT;
 ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS workflow_phase INTEGER;
 ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS old_data JSONB;
 ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS new_data JSONB;
+ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE;
 
 ALTER TABLE public.change_history
     DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;

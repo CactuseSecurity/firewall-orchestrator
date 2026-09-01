@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 
 namespace FWO.Services.Workflow
 {
@@ -14,6 +15,7 @@ namespace FWO.Services.Workflow
         public async Task<long> AddImplTaskToDb(WfImplTask impltask)
         {
             long returnId = 0;
+            WfTicket previousTicket = await GetTicket(impltask.TicketId);
             try
             {
                 var variables = BuildImplTaskInsertVariables(impltask);
@@ -40,6 +42,8 @@ namespace FWO.Services.Workflow
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
+                    await LogWorkflowChange(impltask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                        "Added workflow implementation task", null, ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
                     impltask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
@@ -75,8 +79,8 @@ namespace FWO.Services.Workflow
                     await UpdateOwnersInDb(reqtask);
                     if (previousTask != null)
                     {
-                        await LogWorkflowChange(reqtask.TicketId, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
-                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester);
+                        await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
                     }
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
@@ -92,12 +96,18 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task DeleteImplTaskFromDb(WfImplTask impltask)
         {
+            WfTicket previousTicket = await GetTicket(impltask.TicketId);
             try
             {
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteImplementationTask, new { id = impltask.Id })).DeletedIdLong;
                 if (delId != impltask.Id)
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("delete_task"), UserConfig.GetText("E8005"), true);
+                }
+                else
+                {
+                    await LogWorkflowChange(impltask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                        "Deleted workflow implementation task", ImplementationTaskHistorySnapshot(impltask), null, previousTicket.Requester, true);
                 }
             }
             catch (Exception exception)

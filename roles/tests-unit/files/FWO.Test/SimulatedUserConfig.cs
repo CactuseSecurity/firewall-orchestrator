@@ -113,6 +113,8 @@ namespace FWO.Test
             {"H5839","Matrix violation"},
             {"H5840","Restricted Service"},
             {"H5841","Not assessable"},
+            {"edit_state","Edit state"},
+            {"duplicate_state_id","A workflow state with this id already exists."},
             {"save_connection","Save Connection"},
             {"by","by"},
             {"recertification","Recertification"},

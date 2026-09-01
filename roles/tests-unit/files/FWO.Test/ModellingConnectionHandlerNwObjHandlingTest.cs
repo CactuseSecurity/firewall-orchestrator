@@ -630,6 +630,11 @@ namespace FWO.Test
             {
                 ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
             };
+            // Changing an application role requires an owning modeller (CanModifyAppRoles).
+            // These cases cover whether the area can be converted, not who may convert it, so
+            // the user is given that role - without it the dialogs never open and every case
+            // would pass or fail for the wrong reason.
+            config.User.Roles = new List<string> { Roles.Modeller };
             ModellingConnection connection = new() { Id = 21 };
             List<ModellingConnection> connections = new() { connection };
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,

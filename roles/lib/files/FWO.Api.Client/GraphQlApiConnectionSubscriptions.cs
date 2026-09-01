@@ -31,11 +31,19 @@ namespace FWO.Api.Client
         {
             try
             {
-                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+                GraphQlApiSubscription<SubscriptionResponseType> newSubscription;
 
-                GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
-                GraphQlApiSubscription<SubscriptionResponseType> newSubscription = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
-                subscriptions.Add(newSubscription);
+                // The client is read and the subscription registered in one atomic step, so a
+                // concurrent reconnect or disposal cannot swap the client in between and leave
+                // this subscription bound to a client nothing tracks any more.
+                lock (subscriptionsLock)
+                {
+                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+                    GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
+                    newSubscription = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
+                    subscriptions.Add(newSubscription);
+                }
 
                 return newSubscription;
             }
@@ -47,8 +55,14 @@ namespace FWO.Api.Client
         }
 
         /// <summary>
-        /// Recreates active subscriptions with a client configured for the refreshed JWT.
+        /// Rebinds active subscriptions to a client configured for the refreshed JWT.
         /// </summary>
+        /// <remarks>
+        /// The subscriptions are rebound rather than recreated and disposed, so a caller
+        /// holding one keeps a live subscription across a JWT refresh. The swap of the shared
+        /// state happens under subscriptionsLock; the rebinding and the disposal of the
+        /// previous client run outside it, because both reach back into this instance.
+        /// </remarks>
         /// <param name="jwt">The refreshed JWT.</param>
         /// <param name="ct">Cancels waiting for the reconnect lock.</param>
         public override async Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
@@ -57,34 +71,34 @@ namespace FWO.Api.Client
 
             try
             {
-                ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-                ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
                 ct.ThrowIfCancellationRequested();
 
-                List<ApiSubscription> activeSubscriptions = [.. subscriptions.Where(subscription => !subscription.IsDisposed)];
-                Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
+                GraphQLHttpClient oldSubscriptionClient;
+                GraphQLHttpClient newSubscriptionClient;
+                List<ApiSubscription> activeSubscriptions;
 
-                GraphQLHttpClient oldSubscriptionClient = graphQlSubscriptionClient;
-                GraphQLHttpClient newSubscriptionClient = CreateClient(ApiServerUri);
-                UpdateJwtRoleState(jwt);
-                ApplyAuthHeader(graphQlClient, jwt);
-                ApplyAuthHeader(newSubscriptionClient, jwt);
-
-                List<ApiSubscription> recreatedSubscriptions = [];
-                graphQlSubscriptionClient = newSubscriptionClient;
-
-                foreach (ApiSubscription subscription in activeSubscriptions)
+                lock (subscriptionsLock)
                 {
-                    recreatedSubscriptions.Add(subscription.Recreate(newSubscriptionClient));
+                    ObjectDisposedException.ThrowIf(_disposed, this);
+                    ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
+                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
+
+                    subscriptions.RemoveAll(subscription => subscription.IsDisposed);
+                    activeSubscriptions = [.. subscriptions];
+                    oldSubscriptionClient = graphQlSubscriptionClient;
+                    newSubscriptionClient = CreateSubscriptionClient(ApiServerUri);
+                    UpdateJwtRoleState(jwt);
+                    ApplyAuthHeader(graphQlClient, jwt);
+                    ApplyAuthHeader(newSubscriptionClient, jwt);
+
+                    graphQlSubscriptionClient = newSubscriptionClient;
                 }
 
-                subscriptions.Clear();
-                subscriptions.AddRange(recreatedSubscriptions);
+                Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
 
                 foreach (ApiSubscription subscription in activeSubscriptions)
                 {
-                    subscription.Dispose();
+                    subscription.Rebind(newSubscriptionClient);
                 }
 
                 oldSubscriptionClient.Dispose();
@@ -104,32 +118,25 @@ namespace FWO.Api.Client
         }
 
         /// <summary>
-        /// Disposes all tracked subscriptions and their GraphQL client.
-        /// </summary>
-        private void DisposeSubscriptionResources()
-        {
-            foreach (ApiSubscription subscription in subscriptions)
-            {
-                subscription.Dispose();
-            }
-
-            subscriptions.Clear();
-            graphQlSubscriptionClient?.Dispose();
-            graphQlSubscriptionClient = null;
-        }
-
-        /// <summary>
         /// Disposes and removes subscriptions with the requested exact runtime type.
         /// </summary>
         /// <typeparam name="T">The exact subscription type to remove.</typeparam>
         public override void DisposeSubscriptions<T>()
         {
-            foreach (ApiSubscription subscription in subscriptions.Where(subscription => subscription.GetType() == typeof(T)))
+            List<ApiSubscription> subscriptionsToDispose;
+
+            // Snapshot and remove under the lock, dispose outside it: disposing a subscription
+            // reaches back into this instance, which would deadlock against the lock itself.
+            lock (subscriptionsLock)
+            {
+                subscriptionsToDispose = [.. subscriptions.Where(subscription => subscription.GetType() == typeof(T))];
+                subscriptions.RemoveAll(subscription => subscription.GetType() == typeof(T));
+            }
+
+            foreach (ApiSubscription subscription in subscriptionsToDispose)
             {
                 subscription.Dispose();
             }
-
-            subscriptions.RemoveAll(subscription => subscription.GetType() == typeof(T));
         }
 
         /// <summary>

@@ -62,27 +62,32 @@ namespace FWO.Services
         private async Task<FlowSyncFlowData?> GetConsistentFlowDataAsync(int mgmId)
         {
             FlowSyncFlowData flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> inconsistencies = flowData.GetHashInconsistencies();
 
-            if (!flowData.HasHashInconsistencies())
+            if (inconsistencies.Count == 0)
             {
                 return flowData;
             }
 
-            Log.WriteWarning(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}, recalculating flow hashes.");
+            Log.WriteWarning(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}, recalculating flow hashes. " +
+                $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
 
             FlowHashRecalculationOutcome outcome = await flowHashRecalculator.RecalculateFlowHashesAsync(flowData);
 
             if (outcome != FlowHashRecalculationOutcome.Updated)
             {
-                Log.WriteError(LogMessageTitle, $"Flow hashes could not be recalculated, skipping management {mgmId}.");
+                Log.WriteError(LogMessageTitle, $"Flow hashes could not be recalculated, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(inconsistencies)}");
                 return null;
             }
 
             flowData = await GetFlowSyncDataAsync(mgmId);
+            List<FlowHashInconsistency> remainingInconsistencies = flowData.GetHashInconsistencies();
 
-            if (flowData.HasHashInconsistencies())
+            if (remainingInconsistencies.Count > 0)
             {
-                Log.WriteError(LogMessageTitle, $"Hash inconsistencies remain after recalculation, skipping management {mgmId}.");
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies remain after recalculation, skipping management {mgmId}. " +
+                    $"Inconsistent entries: {FlowHashInconsistency.Describe(remainingInconsistencies)}");
                 return null;
             }
 

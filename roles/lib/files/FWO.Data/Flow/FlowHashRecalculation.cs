@@ -87,12 +87,12 @@ namespace FWO.Data.Flow
             Dictionary<long, string> accessHashes = flowData.Accesses.Values.ToDictionary(access => access.Id, access => access.TryCalculateHash(baseObjectHashes) ?? access.Hash);
 
             FlowHashRecalculationResult result = new();
-            AddEntryResult(result, result.NwObjects, "network object", flowData.NwObjects.Values.Select(entry => (entry.Id, entry.Hash)), nwObjectHashes);
-            AddEntryResult(result, result.NwGroups, "network group", flowData.NwGroups.Values.Select(entry => (entry.Id, entry.Hash)), nwGroupHashes);
-            AddEntryResult(result, result.SvcObjects, "service object", flowData.SvcObjects.Values.Select(entry => (entry.Id, entry.Hash)), svcObjectHashes);
-            AddEntryResult(result, result.SvcGroups, "service group", flowData.SvcGroups.Values.Select(entry => (entry.Id, entry.Hash)), svcGroupHashes);
-            AddEntryResult(result, result.TimeObjects, "time object", flowData.TimeObjects.Values.Select(entry => (entry.Id, entry.Hash)), timeObjectHashes);
-            AddEntryResult(result, result.Accesses, "access", flowData.Accesses.Values.Select(entry => (entry.Id, entry.Hash)), accessHashes);
+            AddEntryResult(result, result.NwObjects, FlowEntryType.kNwObject, flowData.NwObjects.Values.Select(entry => (entry.Id, entry.Hash)), nwObjectHashes);
+            AddEntryResult(result, result.NwGroups, FlowEntryType.kNwGroup, flowData.NwGroups.Values.Select(entry => (entry.Id, entry.Hash)), nwGroupHashes);
+            AddEntryResult(result, result.SvcObjects, FlowEntryType.kSvcObject, flowData.SvcObjects.Values.Select(entry => (entry.Id, entry.Hash)), svcObjectHashes);
+            AddEntryResult(result, result.SvcGroups, FlowEntryType.kSvcGroup, flowData.SvcGroups.Values.Select(entry => (entry.Id, entry.Hash)), svcGroupHashes);
+            AddEntryResult(result, result.TimeObjects, FlowEntryType.kTimeObject, flowData.TimeObjects.Values.Select(entry => (entry.Id, entry.Hash)), timeObjectHashes);
+            AddEntryResult(result, result.Accesses, FlowEntryType.kAccess, flowData.Accesses.Values.Select(entry => (entry.Id, entry.Hash)), accessHashes);
 
             return result;
         }

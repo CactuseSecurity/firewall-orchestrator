@@ -210,13 +210,15 @@ namespace FWO.Services.Workflow
                 return false;
             }
 
-            string hash = FlowHashGenerator.GenerateGroupHash(members.SelectMany(member => member.Hashes).Distinct());
-            FlowNetworkReference groupReference;
+            List<long> memberObjectIds = [.. members.SelectMany(member => member.ObjectIds).Distinct()];
+            List<string> memberHashes = [.. members.SelectMany(member => member.Hashes).Distinct()];
+            string hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+            FlowNwGroup group;
             if (context.NwGroups.TryGetValue(hash, out FlowNwGroup? existingGroup))
             {
-                groupReference = FlowNetworkReference.FromGroup(existingGroup!,
-                    existingGroup!.NwGroupMembers.Select(member => member.NwObjectId),
-                    members.SelectMany(member => member.Hashes).Distinct());
+                // the group hash is derived from the member hashes, so an existing group holds exactly
+                // the members resolved above, no matter whether it was loaded or created in this run
+                group = existingGroup!;
             }
             else
             {
@@ -229,17 +231,17 @@ namespace FWO.Services.Workflow
                     ShowInRequestModule = true,
                     NwGroupMembers = new FlowNwGroupInsertMembersContainer
                     {
-                        Data = [.. members.Select(member => member.ObjectId!.Value).Distinct().Select(id => new FlowNwGroupMemberInsert { NwObjId = id })]
+                        Data = [.. memberObjectIds.Select(id => new FlowNwGroupMemberInsert { NwObjId = id })]
                     }
                 };
-                FlowNwGroup inserted = (await apiConnection.SendQueryAsync<FlowNwGroupInsertResult>(FlowQueries.insertFlowNwGroups, new { objects = new[] { insert } })).Returning.First();
-                inserted.Name = groupName;
-                inserted.Hash = hash;
-                context.Add(inserted);
-                groupReference = FlowNetworkReference.FromGroup(inserted,
-                    members.SelectMany(member => member.ObjectIds).Distinct(),
-                    members.SelectMany(member => member.Hashes).Distinct());
+                group = (await apiConnection.SendQueryAsync<FlowNwGroupInsertResult>(FlowQueries.insertFlowNwGroups, new { objects = new[] { insert } })).Returning.First();
+                group.Name = groupName;
+                group.Hash = hash;
+                group.NwGroupMembers = BuildNwGroupMembers(group.Id, memberObjectIds, context);
+                context.Add(group);
             }
+
+            FlowNetworkReference groupReference = FlowNetworkReference.FromGroup(group, memberObjectIds, memberHashes);
 
             groupMaps.NetworkGroups[groupName] = groupReference;
             await UpdateNetworkElementFlowIds(memberSnapshots, members, groupReference.GroupId);
@@ -259,13 +261,15 @@ namespace FWO.Services.Workflow
                 return false;
             }
 
-            string hash = FlowHashGenerator.GenerateGroupHash(members.SelectMany(member => member.Hashes).Distinct());
-            FlowServiceReference groupReference;
+            List<long> memberObjectIds = [.. members.SelectMany(member => member.ObjectIds).Distinct()];
+            List<string> memberHashes = [.. members.SelectMany(member => member.Hashes).Distinct()];
+            string hash = FlowHashGenerator.GenerateGroupHash(memberHashes);
+            FlowSvcGroup group;
             if (context.SvcGroups.TryGetValue(hash, out FlowSvcGroup? existingGroup))
             {
-                groupReference = FlowServiceReference.FromGroup(existingGroup!,
-                    existingGroup!.SvcGroupMembers.Select(member => member.SvcObjectId),
-                    members.SelectMany(member => member.Hashes).Distinct());
+                // the group hash is derived from the member hashes, so an existing group holds exactly
+                // the members resolved above, no matter whether it was loaded or created in this run
+                group = existingGroup!;
             }
             else
             {
@@ -278,17 +282,17 @@ namespace FWO.Services.Workflow
                     ShowInRequestModule = true,
                     SvcGroupMembers = new FlowSvcGroupInsertMembersContainer
                     {
-                        Data = [.. members.Select(member => member.ObjectId!.Value).Distinct().Select(id => new FlowSvcGroupMemberInsert { SvcObjId = id })]
+                        Data = [.. memberObjectIds.Select(id => new FlowSvcGroupMemberInsert { SvcObjId = id })]
                     }
                 };
-                FlowSvcGroup inserted = (await apiConnection.SendQueryAsync<FlowSvcGroupInsertResult>(FlowQueries.insertFlowSvcGroups, new { objects = new[] { insert } })).Returning.First();
-                inserted.Name = groupName;
-                inserted.Hash = hash;
-                context.Add(inserted);
-                groupReference = FlowServiceReference.FromGroup(inserted,
-                    members.SelectMany(member => member.ObjectIds).Distinct(),
-                    members.SelectMany(member => member.Hashes).Distinct());
+                group = (await apiConnection.SendQueryAsync<FlowSvcGroupInsertResult>(FlowQueries.insertFlowSvcGroups, new { objects = new[] { insert } })).Returning.First();
+                group.Name = groupName;
+                group.Hash = hash;
+                group.SvcGroupMembers = BuildSvcGroupMembers(group.Id, memberObjectIds, context);
+                context.Add(group);
             }
+
+            FlowServiceReference groupReference = FlowServiceReference.FromGroup(group, memberObjectIds, memberHashes);
 
             groupMaps.ServiceGroups[groupName] = groupReference;
             await UpdateServiceElementFlowIds(memberSnapshots, members, groupReference.GroupId);
@@ -492,6 +496,34 @@ namespace FWO.Services.Workflow
         private static bool IsServiceGroupReference(FlowServiceSnapshot snapshot)
         {
             return !string.IsNullOrWhiteSpace(snapshot.GroupName) && !snapshot.ProtoId.HasValue;
+        }
+
+        /// <summary>
+        /// Builds the members of a newly inserted network group. The insert mutation returns id and hash only,
+        /// so without this the group would sit in the context without members and every later resolution of it
+        /// within the same run would come up empty.
+        /// </summary>
+        private static List<FlowNwGroupMember> BuildNwGroupMembers(long groupId, List<long> memberObjectIds, FlowSyncFlowData context)
+        {
+            return [.. memberObjectIds.Select(memberId => new FlowNwGroupMember
+            {
+                NwGroupId = groupId,
+                NwObjectId = memberId,
+                NwObject = context.NwObjectsById.TryGetValue(memberId, out FlowNwObject? memberObject) ? memberObject : new FlowNwObject()
+            })];
+        }
+
+        /// <summary>
+        /// Builds the members of a newly inserted service group, see <see cref="BuildNwGroupMembers"/>.
+        /// </summary>
+        private static List<FlowSvcGroupMember> BuildSvcGroupMembers(long groupId, List<long> memberObjectIds, FlowSyncFlowData context)
+        {
+            return [.. memberObjectIds.Select(memberId => new FlowSvcGroupMember
+            {
+                SvcGroupId = groupId,
+                SvcObjectId = memberId,
+                SvcObject = context.SvcObjectsById.TryGetValue(memberId, out FlowSvcObject? memberObject) ? memberObject : new FlowSvcObject()
+            })];
         }
 
         private static string GetPayloadGroupName(FlowCreationPayload payload)

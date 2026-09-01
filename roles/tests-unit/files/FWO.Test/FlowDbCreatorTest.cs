@@ -129,7 +129,11 @@ namespace FWO.Test
                         }).ToList() ?? []
                     };
                     InsertedNetworkGroups.Add(inserted);
-                    return Task.FromResult((T)(object)new FlowNwGroupInsertResult { Returning = [inserted] });
+                    // insertFlowNwGroups.graphql returns nwgrp_id and nwgrp_hash only
+                    return Task.FromResult((T)(object)new FlowNwGroupInsertResult
+                    {
+                        Returning = [new FlowNwGroup { Id = groupId, Hash = inserted.Hash }]
+                    });
                 }
                 if (query == FlowQueries.insertFlowSvcObjects)
                 {
@@ -167,7 +171,11 @@ namespace FWO.Test
                         }).ToList() ?? []
                     };
                     InsertedServiceGroups.Add(inserted);
-                    return Task.FromResult((T)(object)new FlowSvcGroupInsertResult { Returning = [inserted] });
+                    // insertFlowSvcGroups.graphql returns svcgrp_id and svcgrp_hash only
+                    return Task.FromResult((T)(object)new FlowSvcGroupInsertResult
+                    {
+                        Returning = [new FlowSvcGroup { Id = inserted.Id, Hash = inserted.Hash }]
+                    });
                 }
                 if (query == FlowQueries.insertFlowTimeObjects)
                 {
@@ -902,6 +910,71 @@ namespace FWO.Test
             RequestElementFlowUpdate update = apiConn.UpdatedRequestElements.Single();
             Assert.That(update.FlowNetworkObjectId, Is.EqualTo(10));
             Assert.That(update.FlowNetworkGroupId, Is.EqualTo(55));
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_KeepsAccessSourcesWhenNetworkGroupWasCreatedEarlierInTheSameRun()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask accessTask = CreateAccessTask(22, "", "10.0.1.1", 443);
+            WfReqElement source = accessTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.GroupName = "AR-Second";
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                // both group tasks resolve the same member and therefore the same group hash, so the second
+                // one reuses the group the first one just created
+                Tasks =
+                [
+                    CreateNetworkGroupTask(20, "AR-First", "10.0.0.1"),
+                    CreateNetworkGroupTask(21, "AR-Second", "10.0.0.1"),
+                    accessTask
+                ]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            long memberObjectId = apiConn.InsertedNetworkGroups.Single().NwGroupMembers.Single().NwObjectId;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConn.InsertedNetworkGroups, Has.Count.EqualTo(1));
+                Assert.That(apiConn.InsertedAccess!.AccessSources!.Data, Has.Count.EqualTo(1));
+                Assert.That(((NwRef)apiConn.InsertedAccess.AccessSources.Data.Single()).NwObjId, Is.EqualTo(memberObjectId));
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_KeepsAccessServicesWhenServiceGroupWasCreatedEarlierInTheSameRun()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask accessTask = CreateAccessTask(22, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement service = accessTask.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.GroupName = "SG-Second";
+            service.ProtoId = null;
+            WfTicket ticket = new()
+            {
+                Id = 7,
+                Tasks =
+                [
+                    CreateServiceGroupTask(20, "SG-First", 443),
+                    CreateServiceGroupTask(21, "SG-Second", 443),
+                    accessTask
+                ]
+            };
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, ticket, WfObjectScopes.Ticket, null, ticket.Id);
+
+            long memberObjectId = apiConn.InsertedServiceGroups.Single().SvcGroupMembers.Single().SvcObjectId;
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConn.InsertedServiceGroups, Has.Count.EqualTo(1));
+                Assert.That(apiConn.InsertedAccess!.AccessServices!.Data, Has.Count.EqualTo(1));
+                Assert.That(((SvcRef)apiConn.InsertedAccess.AccessServices.Data.Single()).SvcObjId, Is.EqualTo(memberObjectId));
+            });
         }
 
         [Test]

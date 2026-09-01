@@ -67,11 +67,11 @@ def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[st
     if svc_type == "simple" and obj_orig.get("protocol") == FORTI_PROTOCOL_ANY:
         add_object(svc_objects, svc_type, name, color, ANY_IP_PROTOCOL_ID, None, None, session_timeout)
     elif svc_type == "group":
-        add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)
+        add_object(svc_objects, svc_type, name, color, None, None, member_names, session_timeout)
     elif "protocol" in obj_orig:
         handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     else:
-        add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
+        add_object(svc_objects, svc_type, name, color, None, None, None, session_timeout)
 
 
 def handle_svc_protocol(
@@ -142,10 +142,10 @@ def parse_standard_protocols_with_ports(
         added_svc_obj += 1
     if split:
         range_names = range_names[:-1]
-        add_object(svc_objects, "group", name, color, 0, None, range_names, session_timeout)
+        add_object(svc_objects, "group", name, color, None, None, range_names, session_timeout)
         added_svc_obj += 1
     if added_svc_obj == 0:  # assuming RPC service which here has no properties at all
-        add_object(svc_objects, "rpc", name, color, 0, None, None, None)
+        add_object(svc_objects, "rpc", name, color, None, None, None, None)
         added_svc_obj += 1
 
 
@@ -208,7 +208,7 @@ def add_object(
     typ: str,
     name: str,
     color: str,
-    proto: int,
+    proto: int | None,
     port_ranges: list[str] | None,
     member_names: str | None,
     session_timeout: Any,

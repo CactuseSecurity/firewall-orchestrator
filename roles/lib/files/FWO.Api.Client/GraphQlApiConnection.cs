@@ -17,6 +17,9 @@ namespace FWO.Api.Client
         public string ApiServerUri { get; private set; } = "";
 
         private GraphQLHttpClient? graphQlClient;
+        // Set inside subscriptionsLock, so a reconnect that already passed its own disposal
+        // check cannot rebind subscriptions onto a client this instance is tearing down.
+        private bool _disposed;
 
         private GraphQLHttpClient CreateClient(string apiServerUri)
         {
@@ -42,6 +45,16 @@ namespace FWO.Api.Client
 
             client.HttpClient.Timeout = new TimeSpan(1, 0, 0);
             return client;
+        }
+
+        /// <summary>
+        /// Creates the replacement client used when subscriptions reconnect.
+        /// </summary>
+        /// <param name="apiServerUri">The API endpoint the client addresses.</param>
+        /// <returns>The client the reconnected subscriptions are bound to.</returns>
+        protected virtual GraphQLHttpClient CreateSubscriptionClient(string apiServerUri)
+        {
+            return CreateClient(apiServerUri);
         }
 
         private void Initialize(string ApiServerUri)
@@ -512,9 +525,41 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                graphQlClient?.Dispose();
-                graphQlClient = null;
-                DisposeSubscriptionResources();
+                // Held for the whole teardown so a reconnect in flight finishes first: it
+                // hands its subscriptions a new client, and disposing underneath it would
+                // leave them bound to a disposed one.
+                reconnectLock.Wait();
+                try
+                {
+                    List<ApiSubscription> subscriptionsToDispose;
+                    GraphQLHttpClient? currentGraphQlClient;
+                    GraphQLHttpClient? currentGraphQlSubscriptionClient;
+
+                    // The state is taken and cleared under the lock, and the disposals run
+                    // outside it: disposing a subscription reaches back into this instance.
+                    lock (subscriptionsLock)
+                    {
+                        _disposed = true;
+                        subscriptionsToDispose = [.. subscriptions];
+                        subscriptions.Clear();
+                        currentGraphQlClient = graphQlClient;
+                        currentGraphQlSubscriptionClient = graphQlSubscriptionClient;
+                        graphQlClient = null;
+                        graphQlSubscriptionClient = null;
+                    }
+
+                    foreach (ApiSubscription subscription in subscriptionsToDispose)
+                    {
+                        subscription.Dispose();
+                    }
+
+                    currentGraphQlClient?.Dispose();
+                    currentGraphQlSubscriptionClient?.Dispose();
+                }
+                finally
+                {
+                    reconnectLock.Release();
+                }
             }
         }
 

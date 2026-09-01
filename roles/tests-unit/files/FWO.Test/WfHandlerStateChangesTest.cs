@@ -279,6 +279,7 @@ namespace FWO.Test
             Assert.That(handler.ActReqTask.StateId, Is.EqualTo(3));
             Assert.That(handler.ActReqTask.CurrentHandler?.DbId, Is.EqualTo(99));
             Assert.That(handler.ActTicket.Tasks[0].StateId, Is.EqualTo(3));
+            Assert.That(handler.ActTicket.StateId, Is.EqualTo(3));
         }
 
         [Test]

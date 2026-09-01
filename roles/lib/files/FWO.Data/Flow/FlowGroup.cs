@@ -19,6 +19,23 @@ namespace FWO.Data.Flow
 
         public abstract long Id { get; set; }
         public abstract string Hash { get; set; }
+
+        /// <summary>
+        /// Generates the group hash from the given member hashes, or null when no deterministic hash
+        /// can be generated for the group (e.g. a group without members).
+        /// </summary>
+        protected static string? TryCalculateGroupHash(List<string> memberHashes)
+        {
+            try
+            {
+                return FlowHashGenerator.GenerateGroupHash(memberHashes);
+            }
+            catch (ArgumentException)
+            {
+                // Cannot generate deterministic hash for this group
+                return null;
+            }
+        }
     }
 
     public class FlowNwGroup : FlowGroup
@@ -38,16 +55,16 @@ namespace FWO.Data.Flow
         public string? TryCalculateHash()
         {
             // Attempt to generate deterministic hash based on member objects' hashes
-            List<string> memberHashes = [.. NwGroupMembers.Select(m => m.NwObject.Hash)];
-            try
-            {
-                return FlowHashGenerator.GenerateGroupHash(memberHashes);
-            }
-            catch (ArgumentException)
-            {
-                // Cannot generate deterministic hash for this group
-                return null;
-            }
+            return TryCalculateGroupHash([.. NwGroupMembers.Select(m => m.NwObject.Hash)]);
+        }
+
+        /// <summary>
+        /// Calculates the group hash from the given member hashes instead of the members' stored hashes.
+        /// Used when member hashes have been recalculated but are not yet written back to the database.
+        /// </summary>
+        public string? TryCalculateHash(FlowBaseObjectHashes baseObjectHashes)
+        {
+            return TryCalculateGroupHash([.. NwGroupMembers.Select(m => baseObjectHashes.NwObjects.GetValueOrDefault(m.NwObjectId, m.NwObject.Hash))]);
         }
     }
 
@@ -68,16 +85,16 @@ namespace FWO.Data.Flow
         public string? TryCalculateHash()
         {
             // Attempt to generate deterministic hash based on member services' hashes
-            List<string> memberHashes = [.. SvcGroupMembers.Select(m => m.SvcObject.Hash)];
-            try
-            {
-                return FlowHashGenerator.GenerateGroupHash(memberHashes);
-            }
-            catch (ArgumentException)
-            {
-                // Cannot generate deterministic hash for this group
-                return null;
-            }
+            return TryCalculateGroupHash([.. SvcGroupMembers.Select(m => m.SvcObject.Hash)]);
+        }
+
+        /// <summary>
+        /// Calculates the group hash from the given member hashes instead of the members' stored hashes.
+        /// Used when member hashes have been recalculated but are not yet written back to the database.
+        /// </summary>
+        public string? TryCalculateHash(FlowBaseObjectHashes baseObjectHashes)
+        {
+            return TryCalculateGroupHash([.. SvcGroupMembers.Select(m => baseObjectHashes.SvcObjects.GetValueOrDefault(m.SvcObjectId, m.SvcObject.Hash))]);
         }
     }
 

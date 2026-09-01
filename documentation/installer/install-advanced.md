@@ -21,11 +21,11 @@ installation_mode options:
 
 #### Upgrading ####
 
-If you have an ansible version less than 2.13 on your machine, before doing an upgrade, switch into the virtual pyhton environment you created during installation before running the upgrade:
+Before doing an upgrade, (re-)create the installer Ansible environment so the upgrade runs with the pinned Ansible version and refreshed collections:
 
 ```console
 cd ~/firewall-orchestrator
-source ansible-venv/bin/activate
+source scripts/install-ansible-from-venv.sh
 ```
 
 Then for upgrading firewall orchestrator, use the following switch:
@@ -91,6 +91,7 @@ Note that the following domains (and their sub-domains) must be reachable throug
     canonical.com
     github.com, api.github.com
     githubusercontent.com
+    galaxy.ansible.com (for downloading the pinned Ansible collections)
     docker.io (and subdomains)
     hasura.io, releases.hasura.io
     postgresql.org

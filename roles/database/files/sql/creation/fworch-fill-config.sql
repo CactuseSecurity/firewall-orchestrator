@@ -149,6 +149,7 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSortMatrixByID', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceDiffFilterExistingViolations', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('CustomFieldChangeIdKey', '["field-2","ChangeID"]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
@@ -181,3 +182,4 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenL
 INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetimeUnit', 'Hours', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);

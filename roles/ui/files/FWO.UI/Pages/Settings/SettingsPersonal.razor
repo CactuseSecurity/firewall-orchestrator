@@ -1,0 +1,185 @@
+@page "/settings/personal"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
+
+@using System.Linq
+@using FWO.Config.Api.Data
+@using FWO.Basics.Enums
+@using FWO.Ui.Data.Extensions
+@using FWO.Ui.Services
+
+@inject ApiConnection apiConnection
+@inject GlobalConfig globalConfig
+@inject UserConfig userConfig
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("personal_settings"))</h3>
+    <HelpLink Page="settings/personal" />
+</div>
+<hr />
+
+@if (configData != null)
+{
+    <form onsubmit="return false">
+        <h4>@(userConfig.GetText("language_settings"))</h4>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("U5412"))">
+            <label class="col-form-label col-sm-2">@(userConfig.GetText("language")):</label>
+            <div class="col-sm-4">
+                <Dropdown ElementType="Language" ElementToString="@(l => userConfig.GetText(l.Name))" @bind-SelectedElement="selectedLanguage" Elements="globalConfig.UiLanguages">
+                    <ElementTemplate Context="language">
+                        @(userConfig.GetText(language.Name))
+                    </ElementTemplate>
+                </Dropdown>
+            </div>
+        </div>
+
+        <hr />
+        <h4>@(userConfig.GetText("display_settings"))</h4>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+            <label for="cbx_personal_iconify" class="col-form-label col-sm-4">@(userConfig.GetText("modIconify")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_personal_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
+            </div>
+        </div>
+
+        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <hr />
+            <h4>@(userConfig.GetText("report_settings"))</h4>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5412"))">
+                <label for="elementsPerFetch" class="col-form-label col-sm-4">@(userConfig.GetText("elementsPerFetch")):</label>
+                <div class="col-sm-2">
+                    <input id="elementsPerFetch" type="number" min="0" class="form-control form-control-sm" @bind="configData!.ElementsPerFetch" />
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5422"))">
+                <label for="minCollapseAllDevices" class="col-form-label col-sm-4">@(userConfig.GetText("minCollapseAllDevices")):</label>
+                <div class="col-sm-2">
+                    <input id="minCollapseAllDevices" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MinCollapseAllDevices">
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5423"))">
+                <label for="messageViewTime" class="col-form-label col-sm-4">@(userConfig.GetText("messageViewTime")):</label>
+                <div class="col-sm-2">
+                    <input id="messageViewTime" type="number" min="0" class="form-control form-control-sm" @bind="configData!.MessageViewTime">
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5456"))">
+                <label for="resolveNAs" class="col-form-label col-sm-4">@(userConfig.GetText("resolveNetworkAreas")):</label>
+                <div class="col-sm-1">
+                    <input id="resolveNAs" type="checkbox" class="w-100" @bind="configData!.ResolveNetworkAreas">
+                </div>
+            </div>
+            <hr />
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5447"))">
+                <label for="unusedTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("unusedTolerance")):</label>
+                <div class="col-sm-2">
+                    <input id="unusedTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.UnusedTolerance" />
+                </div>
+            </div>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5448"))">
+                <label for="creationTolerance" class="col-form-label col-sm-4">@(userConfig.GetText("creationTolerance")):</label>
+                <div class="col-sm-2">
+                    <input id="creationTolerance" type="number" min="0" class="form-control form-control-sm" @bind="configData!.CreationTolerance" />
+                </div>
+            </div>
+            <hr />
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5462"))">
+                <label for="preferredCollapseState" class="col-form-label col-sm-4">@(userConfig.GetText("PreferredCollapseState")):</label>
+                <div class="col-sm-2">
+                    <Dropdown ElementType="PreferredCollapseState" ElementToString="_ => _.ToString(userConfig)"
+                              Elements="Enum.GetValues<PreferredCollapseState>().Where(state => state != PreferredCollapseState.Intermediate)"
+                              @bind-SelectedElement="configData!.ReportingPersonalPreferredCollapseState" />
+                </div>
+            </div>
+        </ExecutionModeAuthorizeView>
+
+        @if (userConfig.RecertificationMode == RecertificationMode.RuleByRule)
+        {
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
+                <hr />
+                <h4>@(userConfig.GetText("recert_settings"))</h4>
+                <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5419"))">
+                    <label for="recertificationDisplayPeriod" class="col-form-label col-sm-4">@(userConfig.GetText("recertificationDisplayPeriod")):</label>
+                    <div class="col-sm-2">
+                        <input id="recertificationDisplayPeriod" type="number" min="0" class="form-control form-control-sm" @bind="configData!.RecertificationDisplayPeriod" />
+                    </div>
+                </div>
+            </ExecutionModeAuthorizeView>
+        }
+
+        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
+            <hr />
+            <h4>@(userConfig.GetText("modelling_settings"))</h4>
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5605"))">
+                <label for="overviewDisplayLines" class="col-form-label col-sm-4">@(userConfig.GetText("overviewDisplayLines")):</label>
+                <div class="col-sm-2">
+                    <input id="overviewDisplayLines" type="number" min="0" class="form-control form-control-sm" @bind="configData!.OverviewDisplayLines" />
+                </div>
+            </div>
+        </ExecutionModeAuthorizeView>
+    </form>
+    <hr />
+    <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+}
+else
+{
+    <Loading />
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private ConfigData? configData;
+    private Language selectedLanguage = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            configData = await userConfig.GetEditableConfig();
+            selectedLanguage = globalConfig.UiLanguages.FirstOrDefault(l => l.Name == userConfig.User.Language) ?? new Language();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Data saved before loaded. This should be impossible.");
+            }
+
+            if (selectedLanguage.Name != userConfig.User.Language)
+            {
+                try
+                {
+                    await ChangeLanguage(selectedLanguage);
+                }
+                catch (Exception exception)
+                {
+                    DisplayMessageInUi(exception, userConfig.GetText("change_language"), "", true);
+                    return;
+                }
+            }
+
+            await userConfig.WriteToDatabase(configData, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("personal_settings"), userConfig.GetText("U5301"), false);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("personal_settings"), "", true);
+        }
+    }
+
+    private async Task ChangeLanguage(Language language)
+    {
+        Log.WriteDebug("Change language", $"new language: {language.Name}");
+        await userConfig.ChangeLanguage(language.Name, apiConnection);
+    }
+}

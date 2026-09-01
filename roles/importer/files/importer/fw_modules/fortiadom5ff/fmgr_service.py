@@ -82,8 +82,6 @@ def handle_svc_protocol(
     color: str,
     session_timeout: Any,
 ) -> None:
-    range_names = ""
-
     # FortiManager's `protocol` is a service-type selector, not always an IP
     # protocol number. Selector 0 directly represents ANY; selector 2 is IP and uses
     # `protocol-number`. Its default is 0, so an omitted or zero value for an
@@ -99,9 +97,7 @@ def handle_svc_protocol(
             proto = ANY_IP_PROTOCOL_ID
         add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
     elif protocol in {5, 11, 15}:  # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP
-        parse_standard_protocols_with_ports(
-            obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, 0
-        )
+        parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     elif protocol == FORTI_PROTOCOL_ICMP6:
         add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
     else:
@@ -115,9 +111,10 @@ def parse_standard_protocols_with_ports(
     name: str,
     color: str,
     session_timeout: Any,
-    range_names: str,
-    added_svc_obj: int,
 ) -> None:
+    added_svc_obj = 0
+    range_names = ""
+
     split = check_split(obj_orig)
     if "tcp-portrange" in obj_orig and len(obj_orig["tcp-portrange"]) > 0:
         tcpname = name

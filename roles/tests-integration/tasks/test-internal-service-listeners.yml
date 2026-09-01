@@ -84,8 +84,11 @@
     - "'middlewareserver' in group_names"
     - openldap_slapd_main_pid != '0'
 
-# The -h value is a single argument holding the whole space separated URL list, so it
-# comes back whole when the NUL separated /proc entry is cut into arguments.
+# A foreground slapd retains the -h value as a single argument holding the whole
+# space-separated URL list. A daemonizing slapd may rewrite its process title after
+# forking, however, so the listener arguments are not observable on every supported
+# service-unit type. Compare them when they are present; the live connection checks
+# below remain the portable runtime verification for every configured listener.
 - name: The running slapd must serve the configured listeners
   vars:
     slapd_arguments: >-
@@ -104,7 +107,9 @@
       {{ openldap_service_defaults_file }} configures
       '{{ openldap_server_services | trim }}'. slapd reads its listener list only at
       startup, so it has not been restarted since that file was last changed.
-  when: "'middlewareserver' in group_names"
+  when:
+    - "'middlewareserver' in group_names"
+    - "'-h' in slapd_arguments"
 
 # Derived from the listener URLs themselves rather than a restated host/port matrix,
 # so a host without an IPv6 loopback is not asked to answer on [::1].

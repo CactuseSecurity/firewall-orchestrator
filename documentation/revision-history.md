@@ -635,7 +635,14 @@ Not supported any longer are:
 - Cisco ASA: keep the legacy `ANY` UID for the imported "any ip protocol" service object while showing it as `any-ip` in reports; existing compliance criteria or queries pinned to the old `any-ip` UID need to be updated to use `ANY` instead.
 - OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
 
-## 9.5.0 - 27.08.2026
+## 9.4.5 - 01.09.2026
+- FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
+- add an optional compliance-diff filter for rules with existing violations
+- Insert missing src/dst/svc references to flow.access entries created by workflow module
+- Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written. Creating a flow from a request while such a recalculation runs can fail or reuse a wrong entry, because flow entries are identified by their hash; repeat the action in that case. Hashes are only recalculated when the hash logic itself changes.
+- Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.
+
+## 9.5.0 - 03.09.2026
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access

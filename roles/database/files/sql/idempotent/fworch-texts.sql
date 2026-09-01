@@ -3300,6 +3300,14 @@ INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximal
 INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','English','Maximum number of printed violations per rule');
 INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'German', 'Matrixsortierung nach Zonen-ID');
 INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'English', 'Matrix sorting by zone ID');
+INSERT INTO txt VALUES ('complianceDiffFilterExistingViolations', 'German', 'Nur neu nicht konforme Regeln anzeigen');
+INSERT INTO txt VALUES ('complianceDiffFilterExistingViolations', 'English', 'Only show newly non-compliant rules');
+INSERT INTO txt VALUES ('existing_violations_filter_failed', 'German', 'Warnung: Der Filter f&uuml;r bereits bestehende Verst&ouml;&szlig;e konnte nicht angewendet werden; dieser Bericht enth&auml;lt alle im ausgew&auml;hlten Zeitraum gefundenen Verst&ouml;&szlig;e.');
+INSERT INTO txt VALUES ('existing_violations_filter_failed', 'English', 'Warning: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'German', 'Weiterhin nicht konform (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'English', 'Still non-compliant (existing violation hidden by filter setting)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'German', 'Nicht bewertbar (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');
@@ -9054,3 +9062,5 @@ INSERT INTO txt VALUES ('H5912', 'German',  'Custom-Field-Schl&uuml;ssel: Nur er
 INSERT INTO txt VALUES ('H5912', 'English', 'Custom field key: Required only when source is "Custom Field". Configuration cannot be saved without this key.');
 INSERT INTO txt VALUES ('H5913', 'German',  'Neu berechnen: Startet die Aktualisierung der Eigent&uuml;merzuordnung f&uuml;r bestehende Regeln auf Basis der aktuellen Konfiguration.');
 INSERT INTO txt VALUES ('H5913', 'English', 'Recalculate: Starts updating owner mappings for existing rules based on the current configuration.');
+INSERT INTO txt VALUES ('H5914', 'German', 'Standardm&auml;&szlig;ig zeigt der Compliance-Diff-Bericht alle Verst&ouml;&szlig;e, die im ausgew&auml;hlten Zeitraum gefunden wurden. Dies schlie&szlig;t Verst&ouml;&szlig;e f&uuml;r Regeln ein, die schon zu Beginn des Zeitraums nicht konform waren, sowie inzwischen behobene Verst&ouml;&szlig;e. Wenn aktiviert, zeigt der Bericht nur Regeln, die zu Beginn des ausgew&auml;hlten Zeitraums konform waren und danach nicht konform wurden. Behobene Verst&ouml;&szlig;e werden weiterhin angezeigt.');
+INSERT INTO txt VALUES ('H5914', 'English', 'By default, the compliance diff report shows all violations found in the selected interval, including violations for rules that were already non-compliant at the start of the interval and violations that have since been resolved. When enabled, it shows only rules that were compliant at the start of the interval and subsequently became non-compliant. Resolved violations continue to be shown.');

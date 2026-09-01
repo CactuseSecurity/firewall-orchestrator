@@ -536,8 +536,16 @@ namespace FWO.Services.Modelling
         {
             try
             {
+                EditAppRoleMode = false;
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
                     appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
+                if (!AppRoleHandler.AreaConversionValid)
+                {
+                    // no dialog is usable: an existing area cannot be derived and a new identifier cannot be proposed
+                    DisplayAppRoleMode = false;
+                    AddAppRoleMode = false;
+                    return;
+                }
                 EditAppRoleMode = true;
             }
             catch (Exception exception)

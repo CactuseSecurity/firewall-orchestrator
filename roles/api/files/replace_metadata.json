@@ -2523,6 +2523,17 @@
                   "comment": ""
                 },
                 {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_time",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2917,6 +2928,16 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -3809,7 +3830,8 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "nwgroup_id"
+                      "nwgroup_id",
+                      "app_id"
                     ],
                     "filter": {}
                   },
@@ -4975,6 +4997,16 @@
                       "json_data",
                       "ack_timestamp",
                       "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ack_by"
                     ],
                     "filter": {}
                   }

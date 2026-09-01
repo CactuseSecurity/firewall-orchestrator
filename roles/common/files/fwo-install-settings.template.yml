@@ -12,9 +12,10 @@
 # inventory/hosts.yml and inventory/group_vars/ are tracked files in the git repository
 # the installer is run from, so anything set there is discarded by a fresh clone and
 # conflicts on "git pull". This file lives outside the repository, and every installer run
-# from any clone on this host reads it - which also stops two administrators upgrading the
-# same installation with different settings and having the certificates reissued for
-# different names each time.
+# from any clone on this host reads it - site.yml loads it in its first play, so it applies
+# however the installer was started. That also stops two administrators upgrading the same
+# installation with different settings and having the certificates reissued for different
+# names each time.
 #
 # Settings here are passed to Ansible as extra variables, so they override everything in
 # inventory/group_vars/. Anything given on the installer command line still overrides this

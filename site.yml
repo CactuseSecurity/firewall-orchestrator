@@ -1,6 +1,54 @@
 ---
 # for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
+# The host wide, operator owned installer settings (see documentation/installer/
+# install-advanced.md). Loaded here rather than only by scripts/run-playbook-with-sudo.sh,
+# because the launcher can be bypassed - a plain "ansible-playbook site.yml" then applied
+# none of the settings, silently, and installed the endpoints under the inventory names
+# instead. include_vars outranks inventory/group_vars and survives into the later plays,
+# while extra variables given on the command line still outrank it.
+#
+# "tags: always" so that a tag limited run - "--tags certificates" above all, which
+# reissues the very certificates these names are written into - is configured like a
+# full one.
+- hosts: all
+  gather_facts: false
+  vars:
+    # The launcher reads the same two locations in the same order. Both are resolved on
+    # the controller, because that is where include_vars and --extra-vars read from.
+    fwo_effective_install_settings_file: "{{ lookup('env', 'FWORCH_LOCAL_SETTINGS') | default(fwo_install_settings_file, true) }}"
+  tasks:
+    - name: look for the {{ product_name }} installer settings file
+      stat:
+        path: "{{ fwo_effective_install_settings_file }}"
+      register: fwo_install_settings_stat
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      tags: always
+
+    - name: apply the {{ product_name }} installer settings
+      include_vars:
+        file: "{{ fwo_effective_install_settings_file }}"
+      when: fwo_install_settings_stat.stat.exists
+      tags: always
+
+    - name: report the endpoints the installer settings put in force
+      debug:
+        msg: >-
+          Applied installer settings from {{ fwo_effective_install_settings_file }}
+          - api: {{ api_network_listening_ip_address }},
+          middleware: {{ middleware_hostname }}, ui: {{ ui_hostname }}
+      when: fwo_install_settings_stat.stat.exists
+      tags: always
+  tags:
+    - backend
+    - frontend
+    - importer
+    - ui
+    - api
+    - certificates
+
 - hosts: all
   roles:
     - { role: common }

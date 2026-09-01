@@ -646,7 +646,8 @@ Not supported any longer are:
   so an installation that must be addressed under a specific DNS name - a name an
   administrator-managed certificate was issued for, above all - is configured in one place
 - installer: new host-wide settings file /etc/fworch/fwo-install-settings.yml,
-  read by every installer run from any clone on the host and outside the git repository, so
+  read by every installer run from any clone on the host, whichever way ansible was started,
+  and outside the git repository, so
   local settings survive git pull and every administrator upgrades with the same endpoints;
   fwo_endpoint_hostname there names all endpoints of a single-host installation at once,
   and a commented fwo-install-settings.template.yml is installed beside it for reference

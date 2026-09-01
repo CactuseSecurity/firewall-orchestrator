@@ -253,12 +253,24 @@ conflicts on `git pull`. Settings that must outlive an upgrade belong in
 which is the same file as `/usr/local/fworch/etc/fwo-install-settings.yml` - the installer
 keeps `/etc/fworch` as a symlink to it, on install and on upgrade alike. Either path works.
 
-`./scripts/run-playbook-with-sudo.sh` passes that file to every run as extra variables,
-so it overrides `inventory/group_vars/`, and anything given on the command line still
-overrides the file. It is shared by every clone on the host by design: two administrators
-upgrading the same installation from their own repositories would otherwise write
-different endpoints into `fworch.json` and have the certificates reissued for different
-names.
+`site.yml` reads that file in its first play, so it applies to **every** way of starting
+the installer - `./scripts/run-playbook-with-sudo.sh` and a plain `ansible-playbook
+site.yml` alike, and to a tag-limited run such as `--tags certificates`. It overrides
+`inventory/group_vars/`, and anything given on the command line still overrides the file.
+The run reports what it applied:
+
+```
+TASK [report the endpoints the installer settings put in force] ****************
+ok: [localhost] => {
+    "msg": "Applied installer settings from /etc/fworch/fwo-install-settings.yml - api: fwo.example.com, middleware: fwo.example.com, ui: fwo.example.com"
+}
+```
+
+If that task does not appear, the file was not found and nothing in it is in force.
+
+It is shared by every clone on the host by design: two administrators upgrading the same
+installation from their own repositories would otherwise write different endpoints into
+`fworch.json` and have the certificates reissued for different names.
 
 A commented reference copy is installed next to it as
 `/etc/fworch/fwo-install-settings.template.yml`, refreshed on every run. It is never read

@@ -64,6 +64,8 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
+            WfReqTask? previousTask = previousTicket.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var variables = BuildReqTaskUpdateVariables(reqtask);
@@ -78,6 +80,11 @@ namespace FWO.Services.Workflow
                 {
                     await UpdateReqElementsInDb(reqtask);
                     await UpdateOwnersInDb(reqtask);
+                    if (previousTask != null)
+                    {
+                        await LogWorkflowChange(reqtask.TicketId, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                            "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester);
+                    }
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
             }

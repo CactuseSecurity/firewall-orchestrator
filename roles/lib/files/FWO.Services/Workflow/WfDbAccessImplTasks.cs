@@ -56,6 +56,10 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task UpdateImplTaskInDb(WfImplTask impltask, WfReqTask reqtask)
         {
+            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
+            WfImplTask? previousTask = previousTicket.Tasks
+                .SelectMany(task => task.ImplementationTasks)
+                .FirstOrDefault(task => task.Id == impltask.Id);
             try
             {
                 var variables = BuildImplTaskUpdateVariables(impltask);
@@ -69,6 +73,11 @@ namespace FWO.Services.Workflow
                 {
                     await UpdateImplElementsInDb(impltask);
                     await UpdateOwnersInDb(reqtask);
+                    if (previousTask != null)
+                    {
+                        await LogWorkflowChange(reqtask.TicketId, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester);
+                    }
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }
             }

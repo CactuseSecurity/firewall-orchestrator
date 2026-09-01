@@ -32,5 +32,17 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("change_source"), JsonPropertyName("change_source")]
         public string ChangeSource { get; set; } = GlobalConst.kManual;
+
+        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
+        public long? TicketId { get; set; }
+
+        [JsonProperty("workflow_phase"), JsonPropertyName("workflow_phase")]
+        public int? WorkflowPhase { get; set; }
+
+        [JsonProperty("old_data"), JsonPropertyName("old_data")]
+        public object? OldData { get; set; }
+
+        [JsonProperty("new_data"), JsonPropertyName("new_data")]
+        public object? NewData { get; set; }
     }
 }

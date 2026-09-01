@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -60,6 +60,8 @@ namespace FWO.Test
             public int NewCommentCallCount { get; private set; }
             public int AssignImplCommentCallCount { get; private set; }
             public int UpdateTicketStateCallCount { get; private set; }
+            public int AddHistoryEntryCallCount { get; private set; }
+            public object? LastHistoryVariables { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -67,6 +69,12 @@ namespace FWO.Test
                 {
                     List<TicketId> ids = RegisteredTicketIds.ConvertAll(id => new TicketId { Id = id });
                     return Task.FromResult((T)(object)ids);
+                }
+                if (query == ModellingQueries.addHistoryEntry)
+                {
+                    AddHistoryEntryCallCount++;
+                    LastHistoryVariables = variables;
+                    return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
                 if (query == RequestQueries.getTicketById)
                 {
@@ -586,6 +594,71 @@ namespace FWO.Test
             WfTicket result = await dbAccess.UpdateTicketInDb(ticket);
 
             Assert.That(result, Is.SameAs(ticket));
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_LogsPostRequestChangeByDifferentUser()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Title = "Old title",
+                    StateId = 2,
+                    Requester = new UiUser { DbId = 7 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval);
+            WfTicket ticket = new()
+            {
+                Id = 101,
+                Title = "Corrected title",
+                StateId = 2
+            };
+
+            await dbAccess.UpdateTicketInDb(ticket);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(apiConn.LastHistoryVariables, Is.Not.Null);
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_DoesNotLogRequesterChange()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Title = "Old title",
+                    StateId = 2,
+                    Requester = new UiUser { DbId = 42 }
+                }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.approval);
+            WfTicket ticket = new()
+            {
+                Id = 101,
+                Title = "Corrected title",
+                StateId = 2
+            };
+
+            await dbAccess.UpdateTicketInDb(ticket);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.Zero);
         }
 
         [Test]

@@ -380,3 +380,22 @@ create table time_object
 	flow_timeobj_id BIGINT,
 	flow_active BOOLEAN NOT NULL Default FALSE
 );
+
+-- central, append-only history for modelling and workflow changes
+CREATE TABLE change_history
+(
+    id BIGSERIAL PRIMARY KEY,
+    app_id INTEGER,
+    ticket_id BIGINT,
+    change_type INTEGER,
+    object_type INTEGER,
+    object_id BIGINT,
+    change_text TEXT,
+    changer VARCHAR,
+    -- Kept timezone-naive for compatibility with migrated modelling history.
+    change_time TIMESTAMP DEFAULT NOW(),
+    change_source VARCHAR DEFAULT 'manual',
+    workflow_phase INTEGER,
+    old_data JSONB,
+    new_data JSONB
+);

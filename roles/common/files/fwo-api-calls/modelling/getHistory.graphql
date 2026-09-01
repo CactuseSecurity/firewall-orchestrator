@@ -2,7 +2,7 @@ query getHistory (
   $limit: Int
   $offset: Int
 ){
-  modelling_change_history (
+  change_history (
     limit: $limit
     offset: $offset
     order_by: { change_time: desc }
@@ -16,5 +16,9 @@ query getHistory (
     changer
     change_time
     change_source
+    ticket_id
+    workflow_phase
+    old_data
+    new_data
   }
 }

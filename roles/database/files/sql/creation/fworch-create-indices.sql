@@ -132,3 +132,8 @@ Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;
+
+-- central change history
+CREATE INDEX IF NOT EXISTS idx_change_history_app_id ON change_history (app_id);
+CREATE INDEX IF NOT EXISTS idx_change_history_ticket_id ON change_history (ticket_id);
+CREATE INDEX IF NOT EXISTS idx_change_history_change_time ON change_history (change_time DESC);

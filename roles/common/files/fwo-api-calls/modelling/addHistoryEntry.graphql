@@ -6,8 +6,12 @@ mutation addHistoryEntry(
   $changeText: String
   $changer: String!
   $changeSource: String
+  $ticketId: bigint
+  $workflowPhase: Int
+  $oldData: jsonb
+  $newData: jsonb
 ) {
-  insert_modelling_change_history(
+  insert_change_history(
     objects: {
       app_id: $appId
       change_type: $changeType
@@ -16,6 +20,10 @@ mutation addHistoryEntry(
       change_text: $changeText
       changer: $changer
       change_source: $changeSource
+      ticket_id: $ticketId
+      workflow_phase: $workflowPhase
+      old_data: $oldData
+      new_data: $newData
     }
   ) {
     returning {

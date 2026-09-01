@@ -1,5 +1,5 @@
 query getHistoryForApp ($appId: Int!){
-  modelling_change_history (where: {app_id: {_eq: $appId}} order_by: { change_time: desc }){
+  change_history (where: {app_id: {_eq: $appId}} order_by: { change_time: desc }){
     id
     app_id
     change_type
@@ -9,5 +9,9 @@ query getHistoryForApp ($appId: Int!){
     changer
     change_time
     change_source
+    ticket_id
+    workflow_phase
+    old_data
+    new_data
   }
 }

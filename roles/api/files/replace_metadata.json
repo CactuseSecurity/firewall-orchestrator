@@ -2605,13 +2605,19 @@
             {
               "table": {
                 "name": "change_history",
-                "schema": "modelling"
+                "schema": "public"
               },
               "object_relationships": [
                 {
                   "name": "owner",
                   "using": {
                     "foreign_key_constraint_on": "app_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
                   }
                 }
               ],
@@ -2629,8 +2635,44 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": ["object_id", "changer", "change_text", "app_id", "change_type", "object_type", "change_source", "ticket_id", "workflow_phase", "old_data", "new_data"]
                   },
                   "comment": ""
                 },
@@ -2647,7 +2689,11 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ]
                   },
                   "comment": ""
@@ -2665,7 +2711,11 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ]
                   },
                   "comment": ""
@@ -2684,7 +2734,11 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ],
                     "filter": {}
                   },
@@ -2701,6 +2755,38 @@
                   "comment": ""
                 },
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": ["id"],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": ["id"],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": ["id"],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["id"],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "modeller",
                   "permission": {
                     "columns": [
@@ -2712,7 +2798,11 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ],
                     "filter": {}
                   },
@@ -2730,7 +2820,11 @@
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data"
                     ],
                     "filter": {}
                   },
@@ -14114,7 +14208,7 @@
                       "column": "app_id",
                       "table": {
                         "name": "change_history",
-                        "schema": "modelling"
+                        "schema": "public"
                       }
                     }
                   }

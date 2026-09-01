@@ -19,6 +19,7 @@ namespace FWO.Services
 
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
+        private readonly FlowHashRecalculator flowHashRecalculator;
 
         /// <summary>
         /// Creates a new flow sync service with API access.
@@ -27,6 +28,7 @@ namespace FWO.Services
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            flowHashRecalculator = new FlowHashRecalculator(apiConnection);
         }
 
         /// <summary>
@@ -50,6 +52,41 @@ namespace FWO.Services
                 TimeObjects = timeObjects,
                 Accesses = accesses
             });
+        }
+
+        /// <summary>
+        /// Fetches the flow data and makes sure its hashes match the current hash logic. If they do not,
+        /// the hashes stored in the flow database are recalculated and the flow data is fetched again.
+        /// </summary>
+        /// <returns>The consistent flow data, or null if the hashes could not be brought in line.</returns>
+        private async Task<FlowSyncFlowData?> GetConsistentFlowDataAsync(int mgmId)
+        {
+            FlowSyncFlowData flowData = await GetFlowSyncDataAsync(mgmId);
+
+            if (!flowData.HasHashInconsistencies())
+            {
+                return flowData;
+            }
+
+            Log.WriteWarning(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}, recalculating flow hashes.");
+
+            FlowHashRecalculationOutcome outcome = await flowHashRecalculator.RecalculateFlowHashesAsync(flowData);
+
+            if (outcome != FlowHashRecalculationOutcome.Updated)
+            {
+                Log.WriteError(LogMessageTitle, $"Flow hashes could not be recalculated, skipping management {mgmId}.");
+                return null;
+            }
+
+            flowData = await GetFlowSyncDataAsync(mgmId);
+
+            if (flowData.HasHashInconsistencies())
+            {
+                Log.WriteError(LogMessageTitle, $"Hash inconsistencies remain after recalculation, skipping management {mgmId}.");
+                return null;
+            }
+
+            return flowData;
         }
 
         /// <summary>
@@ -142,11 +179,10 @@ namespace FWO.Services
                 return false;
             }
 
-            var flowData = await GetFlowSyncDataAsync(mgmId);
+            var flowData = await GetConsistentFlowDataAsync(mgmId);
 
-            if (flowData.HasHashInconsistencies())
+            if (flowData == null)
             {
-                Log.WriteError(LogMessageTitle, $"Hash inconsistencies found for management {mgmId}.");
                 return false;
             }
 

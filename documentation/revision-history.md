@@ -614,8 +614,7 @@ Not supported any longer are:
 - increase of unit-tests
 - Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
 
-## 9.4.1 - 25.08.2026
-- fix: importer chunked API calls now refresh the JWT and retry only the failed chunk when the token expires mid-loop, instead of losing the remaining chunks and accumulated results
+## 9.4.1 - 17.08.2026
 - add nat import for checkpoint and forti firewall managements
 - fix checkpoint import policy install detection
 - fix nat rules report
@@ -638,3 +637,4 @@ Not supported any longer are:
 
 ## 9.4.5 - 01.09.2026
 - FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
+- fix: importer chunked API calls now refresh the JWT and retry only the failed chunk when the token expires mid-loop, instead of losing the remaining chunks and accumulated results

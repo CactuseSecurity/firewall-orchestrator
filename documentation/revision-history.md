@@ -642,3 +642,14 @@ Not supported any longer are:
   - validated Apache intermediate certificate-chain references for administrator-managed certificates
 - application roles may now only be changed by an owner holding the modeller role
 - the ldap connection passwords are no longer readable via the API, not even for auditors
+- installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
+  so an installation that must be addressed under a specific DNS name - a name an
+  administrator-managed certificate was issued for, above all - is configured in one place
+- installer: new host-wide settings file /etc/fworch/fwo-install-settings.yml,
+  read by every installer run from any clone on the host and outside the git repository, so
+  local settings survive git pull and every administrator upgrades with the same endpoints;
+  fwo_endpoint_hostname there names all endpoints of a single-host installation at once,
+  and a commented fwo-install-settings.template.yml is installed beside it for reference
+- the middleware no longer waits for an unreachable API forever before starting its web server;
+  it now names the endpoint and what to check in the log and exits, instead of reporting itself
+  as running while its reverse proxy answers 503

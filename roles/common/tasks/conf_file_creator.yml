@@ -17,9 +17,13 @@
         product_version: "{{ product_version }}"
         fworch_home: "{{ fworch_home }}"
         dotnet_mode: "{{ dotnet_mode }}" 
-        api_uri: "https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+        # Every endpoint is taken from the inventory derived variable rather than
+        # rebuilt here: a second copy of the same expression is how the deployed
+        # configuration and the certificate SANs, which are built from those same
+        # variables, silently end up describing different endpoints.
+        api_uri: "{{ api_uri }}"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
-        middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
+        middleware_native_uri: "{{ middleware_native_uri }}"
         middleware_uri: "{{ middleware_uri }}"
         tls_client_certificate: "{{ internalca_client_certificate }}"
         tls_client_private_key: "{{ internalca_client_private_key }}"

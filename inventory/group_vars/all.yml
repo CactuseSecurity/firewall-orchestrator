@@ -10,11 +10,37 @@ installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
 installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
 
 ### host information
+# Every name below is taken from inventory/hosts.yml, which is therefore the single
+# place a host has to be renamed. That matters for TLS: the names derived here end up
+# in api_uri, middleware_uri and the Apache certificate's subjectAltName alike, so an
+# installation whose endpoints must be addressed under a specific name - a DNS name a
+# retained administrator-managed certificate was issued for, above all - only has to
+# carry that name in inventory/hosts.yml. See documentation/certificates.md.
+#
+# One name for all three FWO endpoints, for the common case of a single host that has to
+# be addressed under a specific DNS name. Empty by default, which leaves every name
+# exactly as the inventory has it. It exists because inventory/hosts.yml is a tracked
+# file in the git repository the installer is run from, so an edit there is lost by a
+# fresh clone and conflicts on git pull: set this in the host wide settings file below
+# instead, which lives outside the repository. Only correct when the api, middleware and
+# ui are on one host - roles/common refuses a multi host inventory with it set.
+fwo_endpoint_hostname: ""
+# Operator owned installer input, read by scripts/run-playbook-with-sudo.sh and passed as
+# extra variables, so it outranks everything in this file. Shared by every clone on the
+# host on purpose: two administrators upgrading the same installation from their own
+# repositories would otherwise write different endpoints into fworch.json and have
+# certificates reissued for different names. The path is also hard coded in that script,
+# which cannot read Ansible variables - keep the two in step, and see the script for the
+# FWORCH_LOCAL_SETTINGS override that a relocated fworch_home needs.
+fwo_install_settings_file: "{{ fworch_conf_dir }}/fwo-install-settings.yml"
 importer_hostname: "{{ groups['importers'].0 }}"
-ui_hostname: "{{ groups['frontends'].0 }}"
+ui_hostname: "{{ fwo_endpoint_hostname or groups['frontends'].0 }}"
 syslog_host: "{{ groups['logserver'].0 }}"
+# Not derived from fwo_endpoint_hostname: this is the inventory host the database tasks
+# are delegated to, not an address anything connects to (that is fworch_db_connect_host),
+# and delegate_to only accepts a name the inventory actually has.
 fworch_db_host: "{{ groups['databaseserver'].0 }}"
-api_hostname: "{{  groups['apiserver'].0 }}"
+api_hostname: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
 
 # fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
@@ -83,9 +109,9 @@ fworch_systemd_start_limit_burst: 30
 fworch_ui_memory_max_percent: 50
 fworch_middleware_memory_max_percent: 30
 fworch_importer_memory_max_percent: 40
-fworch_ui_memory_max: "{{ 'infinity' if fworch_ui_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_ui_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
-fworch_middleware_memory_max: "{{ 'infinity' if fworch_middleware_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_middleware_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
-fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_importer_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_ui_memory_max: "{{ 'infinity' if fworch_ui_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_ui_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_middleware_memory_max: "{{ 'infinity' if fworch_middleware_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_middleware_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_importer_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
 
 ### internal certificate authority
 # Only the settings below are global. Everything else the internalCA role needs
@@ -214,6 +240,15 @@ postgresql_listening_addresses: >-
      else ([api_local_listening_ip_address]
            + ([ipv6_loopback_address] if ipv6_loopback_available | bool else [])) | join(',') }}
 
+# The address a client opens its PostgreSQL connection to. Deliberately not
+# fworch_db_host: that one names the inventory host the database tasks are delegated
+# to, and renaming it in inventory/hosts.yml must not change where clients connect.
+# On a single host installation PostgreSQL listens on loopback only (see
+# postgresql_listening_addresses) and pg_hba grants access to 127.0.0.0/8 and ::1/128
+# alone, so any other address - including the host's own DNS name - is refused.
+fworch_db_connect_host: >-
+  {{ fworch_db_host if distributed_install | default(false) | bool else ipv4_loopback_address }}
+
 ###############################################################
 ### api
 api_service_name: fworch-hasura-api
@@ -223,7 +258,7 @@ api_legacy_service_names:
   - fworch-hasura-docker-api
   - hasura-docker-api
 api_local_listening_ip_address: "127.0.0.1"
-api_network_listening_ip_address: "{{ groups['apiserver'].0 }}"
+api_network_listening_ip_address: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 # api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"
 # api_server_ip_address: "{{ groups['apiserver'].0 }}"
 api_web_port: 9443
@@ -238,7 +273,12 @@ jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
 ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 
-middleware_hostname: "127.0.0.1"
+# The public name of the middleware Apache endpoint: what middleware_uri is addressed
+# under, what its certificate has to be valid for, and what Apache serves as
+# ServerName. Taken from the inventory like every other endpoint name, so a renamed
+# host needs no second edit here. This is *not* the address the middleware's own web
+# server binds to - see middleware_native_listener_address below.
+middleware_hostname: "{{ fwo_endpoint_hostname or groups['middlewareserver'].0 }}"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 openldap_server_enable_ssl: true
@@ -319,6 +359,16 @@ middleware_web_listener_port: 8888
 middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
+# The address the middleware's own web server binds to, and the same address its
+# Apache reverse proxy forwards to - the proxy is installed by roles/middleware and is
+# therefore always on the middleware host itself, so this never has to leave loopback.
+# Kept apart from middleware_hostname on purpose: Kestrel treats every host name other
+# than "localhost" as a wildcard bind, so putting a routable name here would publish
+# middleware_internal_port on every interface, unauthenticated and without TLS, behind
+# the reverse proxy's back. An IPv4 literal rather than "localhost", so the bind and
+# the proxy target cannot end up on different loopback families.
+middleware_native_listener_address: "{{ ipv4_loopback_address }}"
+middleware_native_uri: "http://{{ middleware_native_listener_address }}:{{ middleware_internal_port }}/"
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"

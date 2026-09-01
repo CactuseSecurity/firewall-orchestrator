@@ -69,6 +69,80 @@ JWT, so demanding an FWO-issued client identity there would make it unusable
 for its purpose. It is still served over TLS with an internal CA certificate,
 so callers should verify it against the CA trust anchor described above.
 
+## Host names come from the inventory
+
+Every name FWO addresses itself under is derived from `inventory/hosts.yml`, and that
+is the only file to edit when an installation has to use a particular name. Renaming
+the host there moves all of these at once:
+
+| Name | Built from | Used for |
+| --- | --- | --- |
+| `api_uri` | `api_network_listening_ip_address` | middleware and UI GraphQL connections, API integration tests |
+| `middleware_uri` | `middleware_hostname` | UI, importer, `api-docs` availability test |
+| UI endpoint | `ui_hostname`, `ui_server_name` | browsers, UI availability test |
+
+All three are validated against the trust bundle, so each has to appear in the
+subjectAltName of the certificate its Apache endpoint serves. `roles/internalCA`
+collects exactly these variables when it issues that certificate, so an FWO-issued
+certificate always covers them however the host is named.
+
+An **administrator-managed certificate is the case that needs attention**: FWO cannot
+add names to it, so the configuration has to be brought to the certificate rather than
+the other way round. On a single-host installation, one line does it:
+
+```yaml
+# /etc/fworch/fwo-install-settings.yml
+fwo_endpoint_hostname: fwo.example.com
+```
+
+That file lives outside the git repository, so it survives `git pull` and a fresh clone,
+and it applies to every clone on the host - including a `--tags certificates` renewal run
+by a second administrator, which therefore reissues for the same names as the original
+install. See *host-wide installer settings* in
+`documentation/installer/install-advanced.md`.
+
+The alternative, and the only option when the components are spread over several hosts,
+is to name the hosts in `inventory/hosts.yml` themselves:
+
+```yaml
+all:
+  hosts:
+    fwo.example.com:
+      ip_address: 10.1.1.81
+      ansible_connection: local
+  children:
+    frontends:
+      hosts: { fwo.example.com: }
+    # ... the same host in every other group
+```
+
+Keep such an edit as a local git commit and upgrade with `git pull --rebase`, or the next
+upgrade will either conflict with it or discard it.
+
+Leaving the shipped `localhost` in place while the vhost serves a certificate issued
+for `fwo.example.com` makes every FWO client reject its own API: the URL says
+`localhost`, the certificate says something else, and a name mismatch fails validation
+before the chain is even considered.
+
+The middleware cannot start without its first API query, so this shows up as a `503`
+from its Apache reverse proxy. It does not wait for the API indefinitely: after a
+bounded startup budget it logs the endpoint it addressed and what to check, then exits
+with code 78 so systemd reports and restarts it. `journalctl -u fworch-middleware` is
+therefore where the cause is, in both directions - a service that keeps restarting with
+that message has a certificate or configuration problem, one that never gets that far
+has no API at all.
+
+Two addresses deliberately do **not** follow the inventory name, because they are
+internal and their services only listen on loopback on a single-host installation:
+
+- `middleware_native_listener_address` - the address the middleware's own web server
+  binds to, and the address its reverse proxy forwards to. Kestrel treats any host
+  name other than `localhost` as a wildcard bind, so a routable name here would
+  publish the unauthenticated, plain-HTTP middleware port on every interface.
+- `fworch_db_connect_host` - the address clients open PostgreSQL connections to.
+  PostgreSQL listens on loopback and `pg_hba.conf` grants `127.0.0.0/8` and `::1/128`
+  only, unless `distributed_install` is set.
+
 To use an administrator
 managed Apache certificate, set `internalca_issue_apache_certificate: false`
 and provide `internalca_apache_certificate` and

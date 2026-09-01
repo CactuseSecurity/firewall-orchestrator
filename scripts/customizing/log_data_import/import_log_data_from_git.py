@@ -8,11 +8,16 @@ import logging
 import sys
 import urllib.parse
 from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO, cast
 
-from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
+from scripts.customizing.fwo_custom_lib.basic_helpers import (
+    get_logger,
+    read_custom_config,
+    read_custom_config_with_default,
+)
 from scripts.customizing.fwo_custom_lib.git_helpers import (
     commit_and_push_deletions,
     parse_git_depth_arg,
@@ -21,12 +26,14 @@ from scripts.customizing.fwo_custom_lib.git_helpers import (
 
 DEFAULT_CONFIG_FILE: str = "/usr/local/fworch/etc/secrets/customizingConfig.json"
 DEFAULT_REPOSITORY_DIRECTORY: str = "/usr/local/fworch/etc/logDataRepo"
+START_PATH_CONFIG_KEY: str = "logDataGitRepoStartPath"
 CSV_PATTERN: str = "*.csv"
 OUTPUT_FILE: Path = Path(__file__).with_suffix(".json")
 # the manifest is deliberately kept outside the cloned repository: it decides which files the
 # acknowledgement deletes and pushes, so it must not be something the log repository can provide
 MANIFEST_FILE: Path = OUTPUT_FILE.with_name(".fwo-log-import-manifest.json")
 MAX_PENDING_REUSES: int = 3
+MAX_REPORTED_EXAMPLE_ROWS: int = 5
 REUSES_KEY: str = "reuses"
 ACKNOWLEDGE_FAILURES_KEY: str = "acknowledge_failures"
 COMMIT_MESSAGE: str = "chore: remove imported log data"
@@ -36,11 +43,86 @@ PORT_PROTOCOLS: tuple[int, int] = (6, 17)
 LogDataEntry = dict[str, str | int | None]
 
 
+@dataclass
+class RejectedFile:
+    """
+    What could not be imported from one CSV file.
+
+    A file with an unconvertible row is kept in the repository as a whole, so the reason has to
+    survive the rejection of the file: the summary at the end of the run is the only place which
+    reports how much data is still waiting and which lines hold it back.
+    """
+
+    reason: str = ""
+    row_count: int = 0
+    examples: list[str] = field(default_factory=list[str])
+
+    def add_row(self, line_number: int, reason: str) -> None:
+        """Count one line which cannot be imported, keeping the first few as examples."""
+        self.row_count += 1
+        if len(self.examples) < MAX_REPORTED_EXAMPLE_ROWS:
+            self.examples.append(f"line {line_number}: {reason}")
+
+
+@dataclass
+class ConversionResult:
+    """What one run made of the CSV files found in the log data repository."""
+
+    entries: list[LogDataEntry] = field(default_factory=list[LogDataEntry])
+    converted_files: list[Path] = field(default_factory=list[Path])
+    rejected_files: dict[str, RejectedFile] = field(default_factory=dict[str, RejectedFile])
+
+
 def get_optional_value(config_file: str, key: str, default: str, logger: logging.Logger) -> str:
-    try:
-        return read_custom_config(config_file, key, logger=logger)
-    except (KeyError, ValueError):
+    """Read an optional string setting, returning its default when it is absent or invalid."""
+    configured_value: object = read_custom_config_with_default(config_file, key, default, logger)
+    if not isinstance(configured_value, str):
+        logger.warning("%s must be a string in config file %s; using the default", key, config_file)
         return default
+    return configured_value
+
+
+def get_csv_search_directory(config_file: str, repository_directory: Path, logger: logging.Logger) -> Path | None:
+    """
+    Return the configured CSV directory, refusing paths outside the cloned repository.
+
+    The returned directory keeps the repository directory as its prefix instead of being resolved:
+    the files found below it are reported and acknowledged relative to the repository directory, and
+    a resolved prefix is no prefix of it any more as soon as the configured repository directory is
+    a symbolic link or is not written out in its shortest form. Only the containment check resolves,
+    because a symbolic link inside the repository must not be able to lead the search out of it.
+    """
+    configured_start_path: str = get_optional_value(config_file, START_PATH_CONFIG_KEY, "", logger).strip()
+    if not configured_start_path:
+        return repository_directory
+    start_path: Path = Path(configured_start_path)
+    if start_path.is_absolute():
+        logger.error("%s must be a repository-relative directory", START_PATH_CONFIG_KEY)
+        return None
+    search_directory: Path = repository_directory / start_path
+    resolved_repository_directory: Path = repository_directory.resolve()
+    resolved_search_directory: Path = search_directory.resolve()
+    if not resolved_search_directory.is_relative_to(resolved_repository_directory):
+        logger.error("%s must name a directory within the log data repository", START_PATH_CONFIG_KEY)
+        return None
+    if not resolved_search_directory.is_dir():
+        logger.error("%s does not name an existing directory in the log data repository", START_PATH_CONFIG_KEY)
+        return None
+    return search_directory
+
+
+def find_csv_files(search_directory: Path, logger: logging.Logger) -> list[Path] | None:
+    """Find CSV files without allowing symbolic links to escape the selected directory."""
+    resolved_search_directory: Path = search_directory.resolve()
+    csv_files: list[Path] = sorted(search_directory.rglob(CSV_PATTERN))
+    for csv_file in csv_files:
+        if not csv_file.resolve().is_relative_to(resolved_search_directory):
+            logger.error(
+                "CSV file %s resolves outside the selected log data search directory",
+                csv_file.relative_to(search_directory),
+            )
+            return None
+    return csv_files
 
 
 def parse_optional_int(value: str) -> int | None:
@@ -48,10 +130,14 @@ def parse_optional_int(value: str) -> int | None:
     return int(stripped_value) if stripped_value else None
 
 
-def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging.Logger) -> list[LogDataEntry]:
+def convert_csv_file(
+    csv_file: Path,
+    repository_directory: Path,
+    rejected: RejectedFile,
+    logger: logging.Logger,
+) -> list[LogDataEntry]:
     """Convert every row of one CSV file, rejecting the complete file if any row is invalid."""
     converted: list[LogDataEntry] = []
-    rejected_row_count: int = 0
     with csv_file.open(newline="", encoding="utf-8-sig") as file_handle:
         typed_file_handle: TextIO = file_handle
         reader: csv.DictReader[str] = csv.DictReader(typed_file_handle)
@@ -59,28 +145,80 @@ def convert_csv_file(csv_file: Path, repository_directory: Path, logger: logging
             raise ValueError(f"{csv_file} is missing one or more mandatory columns")
         for line_number, row in enumerate(reader, start=2):
             converted_row: LogDataEntry | None = convert_row_or_log_error(
-                row, csv_file, repository_directory, line_number, logger
+                row, csv_file, repository_directory, line_number, rejected, logger
             )
-            if converted_row is None:
-                rejected_row_count += 1
-            else:
+            if converted_row is not None:
                 converted.append(converted_row)
-    if rejected_row_count > 0:
-        raise ValueError(f"{rejected_row_count} row(s) could not be converted")
+    if rejected.row_count > 0:
+        raise ValueError(f"{rejected.row_count} row(s) could not be converted")
     return converted
 
 
 def convert_csv_file_or_log_error(
     csv_file: Path,
     repository_directory: Path,
+    rejected: RejectedFile,
     logger: logging.Logger,
 ) -> list[LogDataEntry] | None:
     """Convert one file, an unusable file is reported and skipped so the other files still import."""
     try:
-        return convert_csv_file(csv_file, repository_directory, logger)
+        return convert_csv_file(csv_file, repository_directory, rejected, logger)
     except (OSError, UnicodeDecodeError, ValueError) as exception:
         logger.warning("ignoring %s: %s", csv_file.relative_to(repository_directory), exception)
+        rejected.reason = str(exception)
         return None
+
+
+def convert_repository_files(
+    csv_files: list[Path],
+    repository_directory: Path,
+    logger: logging.Logger,
+) -> ConversionResult:
+    """Convert every CSV file found in the repository, keeping track of the skipped ones."""
+    result: ConversionResult = ConversionResult()
+    for csv_file in csv_files:
+        rejected: RejectedFile = RejectedFile()
+        file_entries: list[LogDataEntry] | None = convert_csv_file_or_log_error(
+            csv_file, repository_directory, rejected, logger
+        )
+        if file_entries is None:
+            result.rejected_files[csv_file.relative_to(repository_directory).as_posix()] = rejected
+            continue
+        result.entries.extend(file_entries)
+        result.converted_files.append(csv_file)
+    return result
+
+
+def report_conversion_summary(result: ConversionResult, logger: logging.Logger) -> None:
+    """
+    Report what the run imported and what it had to leave behind.
+
+    The middleware reads the output of this script into its own log, so this summary is what an
+    operator finds in middleware.log. The per-row warnings alone do not say how much data is still
+    waiting in the repository, and a file which keeps being skipped is invisible between the runs.
+    """
+    logger.info("converted %s CSV files into %s log entries", len(result.converted_files), len(result.entries))
+    if not result.rejected_files:
+        return
+    rejected_row_count: int = sum(rejected.row_count for rejected in result.rejected_files.values())
+    logger.info(
+        "%s CSV file(s) with %s not importable line(s) were kept in the log data repository for the next run",
+        len(result.rejected_files),
+        rejected_row_count,
+    )
+    for source_name, rejected in sorted(result.rejected_files.items()):
+        logger.info("not imported from %s: %s", source_name, describe_rejected_file(rejected))
+
+
+def describe_rejected_file(rejected: RejectedFile) -> str:
+    """Describe one skipped file, naming up to MAX_REPORTED_EXAMPLE_ROWS of its lines as examples."""
+    if not rejected.examples:
+        return rejected.reason
+    examples: str = "; ".join(rejected.examples)
+    remaining_row_count: int = rejected.row_count - len(rejected.examples)
+    if remaining_row_count > 0:
+        return f"{rejected.row_count} not importable line(s), for example {examples}; {remaining_row_count} more"
+    return f"{rejected.row_count} not importable line(s): {examples}"
 
 
 def convert_row_or_log_error(
@@ -88,12 +226,15 @@ def convert_row_or_log_error(
     csv_file: Path,
     repository_directory: Path,
     line_number: int,
+    rejected: RejectedFile,
     logger: logging.Logger,
 ) -> LogDataEntry | None:
+    """Convert one row, recording an unconvertible one for the summary of the run."""
     try:
         return convert_row(row)
     except (TypeError, ValueError) as exception:
         logger.warning("ignoring %s line %s: %s", csv_file.relative_to(repository_directory), line_number, exception)
+        rejected.add_row(line_number, str(exception))
         return None
 
 
@@ -330,17 +471,15 @@ def import_data(config_file: str, depth: int | None, logger: logging.Logger) -> 
     repo_url: str = f"https://{git_user}:{urllib.parse.quote(git_password, safe='')}@{git_repo}"
     if not update_git_repo(repo_url, str(repository_directory), logger, branch=branch or None, depth=depth):
         return 1
-    csv_files: list[Path] = sorted(repository_directory.rglob(CSV_PATTERN))
-    entries: list[LogDataEntry] = []
-    converted_files: list[Path] = []
-    for csv_file in csv_files:
-        file_entries: list[LogDataEntry] | None = convert_csv_file_or_log_error(csv_file, repository_directory, logger)
-        if file_entries is None:
-            continue
-        entries.extend(file_entries)
-        converted_files.append(csv_file)
-    write_import_file(entries, converted_files, repository_directory)
-    logger.info("converted %s CSV files into %s log entries", len(converted_files), len(entries))
+    search_directory: Path | None = get_csv_search_directory(config_file, repository_directory, logger)
+    if search_directory is None:
+        return 1
+    csv_files: list[Path] | None = find_csv_files(search_directory, logger)
+    if csv_files is None:
+        return 1
+    conversion: ConversionResult = convert_repository_files(csv_files, repository_directory, logger)
+    write_import_file(conversion.entries, conversion.converted_files, repository_directory)
+    report_conversion_summary(conversion, logger)
     return 0
 
 

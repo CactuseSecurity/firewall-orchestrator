@@ -146,22 +146,34 @@
         ((ui_server_name | default('')) ~ ' ' ~ (ui_server_alias | default('')))
         | split
         | reject('in', internalca_placeholder_host_names)
-        | map('regex_replace', '^', 'DNS:')
         | list
       }}
-    # Every FWO Apache endpoint is also reached over loopback by local admin
-    # tooling, so localhost is always part of the host identity.
-    internalca_apache_subject_alt_names: >-
+    # Every name this host's FWO endpoints are addressed under, as plain host names.
+    # Collected from the same variables the endpoints themselves are built from -
+    # api_uri from api_network_listening_ip_address, middleware_uri from
+    # middleware_hostname, the ui tests from ui_hostname - so a name that reaches
+    # fworch.json, an integration test or a browser cannot be missing from the
+    # certificate. Every FWO Apache endpoint is also reached over loopback by local
+    # admin tooling, so localhost is always part of the host identity.
+    internalca_apache_host_names: >-
       {{
         (
-          ['DNS:' ~ inventory_hostname, 'DNS:' ~ ansible_facts['hostname'], 'DNS:localhost', 'IP:127.0.0.1']
-          + (['DNS:' ~ api_hostname] if 'apiserver' in group_names else [])
-          + (['IP:' ~ api_network_listening_ip_address] if 'apiserver' in group_names and api_network_listening_ip_address is match(internalca_ipv4_pattern) else [])
-          + (['DNS:' ~ middleware_hostname] if 'middlewareserver' in group_names else [])
-          + (['IP:' ~ middleware_hostname] if 'middlewareserver' in group_names and middleware_hostname is match(internalca_ipv4_pattern) else [])
-          + (['DNS:' ~ ui_hostname] + internalca_ui_host_names if 'frontends' in group_names else [])
-          + (['IP:' ~ ui_hostname] if 'frontends' in group_names and ui_hostname is match(internalca_ipv4_pattern) else [])
-        ) | unique
+          [inventory_hostname, ansible_facts['hostname'], 'localhost', ipv4_loopback_address]
+          + ([api_hostname, api_network_listening_ip_address] if 'apiserver' in group_names else [])
+          + ([middleware_hostname] if 'middlewareserver' in group_names else [])
+          + ([ui_hostname] + internalca_ui_host_names if 'frontends' in group_names else [])
+        ) | reject('equalto', '') | unique
+      }}
+    # An IP literal is only matched by an iPAddress SAN - a dNSName holding the same
+    # digits is not - so each collected name is emitted as the entry type it can
+    # actually be matched by. Deciding it here rather than at every call site is what
+    # lets a name be put into the inventory without also knowing which kind it is.
+    internalca_apache_subject_alt_names: >-
+      {{
+        (internalca_apache_host_names | select('match', internalca_ipv4_pattern)
+          | map('regex_replace', '^', 'IP:') | list)
+        + (internalca_apache_host_names | reject('match', internalca_ipv4_pattern)
+          | map('regex_replace', '^', 'DNS:') | list)
       }}
 
 - name: Issue internal CA certificates for this host

@@ -2,6 +2,13 @@
 
 It is really simple.
 
+Anything you configured for this host belongs in
+`/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is
+outside the git repository, so `git pull` and a fresh clone leave it alone and the
+upgrade keeps your endpoint names and certificates. See *host-wide installer settings*
+in `install-advanced.md`. If you did edit a file under `inventory/`, commit it locally
+and upgrade with `git pull --rebase`, or the edit is lost or conflicts below.
+
 Always (re-)create the installer Ansible environment before upgrading. This
 installs the pinned Ansible version and refreshes the required collections, so
 security fixes to pinned collections actually reach the server. The pinned

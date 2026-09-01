@@ -1,0 +1,27 @@
+query getActiveRulesByUids(
+  $active: Boolean
+  $import_id_start: bigint
+  $import_id_end: bigint
+  $mgm_ids: [Int!]!
+  $rule_uids: [String!]!
+) {
+  # Violation UIDs have already been selected and filtered. This second phase
+  # therefore loads full report data only for their current active rule versions.
+  firewall_rule(
+    order_by: { rule_uid: asc }
+    where: {
+      mgm_id: { _in: $mgm_ids }
+      rule_uid: { _in: $rule_uids }
+      removed: { _is_null: true }
+      access_rule: { _eq: true }
+    }
+  ) {
+    rule_src
+    rule_dst
+    ...ruleDetails
+    rulebase: rulebase {
+      id
+      name
+    }
+  }
+}

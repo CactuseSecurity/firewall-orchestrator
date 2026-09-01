@@ -1,7 +1,9 @@
-﻿using FWO.Api.Client;
+using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
 using FWO.Data;
 using FWO.Logging;
@@ -16,10 +18,11 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Provides request workflow data for flow request REST endpoints.
 /// </summary>
-public sealed class FlowRequestService
+public sealed class FlowRequestService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly ApiSubscription? configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -28,6 +31,25 @@ public sealed class FlowRequestService
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowRequestConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow request config", "Could not start flow-request config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed request-flow config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
     }
 
     /// <summary>
@@ -846,5 +868,11 @@ public sealed class FlowRequestService
             .OrderByDescending(comment => comment!.Comment.CreationDate)
             .Select(comment => comment!.Comment.CommentText)
             .FirstOrDefault() ?? string.Empty;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        configSubscription?.Dispose();
     }
 }

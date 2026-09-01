@@ -124,6 +124,15 @@ for `fwo.example.com` makes every FWO client reject its own API: the URL says
 `localhost`, the certificate says something else, and a name mismatch fails validation
 before the chain is even considered.
 
+An upgrade that keeps an administrator-managed certificate does not get that far.
+`roles/internalCA` reads the subjectAltName of the certificate it is about to retain and
+stops the run in its first minute if any of the three names above is missing from it,
+naming the missing names, what the certificate does cover, and `fwo_endpoint_hostname`
+as the remedy. A wildcard entry counts for the one label it covers, so a certificate
+issued as `*.example.com` satisfies `fwo.example.com`. A certificate with no
+subjectAltName at all never passes: the common name alone has not been accepted by
+either OpenSSL or .NET for years.
+
 The middleware cannot start without its first API query, so this shows up as a `503`
 from its Apache reverse proxy. It does not wait for the API indefinitely: after a
 bounded startup budget it logs the endpoint it addressed and what to check, then exits

@@ -145,6 +145,32 @@ internalca_peer_ca_intermediate_certificates: ""
 # no set_fact can narrow an extra variable.
 internalca_apache_intermediate_certificates: ""
 
+# Global rather than an internalCA role default because roles/tests-integration includes
+# roles/internalCA/tasks/validate-retained-apache-certificate.yml to test it, and a role
+# default is invisible from another role - which is how a variable ends up silently
+# undefined in exactly the run that was meant to check it.
+#
+# Single-quoted rather than a block scalar, so the backslash reaches Jinja verbatim.
+# Doubling it makes every IP literal fail the test, which silently drops the IP SAN
+# entries api_uri is built from and turns the retained certificate check into a
+# comparison of an IP against the dNSName entries it can never be matched by.
+internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+# The names FWO's own components address this host's endpoints by, taken from the very
+# variables the endpoints are built from - api_uri from
+# api_network_listening_ip_address, middleware_uri from middleware_hostname, the ui
+# tests from ui_hostname. Both the subjectAltName of a certificate FWO issues and the
+# preflight over a certificate FWO retains read this one list, because a name that only
+# one of them knows about is precisely how a green install ends up with an endpoint no
+# client can validate.
+internalca_endpoint_host_names: >-
+  {{
+    (
+      ([api_hostname, api_network_listening_ip_address] if 'apiserver' in group_names else [])
+      + ([middleware_hostname] if 'middlewareserver' in group_names else [])
+      + ([ui_hostname] if 'frontends' in group_names else [])
+    ) | reject('equalto', '') | unique | list
+  }}
+
 # read by roles/common (fworch.json) and roles/tests-integration
 internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
 internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"

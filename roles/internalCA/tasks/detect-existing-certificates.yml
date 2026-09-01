@@ -158,6 +158,14 @@
     - internalca_preserve_apache_certificate | default(false) | bool
     - internalca_peer_ca_certificate == internalca_ca_certificate_local
 
+# Checked here rather than at the first TLS handshake: without it the run stays green
+# for another ten minutes and then fails deep inside the integration tests with a bare
+# "Hostname mismatch", or with a middleware that never binds its port because the API
+# client rejected a certificate that does not name api_uri's host.
+- name: Require a retained Apache certificate to cover every FWO endpoint name
+  include_tasks: validate-retained-apache-certificate.yml
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
 - name: Check existing LDAP certificate and private key
   stat:
     path: "{{ item }}"

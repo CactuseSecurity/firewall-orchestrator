@@ -34,8 +34,12 @@
   assert:
     that:
       - >-
-        ('IP:' ~ item.name if item.name is match(test_ipv4_pattern) else 'DNS:' ~ item.name)
-        in (test_apache_certificate.subject_alt_name | default([], true))
+        item.name in test_certificate_ip_names
+        if item.name is match(test_ipv4_pattern)
+        else (
+          item.name | lower in test_certificate_dns_names
+          or item.name | lower | regex_replace('^[^.]+\.', '*.') in test_certificate_dns_names
+        )
     fail_msg: >-
       {{ internalca_apache_certificate }} on {{ inventory_hostname }} is not valid for
       {{ item.name }}, the host name {{ item.setting }} addresses this endpoint under.
@@ -49,3 +53,19 @@
   vars:
     # Block scalars keep backslashes verbatim, so this pattern uses single backslashes.
     test_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+    # Matched the same way roles/internalCA matches a certificate it retains, or this
+    # test rejects at the end of the run what the preflight deliberately accepted in its
+    # first minute: DNS names compared case insensitively because the resolver is, and a
+    # wildcard accepted for the one label it covers, which is how customer certificates
+    # are commonly issued. IP entries stay verbatim - an iPAddress entry is the only one
+    # an IP literal matches, and neither case nor wildcards apply to it.
+    test_certificate_dns_names: >-
+      {{
+        test_apache_certificate.subject_alt_name | default([], true) | select('match', '^DNS:')
+        | map('regex_replace', '^DNS:', '') | map('lower') | list
+      }}
+    test_certificate_ip_names: >-
+      {{
+        test_apache_certificate.subject_alt_name | default([], true) | select('match', '^IP:')
+        | map('regex_replace', '^IP:', '') | list
+      }}

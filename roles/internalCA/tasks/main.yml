@@ -122,10 +122,6 @@
            (internalca_ldap_user_lookup.ansible_facts.getent_passwd | default({}, true))
         else 'root'
       }}
-    # Block scalars keep backslashes verbatim, so this pattern uses single
-    # backslashes. Doubling them makes every IP literal fail the test and drops
-    # the IP SAN entries that api_uri is built from.
-    internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
     # LDAP clients now verify the host name (TLS_REQCERT demand), and openldap_server
     # is usually an IP literal, which only matches an iPAddress SAN - a dNSName
     # holding the same digits does not. Loopback stays in regardless, because slapd
@@ -149,19 +145,17 @@
         | list
       }}
     # Every name this host's FWO endpoints are addressed under, as plain host names.
-    # Collected from the same variables the endpoints themselves are built from -
-    # api_uri from api_network_listening_ip_address, middleware_uri from
-    # middleware_hostname, the ui tests from ui_hostname - so a name that reaches
-    # fworch.json, an integration test or a browser cannot be missing from the
-    # certificate. Every FWO Apache endpoint is also reached over loopback by local
-    # admin tooling, so localhost is always part of the host identity.
+    # The endpoint names themselves come from internalca_endpoint_host_names, the one
+    # list the retained certificate preflight also reads, so a name that reaches
+    # fworch.json or an integration test cannot be missing from the certificate. Added
+    # on top: the aliases only a browser uses, and loopback, because every FWO Apache
+    # endpoint is also reached there by local admin tooling.
     internalca_apache_host_names: >-
       {{
         (
           [inventory_hostname, ansible_facts['hostname'], 'localhost', ipv4_loopback_address]
-          + ([api_hostname, api_network_listening_ip_address] if 'apiserver' in group_names else [])
-          + ([middleware_hostname] if 'middlewareserver' in group_names else [])
-          + ([ui_hostname] + internalca_ui_host_names if 'frontends' in group_names else [])
+          + internalca_endpoint_host_names
+          + (internalca_ui_host_names if 'frontends' in group_names else [])
         ) | reject('equalto', '') | unique
       }}
     # An IP literal is only matched by an iPAddress SAN - a dNSName holding the same

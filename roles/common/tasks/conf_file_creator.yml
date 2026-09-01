@@ -66,7 +66,10 @@
   # rather than carried over: an operator who moves the middleware and upgrades
   # would otherwise keep the old endpoint here, the ui would keep addressing it,
   # and the integration tests read the same file and would agree with it instead
-  # of catching the divergence.
+  # of catching the divergence. dotnet_mode is refreshed for the same reason: the
+  # systemd units are templated from the inventory variable on every run, so a
+  # carried over value makes this file name a build configuration the services do
+  # not run from, which is exactly the wrong answer when it is read to diagnose one.
   - name: Add TLS identity paths and refresh derived endpoints during upgrade
     copy:
       content: >-
@@ -76,6 +79,7 @@
               'tls_client_certificate': internalca_client_certificate,
               'tls_client_private_key': internalca_client_private_key,
               'tls_ca_certificate': internalca_trust_bundle,
+              'dotnet_mode': config_json.dotnet_mode,
               'api_uri': config_json.api_uri,
               'middleware_uri': config_json.middleware_uri,
               'middleware_native_uri': config_json.middleware_native_uri

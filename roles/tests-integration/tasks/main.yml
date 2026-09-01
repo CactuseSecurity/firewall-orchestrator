@@ -117,6 +117,10 @@
   import_tasks: test-apache-endpoint-names.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
 
+- name: Retained certificate endpoint name preflight testing
+  import_tasks: test-retained-certificate-preflight.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
 - name: finalize handler for deleting test data
   set_fact:
     test_importer_handler_guard: stop

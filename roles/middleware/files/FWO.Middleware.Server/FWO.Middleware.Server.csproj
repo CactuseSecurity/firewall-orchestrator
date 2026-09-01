@@ -12,11 +12,11 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Include="Microsoft.OpenApi" Version="2.12.0" />
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="4.0.0" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.17.1" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.17.2" />
     <PackageReference Include="PuppeteerSharp" Version="25.8.0" />
-    <PackageReference Include="Quartz" Version="3.19.1" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.19.1" />
-    <PackageReference Include="Quartz.Serialization.Json" Version="3.19.1" />
+    <PackageReference Include="Quartz" Version="3.20.0" />
+    <PackageReference Include="Quartz.Extensions.Hosting" Version="3.20.0" />
+    <PackageReference Include="Quartz.Serialization.Json" Version="3.20.0" />
   </ItemGroup>
 
   <ItemGroup>

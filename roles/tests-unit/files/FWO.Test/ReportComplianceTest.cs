@@ -476,6 +476,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DetermineCompliance_AppliesAssessabilityPrecedenceOverViolationCount()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations()),
+                    Is.EqualTo(ComplianceViolationType.None));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(ComplianceViolationType.MatrixViolation)),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.MatrixViolation,
+                        ComplianceViolationType.ServiceViolation)),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.MatrixViolation,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+
+                // Several assessability issues must still read as not assessable, never as multiple violations.
+
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.NotAssessable,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+            });
+        }
+
+        [Test]
+        public void DetermineCompliance_CountsOnlyViolationsWithinThePrintedViolationLimit()
+        {
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            SimulatedGlobalConfig twoViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 2
+            };
+            MockReportCompliance singleViolationReport = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            MockReportCompliance twoViolationReport = new(new(""), UserConfig.ForTextOnly(twoViolationConfig), Basics.ReportType.ComplianceReport);
+            List<ComplianceViolation> violations = CreateTypedViolations(
+                ComplianceViolationType.MatrixViolation,
+                ComplianceViolationType.ServiceViolation,
+                ComplianceViolationType.MatrixViolation);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    singleViolationReport.DetermineCompliancePublic(violations),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    twoViolationReport.DetermineCompliancePublic(violations),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+            });
+        }
+
+        [Test]
         public async Task Generate_DiffReportLabelsSuppressedRuleWithNotAssessableAndRealViolationAsNotAssessable()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -736,6 +799,11 @@ namespace FWO.Test
                 },
                 Type = ComplianceViolationType.MatrixViolation
             };
+        }
+
+        private static List<ComplianceViolation> CreateTypedViolations(params ComplianceViolationType[] types)
+        {
+            return types.Select(type => new ComplianceViolation { Type = type }).ToList();
         }
 
         private static Rule CreateActiveRule(string ruleUid, ComplianceViolation? currentViolation = null, int mgmtId = 1)

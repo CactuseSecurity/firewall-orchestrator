@@ -1,3 +1,14 @@
+-- Groups carry no protocol of their own - their members do. Fmgr imports were
+-- previously normalizing service groups (svc_typ_id 2) with a concrete
+-- ip_proto_id (0 or the group's own protocol selector) instead of NULL.
+-- Align already-imported data with the corrected importers so the next
+-- import does not report this as a change.
+UPDATE firewall.nw_service
+SET ip_proto_id = NULL
+WHERE svc_typ_id = 2
+    AND ip_proto_id IS NOT NULL;
+
+
 -- Flow accesses created by the request workflow before 9.4.5 stored group based sources,
 -- destinations and services as group references only, although their access hash was calculated
 -- from the hashes of the group members. The member references in flow.access_source,

@@ -636,5 +636,6 @@ Not supported any longer are:
 - OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
 
 ## 9.4.5 - 01.09.2026
+- FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
 - Insert missing src/dst/svc references to flow.access entries created by workflow module
 - Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written.

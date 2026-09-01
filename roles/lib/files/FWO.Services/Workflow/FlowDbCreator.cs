@@ -379,7 +379,9 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Resolves or creates the Flow time object for a workflow payload using UTC time bounds.
+        /// Resolves or creates the Flow time object for a workflow payload. Only the persisted time bounds
+        /// are converted to UTC: the hash is unaffected by the conversion, because GenerateTimeObjectHash
+        /// normalizes to UTC itself, so it stays the same as the one generated for local time bounds.
         /// </summary>
         private async Task<FlowTimeObject?> ResolveOrCreateTimeObject(FlowCreationPayload payload, FlowSyncFlowData context)
         {
@@ -575,6 +577,12 @@ namespace FWO.Services.Workflow
             return $"{portLabel}/{protocolLabel}";
         }
 
+        /// <summary>
+        /// Builds the display name of a Flow time object from the time bounds as they were requested, which is
+        /// deliberately the local time of the request while start_time and end_time are persisted as UTC. The
+        /// name shows requesters the period they asked for, so with a time zone offset it can name a different
+        /// day than the stored timestamps. Consumers that need the exact period have to use the timestamps.
+        /// </summary>
         private static string BuildTimeObjectName(DateTime? timeStart, DateTime? timeEnd, string timeObjectPrecision)
         {
             if (timeStart.HasValue && timeEnd.HasValue)
@@ -631,7 +639,7 @@ namespace FWO.Services.Workflow
         {
             public long? ObjectId { get; private set; }
             public long? GroupId { get; private set; }
-            public List<long> ObjectIds { get; private set; } = new List<long>();
+            public List<long> ObjectIds { get; private set; } = [];
             public List<string> Hashes { get; private set; } = [];
 
             /// <summary>
@@ -642,8 +650,8 @@ namespace FWO.Services.Workflow
                 return new FlowNetworkReference
                 {
                     ObjectId = flowObject.Id,
-                    ObjectIds = new List<long> { flowObject.Id },
-                    Hashes = new List<string> { flowObject.Hash }
+                    ObjectIds = [flowObject.Id],
+                    Hashes = [flowObject.Hash]
                 };
             }
 
@@ -655,8 +663,8 @@ namespace FWO.Services.Workflow
                 return new FlowNetworkReference
                 {
                     GroupId = group.Id,
-                    ObjectIds = memberObjectIds.Distinct().ToList(),
-                    Hashes = memberHashes.Distinct().ToList()
+                    ObjectIds = [.. memberObjectIds.Distinct()],
+                    Hashes = [.. memberHashes.Distinct()]
                 };
             }
         }
@@ -665,7 +673,7 @@ namespace FWO.Services.Workflow
         {
             public long? ObjectId { get; private set; }
             public long? GroupId { get; private set; }
-            public List<long> ObjectIds { get; private set; } = new List<long>();
+            public List<long> ObjectIds { get; private set; } = [];
             public List<string> Hashes { get; private set; } = [];
 
             /// <summary>
@@ -676,8 +684,8 @@ namespace FWO.Services.Workflow
                 return new FlowServiceReference
                 {
                     ObjectId = flowObject.Id,
-                    ObjectIds = new List<long> { flowObject.Id },
-                    Hashes = new List<string> { flowObject.Hash }
+                    ObjectIds = [flowObject.Id],
+                    Hashes = [flowObject.Hash]
                 };
             }
 
@@ -689,8 +697,8 @@ namespace FWO.Services.Workflow
                 return new FlowServiceReference
                 {
                     GroupId = group.Id,
-                    ObjectIds = memberObjectIds.Distinct().ToList(),
-                    Hashes = memberHashes.Distinct().ToList()
+                    ObjectIds = [.. memberObjectIds.Distinct()],
+                    Hashes = [.. memberHashes.Distinct()]
                 };
             }
         }

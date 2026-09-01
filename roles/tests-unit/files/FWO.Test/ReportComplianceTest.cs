@@ -464,7 +464,7 @@ namespace FWO.Test
                     Is.EqualTo(ComplianceViolationType.None));
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-e").ViolationDetails,
-                    Is.EqualTo(userConfig.GetText("no_changes_found")));
+                    Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter_not_assessable")));
                 Assert.That(
                     report.Rules.Single(rule => rule.Uid == "rule-e").Compliance,
                     Is.EqualTo(ComplianceViolationType.NotAssessable));
@@ -472,6 +472,52 @@ namespace FWO.Test
                     report.RuleViewData.Single(rule => rule.Uid == "rule-e").Compliance,
                     Is.EqualTo("NOT ASSESSABLE"));
                 Assert.That(report.Rules.Single(rule => rule.Uid == "rule-b").Violations.Select(violation => violation.Id), Is.EqualTo(new List<int> { 2 }));
+            });
+        }
+
+        [Test]
+        public async Task Generate_DiffReportLabelsSuppressedRuleWithNotAssessableAndRealViolationAsNotAssessable()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = true
+            };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            MockReportComplianceDiff report = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport)
+            {
+                DiffReferenceInDays = 7,
+                ShowNonImpactRules = true
+            };
+            List<ComplianceViolation> intervalViolations = new()
+            {
+                CreateDiffViolation(1, 101, "rule-a")
+            };
+            List<ComplianceViolation> previousViolations = new()
+            {
+                CreateDiffViolation(11, 11, "rule-a", foundDate: DateTime.Now.AddDays(-8))
+            };
+            ComplianceViolation notAssessableViolation = CreateDiffViolation(13, 101, "rule-a");
+            notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
+            Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
+            activeRule.Violations.Add(notAssessableViolation);
+            List<Rule> activeRules = new()
+            {
+                activeRule
+            };
+            DiffPipelineApiConnection apiConnection = new(intervalViolations, previousViolations, activeRules);
+
+            await report.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Rule suppressedRule = report.Rules.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(suppressedRule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+                Assert.That(
+                    suppressedRule.ViolationDetails,
+                    Is.EqualTo(userConfig.GetText("existing_violation_hidden_by_filter_not_assessable")));
+                Assert.That(
+                    report.RuleViewData.Single().Compliance,
+                    Is.EqualTo("NOT ASSESSABLE"));
             });
         }
 

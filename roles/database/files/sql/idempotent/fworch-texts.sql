@@ -3312,6 +3312,8 @@ INSERT INTO txt VALUES ('existing_violations_filter_failed', 'German', 'Warnung:
 INSERT INTO txt VALUES ('existing_violations_filter_failed', 'English', 'Warning: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.');
 INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'German', 'Weiterhin nicht konform (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
 INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'English', 'Still non-compliant (existing violation hidden by filter setting)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'German', 'Nicht bewertbar (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
 INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');

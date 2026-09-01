@@ -325,6 +325,7 @@ namespace FWO.Test
             {"no_changes_found", "no_changes_found" },
             {"existing_violations_filter_failed", "Existing-violation filter could not be applied" },
             {"existing_violation_hidden_by_filter", "Still non-compliant (existing violation hidden by filter setting)" },
+            {"existing_violation_hidden_by_filter_not_assessable", "Not assessable (existing violation hidden by filter setting)" },
             {"network_object_added", "network_object_added" },
             {"network_object_deleted", "network_object_deleted" },
             {"network_object_modified", "network_object_modified" },

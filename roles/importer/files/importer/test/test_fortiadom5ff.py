@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+import fwo_const
 import pytest
 from fw_modules.fortiadom5ff import fmgr_rule
 from fw_modules.fortiadom5ff.fmgr_rule import (
@@ -293,6 +294,55 @@ def test_normalize_service_object_preserves_ports_for_all_named_service():
             "rpc_nr": None,
         }
     ]
+
+
+def test_normalize_service_object_group_without_protocol_keeps_members_and_no_protocol():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "grp", "member": ["svcB", "svcA"]}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "group"
+    # groups stay without a protocol, their members carry it
+    assert service_objects[0]["ip_proto"] is None
+    assert service_objects[0]["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["svcA", "svcB"])
+
+
+def test_normalize_service_object_group_with_protocol_field_stays_a_group():
+    # regression guard: the "member" branch must be checked before "protocol",
+    # otherwise a group that also carries a stray protocol field would be
+    # misparsed as a simple protocol-based service and lose its members
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "grp2", "member": ["svcA", "svcB"], "protocol": 5}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "group"
+    assert service_objects[0]["ip_proto"] is None
+    assert service_objects[0]["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["svcA", "svcB"])
+
+
+def test_normalize_service_object_multi_protocol_split_parent_group_has_no_protocol():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object(
+        {"name": "multi", "protocol": 5, "tcp-portrange": ["80"], "udp-portrange": ["53"]}, service_objects
+    )
+
+    parent_group = next(svc for svc in service_objects if svc["svc_name"] == "multi")
+    assert parent_group["svc_typ"] == "group"
+    assert parent_group["ip_proto"] is None
+    assert parent_group["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["multi_tcp", "multi_udp"])
+
+
+def test_normalize_service_object_rpc_service_without_port_ranges():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "rpc-svc", "protocol": 11}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "rpc"
+    assert service_objects[0]["ip_proto"] is None
 
 
 def test_extract_nat_config_fields_serializes_poolname_and_fixedport():

@@ -132,7 +132,10 @@ namespace FWO.Test
             public override void SetRole(string role) { }
             public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList) { }
             public override void SwitchBack() { }
-            protected override void Dispose(bool disposing) { }
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+            }
             public override void DisposeSubscriptions<T>() { }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct) => Task.CompletedTask;
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)

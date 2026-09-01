@@ -13,7 +13,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ExtRequestSenderTest
+    internal sealed class ExtRequestSenderTest : IDisposable
     {
         readonly static ExternalTicketSystem ticketSystem = new()
         {
@@ -252,6 +252,13 @@ namespace FWO.Test
             MethodInfo method = typeof(ExternalRequestSender).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException($"{methodName} not found.");
             return (T)method.Invoke(null, parameters)!;
+        }
+
+        public void Dispose()
+        {
+            apiConnection.Dispose();
+            globalConfig.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

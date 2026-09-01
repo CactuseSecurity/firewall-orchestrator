@@ -13,8 +13,9 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the scheduler base processing
     /// </summary>
-    public abstract class SchedulerBase
+    public abstract class SchedulerBase : IDisposable
     {
+        private bool disposed;
         /// <summary>
         /// API connection
         /// </summary>
@@ -147,6 +148,42 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Seconds => SleepTime * GlobalConst.kSecondsToMilliseconds,
                 _ => throw new NotSupportedException($"Error: wrong time interval format:" + SchedulerInterval.ToString())
             };
+        }
+
+        /// <summary>
+        /// Releases managed scheduler resources.
+        /// </summary>
+        /// <param name="disposing">True when disposing managed resources.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                ConfigDataSubscription?.Dispose();
+                ScheduleTimer.Stop();
+                ScheduleTimer.Elapsed -= Process;
+                ScheduleTimer.Elapsed -= StartRecurringTimer;
+                ScheduleTimer.Dispose();
+
+                RecurringTimer.Stop();
+                RecurringTimer.Elapsed -= Process;
+                RecurringTimer.Dispose();
+            }
+
+            disposed = true;
+        }
+
+        /// <summary>
+        /// Releases scheduler resources.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

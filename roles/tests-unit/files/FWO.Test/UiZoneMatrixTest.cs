@@ -11,9 +11,8 @@ using AngleSharp.Dom;
 namespace FWO.Test
 {
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
-    public class UiZoneMatrixTest : BunitContext
+    public sealed class UiZoneMatrixTest : BunitContext
     {
-        private UserConfig _userConfig = new();
         private NetworkZoneService _networkZoneService = new();
         private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _addCommunication = [];
         private List<(ComplianceNetworkZone, ComplianceNetworkZone)> _deleteCommunication = [];
@@ -24,7 +23,7 @@ namespace FWO.Test
 
             SimulatedGlobalConfig globalConfig = new();
             globalConfig.ComplianceCheckSortMatrixByID = sortById;
-            _userConfig = UserConfig.ForTextOnly(globalConfig);
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
 
             // Set up NetworkZoneService.
 
@@ -69,7 +68,7 @@ namespace FWO.Test
 
             // Add injected Services to DI container.
 
-            Services.AddScoped(_ => _userConfig);
+            Services.AddScoped(_ => userConfig);
             Services.AddScoped(_ => _networkZoneService);
 
             // Reset _addCommunication and _deleteCommunication.

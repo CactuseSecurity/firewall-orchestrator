@@ -105,7 +105,10 @@ namespace FWO.Test
             }
 
             public override void DisposeSubscriptions<T>() { }
-            protected override void Dispose(bool disposing) { }
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+            }
 
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
             {
@@ -579,7 +582,10 @@ namespace FWO.Test
                 throw new NotImplementedException();
             }
             public override void DisposeSubscriptions<T>() { }
-            protected override void Dispose(bool disposing) { }
+            protected override void Dispose(bool disposing)
+            {
+                base.Dispose(disposing);
+            }
             public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
             {
                 throw new NotImplementedException();

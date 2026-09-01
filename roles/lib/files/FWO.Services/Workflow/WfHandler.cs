@@ -31,8 +31,11 @@ namespace FWO.Services.Workflow
         displayPathAnalysis
     }
 
-    public partial class WfHandler
+    public partial class WfHandler : IDisposable
     {
+        private bool disposed;
+        private readonly bool ownsUserConfig;
+
         public List<WfTicket> TicketList { get; set; } = [];
         public WfTicket ActTicket { get; set; } = new();
         public WfReqTask ActReqTask { get; set; } = new();
@@ -75,6 +78,7 @@ namespace FWO.Services.Workflow
         public WfHandler()
         {
             userConfig = new();
+            ownsUserConfig = true;
         }
 
         /// <summary>
@@ -91,6 +95,7 @@ namespace FWO.Services.Workflow
             MiddlewareClient = middlewareClient;
             RequestedRulePolicyChecker = requestedRulePolicyChecker;
             AuthUser = authUser;
+            ownsUserConfig = false;
         }
 
         /// <summary>
@@ -108,6 +113,7 @@ namespace FWO.Services.Workflow
             RequestedRulePolicyChecker = requestedRulePolicyChecker;
             WorkflowRecipientResolver = workflowRecipientResolver;
             usedInMwServer = true;
+            ownsUserConfig = false;
         }
 
         public async Task<bool> Init(bool fetchData = false, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false)
@@ -281,6 +287,27 @@ namespace FWO.Services.Workflow
         public void DisplayMessage(Exception? exception = null, string title = "", string message = "", bool errorFlag = false)
         {
             DisplayMessageInUi(exception, title, message, errorFlag);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing && ownsUserConfig)
+            {
+                userConfig.Dispose();
+            }
+
+            disposed = true;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
     }
 }

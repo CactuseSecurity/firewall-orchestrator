@@ -19,7 +19,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [NonParallelizable]
-    internal partial class ExportTest
+    internal sealed partial class ExportTest : IDisposable
     {
         [GeneratedRegex(@"[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")]
         private static partial Regex GuidRegexPattern();
@@ -55,6 +55,12 @@ namespace FWO.Test
         private const string StaticAnkerId = "1234-1234-1234-1234";
 
         readonly SimulatedUserConfig userConfig = new();
+
+        public void Dispose()
+        {
+            userConfig.Dispose();
+            GC.SuppressFinalize(this);
+        }
         readonly DynGraphqlQuery query = new("TestFilter")
         {
             ReportTimeString = "2023-04-20T17:50:04",

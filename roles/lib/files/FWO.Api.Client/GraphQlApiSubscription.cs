@@ -162,16 +162,26 @@ namespace FWO.Api.Client
 
         protected override void Dispose(bool disposing)
         {
-            if (!disposing) return;
+            if (!disposing)
+            {
+                return;
+            }
 
             lock (_lock)
             {
-                if (_disposed) return;
+                if (_disposed)
+                {
+                    return;
+                }
+
                 _disposed = true;
                 _subscription?.Dispose();
                 _subscription = null;
+                _subscriptionStream = null;
                 OnUpdate = null;
             }
+
+            base.Dispose(disposing);
         }
     }
 }

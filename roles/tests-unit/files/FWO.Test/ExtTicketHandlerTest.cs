@@ -12,7 +12,7 @@ namespace FWO.Test
 {
     [TestFixture]
     [Parallelizable]
-    internal class ExtTicketHandlerTest
+    internal sealed class ExtTicketHandlerTest : IDisposable
     {
         readonly static ExternalTicketSystem ticketSystem = new()
         {
@@ -663,6 +663,13 @@ namespace FWO.Test
             ClassicAssert.IsTrue(result);
             ClassicAssert.IsNotNull(localApiConnection.AddExtRequestVars);
             StringAssert.Contains("taskNumber = 9", localApiConnection.AddExtRequestVars ?? "");
+        }
+
+        public void Dispose()
+        {
+            apiConnection.Dispose();
+            userConfig.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

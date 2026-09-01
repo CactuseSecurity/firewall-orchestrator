@@ -66,10 +66,10 @@ def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[st
 
     if svc_type == "simple" and obj_orig.get("protocol") == FORTI_PROTOCOL_ANY:
         add_object(svc_objects, svc_type, name, color, ANY_IP_PROTOCOL_ID, None, None, session_timeout)
-    elif "protocol" in obj_orig:
-        handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     elif svc_type == "group":
         add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)
+    elif "protocol" in obj_orig:
+        handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     else:
         add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
 

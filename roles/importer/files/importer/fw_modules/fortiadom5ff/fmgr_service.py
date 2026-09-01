@@ -271,7 +271,7 @@ def add_object(
                         "svc_color": color,
                         "svc_uid": name,  # ?
                         "svc_comment": None,  # ?
-                        "ip_proto": proto,
+                        "ip_proto": None,
                         "svc_port": None,
                         "svc_port_end": None,
                         "svc_member_refs": range_names,  # ?

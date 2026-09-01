@@ -60,7 +60,6 @@
       create: true
       regexp: "^SLAPD_SERVICES="
       line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
-  register: openldap_service_configuration
   become: true
 
 - name: Grant slapd access to its internal CA identity
@@ -83,9 +82,49 @@
   become: true
   when: not (internalca_preserve_ldap_certificate | default(false) | bool)
 
+# slapd reads its listener list once, when it starts, so the defaults file written
+# above says nothing about what the running process actually serves. Deciding the
+# restart on whether *this* run changed that file loses the restart for good as soon
+# as a run is interrupted between the two tasks: the next run finds the file already
+# correct, reports no change, and slapd keeps serving the listeners it was started
+# with - the configuration and the process stay apart with nothing to bring them back
+# together. The running command line is the honest input for that decision, and using
+# it makes the restart self healing on the next run.
+- name: Read the state of the slapd service
+  systemd:
+      name: slapd
+  register: openldap_service_state
+  become: true
+  changed_when: false
+  failed_when: false
+
+- name: Read the command line of the running slapd
+  slurp:
+      src: "/proc/{{ openldap_slapd_main_pid }}/cmdline"
+  vars:
+      openldap_slapd_main_pid: "{{ (openldap_service_state.status | default({})).get('MainPID', '0') }}"
+  register: openldap_service_command_line
+  become: true
+  failed_when: false
+  when: openldap_slapd_main_pid != '0'
+
+# The -h value is a single argument holding the whole space separated URL list, so it
+# comes back whole when the NUL separated /proc entry is cut into arguments.
+- name: Read the listeners the running slapd was started with
+  set_fact:
+      openldap_running_services: >-
+        {{ slapd_arguments[slapd_arguments.index('-h') + 1]
+           if '-h' in slapd_arguments
+              and slapd_arguments.index('-h') + 1 < slapd_arguments | length
+           else '' }}
+  vars:
+      slapd_arguments: >-
+        {{ openldap_service_command_line.content | default('') | b64decode
+           | regex_findall("[^\x00]+") }}
+
 # A reissued certificate or changed listener configuration is only picked up when
 # slapd reloads. On a new installation the block below starts slapd anyway.
-- name: Restart slapd after an upgrade changed its runtime configuration
+- name: Restart slapd when it does not serve its configured runtime configuration
   systemd:
       name: slapd
       state: restarted
@@ -94,7 +133,8 @@
       - installation_mode == "upgrade"
       - >-
         internalca_ldap_identity_changed | default(false) | bool
-        or openldap_service_configuration.changed
+        or openldap_running_services | split | sort
+           != openldap_server_services | trim | split | sort
 
 - block:
       ### Clean up slapd.d

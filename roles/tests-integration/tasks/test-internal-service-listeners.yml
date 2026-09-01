@@ -60,6 +60,52 @@
   become: true
   when: "'middlewareserver' in group_names"
 
+# The check above proves the defaults file matches the configuration, not that slapd
+# is serving it: slapd reads -h once at startup, so a process left over from an
+# earlier listener configuration passes it and then fails the connection loop below
+# with a bare connection timeout that names no cause. Read the listener list off the
+# running process as well, so that drift fails here and says so.
+- name: Read the state of the slapd service
+  systemd:
+    name: slapd
+  register: openldap_service_state
+  changed_when: false
+  become: true
+  when: "'middlewareserver' in group_names"
+
+- name: Read the command line of the running slapd
+  slurp:
+    src: "/proc/{{ openldap_slapd_main_pid }}/cmdline"
+  vars:
+    openldap_slapd_main_pid: "{{ (openldap_service_state.status | default({})).get('MainPID', '0') }}"
+  register: openldap_service_command_line
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - openldap_slapd_main_pid != '0'
+
+# The -h value is a single argument holding the whole space separated URL list, so it
+# comes back whole when the NUL separated /proc entry is cut into arguments.
+- name: The running slapd must serve the configured listeners
+  vars:
+    slapd_arguments: >-
+      {{ openldap_service_command_line.content | default('') | b64decode
+         | regex_findall("[^\x00]+") }}
+    slapd_running_services: >-
+      {{ slapd_arguments[slapd_arguments.index('-h') + 1]
+         if '-h' in slapd_arguments
+            and slapd_arguments.index('-h') + 1 < slapd_arguments | length
+         else '' }}
+  assert:
+    that:
+      - slapd_running_services | split | sort == openldap_server_services | trim | split | sort
+    fail_msg: >-
+      The running slapd serves '{{ slapd_running_services }}' while
+      {{ openldap_service_defaults_file }} configures
+      '{{ openldap_server_services | trim }}'. slapd reads its listener list only at
+      startup, so it has not been restarted since that file was last changed.
+  when: "'middlewareserver' in group_names"
+
 # Derived from the listener URLs themselves rather than a restated host/port matrix,
 # so a host without an IPv6 loopback is not asked to answer on [::1].
 - name: Internal LDAP must accept every configured loopback listener

@@ -7,3 +7,9 @@ UPDATE firewall.nw_service
 SET ip_proto_id = NULL
 WHERE svc_typ_id = 2
     AND ip_proto_id IS NOT NULL;
+
+
+-- Insert default configuration for compliance diff filter
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('complianceDiffFilterExistingViolations', 'false', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;

@@ -343,6 +343,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WriteToDatabase_PersistsComplianceDiffExistingViolationFilter()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = false,
+                RawConfigItems =
+                [
+                    new() { Key = "complianceDiffFilterExistingViolations", Value = "false", User = 0 }
+                ]
+            };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ComplianceDiffFilterExistingViolations = true;
+
+            using UserConfigApiConnection apiConnection = new([]);
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("complianceDiffFilterExistingViolations"));
+                Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo("True"));
+                Assert.That(globalConfig.ComplianceDiffFilterExistingViolations, Is.True);
+            });
+        }
+
+        [Test]
         public async Task WriteToDatabase_NotifiesUserConfigSubscribersAfterPersistingChanges()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -501,6 +528,14 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.ComplianceDesignatedZoneMatrixId, Is.Zero);
+        }
+
+        [Test]
+        public void ConfigData_DefaultsComplianceDiffExistingViolationFilterToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ComplianceDiffFilterExistingViolations, Is.False);
         }
 
         [Test]

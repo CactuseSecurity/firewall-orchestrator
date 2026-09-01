@@ -637,3 +637,4 @@ Not supported any longer are:
 
 ## 9.4.5 - 01.09.2026
 - FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
+- add an optional compliance-diff filter for rules with existing violations

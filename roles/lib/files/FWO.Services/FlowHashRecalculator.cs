@@ -10,6 +10,15 @@ namespace FWO.Services
     /// e.g. after a change to the hash generation. Technical entries are recalculated from their own data,
     /// non-technical entries keep their randomly generated hash, and groups and accesses are recalculated
     /// from the recalculated hashes of their members. Only entries whose hash actually changed are written.
+    ///
+    /// The recalculation is not interlocked with flow creation, which is an accepted risk: it rewrites the
+    /// hash of a flow entry, which is its deduplication identity, while FlowDbCreator resolves flow entries by
+    /// hash from its own snapshot. A flow creation from the request module that overlaps a recalculation can
+    /// therefore reuse an entry whose hash has just moved, or fail on the unique hash constraint of a hash the
+    /// recalculation has just assigned to another entry; repeating the create flow action resolves it. In the
+    /// other direction the recalculation itself fails, rolls back as one transaction and is retried by the next
+    /// flow sync. Hashes only change when the hash logic changes, so a recalculation happens once per such
+    /// change rather than regularly, which keeps the window for both cases very small.
     /// </summary>
     public class FlowHashRecalculator
     {

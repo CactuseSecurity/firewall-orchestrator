@@ -158,25 +158,26 @@ class FwoApi:
         raise FwoImporterError(f"Unexpected error during API call: {error!s}")
 
     @staticmethod
-    def refresh(
-        refresh_token: str,
+    def _post_auth_request(
+        payload: Mapping[str, str | None],
         user_management_api_base_url: str | None,
-        method: str = "api/AuthenticationToken/Refresh",
+        method: str,
+        action: str,
+        user: str | None = None,
     ) -> str:
         """
-        Exchanges a still-valid refresh token for a new access/refresh token pair,
-        so callers can recover from an expired JWT without a full re-login.
+        Shared POST logic for the login and token-refresh endpoints: same TLS bootstrap,
+        headers, timeout and error-response formatting - only the payload, endpoint method
+        and (for login) the username differ.
         """
-        payload: dict[str, str] = {"RefreshToken": refresh_token}
-
         if user_management_api_base_url is None:
-            raise FwoApiLoginFailedError("fwo_api: user_management_api_base_url is None during token refresh")
+            raise FwoApiLoginFailedError(f"fwo_api: user_management_api_base_url is None during {action}")
+
+        user_suffix = f" with user {user}" if user is not None else ""
 
         with requests.Session() as session:
-            if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
-                session.verify = False
-            else:
-                session.verify = fwo_globals.verify_certs
+            # session.verify is None only for the first FWO API call (getting info on cert verification)
+            session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
@@ -187,21 +188,35 @@ class FwoApi:
                 )
             except requests.exceptions.RequestException:
                 raise FwoApiLoginFailedError(
-                    "fwo_api: error during token refresh at url: " + str(user_management_api_base_url)
+                    f"fwo_api: error during {action} to url: {user_management_api_base_url}{user_suffix}"
                 ) from None
 
             if response.status_code == HTTP_STATUS_OK:
                 return response.text
-            # the status and the response body carry the actual reason (e.g. expired/invalid refresh token),
-            # without them a refresh failure is indistinguishable from a misconfigured url
+            # the status and the response body carry the actual reason (e.g. invalid/expired credentials),
+            # without them a failure is indistinguishable from a misconfigured url
             error_txt = (
-                "fwo_api: ERROR: did not receive a JWT during token refresh"
+                f"fwo_api: ERROR: did not receive a JWT during {action}"
                 f", api_url: {user_management_api_base_url}{method}"
+                f"{f', user: {user}' if user is not None else ''}"
                 f", http_status: {response.status_code}"
                 f", response: {response.text[:MAX_LOGIN_ERROR_RESPONSE_LEN]}"
                 f", ssl_verification: {fwo_globals.verify_certs}"
             )
             raise FwoApiLoginFailedError(error_txt)
+
+    @staticmethod
+    def refresh(
+        refresh_token: str,
+        user_management_api_base_url: str | None,
+        method: str = "api/AuthenticationToken/Refresh",
+    ) -> str:
+        """
+        Exchanges a still-valid refresh token for a new access/refresh token pair,
+        so callers can recover from an expired JWT without a full re-login.
+        """
+        payload: dict[str, str] = {"RefreshToken": refresh_token}
+        return FwoApi._post_auth_request(payload, user_management_api_base_url, method, action="token refresh")
 
     def refresh_jwt(
         self,
@@ -314,41 +329,7 @@ class FwoApi:
         method: str = "api/AuthenticationToken/GetTokenPair",
     ):
         payload: dict[str, str | None] = {"Username": user, "Password": password}
-
-        if user_management_api_base_url is None:
-            raise FwoApiLoginFailedError("fwo_api: user_management_api_base_url is None during login")
-
-        with requests.Session() as session:
-            if fwo_globals.verify_certs is None:  # only for first FWO API call (getting info on cert verification)
-                session.verify = False
-            else:
-                session.verify = fwo_globals.verify_certs
-            session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
-
-            try:
-                response = session.post(
-                    user_management_api_base_url + method,
-                    data=json.dumps(payload),
-                    timeout=FWO_HTTP_TIMEOUT,
-                )
-            except requests.exceptions.RequestException:
-                raise FwoApiLoginFailedError(
-                    "fwo_api: error during login to url: " + str(user_management_api_base_url) + " with user " + user
-                ) from None
-
-            if response.status_code == HTTP_STATUS_OK:
-                return response.text
-            # the status and the response body carry the actual reason (e.g. invalid credentials),
-            # without them a login failure is indistinguishable from a misconfigured url
-            error_txt = (
-                "fwo_api: ERROR: did not receive a JWT during login"
-                f", api_url: {user_management_api_base_url}{method}"
-                f", user: {user}"
-                f", http_status: {response.status_code}"
-                f", response: {response.text[:MAX_LOGIN_ERROR_RESPONSE_LEN]}"
-                f", ssl_verification: {fwo_globals.verify_certs}"
-            )
-            raise FwoApiLoginFailedError(error_txt)
+        return FwoApi._post_auth_request(payload, user_management_api_base_url, method, action="login", user=user)
 
     def call_endpoint(self, method: str, endpoint: str, params: Any = None, _retry_on_jwt_expiry: bool = True) -> Any:
         """

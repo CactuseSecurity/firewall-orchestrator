@@ -18,7 +18,12 @@ public class FlowCatalogController : ControllerBase
 {
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
-    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
+    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(
+        nameof(GetAddressGroups),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("option", "Optional option container controlling the response shape.")
+        ]);
     private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
     private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
@@ -86,14 +91,30 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Returns address groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// With 'option.separateZoneGroups' set to true the result is a
+    /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
+    /// otherwise a flat JSON array of all groups is returned.
+    /// Zone groups are recognized by the zone name patterns configured in the general flow settings.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressGroups")]
-    public async Task<ActionResult<List<AddressGroupResponse>>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
+    [ProducesResponseType(typeof(List<AddressGroupResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
         if (!TryValidateVisibleInRequestRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
+        }
+
+        if (!AddressGroupsOptionValidator.TryValidate(request.Option, out ActionResult? optionErrorResult))
+        {
+            return optionErrorResult!;
+        }
+
+        if (request.Option?.SeparateZoneGroups == true)
+        {
+            return Ok(await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest));
         }
 
         return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));

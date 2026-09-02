@@ -1,3 +1,4 @@
+using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Data.Flow;
 using System.Text.Json;
@@ -126,7 +127,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsMissingProtocol()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -142,7 +143,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsInvalidPortRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -158,7 +159,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -173,7 +174,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidIpRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -188,7 +189,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsNonCidr32MaskedIpRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -203,7 +204,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -220,7 +221,7 @@ internal class FlowControllerValidationTest
     [TestCase(true)]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsMissingBounds(bool includeFilter)
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
 
         GetTimeObjectIdRequest request = new();
         if (includeFilter)
@@ -250,7 +251,7 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }));
+        }, new GlobalConfig()));
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -280,7 +281,7 @@ internal class FlowControllerValidationTest
                     Name = "DeadlineOnly"
                 }
             ]
-        }));
+        }, new GlobalConfig()));
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -310,7 +311,7 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }));
+        }, new GlobalConfig()));
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -345,6 +346,58 @@ internal class FlowControllerValidationTest
             Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("GetTimeObjectId"));
             Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'visibleInRequest'"));
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_AcceptsOptionContainer()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+            """{"filter":{"visibleInRequest":true},"option":{"separateZoneGroups":true}}""")!;
+        RequestRootValidationSchema rootSchema = new(
+            "GetAddressGroups",
+            [
+                new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+                new RequestKeyDefinition("option", "Optional option container controlling the response shape.")
+            ]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(RequestRootValidator.TryValidate(request, rootSchema, out var rootError), Is.True);
+            Assert.That(rootError, Is.Null);
+            Assert.That(AddressGroupsOptionValidator.TryValidate(request.Option, out var optionError), Is.True);
+            Assert.That(optionError, Is.Null);
+            Assert.That(request.Option!.SeparateZoneGroups, Is.True);
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_RejectsUnknownOptionKeys()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+            """{"option":{"separateZoneGroups":true,"typo":1}}""")!;
+
+        bool valid = AddressGroupsOptionValidator.TryValidate(request.Option, out var error);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(error, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("'option'"));
+            Assert.That(((BadRequestObjectResult)error!).Value?.ToString(), Does.Contain("separateZoneGroups"));
+        });
+    }
+
+    [Test]
+    public void FlowControllerValidation_GetAddressGroups_AcceptsMissingOptionContainer()
+    {
+        GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>("{}")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(AddressGroupsOptionValidator.TryValidate(request.Option, out var error), Is.True);
+            Assert.That(error, Is.Null);
+            Assert.That(AddressGroupsOptionValidator.AllowedKeys, Has.Count.EqualTo(1));
         });
     }
 

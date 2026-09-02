@@ -541,6 +541,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
+    <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -556,6 +557,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
+    <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2240,6 +2242,20 @@ INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu ber
 INSERT INTO txt VALUES ('recalculate_flow_names',	'English', 	'Recalculate flow names');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'German', 	'Diese Aktion schreibt die Flow-Namen anhand der gew&auml;hlten Namensquelle neu. Wirklich fortfahren?');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'English', 	'This will rewrite flow names using the selected naming source. Continue?');
+INSERT INTO txt VALUES ('flow_zone_groups',		'German', 	'Zonen-Gruppen-Erkennung');
+INSERT INTO txt VALUES ('flow_zone_groups',		'English', 	'Zone group detection');
+INSERT INTO txt VALUES ('flow_zone_groups_hint',	'German', 	'Flow-Netzwerkgruppen, deren Name auf ein Muster passt, werden in der REST-API als Zonen behandelt. Ohne Muster gilt keine Gruppe als Zone.');
+INSERT INTO txt VALUES ('flow_zone_groups_hint',	'English', 	'Flow network groups whose name matches a pattern are treated as zones in the REST API. Without any pattern no group is treated as a zone.');
+INSERT INTO txt VALUES ('match_type',			'German', 	'Vergleichsart');
+INSERT INTO txt VALUES ('match_type',			'English', 	'Match type');
+INSERT INTO txt VALUES ('match_type_suffix',	'German', 	'Endet mit');
+INSERT INTO txt VALUES ('match_type_suffix',	'English', 	'Suffix');
+INSERT INTO txt VALUES ('match_type_prefix',	'German', 	'Beginnt mit');
+INSERT INTO txt VALUES ('match_type_prefix',	'English', 	'Prefix');
+INSERT INTO txt VALUES ('match_type_contains',	'German', 	'Enth&auml;lt');
+INSERT INTO txt VALUES ('match_type_contains',	'English', 	'Contains');
+INSERT INTO txt VALUES ('match_type_exact',		'German', 	'Exakt');
+INSERT INTO txt VALUES ('match_type_exact',		'English', 	'Exact');
 INSERT INTO txt VALUES ('reset_flow_db',		'German', 	'Flow-Datenbank zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_flow_db',		'English', 	'Reset flow database');
 INSERT INTO txt VALUES ('reset_flow_db_hint',	'German', 	'L&ouml;scht alle Flow-Objekte, Gruppen und Regeln und markiert Importe f&uuml;r eine vollst&auml;ndige Neu-Synchronisation.');
@@ -2266,6 +2282,8 @@ INSERT INTO txt VALUES ('H5019',				'German', 	'Die Seite enth&auml;lt au&szlig;
 INSERT INTO txt VALUES ('H5019',				'English', 	'The page also includes a dangerous reset for the complete flow database, which should only be used before a full re-synchronization.');
 INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden im Katalog und im Auswahldialog die technischen Details des Flow-Objekts angezeigt. In der Katalogansicht wird die Liste bei vielen Eintr&auml;gen gek&uuml;rzt und mit einem Hinweis auf weitere Objekte erg&auml;nzt.');
 INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
+INSERT INTO txt VALUES ('H5026',				'German', 	'Die Zonen-Gruppen-Erkennung legt fest, welche Flow-Netzwerkgruppen als Zonen gelten. Es k&ouml;nnen mehrere Muster kombiniert werden, jeweils mit Vergleichsart (Endet mit, Beginnt mit, Enth&auml;lt, Exakt) und optionaler Beachtung der Gro&szlig;- und Kleinschreibung. Eine Gruppe gilt als Zone, sobald ihr Name auf mindestens ein Muster passt. Die Muster werden vom REST-Endpunkt <code>flow/getAddressGroups</code> mit <code>option.separateZoneGroups=true</code> ausgewertet.');
+INSERT INTO txt VALUES ('H5026',				'English', 	'Zone group detection defines which flow network groups count as zones. Multiple patterns can be combined, each with a match type (suffix, prefix, contains, exact) and optional case sensitivity. A group is a zone as soon as its name matches at least one pattern. The patterns are evaluated by the REST endpoint <code>flow/getAddressGroups</code> with <code>option.separateZoneGroups=true</code>.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
 INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts k&ouml;nnen Management-Zuordnungen wieder abgew&auml;hlt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');
@@ -7534,7 +7552,7 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Liefert sichtbare Adressobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code> und <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Liefert sichtbare Dienstobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
@@ -7544,6 +7562,9 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
     F&uuml;r <code>getAddressObjectId</code> d&uuml;rfen <code>ipStart</code> und <code>ipEnd</code> als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
+    F&uuml;r <code>getAddressGroups</code> liefert <code>option.separateZoneGroups=false</code> (Standard) weiterhin ein flaches JSON-Array aller Gruppen.
+    Mit <code>option.separateZoneGroups=true</code> wird stattdessen ein Objekt mit den Listen <code>standardGroups</code> und <code>zoneGroups</code> zur&uuml;ckgegeben.
+    Welche Gruppen als Zonen gelten, wird &uuml;ber die Namensmuster in den allgemeinen Flow-Einstellungen konfiguriert; ohne konfiguriertes Muster bleibt <code>zoneGroups</code> leer.
 ');
 INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
     All endpoints use <code>POST</code>.
@@ -7551,7 +7572,7 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Returns visible address objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code> and <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Returns visible service objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
@@ -7561,6 +7582,9 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
     For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
+    For <code>getAddressGroups</code>, <code>option.separateZoneGroups=false</code> (default) still returns a flat JSON array of all groups.
+    With <code>option.separateZoneGroups=true</code> an object holding the lists <code>standardGroups</code> and <code>zoneGroups</code> is returned instead.
+    Which groups count as zones is configured through the zone name patterns in the general flow settings; without a configured pattern <code>zoneGroups</code> stays empty.
 ');
 INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code>.

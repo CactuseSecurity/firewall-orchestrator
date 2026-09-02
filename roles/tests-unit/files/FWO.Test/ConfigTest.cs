@@ -8,6 +8,7 @@ using FWO.Data.Enums;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
+using FWO.Data.Flow;
 using NUnit.Framework;
 using System.Text.RegularExpressions;
 
@@ -410,6 +411,12 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FlowCatalogSubscription_ContainsZoneGroupNamePatterns()
+        {
+            Assert.That(ConfigQueries.subscribeFlowCatalogConfigChanges, Does.Contain("flowZoneGroupNamePatterns"));
+        }
+
+        [Test]
         public void LogDataImportSubscription_ContainsIntervalUnit()
         {
             Assert.That(ConfigQueries.subscribeImportLogDataConfigChanges, Does.Contain("importLogDataSleepTimeUnit"));
@@ -590,6 +597,15 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.FlowNamingSourceManagementRanking, Is.EqualTo("[]"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsFlowZoneGroupNamePatternsToAnEmptyList()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowZoneGroupNamePatterns, Is.EqualTo("[]"));
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Is.Empty);
         }
 
         [Test]

@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Ui.Pages.Settings;
@@ -584,6 +585,61 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_StoresConfiguredPatterns()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[0].MatchType = FlowZoneNameMatchType.Suffix;
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.That(configData.FlowZoneGroupNamePatterns, Does.Contain("\"value\":\"_zone\""));
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_RemoveZoneGroupPattern_DropsTheSelectedRow()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            component.Render();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-danger"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-danger")[0].Click();
+
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+        }
+
+        private static List<FlowZoneGroupPattern> GetZoneGroupPatterns(SettingsFlowGeneral page)
+        {
+            return (List<FlowZoneGroupPattern>)GetMember(page, "zoneGroupPatterns")!;
+        }
+
+        private static async Task InvokeZoneGroupMethod(IRenderedComponent<SettingsFlowGeneral> component, string methodName)
+        {
+            MethodInfo? method = typeof(SettingsFlowGeneral).GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(method, Is.Not.Null, $"Missing method {methodName}.");
+            await component.InvokeAsync(async () =>
+            {
+                object? invocationResult = method!.Invoke(component.Instance, null);
+                if (invocationResult is Task task)
+                {
+                    await task;
+                }
+            });
+        }
+
+        [Test]
         public async Task FlowNetworkObjectsPage_ShowsSpinnerOnBusyActionButtons()
         {
             await using BunitContext context = CreateNetworkObjectsContext(out _);
@@ -877,6 +933,20 @@ namespace FWO.Test
             return context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<TComponent>())
                 .FindComponent<TComponent>();
+        }
+
+        private static object? GetMember(object instance, string memberName)
+        {
+            Type type = instance.GetType();
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            if (property != null)
+            {
+                return property.GetValue(instance);
+            }
+
+            FieldInfo? field = type.GetField(memberName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(field, Is.Not.Null, $"Missing member {memberName}.");
+            return field!.GetValue(instance);
         }
 
         private static void SetMember(object instance, string memberName, object? value)

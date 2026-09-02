@@ -1,7 +1,10 @@
 using System.Globalization;
 using System.Net;
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Logging;
@@ -13,9 +16,11 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Represents the FlowCatalogService type.
 /// </summary>
-public sealed class FlowCatalogService
+public sealed class FlowCatalogService : IDisposable
 {
     private readonly ApiConnection apiConnection;
+    private readonly GlobalConfig globalConfig;
+    private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
     private IpProtocolCache? ipProtocolCache;
 
@@ -28,9 +33,35 @@ public sealed class FlowCatalogService
     /// <summary>
     /// Initializes a new instance of the type.
     /// </summary>
-    public FlowCatalogService(ApiConnection apiConnection)
+    public FlowCatalogService(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         this.apiConnection = apiConnection;
+        this.globalConfig = globalConfig;
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowCatalogConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow catalog config", "Could not start flow-catalog config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed flow-catalog config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        configSubscription?.Dispose();
     }
 
     /// <summary>
@@ -49,6 +80,34 @@ public sealed class FlowCatalogService
     {
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToAddressGroupResponse).ToList();
+    }
+
+    /// <summary>
+    /// Returns the address groups split into groups that are not zones and groups that are zones.
+    /// Zone groups are identified by the zone name patterns configured in the general flow settings.
+    /// </summary>
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <returns>The address groups separated into standard groups and zone groups.</returns>
+    public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
+    {
+        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
+        List<FlowZoneGroupPattern> zonePatterns = FlowZoneGroupMatcher.ParsePatterns(globalConfig.FlowZoneGroupNamePatterns);
+        SeparatedAddressGroupsResponse separatedGroups = new();
+
+        foreach (FlowNwGroup flowGroup in flowGroups)
+        {
+            AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
+            if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, zonePatterns))
+            {
+                separatedGroups.ZoneGroups.Add(groupResponse);
+            }
+            else
+            {
+                separatedGroups.StandardGroups.Add(groupResponse);
+            }
+        }
+
+        return separatedGroups;
     }
 
     /// <summary>

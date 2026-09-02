@@ -1,3 +1,4 @@
+using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
@@ -8,6 +9,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using NUnit.Framework;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -18,13 +20,13 @@ namespace FWO.Test
         public async Task FlowCatalogController_ReturnsMappedResultsForCatalogAndLookupEndpoints()
         {
             RecordingApiConnection apiConnection = new();
-            FlowCatalogController controller = new(new FlowCatalogService(apiConnection));
+            FlowCatalogController controller = new(new FlowCatalogService(apiConnection, new GlobalConfig()));
 
             ActionResult<List<AddressObjectResponse>> addressObjectsResult = await controller.GetAddressObjects(new GetAddressObjectsRequest
             {
                 Filter = new VisibleInRequestFilter { VisibleInRequest = true }
             });
-            ActionResult<List<AddressGroupResponse>> addressGroupsResult = await controller.GetAddressGroups(new GetAddressGroupsRequest());
+            ActionResult addressGroupsResult = await controller.GetAddressGroups(new GetAddressGroupsRequest());
             ActionResult<List<ServiceObjectResponse>> serviceObjectsResult = await controller.GetServiceObjects(new GetServiceObjectsRequest());
             ActionResult<List<ServiceGroupResponse>> serviceGroupsResult = await controller.GetServiceGroups(new GetServiceGroupsRequest());
             ActionResult<List<TimeObjectResponse>> timeObjectsResult = await controller.GetTimeObjects(new GetTimeObjectsRequest());
@@ -60,8 +62,8 @@ namespace FWO.Test
                 Assert.That(ExtractValue<List<AddressObjectResponse>>(addressObjectsResult)[0].Name, Is.EqualTo("Host"));
                 Assert.That(ExtractValue<List<AddressObjectResponse>>(addressObjectsResult)[0].ShowInRequest, Is.True);
 
-                Assert.That(addressGroupsResult.Result, Is.TypeOf<OkObjectResult>());
-                Assert.That(ExtractValue<List<AddressGroupResponse>>(addressGroupsResult)[0].Members[0].Name, Is.EqualTo("Host"));
+                Assert.That(addressGroupsResult, Is.TypeOf<OkObjectResult>());
+                Assert.That(ExtractOkValue<List<AddressGroupResponse>>(addressGroupsResult)[0].Members[0].Name, Is.EqualTo("Host"));
 
                 Assert.That(serviceObjectsResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(ExtractValue<List<ServiceObjectResponse>>(serviceObjectsResult)[0].Protocol, Is.EqualTo("TCP"));
@@ -94,9 +96,55 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task FlowCatalogController_GetAddressGroups_WithSeparateZoneGroups_SplitsZoneGroups()
+        {
+            GlobalConfig globalConfig = new()
+            {
+                FlowZoneGroupNamePatterns = "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\" Group\"}]"
+            };
+            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), globalConfig));
+
+            ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
+            {
+                Option = new AddressGroupsOption { SeparateZoneGroups = true }
+            });
+
+            SeparatedAddressGroupsResponse separatedGroups = ExtractOkValue<SeparatedAddressGroupsResponse>(result);
+            Assert.That(separatedGroups.StandardGroups, Is.Empty);
+            Assert.That(separatedGroups.ZoneGroups, Has.Count.EqualTo(1));
+            Assert.That(separatedGroups.ZoneGroups[0].Name, Is.EqualTo("Address Group"));
+        }
+
+        [Test]
+        public async Task FlowCatalogController_GetAddressGroups_WithDisabledSeparation_ReturnsFlatList()
+        {
+            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
+
+            ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
+            {
+                Option = new AddressGroupsOption { SeparateZoneGroups = false }
+            });
+
+            Assert.That(ExtractOkValue<List<AddressGroupResponse>>(result), Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public async Task FlowCatalogController_GetAddressGroups_WithUnknownOptionKey_ReturnsBadRequest()
+        {
+            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
+            GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
+                "{\"option\":{\"separateZoneGroups\":true,\"unknown\":1}}")!;
+
+            ActionResult result = await controller.GetAddressGroups(request);
+
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result).Value?.ToString(), Does.Contain("separateZoneGroups"));
+        }
+
+        [Test]
         public async Task FlowCatalogController_ReturnsValidationErrorsForInvalidLookupRequests()
         {
-            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection()));
+            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
 
             ActionResult<ServiceObjectIdResponse> missingProtocol = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
             {
@@ -116,6 +164,12 @@ namespace FWO.Test
                 Assert.That(missingProtocol.Result, Is.TypeOf<BadRequestObjectResult>());
                 Assert.That(missingIpBounds.Result, Is.TypeOf<BadRequestObjectResult>());
             });
+        }
+
+        private static T ExtractOkValue<T>(ActionResult result)
+        {
+            Assert.That(result, Is.TypeOf<OkObjectResult>());
+            return (T)((OkObjectResult)result).Value!;
         }
 
         private static T ExtractValue<T>(ActionResult<T> result)

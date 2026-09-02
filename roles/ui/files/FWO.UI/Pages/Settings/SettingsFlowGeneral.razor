@@ -76,6 +76,75 @@
 </div>
 
 <div class="mb-2">
+    <label class="form-label form-label-sm mb-1">@(userConfig.GetText("flow_zone_groups")):</label>
+    <div>
+        @if (zoneGroupPatterns.Count > 0)
+        {
+            <table class="table table-sm table-bordered th-bg-secondary mb-0 w-auto">
+                <thead>
+                    <tr>
+                        <th class="text-nowrap">@(userConfig.GetText("match_type"))</th>
+                        <th class="text-nowrap">@(userConfig.GetText("case_sensitive"))</th>
+                        <th>@(userConfig.GetText("value"))</th>
+                        <th class="text-nowrap">@(userConfig.GetText("actions"))</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int index = 0; index < zoneGroupPatterns.Count; index++)
+                    {
+                        int patternIndex = index;
+                        FlowZoneGroupPattern pattern = zoneGroupPatterns[patternIndex];
+                        <tr @key="pattern">
+                            <td>
+                                <select class="form-select form-select-sm" value="@pattern.MatchType"
+                                        @onchange="args => SetZoneGroupMatchType(pattern, args.Value?.ToString())">
+                                    @foreach (FlowZoneNameMatchType matchType in ZoneNameMatchTypes)
+                                    {
+                                        <option value="@matchType">@(userConfig.GetText(BuildMatchTypeTextKey(matchType)))</option>
+                                    }
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <input type="checkbox" class="form-check-input" @bind="pattern.CaseSensitive" />
+                            </td>
+                            <td>
+                                <input type="text" class="form-control form-control-sm" @bind="pattern.Value" />
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveZoneGroupPattern(patternIndex)" title="@(userConfig.GetText("delete"))">
+                                    <span class="@Icons.Delete"></span>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="text-muted small">-</div>
+        }
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-secondary" disabled="@workInProgress" @onclick="AddZoneGroupPattern">
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" disabled="@workInProgress" @onclick="SaveZoneGroupPatterns">
+                    @if (workInProgress)
+                    {
+                        <Loading CssClass="me-1" />
+                    }
+                    @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                </button>
+            </div>
+            <div class="text-muted small">
+                @(userConfig.GetText("flow_zone_groups_hint"))
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mb-2">
     <label class="form-label form-label-sm mb-1">@(userConfig.GetText("reset_flow_db")):</label>
     <div class="d-flex flex-wrap align-items-center gap-2">
         <button type="button" class="btn btn-sm btn-danger" disabled="@workInProgress" @onclick="OpenResetFlowDbConfirm">
@@ -111,10 +180,13 @@
     private List<Management> namingNetworkGroupManagements = [];
     private List<Management> namingServiceManagements = [];
     private List<Management> namingTimeManagements = [];
+    private List<FlowZoneGroupPattern> zoneGroupPatterns = [];
     private ConfigData? configData;
     private bool workInProgress = false;
     private bool RecalculateConfirmMode = false;
     private bool ResetFlowDbConfirmMode = false;
+
+    private static readonly List<FlowZoneNameMatchType> ZoneNameMatchTypes = [.. Enum.GetValues<FlowZoneNameMatchType>()];
 
     private Management? SelectedNamingManagement => namingManagementRanking.FirstOrDefault();
 
@@ -139,6 +211,7 @@
             configData = await globalConfig.GetEditableConfig();
             selectableManagements = await apiConnection.SendQueryAsync<List<Management>>(FlowQueries.getFlowSelectableManagements);
             InitializeNamingManagementRanking();
+            InitializeZoneGroupPatterns();
             flowNwObjects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowNwObjectCatalog);
             flowNwGroups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups) ?? [];
             flowSvcObjects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowServiceObjects) ?? [];
@@ -263,6 +336,65 @@
         {
             workInProgress = false;
             DisplayMessageInUi(exception, userConfig.GetText("recalculate_flow_names"), "", true);
+        }
+
+        StateHasChanged();
+    }
+
+    private void InitializeZoneGroupPatterns()
+    {
+        zoneGroupPatterns = configData == null ? [] : FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns);
+    }
+
+    private void AddZoneGroupPattern()
+    {
+        zoneGroupPatterns.Add(new FlowZoneGroupPattern());
+    }
+
+    private void RemoveZoneGroupPattern(int patternIndex)
+    {
+        if (patternIndex >= 0 && patternIndex < zoneGroupPatterns.Count)
+        {
+            zoneGroupPatterns.RemoveAt(patternIndex);
+        }
+    }
+
+    private static void SetZoneGroupMatchType(FlowZoneGroupPattern pattern, string? selectedMatchType)
+    {
+        if (Enum.TryParse(selectedMatchType, out FlowZoneNameMatchType matchType))
+        {
+            pattern.MatchType = matchType;
+        }
+    }
+
+    private static string BuildMatchTypeTextKey(FlowZoneNameMatchType matchType)
+    {
+        return $"match_type_{matchType.ToString().ToLowerInvariant()}";
+    }
+
+    private async Task SaveZoneGroupPatterns()
+    {
+        try
+        {
+            if (configData == null)
+            {
+                return;
+            }
+
+            workInProgress = true;
+            StateHasChanged();
+
+            configData.FlowZoneGroupNamePatterns = FlowZoneGroupMatcher.SerializePatterns(zoneGroupPatterns);
+            await globalConfig.WriteToDatabase(configData, apiConnection);
+            InitializeZoneGroupPatterns();
+
+            DisplayMessageInUi(null, userConfig.GetText("flow_zone_groups"), userConfig.GetText("U5301"), false);
+            workInProgress = false;
+        }
+        catch (Exception exception)
+        {
+            workInProgress = false;
+            DisplayMessageInUi(exception, userConfig.GetText("flow_zone_groups"), "", true);
         }
 
         StateHasChanged();

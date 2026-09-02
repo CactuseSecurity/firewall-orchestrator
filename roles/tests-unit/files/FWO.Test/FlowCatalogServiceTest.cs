@@ -1,3 +1,4 @@
+using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
@@ -35,7 +36,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 17, Name = "UDP" }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(true);
 
@@ -69,7 +70,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 6, Name = "TCP" }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(false);
 
@@ -88,7 +89,7 @@ internal class FlowCatalogServiceTest
             new FlowSvcObject { Id = 12, Name = "ANY", ProtoId = 0 }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(null);
 
@@ -120,7 +121,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressGroupResponse> result = await service.GetAddressGroupsAsync(null);
 
@@ -130,6 +131,101 @@ internal class FlowCatalogServiceTest
         Assert.That(result[0].Members[0].Name, Is.EqualTo("HostA"));
         Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowAddressGroups));
         Assert.That(GetWhereClause(apiConnection.SentVariables[0]), Is.Empty);
+    }
+
+    [Test]
+    public async Task GetSeparatedAddressGroupsAsync_SplitsZoneGroupsByConfiguredPatterns()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressGroups = BuildSeparationTestGroups();
+
+        GlobalConfig globalConfig = new()
+        {
+            FlowZoneGroupNamePatterns =
+                "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\"_zone\"},{\"matchType\":\"Suffix\",\"caseSensitive\":true,\"value\":\"-zone\"}]"
+        };
+        FlowCatalogService service = new(apiConnection, globalConfig);
+
+        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(true);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "dmz_zone", "dmz_ZONE", "dmz-zone" }));
+            Assert.That(result.StandardGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "DMZ-Servers", "dmz-ZONE" }));
+        });
+        Assert.That(apiConnection.SentQueries[0], Is.EqualTo(FlowQueries.getFlowAddressGroups));
+        Assert.That(GetWhereClause(apiConnection.SentVariables[0]), Is.Not.Empty);
+    }
+
+    [Test]
+    public async Task GetSeparatedAddressGroupsAsync_MapsMembersAndKeepsGroupDetails()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressGroups =
+        [
+            new FlowNwGroup
+            {
+                Id = 501,
+                Name = "zone1",
+                State = FlowState.Implemented,
+                ShowInRequestModule = true,
+                NwGroupMembers =
+                [
+                    new FlowNwGroupMember
+                    {
+                        NwGroupId = 501,
+                        NwObjectId = 502,
+                        NwObject = new FlowNwObject { Id = 502, Name = "subnet1-from-zone1" }
+                    }
+                ]
+            }
+        ];
+
+        GlobalConfig globalConfig = new()
+        {
+            FlowZoneGroupNamePatterns = "[{\"matchType\":\"Prefix\",\"caseSensitive\":false,\"value\":\"zone\"}]"
+        };
+        FlowCatalogService service = new(apiConnection, globalConfig);
+
+        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
+
+        Assert.That(result.StandardGroups, Is.Empty);
+        Assert.That(result.ZoneGroups, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.ZoneGroups[0].Id, Is.EqualTo(501));
+            Assert.That(result.ZoneGroups[0].State, Is.EqualTo(FlowState.Implemented));
+            Assert.That(result.ZoneGroups[0].ShowInRequest, Is.True);
+            Assert.That(result.ZoneGroups[0].Members, Has.Count.EqualTo(1));
+            Assert.That(result.ZoneGroups[0].Members[0].Id, Is.EqualTo(502));
+            Assert.That(result.ZoneGroups[0].Members[0].Name, Is.EqualTo("subnet1-from-zone1"));
+        });
+    }
+
+    [Test]
+    public async Task GetSeparatedAddressGroupsAsync_WithoutConfiguredPatterns_ReturnsAllGroupsAsStandardGroups()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressGroups = BuildSeparationTestGroups();
+
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
+
+        Assert.That(result.ZoneGroups, Is.Empty);
+        Assert.That(result.StandardGroups, Has.Count.EqualTo(5));
+    }
+
+    private static List<FlowNwGroup> BuildSeparationTestGroups()
+    {
+        return
+        [
+            new FlowNwGroup { Id = 201, Name = "DMZ-Servers", State = FlowState.Implemented },
+            new FlowNwGroup { Id = 501, Name = "dmz_zone", State = FlowState.Implemented },
+            new FlowNwGroup { Id = 502, Name = "dmz_ZONE", State = FlowState.Implemented },
+            new FlowNwGroup { Id = 503, Name = "dmz-zone", State = FlowState.Implemented },
+            new FlowNwGroup { Id = 504, Name = "dmz-ZONE", State = FlowState.Implemented }
+        ];
     }
 
     [Test]
@@ -149,7 +245,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<TimeObjectResponse> result = await service.GetTimeObjectsAsync(null);
 
@@ -172,7 +268,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -204,7 +300,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -234,7 +330,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             null,
@@ -265,7 +361,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -280,7 +376,7 @@ internal class FlowCatalogServiceTest
     public async Task GetTimeObjectIdAsync_ReturnsEmptyResponseWhenNoMatchExists()
     {
         FlowCatalogServiceApiConn apiConnection = new();
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -312,7 +408,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
 
@@ -345,7 +441,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
 
@@ -376,7 +472,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceGroupResponse> result = await service.GetServiceGroupsAsync(null);
 
@@ -402,7 +498,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         AddressObjectIdResponse result = await service.GetAddressObjectIdAsync("10.0.0.1", "10.0.0.2", true);
 
@@ -437,7 +533,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 17, Name = "UDP" }
         ];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("tcp", 443, 443, false);
 
@@ -462,7 +558,7 @@ internal class FlowCatalogServiceTest
         apiConnection.Protocols = [new IpProtocol { Id = 0, Name = "ANY" }];
         apiConnection.ServiceObjects = [new FlowSvcObject { Id = 51, Name = "ANY", ProtoId = 0 }];
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("ANY", null, null, null);
 
@@ -481,7 +577,7 @@ internal class FlowCatalogServiceTest
     public async Task GetServiceObjectIdAsync_ReturnsEmptyResponseForUnknownProtocol()
     {
         FlowCatalogServiceApiConn apiConnection = new();
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("not-a-protocol", 443, 443, null);
 
@@ -529,7 +625,7 @@ internal class FlowCatalogServiceTest
             await releaseProtocolQuery.Task;
         };
 
-        FlowCatalogService service = new(apiConnection);
+        FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         Task<List<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null);
         await protocolQueryStarted.Task;

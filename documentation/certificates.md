@@ -61,8 +61,13 @@ the middleware.
 
 FWO's own internal OpenLDAP is unaffected while its certificate comes from the internal CA.
 If an upgrade retains an administrator-managed certificate there instead, the installer
-checks it before going any further: one that does not cover `openldap_server` fails the run
-naming the missing address, rather than completing and leaving every login broken.
+checks it before going any further, on both counts, rather than completing and leaving every
+login broken: one that does not cover `openldap_server` fails the run naming the missing
+address, and one whose issuing root is not configured as `internalca_peer_ca_certificate`
+fails naming the issuer. The second check is deliberately asked for even when the issuing CA
+already happens to be a trust anchor on the middleware host - the installer cannot establish
+that from the files it can see, least of all through an intermediate, and naming the root as
+the peer CA is additive: it is installed beside the internal CA and replaces nothing.
 
 The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 `internalca_key_curve: secp256r1`). For environments with legacy TLS clients,

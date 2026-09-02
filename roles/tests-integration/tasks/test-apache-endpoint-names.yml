@@ -6,6 +6,15 @@
 # configuration and the inventory rather than rebuilt here, so this fails exactly when
 # the served identity and the endpoint it serves have drifted apart, which is what an
 # upgrade that renames an endpoint does to a certificate that is still valid.
+#
+# The name sources are this file's own and deliberately differ from the preflight's - it
+# reads what was actually written to fworch.json, the preflight reads what the inventory
+# asks for. The *matching* is not this file's own: it drives
+# roles/internalCA/tasks/validate-retained-certificate.yml. Keeping a second copy of the
+# classification here is what let the two part company once already, when an IP literal
+# containing a colon stayed a dNSName on this side after the preflight had learned to
+# emit it as an iPAddress - so the late check rejected at the end of a run what the
+# preflight had accepted in its first minute.
 - name: Read the Apache certificate this host serves
   community.crypto.x509_certificate_info:
     path: "{{ internalca_apache_certificate }}"
@@ -27,50 +36,34 @@
   vars:
     test_fwo_config: "{{ test_fwo_config_file.content | b64decode | from_json }}"
 
-# An IP literal is only matched by an iPAddress entry - a dNSName holding the same
-# digits is not - so each name is looked up as the entry type it can be matched by,
-# the same split roles/internalCA makes when it issues the certificate.
 - name: Require the Apache certificate to cover every configured endpoint name
-  assert:
-    that:
-      # The ternary is parenthesised: Ansible wraps a bare "that" expression in
-      # {% if ... %}, and Jinja does not accept a conditional expression directly
-      # inside a statement block.
-      - >-
-        (
-          item.name in test_certificate_ip_names
-          if item.name is match(test_ipv4_pattern)
-          else (
-            item.name | lower in test_certificate_dns_names
-            or item.name | lower | regex_replace('^[^.]+\.', '*.') in test_certificate_dns_names
-          )
-        )
-    fail_msg: >-
-      {{ internalca_apache_certificate }} on {{ inventory_hostname }} is not valid for
-      {{ item.name }}, the host name {{ item.setting }} addresses this endpoint under.
-      Its subjectAltName holds
-      {{ test_apache_certificate.subject_alt_name | default([], true) | join(', ') }}.
-      Every FWO client verifies this endpoint, so all of them fail on a host name
-      mismatch until the certificate is reissued for the configured name.
-  loop: "{{ test_apache_endpoint_names }}"
-  loop_control:
-    label: "{{ item.setting }}={{ item.name }}"
+  include_tasks: "{{ role_path }}/../internalCA/tasks/validate-retained-certificate.yml"
   vars:
-    # Block scalars keep backslashes verbatim, so this pattern uses single backslashes.
-    test_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
-    # Matched the same way roles/internalCA matches a certificate it retains, or this
-    # test rejects at the end of the run what the preflight deliberately accepted in its
-    # first minute: DNS names compared case insensitively because the resolver is, and a
-    # wildcard accepted for the one label it covers, which is how customer certificates
-    # are commonly issued. IP entries stay verbatim - an iPAddress entry is the only one
-    # an IP literal matches, and neither case nor wildcards apply to it.
-    test_certificate_dns_names: >-
-      {{
-        test_apache_certificate.subject_alt_name | default([], true) | select('match', '^DNS:')
-        | map('regex_replace', '^DNS:', '') | map('lower') | list
-      }}
-    test_certificate_ip_names: >-
-      {{
-        test_apache_certificate.subject_alt_name | default([], true) | select('match', '^IP:')
-        | map('regex_replace', '^IP:', '') | list
-      }}
+    retained_certificate_subject: Apache
+    retained_certificate_path: "{{ internalca_apache_certificate }}"
+    retained_certificate_info: "{{ test_apache_certificate }}"
+    # Deduplicated, because on a single-host installation all three endpoints resolve to
+    # the same name - that is the shipped inventory - and the shared matcher reports every
+    # entry it was given, so without this the message names it three times. Which setting
+    # carried which name is not lost: it is in the remedy below.
+    retained_certificate_required_names: >-
+      {{ test_apache_endpoint_names | map(attribute='name') | unique | list }}
+    # The certificate under test here is normally one FWO issued, not one it retained, so
+    # the shared message's default opening clause would name it wrongly.
+    retained_certificate_lead: >-
+      The Apache certificate served on {{ inventory_hostname }}
+      ({{ internalca_apache_certificate }})
+    # Which setting carried which name is the part of the old per-name message worth
+    # keeping: the shared matcher reports every uncovered name at once, so the mapping
+    # goes into the remedy instead of into a loop label. Built with an explicit loop
+    # because Jinja has no comprehensions.
+    retained_certificate_remedy: >-
+      Every {{ product_name }} client verifies this endpoint, so all of them fail on a
+      host name mismatch until the certificate is reissued for the configured name. This
+      host serves {{ test_endpoint_name_settings }}, read from the deployed configuration.
+    test_endpoint_name_settings: >-
+      {%- set pairs = [] -%}
+      {%- for endpoint in test_apache_endpoint_names -%}
+        {%- set _ = pairs.append(endpoint.setting ~ '=' ~ endpoint.name) -%}
+      {%- endfor -%}
+      {{ pairs | join(', ') }}

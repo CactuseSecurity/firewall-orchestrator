@@ -90,7 +90,7 @@
           spreads {{ product_name }} over {{ fworch_inventory_hosts | length }} hosts
           ({{ fworch_inventory_hosts | join(', ') }}). It gives the api, middleware and ui
           endpoints one and the same name, which is only correct when they are installed on
-          one host. Name the hosts in inventory/hosts.yml instead, or set api_hostname,
+          one host. Name the hosts in inventory/hosts.yml instead, or set
           api_network_listening_ip_address, middleware_hostname and ui_hostname
           individually in {{ fwo_install_settings_file }}.
       when:

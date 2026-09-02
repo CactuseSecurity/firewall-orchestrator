@@ -52,6 +52,10 @@ syslog_host: "{{ groups['logserver'].0 }}"
 # are delegated to, not an address anything connects to (that is fworch_db_connect_host),
 # and delegate_to only accepts a name the inventory actually has.
 fworch_db_host: "{{ groups['databaseserver'].0 }}"
+# Only ever added to the subjectAltName of a certificate FWO issues, and deliberately not
+# offered as an operator setting: api_uri is built from api_network_listening_ip_address and
+# the api vhost serves api_server_name, so a second name here connects to nothing. Do not
+# put it back into operator guidance or into a check that can block an upgrade.
 api_hostname: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
 

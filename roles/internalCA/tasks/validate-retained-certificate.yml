@@ -15,13 +15,16 @@
 #   retained_certificate_info          - a registered x509_certificate_info result
 #   retained_certificate_required_names- plain host names that must be covered
 #   retained_certificate_remedy        - the caller's advice, appended to the message
+# Optional:
+#   retained_certificate_lead          - how to name the certificate in the message, for a
+#                                        caller whose certificate is not a retained one
 # Output: internalca_uncovered_certificate_names, or a failure naming them.
 
 # Split out so the canonicaliser in internalca_canonical_ip_names is applied to both
 # sides of the comparison from one definition: it reads a conventional input variable,
 # so each side needs its own task. Comparing raw strings instead would reject a
 # certificate that covers the endpoint under a different spelling of the same address.
-- name: Canonicalise the IP entries of the retained {{ retained_certificate_subject }} certificate
+- name: Canonicalise the IP entries of the {{ retained_certificate_subject }} certificate
   set_fact:
     internalca_retained_certificate_ip_names: "{{ internalca_canonical_ip_names | split }}"
     internalca_retained_certificate_alt_names: "{{ retained_subject_alt_names }}"
@@ -41,14 +44,14 @@
         | map('regex_replace', '^IP:', '') | list
       }}
 
-- name: Canonicalise the IP names the retained {{ retained_certificate_subject }} certificate must cover
+- name: Canonicalise the IP names the {{ retained_certificate_subject }} certificate must cover
   set_fact:
     internalca_required_ip_names: "{{ internalca_canonical_ip_names | split }}"
   vars:
     internalca_ip_names_input: >-
       {{ retained_certificate_required_names | select('search', internalca_ip_literal_pattern) | list }}
 
-- name: Collect the names the retained {{ retained_certificate_subject }} certificate does not cover
+- name: Collect the names the {{ retained_certificate_subject }} certificate does not cover
   set_fact:
     internalca_uncovered_certificate_names: "{{ uncovered_names | split }}"
   vars:
@@ -78,11 +81,20 @@
       {%- endfor -%}
       {{ uncovered | join(' ') }}
 
-- name: Fail on a name the retained {{ retained_certificate_subject }} certificate does not cover
+- name: Fail on a name the {{ retained_certificate_subject }} certificate does not cover
+  vars:
+    # Only the opening clause is the caller's, and only because the certificate is not
+    # always a retained one: roles/tests-integration drives this file against the
+    # certificate a host actually serves, which is usually one FWO issued, and
+    # "customer managed ... kept on" would name it wrongly there. Everything the matching
+    # itself concluded stays here, so two callers cannot report it differently.
+    retained_certificate_default_lead: >-
+      The customer managed {{ retained_certificate_subject }} certificate kept on
+      {{ inventory_hostname }} ({{ retained_certificate_path }})
   fail:
     msg: >-
-      The customer managed {{ retained_certificate_subject }} certificate kept on
-      {{ inventory_hostname }} ({{ retained_certificate_path }}) has no subjectAltName
+      {{ retained_certificate_lead | default(retained_certificate_default_lead, true) }}
+      has no subjectAltName
       entry for {{ internalca_uncovered_certificate_names | join(', ') }}, but
       {{ product_name }} addresses this host under exactly
       {{ 'that name' if internalca_uncovered_certificate_names | length == 1 else 'those names' }},

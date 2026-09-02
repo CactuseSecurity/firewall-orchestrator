@@ -265,6 +265,35 @@
       }}
   when: "'middlewareserver' in group_names"
 
+# Mirrors the guard the Apache identity has above, and for a sharper reason. The
+# middleware accepts an LDAP server certificate on exactly two routes: one the host
+# already trusts, or one that chains to the trust bundle - the internal CA plus
+# internalca_peer_ca_certificate. A retained slapd certificate is by definition not from
+# the internal CA, so with no peer CA configured only the host trust store is left, and
+# nothing in this run can establish that the issuing CA is in it - a chain through an
+# intermediate cannot be resolved from the files on disk either. Naming the issuing root
+# as the peer CA is additive and safe whichever route ends up being used: roles/internalCA
+# installs it as an FWO owned trust anchor beside the internal CA and replaces nothing. So
+# it is asked for here, rather than after an upgrade that ends green and then rejects
+# every login.
+- name: Require an explicit trust bundle for a retained LDAP certificate
+  fail:
+    msg: >-
+      The existing OpenLDAP certificate on {{ inventory_hostname }}
+      ({{ internalca_ldap_certificate }}) is customer managed, issued by
+      {{ internalca_existing_ldap_certificate_info.issuer.get('commonName', 'an unnamed CA') }}.
+      Set internalca_peer_ca_certificate to the path of its issuing root CA certificate on
+      every {{ product_name }} component before upgrading. The middleware verifies this
+      certificate against the trust bundle, and the internal CA alone cannot validate it,
+      so without the issuer every login fails with a rejection logged under LdapTls. Move
+      the identity out of {{ internalca_ldap_cert_dir }} instead if slapd should go back to
+      an {{ product_name }} issued certificate. The issuer is added to the trust
+      configuration rather than replacing the internal CA, so endpoints that still serve an
+      internal CA certificate keep working.
+  when:
+    - internalca_preserve_ldap_certificate | default(false) | bool
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
 # The same question for the slapd identity, and it matters more than it looks: the
 # middleware now verifies the LDAP server certificate instead of accepting any, and it
 # connects to openldap_server - 127.0.0.1 on a single-host installation. A customer

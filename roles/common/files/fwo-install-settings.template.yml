@@ -50,8 +50,8 @@ fwo_endpoint_hostname: ""
 # On an installation spread over several hosts, fwo_endpoint_hostname is refused - it
 # would give every endpoint the same name. Name the hosts in inventory/hosts.yml, or set
 # each endpoint here. api_uri is built from api_network_listening_ip_address, so that one
-# is the API's name and not only its listener address.
-# api_hostname: fwo-api.example.com
+# is the API's name and not only its listener address. There is deliberately no second
+# setting for the API's name here: one would only be a name nothing connects to.
 # api_network_listening_ip_address: fwo-api.example.com
 # middleware_hostname: fwo-mw.example.com
 # ui_hostname: fwo-ui.example.com

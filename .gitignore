@@ -6,6 +6,9 @@
 .test_data/
 roles/importer/venv/
 ansible_venv/
+# unpacked by ansible-galaxy from collections/requirements.yml on every install;
+# only the pin file itself belongs in the repository
+collections/ansible_collections/
 *.todo
 **/.venv/
 **/__pycache__/

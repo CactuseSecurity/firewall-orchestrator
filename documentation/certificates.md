@@ -48,8 +48,21 @@ Earlier versions accepted every certificate. **This can affect an existing exter
 directory**: if your AD or LDAP server presents a self-signed certificate, or one
 from a CA the middleware host does not trust, authentication against it will now
 fail with a rejection logged under `LdapTls`. Install the issuing CA into the
-middleware host's trust store before upgrading. FWO's own internal OpenLDAP is
-unaffected, since its certificate comes from the internal CA.
+middleware host's trust store before upgrading.
+
+The **address** matters as much as the issuer: a host name mismatch is rejected outright and
+is never rescued by the internal CA, so the certificate has to carry the address the
+connection is configured with - as an `IP:` entry when that address is an IP literal, since a
+`DNS:` entry holding the same digits does not match it. Note this validation is the
+middleware's own and is deliberately stricter than the `TLS_REQCERT never` the installer
+falls back to for its own `ldapsearch` calls against a retained certificate; the two are not
+in conflict, but a retained certificate that satisfies the installer can still be refused by
+the middleware.
+
+FWO's own internal OpenLDAP is unaffected while its certificate comes from the internal CA.
+If an upgrade retains an administrator-managed certificate there instead, the installer
+checks it before going any further: one that does not cover `openldap_server` fails the run
+naming the missing address, rather than completing and leaving every login broken.
 
 The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 `internalca_key_curve: secp256r1`). For environments with legacy TLS clients,

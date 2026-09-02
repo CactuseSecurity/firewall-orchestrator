@@ -163,7 +163,30 @@
 # "Hostname mismatch", or with a middleware that never binds its port because the API
 # client rejected a certificate that does not name api_uri's host.
 - name: Require a retained Apache certificate to cover every FWO endpoint name
-  include_tasks: validate-retained-apache-certificate.yml
+  include_tasks: validate-retained-certificate.yml
+  vars:
+    retained_certificate_subject: Apache
+    retained_certificate_path: "{{ internalca_existing_apache_certificate }}"
+    retained_certificate_info: "{{ internalca_existing_apache_certificate_info }}"
+    retained_certificate_required_names: "{{ internalca_endpoint_host_names }}"
+    # One folded scalar per remedy, and neither names the missing entries: that count is
+    # only known inside the include, and a Jinja literal broken across lines inside a
+    # folded scalar would keep its newline and indentation in the operator's message.
+    single_host_remedy: >-
+      Set fwo_endpoint_hostname in {{ fworch_conf_dir }}/fwo-install-settings.yml to a name
+      the certificate covers, or have the certificate reissued for the names listed above.
+    # fwo_endpoint_hostname names all three endpoints at once, but roles/common refuses it
+    # on an inventory holding more than one host - which is exactly where the endpoints were
+    # named individually and so exactly where this failure is most likely. Naming it there
+    # would send the operator into a second, different failure.
+    multi_host_remedy: >-
+      This inventory spreads {{ product_name }} over {{ fworch_inventory_hosts | length }}
+      hosts, so fwo_endpoint_hostname is refused here. Set
+      api_network_listening_ip_address, middleware_hostname and ui_hostname individually in
+      {{ fworch_conf_dir }}/fwo-install-settings.yml to names the certificate covers, or have
+      the certificate reissued for the names listed above.
+    retained_certificate_remedy: >-
+      {{ single_host_remedy if fworch_inventory_hosts | default([]) | length <= 1 else multi_host_remedy }}
   when: internalca_preserve_apache_certificate | default(false) | bool
 
 - name: Check existing LDAP certificate and private key
@@ -241,3 +264,26 @@
         )
       }}
   when: "'middlewareserver' in group_names"
+
+# The same question for the slapd identity, and it matters more than it looks: the
+# middleware now verifies the LDAP server certificate instead of accepting any, and it
+# connects to openldap_server - 127.0.0.1 on a single-host installation. A customer
+# managed slapd certificate almost never carries that, so without this the upgrade
+# succeeds and every login afterwards fails on a TLS host name mismatch, with nothing
+# pointing at the certificate. There is no fwo_endpoint_hostname equivalent here, so the
+# remedy is the certificate itself or letting FWO issue the identity again.
+- name: Require a retained LDAP certificate to cover the address the middleware uses
+  include_tasks: validate-retained-certificate.yml
+  vars:
+    retained_certificate_subject: OpenLDAP
+    retained_certificate_path: "{{ internalca_ldap_certificate }}"
+    retained_certificate_info: "{{ internalca_existing_ldap_certificate_info }}"
+    retained_certificate_required_names: "{{ [openldap_server] | reject('equalto', '') | list }}"
+    retained_certificate_remedy: >-
+      Have the certificate reissued for {{ openldap_server }}, or move it out of
+      {{ internalca_ldap_cert_dir }} so {{ product_name }} issues the slapd identity from its
+      internal CA again. Until then the middleware cannot open an LDAP connection and no
+      user can log in.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool

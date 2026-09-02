@@ -1,25 +1,27 @@
 ---
-# Drives roles/internalCA/tasks/validate-retained-apache-certificate.yml itself rather
-# than a copy of its expressions: the defect this preflight exists for is an upgrade
-# that keeps an administrator-managed certificate and only discovers ten minutes later
-# that no FWO client can validate the endpoints it just configured, and a test that
-# reimplements the matching would stay green through a regression in the real one.
+# Drives roles/internalCA/tasks/validate-retained-certificate.yml itself rather than a
+# copy of its expressions: the defect this preflight exists for is an upgrade that keeps
+# an administrator-managed certificate and only discovers ten minutes later that no FWO
+# client can validate the endpoints it just configured, and a test that reimplements the
+# matching would stay green through a regression in the real one.
+#
 # Runs unprivileged: everything happens inside a temporary directory this test creates,
 # so nothing here needs root, unlike the preflight tests that inspect a real vhost.
 - name: Set the retained certificate preflight test inputs
   set_fact:
-    # The production file, included rather than reimplemented.
-    retained_certificate_preflight: "{{ role_path }}/../internalCA/tasks/validate-retained-apache-certificate.yml"
+    retained_certificate_preflight: "{{ role_path }}/../internalCA/tasks/validate-retained-certificate.yml"
     # Case is exercised in both directions on purpose - an endpoint name in a case the
     # certificate does not use, and a certificate entry in a case the endpoint name does
     # not - because lower-casing only one side of the comparison still passes a test that
-    # varies the other.
+    # varies the other. The IPv6 address is written in a different but equivalent spelling
+    # from the certificate's, which is the whole point of canonicalising before comparing.
     retained_certificate_covered_names:
       - fwo.test.example.com
       - web.apps.test.example.com
       - FWO.Test.Example.COM
       - mixed.case.example.com
       - 10.11.12.13
+      - "2001:0DB8:0000::1"
     retained_certificate_uncovered_names:
       - fwo.test.example.com
       - localhost
@@ -31,9 +33,8 @@
     prefix: fworch-retained-certificate-
   register: retained_certificate_test_directory
 
-# One certificate carrying all three entry kinds a customer certificate mixes: an exact
-# name, a wildcard, and an iPAddress entry. Every case below is a different set of
-# endpoint names checked against this one certificate.
+# One certificate carrying every entry kind a customer certificate mixes: an exact name,
+# a wildcard, a mixed-case name, an IPv4 and an IPv6 address.
 - name: Create a customer style certificate for the retained certificate preflight test
   command:
     argv:
@@ -54,7 +55,7 @@
       - -subj
       - /O=Test/CN=fwo.test.example.com
       - -addext
-      - subjectAltName=DNS:fwo.test.example.com,DNS:*.apps.test.example.com,DNS:Mixed.Case.Example.com,IP:10.11.12.13
+      - subjectAltName=DNS:fwo.test.example.com,DNS:*.apps.test.example.com,DNS:Mixed.Case.Example.com,IP:10.11.12.13,IP:2001:db8::1
   changed_when: false
 
 - name: Read the customer style certificate for the retained certificate preflight test
@@ -63,35 +64,40 @@
   register: retained_certificate_test_info
   changed_when: false
 
-# An exact name, a name the wildcard covers, a name differing only in case, and the IP
-# literal as an iPAddress entry must all be accepted. Any of these failing would stop an
-# upgrade that has a perfectly usable certificate, which is worse than not checking.
-- name: Verify the preflight accepts every endpoint name the certificate covers
+# An exact name, a name the wildcard covers, names differing only in case, the IPv4
+# literal, and an IPv6 address spelled differently from the certificate must all be
+# accepted. Any of these failing would stop an upgrade that has a perfectly usable
+# certificate, which is worse than not checking at all.
+- name: Verify the preflight accepts every name the certificate covers
   include_tasks: "{{ retained_certificate_preflight }}"
   vars:
-    internalca_existing_apache_certificate: "{{ retained_certificate_test_directory.path }}/retained.crt"
-    internalca_existing_apache_certificate_info: "{{ retained_certificate_test_info }}"
-    internalca_endpoint_host_names: "{{ retained_certificate_covered_names }}"
+    retained_certificate_subject: Apache
+    retained_certificate_path: "{{ retained_certificate_test_directory.path }}/retained.crt"
+    retained_certificate_info: "{{ retained_certificate_test_info }}"
+    retained_certificate_required_names: "{{ retained_certificate_covered_names }}"
+    retained_certificate_remedy: unused in the positive case
 
-- name: Assert that no covered endpoint name was reported as uncovered
+- name: Assert that no covered name was reported as uncovered
   assert:
     that:
-      - internalca_uncovered_endpoint_host_names | length == 0
+      - internalca_uncovered_certificate_names | length == 0
     fail_msg: >-
       The retained certificate preflight rejected
-      {{ internalca_uncovered_endpoint_host_names | join(', ') }}, which
-      {{ retained_certificate_test_directory.path }}/retained.crt covers.
+      {{ internalca_uncovered_certificate_names | join(', ') }}, which the test certificate
+      covers.
 
 # The case this preflight was written for: the shipped inventory still names the host
 # localhost while the retained certificate names the customer endpoint, so api_uri
 # addresses a name the certificate does not carry.
-- name: Verify the preflight rejects an endpoint name the certificate does not cover
+- name: Verify the preflight rejects a name the certificate does not cover
   block:
     - include_tasks: "{{ retained_certificate_preflight }}"
       vars:
-        internalca_existing_apache_certificate: "{{ retained_certificate_test_directory.path }}/retained.crt"
-        internalca_existing_apache_certificate_info: "{{ retained_certificate_test_info }}"
-        internalca_endpoint_host_names: "{{ retained_certificate_uncovered_names }}"
+        retained_certificate_subject: Apache
+        retained_certificate_path: "{{ retained_certificate_test_directory.path }}/retained.crt"
+        retained_certificate_info: "{{ retained_certificate_test_info }}"
+        retained_certificate_required_names: "{{ retained_certificate_uncovered_names }}"
+        retained_certificate_remedy: Set fwo_endpoint_hostname to a covered name.
     - set_fact:
         retained_certificate_preflight_rejected: false
   rescue:
@@ -99,24 +105,59 @@
         retained_certificate_preflight_rejected: true
         retained_certificate_preflight_message: "{{ ansible_failed_result.msg }}"
 
-- name: Assert that the uncovered endpoint names were rejected before the run continued
+- name: Assert that the uncovered names were rejected before the run continued
   assert:
     that:
       - retained_certificate_preflight_rejected | bool
-      # The exact missing-names clause, not just the names somewhere in the message:
-      # that asserts both that the two uncovered names are reported and that
+      # The exact missing-names clause, not just the names somewhere in the message: that
+      # asserts both that the two uncovered names are reported and that
       # fwo.test.example.com, which the certificate does cover, is not - while still
-      # allowing it to appear later in the message, where the covered names are listed.
+      # allowing it to appear later, where the covered names are listed.
       - >-
         'no subjectAltName entry for localhost, 10.11.12.14,'
         in retained_certificate_preflight_message
-      # The remedy has to be in the message. The failure this replaces was a bare TLS
-      # host name mismatch at a client, with nothing pointing at the certificate.
-      - "'fwo_endpoint_hostname' in retained_certificate_preflight_message"
+      # The caller's remedy has to reach the operator. The failure this replaces was a bare
+      # TLS host name mismatch at a client, with nothing pointing at the certificate.
+      - "'Set fwo_endpoint_hostname to a covered name.' in retained_certificate_preflight_message"
+      # The subject has to name which identity failed, now that Apache and OpenLDAP share
+      # this code.
+      - "'Apache certificate' in retained_certificate_preflight_message"
+      # A message must never contain a raw newline: the remedy is assembled from folded
+      # scalars, and a Jinja literal broken across lines would embed one.
+      - "'\n' not in retained_certificate_preflight_message"
     fail_msg: >-
       The retained certificate preflight did not reject
       {{ retained_certificate_uncovered_names | join(', ') }} with a usable message:
       {{ retained_certificate_preflight_message | default('it did not fail at all') }}
+
+# The OpenLDAP identity goes through the same file, so the subject has to follow it.
+- name: Verify the preflight reports the OpenLDAP identity under its own name
+  block:
+    - include_tasks: "{{ retained_certificate_preflight }}"
+      vars:
+        retained_certificate_subject: OpenLDAP
+        retained_certificate_path: "{{ retained_certificate_test_directory.path }}/retained.crt"
+        retained_certificate_info: "{{ retained_certificate_test_info }}"
+        retained_certificate_required_names:
+          - 127.0.0.1
+        retained_certificate_remedy: Have the certificate reissued for 127.0.0.1.
+    - set_fact:
+        retained_ldap_preflight_rejected: false
+  rescue:
+    - set_fact:
+        retained_ldap_preflight_rejected: true
+        retained_ldap_preflight_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that the OpenLDAP address was rejected with its own subject and remedy
+  assert:
+    that:
+      - retained_ldap_preflight_rejected | bool
+      - "'OpenLDAP certificate' in retained_ldap_preflight_message"
+      - "'no subjectAltName entry for 127.0.0.1,' in retained_ldap_preflight_message"
+      - "'Have the certificate reissued for 127.0.0.1.' in retained_ldap_preflight_message"
+    fail_msg: >-
+      The retained certificate preflight did not reject the LDAP address usably:
+      {{ retained_ldap_preflight_message | default('it did not fail at all') }}
 
 - name: Remove the retained certificate preflight test directory
   file:

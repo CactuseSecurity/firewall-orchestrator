@@ -649,6 +649,16 @@ Not supported any longer are:
   - validated Apache intermediate certificate-chain references for administrator-managed certificates
 - application roles may now only be changed by an owner holding the modeller role
 - the ldap connection passwords are no longer readable via the API, not even for auditors
+- **the middleware now verifies LDAP server certificates instead of accepting any of them.**
+  This applies to every LDAP connection using TLS, internal and external alike. A connection
+  whose certificate is issued by FWO's internal CA, or by a CA the middleware host already
+  trusts, keeps working untouched. A connection whose certificate is self-signed, issued by a
+  private CA that is not in the host trust store, or does not carry the address the connection
+  is configured with, was silently accepted before and is now rejected - which means those
+  users can no longer log in. Add the issuing CA to the middleware host's trust store, or have
+  the certificate reissued for the address FWO connects to. The middleware names the server and
+  the reason in its log (category LdapTls). The installer refuses the upgrade up front if a
+  retained administrator-managed OpenLDAP certificate does not cover the configured address
 - installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
   so an installation that must be addressed under a specific DNS name - a name an
   administrator-managed certificate was issued for, above all - is configured in one place

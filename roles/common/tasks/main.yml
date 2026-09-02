@@ -57,16 +57,6 @@
     # components off from each other - and for an upgrade, take a working
     # installation down - so treat the combination as the misconfiguration it is
     # rather than narrowing the listeners and finding out afterwards.
-    - name: collect the hosts this installation is spread over
-      set_fact:
-        fworch_inventory_hosts: >-
-          {{
-            ['databaseserver', 'apiserver', 'middlewareserver', 'frontends', 'importers']
-            | map('extract', groups)
-            | select('defined')
-            | flatten
-            | unique
-          }}
 
     - name: fail when a multi host inventory would be narrowed to loopback
       fail:

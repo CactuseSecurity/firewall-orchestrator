@@ -25,6 +25,18 @@ installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
 # instead, which lives outside the repository. Only correct when the api, middleware and
 # ui are on one host - roles/common refuses a multi host inventory with it set.
 fwo_endpoint_hostname: ""
+# The hosts this installation is spread over. Global rather than a set_fact in roles/common
+# because roles/internalCA reports it in a failure message and "--tags certificates" runs
+# internalCA without common - a set_fact there is simply undefined in exactly the run that
+# reissues the certificates. Defined once, here, so the two cannot drift.
+fworch_inventory_hosts: >-
+  {{
+    ['databaseserver', 'apiserver', 'middlewareserver', 'frontends', 'importers']
+    | map('extract', groups)
+    | select('defined')
+    | flatten
+    | unique
+  }}
 # Operator owned installer input, read by scripts/run-playbook-with-sudo.sh and passed as
 # extra variables, so it outranks everything in this file. Shared by every clone on the
 # host on purpose: two administrators upgrading the same installation from their own
@@ -146,7 +158,7 @@ internalca_peer_ca_intermediate_certificates: ""
 internalca_apache_intermediate_certificates: ""
 
 # Global rather than an internalCA role default because roles/tests-integration includes
-# roles/internalCA/tasks/validate-retained-apache-certificate.yml to test it, and a role
+# roles/internalCA/tasks/validate-retained-certificate.yml to test it, and a role
 # default is invisible from another role - which is how a variable ends up silently
 # undefined in exactly the run that was meant to check it.
 #
@@ -155,17 +167,56 @@ internalca_apache_intermediate_certificates: ""
 # entries api_uri is built from and turns the retained certificate check into a
 # comparison of an IP against the dNSName entries it can never be matched by.
 internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
-# The names FWO's own components address this host's endpoints by, taken from the very
-# variables the endpoints are built from - api_uri from
-# api_network_listening_ip_address, middleware_uri from middleware_hostname, the ui
-# tests from ui_hostname. Both the subjectAltName of a certificate FWO issues and the
-# preflight over a certificate FWO retains read this one list, because a name that only
-# one of them knows about is precisely how a green install ends up with an endpoint no
-# client can validate.
+# Every host name that has to be certified as an iPAddress entry rather than a dNSName.
+# An IPv4 literal is matched anchored, so a name like 10.0.0.7.example.com stays a name;
+# the second alternative is a bare colon, which is deliberately unanchored because no DNS
+# host name may contain one, so its presence alone identifies an IPv6 literal. Use it with
+# the `search` test, never `match` - `match` anchors at the start and would miss the colon.
+internalca_ip_literal_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$|:'
+# Canonicalises a list of IP literals so two spellings of one IPv6 address compare equal:
+# 2001:0DB8::1 and 2001:db8:0:0:0:0:0:1 are the same address, and a preflight that compared
+# them as strings would reject a certificate that covers the endpoint. IPv4 literals and
+# anything without a colon pass through untouched.
+#
+# Jinja has no functions, so this reads a conventional input variable: set
+# internalca_ip_names_input in the task's vars and read the result here. It returns a
+# space separated string - an IP literal can never contain a space - so callers split it.
+# ansible.utils/netcommon (the ipaddr filter) is deliberately not used: neither collection
+# is pinned in collections/requirements.yml, and adding a dependency to the installer for
+# this would be out of proportion.
+internalca_canonical_ip_names: >-
+  {%- set canonical = [] -%}
+  {%- for value in internalca_ip_names_input | default([]) -%}
+    {%- set address = value | lower -%}
+    {%- if ':' in address -%}
+      {%- set parts = address.partition('::') -%}
+      {%- set head = parts[0].split(':') | reject('equalto', '') | list -%}
+      {%- set tail = parts[2].split(':') | reject('equalto', '') | list -%}
+      {%- set groups = (head + ['0'] * (8 - (head | length) - (tail | length)) + tail) if parts[1] else head -%}
+      {%- set expanded = [] -%}
+      {%- for group in groups -%}{%- set _ = expanded.append(group.lstrip('0') or '0') -%}{%- endfor -%}
+      {%- set _ = canonical.append(expanded | join(':')) -%}
+    {%- else -%}
+      {%- set _ = canonical.append(address) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {{ canonical | join(' ') }}
+# The names FWO's own components actually connect to, taken from the very variables the
+# endpoints are built from - api_uri from api_network_listening_ip_address,
+# middleware_uri from middleware_hostname, the ui tests from ui_hostname. Both the
+# subjectAltName of a certificate FWO issues and the preflight over a certificate FWO
+# retains read this one list, because a name that only one of them knows about is
+# precisely how a green install ends up with an endpoint no client can validate.
+#
+# api_hostname is deliberately NOT here. Nothing connects to it and no vhost serves it -
+# api_uri is built from api_network_listening_ip_address and the api vhost's ServerName
+# is api_server_name - so it belongs in a certificate FWO issues (where an extra name is
+# free) but must never block an upgrade over a certificate FWO merely retains. This list
+# is the blocking one; internalca_apache_host_names is the generous one.
 internalca_endpoint_host_names: >-
   {{
     (
-      ([api_hostname, api_network_listening_ip_address] if 'apiserver' in group_names else [])
+      ([api_network_listening_ip_address] if 'apiserver' in group_names else [])
       + ([middleware_hostname] if 'middlewareserver' in group_names else [])
       + ([ui_hostname] if 'frontends' in group_names else [])
     ) | reject('equalto', '') | unique | list

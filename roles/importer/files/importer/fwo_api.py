@@ -50,7 +50,7 @@ class FwoApi:
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
-    def __init__(self, api_uri: str, jwt: str, refresh_token: str | None = None):
+    def __init__(self, api_uri: str, jwt: str, refresh_token: str | None = None) -> None:
         self.fwo_api_url = api_uri
         self.fwo_jwt = jwt
         # optional: without it we can still proactively/reactively detect an expired JWT,

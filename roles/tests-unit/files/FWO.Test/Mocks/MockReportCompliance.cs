@@ -22,5 +22,10 @@ namespace FWO.Test.Mocks
         {
             return CreateQueryVariables(offset, limit, query);
         }
+
+        public ComplianceViolationType DetermineCompliancePublic(List<ComplianceViolation> violations)
+        {
+            return DetermineCompliance(violations);
+        }
     }
 }

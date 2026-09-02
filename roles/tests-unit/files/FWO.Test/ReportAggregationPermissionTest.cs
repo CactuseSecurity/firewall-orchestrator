@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data.Report;
 using FWO.Report.Filter;
@@ -8,8 +9,8 @@ using NUnit.Framework;
 namespace FWO.Test
 {
     /// <summary>
-    /// Guards the Hasura select permissions that the report queries built by
-    /// <see cref="DynGraphqlQuery"/> depend on. Hasura rejects an aggregate field unless the
+    /// Guards the Hasura select permissions that dynamic and specialized report queries depend on.
+    /// Hasura rejects an aggregate field unless the
     /// requesting role has "allow_aggregations" on the aggregated table, so a missing flag breaks
     /// a report for that role only - invisible to every other test (see the statistics report,
     /// which failed for auditor, modeller, recertifier and reporter on rule_enforced_on_gateway).
@@ -35,19 +36,20 @@ namespace FWO.Test
         ];
 
         /// <summary>
-        /// Maps every relationship aggregated by a report query to the table it resolves to.
+        /// Maps every field aggregated by a report query to the table it resolves to.
         /// Relationship names are not unique across the schema (for example "services" exists on
         /// both management and modelling owners), so the target table is pinned explicitly here and
-        /// kept honest by ReportQueries_AggregateOnlyKnownRelationships.
+        /// kept honest by ReportQueries_AggregateOnlyKnownFields.
         /// </summary>
-        private static readonly Dictionary<string, string> kAggregatedRelationshipTables = new()
+        private static readonly Dictionary<string, string> kAggregatedFieldTables = new()
         {
             { "objects", "firewall.nw_object" },
             { "services", "firewall.nw_service" },
             { "usrs", "firewall.nw_user" },
             { "rules", "firewall.rule" },
             { "rule_enforced_on_gateways", "firewall.rule_enforced_on_gateway" },
-            { "recertifications", "public.recertification" }
+            { "recertifications", "public.recertification" },
+            { "compliance_violation", "compliance.violation" }
         };
 
         /// <summary>
@@ -77,19 +79,19 @@ namespace FWO.Test
 
         /// <summary>
         /// Fails as soon as a report query aggregates a relationship that is not listed in
-        /// kAggregatedRelationshipTables, so new aggregates cannot silently escape the
+        /// kAggregatedFieldTables, so new aggregates cannot silently escape the
         /// permission check below.
         /// </summary>
         [Test]
-        public void ReportQueries_AggregateOnlyKnownRelationships()
+        public void ReportQueries_AggregateOnlyKnownFields()
         {
-            HashSet<string> aggregatedRelationships = CollectAggregatedRelationships();
+            HashSet<string> aggregatedFields = CollectAggregatedFields();
 
             Assert.That(
-                aggregatedRelationships,
-                Is.EquivalentTo(kAggregatedRelationshipTables.Keys),
-                "Report queries and the aggregated relationship map drifted apart. Add the missing " +
-                "relationship (with its target table) to kAggregatedRelationshipTables, or remove the " +
+                aggregatedFields,
+                Is.EquivalentTo(kAggregatedFieldTables.Keys),
+                "Report queries and the aggregated field map drifted apart. Add the missing " +
+                "field (with its target table) to kAggregatedFieldTables, or remove the " +
                 "obsolete entry.");
         }
 
@@ -129,7 +131,7 @@ namespace FWO.Test
         /// </summary>
         private static IEnumerable<TestCaseData> AggregationPermissionCases()
         {
-            foreach (string qualifiedTable in kAggregatedRelationshipTables.Values.Distinct().Order())
+            foreach (string qualifiedTable in kAggregatedFieldTables.Values.Distinct().Order())
             {
                 foreach (string role in kReportCapableRoles)
                 {
@@ -142,9 +144,9 @@ namespace FWO.Test
         /// <summary>
         /// Compiles every report type and collects the relationship names their queries aggregate.
         /// </summary>
-        private static HashSet<string> CollectAggregatedRelationships()
+        private static HashSet<string> CollectAggregatedFields()
         {
-            HashSet<string> aggregatedRelationships = [];
+            HashSet<string> aggregatedFields = [];
 
             foreach (ReportType reportType in ReportTypeGroups.AllReportTypes())
             {
@@ -155,12 +157,14 @@ namespace FWO.Test
 
                 foreach (string queryText in QueryTexts(query))
                 {
-                    AddMatches(aggregatedRelationships, kAggregateFieldRegex, queryText);
-                    AddMatches(aggregatedRelationships, kAggregatePredicateRegex, queryText);
+                    AddMatches(aggregatedFields, kAggregateFieldRegex, queryText);
+                    AddMatches(aggregatedFields, kAggregatePredicateRegex, queryText);
                 }
             }
 
-            return aggregatedRelationships;
+            AddMatches(aggregatedFields, kAggregateFieldRegex, ComplianceQueries.countComplianceDiffViolations);
+
+            return aggregatedFields;
         }
 
         /// <summary>

@@ -108,10 +108,13 @@
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
 
-    - name: include OS specific preparation tasks
-      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
-
-      # when upgrading check if we are not attempting a downgrade
+      # When upgrading, check that the installed version is one we can upgrade from -
+      # neither newer than this checkout nor older than the oldest migration it still
+      # carries. Deliberately placed before the OS preparation tasks: everything here
+      # only reads the installed configuration, while os/<family>.yml already updates the
+      # package cache and, on an upgrade with pending OS packages, switches the
+      # maintenance web site over. A version this checkout cannot upgrade has to be
+      # rejected before any of that, so the operator is left exactly as they were.
     - block:
         - name: fetch remote config file
           fetch:
@@ -142,6 +145,9 @@
             upgrade_source_version: "{{ old_version }}"
 
       when: already_installed and installation_mode == "upgrade"
+
+    - name: include OS specific preparation tasks
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
     - name: create group {{ fworch_group }}
       group:

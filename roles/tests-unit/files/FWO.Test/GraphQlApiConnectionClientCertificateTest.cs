@@ -103,6 +103,100 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// The plain-http path must not fail - it is a documented debugging step - but an
+        /// installation left in that state reaches the API without a client certificate and
+        /// without validating the server, so it has to be able to say so.
+        /// </summary>
+        [Test]
+        public void UsesTls_WarnsOnceAboutAPlainHttpEndpoint()
+        {
+            const string endpoint = "http://api.warn-once.test:8080/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                bool firstResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+                bool secondResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(firstResult, Is.False);
+                    Assert.That(secondResult, Is.False);
+                    // Counted rather than merely present: a connection creates a query and a
+                    // subscription client per user session, so warning per client would fill
+                    // the log with this one line.
+                    Assert.That(CountOccurrences(logOutput.ToString(), endpoint), Is.EqualTo(1),
+                        "the unsecured endpoint must be reported exactly once per process");
+                    Assert.That(logOutput.ToString(), Does.Contain("Warning"));
+                    Assert.That(logOutput.ToString(), Does.Contain("api_uri"),
+                        "the warning has to name the setting that has to be changed");
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        [Test]
+        public void UsesTls_ReportsEachUnsecuredEndpointSeparately()
+        {
+            const string firstEndpoint = "http://api.first-endpoint.test:8080/v1/graphql";
+            const string secondEndpoint = "http://api.second-endpoint.test:8080/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                GraphQlTlsCertificateSupport.UsesTls(firstEndpoint);
+                GraphQlTlsCertificateSupport.UsesTls(secondEndpoint);
+
+                // A single "already warned" flag would hide the second endpoint entirely.
+                Assert.Multiple(() =>
+                {
+                    Assert.That(CountOccurrences(logOutput.ToString(), firstEndpoint), Is.EqualTo(1));
+                    Assert.That(CountOccurrences(logOutput.ToString(), secondEndpoint), Is.EqualTo(1));
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        [Test]
+        public void UsesTls_SaysNothingAboutAnHttpsEndpoint()
+        {
+            const string endpoint = "https://api.secured-endpoint.test:9443/api/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                bool result = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.True);
+                    // Asserted on the endpoint rather than on empty output: another fixture
+                    // may log to the same redirected console.
+                    Assert.That(logOutput.ToString(), Does.Not.Contain(endpoint));
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        /// <summary>
         /// A raw CryptographicException gives no hint which setting is wrong, so the
         /// loader names both config keys and their configured values.
         /// </summary>
@@ -292,6 +386,11 @@ namespace FWO.Test
             FieldInfo field = typeof(GraphQlTlsCertificateSupport).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException($"GraphQlTlsCertificateSupport.{name} could not be found.");
             field.SetValue(null, value);
+        }
+
+        private static int CountOccurrences(string text, string value)
+        {
+            return (text.Length - text.Replace(value, "").Length) / value.Length;
         }
 
         private static HttpClientHandler CreateHttpClientHandler(bool useTls)

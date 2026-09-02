@@ -10,17 +10,25 @@ before it changes anything and stops such an upgrade, because running it would s
 schema changes the older version is still missing.
 
 An installation older than 8.0 gets here in two upgrades. `v8.9.6` is the last release
-that still carries the removed migration files:
+that still carries the removed migration files, so check that release out first:
 
 ```console
   cd firewall-orchestrator
   git fetch --tags
   git checkout v8.9.6
-  source scripts/install-ansible-from-venv.sh
-  ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade"
 ```
 
-Then continue with the current version as described below (`git checkout main`).
+Then run the interim upgrade **the way that release documents it**, in its own
+`documentation/installer/server-upgrade.md` - the commands below have changed since, and
+the scripts this page uses do not all exist in `v8.9.6`. At the time of writing, that
+release upgrades with:
+
+```console
+  ansible-playbook site.yml -K -e "installation_mode=upgrade"
+```
+
+Once the host runs 8.9.6, return to the current version (`git checkout main`) and upgrade
+again as described below.
 
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is

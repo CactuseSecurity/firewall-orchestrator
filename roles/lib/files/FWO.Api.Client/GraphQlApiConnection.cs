@@ -23,7 +23,7 @@ namespace FWO.Api.Client
 
         private GraphQLHttpClient CreateClient(string apiServerUri)
         {
-            bool useTls = new Uri(apiServerUri).Scheme == Uri.UriSchemeHttps;
+            bool useTls = GraphQlTlsCertificateSupport.UsesTls(apiServerUri);
             HttpClientHandler handler = GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
 
             GraphQLHttpClient client = new(new GraphQLHttpClientOptions()

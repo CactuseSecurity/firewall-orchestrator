@@ -1,5 +1,6 @@
 using FWO.Basics.Exceptions;
 using FWO.Config.File;
+using FWO.Logging;
 using System.Net.Http;
 using System.Net.Security;
 using System.Runtime.ExceptionServices;
@@ -12,7 +13,10 @@ namespace FWO.Api.Client
     /// </summary>
     internal static class GraphQlTlsCertificateSupport
     {
+        private const string kTlsLogCategory = "API TLS";
         private static readonly TimeSpan clientCertificateRetryInterval = TimeSpan.FromSeconds(30);
+        private static readonly HashSet<string> unsecuredEndpointsWarned = new();
+        private static readonly object unsecuredEndpointLock = new();
         private static readonly object clientCertificateLock = new();
         private static X509Certificate2? clientCertificate;
         private static ConfigException? clientCertificateFailure;
@@ -149,6 +153,43 @@ namespace FWO.Api.Client
             }
             pinnedChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             return pinnedChain.Build(serverCertificate);
+        }
+
+        /// <summary>
+        /// Decides whether the API endpoint is addressed over TLS, and says so in the log
+        /// when it is not.
+        /// </summary>
+        /// <remarks>
+        /// A plain http endpoint presents no client certificate and validates no server
+        /// certificate, so it switches the API endpoint protection off completely - and
+        /// silently, because everything keeps working. That is a documented local
+        /// debugging step, so it must not fail; but an installation left in that state
+        /// has to be able to say so, which is what this warning is for.
+        /// Warned once per endpoint per process: a connection is created per user session
+        /// and each one builds a query and a subscription client, so warning per client
+        /// would fill the log with the same line.
+        /// </remarks>
+        /// <param name="apiServerUri">The configured API endpoint.</param>
+        /// <returns>True when the endpoint is addressed over https.</returns>
+        internal static bool UsesTls(string apiServerUri)
+        {
+            if (new Uri(apiServerUri).Scheme == Uri.UriSchemeHttps)
+            {
+                return true;
+            }
+
+            lock (unsecuredEndpointLock)
+            {
+                if (unsecuredEndpointsWarned.Add(apiServerUri))
+                {
+                    Log.WriteWarning(kTlsLogCategory,
+                        $"API endpoint {apiServerUri} is not addressed over https: no client certificate is " +
+                        "presented and no server certificate is validated, so the API is reached without the " +
+                        "protection this installation is configured for. Only a development host should be in " +
+                        "this state - check api_uri in the configuration file.");
+                }
+            }
+            return false;
         }
 
         /// <summary>

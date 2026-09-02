@@ -7,12 +7,12 @@ using FWO.Logging;
 using FWO.Report.Data;
 using FWO.Report.Filter;
 using FWO.Services;
-using FWO.Services.HeadlessBrowser;
 using FWO.Services.RuleTreeBuilder;
 using System.Text;
 using System.Reflection;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
+using PuppeteerSharp.BrowserData;
 using HtmlAgilityPack;
 using System.Runtime.InteropServices;
 using System.Net;
@@ -463,12 +463,84 @@ namespace FWO.Report
 
         private async Task<string?> CreatePDFViaPuppeteer(string html, PaperFormat format)
         {
-            string executablePath = await HeadlessBrowserLauncher.ResolveExecutablePath();
+            OperatingSystem? os = Environment.OSVersion;
+
+            string path = "";
+            Platform platform = Platform.Unknown;
+            const SupportedBrowser wantedBrowser = SupportedBrowser.Chrome;
+
+            switch (os.Platform)
+            {
+                case PlatformID.Win32NT:
+                    platform = Platform.Win32;
+                    break;
+                case PlatformID.Unix:
+                    path = GlobalConst.ChromeBinPathLinux;
+                    platform = Platform.Linux;
+                    break;
+                default:
+                    break;
+            }
+
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = wantedBrowser, Path = path });
+
+            IEnumerable<InstalledBrowser>? allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+
+            string? executablePath = null;
+
+            if (!allInstalledBrowsers.Any())
+            {
+                if (os.Platform == PlatformID.Win32NT)
+                {
+                    Log.WriteInfo("Browser", $"Browser not found for Windows! Trying to download...");
+                    await browserFetcher.DownloadAsync();
+                    allInstalledBrowsers = browserFetcher.GetInstalledBrowsers().Where(_ => _.Browser == wantedBrowser);
+                }
+                else
+                {
+                    executablePath = SystemChromium.GetPath() ??
+                        throw new EnvironmentException($"Found no installed {wantedBrowser} instances and no system chromium!");
+                    Log.WriteInfo("Browser", $"No installed {wantedBrowser} found, falling back to system chromium at: {executablePath}");
+                }
+            }
+
+            if (executablePath == null)
+            {
+                string? newestBuildId = allInstalledBrowsers.Max(_ => _.BuildId);
+
+                if (string.IsNullOrWhiteSpace(newestBuildId))
+                {
+                    throw new EnvironmentException($"Invalid build ID!");
+                }
+
+                InstalledBrowser? latestInstalledBrowser = allInstalledBrowsers.Single(_ => _.BuildId == newestBuildId) ??
+                    throw new EnvironmentException($"Found no installed {wantedBrowser} instances with a valid build ID!");
+
+                Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {latestInstalledBrowser.GetExecutablePath()}");
+
+                executablePath = latestInstalledBrowser.GetExecutablePath();
+            }
 
             return await RunGatedPdfRender(async () =>
             {
-                IBrowser browser = await HeadlessBrowserLauncher.LaunchAsync(executablePath, kBrowserLaunchTimeoutMs, kBrowserProtocolTimeoutMs);
-                return await RenderPdfInLaunchedBrowser(browser, html, format, HeadlessBrowserLauncher.WantedBrowser);
+                IBrowser browser;
+                try
+                {
+                    browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                    {
+                        ExecutablePath = executablePath,
+                        Headless = true,
+                        Timeout = kBrowserLaunchTimeoutMs,
+                        ProtocolTimeout = kBrowserProtocolTimeoutMs
+                    });
+                }
+                catch (Exception)
+                {
+                    Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
+                    throw new EnvironmentException($"Couldn't start {wantedBrowser} instance!");
+                }
+
+                return await RenderPdfInLaunchedBrowser(browser, html, format, wantedBrowser);
             });
         }
 

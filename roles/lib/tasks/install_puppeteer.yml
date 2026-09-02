@@ -56,11 +56,6 @@
       skipping chrome for testing download.
   when: system_chromium_available
 
-# base path for all chrome installs
-- name: set chrome root dir
-  set_fact:
-    chrome_root_dir: "{{ fworch_home }}/bin/Chrome"
-
 # get google chrome for pdf generation
 - name: get last known good versions (primary)
   uri:
@@ -150,6 +145,11 @@
     - name: select Stable channel
       set_fact:
         chrome_for_testing_stable: "{{ chrome_versions_parsed.channels.Stable | default(chrome_versions_parsed.channels.stable) }}" # Chrome for Testing feed
+
+    # Base path for all Chrome installs
+    - name: set chrome root dir
+      set_fact:
+        chrome_root_dir: "/usr/local/fworch/bin/Chrome"
 
     # Extract downloads + version from Stable
     - name: parse latest stable versions for chrome #and headless shell
@@ -255,15 +255,6 @@
                 remote_src: yes
               when: (chrome_pkg is defined and chrome_pkg.changed) or not chrome_target_bin.stat.exists
 
-            # the chrome for testing archive unpacks with root only directory permissions,
-            # which leaves the fworch user unable to start the browser
-            - name: allow all users to traverse and run the unpacked chrome
-              file:
-                path: "{{ chrome_dest }}"
-                state: directory
-                recurse: true
-                mode: "u=rwX,g=rX,o=rX"
-
             - name: verify target chrome installation
               command: "{{ chrome_dest }}/chrome-linux64/chrome --version"
               changed_when: false
@@ -335,41 +326,19 @@
 
   when: chrome_metadata_available
 
-# repair installations whose chrome was unpacked with root only permissions before this fix
+# the chrome for testing archive of some versions (seen with 152) unpacks with root only
+# permissions, which leaves the fworch user unable to read the browser and its resource files
 - name: check chrome installation root
   stat:
-    path: "{{ chrome_root_dir }}"
+    path: "{{ fworch_home }}/bin/Chrome"
   register: chrome_root_stat
   become: true
 
 - name: allow all users to traverse and run the installed chrome versions
   file:
-    path: "{{ chrome_root_dir }}"
+    path: "{{ fworch_home }}/bin/Chrome"
     state: directory
     recurse: true
     mode: "u=rwX,g=rX,o=rX"
   become: true
   when: chrome_root_stat.stat.exists
-
-- name: check chrome symlink after installation
-  stat:
-    path: "{{ fworch_home }}/bin/chrome"
-  register: chrome_bin_installed
-  become: true
-
-- name: verify chrome can be started by the fworch user
-  command: "{{ fworch_home }}/bin/chrome --version"
-  register: fworch_user_chrome_version
-  changed_when: false
-  failed_when: false
-  become: true
-  become_user: "{{ fworch_user }}"
-  when: chrome_bin_installed.stat.exists
-
-- name: fail when chrome cannot be started by the fworch user
-  fail:
-    msg: >-
-      Chrome at {{ fworch_home }}/bin/chrome cannot be started by user {{ fworch_user }}
-      (rc={{ fworch_user_chrome_version.rc }}): {{ fworch_user_chrome_version.stderr | default('') }}
-      Report exports would fail with "Couldn't start Chrome instance!".
-  when: chrome_bin_installed.stat.exists and (fworch_user_chrome_version.rc | default(0)) != 0

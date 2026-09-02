@@ -1,8 +1,9 @@
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Data;
-using FWO.Services.HeadlessBrowser;
 using Microsoft.AspNetCore.Http;
 using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
 using PuppeteerSharp.Media;
 
 namespace FWO.Services
@@ -22,9 +23,6 @@ namespace FWO.Services
 
     public static class NotificationEmailLayoutHelper
     {
-        private const int kBrowserLaunchTimeoutMs = 60_000;
-        private const int kBrowserProtocolTimeoutMs = 180_000;
-
         public static string BuildBody(FwoNotification notification, string? content)
         {
             string notificationBody = notification.EmailBody ?? "";
@@ -102,8 +100,28 @@ namespace FWO.Services
 
         private static async Task<string?> ToPdf(string html)
         {
-            string executablePath = await HeadlessBrowserLauncher.ResolveExecutablePath();
-            await using IBrowser browser = await HeadlessBrowserLauncher.LaunchAsync(executablePath, kBrowserLaunchTimeoutMs, kBrowserProtocolTimeoutMs);
+            OperatingSystem os = Environment.OSVersion;
+            string path = os.Platform == PlatformID.Unix ? GlobalConst.ChromeBinPathLinux : "";
+            Platform platform = os.Platform == PlatformID.Win32NT ? Platform.Win32 : Platform.Linux;
+            BrowserFetcher browserFetcher = new(new BrowserFetcherOptions() { Platform = platform, Browser = SupportedBrowser.Chrome, Path = path });
+            IEnumerable<InstalledBrowser> browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+            string? executablePath = null;
+            if (!browsers.Any())
+            {
+                if (os.Platform != PlatformID.Win32NT)
+                {
+                    executablePath = SystemChromium.GetPath() ??
+                        throw new EnvironmentException("Found no installed Chrome instances and no system chromium.");
+                }
+                else
+                {
+                    await browserFetcher.DownloadAsync();
+                    browsers = browserFetcher.GetInstalledBrowsers().Where(browser => browser.Browser == SupportedBrowser.Chrome);
+                }
+            }
+
+            executablePath ??= browsers.OrderBy(browser => browser.BuildId).Last().GetExecutablePath();
+            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = executablePath, Headless = true });
             using IPage page = await browser.NewPageAsync();
             await page.SetContentAsync(html);
             PdfOptions options = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = PaperFormat.A4 };

@@ -81,13 +81,14 @@ def main(
     try:
         json_data = json.loads(json_raw)
         jwt = json_data["AccessToken"]
-        refresh_token = json_data["RefreshToken"]
+        refresh_token = json_data.get("RefreshToken") or None
     except Exception:
         FWOLogger.error("JWT could not be parsed")
         return
 
     # check if jwt is parsed
-    if jwt is None or refresh_token is None:
+    if jwt is None:
+        FWOLogger.error("login response did not contain an AccessToken")
         return
 
     fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token)

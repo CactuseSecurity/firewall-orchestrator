@@ -79,8 +79,10 @@ class TestMainRequiresAccessToken:
     def test_constructs_fwo_api_with_empty_refresh_token_when_absent(
         self, mocker: MockerFixture, patch_login_and_config: Callable[[str], None]
     ) -> None:
-        """Reflects the real anonymous/delegated login response: RefreshToken is "" (the
-        TokenPair default), never an absent key or null."""
+        """
+        Reflects the real anonymous/delegated login response: RefreshToken is "" (the
+        TokenPair default), never an absent key or null.
+        """
         patch_login_and_config(json.dumps({"AccessToken": "jwt-value", "RefreshToken": ""}))
         mock_fwo_api = mocker.patch.object(import_mgm, "FwoApi")
         mocker.patch.object(import_mgm, "FwoApiCall")

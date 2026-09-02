@@ -33,12 +33,17 @@
 - name: Require the Apache certificate to cover every configured endpoint name
   assert:
     that:
+      # The ternary is parenthesised: Ansible wraps a bare "that" expression in
+      # {% if ... %}, and Jinja does not accept a conditional expression directly
+      # inside a statement block.
       - >-
-        item.name in test_certificate_ip_names
-        if item.name is match(test_ipv4_pattern)
-        else (
-          item.name | lower in test_certificate_dns_names
-          or item.name | lower | regex_replace('^[^.]+\.', '*.') in test_certificate_dns_names
+        (
+          item.name in test_certificate_ip_names
+          if item.name is match(test_ipv4_pattern)
+          else (
+            item.name | lower in test_certificate_dns_names
+            or item.name | lower | regex_replace('^[^.]+\.', '*.') in test_certificate_dns_names
+          )
         )
     fail_msg: >-
       {{ internalca_apache_certificate }} on {{ inventory_hostname }} is not valid for

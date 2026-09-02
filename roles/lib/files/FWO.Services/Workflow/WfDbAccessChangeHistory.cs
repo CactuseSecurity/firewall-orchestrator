@@ -10,10 +10,20 @@ namespace FWO.Services.Workflow
     public partial class WfDbAccess
     {
         /// <summary>
+        /// Identifies the workflow object a change history entry belongs to.
+        /// </summary>
+        /// <param name="TicketId">Id of the ticket owning the changed object.</param>
+        /// <param name="ChangeType">Kind of change applied to the object.</param>
+        /// <param name="ObjectType">Type of the changed workflow object.</param>
+        /// <param name="ObjectId">Id of the changed workflow object.</param>
+        private sealed record WorkflowChangeTarget(long TicketId, ModellingTypes.ChangeType ChangeType,
+            ChangeHistoryObjectType ObjectType, long ObjectId);
+
+        /// <summary>
         /// Stores a structured workflow change and classifies selected UI content edits as audit-prove critical.
         /// </summary>
-        private async Task LogWorkflowChange(long ticketId, ModellingTypes.ChangeType changeType, ChangeHistoryObjectType objectType,
-            long objectId, string changeText, object? oldValue, object? newValue, UiUser? requester, bool contentChange)
+        private async Task LogWorkflowChange(WorkflowChangeTarget target, string changeText,
+            object? oldValue, object? newValue, UiUser? requester, bool contentChange)
         {
             if (WorkflowPhase is null)
             {
@@ -30,10 +40,10 @@ namespace FWO.Services.Workflow
             var variables = new
             {
                 appId = (int?)null,
-                ticketId,
-                changeType = (int)changeType,
-                objectType = (int)objectType,
-                objectId,
+                ticketId = target.TicketId,
+                changeType = (int)target.ChangeType,
+                objectType = (int)target.ObjectType,
+                objectId = target.ObjectId,
                 changeText,
                 changer = UserConfig.User.Name,
                 changeSource = GlobalConst.kWorkflow,

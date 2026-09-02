@@ -42,7 +42,7 @@ namespace FWO.Services.Workflow
                             await AssignCommentToImplTaskInDb(returnId, comment.Comment.Id);
                         }
                     }
-                    await LogWorkflowChange(impltask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                    await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
                         "Added workflow implementation task", null, ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
                     impltask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
@@ -79,7 +79,7 @@ namespace FWO.Services.Workflow
                     await UpdateOwnersInDb(reqtask);
                     if (previousTask != null)
                     {
-                        await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                        await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
                             "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
                     }
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
@@ -106,7 +106,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(impltask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                    await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
                         "Deleted workflow implementation task", ImplementationTaskHistorySnapshot(impltask), null, previousTicket.Requester, true);
                 }
             }

@@ -105,7 +105,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id,
+                    await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
                         "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester, true);
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }

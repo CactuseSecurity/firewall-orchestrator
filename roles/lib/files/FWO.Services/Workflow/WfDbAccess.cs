@@ -178,7 +178,7 @@ namespace FWO.Services.Workflow
                     int newStateId = approval.StateId;
                     returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
-                    await LogWorkflowChange(ticketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.Approval, approval.Id,
+                    await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.Approval, approval.Id),
                         "Added workflow approval", null, ApprovalHistorySnapshot(approval), requester, false);
                     approval.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
@@ -216,7 +216,7 @@ namespace FWO.Services.Workflow
                 {
                     if (previousApproval != null)
                     {
-                        await LogWorkflowChange(ticketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Approval, approval.Id,
+                        await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Approval, approval.Id),
                             "Updated workflow approval", ApprovalHistorySnapshot(previousApproval), ApprovalHistorySnapshot(approval), requester, false);
                     }
                     if (triggerActions)
@@ -424,7 +424,7 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id,
+                    await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
                         "Updated workflow ticket state", WorkflowStateSnapshot(previousTicket), WorkflowStateSnapshot(ticket), previousTicket.Requester, false);
                     if (triggerActions)
                     {
@@ -463,7 +463,7 @@ namespace FWO.Services.Workflow
                 {
                     if (previousTask != null)
                     {
-                        await LogWorkflowChange(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id,
+                        await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
                             "Updated workflow request task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(reqtask), previousTicket.Requester, false);
                     }
                     if (triggerActions)
@@ -510,7 +510,7 @@ namespace FWO.Services.Workflow
                 {
                     if (previousTask != null)
                     {
-                        await LogWorkflowChange(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id,
+                        await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
                             "Updated workflow implementation task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(impltask), previousTicket.Requester, false);
                     }
                     if (triggerActions)

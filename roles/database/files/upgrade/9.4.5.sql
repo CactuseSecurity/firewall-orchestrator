@@ -1,59 +1,44 @@
--- Centralize modelling and workflow history without losing existing entries.
-DO $$
-BEGIN
-    IF to_regclass('public.change_history') IS NULL
-       AND to_regclass('modelling.change_history') IS NOT NULL THEN
-        ALTER TABLE modelling.change_history SET SCHEMA public;
-    END IF;
-END
-$$;
+-- Groups carry no protocol of their own - their members do. Fmgr imports were
+-- previously normalizing service groups (svc_typ_id 2) with a concrete
+-- ip_proto_id (0 or the group's own protocol selector) instead of NULL.
+-- Align already-imported data with the corrected importers so the next
+-- import does not report this as a change.
+UPDATE firewall.nw_service
+SET ip_proto_id = NULL
+WHERE svc_typ_id = 2
+    AND ip_proto_id IS NOT NULL;
 
-CREATE TABLE IF NOT EXISTS public.change_history
-(
-    id BIGSERIAL PRIMARY KEY,
-    app_id INTEGER,
-    ticket_id BIGINT,
-    change_type INTEGER,
-    object_type INTEGER,
-    object_id BIGINT,
-    change_text TEXT,
-    changer VARCHAR,
-    change_time TIMESTAMP DEFAULT NOW(),
-    change_source VARCHAR DEFAULT 'manual',
-    workflow_phase INTEGER,
-    old_data JSONB,
-    new_data JSONB,
-    audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE
-);
 
-ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS ticket_id BIGINT;
-ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS workflow_phase INTEGER;
-ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS old_data JSONB;
-ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS new_data JSONB;
-ALTER TABLE public.change_history ADD COLUMN IF NOT EXISTS audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE;
+-- Insert default configuration for compliance diff filter
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('complianceDiffFilterExistingViolations', 'false', 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
 
-ALTER TABLE public.change_history
-    DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
-ALTER TABLE public.change_history
-    DROP CONSTRAINT IF EXISTS change_history_owner_foreign_key;
-ALTER TABLE public.change_history
-    ADD CONSTRAINT change_history_owner_foreign_key
-    FOREIGN KEY (app_id) REFERENCES public.owner(id)
-    ON UPDATE RESTRICT ON DELETE SET NULL;
 
-ALTER TABLE public.change_history
-    DROP CONSTRAINT IF EXISTS change_history_ticket_foreign_key;
-ALTER TABLE public.change_history
-    ADD CONSTRAINT change_history_ticket_foreign_key
-    FOREIGN KEY (ticket_id) REFERENCES request.ticket(id)
-    ON UPDATE RESTRICT ON DELETE SET NULL;
+-- Flow accesses created by the request workflow before 9.4.5 stored group based sources,
+-- destinations and services as group references only, although their access hash was calculated
+-- from the hashes of the group members. The member references in flow.access_source,
+-- flow.access_destination and flow.access_service were left out.
+-- An access without members cannot be hashed again (an access needs at least one source,
+-- destination and service), so the flow sync keeps skipping every affected management.
+-- Restore the missing member references from the group memberships. Flow groups are immutable
+-- (their hash is derived from their members), so this reproduces exactly the member set the
+-- stored access hash was calculated from.
 
-CREATE INDEX IF NOT EXISTS idx_change_history_app_id
-    ON public.change_history (app_id);
-CREATE INDEX IF NOT EXISTS idx_change_history_ticket_id
-    ON public.change_history (ticket_id);
-CREATE INDEX IF NOT EXISTS idx_change_history_change_time
-    ON public.change_history (change_time DESC);
+INSERT INTO flow.access_source (access_id, nwobj_id)
+SELECT DISTINCT access_group.access_id, group_member.nwobj_id
+FROM flow.access_source_grp AS access_group
+    JOIN flow.nwgroup_member AS group_member ON group_member.nwgrp_id = access_group.nwgrp_id
+ON CONFLICT DO NOTHING;
 
-GRANT SELECT ON public.change_history TO fwo_ro;
-GRANT SELECT ON SEQUENCE public.change_history_id_seq TO fwo_ro;
+INSERT INTO flow.access_destination (access_id, nwobj_id)
+SELECT DISTINCT access_group.access_id, group_member.nwobj_id
+FROM flow.access_destination_grp AS access_group
+    JOIN flow.nwgroup_member AS group_member ON group_member.nwgrp_id = access_group.nwgrp_id
+ON CONFLICT DO NOTHING;
+
+INSERT INTO flow.access_service (access_id, svcobj_id)
+SELECT DISTINCT access_group.access_id, group_member.svcobj_id
+FROM flow.access_service_grp AS access_group
+    JOIN flow.svcgroup_member AS group_member ON group_member.svcgrp_id = access_group.svcgrp_id
+ON CONFLICT DO NOTHING;

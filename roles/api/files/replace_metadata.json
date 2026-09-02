@@ -996,7 +996,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1016,7 +1017,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1226,6 +1228,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "access_hash",
                       "allows_traffic",
                       "owner_id",
                       "removed_date",
@@ -1667,6 +1670,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwgrp_hash",
                       "removed_date",
                       "state"
                     ],
@@ -1918,6 +1922,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwobj_hash",
                       "removed_date",
                       "state"
                     ],
@@ -2023,7 +2028,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcgrp_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2277,7 +2283,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcobj_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2446,7 +2453,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "timeobj_hash"
                     ],
                     "filter": {},
                     "check": null

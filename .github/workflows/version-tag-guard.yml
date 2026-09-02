@@ -1,0 +1,100 @@
+name: Version tag guard
+# NOTE: this workflow's behavior is documented in
+# documentation/developer-docs/github/version-gate-workflow.md and the policy it enforces
+# in documentation/developer-docs/versioning.md - please keep both in sync when changing
+# triggers or job logic here.
+#
+# Both jobs report after the fact: the tag or the merge already exists and cannot be
+# undone by a workflow. They exist so that a wrong tag or a merge that raced a sealing tag
+# is noticed within minutes instead of at the next release.
+
+on:
+  push:
+    tags:
+      - "*"
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BASE_BRANCH: develop
+
+jobs:
+  validate-tag:
+    name: Validate version tag
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          filter: tree:0
+
+      # Tags can be created on commits that predate this workflow, so always evaluate with
+      # the gate logic from the base branch instead of the one at the tagged commit.
+      - name: Resolve the gate logic and the tagged product version
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet --no-tags origin \
+            "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}" \
+            '+refs/heads/main:refs/remotes/origin/main'
+          git show "origin/${BASE_BRANCH}:scripts/ci/version_gate.py" >"${RUNNER_TEMP}/version_gate.py"
+          git show "refs/tags/${TAG_NAME}:inventory/group_vars/all.yml" >"${RUNNER_TEMP}/tagged-all.yml"
+
+      # A version tag on a commit carrying a different product_version would seal the
+      # wrong version and break the gate's invariant for every later pull request.
+      - name: Check that the tag matches the product version of its commit
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          python3 "${RUNNER_TEMP}/version_gate.py" check-tag \
+            --tag "$TAG_NAME" \
+            --file "${RUNNER_TEMP}/tagged-all.yml"
+
+      - name: Check that a sealing tag points at a released line
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+            echo "Tag '$TAG_NAME' does not seal a version, skipping the ancestry check."
+            exit 0
+          fi
+
+          tag_sha="$(git rev-parse "refs/tags/${TAG_NAME}^{commit}")"
+          for branch in "origin/${BASE_BRANCH}" origin/main; do
+            if git merge-base --is-ancestor "$tag_sha" "$branch"; then
+              echo "Tag '$TAG_NAME' is contained in $branch."
+              exit 0
+            fi
+          done
+
+          echo "Tag '$TAG_NAME' seals a version but its commit is not contained in ${BASE_BRANCH} or main." >&2
+          echo "Delete the tag and recreate it on a commit that is part of the release line." >&2
+          exit 1
+
+  audit-develop:
+    name: Audit develop version
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 1
+
+      # Catches the narrow race where a merge lands in the same moment a sealing tag is
+      # pushed, and any direct push that bypassed the required version gate.
+      - name: Check that develop sits on an open version
+        run: |
+          set -euo pipefail
+          git ls-remote --tags origin | sed 's#.*refs/tags/##; s#\^{}$##' | sort -u >"${RUNNER_TEMP}/tags.txt"
+          python3 scripts/ci/version_gate.py check-open \
+            --file inventory/group_vars/all.yml \
+            --tags-file "${RUNNER_TEMP}/tags.txt"

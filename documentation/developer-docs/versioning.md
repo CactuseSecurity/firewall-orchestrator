@@ -24,12 +24,48 @@ Product versions use three numeric components:
 major.minor.patch
 ```
 
-For example, `9.3.0` is stored as the product version. Stable release tags may
+For example, `9.3.0` is stored as the product version. Release tags may
 optionally have a `v` prefix, for example `v9.3.0` or `9.3.0`. The established
 repository convention is to use the `v` prefix.
 
-Pre-release suffixes such as `-dev`, `-rc1`, or `-beta` are not stable release
-tags and do not advance `main`.
+## Version lifecycle
+
+A version is **open** while it is the version in
+[`inventory/group_vars/all.yml`](../../inventory/group_vars/all.yml) and no sealing
+tag for it exists. Work merges into an open version. Creating a sealing tag closes
+the version: from that moment on nothing may merge onto it any more, and the next
+change must raise `product_version`.
+
+| Tag | Seals the version | Advances `main` | Meaning |
+| --- | --- | --- | --- |
+| `vX.Y.Z-dev` | yes | no | the version is finished on `develop` but was not released to a customer |
+| `vX.Y.Z` | yes | yes | stable release |
+| `vX.Y.Z-rc1`, `-beta`, `-alpha` | no | no | snapshot of an open version |
+
+A snapshot tag is a marker, not a seal. Work keeps merging into `X.Y.Z` after
+`vX.Y.Z-rc1`, so the final `X.Y.Z` will normally differ from its release candidate.
+
+Because a sealing tag closes the version, a later stable `vX.Y.Z` can only be created
+on the same commit as an earlier `vX.Y.Z-dev`: no other commit carries that version.
+
+This lifecycle is enforced by the **Version gate** workflow, see
+[Automated enforcement](#automated-enforcement) below. The typical sequence is:
+
+1. The latest sealing tag is `v1.2.3-dev` and `all.yml` is on the open version `1.2.4`.
+2. A small change merges: `all.yml` stays `1.2.4`, the revision history is extended.
+   Optionally tag `v1.2.4-rc1` to mark a release candidate; `1.2.4` stays open.
+3. Seal `1.2.4` by creating `v1.2.4-dev`, or `v1.2.4` when the version is released to a
+   customer. Every open pull request still on `1.2.4` is now blocked and must raise the
+   version.
+4. The next change raises `all.yml` to `1.2.5` (or `1.3.0`, or `2.0.0`) and adds the
+   matching revision history section. That bump is only accepted because `1.2.4` is
+   sealed.
+
+### Hotfixes
+
+The model keeps a single linear version line on `develop`. A fix for a released `1.2.4`
+therefore becomes `1.2.5`; maintaining a `1.2.4.x` line in parallel would require
+release branches and additional rules and is currently not supported.
 
 ## Preparing a version
 
@@ -84,6 +120,40 @@ idempotent upgrade step without changing the behavior of older upgrade steps.
 For instructions on running an upgrade on an existing installation, see
 [Upgrading FWO](installer/upgrading.md).
 
+## Automated enforcement
+
+The **Version gate** workflow
+([`.github/workflows/version-gate.yml`](../../.github/workflows/version-gate.yml))
+publishes the required commit status `fwo/version-gate` on every pull request that
+targets `develop`. It blocks a pull request when:
+
+- the version its merge result carries is already sealed by a release tag,
+- it raises `product_version` while the previous version has no sealing tag yet,
+- it raises `product_version` to an already sealed version, or lowers it,
+- it raises `product_version` without adding the matching section to
+  [`documentation/revision-history.md`](../revision-history.md).
+
+The status is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
+`all.yml` inherits the base branch version and is never blocked for being out of date.
+
+The same workflow re-evaluates every open pull request whenever a sealing tag is pushed.
+This is what makes step 3 of the lifecycle bite: pull requests that were green on the
+now sealed version turn red immediately, without needing a push to the pull request.
+
+The **Version tag guard** workflow
+([`.github/workflows/version-tag-guard.yml`](../../.github/workflows/version-tag-guard.yml))
+reports, after the fact, a version tag created on a commit carrying a different
+`product_version`, a sealing tag outside the `develop`/`main` line, and a push to
+`develop` that landed on an already sealed version.
+
+One gap remains by design: a merge completed in the same moment a sealing tag is pushed
+can still land on the version being sealed. The `develop` audit job reports it within
+minutes; it cannot prevent it.
+
+The rules live in [`scripts/ci/version_gate.py`](../../scripts/ci/version_gate.py) and are
+unit tested in `scripts/ci/test_version_gate.py`. For the workflow mechanics see
+[the version gate workflow documentation](github/version-gate-workflow.md).
+
 ## Repository release configuration
 
 The following one-time configuration is required in the upstream GitHub
@@ -133,6 +203,16 @@ Create an active repository tag ruleset with the following configuration:
 Restricting tag updates and deletions is also recommended so that published
 release tags remain immutable.
 
+### Required status check
+
+Configure branch protection for `develop` to require the status check
+`fwo/version-gate`. Without this, the Version gate reports its verdict but does not
+prevent a merge.
+
+Do not enable "Require branches to be up to date before merging" for the sake of the
+gate. The gate already evaluates the merge result, so an out-of-date pull request is
+judged by what merging it would actually produce.
+
 The environment pattern and the tag ruleset are separate controls. The
 environment prevents branch workflows from reading the private key. The tag
 ruleset prevents ordinary repository writers from creating a tag that can use
@@ -144,11 +224,15 @@ the environment.
    revision history, upgrade steps, and documentation.
 2. Confirm that all required validation has passed.
 3. Confirm that the release commit descends from `main`.
-4. Create the stable tag on the release commit using the repository convention,
+4. Confirm that the release commit's `product_version` equals the version you are
+   about to tag. A tag on a commit carrying a different version seals the wrong
+   version and is rejected by the **Version tag guard** workflow.
+5. Create the stable tag on the release commit using the repository convention,
    for example `v9.3.0`.
-5. Push the tag, or publish a GitHub Release that creates the tag.
-6. Monitor the **Fast-forward main to release tag** Actions workflow.
-7. Confirm that `main` and the stable release tag resolve to the same commit.
+6. Push the tag, or publish a GitHub Release that creates the tag.
+7. Monitor the **Fast-forward main to release tag** Actions workflow.
+8. Confirm that `main` and the stable release tag resolve to the same commit.
+9. Confirm that the **Version gate** workflow re-evaluated the open pull requests.
 
 Do not manually force-push `main`. If the workflow refuses the update, correct
 the release ancestry or repository configuration instead of bypassing its

@@ -1,0 +1,124 @@
+name: Version gate
+# NOTE: this workflow's behavior is documented in
+# documentation/developer-docs/github/version-gate-workflow.md and the policy it enforces
+# in documentation/developer-docs/versioning.md - please keep both in sync when changing
+# triggers or job logic here.
+#
+# The gate publishes a single "fwo/version-gate" commit status on the pull request head.
+# Both producers below write that same context, so the status is always freshly computed:
+# a sealing tag created after a pull request last ran still turns it red.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - edited
+    branches:
+      - develop
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to re-evaluate (empty means all open pull requests)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  BASE_BRANCH: develop
+
+jobs:
+  gate-pull-request:
+    name: Gate pull request version
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+    concurrency:
+      group: version-gate-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      # Checks out the base branch, never the pull request head. The gate reads pull
+      # request content through git as inert data and never executes it, so the elevated
+      # pull_request_target token cannot be reached by fork code.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+
+      - name: Evaluate version gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: scripts/ci/post_version_status.sh "$PR_NUMBER" "$PR_HEAD_SHA" "$PR_BASE_REF"
+
+  reevaluate-open-prs:
+    name: Re-evaluate open pull requests
+    if: github.event_name != 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
+      pull-requests: read
+    concurrency:
+      group: version-gate-reevaluate
+      cancel-in-progress: false
+    steps:
+      - name: Check whether the pushed tag seals a version
+        id: trigger
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+            echo "Tag '$TAG_NAME' seals a version, re-evaluating open pull requests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag '$TAG_NAME' does not seal a version, nothing to re-evaluate."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.trigger.outputs.run == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 1
+
+      - name: Re-evaluate the version gate for every open pull request
+        if: steps.trigger.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SINGLE_PR: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${SINGLE_PR:-}" ]; then
+            pull_requests="$(gh pr view "$SINGLE_PR" --json number,headRefOid,baseRefName)"
+            pull_requests="[${pull_requests}]"
+          else
+            pull_requests="$(gh pr list --base "$BASE_BRANCH" --state open --limit 200 \
+              --json number,headRefOid,baseRefName)"
+          fi
+
+          # Failing pull requests are the expected outcome after a sealing tag, so a
+          # single red gate must not abort the loop or fail this job.
+          echo "$pull_requests" | jq -r '.[] | "\(.number) \(.headRefOid) \(.baseRefName)"' |
+            while read -r number head_sha base_ref; do
+              scripts/ci/post_version_status.sh "$number" "$head_sha" "$base_ref" || true
+            done

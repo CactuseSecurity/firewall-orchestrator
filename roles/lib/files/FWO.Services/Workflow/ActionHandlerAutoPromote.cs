@@ -41,6 +41,8 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
+                requestedRulePolicyChecker ??= (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
+                    as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection);
                 if (requestedRulePolicyChecker == null)
                 {
                     return false;
@@ -79,7 +81,6 @@ namespace FWO.Services.Workflow
             }
 
             return ticket.Tasks
-                .Where(task => task.ManagementId != null)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
                 .Where(task => task.GetServiceElements().Count > 0)

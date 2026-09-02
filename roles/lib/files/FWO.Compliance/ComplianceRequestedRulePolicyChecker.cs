@@ -152,4 +152,12 @@ namespace FWO.Compliance
             return RuleActions.Accept;
         }
     }
+
+    public sealed class ComplianceRequestedRulePolicyCheckerFactory : IRequestedRulePolicyCheckerFactory
+    {
+        public IRequestedRulePolicyChecker Create(UserConfig userConfig, ApiConnection apiConnection)
+        {
+            return new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection);
+        }
+    }
 }

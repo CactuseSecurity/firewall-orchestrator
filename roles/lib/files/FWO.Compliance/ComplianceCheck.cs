@@ -927,12 +927,26 @@ namespace FWO.Compliance
                 return true;
             }
 
+            bool criterionNotApplicable = result.Reason == RuleTrivialityEvaluator.Ipv6NotSupportedReason;
+            if (criterionNotApplicable)
+            {
+                // The criterion could not be evaluated for this address family, so the rule is reported as
+                // not assessable instead of as a violation of a criterion that never ran.
+                violationType = ComplianceViolationType.NotAssessable;
+            }
+
             ComplianceCheckResult complianceCheckResult = new(rule, violationType)
             {
                 Criterion = criterion
             };
 
-            CreateViolation(violationType, rule, complianceCheckResult, GetTrivialityViolationDetails(rule, criterion, result));
+            ComplianceViolation? violation = CreateViolation(violationType, rule, complianceCheckResult, GetTrivialityViolationDetails(rule, criterion, result));
+            if (violation != null && criterionNotApplicable)
+            {
+                // The criterion type of this violation no longer describes it, so the type is stated explicitly.
+                violation.Type = ComplianceViolationType.NotAssessable;
+            }
+
             return false;
         }
 
@@ -967,7 +981,8 @@ namespace FWO.Compliance
         /// <param name="rule">Impacted rule.</param>
         /// <param name="complianceCheckResult">Details assembled during the check.</param>
         /// <param name="detailsOverride">Optional string used if details need to be customized.</param>
-        private void CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult, string? detailsOverride = null)
+        /// <returns>The recorded violation, or null when the violation type is not recorded.</returns>
+        private ComplianceViolation? CreateViolation(ComplianceViolationType violationType, Rule rule, ComplianceCheckResult complianceCheckResult, string? detailsOverride = null)
         {
             ComplianceViolation violation = new()
             {
@@ -1011,7 +1026,11 @@ namespace FWO.Compliance
 
                 case ComplianceViolationType.NotAssessable:
 
-                    if (complianceCheckResult.AssessabilityIssue != null)
+                    if (!string.IsNullOrEmpty(detailsOverride))
+                    {
+                        violation.Details = detailsOverride;
+                    }
+                    else if (complianceCheckResult.AssessabilityIssue != null)
                     {
                         string networkObject = "";
 
@@ -1041,10 +1060,11 @@ namespace FWO.Compliance
 
                 default:
 
-                    return;
+                    return null;
             }
 
             _currentViolations.Add(violation);
+            return violation;
         }
 
         /// <summary>

@@ -210,6 +210,7 @@ public class FlowCatalogController : ControllerBase
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
     /// IPv4 and IPv6 ranges are accepted through ipStart and ipEnd.
+    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]

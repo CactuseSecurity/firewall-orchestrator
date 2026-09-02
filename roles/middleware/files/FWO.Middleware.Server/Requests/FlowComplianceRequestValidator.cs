@@ -1,4 +1,3 @@
-using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Sockets;
@@ -12,7 +11,9 @@ public static class FlowComplianceRequestValidator
 {
     private const int MinimumPort = 0;
     private const int MaximumPort = 65535;
-    private const string AllowedIpMask = "32";
+    private const int Ipv4HostPrefixLength = 32;
+    private const int Ipv6HostPrefixLength = 128;
+    private const int BitsPerByte = 8;
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
@@ -139,7 +140,7 @@ public static class FlowComplianceRequestValidator
     {
         if (!TryNormalizeIpNetwork(ipNetwork, out normalizedIpStart, out normalizedIpEnd, out string? validationError))
         {
-            errorMessage = $"'{context}' {validationError}";
+            errorMessage = $"{context} {validationError}";
             return false;
         }
 
@@ -176,21 +177,6 @@ public static class FlowComplianceRequestValidator
         (bool isValid, string? validationError) = ValidateServiceRange(portStart, portEnd, collectionName, itemIndex);
         errorMessage = validationError;
         return isValid;
-    }
-
-    /// <summary>
-    /// Removes an optional /32 CIDR suffix from an IP address value.
-    /// </summary>
-    public static string RemoveCidrMask(string ipAddress)
-    {
-        ArgumentNullException.ThrowIfNull(ipAddress);
-
-        if (!TryRemoveAllowedHostMask(ipAddress, "ipAddress", out string normalizedIpAddress, out string? errorMessage))
-        {
-            throw new ArgumentException(errorMessage, nameof(ipAddress));
-        }
-
-        return normalizedIpAddress;
     }
 
     private static bool TryValidateItemList<TItem>(
@@ -357,82 +343,115 @@ public static class FlowComplianceRequestValidator
         return (true, null);
     }
 
+    /// <summary>
+    /// Accepts a range bound with no mask or with the host mask of its address family and strips the mask.
+    /// Every broader mask is rejected and pointed at 'ipNetwork'.
+    /// </summary>
     private static bool TryValidateIpRangeBound(
         string ipAddressValue,
         string fieldName,
         out string normalizedIpAddress,
         out string? errorMessage)
     {
-        if (ipAddressValue.IndexOf('/') < 0)
+        int maskSeparatorIndex = ipAddressValue.IndexOf('/');
+        if (maskSeparatorIndex < 0)
         {
             normalizedIpAddress = ipAddressValue;
             errorMessage = null;
             return true;
         }
 
-        normalizedIpAddress = string.Empty;
-        errorMessage = $"must not use CIDR notation in '{fieldName}'. Use 'ipNetwork' for networks.";
-        return false;
-    }
-
-    private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)
-    {
-        int maskSeparatorIndex = ipNetwork.IndexOf('/');
-        if (maskSeparatorIndex <= 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        string address = ipAddressValue[..maskSeparatorIndex];
+        string mask = ipAddressValue[(maskSeparatorIndex + 1)..];
+        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress))
         {
-            normalizedIpStart = string.Empty;
-            normalizedIpEnd = string.Empty;
-            errorMessage = "requires a valid CIDR network in 'ipNetwork'.";
-            return false;
-        }
-
-        string address = ipNetwork[..maskSeparatorIndex];
-        string prefix = ipNetwork[(maskSeparatorIndex + 1)..];
-        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress) || !int.TryParse(prefix, out int prefixLength))
-        {
-            normalizedIpStart = string.Empty;
-            normalizedIpEnd = string.Empty;
-            errorMessage = "has an invalid 'ipNetwork' value.";
-            return false;
-        }
-
-        int maximumPrefixLength = parsedAddress.AddressFamily == AddressFamily.InterNetwork ? 32 : 128;
-        if (prefixLength is < 0 or > 128 || prefixLength > maximumPrefixLength)
-        {
-            normalizedIpStart = string.Empty;
-            normalizedIpEnd = string.Empty;
-            errorMessage = "has an invalid CIDR prefix in 'ipNetwork'.";
-            return false;
-        }
-
-        (IPAddress rangeStart, IPAddress rangeEnd) = ipNetwork.CidrToRange();
-        normalizedIpStart = rangeStart.ToString();
-        normalizedIpEnd = rangeEnd.ToString();
-        errorMessage = null;
-        return true;
-    }
-
-    private static bool TryRemoveAllowedHostMask(string ipAddress, string fieldName, out string normalizedIpAddress, out string? errorMessage)
-    {
-        int maskSeparatorIndex = ipAddress.IndexOf('/');
-        if (maskSeparatorIndex < 0)
-        {
-            normalizedIpAddress = ipAddress;
+            // The address itself is invalid; let the range validation report the value rather than the mask.
+            normalizedIpAddress = address;
             errorMessage = null;
             return true;
         }
 
-        string mask = ipAddress[(maskSeparatorIndex + 1)..];
-        if (mask != AllowedIpMask)
+        int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
+        if (!int.TryParse(mask, out int prefixLength) || prefixLength != hostPrefixLength)
         {
             normalizedIpAddress = string.Empty;
-            errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{AllowedIpMask}' is allowed.";
+            errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{hostPrefixLength}' is allowed; use 'ipNetwork' for networks.";
             return false;
         }
 
-        normalizedIpAddress = ipAddress[..maskSeparatorIndex];
+        normalizedIpAddress = address;
         errorMessage = null;
         return true;
+    }
+
+    /// <summary>
+    /// Parses a CIDR network exactly once and returns the inclusive bounds of the addressed block.
+    /// Networks carrying host bits are rejected so that no request is silently widened.
+    /// </summary>
+    private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)
+    {
+        normalizedIpStart = string.Empty;
+        normalizedIpEnd = string.Empty;
+
+        int maskSeparatorIndex = ipNetwork.IndexOf('/');
+        if (maskSeparatorIndex <= 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        {
+            errorMessage = "requires a valid CIDR network in 'ipNetwork'.";
+            return false;
+        }
+
+        if (!IPAddress.TryParse(ipNetwork[..maskSeparatorIndex], out IPAddress? parsedAddress)
+            || !int.TryParse(ipNetwork[(maskSeparatorIndex + 1)..], out int prefixLength))
+        {
+            errorMessage = "has an invalid 'ipNetwork' value.";
+            return false;
+        }
+
+        int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
+        if (prefixLength < 0 || prefixLength > hostPrefixLength)
+        {
+            errorMessage = "has an invalid CIDR prefix in 'ipNetwork'.";
+            return false;
+        }
+
+        (IPAddress networkAddress, IPAddress lastAddress) = GetNetworkBounds(parsedAddress, prefixLength);
+        if (!networkAddress.Equals(parsedAddress))
+        {
+            errorMessage = $"must not set host bits in 'ipNetwork'. Use '{networkAddress}/{prefixLength}' to evaluate that network.";
+            return false;
+        }
+
+        normalizedIpStart = networkAddress.ToString();
+        normalizedIpEnd = lastAddress.ToString();
+        errorMessage = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Computes the first and last address of a CIDR block from an already parsed address and prefix length.
+    /// </summary>
+    private static (IPAddress NetworkAddress, IPAddress LastAddress) GetNetworkBounds(IPAddress address, int prefixLength)
+    {
+        byte[] networkBytes = address.GetAddressBytes();
+        byte[] lastBytes = address.GetAddressBytes();
+
+        for (int byteIndex = 0; byteIndex < networkBytes.Length; byteIndex++)
+        {
+            int significantBits = Math.Clamp(prefixLength - (byteIndex * BitsPerByte), 0, BitsPerByte);
+            byte mask = significantBits == 0 ? (byte)0 : (byte)(byte.MaxValue << (BitsPerByte - significantBits));
+            networkBytes[byteIndex] &= mask;
+            lastBytes[byteIndex] |= (byte)~mask;
+        }
+
+        return (new IPAddress(networkBytes), new IPAddress(lastBytes));
+    }
+
+    /// <summary>
+    /// Returns the prefix length that addresses a single host in the given address family.
+    /// </summary>
+    private static int GetHostPrefixLength(AddressFamily addressFamily)
+    {
+        return addressFamily == AddressFamily.InterNetwork ? Ipv4HostPrefixLength : Ipv6HostPrefixLength;
     }
 
     private static (bool IsValid, string? ErrorMessage) ValidateServiceRange(int portStart, int portEnd, string collectionName, int itemIndex)

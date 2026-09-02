@@ -205,7 +205,7 @@ namespace FWO.Test
                 {
                     refreshCalls++;
                     return Task.CompletedTask;
-            });
+                });
 
             component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-primary").Any(button => !button.HasAttribute("disabled")), Is.True));
 

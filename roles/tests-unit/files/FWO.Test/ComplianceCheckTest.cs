@@ -472,6 +472,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AreRulesCompliant_MinimumCIDRLengthWithIpv6Object_ReportsNotAssessable()
+        {
+            await SetUpBasic(setupRelevantManagements: true);
+
+            CompliancePolicy policy = new()
+            {
+                Id = 1,
+                Criteria =
+                [
+                    new ComplianceCriterionWrapper
+                    {
+                        Content = new ComplianceCriterion
+                        {
+                            Id = 11,
+                            Name = "MinimumCIDRLength",
+                            CriterionType = nameof(CriterionType.MinimumCIDRLength),
+                            Content = "24"
+                        }
+                    }
+                ]
+            };
+
+            ApiConnection.AsSub()
+                .SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, Arg.Any<object>())
+                .Returns(policy);
+
+            Rule ipv6Rule = CreateSimpleRule(52);
+            ipv6Rule.Uid = "rule-52";
+            ipv6Rule.Froms[0].Object.IP = "2001:db8::/128";
+            ipv6Rule.Froms[0].Object.IpEnd = "2001:db8::/128";
+
+            bool compliant = await ComplianceCheck.AreRulesCompliant([1], [ipv6Rule]);
+
+            Assert.That(compliant, Is.False);
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Type, Is.EqualTo(ComplianceViolationType.NotAssessable));
+                Assert.That(ComplianceCheck.CurrentViolationsInCheck[0].Details, Does.Contain("MinimumCIDRLength"));
+            });
+        }
+
+        [Test]
         public async Task AreRulesCompliant_ForbidZonesAsSourcePolicyFails_ReturnsFalse()
         {
             await SetUpBasic(setupRelevantManagements: true);

@@ -70,8 +70,8 @@ internal class FlowComplianceValidationTest
     {
         GetFlowComplianceStateRequest request = new()
         {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.0.1/24" }],
-            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.1.1/25" }],
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.0.0/24" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "10.0.1.0/25" }],
             Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
             Policies = [1]
         };
@@ -94,7 +94,7 @@ internal class FlowComplianceValidationTest
     {
         GetFlowComplianceStateRequest request = new()
         {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "2001:db8::1/126" }],
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "2001:db8::/126" }],
             Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "2001:db8:1::/64" }],
             Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
             Policies = [1]
@@ -113,14 +113,104 @@ internal class FlowComplianceValidationTest
         });
     }
 
+    [Test]
+    public void GetFlowComplianceState_ExpandsWholeAddressSpaceNetworks()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "0.0.0.0/0" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "::/0" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(request.Source[0].IpStart, Is.EqualTo("0.0.0.0"));
+            Assert.That(request.Source[0].IpEnd, Is.EqualTo("255.255.255.255"));
+            Assert.That(request.Destination[0].IpStart, Is.EqualTo("::"));
+            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+        });
+    }
+
     [TestCase("10.0.0.1/33")]
     [TestCase("2001:db8::1/129")]
     [TestCase("10.0.0.1/not-a-prefix")]
     public void GetFlowComplianceState_RejectsInvalidNetworkPrefix(string ipNetwork)
     {
+        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid"));
+        });
+    }
+
+    [TestCase("10.0.0.0")]
+    [TestCase("2001:db8::")]
+    [TestCase("/24")]
+    [TestCase("10.0.0.0/24/24")]
+    public void GetFlowComplianceState_RejectsNetworkWithoutSinglePrefixSeparator(string ipNetwork)
+    {
+        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a valid CIDR network"));
+        });
+    }
+
+    [TestCase("10.0.0.1/24", "10.0.0.0/24")]
+    [TestCase("2001:db8::1/126", "2001:db8::/126")]
+    public void GetFlowComplianceState_RejectsNetworkWithHostBits(string ipNetwork, string expectedSuggestion)
+    {
+        bool valid = TryValidateSourceNetwork(ipNetwork, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must not set host bits"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain(expectedSuggestion));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_NetworkErrorNamesTheEntryOnlyOnce()
+    {
+        bool valid = TryValidateSourceNetwork("10.0.0.1/33", out ActionResult? errorResult);
+        string message = ((BadRequestObjectResult)errorResult!).Value?.ToString() ?? string.Empty;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(message, Does.StartWith("'source' entry at index 0 "));
+            Assert.That(message, Does.Not.Contain("''"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_RejectsNetworkTogetherWithRangeBounds()
+    {
         GetFlowComplianceStateRequest request = new()
         {
-            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = ipNetwork }],
+            Source =
+            [
+                new GetFlowComplianceStateRequest.IpRangeRequest
+                {
+                    IpNetwork = "10.0.0.0/24",
+                    IpStart = "10.0.0.1",
+                    IpEnd = "10.0.0.2"
+                }
+            ],
             Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
             Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
             Policies = [1]
@@ -132,12 +222,57 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("invalid"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("not both"));
         });
     }
 
     [Test]
-    public void GetFlowComplianceState_RejectsCidrRangeBounds()
+    public void GetFlowComplianceState_RejectsEntryWithoutNetworkAndRangeBounds()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest()],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_AllowsHostMaskedRangeBoundsAndNormalizesRequest()
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.0.1/32", IpEnd = "10.0.0.2/32" }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1/128", IpEnd = "2001:db8::2/128" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(request.Source[0].IpStart, Is.EqualTo("10.0.0.1"));
+            Assert.That(request.Source[0].IpEnd, Is.EqualTo("10.0.0.2"));
+            Assert.That(request.Destination[0].IpStart, Is.EqualTo("2001:db8::1"));
+            Assert.That(request.Destination[0].IpEnd, Is.EqualTo("2001:db8::2"));
+        });
+    }
+
+    [Test]
+    public void GetFlowComplianceState_RejectsBroaderMaskedRangeBounds()
     {
         GetFlowComplianceStateRequest request = new()
         {
@@ -153,39 +288,36 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Use 'ipNetwork'"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("use 'ipNetwork'"));
         });
     }
 
-    [TestCase("10.0.0.1/32", "10.0.0.1")]
-    [TestCase("10.0.0.1", "10.0.0.1")]
-    [TestCase("", "")]
-    public void RemoveCidrMask_StripsOnlyAllowedHostMaskSuffix(string input, string expected)
+    [TestCase("10.0.0.1/32", "10.0.0.2/32")]
+    [TestCase("2001:db8::1/128", "2001:db8::2/128")]
+    public void TryValidateIpRange_AllowsHostMaskedBounds(string ipStart, string ipEnd)
     {
-        string result = FlowComplianceRequestValidator.RemoveCidrMask(input);
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
 
-        Assert.That(result, Is.EqualTo(expected));
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorMessage, Is.Null);
+        });
     }
 
-    [TestCase("10.0.0.1/24")]
-    [TestCase("10.0.0.1/255.255.255.0")]
-    [TestCase("2001:db8::1/64")]
-    public void RemoveCidrMask_RejectsNonCidr32MaskSuffix(string input)
+    [TestCase("10.0.0.1/24", "10.0.0.2/32", "Only '/32' is allowed")]
+    [TestCase("10.0.0.1/255.255.255.0", "10.0.0.2", "Only '/32' is allowed")]
+    [TestCase("2001:db8::1/64", "2001:db8::2/128", "Only '/128' is allowed")]
+    public void TryValidateIpRange_RejectsBroaderMaskedBounds(string ipStart, string ipEnd, string expectedDetail)
     {
-        ArgumentException? exception = Assert.Throws<ArgumentException>(() => FlowComplianceRequestValidator.RemoveCidrMask(input));
-
-        Assert.That(exception?.Message, Does.Contain("Only '/32' is allowed"));
-    }
-
-    [Test]
-    public void TryValidateIpRange_RejectsCidrBounds()
-    {
-        bool valid = FlowComplianceRequestValidator.TryValidateIpRange("10.0.0.1/32", "10.0.0.2/32", "address", 0, out string? errorMessage);
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
 
         Assert.Multiple(() =>
         {
             Assert.That(valid, Is.False);
-            Assert.That(errorMessage, Does.Contain("Use 'ipNetwork'"));
+            Assert.That(errorMessage, Does.Contain(expectedDetail));
+            Assert.That(errorMessage, Does.Contain("'ipStart'"));
         });
     }
 
@@ -199,6 +331,22 @@ internal class FlowComplianceValidationTest
             Assert.That(valid, Is.True);
             Assert.That(errorMessage, Is.Null);
         });
+    }
+
+    /// <summary>
+    /// Validates a request whose only source entry is the supplied CIDR network.
+    /// </summary>
+    private static bool TryValidateSourceNetwork(string ipNetwork, out ActionResult? errorResult)
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = ipNetwork }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "10.0.1.1", IpEnd = "10.0.1.2" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        return FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out errorResult);
     }
 
     [Test]

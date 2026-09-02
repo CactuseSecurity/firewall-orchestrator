@@ -7,6 +7,7 @@ using PuppeteerSharp.BrowserData;
 using FWO.Report;
 using FWO.Report.Data;
 using FWO.Basics;
+using FWO.Services.HeadlessBrowser;
 
 namespace FWO.Test
 {
@@ -95,23 +96,16 @@ namespace FWO.Test
                 Log.WriteInfo("Test Log", $"Selecting latest installed {wantedBrowser}({latestInstalledBrowser.BuildId}) at: {executablePath}");
             }
 
-            IBrowser? browser;
-
-            try
-            {
-                browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            IBrowser browser = await HeadlessBrowserLauncher.LaunchAsync(
+                attempt => Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    ExecutablePath = executablePath,
+                    ExecutablePath = attempt.ExecutablePath,
                     Headless = true,
                     DumpIO = isGitHubActions,
-                    Args = isGitHubActions ? ["--database=/tmp", "--no-sandbox"] : []
-                });
-            }
-            catch (Exception)
-            {
-                Log.WriteAlert("Test Log", $"Couldn't start {wantedBrowser} instance!");
-                throw new Exception($"Couldn't start {wantedBrowser} instance!");
-            }
+                    Args = attempt.Args.ToArray()
+                }),
+                executablePath,
+                SystemChromium.GetPath());
 
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A0);
             await TryCreatePDF(browser, PuppeteerSharp.Media.PaperFormat.A1);

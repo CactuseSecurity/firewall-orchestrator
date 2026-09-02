@@ -62,3 +62,30 @@ Aug
 
 ```
 
+
+## Troubleshooting PDF export
+
+PDF exports are rendered with a headless Chrome that is either downloaded during installation
+(`/usr/local/fworch/bin/chrome`) or provided by the distribution (`chromium-headless`, symlinked to
+`/usr/local/fworch/bin/chromium-headless`).
+
+If a report export fails with `Couldn't start Chrome instance!`, the UI log now also contains the
+original error of every start attempt, e.g.
+
+    Warning - Report Export, Starting Chrome with sandbox at /usr/local/fworch/bin/Chrome/Linux-.../chrome failed: <original error>
+
+Chrome is started three times before the export is given up on: with its sandbox, without its
+sandbox, and - if available - as system chromium without sandbox. A successful sandboxless start is
+logged as a warning and is remembered, so later exports skip the sandboxed attempt.
+
+Typical reasons for a sandbox that cannot be used on hardened servers:
+
+* unprivileged user namespaces are switched off (`sysctl kernel.unprivileged_userns_clone`,
+  `sysctl user.max_user_namespaces`, on Ubuntu also
+  `sysctl kernel.apparmor_restrict_unprivileged_userns`)
+* the setuid helper `/usr/local/fworch/bin/chrome_sandbox` is missing or not owned by root
+* `/dev/shm` is too small for a browser process
+
+If instead the original error names a missing shared library, install the missing package (see the
+puppeteer dependency lists of the `lib` role) or install the distribution package
+`chromium-headless` / `chromium`, which fworch then prefers over the Chrome download.

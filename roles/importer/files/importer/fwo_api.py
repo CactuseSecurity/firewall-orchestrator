@@ -274,7 +274,8 @@ class FwoApi:
             payload_segment = jwt_token.split(".")[1]
             padding = "=" * (-len(payload_segment) % 4)
             claims = json.loads(base64.urlsafe_b64decode(payload_segment + padding))
-            return claims.get("exp")
+            exp = claims.get("exp")
+            return float(exp) if isinstance(exp, (int, float)) else None
         except Exception:
             return None
 

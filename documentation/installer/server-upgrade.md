@@ -2,6 +2,26 @@
 
 It is really simple.
 
+## Prerequisite: this host must run 8.0 or newer
+
+Upgrades starting from a version older than 8.0 are not supported any more - the database
+migration files below 8.0 have been removed. The installer checks the installed version
+before it changes anything and stops such an upgrade, because running it would skip the
+schema changes the older version is still missing.
+
+An installation older than 8.0 gets here in two upgrades. `v8.9.6` is the last release
+that still carries the removed migration files:
+
+```console
+  cd firewall-orchestrator
+  git fetch --tags
+  git checkout v8.9.6
+  source scripts/install-ansible-from-venv.sh
+  ./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade"
+```
+
+Then continue with the current version as described below (`git checkout main`).
+
 Anything you configured for this host belongs in
 `/etc/fworch/fwo-install-settings.yml`, not in `inventory/`. That file is
 outside the git repository, so `git pull` and a fresh clone leave it alone and the

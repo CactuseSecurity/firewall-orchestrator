@@ -134,6 +134,13 @@
             msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
           when: old_version is version(product_version, '>')
 
+          # The other end of the same question: not too new, but too old for the
+          # migration files this repository still carries.
+        - name: check that the installed version can still be upgraded from
+          include_tasks: validate-upgrade-source-version.yml
+          vars:
+            upgrade_source_version: "{{ old_version }}"
+
       when: already_installed and installation_mode == "upgrade"
 
     - name: create group {{ fworch_group }}

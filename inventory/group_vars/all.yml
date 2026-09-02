@@ -1,5 +1,17 @@
 ### general settings
 product_version: "9.5.0"
+# The oldest product version an upgrade may start from, enforced by
+# roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
+# database. It exists because 9.5.0 removed the migration files below 8.0:
+# upgrade-database.yml runs the upgrade files it finds above the installed version, not
+# the ones that version needs, so a source below this floor would skip schema changes
+# without saying so. Raise it with every further removal of upgrade files - the floor and
+# the oldest file under roles/database/files/upgrade must stay adjacent releases - and
+# keep documentation/installer/server-upgrade.md in sync.
+minimum_upgrade_source_version: "8.0"
+# The last release that still carries the removed migration files, so an installation
+# below the floor can get here in two upgrades instead of a reinstall.
+minimum_upgrade_source_release: "v8.9.6"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3

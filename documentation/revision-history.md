@@ -674,10 +674,12 @@ Not supported any longer are:
   renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
   leaves every FWO client failing on a TLS host name mismatch
 - versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
-- developers for debugging: 
+  The database migration files below 8.0 have been removed and the installer now stops an upgrade
+  from an older version before it changes anything, naming the two-step path (upgrade with a v8.9.6
+  checkout first, then with this one) instead of skipping the missing schema changes silently
+- developers for debugging:
   - change your local fworch.json api_uri line to:
     `"api_uri": "http://127.0.0.1:8080/v1/graphql",`
     (note: without /api/) and tunnel port 8080 instead of 9443
-  - forward native web server ports (5000, 8880), not rev-proxy ports or 
+  - forward native web server ports (5000, 8880), not rev-proxy ports or
     import FWO CA certificate from test machine
-

@@ -664,7 +664,12 @@ class FwoApi:
 
         r.raise_for_status()
 
-        return r.json()
+        if response_body is None:
+            # r.json() succeeded above only if response_body is not None; if it failed,
+            # raise_for_status() already passed, so re-attempt parsing to surface the same ValueError.
+            return r.json()
+
+        return response_body
 
     def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], typ: str = "debug"):
         max_query_size_to_display = 1000

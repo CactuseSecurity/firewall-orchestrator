@@ -21,6 +21,12 @@ namespace FWO.Services.HeadlessBrowser
         public bool SandboxDisabled { get; }
 
         /// <summary>
+        /// True when the output of the browser is forwarded to the fworch log. Only set for the
+        /// last attempt, so a browser that keeps crashing can be diagnosed from the log.
+        /// </summary>
+        public bool DumpIo { get; set; }
+
+        /// <summary>
         /// Human readable description of this attempt, used for logging.
         /// </summary>
         public string Description { get; }

@@ -78,6 +78,14 @@ Chrome is started three times before the export is given up on: with its sandbox
 sandbox, and - if available - as system chromium without sandbox. A successful sandboxless start is
 logged as a warning and is remembered, so later exports skip the sandboxed attempt.
 
+One reason seen in the field is file permissions: the Chrome for Testing archive of some versions
+unpacks its `chrome-linux64` directory with `drwxr-x--- root root`, so the `fworch` service user
+cannot traverse it and the error reads `Browser was not found at the configured executablePath`.
+The installer repairs the permissions of `/usr/local/fworch/bin/Chrome` on every run and verifies
+that the `fworch` user can start `/usr/local/fworch/bin/chrome`; a manual repair is
+
+    chmod -R u=rwX,g=rX,o=rX /usr/local/fworch/bin/Chrome
+
 Typical reasons for a sandbox that cannot be used on hardened servers:
 
 * unprivileged user namespaces are switched off (`sysctl kernel.unprivileged_userns_clone`,

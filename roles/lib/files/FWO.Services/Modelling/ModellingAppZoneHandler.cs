@@ -3,13 +3,12 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Config.Api;
-using System.Text.Json;
 
 namespace FWO.Services.Modelling
 {
     public class ModellingAppZoneHandler(ApiConnection apiConnection, UserConfig userConfig, FwoOwner owner, Action<Exception?, string, string, bool> displayMessageInUi) : ModellingHandlerBase(apiConnection, userConfig, displayMessageInUi)
     {
-        private readonly ModellingNamingConvention NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+        private readonly ModellingNamingConvention NamingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
         List<ModellingAppServerWrapper> allAppServers = [];
 
         public async Task<ModellingAppZone?> GetExistingModelledAppZone()

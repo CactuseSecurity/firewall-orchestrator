@@ -2,11 +2,11 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Logging;
 using FWO.Basics;
 using FWO.Config.Api;
 using NetTools;
 using System.Net;
-using System.Text.Json;
 
 namespace FWO.Services.Modelling
 {
@@ -18,6 +18,11 @@ namespace FWO.Services.Modelling
         public List<ModellingAppServer> AppServerToAdd { get; set; } = [];
         public List<ModellingAppServer> AppServerToDelete { get; set; } = [];
         public ModellingNamingConvention NamingConvention = new();
+
+        /// <summary>
+        /// Indicates whether the naming convention allows to convert area identifiers into app role identifiers.
+        /// </summary>
+        public bool AreaConversionValid { get; private set; } = true;
 
         private ModellingManagedIdString OrigId = new();
 
@@ -35,7 +40,8 @@ namespace FWO.Services.Modelling
 
         private void ApplyNamingConvention(string extAppId)
         {
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            NamingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
+            AreaConversionValid = NamingConvention.IsAreaConversionValid();
             foreach (ModellingAppRole aR in AppRoles)
             {
                 aR.ManagedIdString.NamingConvention = NamingConvention;
@@ -45,16 +51,50 @@ namespace FWO.Services.Modelling
             {
                 ActAppRole.ManagedIdString.SetAppPartFromExtId(extAppId);
             }
-            else
+            else if (AreaConversionValid)
             {
                 ActAppRole.Area = new() { IdString = ModellingManagedIdString.ConvertAppRoleToArea(ActAppRole.IdString, NamingConvention) };
             }
+            if (!AreaConversionValid)
+            {
+                // reporting once per dialog: neither the proposed id nor the derived area would be usable
+                Log.WriteWarning("Apply Naming Convention", $"Area conversion is not possible: fixed part length {NamingConvention.FixedPartLength}, " +
+                    $"network area pattern '{NamingConvention.NetworkAreaPattern}', app role pattern '{NamingConvention.AppRolePattern}'.");
+                DisplayMessageInUi(null, userConfig.GetText(DialogTitleKey()), userConfig.GetText(NamingConventionErrorKey()), true);
+            }
         }
 
+        /// <summary>
+        /// Determines the message describing why area identifiers cannot be converted into app role identifiers.
+        /// </summary>
+        /// <returns>the key of the message to display</returns>
+        private string NamingConventionErrorKey()
+        {
+            return NamingConvention.IsFixedPartLengthValid() ? "E5602" : "E5601";
+        }
+
+        /// <summary>
+        /// Determines the title of the dialog the message belongs to, so that both carry the same wording.
+        /// </summary>
+        /// <returns>the key of the title to display</returns>
+        private string DialogTitleKey()
+        {
+            if (ReadOnly)
+            {
+                return "app_role";
+            }
+            return AddMode ? "add_app_role" : "edit_app_role";
+        }
+
+        /// <summary>
+        /// Initializes the app role for the selected network area and proposes an identifier in add mode.
+        /// An invalid naming convention is reported once when the handler is created, so it is only skipped here.
+        /// </summary>
+        /// <param name="newArea">the selected network area, may be null</param>
         public async Task InitAppRole(ModellingNetworkArea? newArea)
         {
             ActAppRole.Area = newArea;
-            if (newArea != null && newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode)
+            if (newArea != null && newArea.IdString.Length >= NamingConvention.FixedPartLength && AddMode && AreaConversionValid)
             {
                 ActAppRole.ManagedIdString.ConvertAreaToAppRoleFixedPart(newArea.IdString);
                 ActAppRole.ManagedIdString.FreePart = await ProposeFreeAppRoleNumber(ActAppRole.ManagedIdString);

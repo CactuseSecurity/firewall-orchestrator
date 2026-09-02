@@ -613,5 +613,5 @@ Not supported any longer are:
 - make replacement of existing log entries for applications contained in an import file configurable
 - increase of unit-tests
 
-## 9.4.1 - 19.08.2026
+## 9.4.6 - 02.09.2026
 - enforce host-address masks for flow network-object range endpoints

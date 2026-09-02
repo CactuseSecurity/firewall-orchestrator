@@ -12,6 +12,7 @@ using FWO.Services.Workflow;
 using FWO.Test.Mocks;
 using NetTools;
 using NUnit.Framework;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -322,6 +323,18 @@ namespace FWO.Test
                 PolicyIds = policyIds.ToList();
                 RequestTaskIds = requestTasks.Select(task => task.Id).ToList();
                 return Task.FromResult(Result);
+            }
+        }
+
+        private sealed class ActionHandlerTestPolicyCheckerFactory : IRequestedRulePolicyCheckerFactory
+        {
+            public ActionHandlerTestPolicyChecker Checker { get; } = new() { Result = true };
+            public int CreateCount { get; private set; }
+
+            public IRequestedRulePolicyChecker Create(UserConfig userConfig, ApiConnection apiConnection)
+            {
+                CreateCount++;
+                return Checker;
             }
         }
 
@@ -1447,6 +1460,41 @@ namespace FWO.Test
             bool result = await task;
 
             Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task ExecutePolicyCheck_InitializesPolicyCheckerFromRegisteredFactory()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            ActionHandlerTestPolicyCheckerFactory factory = new();
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRequestedRulePolicyCheckerFactory>(factory)
+                .BuildServiceProvider();
+
+            try
+            {
+                WfTicket ticket = CreateTicket(CreateEligibleRequestTask(21));
+                Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                    [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+                bool result = await task;
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.True);
+                    Assert.That(factory.CreateCount, Is.EqualTo(1));
+                    Assert.That(factory.Checker.PolicyIds, Is.EqualTo(new List<int> { 5 }));
+                    Assert.That(factory.Checker.RequestTaskIds, Is.EqualTo(new List<long> { 21 }));
+                });
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
         }
 
         [Test]

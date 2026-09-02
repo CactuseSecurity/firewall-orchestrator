@@ -1,4 +1,5 @@
 using GraphQL;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Workflow;
@@ -12,6 +13,7 @@ namespace FWO.Test
     {
         public string? CloseHistoryMessage { get; set; }
         public List<string> History = [];
+        public List<string> WorkflowChanges = [];
         public string? AddHistoryMessage { get; set; }
         public string? AddExtRequestVars { get; set; }
         public string? AddedExtTicketSystem { get; set; }
@@ -252,6 +254,27 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// Records a history entry, keeping workflow change log entries apart from modelling history entries.
+        /// </summary>
+        private void RecordHistoryEntry(object variables)
+        {
+            string? historyEntry = variables.ToString();
+            if (historyEntry == null)
+            {
+                return;
+            }
+            string? changeSource = variables.GetType().GetProperty("changeSource")?.GetValue(variables)?.ToString();
+            if (changeSource == GlobalConst.kWorkflow)
+            {
+                WorkflowChanges.Add(historyEntry);
+            }
+            else
+            {
+                History.Add(historyEntry);
+            }
+        }
+
         public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
         {
             await DefaultInit.DoNothing(); // qad avoid compiler warning
@@ -377,11 +400,7 @@ namespace FWO.Test
             {
                 if (query == ModellingQueries.addHistoryEntry && variables != null)
                 {
-                    string? hist = variables.ToString();
-                    if (hist != null)
-                    {
-                        History.Add(hist);
-                    }
+                    RecordHistoryEntry(variables);
                 }
                 else if (query == ExtRequestQueries.addExtRequest && variables != null)
                 {

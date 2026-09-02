@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FWO.Basics;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -35,7 +36,7 @@ namespace FWO.Services.Workflow
                 objectId,
                 changeText,
                 changer = UserConfig.User.Name,
-                changeSource = "workflow",
+                changeSource = GlobalConst.kWorkflow,
                 workflowPhase = (int)WorkflowPhase,
                 oldData,
                 newData,

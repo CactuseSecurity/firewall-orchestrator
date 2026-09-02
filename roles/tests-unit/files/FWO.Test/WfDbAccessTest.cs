@@ -632,6 +632,7 @@ namespace FWO.Test
 
             Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
             Assert.That(apiConn.LastHistoryVariables, Is.Not.Null);
+            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kWorkflow));
             Assert.That(HistoryCriticalFlag(apiConn), Is.True);
         }
 
@@ -1933,6 +1934,13 @@ namespace FWO.Test
                 LowestStartedState = lowestStartedState,
                 LowestEndState = lowestEndState
             };
+        }
+
+        private static string? HistoryStringValue(WfDbAccessTestApiConn apiConnection, string name)
+        {
+            PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty(name);
+            Assert.That(property, Is.Not.Null);
+            return property!.GetValue(apiConnection.LastHistoryVariables)?.ToString();
         }
 
         private static bool HistoryCriticalFlag(WfDbAccessTestApiConn apiConnection)

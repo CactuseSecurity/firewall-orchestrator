@@ -49,6 +49,7 @@ namespace FWO.Basics
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
+        public const string kWorkflow = "workflow";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";

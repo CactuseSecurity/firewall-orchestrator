@@ -388,7 +388,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
 
-        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify"), UserConfigData]
         public bool ModIconify { get; set; } = true;
 
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
@@ -665,12 +665,17 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
+
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
+        [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
+        public bool AllowFullRollback { get; set; } = false;
 
         public ConfigData(bool editable = false)
         {

@@ -122,18 +122,27 @@
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/compliance">
+                        <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("modelling"))</h5>
+                </li>
+                <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/modelling">
-                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_general_settings"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="settings/modellingnotifications">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
                     </NavLink>
                 </li>
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="settings/logging">
                         <span class="@Icons.Import"></span> @(userConfig.GetText("logging"))
-                    </NavLink>
-                </li>
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/compliance">
-                        <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
                     </NavLink>
                 </li>
                 <hr />
@@ -263,33 +272,10 @@
                         <span class="@Icons.Login"></span> @(userConfig.GetText("password"))
                     </NavLink>
                 }
-                <NavLink class="nav-link" href="settings/language">
-                    <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
+                <NavLink class="nav-link" href="settings/personal">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("personal_settings"))
                 </NavLink>
-                <ExecutionModeAuthorizeView
-                    Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}, {Roles.Modeller}, {Roles.Auditor}, {Roles.FwAdmin}")">
-                    <NavLink class="nav-link" href="settings/report">
-                        <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                    </NavLink>
-                </ExecutionModeAuthorizeView>
             </li>
-            @if (userConfig.RecertificationMode == RecertificationMode.RuleByRule)
-            {
-                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Recertifier}, {Roles.Auditor}")">
-                    <li class="nav-item px-2">
-                        <NavLink class="nav-link" href="settings/recertificationpersonal">
-                            <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                        </NavLink>
-                    </li>
-                </ExecutionModeAuthorizeView>
-            }
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
-                <li class="nav-item px-2">
-                    <NavLink class="nav-link" href="settings/modellingpersonal">
-                        <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-                    </NavLink>
-                </li>
-            </ExecutionModeAuthorizeView>
         </ul>
         <br><br>
     </div>

@@ -1,3 +1,4 @@
+-1;ANY;Any IP protocol
 0;HOPOPT;IPv6 Hop-by-Hop Option, [RFC1883]
 1;ICMP;Internet Control Message, [RFC792]
 2;IGMP;Internet Group Management, [RFC1112]

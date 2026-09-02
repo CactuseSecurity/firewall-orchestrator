@@ -44,7 +44,7 @@ namespace FWO.Ui.Services
             UserConfig = userConfig;
             ApiConnection = apiConnection;
             MiddlewareClient = middlewareClient;
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            NamingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
             AppServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(UserConfig.ModAppServerTypes) ?? [];
             AllowedFileFormats = allowedFileFormats;
             EventMediator = eventMediator;

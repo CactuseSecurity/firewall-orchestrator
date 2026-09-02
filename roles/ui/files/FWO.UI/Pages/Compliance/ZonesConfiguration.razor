@@ -10,7 +10,25 @@
 
 @if(!ReadonlyMode)
 {
-	<button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+    <div class="btn-group mb-1">
+        <button type="button" class="btn btn-sm btn-success" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
+        @if(AutoCalculatedInternetZoneMissing)
+        {
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <Authorized>
+                    <button id="add-auto-calculated-internet-zone" type="button" class="btn btn-sm btn-warning"
+                        disabled="@addingAutoCalculatedInternetZone" @onclick="AddAutoCalculatedInternetZone">
+                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "add_auto_calculated_internet_zone", Icons.Add, userConfig.GetText("H5817a")))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button id="add-auto-calculated-internet-zone" type="button" class="btn btn-sm btn-warning" disabled>
+                        @(DisplayService.DisplayButtonWithTooltip(userConfig, "add_auto_calculated_internet_zone", Icons.Add, userConfig.GetText("H5817a")))
+                    </button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+        }
+    </div>
 }
 
 @*Show Top-Level Zones*@
@@ -18,6 +36,7 @@
 
 @if (networkZoneInEdit != null)
 {
+<<<<<<< HEAD
 	<PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.XLarge OnClose="() => editMode = false">
 		<Body>
 			<form>
@@ -158,206 +177,478 @@
 			</div>
 		</Footer>
 	</PopUp>
+=======
+    <PopUp Title="@userConfig.GetText("edit_zone_title")" Show="editMode" Size=PopupSize.XLarge OnClose="() => editMode = false">
+        <Body>
+            <form>
+                @if (!string.IsNullOrWhiteSpace(AutoCalculatedZoneCommunicationsWarning))
+                {
+                    <div class="alert alert-warning" role="alert">@AutoCalculatedZoneCommunicationsWarning</div>
+                }
+                <div class="row mb-3">
+                    <div class="col-3">
+                        <label for="id" class="form-label">@(userConfig.GetText("id"))</label>
+                        <input type="text" class="form-control" id="id" readonly value="@(AddMode() ? "-" : networkZoneInEdit.Id)">
+                    </div>
+                    <div class="col-3">
+                        <label for="name" class="form-label">@(userConfig.GetText("name"))</label>
+                        <input type="text" @bind="networkZoneInEdit.Name" class="form-control" id="name" placeholder="@(userConfig.GetText("name"))">
+                    </div>
+                    <div class="col-3">
+                        <label for="description" class="form-label">@(userConfig.GetText("description"))</label>
+                        <textarea type="text" @bind="networkZoneInEdit.Description" class="form-control" id="description" placeholder="@(userConfig.GetText("description"))" />
+                    </div>
+                    @if(userConfig.ComplianceMatrixAllowNetworkZones)
+                    {
+                        <div class="col-3">
+                            <label class="form-label">@(userConfig.GetText("superzone"))</label>
+                            @if(AddMode())
+                            {
+                                <Dropdown NoneSelectedText="-" Nullable="true" Small="false" ElementToString="@(zone => zone?.Name ?? "-")"
+                                      Elements="networkZoneService.NetworkZones.Where(n => n.IPRanges.Length == 0)" @bind-SelectedElement="networkZoneInEdit.Superzone">
+                                    <ElementTemplate>
+                                        @(context?.Name ?? "")
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
+                            else
+                            {
+                                <label class="form-label">@(networkZoneInEdit?.Superzone?.Name ?? "-")</label>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="row mb-2">
+                    <div class="col-3">
+                        <label>@userConfig.GetText("ip_addresses")</label>
+                        @if(InsertIpPossible())
+                        {
+                            @if (IsAutoCalculatedSpecialZone(networkZoneInEdit))
+                            {
+                                <ExpandableList Elements="networkZoneInEdit?.IPRanges" Context="ipRange">
+                                    <ElementTemplate>
+                                        @NetworkZoneService.DisplayIpRange(ipRange)
+                                    </ElementTemplate>
+                                </ExpandableList>
+                            }
+                            else
+                            {
+                                <div class="input-group mb-2">
+                                    <IpAddressInput @bind-IpRange="ipRangeToAdd" />
+                                    <button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+                                </div>
+                                <EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="addDel.IpRangesToAdd" ElementsToDelete="addDel.IpRangesToDelete">
+                                    <Display>
+                                        @NetworkZoneService.DisplayIpRange(context)
+                                    </Display>
+                                </EditList>
+                            }
+                        }
+                    </div>
+                    @if(userConfig.ComplianceMatrixAllowNetworkZones)
+                    {
+                        <div class="col-3">
+                            <label>@userConfig.GetText("subzones")</label>
+                            @if(InsertSubzonePossible() && !IsAutoCalculatedSpecialZone(networkZoneInEdit))
+                            {
+                                <div class="mb-2">
+                                    <Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@subzoneInputClass"
+                                          Elements="networkZoneService.NetworkZones" @bind-SelectedElement="subzoneToAdd" AppendWidth="60">
+                                        <ElementTemplate>
+                                            @(context?.Name ?? "")
+                                        </ElementTemplate>
+                                        <Append>
+                                            <button @onclick="() => AddCommunicationZone(addDel.SubzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
+                                                type="button" style="width: 60px" class="btn btn-success" id="addSubzone">@userConfig.GetText("add")</button>
+                                        </Append>
+                                    </Dropdown>
+                                </div>
+                                <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.Subzones"
+                                      ElementsToAdd="addDel.SubzonesToAdd" ElementsToDelete="addDel.SubzonesToDelete">
+                                    <Display>
+                                        @context.Name
+                                    </Display>
+                                </EditList>
+                            }
+                        </div>
+                    }
+                    <div class="col-3">
+                        <label>@userConfig.GetText("allowed_comm_srcs")</label>
+                        <div class="mb-2">
+                            <Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@sourceZoneInputClass"
+                                      Elements="networkZoneService.NetworkZones" @bind-SelectedElement="sourceZoneToAdd" AppendWidth="60">
+                                <ElementTemplate>
+                                    @(context?.Name ?? "")
+                                </ElementTemplate>
+                                <Append>
+                                    <button @onclick="() => AddCommunicationZone(addDel.SourceZonesToAdd, ref sourceZoneToAdd, ref sourceZoneInputClass)"
+                                            type="button" class="btn btn-success" style="width: 60px">
+                                        @userConfig.GetText("add")
+                                    </button>
+                                </Append>
+                            </Dropdown>
+                        </div>
+                        <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationSources"
+                              ElementsToAdd="addDel.SourceZonesToAdd" ElementsToDelete="addDel.SourceZonesToDelete">
+                            <Display>
+                                @context.Name
+                            </Display>
+                        </EditList>
+                    </div>
+                    <div class="col-3">
+                        <label>@userConfig.GetText("allowed_comm_dests")</label>
+                        <div class="mb-2">
+                            <Dropdown Nullable="true" Small="false" ElementToString="@(e => e?.Name ?? "")" InputClass="@destinationZoneInputClass"
+                                      Elements="networkZoneService.NetworkZones" @bind-SelectedElement="destinationZoneToAdd" AppendWidth="60">
+                                <ElementTemplate>
+                                    @(context?.Name ?? "")
+                                </ElementTemplate>
+                                <Append>
+                                    <button @onclick="() => AddCommunicationZone(addDel.DestinationZonesToAdd, ref destinationZoneToAdd, ref destinationZoneInputClass)"
+                                        type="button" class="btn btn-success" style="width: 60px">@userConfig.GetText("add")</button>
+                                </Append>
+                            </Dropdown>
+                        </div>
+                        <EditList ElementType="ComplianceNetworkZone" Elements="networkZoneInEdit?.AllowedCommunicationDestinations"
+                                  ElementsToAdd="addDel.DestinationZonesToAdd" ElementsToDelete="addDel.DestinationZonesToDelete">
+                            <Display>
+                                @context.Name
+                            </Display>
+                        </EditList>
+                    </div>
+                </div>
+            </form>
+        </Body>
+        <Footer>
+            <div class="btn-group">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                    <Authorized>
+                        <button type="button" class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" disabled class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
+                <button type="button" class="btn btn-secondary" @onclick="CancelModifications">@(userConfig.GetText("cancel"))</button>
+            </div>
+        </Footer>
+    </PopUp>
+>>>>>>> upstream/develop
 
-	<ConfirmDelete @bind-Display="deleteMode" PerformAction="ExecuteNetworkZoneDeletion" Title="@userConfig.GetText("delete_zone_title")"
-		AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))" />
+    <ConfirmDelete @bind-Display="deleteMode" PerformAction="ExecuteNetworkZoneDeletion" Title="@userConfig.GetText("delete_zone_title")"
+        AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))"
+        WarningMessage="@AutoCalculatedZoneCommunicationsWarning" />
 }
 
 @code
 {
-	[CascadingParameter]
-	Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-	[Parameter]
-	public ComplianceCriterion SelectedMatrix { get; set; } = new();
+    [Parameter]
+    public ComplianceCriterion SelectedMatrix { get; set; } = new();
 
-	[Parameter]
-	public bool ReadonlyMode { get; set; } = false;
+    [Parameter]
+    public bool ReadonlyMode { get; set; } = false;
 
-	[Parameter]
-	public Func<Task> ConfigChanged { get; set; } = DefaultInit.DoNothing;
+    [Parameter]
+    public Func<Task> ConfigChanged { get; set; } = DefaultInit.DoNothing;
 
-	bool editMode = false;
-	bool deleteMode = false;
-	ComplianceNetworkZone? networkZoneInEdit = default!;
-	NetworkZoneService.AdditionsDeletions addDel = new();
-	ComplianceNetworkZone? sourceZoneToAdd;
-	string sourceZoneInputClass = "";
-	ComplianceNetworkZone? destinationZoneToAdd;
-	string destinationZoneInputClass = "";
-	ComplianceNetworkZone? subzoneToAdd;
-	string subzoneInputClass = "";
-	IPAddressRange? ipRangeToAdd;
+    bool editMode = false;
+    bool deleteMode = false;
+    ComplianceNetworkZone? networkZoneInEdit = default!;
+    NetworkZoneService.AdditionsDeletions addDel = new();
+    ComplianceNetworkZone? sourceZoneToAdd;
+    string sourceZoneInputClass = "";
+    ComplianceNetworkZone? destinationZoneToAdd;
+    string destinationZoneInputClass = "";
+    ComplianceNetworkZone? subzoneToAdd;
+    string subzoneInputClass = "";
+    IPAddressRange? ipRangeToAdd;
+    bool addingAutoCalculatedInternetZone = false;
 
-	protected override async Task OnInitializedAsync()
-	{
-		await base.OnInitializedAsync();
-		networkZoneService.OnEditZone += OnEditZone;
-		networkZoneService.OnDeleteZone += OnDeleteZone;
-	}
+    private bool AutoCalculatedInternetZoneMissing =>
+        SelectedMatrix.Id > 0
+        && userConfig.GlobalConfig?.AutoCalculateInternetZone == true
+        && !networkZoneService.NetworkZones.Any(zone => zone.IsAutoCalculatedInternetZone);
 
-	/// <summary>
-	/// Detaches the zone event handlers. The service is scoped to the circuit and therefore outlives
-	/// this component, so without this every visit to the page would leave another handler behind -
-	/// keeping the disposed component alive and firing the action once per stale subscription.
-	/// </summary>
-	public void Dispose()
-	{
-		networkZoneService.OnEditZone -= OnEditZone;
-		networkZoneService.OnDeleteZone -= OnDeleteZone;
-	}
+    private string AutoCalculatedZoneCommunicationsWarning =>
+        userConfig.GlobalConfig?.AutoCalculateInternetZone == true
+        && networkZoneInEdit?.IsAutoCalculatedInternetZone != true
+        && networkZoneInEdit?.IsAutoCalculatedUndefinedInternalZone != true
+        && (deleteMode || AddressCoverageChanged())
+            ? userConfig.GetText("auto_calculated_zone_communications_warning")
+            : "";
 
-	private async void OnAddZone()
-	{
-		networkZoneInEdit = new(){ CriterionId = SelectedMatrix.Id };
-		await OpenClearEditForm();
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        networkZoneService.OnEditZone += OnEditZone;
+        networkZoneService.OnDeleteZone += OnDeleteZone;
+    }
 
-	private async void OnEditZone(ComplianceNetworkZone networkZone)
-	{
-		networkZoneInEdit = (ComplianceNetworkZone)networkZone.Clone();
-		await OpenClearEditForm();
-	}
+    /// <summary>
+    /// Detaches the zone event handlers. The service is scoped to the circuit and therefore outlives
+    /// this component, so without this every visit to the page would leave another handler behind -
+    /// keeping the disposed component alive and firing the action once per stale subscription.
+    /// </summary>
+    public void Dispose()
+    {
+        networkZoneService.OnEditZone -= OnEditZone;
+        networkZoneService.OnDeleteZone -= OnDeleteZone;
+    }
 
-	private bool AddMode()
-	{
-		return networkZoneInEdit != null && networkZoneInEdit.Id == -1;
-	}
+    private async void OnAddZone()
+    {
+        networkZoneInEdit = new(){ CriterionId = SelectedMatrix.Id };
+        await OpenClearEditForm();
+    }
 
-	private bool InsertIpPossible()
-	{
-		return networkZoneInEdit != null && networkZoneInEdit.Subzones.Length == 0 && addDel.SubzonesToAdd.Count == 0;
-	}
+    /// <summary>
+    /// Adds the missing auto-calculated Internet zone for the selected matrix and reloads the matrix state.
+    /// </summary>
+    /// <returns>A task that represents the add operation.</returns>
+    private async Task AddAutoCalculatedInternetZone()
+    {
+        GlobalConfig? globalConfig = userConfig.GlobalConfig;
 
-	private bool InsertSubzonePossible()
-	{
-		return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && addDel.IpRangesToAdd.Count == 0;
-	}
+        if(addingAutoCalculatedInternetZone || !AutoCalculatedInternetZoneMissing || globalConfig == null)
+        {
+            return;
+        }
 
-	private async Task OpenClearEditForm()
-	{
-		editMode = true;
+        addingAutoCalculatedInternetZone = true;
+        try
+        {
+            await NetworkZoneService.AddAutoCalculatedInternetZone(SelectedMatrix.Id, apiConnection, globalConfig);
+            await ConfigChanged();
+            DisplayMessageInUi(null, userConfig.GetText("add_auto_calculated_internet_zone"), userConfig.GetText("U0011"), false);
+        }
+        catch(Exception exception)
+        {
+            await ConfigChanged();
+            DisplayMessageInUi(exception, userConfig.GetText("add_auto_calculated_internet_zone"), "", true);
+        }
+        finally
+        {
+            addingAutoCalculatedInternetZone = false;
+        }
+    }
 
-		ipRangeToAdd = null;
-		addDel = new();
-		destinationZoneToAdd = null;
-		destinationZoneInputClass = "";
-		sourceZoneToAdd = null;
-		sourceZoneInputClass = "";
+    private async void OnEditZone(ComplianceNetworkZone networkZone)
+    {
+        networkZoneInEdit = (ComplianceNetworkZone)networkZone.Clone();
+        await OpenClearEditForm();
+    }
 
-		await InvokeAsync(StateHasChanged);
-	}
+    private bool AddMode()
+    {
+        return networkZoneInEdit != null && networkZoneInEdit.Id == -1;
+    }
 
-	private async void OnDeleteZone(ComplianceNetworkZone networkZone)
-	{
-		deleteMode = true;
-		networkZoneInEdit = networkZone;
-		await InvokeAsync(StateHasChanged);
-	}
+    private bool InsertIpPossible()
+    {
+        return networkZoneInEdit != null && networkZoneInEdit.Subzones.Length == 0 && addDel.SubzonesToAdd.Count == 0;
+    }
 
-	private async Task ExecuteNetworkZoneModifications()
-	{
-		Debug.Assert(networkZoneInEdit != null);
-		try
-		{
-			if (AddMode())
-			{
-				// Add case
-				await ExecuteNetworkZoneAddition();
-			}
-			else
-			{
-				// Edit case
-				await ExecuteNetworkZoneUpdate();
-			}
+    private bool InsertSubzonePossible()
+    {
+        return networkZoneInEdit != null && networkZoneInEdit.IPRanges.Length == 0 && addDel.IpRangesToAdd.Count == 0;
+    }
 
-			editMode = false;
-			await ConfigChanged();
-			StateHasChanged();
-		}
-		catch (Exception exception)
-		{
-			if (networkZoneInEdit.Id == -1)
-			{
-				// Add case
-				DisplayMessageInUi(exception, userConfig.GetText("E0032"), userConfig.GetText("E0033"), true);
-			}
-			else
-			{
-				// Edit case
-				DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
-			}
-		}
-	}
+    /// <summary>
+    /// Determines whether the pending zone edit changes IP ranges or subzone coverage.
+    /// </summary>
+    /// <returns><c>true</c> when the edit requires special-zone recalculation; otherwise, <c>false</c>.</returns>
+    private bool AddressCoverageChanged()
+    {
+        return addDel.IpRangesToAdd.Count > 0
+            || addDel.IpRangesToDelete.Count > 0
+            || addDel.SubzonesToAdd.Count > 0
+            || addDel.SubzonesToDelete.Count > 0;
+    }
 
-	private async Task ExecuteNetworkZoneAddition()
-	{
-		if(networkZoneInEdit != null)
-		{
-			await NetworkZoneService.AddZone(networkZoneInEdit, addDel, apiConnection);
-			DisplayMessageInUi(null, userConfig.GetText("U0010"), userConfig.GetText("U0011"), false);
-		}
-	}
+    private async Task OpenClearEditForm()
+    {
+        editMode = true;
 
-	private async Task ExecuteNetworkZoneUpdate()
-	{
-		if(networkZoneInEdit != null)
-		{
-			await NetworkZoneService.UpdateZone(networkZoneInEdit, addDel, apiConnection);
-			DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
-		}
-	}
+        ipRangeToAdd = null;
+        addDel = new();
+        destinationZoneToAdd = null;
+        destinationZoneInputClass = "";
+        sourceZoneToAdd = null;
+        sourceZoneInputClass = "";
 
-	private async Task ExecuteNetworkZoneDeletion()
-	{
-		if(networkZoneInEdit != null)
-		{
-			try
-			{
-				await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
-				await ConfigChanged();
-				DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
-			}
-			catch (Exception exception)
-			{
-				DisplayMessageInUi(exception, userConfig.GetText("E0036"), userConfig.GetText("E0037"), true);
-			}
-		}
-		deleteMode = false;
-		StateHasChanged();
-	}
+        await InvokeAsync(StateHasChanged);
+    }
 
-	private void CancelModifications()
-	{
-		editMode = false;
-		deleteMode = false;
-		StateHasChanged();
-	}
+    private async void OnDeleteZone(ComplianceNetworkZone networkZone)
+    {
+        deleteMode = true;
+        networkZoneInEdit = networkZone;
+        await InvokeAsync(StateHasChanged);
+    }
 
-	private void AddIpRange()
-	{
-		if (ipRangeToAdd != null)
-		{
-			// Insert at the beginning so that the newest ip range is always displayed at the top
-			addDel.IpRangesToAdd.Insert(0, ipRangeToAdd);
-			ipRangeToAdd = null;
-		}
-	}
+    private async Task ExecuteNetworkZoneModifications()
+    {
+        Debug.Assert(networkZoneInEdit != null);
+        bool zoneSaved = false;
+        bool specialZonesRefreshCompleted = false;
+        try
+        {
+            if (AddMode())
+            {
+                // Add case
+                await ExecuteNetworkZoneAddition();
+            }
+            else
+            {
+                // Edit case
+                await ExecuteNetworkZoneUpdate();
+            }
 
-	private bool AddCommunicationZone(List<ComplianceNetworkZone> zones, ref ComplianceNetworkZone? zoneToAdd, ref string inputClass)
-	{
-		if (zoneToAdd != null && !zones.Contains(zoneToAdd))
-		{
-			// Insert at the beginning so that the newest zone is always displayed at the top
-			zones.Insert(0, zoneToAdd);
-			zoneToAdd = null;
-			inputClass = "is-valid";
-			return true;
-		}
-		else
-		{
-			inputClass = "is-invalid";
-			return false;
-		}
-	}
+            zoneSaved = true;
+            if (AddressCoverageChanged() && !IsAutoCalculatedSpecialZone(networkZoneInEdit))
+            {
+                await RefreshSpecialZones();
+            }
+            specialZonesRefreshCompleted = true;
+            editMode = false;
+            await ConfigChanged();
+            StateHasChanged();
+        }
+        catch (Exception exception)
+        {
+            if (zoneSaved && !specialZonesRefreshCompleted)
+            {
+                editMode = false;
+                await ConfigChanged();
+                StateHasChanged();
+                DisplayMessageInUi(exception, userConfig.GetText("zone_comm_matrix"), userConfig.GetText("auto_calculated_zone_recalculation_failed"), true);
+                return;
+            }
+
+            if (networkZoneInEdit.Id == -1)
+            {
+                // Add case
+                DisplayMessageInUi(exception, userConfig.GetText("E0032"), userConfig.GetText("E0033"), true);
+            }
+            else
+            {
+                // Edit case
+                DisplayMessageInUi(exception, userConfig.GetText("E0034"), userConfig.GetText("E0035"), true);
+            }
+        }
+    }
+
+    private async Task ExecuteNetworkZoneAddition()
+    {
+        if(networkZoneInEdit != null)
+        {
+            await NetworkZoneService.AddZone(networkZoneInEdit, addDel, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("U0010"), userConfig.GetText("U0011"), false);
+        }
+    }
+
+    private async Task ExecuteNetworkZoneUpdate()
+    {
+        if(networkZoneInEdit != null)
+        {
+            await NetworkZoneService.UpdateZone(networkZoneInEdit, addDel, apiConnection);
+            DisplayMessageInUi(null, userConfig.GetText("U0012"), userConfig.GetText("U0013"), false);
+        }
+    }
+
+    private async Task ExecuteNetworkZoneDeletion()
+    {
+        if(networkZoneInEdit != null)
+        {
+            bool zoneDeleted = false;
+            bool specialZonesRefreshCompleted = false;
+            try
+            {
+                await NetworkZoneService.RemoveZone(networkZoneInEdit, apiConnection);
+                zoneDeleted = true;
+                if (!IsAutoCalculatedSpecialZone(networkZoneInEdit))
+                {
+                    await RefreshSpecialZones();
+                }
+                specialZonesRefreshCompleted = true;
+                await ConfigChanged();
+                DisplayMessageInUi(null, userConfig.GetText("U0014"), userConfig.GetText("U0015"), false);
+            }
+            catch (Exception exception)
+            {
+                if (zoneDeleted && !specialZonesRefreshCompleted)
+                {
+                    deleteMode = false;
+                    await ConfigChanged();
+                    StateHasChanged();
+                    DisplayMessageInUi(exception, userConfig.GetText("zone_comm_matrix"), userConfig.GetText("auto_calculated_zone_recalculation_failed"), true);
+                    return;
+                }
+
+                DisplayMessageInUi(exception, userConfig.GetText("E0036"), userConfig.GetText("E0037"), true);
+            }
+        }
+        deleteMode = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Recalculates special zones when automatic Internet-zone calculation is enabled.
+    /// </summary>
+    /// <returns>A task that represents the recalculation.</returns>
+    private async Task RefreshSpecialZones()
+    {
+        GlobalConfig? globalConfig = userConfig.GlobalConfig;
+        if (globalConfig?.AutoCalculateInternetZone == true)
+        {
+            await NetworkZoneService.UpdateSpecialZones(SelectedMatrix.Id, apiConnection, globalConfig);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether a zone is automatically calculated and therefore managed as a special zone.
+    /// </summary>
+    /// <param name="networkZone">Zone to evaluate.</param>
+    /// <returns><c>true</c> for auto-calculated Internet or Undefined-internal zones; otherwise, <c>false</c>.</returns>
+    private static bool IsAutoCalculatedSpecialZone(ComplianceNetworkZone? networkZone)
+    {
+        return networkZone?.IsAutoCalculatedInternetZone == true || networkZone?.IsAutoCalculatedUndefinedInternalZone == true;
+    }
+
+    private void CancelModifications()
+    {
+        editMode = false;
+        deleteMode = false;
+        StateHasChanged();
+    }
+
+    private void AddIpRange()
+    {
+        if (ipRangeToAdd != null)
+        {
+            // Insert at the beginning so that the newest ip range is always displayed at the top
+            addDel.IpRangesToAdd.Insert(0, ipRangeToAdd);
+            ipRangeToAdd = null;
+        }
+    }
+
+    private bool AddCommunicationZone(List<ComplianceNetworkZone> zones, ref ComplianceNetworkZone? zoneToAdd, ref string inputClass)
+    {
+        if (zoneToAdd != null && !zones.Contains(zoneToAdd))
+        {
+            // Insert at the beginning so that the newest zone is always displayed at the top
+            zones.Insert(0, zoneToAdd);
+            zoneToAdd = null;
+            inputClass = "is-valid";
+            return true;
+        }
+        else
+        {
+            inputClass = "is-invalid";
+            return false;
+        }
+    }
 }

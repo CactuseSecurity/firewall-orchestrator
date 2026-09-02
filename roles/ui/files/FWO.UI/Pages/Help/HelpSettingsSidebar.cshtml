@@ -65,14 +65,19 @@
                 <a class="nav-link" href="/help/settings/recertificationgeneral/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
                 </a>
+                <a class="nav-link" href="/help/settings/compliance/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("modelling"))</h5>
                 <a class="nav-link" href="/help/settings/modelling/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling_general_settings"))
+                </a>
+                <a class="nav-link" href="/help/settings/modellingnotifications/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Email"></span> @(userConfig.GetText("notifications"))
                 </a>
                 <a class="nav-link" href="/help/settings/logging/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Import"></span> @(userConfig.GetText("logging"))
-                </a>
-                <a class="nav-link" href="/help/settings/compliance/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("workflow"))</h5>
@@ -145,17 +150,8 @@
                 <a class="nav-link" href="/help/settings/password/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Login"></span> @(userConfig.GetText("password"))
                 </a>
-                <a class="nav-link" href="/help/settings/language/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Language"></span> @(userConfig.GetText("language"))
-                </a>
-                <a class="nav-link" href="/help/settings/report/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-                </a>
-                <a class="nav-link" href="/help/settings/recertificationpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-                </a>
-                <a class="nav-link" href="/help/settings/modellingpersonal/?lang=@($"{userConfig.GetUserLanguage()}")">
-                    <span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
+                <a class="nav-link" href="/help/settings/personal/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("personal_settings"))
                 </a>
             </ul>
         </div>

@@ -8,7 +8,7 @@ namespace FWO.Api.Client
 
         protected internal bool IsDisposed => _disposed;
 
-        internal abstract ApiSubscription Recreate(GraphQLHttpClient graphQlClient);
+        internal abstract void Rebind(GraphQLHttpClient graphQlClient);
 
         protected abstract void Dispose(bool disposing);
 

@@ -93,12 +93,12 @@ namespace FWO.Data
             BigInteger removeBegin = IpOperations.ToBigInteger(toRemove.Begin);
             BigInteger removeEnd = IpOperations.ToBigInteger(toRemove.End);
 
-            for (int i = 0; i < ranges.Count; i++)
+            int index = 0;
+            while (index < ranges.Count)
             {
-                if (IpOperations.RangeOverlapExists(ranges[i], toRemove))
-                {
-                    i += SubtractOverlap(ranges, i, removeBegin, removeEnd);
-                }
+                index += IpOperations.RangeOverlapExists(ranges[index], toRemove)
+                    ? SubtractOverlap(ranges, index, removeBegin, removeEnd)
+                    : 1;
             }
         }
 
@@ -109,7 +109,7 @@ namespace FWO.Data
         /// <param name="index">Index of the overlapping entry.</param>
         /// <param name="removeBegin">First address of the subtracted range.</param>
         /// <param name="removeEnd">Last address of the subtracted range.</param>
-        /// <returns>Index offset the caller has to apply after the subtraction.</returns>
+        /// <returns>Number of entries the caller has to advance past after the subtraction.</returns>
         private static int SubtractOverlap(List<IPAddressRange> ranges, int index, BigInteger removeBegin, BigInteger removeEnd)
         {
             AddressFamily addressFamily = ranges[index].Begin.AddressFamily;
@@ -118,23 +118,23 @@ namespace FWO.Data
 
             if (removeBegin <= rangeBegin && removeEnd >= rangeEnd)
             {
-                // Complete overlap, remove the entire range
+                // Complete overlap, remove the entire range; the next entry moves into this index
                 ranges.RemoveAt(index);
-                return -1;
+                return 0;
             }
 
             if (removeBegin <= rangeBegin)
             {
                 // Overlap on the left side, update the start
                 ranges[index].Begin = IpOperations.FromBigInteger(removeEnd + 1, addressFamily);
-                return 0;
+                return 1;
             }
 
             if (removeEnd >= rangeEnd)
             {
                 // Overlap on the right side, update the end
                 ranges[index].End = IpOperations.FromBigInteger(removeBegin - 1, addressFamily);
-                return 0;
+                return 1;
             }
 
             // Overlap in the middle, split the range
@@ -143,7 +143,7 @@ namespace FWO.Data
             ranges[index].End = IpOperations.FromBigInteger(removeBegin - 1, addressFamily);
             // remove.end+1..end
             ranges.Insert(index, new IPAddressRange(IpOperations.FromBigInteger(removeEnd + 1, addressFamily), end));
-            return 1;
+            return 2;
         }
 
         public object Clone()

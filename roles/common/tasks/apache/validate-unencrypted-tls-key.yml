@@ -1,0 +1,32 @@
+---
+- name: Check whether the Apache TLS private key exists
+  stat:
+    path: "{{ apache_ssl_dir }}/server.key"
+  register: apache_tls_private_key_stat
+
+- name: Check that the Apache TLS private key can be loaded without a passphrase
+  command:
+    argv:
+      - openssl
+      - pkey
+      - -in
+      - "{{ apache_ssl_dir }}/server.key"
+      - -noout
+      - -passin
+      - "pass:"
+  register: apache_tls_private_key_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: apache_tls_private_key_stat.stat.exists
+
+- name: Require an Apache TLS private key that supports unattended startup
+  assert:
+    that:
+      - apache_tls_private_key_check.rc == 0
+    fail_msg: >-
+      {{ apache_ssl_dir }}/server.key cannot be loaded without a passphrase.
+      FWO restarts Apache during installation and upgrades and Apache must also start
+      unattended after a reboot. Replace it with an unencrypted private key protected
+      by root ownership and mode 0640, then run the installer again.
+  when: apache_tls_private_key_stat.stat.exists

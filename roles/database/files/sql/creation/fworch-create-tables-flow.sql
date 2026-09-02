@@ -56,6 +56,12 @@ create table flow.svcobject
     check (port_start <= port_end),
     check (port_start between 0 and 65535),
     check (port_end between 0 and 65535),
+    CONSTRAINT flow_svcobject_canonical_any_lifecycle_check CHECK (
+        ip_proto_id <> -1
+        OR port_start IS NOT NULL
+        OR port_end IS NOT NULL
+        OR (state = 'implemented' AND removed_date IS NULL)
+    ),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))
 );
 

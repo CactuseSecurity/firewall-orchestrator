@@ -131,7 +131,7 @@ namespace FWO.Data.Workflow
                     {
                         ElemId = implElem.Id,
                         TaskId = implElem.ImplTaskId,
-                        Port = implElem.Port ?? 0,
+                        Port = implElem.Port,
                         PortEnd = implElem.PortEnd,
                         ProtoId = implElem.ProtoId ?? 0,
                         HasProtocol = implElem.ProtoId != null,

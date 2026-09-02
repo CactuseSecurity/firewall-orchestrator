@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
@@ -9,9 +9,13 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using NetTools;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace FWO.Test
@@ -86,6 +90,15 @@ namespace FWO.Test
             {
                 Queries.Add(query);
                 Variables.Add(variables);
+                return HandleRequestQueries<T>(query, variables)
+                    ?? HandleModellingQueries<T>(query, variables)
+                    ?? HandleReferenceQueries<T>(query, variables)
+                    ?? HandleStmQueries<T>(query, variables)
+                    ?? throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            private Task<T>? HandleRequestQueries<T>(string query, object? variables)
+            {
                 if (query == RequestQueries.getStates)
                 {
                     return Task.FromResult((T)(object)States);
@@ -111,6 +124,11 @@ namespace FWO.Test
                     UpdatedNotificationLastSentIds = GetVariable<List<int>>(variables, "ids");
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = UpdateNotificationsLastSentAffectedRows });
                 }
+                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                {
+                    long id = GetVariable<long>(variables, "id");
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                }
                 if (query == RequestQueries.getTicketById)
                 {
                     if (ThrowOnGetTicketById)
@@ -119,6 +137,11 @@ namespace FWO.Test
                     }
                     return Task.FromResult((T)(object)FullTicket);
                 }
+                return null;
+            }
+
+            private Task<T>? HandleModellingQueries<T>(string query, object? variables)
+            {
                 if (query == ModellingQueries.getConnectionsByTicketId
                     || query == ModellingQueries.getWorkflowConnectionsByTicketId)
                 {
@@ -154,6 +177,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
+                return null;
+            }
+
+            private Task<T>? HandleReferenceQueries<T>(string query, object? variables)
+            {
                 if (query == DeviceQueries.getManagementNames)
                 {
                     return Task.FromResult((T)(object)managements);
@@ -205,6 +233,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<FlowAccess>());
                 }
+                return null;
+            }
+
+            private static Task<T>? HandleStmQueries<T>(string query, object? variables)
+            {
                 if (query == StmQueries.getIpProtocols)
                 {
                     return Task.FromResult((T)(object)new List<IpProtocol> { new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" } });
@@ -213,13 +246,32 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<RuleAction> { new() { Id = 1, Name = "accept", Allowed = true } });
                 }
-                throw new AssertionException($"Unexpected query: {query}");
+                return null;
             }
 
             private static TValue GetVariable<TValue>(object? variables, string propertyName)
             {
                 PropertyInfo? property = variables?.GetType().GetProperty(propertyName);
                 return property != null ? (TValue)property.GetValue(variables)! : default!;
+            }
+        }
+
+        private sealed class RecordingMiddlewareActionsHandler : HttpMessageHandler
+        {
+            public int RequestCount { get; private set; }
+            public string? LastPath { get; private set; }
+            public string? LastBody { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                RequestCount++;
+                LastPath = request.RequestUri?.AbsolutePath;
+                LastBody = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : null;
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", Encoding.UTF8, "application/json")
+                };
             }
         }
 
@@ -949,6 +1001,44 @@ namespace FWO.Test
             await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
 
             Assert.That(apiConn.Queries, Is.Empty);
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_DelegatesToMiddlewareWhenMiddlewareClientIsConfigured()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            RecordingMiddlewareActionsHandler middlewareHandler = new();
+            middlewareClient.UseHandler(middlewareHandler);
+            WfHandler wfHandler = new((_, _, _, _) => { }, new SimulatedUserConfig(), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+                Assert.That(middlewareHandler.LastPath, Does.EndWith("/Workflow/Actions"));
+                Assert.That(middlewareHandler.LastBody, Is.Not.Null);
+                Assert.That(ticket.StateChanged(), Is.False);
+                Assert.That(apiConn.Queries, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_SetsTicketEnvironmentForTicketScope()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.That(wfHandler.ActTicket, Is.SameAs(ticket));
         }
 
         [Test]

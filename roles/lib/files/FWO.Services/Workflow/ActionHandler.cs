@@ -92,6 +92,11 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            if (scope == WfObjectScopes.Ticket)
+            {
+                await SetScope(statefulObject, scope);
+            }
+
             List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
@@ -112,7 +117,16 @@ namespace FWO.Services.Workflow
             {
                 string stateText = actionEvent == StateActionEvents.OnLeave ? statefulObject.ChangedFrom().ToString() : statefulObject.StateId.ToString();
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
-                await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                try
+                {
+                    await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                }
+                catch (Exception exc)
+                {
+                    Log.WriteError("DoStateChangeActions",
+                        $"Failed to execute {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText} in phase {wfHandler.Phase}.", exc);
+                    throw;
+                }
             }
         }
 
@@ -548,9 +562,9 @@ namespace FWO.Services.Workflow
         private List<WfStateAction> GetRelevantActions(WfStatefulObject statefulObject, WfObjectScopes scope, bool toState = true)
         {
             List<WfStateAction> stateActions = [];
+            int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
             try
             {
-                int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
                 foreach (var action in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions.Select(a => a.Action) ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
                 {
                     if (action.Scope == scope.ToString()
@@ -563,8 +577,8 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exc)
             {
-                // unknown stateId probably by misconfiguration
-                Log.WriteError("Get relevant actions", $"Exception thrown and ignored: ", exc);
+                Log.WriteError("Get relevant actions",
+                    $"Failed to resolve actions for scope {scope}, state {searchedStateId}, phase {wfHandler.Phase}.", exc);
             }
             return stateActions;
         }

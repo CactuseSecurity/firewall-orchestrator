@@ -1,7 +1,9 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
 using FWO.Data;
 using FWO.Logging;
@@ -16,10 +18,11 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Provides request workflow data for flow request REST endpoints.
 /// </summary>
-public sealed class FlowRequestService
+public sealed class FlowRequestService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly ApiSubscription? configSubscription;
 
     /// <summary>
     /// Initializes a new instance of the type.
@@ -28,6 +31,25 @@ public sealed class FlowRequestService
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowRequestConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow request config", "Could not start flow-request config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed request-flow config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
     }
 
     /// <summary>
@@ -42,12 +64,12 @@ public sealed class FlowRequestService
             throw new ArgumentException("'requesterId' must be a positive integer.");
         }
 
-        int ticketStateId = await ResolveInitialRequestStateIdAsync();
+        (WorkflowPhases ticketPhase, int ticketStateId) = await ResolveInitialRequestPhaseAndStateAsync();
         Dictionary<int, FwoOwner> ownersById = await ResolveOwnersAsync();
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds);
-        ticket = await SaveTicketAsync(ticket);
+        ticket = await SaveTicketAsync(ticket, ticketPhase);
         string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateRequestResponse
@@ -107,24 +129,52 @@ public sealed class FlowRequestService
     }
 
     /// <summary>
-    /// Resolves the initial state id for a newly created request ticket.
+    /// Resolves the initial workflow phase and state id for a newly created request ticket.
     /// </summary>
-    private async Task<int> ResolveInitialRequestStateIdAsync()
+    private async Task<(WorkflowPhases Phase, int StateId)> ResolveInitialRequestPhaseAndStateAsync()
     {
         List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates) ?? [];
+        StateMatrixConfigurationSnapshot stateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
         int configuredStateId = globalConfig.ReqApiTicketInitialStateId;
         if (configuredStateId >= 0)
         {
             if (states.Any(state => state.Id == configuredStateId))
             {
-                return configuredStateId;
+                List<WorkflowPhases> matchingPhases = StateMatrixConfigurationRepository.GetMatchingActiveWorkflowPhases(stateMatrix, configuredStateId);
+                if (matchingPhases.Count == 1)
+                {
+                    return (matchingPhases[0], configuredStateId);
+                }
+
+                if (matchingPhases.Count > 1)
+                {
+                    throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} matches multiple active workflow phases: {string.Join(", ", matchingPhases)}.");
+                }
+
+                throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not belong to any active workflow phase.");
             }
 
             throw new InvalidOperationException($"Configured API ticket state id {configuredStateId} does not exist in the current state list.");
         }
 
-        StateMatrixConfigurationSnapshot stateMatrix = await StateMatrixConfigurationRepository.Load(apiConnection, WfTaskType.master);
-        return stateMatrix.Matrices[WorkflowPhases.request].LowestInputState;
+        WorkflowPhases phase = ResolveInitialWorkflowPhase(stateMatrix);
+        return (phase, stateMatrix.Matrices[phase].LowestInputState);
+    }
+
+    /// <summary>
+    /// Resolves the first active workflow phase starting at request.
+    /// </summary>
+    private static WorkflowPhases ResolveInitialWorkflowPhase(StateMatrixConfigurationSnapshot stateMatrix)
+    {
+        foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+        {
+            if (stateMatrix.Matrices.TryGetValue(phase, out StateMatrix? matrix) && matrix.Active)
+            {
+                return phase;
+            }
+        }
+
+        throw new InvalidOperationException("No active workflow phase is configured for request creation.");
     }
 
     /// <summary>
@@ -578,15 +628,19 @@ public sealed class FlowRequestService
     /// <summary>
     /// Persists the created ticket through the workflow save path so request actions are executed consistently.
     /// </summary>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket)
+    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
     {
         using UserConfig userConfig = new();
-        WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, (List<UserGroup>?)null);
-        ActionHandler actionHandler = new(apiConnection, wfHandler, null, true);
-        await actionHandler.Init();
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, actionHandler, true);
+        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
+        if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
+        {
+            throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
+        }
+
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true);
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
+
         long ticketId = createdTicket.Id;
         if (ticketId <= 0)
         {
@@ -664,7 +718,7 @@ public sealed class FlowRequestService
 
         public static CreateRequestEntity FromServiceObject(int id, CreateRequestRequest.CreateServiceObjectRequest request, Dictionary<string, int> protocolIds)
         {
-            int protocolId = ResolveProtocolId(request.Protocol, protocolIds);
+            int protocolId = ResolveProtocolId(request.Protocol, protocolIds, request.PortStart, request.PortEnd);
             return new CreateRequestEntity(
                 id,
                 CreateRequestEntityKind.ServiceObject,
@@ -712,24 +766,49 @@ public sealed class FlowRequestService
             }
         }
 
-        private static int ResolveProtocolId(string protocol, Dictionary<string, int> protocolIds)
+        private static int ResolveProtocolId(string protocol, Dictionary<string, int> protocolIds, int? portStart, int? portEnd)
         {
             if (int.TryParse(protocol, out int protocolId))
             {
-                if (protocolId > 0 && protocolIds.ContainsValue(protocolId))
-                {
-                    return protocolId;
-                }
-
-                throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+                return ValidateResolvedProtocolId(protocol, protocolId, protocolIds.ContainsValue(protocolId), portStart, portEnd);
             }
 
             if (protocolIds.TryGetValue(protocol, out protocolId))
             {
-                return protocolId;
+                return ValidateResolvedProtocolId(protocol, protocolId, true, portStart, portEnd);
             }
 
             throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
+        }
+
+        private static int ValidateResolvedProtocolId(string protocol, int protocolId, bool isConfigured, int? portStart, int? portEnd)
+        {
+            if (isConfigured && protocolId >= 0)
+            {
+                ValidatePortRange(protocol, portStart, portEnd);
+                return protocolId;
+            }
+
+            bool isCanonicalAnyIpProtocol = isConfigured && protocolId == GlobalConst.kAnyIpProtocolId && portStart is null && portEnd is null;
+            if (isCanonicalAnyIpProtocol)
+            {
+                return protocolId;
+            }
+
+            throw new ArgumentException($"The service object protocol '{protocol}' must match a non-negative configured STM protocol name or id, or be the canonical any-IP-protocol service without ports.");
+        }
+
+        /// <summary>
+        /// Rejects a 'portEnd' without a 'portStart': it cannot be resolved to a deterministic
+        /// service hash and would otherwise be persisted as an internally inconsistent service.
+        /// A 'portStart' without a 'portEnd' is a valid single-port shorthand and is left as-is.
+        /// </summary>
+        private static void ValidatePortRange(string protocol, int? portStart, int? portEnd)
+        {
+            if (portStart is null && portEnd is not null)
+            {
+                throw new ArgumentException($"The service object protocol '{protocol}' has a 'portEnd' value without a 'portStart' value.");
+            }
         }
     }
 
@@ -789,5 +868,11 @@ public sealed class FlowRequestService
             .OrderByDescending(comment => comment!.Comment.CreationDate)
             .Select(comment => comment!.Comment.CommentText)
             .FirstOrDefault() ?? string.Empty;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        configSubscription?.Dispose();
     }
 }

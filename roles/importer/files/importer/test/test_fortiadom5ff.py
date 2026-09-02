@@ -4,6 +4,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+import fwo_const
 import pytest
 from fw_modules.fortiadom5ff import fmgr_rule
 from fw_modules.fortiadom5ff.fmgr_rule import (
@@ -22,7 +23,12 @@ from fw_modules.fortiadom5ff.fmgr_rule import (
     rule_parse_time,
     rule_parse_tracking_info,
 )
-from fw_modules.fortiadom5ff.fmgr_service import handle_svc_protocol, normalize_service_object
+from fw_modules.fortiadom5ff.fmgr_service import (
+    FORTI_IP_PROTOCOL_NUMBER_ANY,
+    FORTI_PROTOCOL_IP,
+    handle_svc_protocol,
+    normalize_service_object,
+)
 from fw_modules.fortiadom5ff.fwcommon import to_time_object
 from fwo_exceptions import (
     FwoDeviceWithoutLocalPackageError,
@@ -194,7 +200,7 @@ def test_rule_parse_last_hit_returns_offset_aware_iso_timestamp():
     ("native_service", "expected_protocol"),
     [
         ({"protocol": 1}, 1),
-        ({"protocol": 2, "protocol-number": 47}, 47),
+        ({"protocol": FORTI_PROTOCOL_IP, "protocol-number": 47}, 47),
         ({"protocol": 6}, 58),
     ],
 )
@@ -209,20 +215,39 @@ def test_handle_svc_protocol_maps_forti_protocol_numbers(
     assert service_objects[0]["ip_proto"] == expected_protocol
 
 
-def test_handle_svc_protocol_uses_zero_for_generic_without_protocol_number():
+def test_handle_svc_protocol_uses_any_protocol_for_ip_without_protocol_number():
     service_objects: list[dict[str, object]] = []
 
-    handle_svc_protocol({"protocol": 2}, service_objects, "simple", "svc", "foreground", None)
+    handle_svc_protocol({"protocol": FORTI_PROTOCOL_IP}, service_objects, "simple", "svc", "foreground", None)
 
-    assert service_objects[0]["ip_proto"] == 0
+    assert service_objects[0]["ip_proto"] == -1
 
 
-def test_handle_svc_protocol_ignores_unsupported_protocol():
+def test_handle_svc_protocol_uses_any_protocol_for_ip_protocol_number_zero():
+    service_objects: list[dict[str, object]] = []
+
+    handle_svc_protocol(
+        {"protocol": FORTI_PROTOCOL_IP, "protocol-number": FORTI_IP_PROTOCOL_NUMBER_ANY},
+        service_objects,
+        "simple",
+        "svc",
+        "foreground",
+        None,
+    )
+
+    assert service_objects[0]["ip_proto"] == -1
+    assert service_objects[0]["svc_port"] is None
+    assert service_objects[0]["svc_port_end"] is None
+
+
+def test_handle_svc_protocol_ignores_unsupported_protocol(mocker: MockerFixture):
+    warning_mock = mocker.patch("fwo_log.FWOLogger.warning")
     service_objects: list[dict[str, object]] = []
 
     handle_svc_protocol({"protocol": 99}, service_objects, "simple", "svc", "foreground", None)
 
     assert service_objects == []
+    warning_mock.assert_called_once()
 
 
 def test_normalize_service_object_uses_any_protocol_for_protocol_zero_service():
@@ -269,6 +294,55 @@ def test_normalize_service_object_preserves_ports_for_all_named_service():
             "rpc_nr": None,
         }
     ]
+
+
+def test_normalize_service_object_group_without_protocol_keeps_members_and_no_protocol():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "grp", "member": ["svcB", "svcA"]}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "group"
+    # groups stay without a protocol, their members carry it
+    assert service_objects[0]["ip_proto"] is None
+    assert service_objects[0]["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["svcA", "svcB"])
+
+
+def test_normalize_service_object_group_with_protocol_field_stays_a_group():
+    # regression guard: the "member" branch must be checked before "protocol",
+    # otherwise a group that also carries a stray protocol field would be
+    # misparsed as a simple protocol-based service and lose its members
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "grp2", "member": ["svcA", "svcB"], "protocol": 5}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "group"
+    assert service_objects[0]["ip_proto"] is None
+    assert service_objects[0]["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["svcA", "svcB"])
+
+
+def test_normalize_service_object_multi_protocol_split_parent_group_has_no_protocol():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object(
+        {"name": "multi", "protocol": 5, "tcp-portrange": ["80"], "udp-portrange": ["53"]}, service_objects
+    )
+
+    parent_group = next(svc for svc in service_objects if svc["svc_name"] == "multi")
+    assert parent_group["svc_typ"] == "group"
+    assert parent_group["ip_proto"] is None
+    assert parent_group["svc_member_names"] == fwo_const.LIST_DELIMITER.join(["multi_tcp", "multi_udp"])
+
+
+def test_normalize_service_object_rpc_service_without_port_ranges():
+    service_objects: list[dict[str, object]] = []
+
+    normalize_service_object({"name": "rpc-svc", "protocol": 11}, service_objects)
+
+    assert len(service_objects) == 1
+    assert service_objects[0]["svc_typ"] == "rpc"
+    assert service_objects[0]["ip_proto"] is None
 
 
 def test_extract_nat_config_fields_serializes_poolname_and_fixedport():

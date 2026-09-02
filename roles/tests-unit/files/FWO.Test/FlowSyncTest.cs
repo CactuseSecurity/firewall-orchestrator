@@ -14,6 +14,8 @@ namespace FWO.Test
     internal class FlowSyncTest
     {
         private const int kCentralEuropeanOffsetHours = 1;
+        private const string kStaleHash = "1111111111111111111111111111111111111111111111111111111111111111";
+        private const string kOtherStaleHash = "2222222222222222222222222222222222222222222222222222222222222222";
 
         private sealed class FlowSyncTestApiConn : SimulatedApiConnection
         {
@@ -40,6 +42,7 @@ namespace FWO.Test
             public List<object> ServiceObjectMappingUpdates { get; } = [];
             public List<object> TimeObjectMappingUpdates { get; } = [];
             public List<object> RuleMappingUpdates { get; } = [];
+            public List<object?> HashUpdates { get; } = [];
             public bool RemovedMappingsCleared { get; private set; }
             public long? CompletedImportControlId { get; private set; }
 
@@ -239,6 +242,12 @@ namespace FWO.Test
                     RuleMappingUpdates.AddRange(GetUpdates(variables));
                     return Task.FromResult((T)(object)new List<MutationResult> { new() { AffectedRows = RuleMappingUpdates.Count } });
                 }
+                if (query == FlowQueries.updateFlowHashes)
+                {
+                    HashUpdates.Add(variables);
+                    ApplyHashUpdates(variables);
+                    return Task.FromResult((T)(object)new List<MutationResult> { new() { AffectedRows = 1 } });
+                }
                 if (query == FlowQueries.updateFlowMappingsForRemoved)
                 {
                     RemovedMappingsCleared = true;
@@ -252,6 +261,52 @@ namespace FWO.Test
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            /// <summary>
+            /// Applies the recalculated hashes to the stored flow entries so that a subsequent fetch
+            /// returns the repaired flow data, like the database would.
+            /// </summary>
+            private void ApplyHashUpdates(object? variables)
+            {
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "nwObjectHashes", "nwobj_id", "nwobj_hash"))
+                {
+                    FlowNetworkObjects.Single(entry => entry.Id == id).Hash = hash;
+                }
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "nwGroupHashes", "nwgrp_id", "nwgrp_hash"))
+                {
+                    FlowNetworkGroups.Single(entry => entry.Id == id).Hash = hash;
+                }
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "svcObjectHashes", "svcobj_id", "svcobj_hash"))
+                {
+                    FlowServiceObjects.Single(entry => entry.Id == id).Hash = hash;
+                }
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "svcGroupHashes", "svcgrp_id", "svcgrp_hash"))
+                {
+                    FlowServiceGroups.Single(entry => entry.Id == id).Hash = hash;
+                }
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "timeObjectHashes", "timeobj_id", "timeobj_hash"))
+                {
+                    FlowTimeObjects.Single(entry => entry.Id == id).Hash = hash;
+                }
+                foreach ((long id, string hash) in ReadHashUpdates(variables, "accessHashes", "access_id", "access_hash"))
+                {
+                    FlowAccesses.Single(entry => entry.Id == id).Hash = hash;
+                }
+            }
+
+            private static List<(long Id, string Hash)> ReadHashUpdates(object? variables, string propertyName, string idField, string hashField)
+            {
+                List<object> updates = GetVariable<List<object>>(variables, propertyName) ?? [];
+                List<(long Id, string Hash)> hashUpdates = [];
+
+                foreach (object update in updates)
+                {
+                    object idFilter = GetVariable<object>(GetVariable<object>(update, "where"), idField);
+                    hashUpdates.Add((GetVariable<long>(idFilter, "_eq"), GetVariable<string>(GetVariable<object>(update, "_set"), hashField)));
+                }
+
+                return hashUpdates;
             }
 
             private static List<TObject> GetObjects<TObject>(object? variables)
@@ -1251,6 +1306,74 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedNetworkObjects, Has.Count.EqualTo(1));
             Assert.That(apiConn.InsertedNetworkObjects[0].Name, Is.Null);
+        }
+
+        [Test]
+        public async Task Run_RecalculatesInconsistentFlowHashesAndContinuesSync()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            NetworkObject destination = CreateNetworkObject(2, "dst", "10.0.1.1", "10.0.1.1");
+            NetworkService service = CreateService(3, "https", 6, 443, 443);
+            FlowNwObject staleFlowObject = CreateFlowNwObject(100, source);
+            staleFlowObject.Hash = kStaleHash;
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source, destination],
+                    ServiceObjects = [service],
+                    Rules = [CreateRule(4, source, destination, service)]
+                }
+            };
+            apiConn.FlowNetworkObjects.Add(staleFlowObject);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(apiConn.HashUpdates, Has.Count.EqualTo(1));
+                Assert.That(staleFlowObject.Hash, Is.EqualTo(FlowHashGenerator.GenerateNwObjectHash(source.IP, source.IpEnd)));
+                // the repaired object is reused instead of being inserted again
+                Assert.That(apiConn.InsertedNetworkObjects.Select(insert => insert.IpStart), Does.Not.Contain(source.IP));
+                Assert.That(apiConn.InsertedAccesses, Has.Count.EqualTo(1));
+                Assert.That(apiConn.CompletedImportControlId, Is.EqualTo(9));
+            });
+        }
+
+        [Test]
+        public async Task Run_SkipsManagementWhenRecalculatedHashesAreNotUnique()
+        {
+            NetworkObject source = CreateNetworkObject(1, "src", "10.0.0.1", "10.0.0.1");
+            FlowNwObject firstStaleObject = CreateFlowNwObject(100, source);
+            firstStaleObject.Hash = kStaleHash;
+            FlowNwObject secondStaleObject = CreateFlowNwObject(101, source);
+            secondStaleObject.Hash = kOtherStaleHash;
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }],
+                ManagementData = new FlowSyncManagementData
+                {
+                    Id = 7,
+                    NetworkObjects = [source]
+                }
+            };
+            apiConn.FlowNetworkObjects.Add(firstStaleObject);
+            apiConn.FlowNetworkObjects.Add(secondStaleObject);
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            bool result = await flowSync.Run();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False);
+                Assert.That(apiConn.HashUpdates, Is.Empty);
+                Assert.That(apiConn.InsertedNetworkObjects, Is.Empty);
+                Assert.That(apiConn.CompletedImportControlId, Is.Null);
+            });
         }
 
         private static T InvokePrivateStatic<T>(string methodName, params object[] parameters)

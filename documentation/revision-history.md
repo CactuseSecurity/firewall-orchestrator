@@ -1,8 +1,5 @@
 # Firewall Orchestrator Revision History
 
-pre-5, a product called IT Security Organizer and was closed source. It was developed starting in 2005.
-In 2020 we decided to re-launch a new
-
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module
   - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
@@ -676,3 +673,4 @@ Not supported any longer are:
   the installation addresses its endpoint under, not only when it approaches expiry, so
   renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
   leaves every FWO client failing on a TLS host name mismatch
+- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.

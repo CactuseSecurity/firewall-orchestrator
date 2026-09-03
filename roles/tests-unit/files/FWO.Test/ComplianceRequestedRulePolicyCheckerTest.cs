@@ -3,7 +3,9 @@ using FWO.Basics;
 using FWO.Compliance;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Services.Workflow;
 using FWO.Test.Fixtures;
+using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NUnit.Framework;
 using System.Reflection;
@@ -158,6 +160,28 @@ namespace FWO.Test
             List<Rule> rules = BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
+        public void ComplianceRequestedRulePolicyCheckerFactory_CreatesChecker()
+        {
+            ComplianceRequestedRulePolicyCheckerFactory factory = new();
+
+            IRequestedRulePolicyChecker result = factory.Create(UserConfig, ApiConnection);
+
+            Assert.That(result, Is.TypeOf<ComplianceRequestedRulePolicyChecker>());
+        }
+
+        [Test]
+        public void ComplianceRequestedRulePolicyCheckerFactory_CanBeResolvedFromServices()
+        {
+            using ServiceProvider services = new ServiceCollection()
+                .AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>()
+                .BuildServiceProvider();
+
+            IRequestedRulePolicyCheckerFactory? factory = services.GetService<IRequestedRulePolicyCheckerFactory>();
+
+            Assert.That(factory, Is.TypeOf<ComplianceRequestedRulePolicyCheckerFactory>());
         }
 
         private static WfReqTask CreateEligibleRequestTask(long id, string? taskType = null, string? requestAction = null)

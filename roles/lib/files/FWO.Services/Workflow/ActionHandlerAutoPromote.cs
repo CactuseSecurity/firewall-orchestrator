@@ -41,14 +41,20 @@ namespace FWO.Services.Workflow
                     return false;
                 }
 
-                requestedRulePolicyChecker ??= (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
-                    as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection);
                 if (requestedRulePolicyChecker == null)
                 {
+                    Log.WriteDebug("Policy Check", "No policy checker is attached to the action handler. Resolving the configured policy checker factory.");
+                    requestedRulePolicyChecker = (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
+                        as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection);
+                }
+                if (requestedRulePolicyChecker == null)
+                {
+                    Log.WriteDebug("Policy Check", "No requested-rule policy checker factory is registered. Policy check cannot be executed.");
                     return false;
                 }
 
                 bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, requestedRuleTasks);
+                Log.WriteDebug("Policy Check", $"Requested-rule policy check completed with result '{isCompliant}'.");
                 await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;
             }

@@ -1498,6 +1498,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ExecutePolicyCheck_ReturnsFalseWhenNoPolicyCheckerFactoryIsRegistered()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new(UserConfig.ForTextOnly(new SimulatedGlobalConfig(), false), apiConn,
+                WorkflowPhases.request, null);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection().BuildServiceProvider();
+
+            try
+            {
+                WfTicket ticket = CreateTicket(CreateEligibleRequestTask(22));
+                Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                    [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+                bool result = await task;
+
+                Assert.That(result, Is.False);
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
+        }
+
+        [Test]
         public void GetCallingTicket_UsesActiveTicketBeforeScopedFallbacks()
         {
             WfTicket activeTicket = CreateTicket(CreateEligibleRequestTask(18));

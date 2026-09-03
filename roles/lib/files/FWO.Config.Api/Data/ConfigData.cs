@@ -654,7 +654,7 @@ namespace FWO.Config.Api.Data
         public TokenLifetimeUnit RefreshTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Days;
 
         [JsonProperty("pathAnalysisAlgorithm"), JsonPropertyName("pathAnalysisAlgorithm")]
-        public int PathAnalysisAlgorithm { get; set; } = 1;
+        public long PathAnalysisAlgorithm { get; set; } = GlobalConst.kPathAnalysisAlgorithmNone;
 
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;

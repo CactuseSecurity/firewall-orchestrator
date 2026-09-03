@@ -109,10 +109,10 @@ Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_c
 
 -- network_zone
 Create index IF NOT EXISTS idx_fkey_network_zone_id on network_zone.ip_range USING HASH (network_zone_id);
-CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_ip_range_id
-ON network_zone.device_ip_range_root (ip_range_id);
-CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_ip_range_id
-ON network_zone.device_ip_range_internet (ip_range_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range

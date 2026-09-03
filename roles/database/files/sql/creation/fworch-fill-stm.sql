@@ -2,8 +2,9 @@
 INSERT INTO language ("name", "culture_info") VALUES('German', 'de-DE');
 INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 
-INSERT INTO path_analysis_algorithm ("name") VALUES('None');
-INSERT INTO path_analysis_algorithm ("name") VALUES ('Network Zone Tree');
+INSERT INTO path_analysis_algorithm ("id", "name") VALUES
+    (1,'None'),
+    (2, 'Network Zone Tree');
 
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 

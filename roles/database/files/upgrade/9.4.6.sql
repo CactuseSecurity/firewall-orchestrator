@@ -91,36 +91,37 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA network_zone TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT SELECT ON TABLES TO fwo_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
 
--- renamed compliance settings
+-- renamed config keys
 UPDATE config SET config_key = 'matrixAllowNestedZones'
 WHERE config_key = 'complianceMatrixAllowNetworkZones';
 UPDATE config SET config_key = 'sortMatrixByID'
 WHERE config_key = 'complianceCheckSortMatrixByID';
+
+-- renamed text ids
 UPDATE customtxt SET id = 'autoCalcInternetZone'
 WHERE id = 'complianceCheckAutoCalcInternetZone';
-
-UPDATE config SET config_key = 'autoCalcUndefinedInternalZone'
-WHERE config_key = 'complianceCheckAutoCalcUndefinedInternalZone';
-UPDATE config SET config_key = 'excludeFromInternetZone'
-WHERE config_key = 'complianceCheckExcludeFromInternetZone';
 UPDATE customtxt SET id = 'privateAdressSpace'
 WHERE id = 'complianceCheckPrivateAdressSpace';
-
-UPDATE config SET config_key = 'loopbackLocal'
-WHERE config_key = 'complianceCheckLoopbackLocal';
-UPDATE config SET config_key = 'multicastBroadcast'
-WHERE config_key = 'complianceCheckMulticastBroadcast';
 UPDATE customtxt SET id = 'documentationSamples'
 WHERE id = 'complianceCheckDocumentationSamples';
-
-UPDATE config SET config_key = 'div'
-WHERE config_key = 'complianceCheckDiv';
-UPDATE config SET config_key = 'autoCalculatedZonesAtTheEnd'
-WHERE config_key = 'complianceCheckAutoCalculatedZonesAtTheEnd';
 UPDATE customtxt SET id = 'treatDynamicAndDomainObjectsAsInternet'
 WHERE id = 'complianceCheckTreatDynamicAndDomainObjectsAsInternet';
-
-
+UPDATE customtxt SET id = 'autoCalcUndefinedInternalZone'
+WHERE id = 'complianceCheckAutoCalcUndefinedInternalZone';
+UPDATE customtxt SET id = 'excludeFromInternetZone'
+WHERE id = 'complianceCheckExcludeFromInternetZone';
+UPDATE customtxt SET id = 'loopbackLocal'
+WHERE id = 'complianceCheckLoopbackLocal';
+UPDATE customtxt SET id = 'multicastBroadcast'
+WHERE id = 'complianceCheckMulticastBroadcast';
+UPDATE customtxt SET id = 'div'
+WHERE id = 'complianceCheckDiv';
+UPDATE customtxt SET id = 'autoCalculatedZonesAtTheEnd'
+WHERE id = 'complianceCheckAutoCalculatedZonesAtTheEnd';
+UPDATE customtxt SET id = 'matrixAllowNestedZones'
+WHERE id = 'complianceMatrixAllowNetworkZones';
+UPDATE customtxt SET id = 'sortMatrixByID'
+WHERE id = 'complianceCheckSortMatrixByID';
 
 -- path analysis algorithm
 CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
@@ -129,8 +130,9 @@ CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
 	"name" varchar NOT NULL UNIQUE
 );
 
-INSERT INTO path_analysis_algorithm (name)
-VALUES ('None')
+INSERT INTO path_analysis_algorithm (id, name) VALUES
+    (1, 'None'),
+    (2, 'Network Zone Tree')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO config (config_key, config_value, config_user)
@@ -141,10 +143,6 @@ GRANT SELECT ON TABLE path_analysis_algorithm TO fwo_ro;
 GRANT USAGE, SELECT ON SEQUENCE path_analysis_algorithm_id_seq TO fwo_ro;
 
 -- Network Zone Tree
-INSERT INTO path_analysis_algorithm (name)
-VALUES ('Network Zone Tree')
-ON CONFLICT (name) DO NOTHING;
-
 ALTER TABLE network_zone.ip_range
 ADD COLUMN IF NOT EXISTS id BIGSERIAL;
 
@@ -189,10 +187,10 @@ ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT ip_range_id_device_
 ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT dev_id_device_ip_range_internet FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT ip_range_id_device_ip_range_internet FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_ip_range_id
-ON network_zone.device_ip_range_root (ip_range_id);
-CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_ip_range_id
-ON network_zone.device_ip_range_internet (ip_range_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);

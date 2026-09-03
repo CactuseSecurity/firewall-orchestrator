@@ -607,3 +607,37 @@ Not supported any longer are:
 
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
+
+## 9.4.0 - 13.08.2026
+- add logging schema for imported traffic log entries with their owner and count
+- make replacement of existing log entries for applications contained in an import file configurable
+- increase of unit-tests
+- Fixed variance-analysis comparison for imported identity network objects such as Check Point updatable objects, access roles and domain objects. When IP based rule recognition is active, configured placeholder areas for special configurations are reconciled with these imported objects by object type and name instead of placeholder IP fields.
+
+## 9.4.1 - 17.08.2026
+- add nat import for checkpoint and forti firewall managements
+- fix checkpoint import policy install detection
+- fix nat rules report
+
+## 9.4.2 - 25.08.2026
+- add setting and guard for full rollback: the deletion of all import data of a management is now gated behind the new "allowFullRollback" setting, which defaults to disabled so existing installations keep the safe behaviour after upgrade.
+
+## 9.4.3 - 26.08.2026
+- normalize and import fqdn and dynamic ip network objects with ip=null instead of 0.0.0.0/0
+- IP-based tenant filtering excludes rules whose source or destination contains only addressless network objects
+- add 'add auto calculated internet zone' button to compliance matrix ui
+
+## 9.4.4 - 27.08.2026
+- Import protocol-agnostic `ANY` services with new ip_proto_id=-1 across supported importers and automatically create and map the corresponding flow service objects.
+- Keep the canonical ANY flow service object implemented and protect it from removal.
+- Return `null` service port bounds for protocol-only flow catalog objects instead of 0
+- Rule and connection reports filtered by destination port or protocol now also match the canonical ANY service, so these filters can return more rows than before the upgrade.
+- Cisco ASA: keep the legacy `ANY` UID for the imported "any ip protocol" service object while showing it as `any-ip` in reports; existing compliance criteria or queries pinned to the old `any-ip` UID need to be updated to use `ANY` instead.
+- OPNsense: a `tcp/udp` rule with no destination port now creates and references two separate service objects (`Any/tcp` and `Any/udp`) instead of one combined object.
+
+## 9.4.5 - 01.09.2026
+- FortiManager: keep service groups (and RPC and split multi-protocol services) normalized with ip_proto_id=null instead of protocol 0/HOPOPT; upgrade corrects previously imported data to match
+- add an optional compliance-diff filter for rules with existing violations
+- Insert missing src/dst/svc references to flow.access entries created by workflow module
+- Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written. Creating a flow from a request while such a recalculation runs can fail or reuse a wrong entry, because flow entries are identified by their hash; repeat the action in that case. Hashes are only recalculated when the hash logic itself changes.
+- Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.

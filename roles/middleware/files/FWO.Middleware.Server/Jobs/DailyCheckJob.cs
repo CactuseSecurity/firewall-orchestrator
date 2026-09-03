@@ -237,28 +237,87 @@ namespace FWO.Middleware.Server.Jobs
         private async Task CheckUnansweredInterfaceRequests()
         {
             int emailsSent = 0;
-            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
+            List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
+            List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(connectedLdaps);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
             await wfHandler.Init();
-            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, OwnerGroups);
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                globalConfig,
+                apiConnection,
+                connectedLdaps,
+                OwnerGroups);
 
             foreach (var notification in notificationService.Notifications)
             {
+                SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
+                int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
-                    (notification.RepeatOffsetAfterDeadline ?? 0) + (notification.InitialOffsetAfterDeadline ?? 0),
-                    notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days);
+                    cutOffPeriod,
+                    repeatInterval);
                 foreach (var ticket in unansweredTickets)
                 {
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
-                    if (owner != null)
+                    if (owner == null)
                     {
-                        emailsSent += await notificationService.SendNotificationIfDue(notification, owner, ticket.CreationDate, await PrepareBody(ticket, owner));
+                        Log.WriteWarning(LogMessageTitle,
+                            $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                        continue;
+                    }
+
+                    bool notificationDue = NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification);
+                    if (!notificationDue)
+                    {
+                        Log.WriteDebug(LogMessageTitle,
+                            $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
+                        continue;
+                    }
+
+                    int sentForTicket = await notificationService.SendNotification(notification, owner, await PrepareBody(ticket, owner));
+                    emailsSent += sentForTicket;
+                    if (sentForTicket == 0)
+                    {
+                        Log.WriteWarning(LogMessageTitle,
+                            $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
                     }
                 }
             }
             await notificationService.UpdateNotificationsLastSent();
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+        /// <summary>
+        /// Calculates the ticket creation cut-off period for unanswered interface request notifications.
+        /// </summary>
+        /// <param name="notification">Notification to evaluate.</param>
+        /// <param name="interval">Repeat interval used for ticket lookup.</param>
+        /// <returns>Cut-off period in units of the given interval.</returns>
+        private static int GetInterfaceRequestCutOffPeriod(FwoNotification notification, SchedulerInterval interval)
+        {
+            long initialOffset = notification.InitialOffsetAfterDeadline ?? 0;
+            long repeatOffset = notification.RepeatOffsetAfterDeadline ?? 0;
+            long repetitions = notification.RepetitionsAfterDeadline ?? 0;
+            long cutOffPeriod = initialOffset + repeatOffset * (repetitions + 1);
+            long maxCutOffPeriod = GetMaximumCutOffPeriod(interval);
+            return (int)Math.Max(0, Math.Min(cutOffPeriod, maxCutOffPeriod));
+        }
+
+        /// <summary>
+        /// Returns the maximum supported cut-off period for the configured interval.
+        /// </summary>
+        /// <param name="interval">Repeat interval used for ticket lookup.</param>
+        /// <returns>Maximum supported cut-off period in interval units.</returns>
+        private static long GetMaximumCutOffPeriod(SchedulerInterval interval)
+        {
+            DateTime referenceDate = DateTime.Now.Date;
+            return interval switch
+            {
+                SchedulerInterval.Days => (long)(referenceDate - DateTime.MinValue.Date).TotalDays,
+                SchedulerInterval.Weeks => (long)(referenceDate - DateTime.MinValue.Date).TotalDays / GlobalConst.kDaysPerWeek,
+                SchedulerInterval.Months => ((referenceDate.Year - DateTime.MinValue.Year) * GlobalConst.kMonthsPerYear) + referenceDate.Month - DateTime.MinValue.Month,
+                _ => throw new NotSupportedException("Time interval is not supported."),
+            };
         }
 
         private async Task<string> PrepareBody(WfTicket ticket, FwoOwner owner)

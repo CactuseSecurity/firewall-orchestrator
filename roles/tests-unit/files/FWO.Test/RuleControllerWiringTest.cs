@@ -68,7 +68,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConvertRuleList_ShouldFlattenServiceObjectsAndRemoveDuplicates()
+        public void ConvertRuleList_ShouldPreserveServiceGroupsAndRemoveDuplicates()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRuleWithDuplicateNetworkAndServiceObjects()]);
@@ -84,21 +84,84 @@ namespace FWO.Test
             ClassicAssert.AreEqual("Destination Group", rule.Destination[0].Name);
             ClassicAssert.AreEqual("Shared Destination", rule.Destination[1].Name);
 
-            ClassicAssert.AreEqual(1, rule.Service.Count);
-            ClassicAssert.AreEqual("Shared Service", rule.Service[0].Name);
-            ClassicAssert.AreEqual("Shared Service (443/TCP)", rule.ServiceShort);
+            ClassicAssert.AreEqual(2, rule.Service.Count);
+            ClassicAssert.AreEqual("Service Group", rule.Service[0].Name);
+            ClassicAssert.AreEqual("Shared Service", rule.Service[1].Name);
+            ClassicAssert.AreEqual($"Service Group{Environment.NewLine}Shared Service (443/TCP)", rule.ServiceShort);
         }
 
         [Test]
-        public void ConvertRuleList_ShouldFlattenNestedServiceGroups()
+        public void ConvertRuleList_ShouldDeduplicateSourceAndDestinationShortNetworkLocations()
+        {
+            NetworkObject sourceGroup = CreateNetworkObjectGroup(100, "Source Group");
+            NetworkObject destinationGroup = CreateNetworkObjectGroup(200, "Destination Group");
+
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [
+                    new Rule
+                    {
+                        Froms =
+                        [
+                            CreateNetworkLocation("", sourceGroup),
+                            CreateNetworkLocation("", sourceGroup)
+                        ],
+                        Tos =
+                        [
+                            CreateNetworkLocation("", destinationGroup),
+                            CreateNetworkLocation("", destinationGroup)
+                        ]
+                    }
+                ]);
+
+            ClassicAssert.AreEqual("Source Group", rules[0].SourceShort);
+            ClassicAssert.AreEqual("Destination Group", rules[0].DestinationShort);
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldDeduplicateTransientUsersWithSameRenderedNetworkLocation()
+        {
+            NetworkObject sourceGroup = CreateNetworkObjectGroup(100, "Source Group");
+
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [
+                    new Rule
+                    {
+                        Froms =
+                        [
+                            CreateNetworkLocation("source-user-a", sourceGroup),
+                            CreateNetworkLocation("source-user-b", sourceGroup)
+                        ]
+                    }
+                ]);
+
+            ClassicAssert.AreEqual("Source Group", rules[0].SourceShort);
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldPreserveNestedServiceGroups()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRuleWithNestedServiceGroups()]);
 
             ClassicAssert.AreEqual(1, rules.Count);
-            ClassicAssert.AreEqual(1, rules[0].Service.Count);
-            ClassicAssert.AreEqual("Nested Service", rules[0].Service[0].Name);
-            ClassicAssert.AreEqual("Nested Service (8443/TCP)", rules[0].ServiceShort);
+            ClassicAssert.AreEqual(2, rules[0].Service.Count);
+            ClassicAssert.AreEqual("Outer Service Group", rules[0].Service[0].Name);
+            ClassicAssert.AreEqual("Nested Service", rules[0].Service[1].Name);
+            ClassicAssert.AreEqual("Outer Service Group", rules[0].ServiceShort);
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldIncludeDirectServicesAlongsideServiceGroups()
+        {
+            List<Rule> input = new() { CreateRuleWithServiceGroupAndDirectService() };
+            List<RuleDetail> rules = InvokeConvertRuleList(input);
+
+            ClassicAssert.AreEqual(1, rules.Count);
+            ClassicAssert.AreEqual(3, rules[0].Service.Count);
+            ClassicAssert.IsTrue(rules[0].Service.Any(service => service.Name == "Service Group"));
+            ClassicAssert.IsTrue(rules[0].Service.Any(service => service.Name == "Grouped Service"));
+            ClassicAssert.IsTrue(rules[0].Service.Any(service => service.Name == "Direct Service"));
+            ClassicAssert.AreEqual($"Service Group{Environment.NewLine}Direct Service (8443/TCP)", rules[0].ServiceShort);
         }
 
         [Test]
@@ -182,6 +245,19 @@ namespace FWO.Test
             };
         }
 
+        private static Rule CreateRuleWithServiceGroupAndDirectService()
+        {
+            NetworkService groupedService = CreateServiceObject(401, "Grouped Service", 443, 6, "TCP");
+            NetworkService directService = CreateServiceObject(402, "Direct Service", 8443, 6, "TCP");
+            List<ServiceWrapper> services = new()
+            {
+                new ServiceWrapper { Content = CreateServiceGroup(300, "Service Group", groupedService) },
+                new ServiceWrapper { Content = directService }
+            };
+
+            return new Rule { Services = services.ToArray() };
+        }
+
         private static NetworkLocation CreateNetworkLocation(string userName, NetworkObject networkObject)
         {
             return new NetworkLocation(new NetworkUser { Name = userName }, networkObject);
@@ -207,6 +283,16 @@ namespace FWO.Test
                 Name = name,
                 Type = new NetworkObjectType { Name = ObjectType.Group },
                 ObjectGroupFlats = [new GroupFlat<NetworkObject> { Id = member.Id, Object = member }]
+            };
+        }
+
+        private static NetworkObject CreateNetworkObjectGroup(long id, string name)
+        {
+            return new NetworkObject
+            {
+                Id = id,
+                Name = name,
+                Type = new NetworkObjectType { Name = ObjectType.Group }
             };
         }
 

@@ -49,6 +49,36 @@
     width: fit-content;
     min-width: 60vw;
     max-width: 100vw;
+    /* A column flex box distributes the height capped by .custom-modal-center: the footer keeps
+        its intrinsic height and the content box gets whatever is left. Never reserve the footer
+        height with a constant here, it does not survive a wrapping footer. */
+    display: flex;
+    flex-direction: column;
+}
+
+.custom-modal-content-auto {
+    /* Takes the height left over by the footer. min-height: 0 overrides the automatic minimum
+        size of a flex item, without it the content box would refuse to shrink and overflow. */
+    flex: 1 1 auto;
+    min-height: 0;
+    /* The modal is only as wide as its content, so a scrollbar appearing on the content box
+        would cover its right edge instead of widening the modal. */
+    scrollbar-gutter: stable;
+}
+
+.custom-modal-auto > .custom-modal-footer {
+    /* The footer is the fixed part of the layout, only the content box above it may shrink. */
+    flex: 0 0 auto;
+}
+
+/* Keeps the title and the close button reachable while the content below them scrolls.
+    The z-index has to stay above the sticky table headers (.sticky-header thead in site.css),
+    the background is needed because the content scrolls underneath the header. */
+.custom-modal-content-auto .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 1);
 }
 
 /* Centers the modal in the viewport without a transform (see attention note above):

@@ -8,6 +8,7 @@ using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
+using FWO.Services.RuleTreeBuilder;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
@@ -77,6 +78,7 @@ builder.Services.AddSingleton<ExternalRequestSchedulerService>();
 builder.Services.AddSingleton<AutoDiscoverSchedulerService>();
 builder.Services.AddSingleton<DailyCheckSchedulerService>();
 builder.Services.AddSingleton<ImportAppDataSchedulerService>();
+builder.Services.AddSingleton<ImportLogDataSchedulerService>();
 builder.Services.AddSingleton<ImportIpDataSchedulerService>();
 builder.Services.AddSingleton<ImportChangeNotifySchedulerService>();
 builder.Services.AddSingleton<VarianceAnalysisSchedulerService>();
@@ -98,6 +100,8 @@ builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+
 builder.Services.AddApiExamples();
 
 builder.Services.AddAuthentication(confOptions =>
@@ -170,6 +174,8 @@ builder.Services.AddOpenApi("v1", options =>
 
 WebApplication app = builder.Build();
 
+FWO.Services.ServiceProvider.Services = app.Services;
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -212,6 +218,7 @@ app.Services.GetRequiredService<ExternalRequestSchedulerService>();
 app.Services.GetRequiredService<AutoDiscoverSchedulerService>();
 app.Services.GetRequiredService<DailyCheckSchedulerService>();
 app.Services.GetRequiredService<ImportAppDataSchedulerService>();
+app.Services.GetRequiredService<ImportLogDataSchedulerService>();
 app.Services.GetRequiredService<ImportIpDataSchedulerService>();
 app.Services.GetRequiredService<ImportChangeNotifySchedulerService>();
 app.Services.GetRequiredService<VarianceAnalysisSchedulerService>();

@@ -22,16 +22,6 @@ namespace FWO.Test
         private static SimulatedUserConfig CreateUserConfig()
         {
             SimulatedUserConfig userConfig = new();
-            SimulatedUserConfig.DummyTranslate.TryAdd("add_service", "Add service");
-            SimulatedUserConfig.DummyTranslate.TryAdd("edit_service", "Edit service");
-            SimulatedUserConfig.DummyTranslate.TryAdd("protocol", "Protocol");
-            SimulatedUserConfig.DummyTranslate.TryAdd("port", "Port");
-            SimulatedUserConfig.DummyTranslate.TryAdd("save_service", "Save service");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E5102", "Missing protocol or port");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E5103", "Port invalid");
-            SimulatedUserConfig.DummyTranslate.TryAdd("E5118", "Port range invalid");
-            SimulatedUserConfig.DummyTranslate.TryAdd("U0001", "Saved");
-            SimulatedUserConfig.DummyTranslate.TryAdd("fetch_data", "Fetch data");
             userConfig.User.Roles = [Roles.Admin];
             return userConfig;
         }

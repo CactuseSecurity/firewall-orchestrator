@@ -9,6 +9,7 @@ using FWO.Data.Report;
 using FWO.Middleware.Server;
 using FWO.Report;
 using FWO.Report.Filter;
+using System.IO;
 using System.Reflection;
 
 namespace FWO.Test
@@ -27,6 +28,7 @@ namespace FWO.Test
         private static readonly string[] kJsonRecipients = ["json@example.test"];
         private static readonly string[] kMainRecipients = ["main@example.test"];
         private static readonly NotificationDeadline[] kNoneDeadline = [NotificationDeadline.None];
+        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
 
         [Test]
         public async Task TestInterfaceRequestNotification()
@@ -94,6 +96,62 @@ namespace FWO.Test
             ClassicAssert.IsTrue(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-8), notification));
             notification.LastSent = DateTime.Now.AddDays(-1);
             ClassicAssert.IsFalse(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-8), notification));
+        }
+
+        [Test]
+        public async Task CreateAsync_LoadsNotificationsAndFallsBackWhenNoInternalLdapIsConfigured()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                LdapConnections = []
+            };
+
+            NotificationService? notificationService = null;
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+            });
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
+            ClassicAssert.AreEqual(2, createAsyncApiConnection.QueryCount);
+            Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
+        }
+
+        [Test]
+        public async Task CreateAsync_LogsWarningsAndContinuesWhenLdapConnectionsCannotBeLoaded()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                ThrowOnGetLdapConnections = true
+            };
+
+            NotificationService? notificationService = null;
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+            });
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(2, notificationService!.Notifications.Count);
+            ClassicAssert.AreEqual(2, createAsyncApiConnection.QueryCount);
+            Assert.That(output, Does.Contain("Could not load internal owner groups for recipient resolution."));
+            Assert.That(output, Does.Contain("Could not load LDAP connections for workflow recipient resolution."));
+        }
+
+        [Test]
+        public async Task CreateAsync_ReturnsEarlyWhenNoNotificationsAreConfigured()
+        {
+            CreateAsyncApiConn createAsyncApiConnection = new()
+            {
+                ReturnNoNotifications = true
+            };
+
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
+
+            ClassicAssert.IsNotNull(notificationService);
+            ClassicAssert.AreEqual(0, notificationService.Notifications.Count);
+            ClassicAssert.AreEqual(1, createAsyncApiConnection.QueryCount);
         }
 
         [Test]
@@ -365,6 +423,64 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendBundledNotifications_GroupsBundleAndTracksAllNotificationIds()
+        {
+            SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de" };
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                localConfig,
+                new NotificationTestApiConn(),
+                new List<UserGroup>());
+            FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
+
+            FwoNotification bundledA = notificationService.Notifications[0];
+            bundledA.BundleType = BundleType.Attachments;
+            bundledA.BundleId = "bundle-1";
+            FwoNotification bundledB = notificationService.Notifications[1];
+            bundledB.BundleType = BundleType.Attachments;
+            bundledB.BundleId = "bundle-1";
+            FwoNotification standalone = new()
+            {
+                Id = 99,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "single@example.test",
+                EmailSubject = "single subject",
+                EmailBody = "single body"
+            };
+
+            List<FwoNotification> bundledNotifications = new() { bundledA, bundledB, standalone };
+            int emailsSent = await notificationService.SendBundledNotifications(bundledNotifications, owner, "body");
+            int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(emailsSent, Is.EqualTo(2));
+                Assert.That(updatedNotifications, Is.EqualTo(3));
+            });
+        }
+
+        [Test]
+        public async Task SendBundledNotifications_ReturnsZeroForEmptyNotificationList()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                globalConfig,
+                apiConnection,
+                new List<UserGroup>());
+            FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
+
+            List<FwoNotification> noNotifications = new();
+            int emailsSent = await notificationService.SendBundledNotifications(noNotifications, owner, "body");
+            int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(emailsSent, Is.Zero);
+                Assert.That(updatedNotifications, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task PrepareBundledEmail_ReturnsBaseMailForNotificationsWithoutBundleType()
         {
             List<UserGroup> ownerGroups = [];
@@ -375,7 +491,9 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, [new List<FwoNotification> { notification }, null, owner, null, ""])
+            List<FwoNotification> notifications = new() { notification };
+            object?[] invokeArgs = new object?[] { notifications, null, owner, null, "" };
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 
@@ -395,7 +513,9 @@ namespace FWO.Test
             MethodInfo? prepareBundledEmail = typeof(NotificationService).GetMethod("PrepareBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareBundledEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, [new List<FwoNotification> { notification }, null, owner, new TestReport(), ""])
+            List<FwoNotification> notifications = new() { notification };
+            object?[] invokeArgs = new object?[] { notifications, null, owner, new TestReport(), "" };
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareBundledEmail?.Invoke(notificationService, invokeArgs)
                 ?? throw new InvalidOperationException("PrepareBundledEmail returned null task."));
 
             Assert.ThrowsAsync<NotSupportedException>(async () => await task);
@@ -410,8 +530,10 @@ namespace FWO.Test
             MethodInfo? getBundleGroupKey = typeof(NotificationService).GetMethod("GetBundleGroupKey", BindingFlags.Static | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(getBundleGroupKey);
 
-            string singleKey = (string)(getBundleGroupKey?.Invoke(null, [singleNotification]) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
-            string groupedKey = (string)(getBundleGroupKey?.Invoke(null, [groupedNotification]) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
+            object?[] singleArgs = new object?[] { singleNotification };
+            object?[] groupedArgs = new object?[] { groupedNotification };
+            string singleKey = (string)(getBundleGroupKey?.Invoke(null, singleArgs) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
+            string groupedKey = (string)(getBundleGroupKey?.Invoke(null, groupedArgs) ?? throw new InvalidOperationException("GetBundleGroupKey returned null."));
 
             ClassicAssert.AreEqual("single:17", singleKey);
             ClassicAssert.AreEqual("Attachments:bundle-42", groupedKey);
@@ -440,12 +562,14 @@ namespace FWO.Test
             globalConfig.UseDummyEmailAddress = false;
             try
             {
-                MethodInfo? collectRecipients = typeof(NotificationService).GetMethod("CollectRecipients", BindingFlags.Instance | BindingFlags.NonPublic);
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                Task<List<string>> jsonTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [jsonNotification, owner, false, false])
+                object?[] jsonArgs = [jsonNotification, owner, false, false];
+                Task<List<string>> jsonTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, jsonArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
-                Task<List<string>> configuredTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, [configuredNotification, owner, false, false])
+                object?[] configuredArgs = [configuredNotification, owner, false, false];
+                Task<List<string>> configuredTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, configuredArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
 
                 List<string> jsonRecipients = await jsonTask;
@@ -458,6 +582,149 @@ namespace FWO.Test
             {
                 globalConfig.UseDummyEmailAddress = true;
             }
+        }
+
+        [Test]
+        public async Task CollectRecipientsReturnsDummyRecipientsWhenDummyEmailIsEnabled()
+        {
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.Requester,
+                EmailAddressTo = ""
+            };
+            FwoOwner owner = new();
+
+            MethodInfo? collectRecipients = GetCollectRecipientsMethod();
+            ClassicAssert.IsNotNull(collectRecipients);
+
+            object?[] args = [notification, owner, false, false];
+            Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
+                ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+            List<string> recipients = await task;
+
+            CollectionAssert.AreEqual(kDummyRecipients, recipients);
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CollectRecipientsLogsWarningForConfiguredResponsiblesWhenNoRecipientsResolve()
+        {
+            globalConfig.UseDummyEmailAddress = false;
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.ConfiguredResponsibles,
+                EmailAddressTo = nameof(EmailRecipientOption.OwnerMainResponsible)
+            };
+            FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
+                ClassicAssert.IsNotNull(collectRecipients);
+
+                object?[] args = [notification, owner, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
+                    ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Contain("No recipients resolved for configured responsibles"));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CollectRecipientsLogsWarningForJsonOtherAddressesWhenNoRecipientsResolve()
+        {
+            globalConfig.UseDummyEmailAddress = false;
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "{\"other_addresses\":true}"
+            };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
+                ClassicAssert.IsNotNull(collectRecipients);
+
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
+                    ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Contain("No recipients resolved for other addresses"));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CollectRecipientsLogsWarningForGenericRecipientOptionWhenNoRecipientsResolve()
+        {
+            globalConfig.UseDummyEmailAddress = false;
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.Requester,
+                EmailAddressTo = ""
+            };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
+                ClassicAssert.IsNotNull(collectRecipients);
+
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
+                    ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Contain("No recipients resolved for notification client InterfaceRequest using option Requester"));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CollectRecipientsDoesNotWarnForNoneRecipientOption()
+        {
+            globalConfig.UseDummyEmailAddress = false;
+            List<UserGroup> ownerGroups = [];
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            FwoNotification notification = new()
+            {
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.None,
+                EmailAddressTo = ""
+            };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo? collectRecipients = GetCollectRecipientsMethod();
+                ClassicAssert.IsNotNull(collectRecipients);
+
+                object?[] args = [notification, null, false, false];
+                Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
+                    ?? throw new InvalidOperationException("CollectRecipients returned null task."));
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Not.Contain("using option None"));
         }
 
         [Test]
@@ -488,6 +755,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void IsNotificationDueAfterDeadline_AdvancesInRepeatOffsetSteps()
+        {
+            FwoOwner owner = new();
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RuleExpiry,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 0,
+                RepeatOffsetAfterDeadline = 2,
+                RepetitionsAfterDeadline = 3
+            };
+
+            ClassicAssert.IsTrue(NotificationService.IsNotificationDue(owner, DateTime.Now.AddDays(-5), notification));
+        }
+
+        [Test]
         public void OfferedDeadlineOptions_ReturnsOnlyNone_ForImportChange()
         {
             CollectionAssert.AreEqual(kNoneDeadline, FwoNotification.OfferedDeadlineOptions(NotificationClient.ImportChange));
@@ -512,7 +795,6 @@ namespace FWO.Test
             globalConfig.DefaultLanguage = "English";
             globalConfig.NotificationLanguage = "German";
             globalConfig.GermanTranslate["generated_on"] = "Erstellt am";
-            globalConfig.DummyTranslate["generated_on"] = "Generated on";
 
             ClassicAssert.AreEqual("Erstellt am", globalConfig.GetNotificationText("generated_on"));
 
@@ -576,6 +858,63 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in notification service test api: {query}");
+            }
+        }
+
+        private sealed class CreateAsyncApiConn : NotificationTestApiConn
+        {
+            public List<Ldap> LdapConnections { get; init; } = [];
+            public bool ThrowOnGetLdapConnections { get; init; }
+            public bool ReturnNoNotifications { get; init; }
+            public int QueryCount { get; private set; }
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                QueryCount++;
+                if (ReturnNoNotifications && query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    return (QueryResponseType)(object)new List<FwoNotification>();
+                }
+
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<Ldap>))
+                {
+                    if (ThrowOnGetLdapConnections)
+                    {
+                        throw new InvalidOperationException("ldap connections unavailable");
+                    }
+
+                    return (QueryResponseType)(object)LdapConnections;
+                }
+
+                return await base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
+        }
+
+        private static MethodInfo GetCollectRecipientsMethod()
+        {
+            return typeof(NotificationService).GetMethod(
+                "CollectRecipients",
+                BindingFlags.Instance | BindingFlags.NonPublic,
+                null,
+                kCollectRecipientsParameterTypes,
+                null)
+                ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
+        }
+
+        private static async Task<string> CaptureConsoleAsync(Func<Task> action)
+        {
+            TextWriter originalOut = Console.Out;
+            StringWriter writer = new();
+            Console.SetOut(writer);
+            try
+            {
+                await action();
+                await writer.FlushAsync();
+                return writer.ToString();
+            }
+            finally
+            {
+                Console.SetOut(originalOut);
             }
         }
     }

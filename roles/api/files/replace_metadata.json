@@ -996,7 +996,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1016,7 +1017,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1226,6 +1228,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "access_hash",
                       "allows_traffic",
                       "owner_id",
                       "removed_date",
@@ -1667,6 +1670,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwgrp_hash",
                       "removed_date",
                       "state"
                     ],
@@ -1918,6 +1922,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwobj_hash",
                       "removed_date",
                       "state"
                     ],
@@ -2023,7 +2028,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcgrp_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2277,7 +2283,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcobj_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2446,10 +2453,158 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "timeobj_hash"
                     ],
                     "filter": {},
                     "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "log_entry",
+                "schema": "logging"
+              },
+              "object_relationships": [
+                {
+                  "name": "stm_ip_proto",
+                  "using": {
+                    "foreign_key_constraint_on": "service_protocol"
+                  }
+                },
+                {
+                  "name": "owner",
+                  "using": {
+                    "foreign_key_constraint_on": "owner_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_time",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-editable-owners"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "log_count",
+                      "source",
+                      "destination",
+                      "service_protocol",
+                      "service_port",
+                      "allowed",
+                      "modelled",
+                      "log_time",
+                      "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {
+                      "owner_id": {
+                        "_in": "x-hasura-recertifiable-owners"
+                      }
+                    }
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_count",
+                      "allowed",
+                      "log_time",
+                      "logging_rule_name"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
                   },
                   "comment": ""
                 }
@@ -2775,6 +2930,16 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -3667,7 +3832,8 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "nwgroup_id"
+                      "nwgroup_id",
+                      "app_id"
                     ],
                     "filter": {}
                   },
@@ -4833,6 +4999,16 @@
                       "json_data",
                       "ack_timestamp",
                       "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ack_by"
                     ],
                     "filter": {}
                   }
@@ -14007,6 +14183,18 @@
                       "table": {
                         "name": "ext_request",
                         "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "owner_id",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
                       }
                     }
                   }
@@ -24793,6 +24981,18 @@
                       "table": {
                         "name": "implelement",
                         "schema": "request"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "log_entries",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "service_protocol",
+                      "table": {
+                        "name": "log_entry",
+                        "schema": "logging"
                       }
                     }
                   }

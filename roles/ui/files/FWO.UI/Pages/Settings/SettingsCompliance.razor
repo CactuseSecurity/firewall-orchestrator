@@ -103,7 +103,7 @@
                 <input type="checkbox" @bind="configData!.ComplianceCheckSortMatrixByID" />
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5811"))">
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5816"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckRelevantManagements"))</label>
             <div class="col-sm-2">
                 <input type="text" @bind="configData!.ComplianceCheckRelevantManagements" />
@@ -113,6 +113,12 @@
             <label for="lbl_show_short_columns_in_compliance_reports" class="col-form-label col-sm-4">@(userConfig.GetText("complianceCheckShowShortColumsInComplianceReports")):</label>
             <div class="col-sm-7">
                 <input id="lbl_show_short_columns" type="checkbox" @bind="configData!.ShowShortColumnsInComplianceReports" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5914"))">
+            <label for="lbl_compliance_diff_filter_existing_violations" class="col-form-label col-sm-4">@(userConfig.GetText("complianceDiffFilterExistingViolations")):</label>
+            <div class="col-sm-7">
+                <input id="lbl_compliance_diff_filter_existing_violations" type="checkbox" @bind="configData!.ComplianceDiffFilterExistingViolations" />
             </div>
         </div>
     </form>

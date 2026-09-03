@@ -5,8 +5,8 @@
 @using FWO.Services.EventMediator.Events
 @using FWO.Services.EventMediator.Interfaces
 @using System.Text.Json
+@using FWO.Data.Enums
 @using FWO.Ui.Data.Extensions
-@using FWO.Data.Enums;
 
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
@@ -74,6 +74,12 @@
                         @(userConfig.GetText(colorScheme.Name))
                     </ElementTemplate>
                 </Dropdown>
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5618"))">
+            <label for="cbx_default_iconify" class="col-form-label col-sm-4">@(userConfig.GetText("modIconify")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_default_iconify" type="checkbox" class="w-100" @bind="configData!.ModIconify">
             </div>
         </div>
         <hr />
@@ -160,6 +166,19 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("maxImportInterval")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.MaxImportInterval" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5453a"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("importScriptTimeout")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="1" max="@GlobalConst.kMaxImportScriptTimeoutMinutes" @bind="configData!.ImportScriptTimeout" />
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5853"))">
+            <label for="cbx_allow_full_rollback" class="col-form-label col-sm-4">@(userConfig.GetText("allowFullRollback")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_allow_full_rollback" type="checkbox" class="w-100" @bind="configData!.AllowFullRollback">
             </div>
         </div>
         <hr />
@@ -382,6 +401,9 @@ else
                     }
                 }
                 configData.DailyCheckModules = JsonSerializer.Serialize(dailyCheckModules);
+                // an import script is waited for with a timeout in milliseconds which has to fit
+                // into an int, a larger value would let every scripted import fail immediately
+                configData.ImportScriptTimeout = Math.Min(configData.ImportScriptTimeout, GlobalConst.kMaxImportScriptTimeoutMinutes);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

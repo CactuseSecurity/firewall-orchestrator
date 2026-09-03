@@ -244,6 +244,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("maxImportInterval"), JsonPropertyName("maxImportInterval")]
         public int MaxImportInterval { get; set; } = 12;
 
+        [JsonProperty("importScriptTimeout"), JsonPropertyName("importScriptTimeout")]
+        public int ImportScriptTimeout { get; set; } = 60;
+
         [JsonProperty("reqAvailableTaskTypes"), JsonPropertyName("reqAvailableTaskTypes")]
         public string ReqAvailableTaskTypes { get; set; } = "";
 
@@ -328,6 +331,36 @@ namespace FWO.Config.Api.Data
         [JsonProperty("importAppDataStartAt"), JsonPropertyName("importAppDataStartAt")]
         public DateTime ImportAppDataStartAt { get; set; } = DateTime.Now;
 
+        [JsonProperty("importLogDataPath"), JsonPropertyName("importLogDataPath")]
+        public string ImportLogDataPath { get; set; } = "[]";
+
+        [JsonProperty("importLogDataScriptArgs"), JsonPropertyName("importLogDataScriptArgs")]
+        public string ImportLogDataScriptArgs { get; set; } = "";
+
+        [JsonProperty("importLogDataSleepTime"), JsonPropertyName("importLogDataSleepTime")]
+        public int ImportLogDataSleepTime { get; set; } = 0;
+
+        [JsonProperty("importLogDataSleepTimeUnit"), JsonPropertyName("importLogDataSleepTimeUnit")]
+        public LogDataImportIntervalUnit ImportLogDataSleepTimeUnit { get; set; } = LogDataImportIntervalUnit.Hours;
+
+        [JsonProperty("importLogDataStartAt"), JsonPropertyName("importLogDataStartAt")]
+        public DateTime ImportLogDataStartAt { get; set; } = DateTime.Now;
+
+        [JsonProperty("importLogDataMaxEntries"), JsonPropertyName("importLogDataMaxEntries")]
+        public int ImportLogDataMaxEntries { get; set; } = 1000;
+
+        [JsonProperty("logDataRetentionDays"), JsonPropertyName("logDataRetentionDays")]
+        public int LogDataRetentionDays { get; set; } = 90;
+
+        [JsonProperty("allowLogDataPortWithoutProtocol"), JsonPropertyName("allowLogDataPortWithoutProtocol")]
+        public bool AllowLogDataPortWithoutProtocol { get; set; } = false;
+
+        [JsonProperty("replaceExistingLogData"), JsonPropertyName("replaceExistingLogData")]
+        public bool ReplaceExistingLogData { get; set; } = true;
+
+        [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
+        public bool ShowLogDataInConnections { get; set; } = false;
+
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 
@@ -355,7 +388,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
 
-        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify"), UserConfigData]
         public bool ModIconify { get; set; } = true;
 
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
@@ -629,12 +662,17 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
+
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
+        [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
+        public bool AllowFullRollback { get; set; } = false;
 
         public ConfigData(bool editable = false)
         {

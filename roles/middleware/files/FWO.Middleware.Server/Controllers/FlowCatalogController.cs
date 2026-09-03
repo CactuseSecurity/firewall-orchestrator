@@ -30,8 +30,12 @@ public class FlowCatalogController : ControllerBase
         nameof(GetServiceObjectId),
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("portStart", "Start port for the service object lookup."),
-            new RequestKeyDefinition("portEnd", "End port for the service object lookup."),
+            new RequestKeyDefinition(
+                "portStart",
+                "Required inclusive starting port. Send both port bounds as null only for an unambiguous portless service; otherwise provide both."),
+            new RequestKeyDefinition(
+                "portEnd",
+                "Required inclusive ending port. Send both port bounds as null only for an unambiguous portless service; otherwise provide both."),
             new RequestKeyDefinition("protocol", "Protocol name or protocol id for the service object lookup.")
         ]);
     private static readonly RequestRootValidationSchema TimeObjectIdRootSchema = new(
@@ -146,6 +150,7 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves a service object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// It is not intended to identify custom protocol-only services because their technical definitions are ambiguous.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getServiceObjectId")]
@@ -161,7 +166,13 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'protocol' is required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart, request.PortEnd, "service", 0, out string? serviceErrorMessage))
+        if (request.PortStart.HasValue != request.PortEnd.HasValue)
+        {
+            return BadRequest("'portStart' and 'portEnd' must both be provided or both be null.");
+        }
+
+        if (request.PortStart.HasValue
+            && !FlowComplianceRequestValidator.TryValidateServiceRange(request.PortStart.Value, request.PortEnd!.Value, "service", 0, out string? serviceErrorMessage))
         {
             return BadRequest(serviceErrorMessage);
         }
@@ -198,6 +209,7 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]
@@ -213,11 +225,20 @@ public class FlowCatalogController : ControllerBase
             return BadRequest("'ipStart' and 'ipEnd' are required.");
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateIpRange(request.IpStart, request.IpEnd, "address", 0, out string? addressErrorMessage))
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+            request.IpStart,
+            request.IpEnd,
+            "address",
+            0,
+            out string normalizedIpStart,
+            out string normalizedIpEnd,
+            out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
+        request.IpStart = normalizedIpStart;
+        request.IpEnd = normalizedIpEnd;
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 

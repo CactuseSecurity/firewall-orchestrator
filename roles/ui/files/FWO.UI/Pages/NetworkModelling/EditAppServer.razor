@@ -116,7 +116,7 @@
             if (userConfig.ModAppServerTypes != "")
             {
                 appServerTypes = JsonSerializer.Deserialize<List<AppServerType>>(userConfig.ModAppServerTypes) ?? new();
-                namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+                namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
             }
         }
         catch (Exception exception)

@@ -41,7 +41,12 @@
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
                                 @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
-                            @if(ImplTaskView && !WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.planning] && WfHandler.StateMatrix(implTask.TaskType).PhaseActive[WorkflowPhases.approval])
+                            @{
+                                var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
+                                bool planningActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningPhaseActive) && planningPhaseActive;
+                                bool approvalActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
+                            }
+                            @if (ImplTaskView && !planningActive && approvalActive)
                             {
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
                                     @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>

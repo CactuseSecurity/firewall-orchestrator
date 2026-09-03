@@ -1,0 +1,9 @@
+# Removes the stored rows of the given owners without inserting new ones. Used in
+# replaceExistingLogData mode when a source delivered nothing importable: the source is still the
+# current truth about the applications it reports, so their old rows must not survive as if they
+# described the current period (see ResolveSourceOwnerIds in LogDataImport.cs).
+mutation deleteLogEntriesOfOwners($ownerIds: [Int!]!) {
+  delete_logging_log_entry(where: {owner_id: {_in: $ownerIds}}) {
+    affected_rows
+  }
+}

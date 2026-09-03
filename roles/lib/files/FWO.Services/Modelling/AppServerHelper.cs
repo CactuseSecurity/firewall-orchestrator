@@ -6,7 +6,6 @@ using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Logging;
 using System.Net;
-using System.Text.Json;
 
 namespace FWO.Services.Modelling
 {
@@ -56,7 +55,7 @@ namespace FWO.Services.Modelling
         public static async Task AdjustAppServerNames(ApiConnection apiConnection, UserConfig userConfig)
         {
             Log.WriteDebug($"Start adjusting App Server Names", "");
-            ModellingNamingConvention namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(userConfig.ModNamingConvention) ?? new();
+            ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(userConfig.ModNamingConvention);
             List<ModellingAppServer> AppServers = await apiConnection.SendQueryAsync<List<ModellingAppServer>>(ModellingQueries.getAllAppServers);
             int correctedCounter = 0;
             int failCounter = 0;

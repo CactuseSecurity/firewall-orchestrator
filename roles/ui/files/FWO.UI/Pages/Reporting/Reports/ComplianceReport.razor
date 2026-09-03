@@ -5,6 +5,10 @@
 @inject UserConfig userConfig
 
 <Collapse Title="Compliance Report" Style="@("primary")" StartToggled="true">
+    @if (ReportData.ExistingViolationsFilterFailed)
+    {
+        <div class="alert alert-warning" role="alert">@userConfig.GetText("existing_violations_filter_failed")</div>
+    }
     <Table SelectedItems="SelectedRules"
         RowClickAction="@(async rule => await OnRowSelected(rule))"
         style="font-size:small" 

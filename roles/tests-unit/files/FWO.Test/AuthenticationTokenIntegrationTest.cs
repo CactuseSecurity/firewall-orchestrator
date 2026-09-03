@@ -94,18 +94,18 @@ namespace FWO.Test
         [Category("TokenGeneration")]
         public async Task GetTokenPair_WithValidCredentials_ReturnsValidTokens()
         {
-            // Arrange - use default credentials
+            // Arrange - use the integration-test credentials and assert the login still works in this environment
             AuthenticationTokenGetParameters parameters = defaultCredentialsBuilder.BuildGetParameters();
 
             // Act
             HttpResponseMessage response = await client!.PostAsJsonAsync("/api/AuthenticationToken/GetTokenPair", parameters);
+            Assert.That(response.IsSuccessStatusCode, Is.True,
+                $"Expected /api/AuthenticationToken/GetTokenPair to succeed for the configured integration credentials, but got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
+            TokenPair tokenPair = (await response.Content.ReadFromJsonAsync<TokenPair>())!;
 
             // Asserts
-            AuthTestHelpers.AssertSuccessResponse(response);
-            TokenPair? tokenPair = await response.Content.ReadFromJsonAsync<TokenPair>();
-
             AuthTestHelpers.AssertValidTokenPair(tokenPair);
-            AuthTestHelpers.AssertJwtStructure(tokenPair!.AccessToken, tokenHandler!);
+            AuthTestHelpers.AssertJwtStructure(tokenPair.AccessToken, tokenHandler!);
             AuthTestHelpers.AssertTokenClaims(tokenPair.AccessToken, parameters.Username!, tokenHandler!);
         }
 
@@ -330,7 +330,16 @@ namespace FWO.Test
         [Category("Security")]
         public async Task GetForUser_WithNonAdminCredentials_ReturnsBadRequest()
         {
-            // Arrange - use regular user credentials (not admin)
+            // Arrange - ensure the configured integration user is valid and not admin
+            TokenPair tokenPair = await GetValidTokenPair();
+            var accessToken = tokenHandler!.ReadJwtToken(tokenPair.AccessToken);
+            string? defaultRole = accessToken.Claims.SingleOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value;
+            if (string.Equals(defaultRole, "admin", StringComparison.OrdinalIgnoreCase))
+            {
+                Assert.Ignore("Configured JWT integration test user has admin role in this environment; non-admin coverage requires a non-admin user.");
+            }
+
+            // Use regular user credentials (not admin)
             AuthenticationTokenGetForUserParameters parameters = defaultCredentialsBuilder
                 .WithTargetUser(defaultCredentialsBuilder.Username!)
                 .BuildGetForUserParameters();
@@ -342,7 +351,7 @@ namespace FWO.Test
 
             // Assert
             Assert.That(response.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.BadRequest));
-            Assert.That(responseText.Contains("Provided credentials do not belong to a user with role admin"), Is.True);
+            Assert.That(responseText, Does.Contain("Provided credentials do not belong to a user with role admin"));
         }
 
         #endregion
@@ -373,7 +382,7 @@ namespace FWO.Test
 
             if (!response.IsSuccessStatusCode)
             {
-                Assert.Ignore($"JWT integration test credentials are not valid in this environment. Status: {response.StatusCode}");
+                Assert.Ignore($"Configured integration credentials are not accepted in this environment. Got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
             }
 
             return (await response.Content.ReadFromJsonAsync<TokenPair>())!;

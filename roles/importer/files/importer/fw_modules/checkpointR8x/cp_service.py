@@ -4,7 +4,7 @@ import re
 from typing import Any
 
 from fw_modules.checkpointR8x import cp_const
-from fwo_const import LIST_DELIMITER
+from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 
 
@@ -14,7 +14,7 @@ def collect_svc_objects(object_table: dict[str, Any], svc_objects: list[dict[str
         typ = "undef"
         if object_table["type"] in cp_const.group_svc_obj_types:
             typ = "group"
-        if object_table["type"] in cp_const.simple_svc_obj_types:
+        if object_table["type"] in cp_const.simple_svc_obj_types or object_table["type"] == "CpmiAnyObject":
             typ = "simple"
         for chunk in object_table["chunks"]:
             if "objects" in chunk:
@@ -96,6 +96,9 @@ def _get_protocol_number(obj: dict[str, Any]) -> int | None:
     Extract and validate protocol number from object.
     Returns validated protocol number or None.
     """
+    if obj.get("uid") == cp_const.any_obj_uid:
+        return ANY_IP_PROTOCOL_ID
+
     proto_map = {"service-tcp": 6, "service-udp": 17, "service-icmp": 1}
 
     proto = None

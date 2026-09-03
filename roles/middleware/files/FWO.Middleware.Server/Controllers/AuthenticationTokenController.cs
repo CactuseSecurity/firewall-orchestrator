@@ -259,6 +259,11 @@ namespace FWO.Middleware.Server.Controllers
             // so an API failure must not invite a retry that can only answer "invalid".
             bool refreshTokenMayBeSpent = false;
 
+            // Captured as soon as the user is known so that the audit trail can name whose
+            // session ended even when the failure happens later, outside the scope the user
+            // is declared in.
+            string auditIdentity = "the presented refresh token";
+
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))
@@ -291,20 +296,22 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("User could not be reconstructed for refresh");
                 }
 
+                auditIdentity = $"User \"{user.Name}\" with DN: \"{user.Dn}\"";
+
                 // Consume the old refresh token exactly once before minting a new pair.
                 refreshTokenMayBeSpent = true;
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
                 {
-                    WriteAudit(nameof(RefreshToken), $"Refresh token for User \"{user.Name}\" with DN: \"{user.Dn}\" was already consumed or revoked.");
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was already consumed or revoked.");
 
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
 
-                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for User \"{user.Name}\" with DN: \"{user.Dn}\".");
+                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for {auditIdentity}.");
 
                 return Ok(newTokens);
             }
@@ -316,9 +323,21 @@ namespace FWO.Middleware.Server.Controllers
                 // Whether it may be repeated depends on how far it got, so say which.
                 Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
 
-                return StatusCode(StatusCodes.Status503ServiceUnavailable, refreshTokenMayBeSpent
-                    ? "The API could not be reached after the refresh token was consumed, so no new token pair was issued. Please log in again."
-                    : "The API could not be reached while refreshing the token. Please retry.");
+                if (refreshTokenMayBeSpent)
+                {
+                    // Audited like every other terminal outcome of this endpoint: a token
+                    // was spent and a session ended, which is exactly what the trail is for.
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was consumed, but no new token pair could be issued because the API could not be reached.");
+
+                    // The token is spent, so it genuinely is invalid now, and 401 is both the
+                    // truthful answer and the one a client can act on: a 503 here reads as
+                    // retryable, so the client would hold on to a token that cannot work and
+                    // reach the login one refresh cycle later than it needs to.
+                    return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
+                }
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while refreshing the token. Please retry.");
             }
             catch (Exception ex)
             {
@@ -378,8 +397,11 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // Same reasoning as in RefreshToken, without its second case: revoking is
-                // idempotent from the caller's side, so a retry is safe wherever it failed.
+                // Same reasoning as in RefreshToken, without its second case: the token is
+                // never left half revoked, so a retry is always worth making. It may answer
+                // 401 rather than 200 - that is what a revoke which had already committed
+                // before the connection died looks like - and to a caller that wants the
+                // token gone, that is the same end state.
                 Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
 
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
@@ -805,19 +827,16 @@ namespace FWO.Middleware.Server.Controllers
 
                 return result?.FirstOrDefault();
             }
-            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
-            {
-                // Deliberately not swallowed: a failed call to the API says nothing about
-                // the token, and returning null here makes the caller answer "invalid or
-                // expired refresh token". A client that believes that discards a refresh
-                // token that is perfectly good and forces the user to log in again, so a
-                // momentary API outage would end every session. The caller answers 503.
-                throw;
-            }
             catch (Exception ex)
             {
+                // Nothing is swallowed here, so null keeps a single meaning: the query
+                // succeeded and matched no live token. Returning null for a failed query
+                // instead made the caller answer "invalid or expired refresh token" - and a
+                // client that believes that discards a refresh token which is perfectly
+                // good, so any API fault, from an outage to a Hasura permission or schema
+                // error, would end every session. The caller decides the status.
                 Log.WriteError(kValidationLogCategory, "Error validating refresh token", ex);
-                return null;
+                throw;
             }
         }
 

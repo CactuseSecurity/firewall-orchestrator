@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -351,16 +352,60 @@ namespace FWO.Test
 
             ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
-            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-            ObjectResult objectResult = (ObjectResult)result.Result!;
-            string message = objectResult.Value?.ToString() ?? "";
+            Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>(),
+                "the token is spent, so the answer has to be one the client acts on rather than retries");
+            UnauthorizedObjectResult unauthorized = (UnauthorizedObjectResult)result.Result!;
+            string message = unauthorized.Value?.ToString() ?? "";
             Assert.Multiple(() =>
             {
-                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(unauthorized.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+                Assert.That(unauthorized.StatusCode, Is.Not.EqualTo(StatusCodes.Status503ServiceUnavailable),
+                    "a 503 is retryable to the client, which would hold on to a token that cannot work");
                 Assert.That(message, Does.Contain("log in again"));
                 Assert.That(message, Does.Not.Contain("Please retry"),
                     "the refresh token is already spent, so retrying cannot succeed");
             });
+        }
+
+        /// <summary>
+        /// A spent token whose replacement could never be issued ends a session, and every
+        /// other terminal outcome of this endpoint is audited, so this one has to be too -
+        /// naming who lost the session, which the failing scope no longer has in hand.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_AuditsTheConsumedTokenWhenNoNewPairCouldBeIssued()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.storeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+
+            // Asserted as one string rather than as two independent contains: the LDAP debug
+            // lines of the same run also mention the user, so a separate name check would
+            // pass even if the audit entry had lost the identity.
+            string log = logOutput.ToString();
+
+            Assert.That(log, Does.Contain(
+                $"Refresh token for User \"login-user\" with DN: \"{kRoleUserDn}\" was consumed, " +
+                "but no new token pair could be issued because the API could not be reached."));
         }
 
         /// <summary>
@@ -380,6 +425,28 @@ namespace FWO.Test
             string message = ((ObjectResult)result.Result!).Value?.ToString() ?? "";
 
             Assert.That(message, Does.Contain("Please retry"));
+        }
+
+        /// <summary>
+        /// A GraphQL-layer fault - a Hasura permission denial or a schema mismatch after an
+        /// upgrade - arrives as InvalidOperationException from the API connection. It says
+        /// nothing about the presented token, so it must not come back as a rejection of it:
+        /// a client that believes that discards a refresh token which is perfectly good.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_DoesNotReportAnInvalidTokenWhenTheQueryFails()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException("permission denied for table refresh_token")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.Not.TypeOf<UnauthorizedObjectResult>(),
+                "an API fault must not be reported as an invalid refresh token");
+            Assert.That((result.Result as ObjectResult)?.Value?.ToString() ?? "",
+                Does.Not.Contain("Invalid or expired refresh token"));
         }
 
         [Test]
@@ -500,19 +567,23 @@ namespace FWO.Test
             Assert.That(apiConnection.LastVariables!.GetType().GetProperty("tokenHash"), Is.Not.Null);
         }
 
+        /// <summary>
+        /// null has to keep a single meaning - the query succeeded and matched no live
+        /// token - because the caller renders it as "invalid or expired refresh token". A
+        /// failed query must therefore propagate rather than be reported as a verdict.
+        /// </summary>
         [Test]
-        public async Task AuthManagerValidateRefreshToken_ReturnsNullWhenQueryFails()
+        public void AuthManagerValidateRefreshToken_PropagatesAQueryFailure()
         {
             RecordingApiConnection apiConnection = new()
             {
-                ThrowOnQuery = new InvalidOperationException("boom")
+                ThrowOnQuery = new InvalidOperationException("permission denied for table refresh_token")
             };
 
             object authManager = CreateAuthManager(apiConnection);
 
-            RefreshTokenInfo? tokenInfo = await InvokeAuthManagerAsync<RefreshTokenInfo?>(authManager, "ValidateRefreshToken", "refresh-token");
-
-            Assert.That(tokenInfo, Is.Null);
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await InvokeAuthManagerAsync<RefreshTokenInfo?>(authManager, "ValidateRefreshToken", "refresh-token"));
         }
 
         [Test]

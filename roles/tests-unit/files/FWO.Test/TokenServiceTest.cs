@@ -603,7 +603,7 @@ namespace FWO.Test
         /// Builds a token pair whose access token has already expired, so a refresh is due.
         /// </summary>
         /// <returns>An expired pair carrying a usable refresh token.</returns>
-        private TokenPair CreateExpiredTokenPair()
+        private static TokenPair CreateExpiredTokenPair()
         {
             return new TokenPair
             {

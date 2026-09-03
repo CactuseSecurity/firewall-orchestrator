@@ -541,11 +541,11 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
-    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
     <li>Verschiebe compliance.ip_range ins neue Schema network_zone.ip_range und compliance.network_zone nach network_zone.zone</li>
     <li>Zentrale Einstellung Pfad Analyse Algorithmus hinzugef&uuml;gt</li>
     <li>Verschiebe viele Compliance Einstellungen nach Netzwerk Matrix und Internet in die neue Sektion Netzwerk Topologie</li>
     <li>Network Zone Tree Algorithmus in Datenbank vorbereitet</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
@@ -560,11 +560,11 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
-    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li>Move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone</li>
     <li>Add central setting for path analysis algorithm</li>
     <li>Move many compliance settings regarding matrix and internet to their own setting page in new section network topology</li>
     <li>Prepare network zone tree algorithm in database</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
 

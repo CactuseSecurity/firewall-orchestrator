@@ -30,74 +30,74 @@ namespace FWO.Test
         /// Verifies that a missing GraphQL file is logged and rethrown
         /// by the static query initialization.
         /// </summary>
-        #if DEBUG
-            [Test]
-            public void Initialization_WhenQueryFileIsMissing_RethrowsException()
+#if DEBUG
+        [Test]
+        public void Initialization_WhenQueryFileIsMissing_RethrowsException()
+        {
+            string? originalBaseDirectory =
+                Environment.GetEnvironmentVariable(
+                    kBaseDirectoryEnvironmentVariable);
+
+            string temporaryBaseDirectory = Path.Combine(
+                TestContext.CurrentContext.WorkDirectory,
+                $"{nameof(PathAnalysisAlgorithmQueriesTest)}-{Guid.NewGuid():N}");
+
+            string pathAnalysisDirectory = Path.Combine(
+                temporaryBaseDirectory,
+                "fwo-api-calls",
+                "path_analysis");
+
+            Directory.CreateDirectory(pathAnalysisDirectory);
+
+            AssemblyLoadContext loadContext = new(
+                nameof(PathAnalysisAlgorithmQueriesTest),
+                isCollectible: true);
+
+            try
             {
-                string? originalBaseDirectory =
-                    Environment.GetEnvironmentVariable(
-                        kBaseDirectoryEnvironmentVariable);
+                Environment.SetEnvironmentVariable(
+                    kBaseDirectoryEnvironmentVariable,
+                    temporaryBaseDirectory);
 
-                string temporaryBaseDirectory = Path.Combine(
-                    TestContext.CurrentContext.WorkDirectory,
-                    $"{nameof(PathAnalysisAlgorithmQueriesTest)}-{Guid.NewGuid():N}");
+                Assembly isolatedAssembly =
+                    loadContext.LoadFromAssemblyPath(
+                        typeof(PathAnalysisAlgorithmQueries).Assembly.Location);
 
-                string pathAnalysisDirectory = Path.Combine(
-                    temporaryBaseDirectory,
-                    "fwo-api-calls",
-                    "path_analysis");
+                Type queryType = isolatedAssembly.GetType(
+                    kQueryTypeName,
+                    throwOnError: true)!;
 
-                Directory.CreateDirectory(pathAnalysisDirectory);
-
-                AssemblyLoadContext loadContext = new(
-                    nameof(PathAnalysisAlgorithmQueriesTest),
-                    isCollectible: true);
-
-                try
-                {
-                    Environment.SetEnvironmentVariable(
-                        kBaseDirectoryEnvironmentVariable,
-                        temporaryBaseDirectory);
-
-                    Assembly isolatedAssembly =
-                        loadContext.LoadFromAssemblyPath(
-                            typeof(PathAnalysisAlgorithmQueries).Assembly.Location);
-
-                    Type queryType = isolatedAssembly.GetType(
+                FieldInfo queryField = queryType.GetField(
+                    kQueryFieldName,
+                    BindingFlags.Public | BindingFlags.Static)
+                    ?? throw new MissingFieldException(
                         kQueryTypeName,
-                        throwOnError: true)!;
+                        kQueryFieldName);
 
-                    FieldInfo queryField = queryType.GetField(
-                        kQueryFieldName,
-                        BindingFlags.Public | BindingFlags.Static)
-                        ?? throw new MissingFieldException(
-                            kQueryTypeName,
-                            kQueryFieldName);
+                Exception exception = Assert.Catch(() => queryField.GetValue(null))!;
 
-                    Exception exception = Assert.Catch(() => queryField.GetValue(null))!;
+                Assert.That(
+                    UnwrapExceptions(exception).Any(inner => inner is FileNotFoundException),
+                    Is.True,
+                    "static initialization must surface the missing query file instead of swallowing it");
 
-                    Assert.That(
-                        UnwrapExceptions(exception).Any(inner => inner is FileNotFoundException),
-                        Is.True,
-                        "static initialization must surface the missing query file instead of swallowing it");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(
+                    kBaseDirectoryEnvironmentVariable,
+                    originalBaseDirectory);
 
-                }
-                finally
+                loadContext.Unload();
+
+                if (Directory.Exists(temporaryBaseDirectory))
                 {
-                    Environment.SetEnvironmentVariable(
-                        kBaseDirectoryEnvironmentVariable,
-                        originalBaseDirectory);
-
-                    loadContext.Unload();
-
-                    if (Directory.Exists(temporaryBaseDirectory))
-                    {
-                        Directory.Delete(
-                            temporaryBaseDirectory,
-                            recursive: true);
-                    }
+                    Directory.Delete(
+                        temporaryBaseDirectory,
+                        recursive: true);
                 }
             }
-        #endif
+        }
+#endif
     }
 }

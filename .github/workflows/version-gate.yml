@@ -6,9 +6,9 @@ name: Version gate
 #
 # This workflow contains exactly one job on purpose. Its check run IS the gate result and
 # the check that branch protection requires, so a pull request shows one gate entry and
-# nothing else. A sealing tag pushed later does not leave that entry stale: the separate
-# version-gate-refresh workflow re-runs this workflow for every open pull request, which
-# rewrites this same check run with a freshly evaluated result.
+# nothing else. A later develop update or sealing tag does not leave that entry stale: the
+# separate version-gate-refresh workflow re-runs this workflow for every open pull request,
+# which rewrites this same check run with a freshly evaluated result.
 
 on:
   pull_request_target:

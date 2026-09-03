@@ -138,10 +138,11 @@ The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not 
 
 The **Version gate refresh** workflow
 ([`.github/workflows/version-gate-refresh.yml`](../../.github/workflows/version-gate-refresh.yml))
-re-runs that gate for every open pull request whenever a sealing tag is pushed. This is
-what makes step 3 of the lifecycle bite: pull requests that were green on the now sealed
-version turn red immediately, without needing a push to the pull request. The tag list is
-read when the gate runs, so a re-run reaches a different, correct verdict.
+re-runs that gate for every open pull request whenever `develop` advances or a sealing tag
+is pushed. The `develop` trigger clears stale failures when a version bump merges, while the
+tag trigger makes step 3 of the lifecycle bite: pull requests that were green on the now
+sealed version turn red immediately. Neither case needs a push to the pull request. The tag
+list and merge result are read when the gate runs, so a re-run reaches the current verdict.
 
 The **Version tag guard** workflow
 ([`.github/workflows/version-tag-guard.yml`](../../.github/workflows/version-tag-guard.yml))

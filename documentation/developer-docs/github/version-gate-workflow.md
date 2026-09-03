@@ -76,16 +76,17 @@ request cannot edit `version_gate.py` to make itself pass.
 
 ## Version gate refresh workflow
 
-Runs on any pushed tag, and on `workflow_dispatch` (optionally for a single `pr`).
+Runs when `develop` advances, on any pushed tag, and on `workflow_dispatch` (optionally for a
+single `pr`).
 
-Creating a sealing tag closes a version, which must block every open pull request that would
-still merge onto it. Those pull requests get no event of their own, so their gate check run
-would keep the conclusion it had before the tag existed. This workflow re-runs the Version gate
-workflow for each of them with `gh run rerun`, which rewrites that same check run in place
-rather than adding a second signal.
+Advancing `develop` can change an open pull request's merge result and turn a stale failure into
+a passing verdict. Creating a sealing tag closes a version and must turn any pull request that
+would still merge onto it from green to red. Neither change sends the affected pull requests an
+event of their own, so this workflow re-runs the Version gate workflow for each of them with
+`gh run rerun`. That rewrites the same check run in place rather than adding a second signal.
 
-It skips tags that do not seal a version, needs no checkout at all, and matches pull requests to
-runs by head SHA:
+It always refreshes after a push to `develop`, skips tags that do not seal a version, needs no
+checkout at all, and matches pull requests to runs by head SHA:
 
 ```bash
 gh api --paginate ".../workflows/version-gate.yml/runs?event=pull_request_target" \

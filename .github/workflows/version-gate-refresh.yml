@@ -4,15 +4,16 @@ name: Version gate refresh
 # in documentation/developer-docs/versioning.md - please keep both in sync when changing
 # triggers or job logic here.
 #
-# Creating a sealing tag closes a version, which blocks every open pull request that would
-# still merge onto it. Those pull requests receive no event of their own, so their gate
-# check run would keep the conclusion it had before the tag existed. This workflow re-runs
-# the Version gate workflow for each of them, which rewrites that same check run with a
-# freshly evaluated result. It deliberately lives in its own file so that it never adds a
-# second, skipped entry to a pull request.
+# Advancing develop or creating a sealing tag can change a pull request's verdict without
+# sending that pull request an event of its own. This workflow re-runs the Version gate
+# workflow for every open pull request, which rewrites that same check run with a freshly
+# evaluated result. It deliberately lives in its own file so that it never adds a second,
+# skipped entry to a pull request.
 
 on:
   push:
+    branches:
+      - develop
     tags:
       - "*"
   workflow_dispatch:
@@ -43,22 +44,28 @@ jobs:
       group: version-gate-refresh
       cancel-in-progress: false
     steps:
-      - name: Check whether the pushed tag seals a version
+      - name: Decide whether open pull request gates need refresh
         id: trigger
         env:
           EVENT_NAME: ${{ github.event_name }}
-          TAG_NAME: ${{ github.ref_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" != "push" ]]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
-            echo "Tag '$TAG_NAME' seals a version, refreshing open pull requests."
+          if [[ "$REF_TYPE" == "branch" ]]; then
+            echo "Branch '$REF_NAME' advanced, refreshing open pull requests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$REF_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+            echo "Tag '$REF_NAME' seals a version, refreshing open pull requests."
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Tag '$TAG_NAME' does not seal a version, nothing to refresh."
+            echo "Tag '$REF_NAME' does not seal a version, nothing to refresh."
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
 

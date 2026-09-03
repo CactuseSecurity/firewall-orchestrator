@@ -42,9 +42,9 @@
         # later ones can be about a repository that has nothing to do with the dotnet packages
         - name: remember the dotnet installation error of the configured repos on RedHat
           set_fact:
-            dotnet_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
-            dotnet_install_first_error: "{{ dotnet_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
-            dotnet_install_error_chain: "{{ (dotnet_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
+            dotnet_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')) }}"
+            dotnet_install_first_error: "{{ dotnet_install_first_error | default(([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')), true) }}"
+            dotnet_install_error_chain: "{{ (dotnet_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' '))] }}"
 
         - name: report failed dotnet installation from the configured repos on RedHat
           debug:
@@ -70,4 +70,4 @@
       when: ansible_architecture != "x86_64"
 
   become: true
-  environment: "{{ proxy_env }}"
+  environment: "{{ proxy_env | combine({'LANG': 'C', 'LC_ALL': 'C'}) }}"

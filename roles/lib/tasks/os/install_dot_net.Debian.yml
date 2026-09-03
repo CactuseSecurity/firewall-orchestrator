@@ -135,6 +135,13 @@
                 name: "{{ dotnet_package_name }}"
                 state: present
           rescue:
+            - name: refuse the dotnet install script fallback on Ubuntu unless explicitly allowed
+              fail:
+                msg: >-
+                  The remaining fallback downloads {{ dotnet_install_script_url }} and executes it as root.
+                  Set -e allowDotnetScriptInstall=true to allow this explicitly.
+              when: not (allowDotnetScriptInstall | default(false) | bool)
+
             - name: download dotnet-install script (ubuntu fallback)
               get_url:
                 url: "{{ dotnet_install_script_url }}"
@@ -179,6 +186,14 @@
 
     - name: Install dotnet sdk {{ dotnet_version }} with dotnet-install script on Debian testing
       block:
+        - name: refuse the dotnet install script on Debian unless explicitly allowed
+          fail:
+            msg: >-
+              Installing dotnet on this Debian release requires downloading
+              {{ dotnet_install_script_url }} and executing it as root. Install the SDK manually,
+              or set -e allowDotnetScriptInstall=true to allow this explicitly.
+          when: not (allowDotnetScriptInstall | default(false) | bool)
+
         - name: download dotnet-install script for Debian testing
           get_url:
             url: "{{ dotnet_install_script_url }}"

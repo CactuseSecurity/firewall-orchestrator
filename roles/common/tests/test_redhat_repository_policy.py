@@ -63,3 +63,15 @@ def test_cache_refresh_requires_an_actual_repository_change() -> None:
     cache_refresh = find_task(tasks, "update operating system package cache after RedHat repository changes")
 
     assert cache_refresh["when"] == "redhat_repo_changes_made | bool"
+
+
+def test_distributed_frontends_and_middleware_packages_are_prechecked() -> None:
+    expression = find_task(load_tasks(), "define RedHat packages that may require external repository enablement")[
+        "set_fact"
+    ]["redhat_repo_policy_packages"]
+
+    assert "groups['frontends']" in expression
+    assert "dotnet-sdk-" in expression
+    assert "chromium-headless" in expression
+    assert "groups['middlewareserver']" in expression
+    assert "python_venv_package_name" in expression

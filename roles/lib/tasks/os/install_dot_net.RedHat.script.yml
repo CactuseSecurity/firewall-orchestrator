@@ -106,4 +106,4 @@
         force: true
 
   become: true
-  environment: "{{ proxy_env }}"
+  environment: "{{ proxy_env | combine({'LANG': 'C', 'LC_ALL': 'C'}) }}"

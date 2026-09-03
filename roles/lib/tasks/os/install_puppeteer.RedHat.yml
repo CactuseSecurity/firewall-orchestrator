@@ -42,9 +42,9 @@
         # the message and into the pattern matching, so it is flattened into a sentence
         - name: remember the chromium dependency installation error of the configured repos on RedHat
           set_fact:
-            chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
-            chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
-            chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
+            chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')) }}"
+            chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')), true) }}"
+            chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['configured repos: ' ~ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' '))] }}"
 
         - name: report failed chromium dependency installation on RedHat
           debug:
@@ -101,9 +101,9 @@
             # failure is a repository access problem on the host that needs to be named
             - name: remember the chromium dependency installation error after dropping the cached rpms on RedHat
               set_fact:
-                chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')) }}"
-                chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error')] | flatten | join(' ')), true) }}"
-                chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['after dropping the cached rpms: ' ~ ([ansible_failed_result.msg | default('unknown error')] | flatten | join(' '))] }}"
+                chromium_install_last_error: "{{ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')) }}"
+                chromium_install_first_error: "{{ chromium_install_first_error | default(([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' ')), true) }}"
+                chromium_install_error_chain: "{{ (chromium_install_error_chain | default([])) + ['after dropping the cached rpms: ' ~ ([ansible_failed_result.msg | default('unknown error'), ansible_failed_result.failures | default([]), ansible_failed_result.results | default([])] | flatten | join(' '))] }}"
 
             # the hints only help when they match what dnf actually reported, and the error that
             # decides that is the first one: the retry can fail on a repository that has nothing
@@ -156,4 +156,4 @@
           - /usr/lib64/chromium-browser/headless_shell
 
   become: true
-  environment: "{{ proxy_env }}"
+  environment: "{{ proxy_env | combine({'LANG': 'C', 'LC_ALL': 'C'}) }}"

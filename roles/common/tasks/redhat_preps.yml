@@ -13,7 +13,13 @@
           +
           (
             python_venv_package_name
-            if inventory_hostname in (groups['importers'] | default([]))
+            if inventory_hostname in ((groups['importers'] | default([])) + (groups['middlewareserver'] | default([])))
+            else []
+          )
+          +
+          (
+            ['dotnet-sdk-' ~ dotnet_version, 'chromium-headless']
+            if inventory_hostname in (groups['frontends'] | default([]))
             else []
           )
         ) | unique
@@ -85,6 +91,7 @@
               rpm_key:
                 state: present
                 key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ redhat_major_version }}"
+                fingerprint: "{{ epel_gpg_fingerprints[redhat_major_version | string] }}"
               environment: "{{ proxy_env }}"
 
             - name: add EPEL repos

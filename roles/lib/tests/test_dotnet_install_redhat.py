@@ -1,5 +1,8 @@
 import re
+from typing import Protocol, cast
 
+import yaml
+from jinja2 import Environment  # pyright: ignore[reportUnknownVariableType]
 from redhat_task_helpers import (
     MISSING_PACKAGE_ERROR,
     PACKAGE_DOWNLOAD_ERROR,
@@ -7,7 +10,6 @@ from redhat_task_helpers import (
     TRANSIENT_ERROR,
     assert_error_is_recorded,
     assert_hints_are_selected_by_the_error,
-    assert_retry_is_pinned_to_the_repos_offering_the_packages,
     command_of,
     find_task,
     find_task_containing,
@@ -28,6 +30,16 @@ ATTEMPT_FILES = (MAIN_FILE, FALLBACK_FILE)
 EXPECTED_ERROR_RECORDING_ATTEMPTS = 3
 
 HINT_SELECTION_TASK = "collect the hints matching the dotnet installation failure on RedHat"
+
+
+class RenderableTemplate(Protocol):
+    def render(self, **variables: object) -> str: ...
+
+
+class TemplateEnvironment(Protocol):
+    filters: dict[str, object]
+
+    def from_string(self, source: str) -> RenderableTemplate: ...
 
 
 def test_every_dotnet_rescue_records_the_dnf_error_first() -> None:
@@ -57,13 +69,17 @@ def test_every_attempt_keeps_the_first_error_and_appends_to_the_chain() -> None:
     assert recorded == EXPECTED_ERROR_RECORDING_ATTEMPTS
 
 
-def test_the_retry_is_pinned_and_never_drops_the_metadata_of_every_repo() -> None:
-    assert_retry_is_pinned_to_the_repos_offering_the_packages(
-        load_tasks(FALLBACK_FILE),
-        repoquery_part="find the repos offering",
-        retry_part="after dropping the cached rpms on RedHat",
-        repos_fact="dotnet_retry_repos",
-    )
+def test_the_retry_keeps_dependency_repos_enabled_and_skips_unavailable_repos() -> None:
+    tasks = load_tasks(FALLBACK_FILE)
+    retry = find_task_containing(tasks, "after dropping the cached rpms on RedHat")
+    command = command_of(retry)
+    assert "dnf install" in command
+    assert "--refresh" in command
+    assert "--setopt=*.skip_if_unavailable=1" in command
+    assert "disablerepo" not in str(retry)
+
+    clean = find_task(tasks, "drop the cached rpms on RedHat")
+    assert command_of(clean) == "dnf clean packages"
     for file_name in (MAIN_FILE, SCRIPT_FILE):
         for task in flatten(load_tasks(file_name)):
             assert "clean all" not in command_of(task), file_name
@@ -160,3 +176,28 @@ def test_the_patterns_tell_the_reported_errors_apart() -> None:
     # a mirror that answers every attempt the same way must not be retried, a timeout may be
     assert not re.search(transient, PACKAGE_DOWNLOAD_ERROR)
     assert re.search(transient, TRANSIENT_ERROR)
+
+
+def test_hint_selection_expression_renders_each_failure_class() -> None:
+    expression = set_fact_expression(find_task(load_tasks(SCRIPT_FILE), HINT_SELECTION_TASK), "dotnet_install_hints")
+    variables = load_group_vars()
+    # This renders Ansible/YAML expressions, not HTML, so escaping would alter the data under test.
+    environment = cast("TemplateEnvironment", Environment(autoescape=False))  # noqa: S701
+    environment.filters["bool"] = bool
+    template = environment.from_string(expression)
+
+    cases = (
+        (True, False, "could not refresh the metadata"),
+        (False, True, "could not download them"),
+        (False, False, "did not find the package"),
+    )
+    for is_metadata, is_download, expected_text in cases:
+        rendered = template.render(
+            **variables,
+            dotnet_install_failure_is_metadata=is_metadata,
+            dotnet_install_failure_is_download=is_download,
+            dotnet_install_failing_repo="epel",
+            dotnet_install_cache_retry_reached_packages=False,
+        )
+        hints = cast("list[str]", yaml.safe_load(rendered))
+        assert expected_text in " ".join(hints)

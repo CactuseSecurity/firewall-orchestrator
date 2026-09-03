@@ -121,6 +121,33 @@
 - name: include uninstall package tasks for current OS family
   include_tasks: "os/uninstall-packages.{{ ansible_facts['os_family'] }}.yml"
 
+- name: check whether FWORCH added the microsoft dotnet repository
+  stat:
+    path: "{{ fworch_home }}/.microsoft-dotnet-repo-added"
+  register: fworch_microsoft_repo_marker
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: remove the microsoft dotnet repository added by FWORCH
+  block:
+    - name: remove the microsoft repository configuration package
+      package:
+        name: packages-microsoft-prod
+        state: absent
+
+    - name: remove the microsoft repository file
+      file:
+        path: "{{ dotnet_ms_repo_file }}"
+        state: absent
+
+    - name: remove the microsoft repository signing key
+      rpm_key:
+        state: absent
+        key: "BC528686B50D79E339D3721CEB3E94ADBE1229CF"
+  become: true
+  when:
+    - ansible_facts['os_family'] == 'RedHat'
+    - fworch_microsoft_repo_marker.stat.exists | default(false)
+
 - block:
     # the sdk itself lives in {{ dotnet_script_install_dir }} below {{ fworch_home }} and is
     # removed with it, but the link into it has to be cleaned up separately. a link pointing

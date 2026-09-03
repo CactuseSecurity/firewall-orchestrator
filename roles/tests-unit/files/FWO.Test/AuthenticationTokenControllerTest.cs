@@ -11,6 +11,7 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Novell.Directory.Ldap;
@@ -233,6 +234,68 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
             Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("User not found"));
+        }
+
+        /// <summary>
+        /// A failed call to the API is not a malformed request. Answering 400 tells a client
+        /// not to repeat it, and put the raw transport error in the response body; the caller
+        /// gets a retryable 503 and a message that says nothing about the internals.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult objectResult = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(objectResult.Value?.ToString(), Does.Not.Contain("connection reset by peer"),
+                    "the transport error belongs in the log, not in the response to an unauthenticated caller");
+            });
+        }
+
+        /// <summary>
+        /// The failure seen in CI: validation had already succeeded and the call that loads
+        /// the user died at the transport level. Covers the controller's own handler, while
+        /// the test above covers the one in ValidateRefreshToken.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheUserQueryFails()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, _) => query == AuthQueries.getUserByDbId
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : null
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        [Test]
+        public async Task RevokeToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
         }
 
         [Test]

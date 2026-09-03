@@ -297,6 +297,17 @@ namespace FWO.Middleware.Server.Controllers
 
                 return Ok(newTokens);
             }
+            catch (HttpRequestException exception)
+            {
+                // The call to the API failed at the transport level, which is not the
+                // caller's fault: answering 400 tells a client its request was malformed
+                // and must not be repeated, while the truthful answer is that this attempt
+                // could not be completed and can be retried. The refresh token is only
+                // consumed after this step, so retrying is safe.
+                Log.WriteError("Token Refresh", "Could not reach the API while refreshing a token", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while refreshing the token. Please retry.");
+            }
             catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Failed to refresh token", ex);
@@ -352,6 +363,15 @@ namespace FWO.Middleware.Server.Controllers
                 WriteAudit(nameof(RevokeToken), $"Revoked auth tokens for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\".");
 
                 return Ok();
+            }
+            catch (HttpRequestException exception)
+            {
+                // Same reasoning as in RefreshToken: a failed call to the API is not a
+                // malformed request, and the token is only revoked afterwards, so the
+                // caller can retry.
+                Log.WriteError("Token Refresh", "Could not reach the API while revoking a refresh token", exception);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while revoking the token. Please retry.");
             }
             catch (Exception ex)
             {
@@ -771,6 +791,15 @@ namespace FWO.Middleware.Server.Controllers
                 RefreshTokenInfo[] result = await apiConnection.SendQueryAsync<RefreshTokenInfo[]>(AuthQueries.getRefreshToken, queryVariables);
 
                 return result?.FirstOrDefault();
+            }
+            catch (HttpRequestException)
+            {
+                // Deliberately not swallowed: a failed call to the API says nothing about
+                // the token, and returning null here makes the caller answer "invalid or
+                // expired refresh token". A client that believes that discards a refresh
+                // token that is perfectly good and forces the user to log in again, so a
+                // momentary API outage would end every session. The caller answers 503.
+                throw;
             }
             catch (Exception ex)
             {

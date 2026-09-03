@@ -20,6 +20,8 @@ namespace FWO.Test
     [RequiresIntegrationEnvironment]
     internal class AuthenticationTokenIntegrationTest
     {
+        // High enough that the requests genuinely overlap on the single-use token.
+        private const int kConcurrentRefreshRequests = 18;
         private const string DefaultCiUsername = "integration_user_jwt_refresh_test";
         private const string DefaultCiPassword = "testpassword";
         private HttpClient? client;
@@ -202,6 +204,20 @@ namespace FWO.Test
             Assert.That(secondResponse.StatusCode, Is.EqualTo(System.Net.HttpStatusCode.Unauthorized));
         }
 
+        /// <summary>
+        /// The security property under test is that a refresh token can be spent exactly
+        /// once, however many requests race for it: the endpoint consumes it with a single
+        /// conditional update and only that one caller gets a new pair.
+        /// </summary>
+        /// <remarks>
+        /// The losers are expected to be rejected with 401. A burst this size against the
+        /// installed middleware also makes every request authenticate against LDAP and query
+        /// the API, so a single call can fail at the transport level; the endpoint answers
+        /// 503 for that, and this test tolerates it while warning, because it is a failure to
+        /// complete rather than a second token being spent. Any other status is a defect and
+        /// fails, with every status and body in the message - a bare count comparison here
+        /// cost a CI run that could not be diagnosed from its own output.
+        /// </remarks>
         [Test]
         [Category("Authentication")]
         [Category("TokenRefresh")]
@@ -213,36 +229,34 @@ namespace FWO.Test
             RefreshTokenRequest refreshRequest = new() { RefreshToken = initialTokens.RefreshToken };
 
             // Act
-            Task<HttpResponseMessage>[] refreshTasks =
-            [
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest),
-                client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)
-            ];
+            HttpResponseMessage[] responses = await Task.WhenAll(Enumerable
+                .Range(0, kConcurrentRefreshRequests)
+                .Select(_ => client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh", refreshRequest)));
 
-            HttpResponseMessage[] responses = await Task.WhenAll(refreshTasks);
+            string[] outcomes = await Task.WhenAll(responses
+                .Select(async response => $"{(int)response.StatusCode} {response.StatusCode}: " +
+                    $"{(await response.Content.ReadAsStringAsync()).Trim()}"));
+            string report = string.Join(Environment.NewLine, outcomes);
 
             // Assert
             int successCount = responses.Count(response => response.IsSuccessStatusCode);
             int unauthorizedCount = responses.Count(response => response.StatusCode == HttpStatusCode.Unauthorized);
+            int upstreamFailureCount = responses.Count(response => response.StatusCode == HttpStatusCode.ServiceUnavailable);
 
-            Assert.That(successCount, Is.EqualTo(1), "Exactly one concurrent refresh request should succeed.");
-            Assert.That(unauthorizedCount, Is.EqualTo(refreshTasks.Length - 1), "All other concurrent refresh requests should be rejected.");
+            Assert.Multiple(() =>
+            {
+                Assert.That(successCount, Is.EqualTo(1),
+                    $"Exactly one concurrent refresh request must succeed. Responses:{Environment.NewLine}{report}");
+                Assert.That(unauthorizedCount + upstreamFailureCount, Is.EqualTo(kConcurrentRefreshRequests - 1),
+                    "Every other concurrent refresh request must be rejected with 401, or report 503 when it " +
+                    $"could not reach the API. Responses:{Environment.NewLine}{report}");
+            });
+
+            if (upstreamFailureCount > 0)
+            {
+                Assert.Warn($"{upstreamFailureCount} of {kConcurrentRefreshRequests} concurrent refresh requests " +
+                    $"could not reach the API and answered 503. Responses:{Environment.NewLine}{report}");
+            }
         }
 
         #endregion

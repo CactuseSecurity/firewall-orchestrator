@@ -209,10 +209,9 @@ namespace FWO.Test
 
             page.WaitForAssertion(() =>
                 Assert.That(page.FindAll("input[type='checkbox']"), Has.Count.EqualTo(3)));
-            IReadOnlyList<IElement> checkboxes = page.FindAll("input[type='checkbox']");
-            checkboxes[0].Change(false);
-            checkboxes[1].Change(true);
-            checkboxes[2].Change(true);
+            page.FindAll("input[type='checkbox']")[0].Change(false);
+            page.FindAll("input[type='checkbox']")[1].Change(true);
+            page.FindAll("input[type='checkbox']")[2].Change(true);
 
             IRenderedComponent<Dropdown<ComplianceCriterion>> matrixDropdown =
                 page.FindComponent<Dropdown<ComplianceCriterion>>();

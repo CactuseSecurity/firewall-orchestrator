@@ -108,7 +108,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new DefaultsSettingsAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddSingleton<IEventMediator>(new RecordingEventMediator());
-            context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
+            context.Services.AddSingleton<ApiConnection>(new RecordingSettingsApiConn());
             context.Services.AddSingleton<MiddlewareClient>(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());

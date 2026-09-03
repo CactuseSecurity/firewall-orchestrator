@@ -50,7 +50,7 @@ for attempt in 1 2 3; do
     sleep $((attempt * 10))
 done
 
-if [ "$merge_ref_available" != "true" ]; then
+if [[ "$merge_ref_available" != "true" ]]; then
     post_status "failure" "Cannot determine the merged product version, resolve the merge conflicts first."
     exit 1
 fi
@@ -74,7 +74,7 @@ python3 scripts/ci/version_gate.py gate \
 
 description="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["description"])' "$verdict_file")"
 
-if [ "$gate_exit" -eq 0 ]; then
+if [[ "$gate_exit" -eq 0 ]]; then
     post_status "success" "$description"
 else
     post_status "failure" "$description"

@@ -51,6 +51,9 @@ jobs:
       # pull_request_target token cannot be reached by fork code.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
+          # Keep this on the base branch. This job holds a statuses: write token, so
+          # checking out the pull request head ref or sha here would let fork code
+          # forge a green fwo/version-gate status and unblock its own merge.
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 1
 

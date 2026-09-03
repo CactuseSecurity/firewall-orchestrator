@@ -232,7 +232,11 @@ namespace FWO.Test
                     {
                         Id = 101,
                         Name = "existing-app-servers",
-                        NwGroupMembers = [new FlowNwGroupMember { NwGroupId = 101, NwObjectId = 201 }]
+                        NwGroupMembers =
+                        [
+                            new FlowNwGroupMember { NwGroupId = 101, NwObjectId = 999 },
+                            new FlowNwGroupMember { NwGroupId = 101, NwObjectId = 201 }
+                        ]
                     }
                 ]);
             ApiConnection.AsSub()
@@ -253,6 +257,44 @@ namespace FWO.Test
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].Tos, Has.Length.EqualTo(1));
             Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.10/32"));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ResolvesExistingServiceGroupFromFlowDb()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowSvcGroup
+                    {
+                        Id = 102,
+                        Name = "web-services",
+                        SvcGroupMembers = [new FlowSvcGroupMember { SvcGroupId = 102, SvcObjectId = 202 }]
+                    }
+                ]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowSvcObject { Id = 202, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6 }
+                ]);
+
+            WfReqTask ruleTask = CreateEligibleRequestTask(27);
+            NwServiceElement service = ruleTask.GetServiceElements().Single();
+            service.Name = null;
+            service.Port = null;
+            service.PortEnd = null;
+            service.ProtoId = 0;
+            service.GroupName = "web-services";
+            service.FlowServiceGroupId = 102;
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Services, Has.Length.EqualTo(1));
+            Assert.That(rules[0].Services[0].Content.DestinationPort, Is.EqualTo(443));
+            Assert.That(rules[0].Services[0].Content.ProtoId, Is.EqualTo(6));
         }
 
         [Test]

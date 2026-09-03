@@ -1554,6 +1554,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetCallingTicket_LoadsFullTicketForScopedRequestTask()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(CreateEligibleRequestTask(30), new WfReqTask { Id = 31, TaskType = WfTaskType.group_modify.ToString() })
+            };
+            apiConn.FullTicket.Id = 42;
+            WfReqTask scopedTask = CreateEligibleRequestTask(30);
+            scopedTask.TicketId = 42;
+            ActionHandler handler = new(apiConn, new WfHandler());
+
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
+
+            Assert.That(ticket, Is.SameAs(apiConn.FullTicket));
+            Assert.That(ticket!.Tasks, Has.Count.EqualTo(2));
+            Assert.That(apiConn.Queries, Has.Member(RequestQueries.getTicketById));
+        }
+
+        [Test]
+        public async Task GetCallingTicket_FallsBackToScopedTaskWhenFullTicketCannotBeLoaded()
+        {
+            ActionHandlerTestApiConn apiConn = new() { ThrowOnGetTicketById = true };
+            WfReqTask scopedTask = CreateEligibleRequestTask(32);
+            scopedTask.TicketId = 42;
+            ActionHandler handler = new(apiConn, new WfHandler());
+
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
+
+            Assert.That(ticket?.Tasks, Has.Count.EqualTo(1));
+            Assert.That(ticket?.Tasks.Single(), Is.SameAs(scopedTask));
+        }
+
+        [Test]
         public async Task PerformAction_AutoPromoteConditionalPolicyCheckConfigured_PromotesToOkState()
         {
             ActionHandlerTestApiConn apiConn = new();

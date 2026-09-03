@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -87,6 +86,37 @@ namespace FWO.Test
                 Assert.That(sink.Messages, Has.Count.EqualTo(1));
                 Assert.That(sink.Messages[0].IsError, Is.True);
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task SettingsDefaults_RendersPathAnalysisAlgorithmOptions()
+        {
+            await using BunitContext context =
+                CreateSavingContext(out RecordingSettingsApiConn apiConnection);
+
+            const string kAlgorithmName = "Network Zone Tree";
+
+            apiConnection.PathAnalysisAlgorithms.Add(new PathAnalysisAlgorithm
+            {
+                Name = kAlgorithmName
+            });
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper =
+                RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                var options = wrapper.FindAll("#pathAnalysisAlgorithm option");
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(options, Has.Count.EqualTo(1));
+                    Assert.That(options[0].TextContent, Is.EqualTo(kAlgorithmName));
+                    Assert.That(
+                        options[0].GetAttribute("value"),
+                        Is.EqualTo(kAlgorithmName));
+                });
             });
         }
 

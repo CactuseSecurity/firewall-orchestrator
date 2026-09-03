@@ -86,10 +86,29 @@
       failed_when: false
       become: true
 
+    # A bind conflict is the other way this endpoint stays dead while Apache is
+    # perfectly healthy: the vhost answers on the public port and proxies to a
+    # middleware that never came up, because something else already holds its
+    # internal port. The journal names the address it failed to bind; this names
+    # the process holding it, which is the part that is otherwise guesswork.
+    - name: get the processes listening on the middleware ports
+      ansible.builtin.shell:
+          cmd: >-
+              set -o pipefail;
+              ss -ltnp
+              | grep -E ':({{ middleware_internal_port }}|{{ test_middleware_port }})[[:space:]]'
+              || true
+          executable: /bin/bash
+      register: middleware_listening_processes
+      changed_when: false
+      failed_when: false
+      become: true
+
     - name: show middleware startup diagnostics
       ansible.builtin.debug:
           msg:
               - "configured middleware_uri in {{ fworch_conf_file }}: {{ test_middleware_uri }}"
+              - "listeners on {{ middleware_internal_port }} (middleware) and {{ test_middleware_port }} (reverse proxy): {{ middleware_listening_processes.stdout | default('') | trim or 'none - neither port is bound' }}"
               - "certificate served on {{ test_middleware_host }}:{{ test_middleware_port }}: {{ middleware_served_certificate.stdout | default('') }}"
               - "{{ http_conf_dir }}{{ product_name }}-mw.conf: {{ middleware_vhost_certificate_paths.stdout | default('') }}"
               - "anchors in {{ internalca_trust_bundle }}: {{ middleware_trust_bundle_anchors.stdout | default('') }}"
@@ -101,7 +120,10 @@
           msg: >-
             Middleware did not become ready on
             {{ test_middleware_host }}:{{ test_middleware_port }}, reached as
-            {{ test_middleware_uri }}.
+            {{ test_middleware_uri }}. See the diagnostics above: a service in
+            failed state points at the journal, a read timeout against a healthy
+            vhost points at {{ middleware_internal_port }} being unreachable or
+            held by another process.
 
 - name: middleware test get jwt valid creds
   ansible.builtin.uri:

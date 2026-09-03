@@ -124,8 +124,8 @@ For instructions on running an upgrade on an existing installation, see
 
 The **Version gate** workflow
 ([`.github/workflows/version-gate.yml`](../../.github/workflows/version-gate.yml))
-publishes the required commit status `fwo/version-gate` on every pull request that
-targets `develop`. It blocks a pull request when:
+runs on every pull request that targets `develop`. Its single job,
+`Gate pull request version`, is the required check, and it fails when:
 
 - the version its merge result carries is already sealed by a release tag,
 - it raises `product_version` while the previous version has no sealing tag yet,
@@ -133,12 +133,15 @@ targets `develop`. It blocks a pull request when:
 - it raises `product_version` without adding the matching section to
   [`documentation/revision-history.md`](../revision-history.md).
 
-The status is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
+The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
 `all.yml` inherits the base branch version and is never blocked for being out of date.
 
-The same workflow re-evaluates every open pull request whenever a sealing tag is pushed.
-This is what makes step 3 of the lifecycle bite: pull requests that were green on the
-now sealed version turn red immediately, without needing a push to the pull request.
+The **Version gate refresh** workflow
+([`.github/workflows/version-gate-refresh.yml`](../../.github/workflows/version-gate-refresh.yml))
+re-runs that gate for every open pull request whenever a sealing tag is pushed. This is
+what makes step 3 of the lifecycle bite: pull requests that were green on the now sealed
+version turn red immediately, without needing a push to the pull request. The tag list is
+read when the gate runs, so a re-run reaches a different, correct verdict.
 
 The **Version tag guard** workflow
 ([`.github/workflows/version-tag-guard.yml`](../../.github/workflows/version-tag-guard.yml))
@@ -205,9 +208,10 @@ release tags remain immutable.
 
 ### Required status check
 
-Configure branch protection for `develop` to require the status check
-`fwo/version-gate`. Without this, the Version gate reports its verdict but does not
-prevent a merge.
+Configure branch protection for `develop` to require the check
+`Gate pull request version`. That is the job name; the `Version gate` shown in front of
+it in the pull request is only the workflow name. Without this, the Version gate reports
+its verdict but does not prevent a merge.
 
 Do not enable "Require branches to be up to date before merging" for the sake of the
 gate. The gate already evaluates the merge result, so an out-of-date pull request is

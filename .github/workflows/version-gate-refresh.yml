@@ -1,0 +1,114 @@
+name: Version gate refresh
+# NOTE: this workflow's behavior is documented in
+# documentation/developer-docs/github/version-gate-workflow.md and the policy it enforces
+# in documentation/developer-docs/versioning.md - please keep both in sync when changing
+# triggers or job logic here.
+#
+# Creating a sealing tag closes a version, which blocks every open pull request that would
+# still merge onto it. Those pull requests receive no event of their own, so their gate
+# check run would keep the conclusion it had before the tag existed. This workflow re-runs
+# the Version gate workflow for each of them, which rewrites that same check run with a
+# freshly evaluated result. It deliberately lives in its own file so that it never adds a
+# second, skipped entry to a pull request.
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to refresh (empty means all open pull requests)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  BASE_BRANCH: develop
+  GATE_WORKFLOW: version-gate.yml
+
+jobs:
+  refresh-open-prs:
+    name: Refresh open pull request gates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      # Needed to re-run the gate workflow. This job only ever runs on push and
+      # workflow_dispatch, so no fork controlled code is anywhere near this token.
+      actions: write
+    concurrency:
+      group: version-gate-refresh
+      cancel-in-progress: false
+    steps:
+      - name: Check whether the pushed tag seals a version
+        id: trigger
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" != "push" ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+            echo "Tag '$TAG_NAME' seals a version, refreshing open pull requests."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Tag '$TAG_NAME' does not seal a version, nothing to refresh."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No checkout: everything below goes through the GitHub API.
+      - name: Re-run the version gate for every open pull request
+        if: steps.trigger.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SINGLE_PR: ${{ inputs.pr }}
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${SINGLE_PR:-}" ]]; then
+            pull_requests="[$(gh pr view "$SINGLE_PR" --json number,headRefOid)]"
+          else
+            pull_requests="$(gh pr list --base "$BASE_BRANCH" --state open --limit 200 \
+              --json number,headRefOid)"
+          fi
+
+          # Newest first, so the first line matching a head sha is that pull request's
+          # most recent gate run.
+          gh api --paginate \
+            "repos/${GH_REPO}/actions/workflows/${GATE_WORKFLOW}/runs?event=pull_request_target&per_page=100" \
+            --jq '.workflow_runs[] | [.head_sha, .id, .status] | @tsv' >runs.tsv
+
+          unrefreshed=0
+          while read -r number head_sha; do
+            run_line="$(grep -m1 "^${head_sha}	" runs.tsv || true)"
+            if [[ -z "$run_line" ]]; then
+              echo "PR #${number}: no version gate run found for ${head_sha}, cannot refresh." >&2
+              unrefreshed=$((unrefreshed + 1))
+              continue
+            fi
+
+            run_id="$(cut -f2 <<<"$run_line")"
+            run_status="$(cut -f3 <<<"$run_line")"
+            if [[ "$run_status" != "completed" ]]; then
+              echo "PR #${number}: run ${run_id} is ${run_status}, it will report a fresh result on its own."
+              continue
+            fi
+
+            echo "PR #${number}: re-running version gate run ${run_id}."
+            gh run rerun "$run_id" ||
+              { echo "PR #${number}: could not re-run ${run_id}." >&2; unrefreshed=$((unrefreshed + 1)); }
+          done < <(jq -r '.[] | "\(.number) \(.headRefOid)"' <<<"$pull_requests")
+
+          # A pull request that could not be refreshed keeps a stale gate result, so make
+          # that loud rather than silently leaving a merge unblocked.
+          if [[ "$unrefreshed" -gt 0 ]]; then
+            echo "Could not refresh the version gate for ${unrefreshed} pull request(s)." >&2
+            exit 1
+          fi

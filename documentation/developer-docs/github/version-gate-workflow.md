@@ -1,13 +1,15 @@
-# CI: Version gate and version tag guard workflows
+# CI: Version gate workflows
 
 This describes the behavior of
-[`.github/workflows/version-gate.yml`](../../../.github/workflows/version-gate.yml) and
+[`.github/workflows/version-gate.yml`](../../../.github/workflows/version-gate.yml),
+[`.github/workflows/version-gate-refresh.yml`](../../../.github/workflows/version-gate-refresh.yml)
+and
 [`.github/workflows/version-tag-guard.yml`](../../../.github/workflows/version-tag-guard.yml),
 which enforce the rules defined in [Versioning policy](../versioning.md).
 
 The rules themselves live in
 [`scripts/ci/version_gate.py`](../../../scripts/ci/version_gate.py) so that they can be unit
-tested; both workflows only feed it files and publish its verdict.
+tested; the workflows only feed it files and report its verdict.
 
 ## The rule that is enforced
 
@@ -19,22 +21,17 @@ onto an open version, and may only open a new version once the previous one has 
 
 ## Version gate workflow
 
-### Triggers
+Runs on `pull_request_target` for pull requests targeting `develop`
+(`opened`, `synchronize`, `reopened`, `ready_for_review`, `edited`).
 
-| Trigger | What it does |
-| --- | --- |
-| `pull_request_target` on `develop` (`opened`, `synchronize`, `reopened`, `ready_for_review`, `edited`) | evaluates that one pull request |
-| `push` of a tag | re-evaluates every open pull request, but only when the tag seals a version |
-| `workflow_dispatch` | re-evaluates every open pull request, or the single one given as the `pr` input |
-
-Both producers write the same commit status context, **`fwo/version-gate`**, on the pull
-request head commit. That is what makes the gate resistant to stale results: a sealing tag
-created after a pull request last ran flips its status to red without any pull request event,
-which is exactly the situation an ordinary required check would miss.
+It contains exactly one job, **`Gate pull request version`**, and that job's check run *is*
+the gate result. There is no commit status and no second job, so a pull request shows one
+gate entry and nothing else. That single check run is what branch protection must require.
 
 ### What is compared
 
-`scripts/ci/post_version_status.sh` resolves three inputs and hands them to the gate:
+[`scripts/ci/evaluate_version_gate.sh`](../../../scripts/ci/evaluate_version_gate.sh) resolves
+three inputs and hands them to the gate:
 
 | Input | Source |
 | --- | --- |
@@ -48,43 +45,65 @@ falsely blocked for being out of date, and only pull requests that actually chan
 are held to the bump rules. This also makes the "require branches to be up to date before
 merging" branch protection setting unnecessary for the gate.
 
+All three inputs are resolved when the job runs. Nothing is baked into the check run, which is
+what lets a plain re-run produce a different, correct verdict later.
+
 ### Verdicts
 
-| Case | Condition | Status |
+| Case | Condition | Job |
 | --- | --- | --- |
-| any | `V` is a valid `major.minor.patch` | failure otherwise |
-| `V == P` | no sealing tag for `V` exists | failure otherwise: bump `product_version` |
-| `V != P` | `V > P` | failure otherwise: version must not go backwards |
-| `V != P` | a sealing tag for `P` exists | failure otherwise: seal `P` first |
-| `V != P` | no sealing tag for `V` exists | failure otherwise: choose a higher version |
-| `V != P` | `documentation/revision-history.md` ends with a `## V - DD.MM.YYYY` section | failure otherwise |
-| any | `refs/pull/<n>/merge` exists | failure otherwise: resolve the merge conflicts |
+| any | `V` is a valid `major.minor.patch` | fails otherwise |
+| `V == P` | no sealing tag for `V` exists | fails otherwise: bump `product_version` |
+| `V != P` | `V > P` | fails otherwise: version must not go backwards |
+| `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
+| `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
+| `V != P` | `documentation/revision-history.md` ends with a `## V - DD.MM.YYYY` section | fails otherwise |
+| any | `refs/pull/<n>/merge` exists | fails otherwise: resolve the merge conflicts |
 
 The revision history is only checked when the version changes, which keeps the check objective
 and free of false positives.
 
-When re-evaluating after a sealing tag, failing pull requests are the expected outcome, so the
-loop does not abort and the job itself stays green. The verdict lives in the commit statuses.
-
-## Why the status, and not the job, is the verdict
-
-Every workflow run also produces a check run, but a check run belongs to the run that
-created it: nothing rewrites it later. After a sealing tag the re-evaluation updates the
-commit status while the pull request's check run keeps the conclusion of its last pull
-request event, so the two would contradict each other and the stale one would read green.
-
-The pull request job therefore only publishes, and is green whenever it managed to publish
-a status, whatever that status says. `fwo/version-gate` is the single authority and the
-only check that should be required. If the status cannot be published at all the job fails
-and the required status stays missing, which blocks the merge - the gate fails closed.
-
 ### Security
 
-The pull request job runs under `pull_request_target` purely to obtain `statuses: write` for
-pull requests from forks. It checks out the **base** branch, never the pull request head, and
-reads pull request content with `git show` as inert data. No fork code is executed, no
-`allow-unsafe-pr-checkout` is used, and no secret beyond the job's own `GITHUB_TOKEN` is
-available. The trusted-fork gate that `sonarcloud-pr.yml` needs is therefore not required here.
+The job runs under `pull_request_target` but holds a **read-only** token: it publishes
+nothing, so it needs no write permission at all and the elevated context is worthless to a
+fork. It checks out the **base** branch, never the pull request head, and reads pull request
+content with `git show` as inert data. No fork code is executed and no
+`allow-unsafe-pr-checkout` is used.
+
+Checking out the base branch also means the gate logic itself comes from `develop`. A pull
+request cannot edit `version_gate.py` to make itself pass.
+
+## Version gate refresh workflow
+
+Runs on any pushed tag, and on `workflow_dispatch` (optionally for a single `pr`).
+
+Creating a sealing tag closes a version, which must block every open pull request that would
+still merge onto it. Those pull requests get no event of their own, so their gate check run
+would keep the conclusion it had before the tag existed. This workflow re-runs the Version gate
+workflow for each of them with `gh run rerun`, which rewrites that same check run in place
+rather than adding a second signal.
+
+It skips tags that do not seal a version, needs no checkout at all, and matches pull requests to
+runs by head SHA:
+
+```bash
+gh api --paginate ".../workflows/version-gate.yml/runs?event=pull_request_target" \
+    --jq '.workflow_runs[] | [.head_sha, .id, .status] | @tsv'
+```
+
+Runs come back newest first, so the first line matching a pull request's head SHA is that pull
+request's most recent gate run. Runs that are not yet `completed` are left alone, because they
+will report a fresh result on their own.
+
+A re-run replays the workflow file from the original run, but the checkout, the tag list and the
+gate script are all resolved at run time, so the verdict is current even if the workflow YAML
+has since changed. If a pull request cannot be refreshed at all — no run found, or the re-run
+was rejected — the job fails loudly, because that pull request would otherwise keep a stale
+green gate.
+
+This workflow lives in its own file on purpose: a second job inside `version-gate.yml` would add
+a permanently skipped entry to every pull request.
 
 ## Version tag guard workflow
 
@@ -103,11 +122,12 @@ possible while the tag ruleset permits it, and that a published release tag must
 
 **`audit-develop`** runs on every push to `develop` and fails when `develop`'s `product_version`
 is already sealed. It catches the narrow race where a merge lands in the same moment a sealing
-tag is pushed, and any direct push that bypassed the required status check.
+tag is pushed, and any direct push that bypassed the required check.
 
 ## Required repository configuration
 
-- Branch protection on `develop` must require the status check **`fwo/version-gate`**.
+- Branch protection on `develop` must require the check **`Gate pull request version`**.
+  The name to enter is the job name; `Version gate` in front of it is only the workflow name.
 - "Require branches to be up to date before merging" is not needed, see above.
 - The existing tag ruleset (`Restrict creations`, release maintainers only) is what gives
   sealing tags their authority. Without it, anyone who can push a tag can seal a version.

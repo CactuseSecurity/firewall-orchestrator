@@ -12,6 +12,9 @@
 # Usage: post_version_status.sh <pr-number> <head-sha> [base-branch]
 # Requires: git, gh, python3 and GH_TOKEN in the environment.
 #
+# Exits 0 whenever a verdict was published, whether it passes or fails, and non-zero only
+# when no verdict could be published at all.
+#
 # NOTE: this script's behavior is documented in
 # documentation/developer-docs/github/version-gate-workflow.md - please keep that doc in
 # sync when changing it.
@@ -52,7 +55,7 @@ done
 
 if [[ "$merge_ref_available" != "true" ]]; then
     post_status "failure" "Cannot determine the merged product version, resolve the merge conflicts first."
-    exit 1
+    exit 0
 fi
 
 git fetch --quiet --no-tags --depth=1 origin "+refs/heads/${base_branch}:refs/fwo/base"
@@ -80,4 +83,9 @@ else
     post_status "failure" "$description"
 fi
 
-exit "$gate_exit"
+# The verdict travels in the commit status, which is the required check and the single
+# authority: the tag driven re-evaluation rewrites it, while a check run of an earlier
+# workflow run would keep a stale conclusion and contradict it. A non-zero exit is
+# therefore reserved for "no verdict could be published", which leaves the required
+# status missing and blocks the merge anyway.
+exit 0

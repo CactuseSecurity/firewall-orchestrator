@@ -66,6 +66,18 @@ and free of false positives.
 When re-evaluating after a sealing tag, failing pull requests are the expected outcome, so the
 loop does not abort and the job itself stays green. The verdict lives in the commit statuses.
 
+## Why the status, and not the job, is the verdict
+
+Every workflow run also produces a check run, but a check run belongs to the run that
+created it: nothing rewrites it later. After a sealing tag the re-evaluation updates the
+commit status while the pull request's check run keeps the conclusion of its last pull
+request event, so the two would contradict each other and the stale one would read green.
+
+The pull request job therefore only publishes, and is green whenever it managed to publish
+a status, whatever that status says. `fwo/version-gate` is the single authority and the
+only check that should be required. If the status cannot be published at all the job fails
+and the required status stays missing, which blocks the merge - the gate fails closed.
+
 ### Security
 
 The pull request job runs under `pull_request_target` purely to obtain `statuses: write` for

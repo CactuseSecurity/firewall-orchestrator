@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -27,6 +28,9 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+
+        private const string kRefreshLogCategory = "Token Refresh";
+        private const string kRevokeLogCategory = "Token Revoke";
 
         /// <summary>
         /// Constructor needing jwt writer, ldap list and connection
@@ -249,6 +253,12 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
+            // Set before the single-use token is spent rather than after, because a failure
+            // on the consuming call itself is ambiguous: the mutation may have committed
+            // before the connection died. From this point on the attempt is not repeatable,
+            // so an API failure must not invite a retry that can only answer "invalid".
+            bool refreshTokenMayBeSpent = false;
+
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))
@@ -282,6 +292,7 @@ namespace FWO.Middleware.Server.Controllers
                 }
 
                 // Consume the old refresh token exactly once before minting a new pair.
+                refreshTokenMayBeSpent = true;
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
@@ -297,20 +308,21 @@ namespace FWO.Middleware.Server.Controllers
 
                 return Ok(newTokens);
             }
-            catch (HttpRequestException exception)
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // The call to the API failed at the transport level, which is not the
-                // caller's fault: answering 400 tells a client its request was malformed
-                // and must not be repeated, while the truthful answer is that this attempt
-                // could not be completed and can be retried. The refresh token is only
-                // consumed after this step, so retrying is safe.
-                Log.WriteError("Token Refresh", "Could not reach the API while refreshing a token", exception);
-                return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                    "The API could not be reached while refreshing the token. Please retry.");
+                // The API could not be reached, which is not the caller's fault: answering
+                // 400 tells a client its request was malformed and must not be repeated,
+                // while the truthful answer is that this attempt could not be completed.
+                // Whether it may be repeated depends on how far it got, so say which.
+                Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, refreshTokenMayBeSpent
+                    ? "The API could not be reached after the refresh token was consumed, so no new token pair was issued. Please log in again."
+                    : "The API could not be reached while refreshing the token. Please retry.");
             }
             catch (Exception ex)
             {
-                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
                 return BadRequest(ex.Message);
             }
         }
@@ -364,18 +376,18 @@ namespace FWO.Middleware.Server.Controllers
 
                 return Ok();
             }
-            catch (HttpRequestException exception)
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // Same reasoning as in RefreshToken: a failed call to the API is not a
-                // malformed request, and the token is only revoked afterwards, so the
-                // caller can retry.
-                Log.WriteError("Token Refresh", "Could not reach the API while revoking a refresh token", exception);
+                // Same reasoning as in RefreshToken, without its second case: revoking is
+                // idempotent from the caller's side, so a retry is safe wherever it failed.
+                Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "The API could not be reached while revoking the token. Please retry.");
             }
             catch (Exception ex)
             {
-                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
+                Log.WriteError(kRevokeLogCategory, "Failed to revoke token", ex);
                 return BadRequest(ex.Message);
             }
         }
@@ -482,6 +494,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private readonly string UserAuthentication = "User Authentication";
+        private const string kValidationLogCategory = "Token Validation";
 
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
@@ -792,7 +805,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 return result?.FirstOrDefault();
             }
-            catch (HttpRequestException)
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
                 // Deliberately not swallowed: a failed call to the API says nothing about
                 // the token, and returning null here makes the caller answer "invalid or
@@ -803,7 +816,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception ex)
             {
-                Log.WriteError("Token Validation", "Error validating refresh token", ex);
+                Log.WriteError(kValidationLogCategory, "Error validating refresh token", ex);
                 return null;
             }
         }

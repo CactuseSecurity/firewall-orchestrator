@@ -22,6 +22,11 @@ namespace FWO.Test
     {
         // High enough that the requests genuinely overlap on the single-use token.
         private const int kConcurrentRefreshRequests = 18;
+        // A burst this size can lose a call to a transport blip, which is a failure to
+        // complete rather than a second token being spent. Tolerated, but bounded: without
+        // a ceiling the test would also pass when every loser failed to reach the API, and
+        // a reachability regression would read as a green run carrying a warning.
+        private const int kMaxToleratedUpstreamFailures = 2;
         private const string DefaultCiUsername = "integration_user_jwt_refresh_test";
         private const string DefaultCiPassword = "testpassword";
         private HttpClient? client;
@@ -250,6 +255,10 @@ namespace FWO.Test
                 Assert.That(unauthorizedCount + upstreamFailureCount, Is.EqualTo(kConcurrentRefreshRequests - 1),
                     "Every other concurrent refresh request must be rejected with 401, or report 503 when it " +
                     $"could not reach the API. Responses:{Environment.NewLine}{report}");
+                Assert.That(upstreamFailureCount, Is.LessThanOrEqualTo(kMaxToleratedUpstreamFailures),
+                    $"At most {kMaxToleratedUpstreamFailures} of {kConcurrentRefreshRequests} requests may fail to " +
+                    $"reach the API; more than that is a reachability problem, not a blip. " +
+                    $"Responses:{Environment.NewLine}{report}");
             });
 
             if (upstreamFailureCount > 0)

@@ -11,11 +11,14 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Services;
+using GraphQL.Client.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 
 namespace FWO.Test
@@ -282,6 +285,101 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.TypeOf<ObjectResult>());
             Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// The failure mode a narrower catch missed: the API host answers, but the reverse
+        /// proxy is answering on its own behalf because the service behind it is down. That
+        /// arrives as GraphQLHttpRequestException, which is not an HttpRequestException, so
+        /// it used to be swallowed into "invalid or expired refresh token" - ending every
+        /// session over a restart of the API.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_ReportsServiceUnavailableWhenTheProxyCannotReachTheApi()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = CreateGraphQlHttpException(HttpStatusCode.ServiceUnavailable)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>(),
+                "a proxy failure must not be reported as a verdict on the refresh token");
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// The other side of the same classification: a status code that is an answer about
+        /// the request must not be dressed up as "the API could not be reached", because
+        /// that would hide a real misconfiguration behind a retry suggestion.
+        /// </summary>
+        [TestCase(HttpStatusCode.Forbidden)]
+        [TestCase(HttpStatusCode.InternalServerError)]
+        public async Task RefreshToken_DoesNotReportServiceUnavailableForAnApiSideFailure(HttpStatusCode statusCode)
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = CreateGraphQlHttpException(statusCode)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            int? reportedStatus = (result.Result as ObjectResult)?.StatusCode;
+
+            Assert.That(reportedStatus, Is.Not.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        /// <summary>
+        /// Once the single-use token has been spent, the attempt is no longer repeatable, so
+        /// the response must not invite a retry that could only ever answer "invalid or
+        /// expired refresh token".
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_DoesNotInviteARetryAfterTheTokenWasConsumed()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.storeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult objectResult = (ObjectResult)result.Result!;
+            string message = objectResult.Value?.ToString() ?? "";
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(message, Does.Contain("log in again"));
+                Assert.That(message, Does.Not.Contain("Please retry"),
+                    "the refresh token is already spent, so retrying cannot succeed");
+            });
+        }
+
+        /// <summary>
+        /// Before the token is consumed the attempt is repeatable, and the message says so.
+        /// Paired with the test above so that the two branches cannot collapse into one.
+        /// </summary>
+        [Test]
+        public async Task RefreshToken_InvitesARetryBeforeTheTokenWasConsumed()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new HttpRequestException("connection reset by peer")
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            string message = ((ObjectResult)result.Result!).Value?.ToString() ?? "";
+
+            Assert.That(message, Does.Contain("Please retry"));
         }
 
         [Test]
@@ -602,6 +700,46 @@ namespace FWO.Test
         private static AuthenticationTokenController CreateController(ApiConnection apiConnection)
         {
             return CreateController([], apiConnection);
+        }
+
+        /// <summary>
+        /// Builds the exception the GraphQL client raises when the API host answers with a
+        /// non-success status code.
+        /// </summary>
+        /// <param name="statusCode">Status code the API host answered with.</param>
+        /// <returns>The exception the API connection would surface.</returns>
+        private static GraphQLHttpRequestException CreateGraphQlHttpException(HttpStatusCode statusCode)
+        {
+            using HttpResponseMessage response = new(statusCode);
+            HttpResponseHeaders headers = response.Headers;
+
+            return new GraphQLHttpRequestException(statusCode, headers, $"<html><title>{(int)statusCode}</title></html>");
+        }
+
+        /// <summary>
+        /// An LDAP client that lets the refresh path rebuild the stored user.
+        /// </summary>
+        /// <returns>A client answering the user and role searches of a refresh.</returns>
+        private static RecordingLdapClient CreateRefreshLdapClient()
+        {
+            RecordingLdapClient client = new()
+            {
+                SearchResponder = (baseDn, scope, filter, attributes, typesOnly) => baseDn == kRoleSearchPath
+                    ? LdapTestSupport.CreateSearchResults(
+                        LdapTestSupport.CreateEntry(
+                            "cn=reporter,ou=roles,dc=fworch,dc=internal",
+                            new LdapAttribute("cn", kReporterRoleValues),
+                            new LdapAttribute("uniqueMember", kLoginUserDn)))
+                    : LdapTestSupport.CreateSearchResults()
+            };
+
+            // A refresh rebuilds a user that already carries a DN, so its entry is read
+            // directly rather than searched for under the user path.
+            client.ReadResultsByDn[kRoleUserDn] = LdapTestSupport.CreateEntry(
+                kRoleUserDn,
+                new LdapAttribute("cn", kLoginUserCn));
+
+            return client;
         }
 
         private static TestableLdap CreateAuthLdap(RecordingLdapClient client)

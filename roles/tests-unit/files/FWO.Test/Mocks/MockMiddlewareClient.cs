@@ -12,6 +12,17 @@ namespace FWO.Test.Mocks
     {
         public TokenPair? NextRefreshTokenResponse { get; set; }
         public bool ShouldRefreshSucceed { get; set; } = true;
+        /// <summary>
+        /// Status the middleware answers a failed refresh with. Unauthorized is its verdict
+        /// on the token; a 5xx says it could not carry the request out, which the caller has
+        /// to treat differently because it says nothing about the token.
+        /// </summary>
+        public HttpStatusCode RefreshFailureStatusCode { get; set; } = HttpStatusCode.Unauthorized;
+        /// <summary>
+        /// When set, the refresh call gets no HTTP answer at all, as if the middleware could
+        /// not be reached.
+        /// </summary>
+        public bool SimulateRefreshTransportFailure { get; set; }
         public bool ReturnRefreshData { get; set; } = true;
         public bool ShouldRevokeSucceed { get; set; } = true;
         public int RefreshTokenCallCount { get; private set; }
@@ -55,11 +66,24 @@ namespace FWO.Test.Mocks
                 return response;
             }
 
+            if (SimulateRefreshTransportFailure)
+            {
+                // No HTTP answer arrived, so there is no status code to report.
+                return new RestResponse<TokenPair>(request)
+                {
+                    ErrorMessage = "The middleware could not be reached",
+                    ResponseStatus = ResponseStatus.Error,
+                    IsSuccessStatusCode = false
+                };
+            }
+
+            // An answer did arrive, which is what ResponseStatus.Completed means; whether it
+            // settles the session is decided by its status code.
             RestResponse<TokenPair> failResponse = new(request)
             {
-                StatusCode = HttpStatusCode.Unauthorized,
+                StatusCode = RefreshFailureStatusCode,
                 ErrorMessage = "Refresh token failed",
-                ResponseStatus = ResponseStatus.Error,
+                ResponseStatus = ResponseStatus.Completed,
                 IsSuccessStatusCode = false
             };
             return failResponse;
@@ -119,6 +143,8 @@ namespace FWO.Test.Mocks
             ChangePasswordException = null;
             NextRefreshTokenResponse = null;
             ShouldRefreshSucceed = true;
+            RefreshFailureStatusCode = HttpStatusCode.Unauthorized;
+            SimulateRefreshTransportFailure = false;
             ReturnRefreshData = true;
             ShouldRevokeSucceed = true;
             ChangePasswordResponse = new(new RestRequest())

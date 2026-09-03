@@ -531,6 +531,17 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
+    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
+    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
+    <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
+    <li>Ein kompletter Rollback (L&ouml;schung aller Importdaten einer Management) kann jetzt &uuml;ber eine Standardeinstellung freigeschaltet werden und ist standardm&auml;&szlig;ig deaktiviert.</li>
+    <li>In Zonenmatrizen kann eine automatisch berechnete Internet-Zone angelegt werden.</li>
+    <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
+    <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
+    <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
+    <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
     <li>Verschiebe compliance.ip_range ins neue Schema network_zone.ip_range und compliance.network_zone nach network_zone.zone</li>
     <li>Zentrale Einstellung Pfad Analyse Algorithmus hinzugef&uuml;gt</li>
     <li>Verschiebe viele Compliance Einstellungen nach Netzwerk Matrix und Internet in die neue Sektion Netzwerk Topologie</li>
@@ -539,6 +550,17 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
+    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
+    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
+    <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
+    <li>A full rollback (deletion of all import data of a management) can now be enabled via a default setting and is disabled by default.</li>
+    <li>An auto-calculated Internet zone can be added to zone matrices.</li>
+    <li>Rule reports can be filtered by source and destination object types.</li>
+    <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
+    <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
+    <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li>Move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone</li>
     <li>Add central setting for path analysis algorithm</li>
     <li>Move many compliance settings regarding matrix and internet to their own setting page in new section network topology</li>
@@ -3326,8 +3348,8 @@ INSERT INTO txt VALUES ('multicastBroadcast','German', 'Multicast / Broadcast');
 INSERT INTO txt VALUES ('multicastBroadcast','English','Multicast / broadcast');
 INSERT INTO txt VALUES ('documentationSamples','German', 'Dokumentation / Beispiele');
 INSERT INTO txt VALUES ('documentationSamples','English','Documentation / samples');
-INSERT INTO txt VALUES ('div','German', 'Div (Benchmarking, Spezialzweck usw.)');
-INSERT INTO txt VALUES ('div','English','Div (benchmarking, special purpose, etc)');
+INSERT INTO txt VALUES ('internetSettingsDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
+INSERT INTO txt VALUES ('internetSettingsDiv','English','Div (benchmarking, special purpose, etc)');
 INSERT INTO txt VALUES ('autoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen');
 INSERT INTO txt VALUES ('autoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones');
 INSERT INTO txt VALUES ('treatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet');

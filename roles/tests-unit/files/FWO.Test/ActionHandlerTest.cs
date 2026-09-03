@@ -1523,25 +1523,28 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetCallingTicket_UsesActiveTicketBeforeScopedFallbacks()
+        public async Task GetCallingTicket_UsesActiveTicketBeforeScopedFallbacks()
         {
             WfTicket activeTicket = CreateTicket(CreateEligibleRequestTask(18));
             WfReqTask scopedTask = CreateEligibleRequestTask(19);
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { ActTicket = activeTicket });
 
-            WfTicket? ticket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask]);
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
 
             Assert.That(ticket, Is.SameAs(activeTicket));
         }
 
         [Test]
-        public void GetCallingTicket_UsesActiveRequestTaskForImplementationAndApprovalScopes()
+        public async Task GetCallingTicket_UsesActiveRequestTaskForImplementationAndApprovalScopes()
         {
             WfReqTask activeRequestTask = CreateEligibleRequestTask(20);
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { ActReqTask = activeRequestTask });
 
-            WfTicket? implementationTicket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfImplTask { Id = 1 }, WfObjectScopes.ImplementationTask]);
-            WfTicket? approvalTicket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfApproval { Id = 1 }, WfObjectScopes.Approval]);
+            Task<WfTicket?> implementationTicketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfImplTask { Id = 1 }, WfObjectScopes.ImplementationTask])!;
+            Task<WfTicket?> approvalTicketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfApproval { Id = 1 }, WfObjectScopes.Approval])!;
+            WfTicket? implementationTicket = await implementationTicketTask;
+            WfTicket? approvalTicket = await approvalTicketTask;
 
             Assert.Multiple(() =>
             {
@@ -1673,7 +1676,22 @@ namespace FWO.Test
                     new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-incomplete" }
                 ]
             };
-            WfTicket ticket = CreateTicket(eligibleTask, ineligibleTask);
+            WfReqTask modifiedGroupTask = new()
+            {
+                Id = 17,
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "192.0.2.10/32",
+                        Name = "app-server-1"
+                    }
+                ]
+            };
+            WfTicket ticket = CreateTicket(eligibleTask, ineligibleTask, modifiedGroupTask);
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.AutoPromote.ToString(),
@@ -1682,9 +1700,10 @@ namespace FWO.Test
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
 
-            Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new List<long> { 15 }));
+            Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new List<long> { 15, 17 }));
             Assert.That(eligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo("true"));
             Assert.That(ineligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo(""));
+            Assert.That(modifiedGroupTask.GetAddInfoValue("policy_check"), Is.EqualTo(""));
         }
 
         [Test]

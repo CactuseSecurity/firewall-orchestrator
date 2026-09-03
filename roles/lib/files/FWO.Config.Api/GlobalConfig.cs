@@ -75,8 +75,8 @@ namespace FWO.Config.Api
         {
             ProductVersion = "1.0";
             UiLanguages = [];
-            LangDict = [];
-            OverDict = [];
+            LangDict = new() { [GlobalConst.kEnglish] = [] };
+            OverDict = new() { [GlobalConst.kEnglish] = [] };
         }
 
         private GlobalConfig(ApiConnection apiConnection, string productVersion, Language[] uiLanguages, Dictionary<string, Dictionary<string, string>> langDict,

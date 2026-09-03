@@ -2439,6 +2439,16 @@ internal class FlowRequestServiceTest
             SentVariables.Add(variables);
 
             Type responseType = typeof(QueryResponseType);
+            if (responseType == typeof(ConfigItem[]))
+            {
+                return Task.FromResult((QueryResponseType)(object)Array.Empty<ConfigItem>());
+            }
+
+            if (responseType == typeof(List<UiText>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<UiText>());
+            }
+
             if (responseType == typeof(WfTicket))
             {
                 WfTicket? ticket = CreatedTicket ?? Ticket;

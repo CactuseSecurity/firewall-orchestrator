@@ -2,6 +2,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Test.Fixtures;
@@ -96,7 +97,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRulesFromRequestTasks_MapsEligibleTaskAndSkipsDeletedElements()
+        public async Task BuildRulesFromRequestTasks_MapsEligibleTaskAndSkipsDeletedElements()
         {
             WfReqTask task = CreateEligibleRequestTask(21);
             task.Elements.Add(new WfReqElement
@@ -116,7 +117,7 @@ namespace FWO.Test
                 RequestAction = nameof(RequestAction.delete)
             });
 
-            List<Rule> rules = BuildRulesFromRequestTasks(task);
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
@@ -133,14 +134,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRulesFromRequestTasks_MapsDeleteTaskToDropAndRangeToIpRange()
+        public async Task BuildRulesFromRequestTasks_MapsDeleteTaskToDropAndRangeToIpRange()
         {
             WfReqTask task = CreateEligibleRequestTask(22, nameof(WfTaskType.rule_delete));
             task.Elements[0].IpString = "10.0.0.1";
             task.Elements[0].IpEnd = "10.0.0.9";
             task.Elements[0].CidrEnd = new Cidr("10.0.0.9");
 
-            List<Rule> rules = BuildRulesFromRequestTasks(task);
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.Multiple(() =>
@@ -152,14 +153,106 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildRulesFromRequestTasks_SkipsTasksWithoutRequiredActiveElements()
+        public async Task BuildRulesFromRequestTasks_SkipsTasksWithoutRequiredActiveElements()
         {
             WfReqTask task = CreateEligibleRequestTask(23);
             task.Elements.First(element => element.Field == ElemFieldType.service.ToString()).RequestAction = nameof(RequestAction.delete);
 
-            List<Rule> rules = BuildRulesFromRequestTasks(task);
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ExpandsReferencedNetworkGroupMembers()
+        {
+            WfReqTask destinationGroupTask = new()
+            {
+                TaskType = WfTaskType.group_create.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "192.0.2.10",
+                        Name = "app-server-1"
+                    }
+                ]
+            };
+            WfReqTask ruleTask = CreateEligibleRequestTask(24);
+            WfReqElement destination = ruleTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "app-servers";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask, destinationGroupTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos, Has.Length.EqualTo(1));
+            Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.10/32"));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ExpandsModifiedNetworkGroupMembers()
+        {
+            WfReqTask destinationGroupTask = new()
+            {
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "192.0.2.11",
+                        Name = "app-server-2"
+                    }
+                ]
+            };
+            WfReqTask ruleTask = CreateEligibleRequestTask(26);
+            WfReqElement destination = ruleTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "app-servers";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask, destinationGroupTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos, Has.Length.EqualTo(1));
+            Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.11/32"));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ResolvesExistingNetworkGroupFromFlowDb()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowNwGroup
+                    {
+                        Id = 101,
+                        Name = "existing-app-servers",
+                        NwGroupMembers = [new FlowNwGroupMember { NwGroupId = 101, NwObjectId = 201 }]
+                    }
+                ]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowNwObject { Id = 201, Name = "app-server-1", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }
+                ]);
+
+            WfReqTask ruleTask = CreateEligibleRequestTask(25);
+            WfReqElement destination = ruleTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "existing-app-servers";
+            destination.FlowNetworkGroupId = 101;
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos, Has.Length.EqualTo(1));
+            Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.10/32"));
         }
 
         [Test]
@@ -203,12 +296,13 @@ namespace FWO.Test
             };
         }
 
-        private static List<Rule> BuildRulesFromRequestTasks(params WfReqTask[] requestTasks)
+        private async Task<List<Rule>> BuildRulesFromRequestTasks(params WfReqTask[] requestTasks)
         {
-            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRulesFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Static)
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRulesFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new AssertionException("BuildRulesFromRequestTasks method not found.");
-            object? result = method.Invoke(null, [requestTasks.AsEnumerable()]);
-            return result as List<Rule> ?? throw new AssertionException("BuildRulesFromRequestTasks returned unexpected result.");
+            object? result = method.Invoke(checker, [requestTasks.AsEnumerable()]);
+            Task<List<Rule>> task = result as Task<List<Rule>> ?? throw new AssertionException("BuildRulesFromRequestTasks returned unexpected result.");
+            return await task;
         }
     }
 }

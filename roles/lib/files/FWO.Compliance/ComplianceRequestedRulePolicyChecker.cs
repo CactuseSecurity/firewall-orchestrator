@@ -1,7 +1,9 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 
@@ -12,7 +14,7 @@ namespace FWO.Compliance
         public async Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
         {
             List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
-            List<Rule> rules = BuildRulesFromRequestTasks(requestTasks);
+            List<Rule> rules = await BuildRulesFromRequestTasks(requestTasks);
             if (selectedPolicyIds.Count == 0 || rules.Count == 0)
             {
                 return false;
@@ -22,18 +24,22 @@ namespace FWO.Compliance
             return await complianceCheck.AreRulesCompliant(selectedPolicyIds, rules);
         }
 
-        private static List<Rule> BuildRulesFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
+        private async Task<List<Rule>> BuildRulesFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
         {
+            List<WfReqTask> tasks = requestTasks.ToList();
+            Dictionary<string, List<NwObjectElement>> networkGroupMembers = BuildNetworkGroupMembers(tasks);
+            Dictionary<string, List<NwServiceElement>> serviceGroupMembers = BuildServiceGroupMembers(tasks);
+            await AddFlowNetworkGroupMembers(tasks, networkGroupMembers);
+            await AddFlowServiceGroupMembers(tasks, serviceGroupMembers);
             List<Rule> rules = [];
 
-            foreach (WfReqTask task in requestTasks
-                .Where(task => task.ManagementId != null)
+            foreach (WfReqTask task in tasks
                 .Where(task => !string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase))
                 .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
                 .Where(task => task.GetServiceElements().Count > 0))
             {
-                Rule? rule = BuildRuleFromRequestTask(task);
+                Rule? rule = BuildRuleFromRequestTask(task, networkGroupMembers, serviceGroupMembers);
                 if (rule != null)
                 {
                     rules.Add(rule);
@@ -43,29 +49,104 @@ namespace FWO.Compliance
             return rules;
         }
 
-        private static Rule? BuildRuleFromRequestTask(WfReqTask requestTask)
+        private async Task AddFlowNetworkGroupMembers(IEnumerable<WfReqTask> tasks,
+            Dictionary<string, List<NwObjectElement>> networkGroupMembers)
         {
-            if (requestTask.ManagementId == null)
+            List<NwObjectElement> groupElements = tasks
+                .SelectMany(task => task.GetNwObjectElements(ElemFieldType.source).Concat(task.GetNwObjectElements(ElemFieldType.destination)))
+                .Where(element => !string.IsNullOrWhiteSpace(element.GroupName))
+                .Where(element => !networkGroupMembers.ContainsKey(element.GroupName))
+                .ToList();
+            if (groupElements.Count == 0)
             {
-                return null;
+                return;
             }
 
-            List<NetworkLocation> froms = requestTask.GetNwObjectElements(ElemFieldType.source)
-                .Where(IsRequestedElementActive)
+            HashSet<long> groupIds = groupElements
+                .Where(element => element.FlowNetworkGroupId.HasValue)
+                .Select(element => element.FlowNetworkGroupId!.Value)
+                .ToHashSet();
+            HashSet<string> groupNames = groupElements.Select(element => element.GroupName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            List<FlowNwGroup> groups = await apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, new { mgmId = 0 }) ?? [];
+            List<FlowNwObject> objects = await apiConnection.SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, new { mgmId = 0 }) ?? [];
+            Dictionary<long, FlowNwObject> objectsById = objects.ToDictionary(obj => obj.Id);
+            foreach (FlowNwGroup group in groups.Where(group => groupIds.Contains(group.Id) || groupNames.Contains(group.Name)))
+            {
+                networkGroupMembers[group.Name] = group.NwGroupMembers
+                    .Where(member => objectsById.ContainsKey(member.NwObjectId))
+                    .Select(member => ToNetworkElement(objectsById[member.NwObjectId]))
+                    .ToList();
+            }
+        }
+
+        private async Task AddFlowServiceGroupMembers(IEnumerable<WfReqTask> tasks,
+            Dictionary<string, List<NwServiceElement>> serviceGroupMembers)
+        {
+            List<NwServiceElement> groupElements = tasks
+                .SelectMany(task => task.GetServiceElements())
+                .Where(element => !string.IsNullOrWhiteSpace(element.GroupName))
+                .Where(element => !serviceGroupMembers.ContainsKey(element.GroupName!))
+                .ToList();
+            if (groupElements.Count == 0)
+            {
+                return;
+            }
+
+            HashSet<long> groupIds = groupElements
+                .Where(element => element.FlowServiceGroupId.HasValue)
+                .Select(element => element.FlowServiceGroupId!.Value)
+                .ToHashSet();
+            HashSet<string> groupNames = groupElements.Select(element => element.GroupName!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            List<FlowSvcGroup> groups = await apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, new { mgmId = 0 }) ?? [];
+            List<FlowSvcObject> objects = await apiConnection.SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, new { mgmId = 0 }) ?? [];
+            Dictionary<long, FlowSvcObject> objectsById = objects.ToDictionary(obj => obj.Id);
+            foreach (FlowSvcGroup group in groups.Where(group => groupIds.Contains(group.Id) || groupNames.Contains(group.Name)))
+            {
+                serviceGroupMembers[group.Name] = group.SvcGroupMembers
+                    .Where(member => objectsById.ContainsKey(member.SvcObjectId))
+                    .Select(member => ToServiceElement(objectsById[member.SvcObjectId]))
+                    .ToList();
+            }
+        }
+
+        private static NwObjectElement ToNetworkElement(FlowNwObject flowObject)
+        {
+            return new NwObjectElement
+            {
+                Name = flowObject.Name,
+                IpString = flowObject.IpStart ?? "",
+                IpEndString = flowObject.IpEnd ?? ""
+            };
+        }
+
+        private static NwServiceElement ToServiceElement(FlowSvcObject flowObject)
+        {
+            return new NwServiceElement
+            {
+                Name = flowObject.Name,
+                Port = flowObject.PortStart,
+                PortEnd = flowObject.PortEnd,
+                ProtoId = flowObject.ProtoId
+            };
+        }
+
+        private static Rule? BuildRuleFromRequestTask(WfReqTask requestTask,
+            IReadOnlyDictionary<string, List<NwObjectElement>> networkGroupMembers,
+            IReadOnlyDictionary<string, List<NwServiceElement>> serviceGroupMembers)
+        {
+            List<NetworkLocation> froms = ExpandNetworkElements(requestTask.GetNwObjectElements(ElemFieldType.source), networkGroupMembers)
                 .Select(BuildNetworkLocation)
                 .Where(location => location != null)
                 .Cast<NetworkLocation>()
                 .ToList();
 
-            List<NetworkLocation> tos = requestTask.GetNwObjectElements(ElemFieldType.destination)
-                .Where(IsRequestedElementActive)
+            List<NetworkLocation> tos = ExpandNetworkElements(requestTask.GetNwObjectElements(ElemFieldType.destination), networkGroupMembers)
                 .Select(BuildNetworkLocation)
                 .Where(location => location != null)
                 .Cast<NetworkLocation>()
                 .ToList();
 
-            List<ServiceWrapper> services = requestTask.GetServiceElements()
-                .Where(IsRequestedElementActive)
+            List<ServiceWrapper> services = ExpandServiceElements(requestTask.GetServiceElements(), serviceGroupMembers)
                 .Select(BuildService)
                 .Where(service => service != null)
                 .Cast<ServiceWrapper>()
@@ -78,16 +159,89 @@ namespace FWO.Compliance
 
             return new Rule()
             {
-                MgmtId = requestTask.ManagementId.Value,
                 Uid = requestTask.GetRuleElements()
                     .Select(rule => rule.RuleUid)
                     .FirstOrDefault(uid => !string.IsNullOrWhiteSpace(uid)) ?? "",
+                MgmtId = requestTask.ManagementId ?? 0,
                 Name = requestTask.Title,
                 Action = GetRuleAction(requestTask),
                 Froms = [.. froms],
                 Tos = [.. tos],
                 Services = [.. services]
             };
+        }
+
+        private static Dictionary<string, List<NwObjectElement>> BuildNetworkGroupMembers(IEnumerable<WfReqTask> tasks)
+        {
+            Dictionary<string, List<NwObjectElement>> groups = new(StringComparer.OrdinalIgnoreCase);
+            foreach (WfReqTask task in tasks.Where(IsGroupTask))
+            {
+                string groupName = task.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+                if (!string.IsNullOrWhiteSpace(groupName))
+                {
+                    groups[groupName] = task.GetNwObjectElements(ElemFieldType.source);
+                }
+            }
+            return groups;
+        }
+
+        private static Dictionary<string, List<NwServiceElement>> BuildServiceGroupMembers(IEnumerable<WfReqTask> tasks)
+        {
+            Dictionary<string, List<NwServiceElement>> groups = new(StringComparer.OrdinalIgnoreCase);
+            foreach (WfReqTask task in tasks.Where(IsGroupTask))
+            {
+                string groupName = task.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+                if (!string.IsNullOrWhiteSpace(groupName))
+                {
+                    groups[groupName] = task.GetServiceElements();
+                }
+            }
+            return groups;
+        }
+
+        private static IEnumerable<NwObjectElement> ExpandNetworkElements(IEnumerable<NwObjectElement> elements,
+            IReadOnlyDictionary<string, List<NwObjectElement>> networkGroupMembers)
+        {
+            foreach (NwObjectElement element in elements.Where(IsRequestedElementActive))
+            {
+                if (string.IsNullOrWhiteSpace(element.GroupName))
+                {
+                    yield return element;
+                }
+                else if (networkGroupMembers.TryGetValue(element.GroupName, out List<NwObjectElement>? members))
+                {
+                    foreach (NwObjectElement member in members.Where(IsRequestedElementActive))
+                    {
+                        yield return member;
+                    }
+                }
+            }
+        }
+
+        private static IEnumerable<NwServiceElement> ExpandServiceElements(IEnumerable<NwServiceElement> elements,
+            IReadOnlyDictionary<string, List<NwServiceElement>> serviceGroupMembers)
+        {
+            foreach (NwServiceElement element in elements.Where(IsRequestedElementActive))
+            {
+                if (string.IsNullOrWhiteSpace(element.GroupName))
+                {
+                    yield return element;
+                }
+                else if (serviceGroupMembers.TryGetValue(element.GroupName, out List<NwServiceElement>? members))
+                {
+                    foreach (NwServiceElement member in members.Where(IsRequestedElementActive))
+                    {
+                        yield return member;
+                    }
+                }
+            }
+        }
+
+        private static bool IsGroupTask(WfReqTask task)
+        {
+            return (task.TaskType == WfTaskType.group_create.ToString()
+                || task.TaskType == WfTaskType.group_modify.ToString())
+                && !string.IsNullOrWhiteSpace(task.GetAddInfoValue(AdditionalInfoKeys.GrpName));
         }
 
         private static NetworkLocation? BuildNetworkLocation(NwObjectElement element)

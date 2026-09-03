@@ -630,7 +630,7 @@ public sealed class FlowRequestService : IDisposable
     /// </summary>
     private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
     {
-        using UserConfig userConfig = new();
+        using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {

@@ -183,5 +183,5 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenL
 INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetimeUnit', 'Hours', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
-INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', 'None', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', 1, 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);

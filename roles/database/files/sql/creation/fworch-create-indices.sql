@@ -115,12 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_ip_range_id
 ON network_zone.device_ip_range_internet (ip_range_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_root_device_per_ip_range
-ON network_zone.device_ip_range_root (ip_range_id, dev_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
 ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_internet_device_per_ip_range
-ON network_zone.device_ip_range_internet (ip_range_id, dev_id);
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;

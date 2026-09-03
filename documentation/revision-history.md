@@ -646,3 +646,4 @@ Not supported any longer are:
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
+- prepare network zone tree algorithm in database

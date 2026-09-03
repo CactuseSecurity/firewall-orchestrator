@@ -94,9 +94,33 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES
 -- renamed compliance settings
 UPDATE config SET config_key = 'matrixAllowNestedZones'
 WHERE config_key = 'complianceMatrixAllowNetworkZones';
-
 UPDATE config SET config_key = 'sortMatrixByID'
 WHERE config_key = 'complianceCheckSortMatrixByID';
+UPDATE customtxt SET id = 'autoCalcInternetZone'
+WHERE id = 'complianceCheckAutoCalcInternetZone';
+
+UPDATE config SET config_key = 'autoCalcUndefinedInternalZone'
+WHERE config_key = 'complianceCheckAutoCalcUndefinedInternalZone';
+UPDATE config SET config_key = 'excludeFromInternetZone'
+WHERE config_key = 'complianceCheckExcludeFromInternetZone';
+UPDATE customtxt SET id = 'privateAdressSpace'
+WHERE id = 'complianceCheckPrivateAdressSpace';
+
+UPDATE config SET config_key = 'loopbackLocal'
+WHERE config_key = 'complianceCheckLoopbackLocal';
+UPDATE config SET config_key = 'multicastBroadcast'
+WHERE config_key = 'complianceCheckMulticastBroadcast';
+UPDATE customtxt SET id = 'documentationSamples'
+WHERE id = 'complianceCheckDocumentationSamples';
+
+UPDATE config SET config_key = 'div'
+WHERE config_key = 'complianceCheckDiv';
+UPDATE config SET config_key = 'autoCalculatedZonesAtTheEnd'
+WHERE config_key = 'complianceCheckAutoCalculatedZonesAtTheEnd';
+UPDATE customtxt SET id = 'treatDynamicAndDomainObjectsAsInternet'
+WHERE id = 'complianceCheckTreatDynamicAndDomainObjectsAsInternet';
+
+
 
 -- path analysis algorithm
 CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
@@ -110,7 +134,7 @@ VALUES ('None')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO config (config_key, config_value, config_user)
-VALUES ('pathAnalysisAlgorithm', 'None', 0)
+VALUES ('pathAnalysisAlgorithm', 1, 0)
 ON CONFLICT (config_key, config_user) DO NOTHING;
 
 GRANT SELECT ON TABLE path_analysis_algorithm TO fwo_ro;
@@ -145,7 +169,7 @@ CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_root
     dev_id BIGINT NOT NULL,
     ip_range_id BIGINT NOT NULL,
     order_to_root BIGINT NOT NULL,
-    PRIMARY KEY (dev_id, ip_range_id, order_to_root)
+    PRIMARY KEY (ip_range_id, dev_id)
 );
 
 CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_internet
@@ -153,7 +177,7 @@ CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_internet
     dev_id BIGINT NOT NULL,
     ip_range_id BIGINT NOT NULL,
     order_to_internet BIGINT NOT NULL,
-    PRIMARY KEY (dev_id, ip_range_id, order_to_internet)
+    PRIMARY KEY (ip_range_id, dev_id)
 );
 
 ALTER TABLE network_zone.device_ip_range_root DROP CONSTRAINT IF EXISTS dev_id_device_ip_range_root;
@@ -172,9 +196,5 @@ ON network_zone.device_ip_range_internet (ip_range_id);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_root_device_per_ip_range
-ON network_zone.device_ip_range_root (ip_range_id, dev_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
 ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_internet_device_per_ip_range
-ON network_zone.device_ip_range_internet (ip_range_id, dev_id);

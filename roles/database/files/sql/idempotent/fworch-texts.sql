@@ -531,32 +531,18 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
-    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
-    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
-    <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
-    <li>Ein kompletter Rollback (L&ouml;schung aller Importdaten einer Management) kann jetzt &uuml;ber eine Standardeinstellung freigeschaltet werden und ist standardm&auml;&szlig;ig deaktiviert.</li>
-    <li>In Zonenmatrizen kann eine automatisch berechnete Internet-Zone angelegt werden.</li>
-    <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
-    <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
-    <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
-    <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
-    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
+    <li>Verschiebe compliance.ip_range ins neue Schema network_zone.ip_range und compliance.network_zone nach network_zone.zone</li>
+    <li>Zentrale Einstellung Pfad Analyse Algorithmus hinzugef&uuml;gt</li>
+    <li>Verschiebe viele Compliance Einstellungen nach Netzwerk Matrix und Internet in die neue Sektion Netzwerk Topologie</li>
+    <li>Network Zone Tree Algorithmus in Datenbank vorbereitet</li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
-    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
-    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
-    <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
-    <li>A full rollback (deletion of all import data of a management) can now be enabled via a default setting and is disabled by default.</li>
-    <li>An auto-calculated Internet zone can be added to zone matrices.</li>
-    <li>Rule reports can be filtered by source and destination object types.</li>
-    <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
-    <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
-    <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
-    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
+    <li>Move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone</li>
+    <li>Add central setting for path analysis algorithm</li>
+    <li>Move many compliance settings regarding matrix and internet to their own setting page in new section network topology</li>
+    <li>Prepare network zone tree algorithm in database</li>
 </ul>
 ');
 
@@ -4095,6 +4081,8 @@ INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Ei
 INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
 INSERT INTO txt VALUES ('U5328', 'German',  'Verwaltung der Netzwerk-Matrix Einstellungen f&uuml;r alle Nutzer');
 INSERT INTO txt VALUES ('U5328', 'English', 'Administration of network matrix settings for all users');
+INSERT INTO txt VALUES ('U5329', 'German',  'Verwaltung der Netzwerk-Topologie Einstellungen f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5329', 'English', 'Administration of network topology settings for all users');
 INSERT INTO txt VALUES ('U5330', 'German',  'Flow-Datenbank zur&uuml;ckgesetzt.');
 INSERT INTO txt VALUES ('U5330', 'English', 'Flow database reset.');
 INSERT INTO txt VALUES ('U5331', 'German',  'Verwaltung der Internet Einstellungen f&uuml;r alle Nutzer');
@@ -7403,7 +7391,7 @@ INSERT INTO txt VALUES ('H5848', 'German',  'Initiert einen vollst&auml;ndigen C
 INSERT INTO txt VALUES ('H5848', 'English', 'Initializes a complete compliance check, marking found violations as "initial".');
 INSERT INTO txt VALUES ('H5890', 'German',  'Feste Kriterien k&ouml;nnen als Bausteine f&uuml;r Policies definiert werden. Unterst&uuml;tzt werden derzeit Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination und ForbidBidirectionalDuplicate. F&uuml;r ForbiddenService kann entweder eine Liste von Service-UIDs oder eine Liste von Port/Protokoll-Kombinationen gepflegt werden. F&uuml;r MinimumCIDRLength muss im Inhaltsfeld eine Ganzzahl von 0 bis 32 hinterlegt werden. F&uuml;r ForbidZonesAsSource und ForbidZonesAsDestination muss im Inhaltsfeld ein Textbaustein gepflegt werden; Regeln mit Quell- bzw. Zielobjekten, deren Name diesen Text enth&auml;lt, werden dann verletzt.');
 INSERT INTO txt VALUES ('H5890', 'English', 'Fixed criteria can be defined as building blocks for policies. The currently supported types are Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination, and ForbidBidirectionalDuplicate. ForbiddenService can now be maintained either as a list of service UIDs or as a list of port/protocol combinations. MinimumCIDRLength requires an integer from 0 to 32 in the content field. For ForbidZonesAsSource and ForbidZonesAsDestination, the content field stores a text fragment; rules using source or destination objects whose name contains that text will violate the criterion.');
-INSERT INTO txt VALUES ('H5891', 'German',  'Die ausgewählte Zonematrix wird als Referenz f&uuml;r weitere Funktionen verwendet.');
+INSERT INTO txt VALUES ('H5891', 'German',  'Die ausgew&auml;hlte Zonematrix wird als Referenz f&uuml;r weitere Funktionen verwendet.');
 INSERT INTO txt VALUES ('H5891', 'English', 'The selected zone matrix is used as the reference for further features.');
 INSERT INTO txt VALUES ('H5892', 'German', '<p>Eine Matrixpr&uuml;fung wird nur f&uuml;r Accept-Regeln ausgef&uuml;hrt. Die ausgew&auml;hlte Compliance-Policy muss ein Matrix-Kriterium enthalten, das auf die gew&uuml;nschte Netzwerkzonenmatrix verweist.</p><ol><li>Quell- und Zielobjekte einer Regel werden aufgel&ouml;st und jeder Zone zugeordnet, deren Adressbereich sich mit dem Objekt &uuml;berschneidet. Bei &uuml;berlappenden Zonen werden alle zutreffenden Zonen ber&uuml;cksichtigt.</li><li>Jede resultierende Quell-Ziel-Zonenkombination wird gerichtet gegen die Matrix gepr&uuml;ft. Fehlt die erlaubte Kommunikation von der Quellzone zur Zielzone, entsteht eine Matrixverletzung. Eine Regel kann daher mehrere Matrixverletzungen und zus&auml;tzlich Verletzungen anderer Policy-Kriterien haben.</li></ol><p>Bei aktivierter automatischer Internetzone umfasst die gespeicherte Internetzone alle IPv4-Adressen, die nicht durch konfigurierte Zonen oder ausgeschlossene interne und reservierte Bereiche abgedeckt sind. Die undefiniert-interne Zone enth&auml;lt die nicht zugeordneten ausgeschlossenen Bereiche, damit diese nicht als Internet gelten. Die automatische Internetzone muss in jeder verwendeten Matrix existieren; bei manuell angelegten Matrizen kann sie neben dem Hinzuf&uuml;gen normaler Netzwerkzonen erstellt werden. Das Speichern oder L&ouml;schen einer normalen Zone berechnet die automatischen Zonen neu und entfernt deren konfigurierte Kommunikationen. Diese Kommunikationen m&uuml;ssen nach jeder solchen &Auml;nderung &uuml;berpr&uuml;ft werden.</p><p>Sind sowohl automatische Internetzone als auch die Behandlung von dynamischen und Domain-Objekten als Internet aktiviert, werden Objekte dieser Typen der gespeicherten automatischen Internetzone zugeordnet. Existiert keine solche Zone, entsteht aus diesen Objekten keine Zonenkombination und die Matrixpr&uuml;fung erzeugt keine Matrixverletzung. Ist eine der beiden Einstellungen deaktiviert, werden die Objekte wie andere Netzwerkobjekte behandelt. K&ouml;nnen keine IP-Bereiche aufgel&ouml;st werden, werden sie ebenfalls keiner Zone zugeordnet. Ist die automatische Internetzone deaktiviert, werden nicht zugeordnete IP-Bereiche stattdessen einer tempor&auml;ren Internet-Lokal-Zone ohne erlaubte Kommunikation zugeordnet; Verbindungen mit dieser Zone verletzen die Matrix.</p><p>Die Policy kann weitere Kriterien enthalten. Assessability-Verletzungen betreffen nicht auswertbare Objekte; die &uuml;brigen Kriterientypen und ihre Verletzungen sind im Abschnitt zu festen Kriterien beschrieben.</p>');
 INSERT INTO txt VALUES ('H5892', 'English', '<p>A matrix check is performed only for accept rules. The selected compliance policy must contain a Matrix criterion that references the intended network-zone matrix.</p><ol><li>The source and destination objects of a rule are resolved and assigned to every zone whose address range overlaps the object. When zones overlap, every matching zone is considered.</li><li>Every resulting source-to-destination zone pair is checked directionally against the matrix. If communication from the source zone to the destination zone is not allowed, a matrix violation is created. A rule can therefore have multiple matrix violations as well as violations from other policy criteria.</li></ol><p>When auto-calculated Internet zones are enabled, the persisted Internet zone contains IPv4 addresses not covered by configured zones or excluded internal and reserved ranges. The Undefined-internal zone contains the remaining excluded ranges so that they are not treated as Internet. The auto-calculated Internet zone must exist in every matrix used by a policy; for manually created matrices it can be added beside the normal network-zone Add button. Saving or deleting a normal zone recalculates the auto-calculated zones and removes their configured communications. Review these communications after every such change.</p><p>When both auto-calculated Internet zones and Treat dynamic and domain objects as Internet are enabled, objects of those types are assigned to the persisted auto-calculated Internet zone. If that zone does not exist, the objects produce no zone pair and the matrix check creates no matrix violation. If either setting is disabled, the objects are handled like other network objects. If no IP ranges can be resolved, they are likewise not assigned to a zone. When auto-calculated Internet zones are disabled, unmapped IP ranges are instead assigned to a temporary Internet/Local zone with no allowed communication; connections involving that zone violate the matrix.</p><p>The policy may contain further criteria. Assessability violations cover objects that cannot be assessed; the remaining criterion types and their violations are described in the fixed-criteria section.</p>');

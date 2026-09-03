@@ -338,7 +338,22 @@
                       "ip_range_id",
                       "order_to_root"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "device": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        ]
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -490,7 +505,22 @@
                       "ip_range_id",
                       "order_to_internet"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "device": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        ]
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -8633,7 +8663,67 @@
               },
               "select_permissions": [
                 {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
                   "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
                   "permission": {
                     "columns": [
                       "id",

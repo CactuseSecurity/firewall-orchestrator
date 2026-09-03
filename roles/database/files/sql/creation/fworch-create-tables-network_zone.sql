@@ -33,7 +33,7 @@ CREATE TABLE network_zone.device_ip_range_root
     dev_id BIGINT NOT NULL,
     ip_range_id BIGINT NOT NULL,
     order_to_root BIGINT NOT NULL,
-    PRIMARY KEY (dev_id, ip_range_id, order_to_root)
+    PRIMARY KEY (ip_range_id, dev_id)
 );
 
 CREATE TABLE network_zone.device_ip_range_internet
@@ -41,5 +41,5 @@ CREATE TABLE network_zone.device_ip_range_internet
     dev_id BIGINT NOT NULL,
     ip_range_id BIGINT NOT NULL,
     order_to_internet BIGINT NOT NULL,
-    PRIMARY KEY (dev_id, ip_range_id, order_to_internet)
+    PRIMARY KEY (ip_range_id, dev_id)
 );

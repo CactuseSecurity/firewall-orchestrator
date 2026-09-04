@@ -111,6 +111,16 @@ green gate.
 This workflow lives in its own file on purpose: a second job inside `version-gate.yml` would add
 a permanently skipped entry to every pull request.
 
+### Security boundary
+
+A tag-push run uses the workflow definition from the tagged commit. Because this workflow has
+`actions: write` permission so that it can re-run gates, the repository tag ruleset described
+below is a **mandatory security control**: it must target `*`, restrict tag creation, and allow
+only trusted release maintainers to bypass that restriction. Restricting only version-shaped
+tags is insufficient because the workflow receives every pushed tag before its tag-name check
+runs. Without this ruleset, a repository writer could create a tag on a commit containing a
+modified refresh workflow and execute it with `actions: write` permission.
+
 ## Version tag guard workflow
 
 Both jobs report after the fact. The tag or the merge already exists, and a workflow cannot undo
@@ -135,8 +145,10 @@ tag is pushed, and any direct push that bypassed the required check.
 - Branch protection on `develop` must require the check **`Gate pull request version`**.
   The name to enter is the job name; `Version gate` in front of it is only the workflow name.
 - "Require branches to be up to date before merging" is not needed, see above.
-- The existing tag ruleset (`Restrict creations`, release maintainers only) is what gives
-  sealing tags their authority. Without it, anyone who can push a tag can seal a version.
+- An active tag ruleset targeting `*` must enable `Restrict creations` and allow only trusted
+  release maintainers to bypass it. This both gives sealing tags their authority and protects
+  the tag-triggered refresh workflow's `actions: write` token. Without it, anyone who can push
+  a tag can seal a version or execute a modified refresh workflow from a tagged commit.
 
 No new secrets, apps or environments are required.
 

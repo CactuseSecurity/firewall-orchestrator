@@ -208,6 +208,13 @@ Create an active repository tag ruleset with the following configuration:
 - Enable `Restrict creations`
 - Allow only trusted release maintainers to bypass the creation restriction
 
+This ruleset is mandatory for the **Version gate refresh** workflow as well as for release
+authority. A tag-push run uses the workflow definition from the tagged commit, and the refresh
+workflow has `actions: write` permission so that it can re-run gates. The ruleset must therefore
+cover every tag (`*`), not only version-shaped tags: otherwise a repository writer could tag a
+commit containing a modified refresh workflow and execute it with that permission before the
+workflow's tag-name check takes effect.
+
 Restricting tag updates and deletions is also recommended so that published
 release tags remain immutable.
 

@@ -134,12 +134,14 @@ runs on every pull request that targets `develop`. Its single job,
 - the version its merge result carries is already sealed by a release tag,
 - it raises `product_version` while the previous version has no sealing tag yet,
 - it raises `product_version` to an already sealed version, or lowers it,
-- it raises `product_version` without adding a matching final `## X.Y.Z` heading to
-  [`documentation/revision-history.md`](../revision-history.md).
+- the final level-two heading in [`documentation/revision-history.md`](../revision-history.md)
+  does not match the merged `product_version`,
+- it does not add text below that final revision-history heading.
 
-The revision-history check only requires the final level-two heading to contain the full
-`major.minor.patch` version. A date or other trailing heading text may be included but is not
-required.
+Every pull request must add at least one non-empty, non-heading line to the final revision-history
+section. The final heading must contain the full `major.minor.patch` version; a date or other
+trailing heading text may be included but is not required. Pull requests that keep the current
+version extend its section, while a version bump adds the new version as the final section.
 
 The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
 `all.yml` inherits the base branch version and is never blocked for being out of date.

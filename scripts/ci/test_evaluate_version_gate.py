@@ -176,7 +176,10 @@ def test_open_version_passes_and_prints_verdict(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode == 0
-    assert completed.stdout.strip() == "Version gate passed: version 9.4.5 is sealed, opening version 9.4.6"
+    assert completed.stdout.strip() == (
+        "Version gate passed: version 9.4.5 is sealed, opening version 9.4.6; "
+        "revision history adds text for version 9.4.6"
+    )
     assert completed.stderr == ""
 
 

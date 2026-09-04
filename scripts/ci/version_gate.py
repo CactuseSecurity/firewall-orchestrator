@@ -16,6 +16,7 @@ See documentation/developer-docs/versioning.md for the policy this file enforces
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import re
 import subprocess
@@ -89,10 +90,20 @@ def sealed_versions(tags: list[str]) -> set[str]:
     return sealed
 
 
+def last_revision_history_heading_entry(markdown: str) -> tuple[int, str] | None:
+    """Return the line index and text of the final level-two revision-history heading."""
+    lines = markdown.splitlines()
+    for line_index in range(len(lines) - 1, -1, -1):
+        match = REVISION_HISTORY_HEADING_PATTERN.fullmatch(lines[line_index])
+        if match is not None:
+            return (line_index, match.group(1))
+    return None
+
+
 def last_revision_history_heading(markdown: str) -> str | None:
     """Return the text of the final level-two revision-history heading."""
-    headings: list[str] = REVISION_HISTORY_HEADING_PATTERN.findall(markdown)
-    return headings[-1] if headings else None
+    entry = last_revision_history_heading_entry(markdown)
+    return entry[1] if entry is not None else None
 
 
 def revision_history_heading_version(heading: str) -> str | None:
@@ -101,11 +112,58 @@ def revision_history_heading_version(heading: str) -> str | None:
     return match.group(1) if match is not None else None
 
 
+def revision_history_has_final_section_addition(base_markdown: str, merged_markdown: str) -> bool:
+    """Return whether non-heading text was added below the final level-two heading."""
+    heading_entry = last_revision_history_heading_entry(merged_markdown)
+    if heading_entry is None:
+        return False
+
+    heading_line_index = heading_entry[0]
+    base_lines = base_markdown.splitlines()
+    merged_lines = merged_markdown.splitlines()
+    matcher = difflib.SequenceMatcher(a=base_lines, b=merged_lines, autojunk=False)
+    for change_type, _, _, merged_start, merged_end in matcher.get_opcodes():
+        if change_type == "equal":
+            continue
+        section_start = max(heading_line_index + 1, merged_start)
+        for line in merged_lines[section_start:merged_end]:
+            text = line.strip()
+            if not text.startswith("#") and any(character.isalnum() for character in text):
+                return True
+    return False
+
+
+def evaluate_revision_history(
+    merged_version: str,
+    base_revision_history: str,
+    merged_revision_history: str,
+) -> Verdict:
+    """Check the final section version and that the pull request adds text beneath it."""
+    last_heading = last_revision_history_heading(merged_revision_history)
+    last_documented_version = revision_history_heading_version(last_heading) if last_heading is not None else None
+    if last_documented_version != merged_version:
+        actual_heading = f"'## {last_heading}'" if last_heading is not None else "missing"
+        return Verdict(
+            ok=False,
+            reason=(
+                f"documentation/revision-history.md must end with a '## {merged_version}' heading "
+                f"(last level-two heading is {actual_heading})"
+            ),
+        )
+    if not revision_history_has_final_section_addition(base_revision_history, merged_revision_history):
+        return Verdict(
+            ok=False,
+            reason=f"add revision-history text below the final '## {merged_version}' heading",
+        )
+    return Verdict(ok=True, reason=f"revision history adds text for version {merged_version}")
+
+
 def evaluate_gate(
     merged_version: str,
     base_version: str,
     sealed: set[str],
-    revision_history: str,
+    merged_revision_history: str,
+    base_revision_history: str,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
@@ -128,45 +186,39 @@ def evaluate_gate(
                     f"Raise product_version in inventory/group_vars/all.yml to the next version."
                 ),
             )
-        return Verdict(ok=True, reason=f"version {merged_version} is still open")
+        version_reason = f"version {merged_version} is still open"
+    else:
+        if merged < base:
+            return Verdict(
+                ok=False,
+                reason=(
+                    f"product_version must not go backwards: {merged_version} is lower than "
+                    f"{base_version} on the base branch"
+                ),
+            )
+        if base_version not in sealed:
+            return Verdict(
+                ok=False,
+                reason=(
+                    f"version {base_version} has not been sealed yet. "
+                    f"Create tag v{base_version}-dev or v{base_version} before opening version {merged_version}."
+                ),
+            )
+        if merged_version in sealed:
+            return Verdict(
+                ok=False,
+                reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
+            )
+        version_reason = f"version {base_version} is sealed, opening version {merged_version}"
 
-    if merged < base:
-        return Verdict(
-            ok=False,
-            reason=(
-                f"product_version must not go backwards: {merged_version} is lower than "
-                f"{base_version} on the base branch"
-            ),
-        )
-
-    if base_version not in sealed:
-        return Verdict(
-            ok=False,
-            reason=(
-                f"version {base_version} has not been sealed yet. "
-                f"Create tag v{base_version}-dev or v{base_version} before opening version {merged_version}."
-            ),
-        )
-
-    if merged_version in sealed:
-        return Verdict(
-            ok=False,
-            reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
-        )
-
-    last_heading = last_revision_history_heading(revision_history)
-    last_documented_version = revision_history_heading_version(last_heading) if last_heading is not None else None
-    if last_documented_version != merged_version:
-        actual_heading = f"'## {last_heading}'" if last_heading is not None else "missing"
-        return Verdict(
-            ok=False,
-            reason=(
-                f"documentation/revision-history.md must end with a '## {merged_version}' heading "
-                f"(last level-two heading is {actual_heading})"
-            ),
-        )
-
-    return Verdict(ok=True, reason=f"version {base_version} is sealed, opening version {merged_version}")
+    revision_history_verdict = evaluate_revision_history(
+        merged_version,
+        base_revision_history,
+        merged_revision_history,
+    )
+    if not revision_history_verdict.ok:
+        return revision_history_verdict
+    return Verdict(ok=True, reason=f"{version_reason}; {revision_history_verdict.reason}")
 
 
 def evaluate_open_version(version: str, sealed: set[str]) -> Verdict:
@@ -248,6 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--base-version")
     gate.add_argument("--base-file", help="all.yml as it looks on the base branch")
     gate.add_argument("--revision-history", help="revision-history.md as it looks on refs/pull/<n>/merge")
+    gate.add_argument("--base-revision-history", required=True, help="revision-history.md on the base branch")
     gate.add_argument("--tags-file", help=tags_help)
 
     audit = subparsers.add_parser("check-open", help="check that a branch sits on an unsealed version")
@@ -266,14 +319,15 @@ def build_parser() -> argparse.ArgumentParser:
 def run_command(arguments: argparse.Namespace) -> Verdict:
     """Dispatch a parsed command to the matching evaluation."""
     if arguments.command == "gate":
-        revision_history = ""
+        merged_revision_history = ""
         if arguments.revision_history is not None:
-            revision_history = Path(arguments.revision_history).read_text(encoding="utf-8")
+            merged_revision_history = Path(arguments.revision_history).read_text(encoding="utf-8")
         return evaluate_gate(
             read_version(arguments.merged_version, arguments.merged_file),
             read_version(arguments.base_version, arguments.base_file),
             sealed_versions(read_tags(arguments.tags_file)),
-            revision_history,
+            merged_revision_history,
+            Path(arguments.base_revision_history).read_text(encoding="utf-8"),
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

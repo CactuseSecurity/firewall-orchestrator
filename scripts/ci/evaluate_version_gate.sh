@@ -60,6 +60,7 @@ git fetch --quiet --no-tags --depth=1 origin "+refs/heads/${base_branch}:refs/fw
 git show "refs/fwo/pr-merge:inventory/group_vars/all.yml" >"${work_dir}/merged-all.yml"
 git show "refs/fwo/pr-merge:documentation/revision-history.md" >"${work_dir}/revision-history.md"
 git show "refs/fwo/base:inventory/group_vars/all.yml" >"${work_dir}/base-all.yml"
+git show "refs/fwo/base:documentation/revision-history.md" >"${work_dir}/base-revision-history.md"
 
 # Only the tag names matter, so list them on the remote instead of fetching tag objects.
 # They are read here, at run time, which is what makes a re-run pick up a new sealing tag.
@@ -71,6 +72,7 @@ python3 scripts/ci/version_gate.py gate \
     --merged-file "${work_dir}/merged-all.yml" \
     --base-file "${work_dir}/base-all.yml" \
     --revision-history "${work_dir}/revision-history.md" \
+    --base-revision-history "${work_dir}/base-revision-history.md" \
     --tags-file "${work_dir}/tags.txt" >"$verdict_file" || gate_exit=$?
 
 reason="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["reason"])' "$verdict_file")"

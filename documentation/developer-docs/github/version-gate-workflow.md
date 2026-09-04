@@ -31,12 +31,14 @@ gate entry and nothing else. That single check run is what branch protection mus
 ### What is compared
 
 [`scripts/ci/evaluate_version_gate.sh`](../../../scripts/ci/evaluate_version_gate.sh) resolves
-three inputs and hands them to the gate:
+five inputs and hands them to the gate:
 
 | Input | Source |
 | --- | --- |
 | merged version `V` | `product_version` in `inventory/group_vars/all.yml` at `refs/pull/<n>/merge` |
 | base version `P` | `product_version` in the same file at the base branch tip |
+| merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
+| base revision history | the same file at the base branch tip |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
 
 Reading `V` from the **merge result** rather than from the pull request head is deliberate. A
@@ -45,7 +47,7 @@ falsely blocked for being out of date, and only pull requests that actually chan
 are held to the bump rules. This also makes the "require branches to be up to date before
 merging" branch protection setting unnecessary for the gate.
 
-All three inputs are resolved when the job runs. Nothing is baked into the check run, which is
+All five inputs are resolved when the job runs. Nothing is baked into the check run, which is
 what lets a plain re-run produce a different, correct verdict later.
 
 ### Verdicts
@@ -57,12 +59,15 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | `V > P` | fails otherwise: version must not go backwards |
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
-| `V != P` | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
+| any | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
+| any | the pull request adds text below that final heading | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
-The revision history is only checked when the version changes. The baseline requirement is a
-final level-two heading containing the full `major.minor.patch` version, such as `## 9.4.6`. A
-date or other trailing heading text is allowed but not required.
+Every pull request must add at least one non-empty, non-heading line below the final level-two
+heading. That heading must contain the merged full `major.minor.patch` version, such as
+`## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull request
+that keeps the version extends the existing final section, while a version bump adds a new final
+section and text beneath it.
 
 The merge ref is fetched three times because GitHub computes it asynchronously. If all attempts
 fail, the workflow queries the pull request's `mergeable` state. It reports merge conflicts only
@@ -161,9 +166,12 @@ No new secrets, apps or environments are required.
 The gate can be evaluated by hand from a checkout:
 
 ```bash
+git show origin/develop:documentation/revision-history.md >/tmp/fwo-base-revision-history.md
+
 python3 scripts/ci/version_gate.py gate \
     --merged-version 9.4.6 --base-version 9.4.5 \
-    --revision-history documentation/revision-history.md
+    --revision-history documentation/revision-history.md \
+    --base-revision-history /tmp/fwo-base-revision-history.md
 
 python3 scripts/ci/version_gate.py check-open --file inventory/group_vars/all.yml
 

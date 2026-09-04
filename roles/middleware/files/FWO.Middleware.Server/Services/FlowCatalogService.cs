@@ -1,7 +1,10 @@
 using System.Globalization;
 using System.Net;
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Logging;
@@ -13,11 +16,16 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Represents the FlowCatalogService type.
 /// </summary>
-public sealed class FlowCatalogService
+public sealed class FlowCatalogService : IDisposable
 {
     private readonly ApiConnection apiConnection;
+    private readonly GlobalConfig globalConfig;
+    private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
+    private readonly object zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
+    private List<FlowZoneGroupPattern> zonePatterns = [];
+    private string? parsedZonePatternConfig;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
     {
@@ -28,9 +36,57 @@ public sealed class FlowCatalogService
     /// <summary>
     /// Initializes a new instance of the type.
     /// </summary>
-    public FlowCatalogService(ApiConnection apiConnection)
+    public FlowCatalogService(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         this.apiConnection = apiConnection;
+        this.globalConfig = globalConfig;
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowCatalogConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow catalog config", "Could not start flow-catalog config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed flow-catalog config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
+    }
+
+    /// <summary>
+    /// Returns the configured zone name patterns, parsing the config value only when it changed.
+    /// The parse reports unusable entries to the log, so it must not run once per request.
+    /// </summary>
+    /// <returns>The configured zone name patterns.</returns>
+    private List<FlowZoneGroupPattern> GetZonePatterns()
+    {
+        string serializedPatterns = globalConfig.FlowZoneGroupNamePatterns ?? "";
+
+        lock (zonePatternCacheLock)
+        {
+            if (!string.Equals(serializedPatterns, parsedZonePatternConfig, StringComparison.Ordinal))
+            {
+                zonePatterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+                parsedZonePatternConfig = serializedPatterns;
+            }
+
+            return zonePatterns;
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        configSubscription?.Dispose();
+        ipProtocolCacheLock.Dispose();
     }
 
     /// <summary>
@@ -49,6 +105,34 @@ public sealed class FlowCatalogService
     {
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToAddressGroupResponse).ToList();
+    }
+
+    /// <summary>
+    /// Returns the address groups split into groups that are not zones and groups that are zones.
+    /// Zone groups are identified by the zone name patterns configured in the general flow settings.
+    /// </summary>
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <returns>The address groups separated into standard groups and zone groups.</returns>
+    public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
+    {
+        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
+        List<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
+        SeparatedAddressGroupsResponse separatedGroups = new();
+
+        foreach (FlowNwGroup flowGroup in flowGroups)
+        {
+            AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
+            if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, configuredZonePatterns))
+            {
+                separatedGroups.ZoneGroups.Add(groupResponse);
+            }
+            else
+            {
+                separatedGroups.StandardGroups.Add(groupResponse);
+            }
+        }
+
+        return separatedGroups;
     }
 
     /// <summary>

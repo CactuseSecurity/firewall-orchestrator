@@ -205,6 +205,27 @@ public class ApiExampleCatalogTest
     }
 
     /// <summary>
+    /// Verifies the address group request example documents the default response shape.
+    /// </summary>
+    [Test]
+    public void AddressGroupRequestExampleKeepsZoneSeparationDisabled()
+    {
+        Assert.That(catalog.TryGetExample(typeof(GetAddressGroupsRequest), out object? example), Is.True);
+
+        GetAddressGroupsRequest request = (GetAddressGroupsRequest)example!;
+        string json = JsonSerializer.Serialize(request, serializerOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request.Option, Is.Not.Null);
+            Assert.That(request.Option!.SeparateZoneGroups, Is.False);
+            Assert.That(request.Filter!.VisibleInRequest, Is.True);
+            Assert.That(json, Does.Contain("\"separateZoneGroups\":false"));
+            Assert.That(json, Does.Contain("\"visibleInRequest\":true"));
+        });
+    }
+
+    /// <summary>
     /// Verifies the owner response example covers detailed response fields.
     /// </summary>
     [Test]

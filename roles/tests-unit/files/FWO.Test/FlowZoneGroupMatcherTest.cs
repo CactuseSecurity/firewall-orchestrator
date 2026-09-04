@@ -113,12 +113,15 @@ internal class FlowZoneGroupMatcherTest
     }
 
     [Test]
-    public void ParsePatterns_WithNonArrayJson_ReturnsEmptyList()
+    public void ParsePatterns_WithJsonThatIsNoPatternArray_ReturnsEmptyList()
     {
         Assert.Multiple(() =>
         {
             Assert.That(FlowZoneGroupMatcher.ParsePatterns("{\"matchType\":\"Suffix\",\"value\":\"_zone\"}"), Is.Empty);
             Assert.That(FlowZoneGroupMatcher.ParsePatterns("[1,2]"), Is.Empty);
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns("[{\"matchType\":\"Suffix\",\"value\":123}]"), Is.Empty);
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns(
+                "[{\"matchType\":\"Suffix\",\"value\":\"_zone\",\"caseSensitive\":\"true\"}]"), Is.Empty);
         });
     }
 

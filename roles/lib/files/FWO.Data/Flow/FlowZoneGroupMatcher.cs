@@ -19,7 +19,8 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Parses the configured zone name patterns.
         /// Entries with an unusable match type, an empty value or a duplicate of an earlier entry are dropped
-        /// individually, only a value that is no valid JSON array yields an empty list.
+        /// individually. Only the match type is read tolerantly, so anything that is no JSON array of pattern
+        /// objects yields an empty list, a wrongly typed "value" or "caseSensitive" field included.
         /// Every dropped entry and every parse failure is logged.
         /// </summary>
         /// <param name="serializedPatterns">The serialized pattern list taken from the configuration.</param>

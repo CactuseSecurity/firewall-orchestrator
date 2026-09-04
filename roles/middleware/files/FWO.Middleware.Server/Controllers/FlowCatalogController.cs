@@ -95,6 +95,8 @@ public class FlowCatalogController : ControllerBase
     /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
     /// otherwise a flat JSON array of all groups is returned.
     /// Zone groups are recognized by the zone name patterns configured in the general flow settings.
+    /// The documented response schema and the request example show the default flat array;
+    /// the separated shape is not part of the generated schema.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressGroups")]

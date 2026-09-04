@@ -19,6 +19,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, CreateRequestRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
+        services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
@@ -156,6 +157,26 @@ public sealed class VisibleInRequestFilterExample : ApiExampleProvider<VisibleIn
     public override VisibleInRequestFilter GetExample() => new()
     {
         VisibleInRequest = true
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAddressGroupsRequest"/>.
+/// The example documents the default response shape, so zone separation is switched off.
+/// </summary>
+public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddressGroupsRequest>
+{
+    /// <inheritdoc />
+    public override GetAddressGroupsRequest GetExample() => new()
+    {
+        Filter = new VisibleInRequestFilter
+        {
+            VisibleInRequest = true
+        },
+        Option = new AddressGroupsOption
+        {
+            SeparateZoneGroups = false
+        }
     };
 }
 

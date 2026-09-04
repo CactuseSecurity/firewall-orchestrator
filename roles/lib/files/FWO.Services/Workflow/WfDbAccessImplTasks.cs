@@ -77,10 +77,10 @@ namespace FWO.Services.Workflow
                 {
                     await UpdateImplElementsInDb(impltask);
                     await UpdateOwnersInDb(reqtask);
-                    if (previousTask != null)
+                    if (previousTicket != null && previousTask != null)
                     {
                         await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
-                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket?.Requester, true);
+                            "Updated workflow implementation task", ImplementationTaskHistorySnapshot(previousTask), ImplementationTaskHistorySnapshot(impltask), previousTicket.Requester, true);
                     }
                     await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
                 }

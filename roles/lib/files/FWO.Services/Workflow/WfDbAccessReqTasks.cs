@@ -84,10 +84,10 @@ namespace FWO.Services.Workflow
                 {
                     await UpdateReqElementsInDb(reqtask);
                     await UpdateOwnersInDb(reqtask);
-                    if (previousTask != null)
+                    if (previousTicket != null && previousTask != null)
                     {
                         await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                            "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket?.Requester, true);
+                            "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
                     }
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
@@ -117,10 +117,10 @@ namespace FWO.Services.Workflow
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
-                else if (previousTask != null)
+                else if (previousTicket != null && previousTask != null)
                 {
                     await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                        "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket?.Requester, true);
+                        "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
                 }
             }
             catch (Exception exception)

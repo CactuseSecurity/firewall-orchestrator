@@ -22,7 +22,10 @@ public sealed class FlowCatalogService : IDisposable
     private readonly GlobalConfig globalConfig;
     private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
+    private readonly object zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
+    private List<FlowZoneGroupPattern> zonePatterns = [];
+    private string? parsedZonePatternConfig;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
     {
@@ -56,6 +59,27 @@ public sealed class FlowCatalogService : IDisposable
     private void OnGlobalConfigChange(ConfigItem[] configItems)
     {
         globalConfig.MergeSubscriptionUpdateHandler(configItems);
+    }
+
+    /// <summary>
+    /// Returns the configured zone name patterns, parsing the config value only when it changed.
+    /// The parse reports unusable entries to the log, so it must not run once per request.
+    /// </summary>
+    /// <returns>The configured zone name patterns.</returns>
+    private List<FlowZoneGroupPattern> GetZonePatterns()
+    {
+        string serializedPatterns = globalConfig.FlowZoneGroupNamePatterns ?? "";
+
+        lock (zonePatternCacheLock)
+        {
+            if (!string.Equals(serializedPatterns, parsedZonePatternConfig, StringComparison.Ordinal))
+            {
+                zonePatterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+                parsedZonePatternConfig = serializedPatterns;
+            }
+
+            return zonePatterns;
+        }
     }
 
     /// <inheritdoc />
@@ -92,13 +116,13 @@ public sealed class FlowCatalogService : IDisposable
     public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
     {
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
-        List<FlowZoneGroupPattern> zonePatterns = FlowZoneGroupMatcher.ParsePatterns(globalConfig.FlowZoneGroupNamePatterns);
+        List<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
         SeparatedAddressGroupsResponse separatedGroups = new();
 
         foreach (FlowNwGroup flowGroup in flowGroups)
         {
             AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
-            if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, zonePatterns))
+            if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, configuredZonePatterns))
             {
                 separatedGroups.ZoneGroups.Add(groupResponse);
             }

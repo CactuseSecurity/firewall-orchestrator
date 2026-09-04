@@ -172,6 +172,40 @@ internal class FlowCatalogServiceTest
     }
 
     [Test]
+    public async Task GetSeparatedAddressGroupsAsync_ReusesParsedZonePatternsUntilTheConfigChanges()
+    {
+        FlowCatalogServiceApiConn apiConnection = new();
+        apiConnection.AddressGroups = BuildSeparationTestGroups();
+
+        GlobalConfig globalConfig = new()
+        {
+            FlowZoneGroupNamePatterns = "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\"_zone\"}]"
+        };
+        using FlowCatalogService service = new(apiConnection, globalConfig);
+
+        await service.GetSeparatedAddressGroupsAsync(null);
+        object cachedPatterns = GetZonePatternCache(service);
+        SeparatedAddressGroupsResponse repeatedResult = await service.GetSeparatedAddressGroupsAsync(null);
+
+        Assert.That(GetZonePatternCache(service), Is.SameAs(cachedPatterns), "The unchanged config was parsed again.");
+        Assert.That(repeatedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "dmz_zone", "dmz_ZONE" }));
+
+        globalConfig.FlowZoneGroupNamePatterns = "[{\"matchType\":\"Exact\",\"caseSensitive\":false,\"value\":\"DMZ-Servers\"}]";
+        SeparatedAddressGroupsResponse changedResult = await service.GetSeparatedAddressGroupsAsync(null);
+
+        Assert.That(GetZonePatternCache(service), Is.Not.SameAs(cachedPatterns), "The changed config was not parsed again.");
+        Assert.That(changedResult.ZoneGroups.Select(group => group.Name), Is.EqualTo(new List<string> { "DMZ-Servers" }));
+    }
+
+    private static object GetZonePatternCache(FlowCatalogService service)
+    {
+        FieldInfo? patternField = typeof(FlowCatalogService)
+            .GetField("zonePatterns", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(patternField, Is.Not.Null);
+        return patternField!.GetValue(service)!;
+    }
+
+    [Test]
     public async Task GetSeparatedAddressGroupsAsync_MapsMembersAndKeepsGroupDetails()
     {
         FlowCatalogServiceApiConn apiConnection = new();

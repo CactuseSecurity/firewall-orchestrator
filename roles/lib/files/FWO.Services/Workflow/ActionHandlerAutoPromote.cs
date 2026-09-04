@@ -47,7 +47,7 @@ namespace FWO.Services.Workflow
                 {
                     Log.WriteDebug("Policy Check", "No policy checker is attached to the action handler. Resolving the configured policy checker factory.");
                     requestedRulePolicyChecker = (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
-                        as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection);
+                        as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection, wfHandler.MiddlewareClient);
                 }
                 if (requestedRulePolicyChecker == null)
                 {
@@ -95,6 +95,7 @@ namespace FWO.Services.Workflow
                 .Concat(ticket.Tasks.Where(task =>
                     task.TaskType == WfTaskType.group_create.ToString()
                     || task.TaskType == WfTaskType.group_modify.ToString()))
+                .Distinct()
                 .ToList();
         }
 
@@ -128,10 +129,14 @@ namespace FWO.Services.Workflow
             {
                 try
                 {
-                    WfTicket fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById,
+                    WfTicket? fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById,
                         new { id = requestTask.TicketId });
-                    fullTicket.UpdateCidrsInTaskElements();
-                    return fullTicket.Id > 0 ? fullTicket : new WfTicket { Tasks = [requestTask] };
+                    if (fullTicket?.Id > 0)
+                    {
+                        fullTicket.UpdateCidrsInTaskElements();
+                        return fullTicket;
+                    }
+                    return new WfTicket { Tasks = [requestTask] };
                 }
                 catch (Exception exc)
                 {

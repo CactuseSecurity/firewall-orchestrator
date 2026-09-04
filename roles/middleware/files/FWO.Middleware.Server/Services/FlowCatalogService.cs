@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Server.Responses;
 using NetTools;
@@ -68,6 +69,46 @@ public sealed class FlowCatalogService
     {
         List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToServiceGroupResponse).ToList();
+    }
+
+    /// <summary>
+    /// Resolves only the requested, request-visible Flow groups and their active members.
+    /// </summary>
+    public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
+    {
+        parameters.NetworkGroupIds ??= [];
+        parameters.NetworkGroupNames ??= [];
+        parameters.ServiceGroupIds ??= [];
+        parameters.ServiceGroupNames ??= [];
+        Task<List<FlowNwGroup>> networkGroupsTask = parameters.NetworkGroupIds.Count == 0 && parameters.NetworkGroupNames.Count == 0
+            ? Task.FromResult<List<FlowNwGroup>>([])
+            : apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups, BuildGroupResolutionVariables(
+                "nwgrp_id", parameters.NetworkGroupIds, parameters.NetworkGroupNames));
+        Task<List<FlowSvcGroup>> serviceGroupsTask = parameters.ServiceGroupIds.Count == 0 && parameters.ServiceGroupNames.Count == 0
+            ? Task.FromResult<List<FlowSvcGroup>>([])
+            : apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups, BuildGroupResolutionVariables(
+                "svcgrp_id", parameters.ServiceGroupIds, parameters.ServiceGroupNames));
+        await Task.WhenAll(networkGroupsTask, serviceGroupsTask);
+
+        return new FlowGroupResolutionResult
+        {
+            NetworkGroups = (await networkGroupsTask ?? [])
+                .Where(IsActiveAndVisible)
+                .Select(group =>
+                {
+                    group.NwGroupMembers = group.NwGroupMembers.Where(member => IsActiveAndVisible(member.NwObject)).ToList();
+                    return group;
+                })
+                .ToList(),
+            ServiceGroups = (await serviceGroupsTask ?? [])
+                .Where(IsActiveAndVisible)
+                .Select(group =>
+                {
+                    group.SvcGroupMembers = group.SvcGroupMembers.Where(member => IsActiveAndVisible(member.SvcObject)).ToList();
+                    return group;
+                })
+                .ToList()
+        };
     }
 
     /// <summary>
@@ -136,6 +177,44 @@ public sealed class FlowCatalogService
         return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
             FlowQueries.getFlowAddressObjects,
             BuildCatalogQueryVariables(visibleInRequest)) ?? [];
+    }
+
+    private static Dictionary<string, object> BuildGroupResolutionVariables(string idFieldName, IEnumerable<long> ids, IEnumerable<string> names)
+    {
+        List<Dictionary<string, object>> selectors = ids.Select(id =>
+                new Dictionary<string, object> { [idFieldName] = BuildLookupExpression(id) })
+            .Concat(names.Where(name => !string.IsNullOrWhiteSpace(name)).Select(name =>
+                new Dictionary<string, object> { ["name"] = BuildLookupExpression(name) }))
+            .ToList();
+        return new Dictionary<string, object>
+        {
+            ["where"] = new Dictionary<string, object>
+            {
+                ["show_in_request_module"] = BuildLookupExpression(true),
+                ["_or"] = selectors
+            }
+        };
+    }
+
+    private static bool IsActiveAndVisible(FlowGroup group)
+    {
+        return group.ShowInRequestModule
+            && !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && group.RemovedDate == null;
+    }
+
+    private static bool IsActiveAndVisible(FlowNwObject flowObject)
+    {
+        return flowObject.ShowInRequestModule
+            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && flowObject.RemovedDate == null;
+    }
+
+    private static bool IsActiveAndVisible(FlowSvcObject flowObject)
+    {
+        return flowObject.ShowInRequestModule
+            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && flowObject.RemovedDate == null;
     }
 
     private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)

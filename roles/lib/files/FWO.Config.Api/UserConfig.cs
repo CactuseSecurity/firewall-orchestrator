@@ -63,8 +63,8 @@ namespace FWO.Config.Api
         public UserConfig(GlobalConfig globalConfig, ApiConnection apiConnection, UiUser user, bool owningApiConnection = false) : base(apiConnection, user.DbId, withSubscription: false, owningApiConnection)
         {
             User = user;
-            Translate = globalConfig.LangDict[user.Language!];
-            Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : globalConfig.OverDict[user.Language!];
+            Translate = GetLanguageDictionary(globalConfig.LangDict, user.Language!);
+            Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : GetLanguageDictionary(globalConfig.OverDict, user.Language!);
             this.globalConfig = globalConfig;
             OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             globalConfig.OnChange += OnGlobalConfigChange;
@@ -74,13 +74,18 @@ namespace FWO.Config.Api
         private UserConfig(GlobalConfig globalConfig, bool registerOnChangeHandler = true) : base()
         {
             User = new UiUser();
-            Translate = globalConfig.LangDict[globalConfig.DefaultLanguage];
+            Translate = GetLanguageDictionary(globalConfig.LangDict, globalConfig.DefaultLanguage);
             this.globalConfig = globalConfig;
 
             if (registerOnChangeHandler)
             {
                 globalConfig.OnChange += OnGlobalConfigChange;
             }
+        }
+
+        private static Dictionary<string, string> GetLanguageDictionary(Dictionary<string, Dictionary<string, string>> dictionaries, string language)
+        {
+            return dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary) ? dictionary : [];
         }
 
         public UserConfig() : base()

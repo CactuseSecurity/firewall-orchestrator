@@ -298,6 +298,58 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task BuildRulesFromRequestTasks_ReturnsNoRulesWhenGroupCannotBeResolved()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowSyncSvcGroups, Arg.Any<object>())
+                .Returns([]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
+                .Returns([]);
+
+            WfReqTask ruleTask = CreateEligibleRequestTask(28);
+            WfReqElement destination = ruleTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "missing-group";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask);
+
+            Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_MergesDuplicateNetworkGroupTasks()
+        {
+            WfReqTask firstGroupTask = new()
+            {
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "192.0.2.10", Name = "app-server-1" }]
+            };
+            WfReqTask secondGroupTask = new()
+            {
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements = [new WfReqElement { Field = ElemFieldType.source.ToString(), IpString = "192.0.2.11", Name = "app-server-2" }]
+            };
+            WfReqTask ruleTask = CreateEligibleRequestTask(29);
+            WfReqElement destination = ruleTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "app-servers";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(ruleTask, firstGroupTask, secondGroupTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos.Select(location => location.Object.IP), Is.EquivalentTo(["192.0.2.10/32", "192.0.2.11/32"]));
+        }
+
+        [Test]
         public void ComplianceRequestedRulePolicyCheckerFactory_CreatesChecker()
         {
             ComplianceRequestedRulePolicyCheckerFactory factory = new();

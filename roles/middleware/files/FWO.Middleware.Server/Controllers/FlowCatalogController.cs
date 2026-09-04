@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data.Middleware;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -129,6 +130,18 @@ public class FlowCatalogController : ControllerBase
         }
 
         return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
+    }
+
+    /// <summary>
+    /// Resolves the supplied request-visible Flow groups and returns their active members.
+    /// Only explicitly requested IDs or names are resolved.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.WorkflowRolesList}")]
+    [HttpPost("resolveGroupMembers")]
+    public async Task<ActionResult<FlowGroupResolutionResult>> ResolveGroupMembers([FromBody] FlowGroupResolutionParameters? request)
+    {
+        request ??= new FlowGroupResolutionParameters();
+        return Ok(await flowCatalogService.ResolveFlowGroupMembersAsync(request));
     }
 
     /// <summary>

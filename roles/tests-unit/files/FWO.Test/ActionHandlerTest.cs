@@ -331,7 +331,7 @@ namespace FWO.Test
             public ActionHandlerTestPolicyChecker Checker { get; } = new() { Result = true };
             public int CreateCount { get; private set; }
 
-            public IRequestedRulePolicyChecker Create(UserConfig userConfig, ApiConnection apiConnection)
+            public IRequestedRulePolicyChecker Create(UserConfig userConfig, ApiConnection apiConnection, MiddlewareClient? middlewareClient = null)
             {
                 CreateCount++;
                 return Checker;

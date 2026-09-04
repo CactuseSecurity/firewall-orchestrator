@@ -127,7 +127,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsMissingProtocol()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -143,7 +144,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsInvalidPortRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<ServiceObjectIdResponse> result = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
         {
@@ -159,7 +161,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -174,7 +177,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidIpRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -189,7 +193,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetAddressObjectId_RejectsNonCidr32MaskedIpRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
@@ -204,7 +209,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -221,7 +227,8 @@ internal class FlowControllerValidationTest
     [TestCase(true)]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsMissingBounds(bool includeFilter)
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection(), new GlobalConfig()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         GetTimeObjectIdRequest request = new();
         if (includeFilter)
@@ -241,7 +248,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingEndTime()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -251,7 +258,8 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }, new GlobalConfig()));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -271,7 +279,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_AllowsMissingStartTime()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -281,7 +289,8 @@ internal class FlowControllerValidationTest
                     Name = "DeadlineOnly"
                 }
             ]
-        }, new GlobalConfig()));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {
@@ -301,7 +310,7 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_ReturnsMatchingResponse()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new TimeObjectLookupApiConnection
+        using FlowCatalogService service = new(new TimeObjectLookupApiConnection
         {
             TimeObjects =
             [
@@ -311,7 +320,8 @@ internal class FlowControllerValidationTest
                     Name = "BusinessHours"
                 }
             ]
-        }, new GlobalConfig()));
+        }, new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<TimeObjectIdResponse> result = await controller.GetTimeObjectId(new GetTimeObjectIdRequest
         {

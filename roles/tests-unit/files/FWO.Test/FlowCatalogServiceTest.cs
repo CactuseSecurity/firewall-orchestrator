@@ -6,6 +6,7 @@ using FWO.Data.Flow;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using System.Reflection;
 using System.Threading;
 
 namespace FWO.Test;
@@ -13,6 +14,19 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowCatalogServiceTest
 {
+    [Test]
+    public void Dispose_ReleasesTheOwnedProtocolCacheLock()
+    {
+        FlowCatalogService service = new(new FlowCatalogServiceApiConn(), new GlobalConfig());
+        SemaphoreSlim protocolCacheLock = (SemaphoreSlim)typeof(FlowCatalogService)
+            .GetField("ipProtocolCacheLock", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(service)!;
+
+        service.Dispose();
+
+        Assert.Throws<ObjectDisposedException>(() => protocolCacheLock.Wait(0));
+    }
+
     [Test]
     public async Task GetServiceObjectsAsync_UsesReadableProtocolNamesAndFiltersWhenRequested()
     {
@@ -36,7 +50,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 17, Name = "UDP" }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(true);
 
@@ -70,7 +84,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 6, Name = "TCP" }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(false);
 
@@ -89,7 +103,7 @@ internal class FlowCatalogServiceTest
             new FlowSvcObject { Id = 12, Name = "ANY", ProtoId = 0 }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceObjectResponse> result = await service.GetServiceObjectsAsync(null);
 
@@ -121,7 +135,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressGroupResponse> result = await service.GetAddressGroupsAsync(null);
 
@@ -144,7 +158,7 @@ internal class FlowCatalogServiceTest
             FlowZoneGroupNamePatterns =
                 "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\"_zone\"},{\"matchType\":\"Suffix\",\"caseSensitive\":true,\"value\":\"-zone\"}]"
         };
-        FlowCatalogService service = new(apiConnection, globalConfig);
+        using FlowCatalogService service = new(apiConnection, globalConfig);
 
         SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(true);
 
@@ -185,7 +199,7 @@ internal class FlowCatalogServiceTest
         {
             FlowZoneGroupNamePatterns = "[{\"matchType\":\"Prefix\",\"caseSensitive\":false,\"value\":\"zone\"}]"
         };
-        FlowCatalogService service = new(apiConnection, globalConfig);
+        using FlowCatalogService service = new(apiConnection, globalConfig);
 
         SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
 
@@ -208,7 +222,7 @@ internal class FlowCatalogServiceTest
         FlowCatalogServiceApiConn apiConnection = new();
         apiConnection.AddressGroups = BuildSeparationTestGroups();
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         SeparatedAddressGroupsResponse result = await service.GetSeparatedAddressGroupsAsync(null);
 
@@ -245,7 +259,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<TimeObjectResponse> result = await service.GetTimeObjectsAsync(null);
 
@@ -268,7 +282,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -300,7 +314,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -330,7 +344,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             null,
@@ -361,7 +375,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -376,7 +390,7 @@ internal class FlowCatalogServiceTest
     public async Task GetTimeObjectIdAsync_ReturnsEmptyResponseWhenNoMatchExists()
     {
         FlowCatalogServiceApiConn apiConnection = new();
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         TimeObjectIdResponse result = await service.GetTimeObjectIdAsync(
             new DateTimeOffset(2026, 6, 1, 8, 0, 0, TimeSpan.Zero),
@@ -408,7 +422,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
 
@@ -441,7 +455,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<AddressObjectResponse> result = await service.GetAddressObjectsAsync(null);
 
@@ -472,7 +486,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         List<ServiceGroupResponse> result = await service.GetServiceGroupsAsync(null);
 
@@ -498,7 +512,7 @@ internal class FlowCatalogServiceTest
             }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         AddressObjectIdResponse result = await service.GetAddressObjectIdAsync("10.0.0.1", "10.0.0.2", true);
 
@@ -533,7 +547,7 @@ internal class FlowCatalogServiceTest
             new IpProtocol { Id = 17, Name = "UDP" }
         ];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("tcp", 443, 443, false);
 
@@ -558,7 +572,7 @@ internal class FlowCatalogServiceTest
         apiConnection.Protocols = [new IpProtocol { Id = 0, Name = "ANY" }];
         apiConnection.ServiceObjects = [new FlowSvcObject { Id = 51, Name = "ANY", ProtoId = 0 }];
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("ANY", null, null, null);
 
@@ -577,7 +591,7 @@ internal class FlowCatalogServiceTest
     public async Task GetServiceObjectIdAsync_ReturnsEmptyResponseForUnknownProtocol()
     {
         FlowCatalogServiceApiConn apiConnection = new();
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         ServiceObjectIdResponse result = await service.GetServiceObjectIdAsync("not-a-protocol", 443, 443, null);
 
@@ -625,7 +639,7 @@ internal class FlowCatalogServiceTest
             await releaseProtocolQuery.Task;
         };
 
-        FlowCatalogService service = new(apiConnection, new GlobalConfig());
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
 
         Task<List<ServiceObjectResponse>> firstCall = service.GetServiceObjectsAsync(null);
         await protocolQueryStarted.Task;

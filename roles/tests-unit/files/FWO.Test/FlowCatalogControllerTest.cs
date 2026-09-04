@@ -20,7 +20,8 @@ namespace FWO.Test
         public async Task FlowCatalogController_ReturnsMappedResultsForCatalogAndLookupEndpoints()
         {
             RecordingApiConnection apiConnection = new();
-            FlowCatalogController controller = new(new FlowCatalogService(apiConnection, new GlobalConfig()));
+            using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+            FlowCatalogController controller = new(service);
 
             ActionResult<List<AddressObjectResponse>> addressObjectsResult = await controller.GetAddressObjects(new GetAddressObjectsRequest
             {
@@ -102,7 +103,8 @@ namespace FWO.Test
             {
                 FlowZoneGroupNamePatterns = "[{\"matchType\":\"Suffix\",\"caseSensitive\":false,\"value\":\" Group\"}]"
             };
-            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), globalConfig));
+            using FlowCatalogService service = new(new RecordingApiConnection(), globalConfig);
+            FlowCatalogController controller = new(service);
 
             ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
             {
@@ -118,7 +120,8 @@ namespace FWO.Test
         [Test]
         public async Task FlowCatalogController_GetAddressGroups_WithDisabledSeparation_ReturnsFlatList()
         {
-            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
 
             ActionResult result = await controller.GetAddressGroups(new GetAddressGroupsRequest
             {
@@ -131,7 +134,8 @@ namespace FWO.Test
         [Test]
         public async Task FlowCatalogController_GetAddressGroups_WithUnknownOptionKey_ReturnsBadRequest()
         {
-            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
             GetAddressGroupsRequest request = JsonSerializer.Deserialize<GetAddressGroupsRequest>(
                 "{\"option\":{\"separateZoneGroups\":true,\"unknown\":1}}")!;
 
@@ -144,7 +148,8 @@ namespace FWO.Test
         [Test]
         public async Task FlowCatalogController_ReturnsValidationErrorsForInvalidLookupRequests()
         {
-            FlowCatalogController controller = new(new FlowCatalogService(new RecordingApiConnection(), new GlobalConfig()));
+            using FlowCatalogService service = new(new RecordingApiConnection(), new GlobalConfig());
+            FlowCatalogController controller = new(service);
 
             ActionResult<ServiceObjectIdResponse> missingProtocol = await controller.GetServiceObjectId(new GetServiceObjectIdRequest
             {

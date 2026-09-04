@@ -62,6 +62,7 @@ public sealed class FlowCatalogService : IDisposable
     public void Dispose()
     {
         configSubscription?.Dispose();
+        ipProtocolCacheLock.Dispose();
     }
 
     /// <summary>

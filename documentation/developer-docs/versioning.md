@@ -64,6 +64,11 @@ This lifecycle is enforced by the **Version gate** workflow, see
 4. The next change raises `all.yml` to `1.2.5` (or `1.3.0`, or `2.0.0`) and adds the
    matching revision history section. That bump is only accepted because `1.2.4` is
    sealed.
+5. Every other open pull request is then re-evaluated against `1.2.5`. Its merge result
+   inherits the new product version, so the pull request does not need its own version bump.
+   However, because its change will now be part of `1.2.5`, its revision-history entry must
+   be moved from the previous version section into the final `1.2.5` section before it can
+   merge. This reclassification is intentional.
 
 ### Hotfixes
 

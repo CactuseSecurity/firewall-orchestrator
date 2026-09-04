@@ -1,4 +1,6 @@
+using FWO.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FWO.Data.Flow
 {
@@ -7,6 +9,8 @@ namespace FWO.Data.Flow
     /// </summary>
     public static class FlowZoneGroupMatcher
     {
+        private const string kLogTitle = "Flow Zone Groups";
+
         private static readonly JsonSerializerOptions kSerializerOptions = new()
         {
             PropertyNameCaseInsensitive = true
@@ -14,7 +18,9 @@ namespace FWO.Data.Flow
 
         /// <summary>
         /// Parses the configured zone name patterns.
-        /// Invalid, empty or duplicate entries are dropped, an unparsable value yields an empty list.
+        /// Entries with an unusable match type, an empty value or a duplicate of an earlier entry are dropped
+        /// individually, only a value that is no valid JSON array yields an empty list.
+        /// Every dropped entry and every parse failure is logged.
         /// </summary>
         /// <param name="serializedPatterns">The serialized pattern list taken from the configuration.</param>
         /// <returns>The usable patterns in configuration order.</returns>
@@ -27,12 +33,17 @@ namespace FWO.Data.Flow
 
             try
             {
-                List<FlowZoneGroupPattern> parsedPatterns =
-                    JsonSerializer.Deserialize<List<FlowZoneGroupPattern>>(serializedPatterns, kSerializerOptions) ?? [];
-                return Normalize(parsedPatterns);
+                List<RawFlowZoneGroupPattern?> rawPatterns =
+                    JsonSerializer.Deserialize<List<RawFlowZoneGroupPattern?>>(serializedPatterns, kSerializerOptions) ?? [];
+                List<FlowZoneGroupPattern> convertedPatterns = ConvertRawPatterns(rawPatterns);
+                List<FlowZoneGroupPattern> normalizedPatterns = Normalize(convertedPatterns);
+                LogDroppedPatterns(convertedPatterns.Count - normalizedPatterns.Count);
+                return normalizedPatterns;
             }
-            catch (JsonException)
+            catch (JsonException exception)
             {
+                Log.WriteWarning(kLogTitle,
+                    $"Configured zone name patterns are invalid JSON, no group is treated as a zone. {exception.Message}");
                 return [];
             }
         }
@@ -127,6 +138,85 @@ namespace FWO.Data.Flow
         {
             string comparableValue = pattern.CaseSensitive ? pattern.Value : pattern.Value.ToUpperInvariant();
             return $"{pattern.MatchType}|{pattern.CaseSensitive}|{comparableValue}";
+        }
+
+        private static List<FlowZoneGroupPattern> ConvertRawPatterns(List<RawFlowZoneGroupPattern?> rawPatterns)
+        {
+            List<FlowZoneGroupPattern> convertedPatterns = [];
+
+            foreach (RawFlowZoneGroupPattern? rawPattern in rawPatterns)
+            {
+                if (rawPattern == null)
+                {
+                    continue;
+                }
+
+                if (!TryConvertMatchType(rawPattern.MatchType, out FlowZoneNameMatchType matchType))
+                {
+                    Log.WriteWarning(kLogTitle,
+                        $"Dropping zone name pattern '{rawPattern.Value}' with unusable match type '{rawPattern.MatchType}'.");
+                    continue;
+                }
+
+                convertedPatterns.Add(new FlowZoneGroupPattern
+                {
+                    MatchType = matchType,
+                    CaseSensitive = rawPattern.CaseSensitive,
+                    Value = rawPattern.Value ?? ""
+                });
+            }
+
+            return convertedPatterns;
+        }
+
+        private static bool TryConvertMatchType(JsonElement rawMatchType, out FlowZoneNameMatchType matchType)
+        {
+            matchType = FlowZoneNameMatchType.Suffix;
+
+            return rawMatchType.ValueKind switch
+            {
+                JsonValueKind.Undefined => true,
+                JsonValueKind.String => Enum.TryParse(rawMatchType.GetString(), true, out matchType) && Enum.IsDefined(matchType),
+                JsonValueKind.Number => TryConvertNumericMatchType(rawMatchType, out matchType),
+                _ => false
+            };
+        }
+
+        private static bool TryConvertNumericMatchType(JsonElement rawMatchType, out FlowZoneNameMatchType matchType)
+        {
+            matchType = FlowZoneNameMatchType.Suffix;
+
+            if (!rawMatchType.TryGetInt32(out int numericMatchType))
+            {
+                return false;
+            }
+
+            matchType = (FlowZoneNameMatchType)numericMatchType;
+            return Enum.IsDefined(matchType);
+        }
+
+        private static void LogDroppedPatterns(int droppedPatternCount)
+        {
+            if (droppedPatternCount > 0)
+            {
+                Log.WriteWarning(kLogTitle,
+                    $"Dropped {droppedPatternCount} empty or duplicate zone name pattern(s) from the configuration.");
+            }
+        }
+
+        /// <summary>
+        /// Tolerant representation of a configured pattern, so a single unusable entry cannot discard the whole list.
+        /// </summary>
+        private sealed class RawFlowZoneGroupPattern
+        {
+            [JsonPropertyName("matchType")]
+            public JsonElement MatchType { get; set; }
+
+            [JsonPropertyName("caseSensitive")]
+            public bool CaseSensitive { get; set; }
+
+            [JsonPropertyName("value")]
+            public string? Value { get; set; }
         }
     }
 }

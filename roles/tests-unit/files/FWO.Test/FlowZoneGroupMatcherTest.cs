@@ -51,12 +51,75 @@ internal class FlowZoneGroupMatcherTest
     }
 
     [Test]
-    public void ParsePatterns_WithUnknownMatchType_ReturnsEmptyList()
+    public void ParsePatterns_WithUnknownMatchType_DropsOnlyTheUnusableEntry()
     {
-        List<FlowZoneGroupPattern> patterns =
-            FlowZoneGroupMatcher.ParsePatterns("[{\"matchType\":\"Regex\",\"caseSensitive\":false,\"value\":\"_zone\"}]");
+        const string serializedPatterns =
+            "[{\"matchType\":\"Regex\",\"caseSensitive\":false,\"value\":\"_regex\"},{\"matchType\":\"Prefix\",\"caseSensitive\":false,\"value\":\"zone-\"}]";
 
-        Assert.That(patterns, Is.Empty);
+        List<FlowZoneGroupPattern> patterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+
+        Assert.That(patterns, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(patterns[0].MatchType, Is.EqualTo(FlowZoneNameMatchType.Prefix));
+            Assert.That(patterns[0].Value, Is.EqualTo("zone-"));
+        });
+    }
+
+    [Test]
+    public void ParsePatterns_WithUnusableMatchTypeValues_DropsThoseEntriesOnly()
+    {
+        const string serializedPatterns =
+            "[{\"matchType\":null,\"value\":\"_null\"},{\"matchType\":42,\"value\":\"_outOfRange\"},"
+            + "{\"matchType\":{},\"value\":\"_object\"},{\"matchType\":\"Exact\",\"value\":\"zone1\"}]";
+
+        List<FlowZoneGroupPattern> patterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+
+        Assert.That(patterns, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(patterns[0].MatchType, Is.EqualTo(FlowZoneNameMatchType.Exact));
+            Assert.That(patterns[0].Value, Is.EqualTo("zone1"));
+        });
+    }
+
+    [Test]
+    public void ParsePatterns_WithNumericOrLowerCaseMatchType_KeepsTheEntry()
+    {
+        const string serializedPatterns =
+            "[{\"matchType\":1,\"value\":\"zone-\"},{\"matchType\":\"contains\",\"value\":\"zone\"}]";
+
+        List<FlowZoneGroupPattern> patterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+
+        Assert.That(patterns, Has.Count.EqualTo(2));
+        Assert.Multiple(() =>
+        {
+            Assert.That(patterns[0].MatchType, Is.EqualTo(FlowZoneNameMatchType.Prefix));
+            Assert.That(patterns[1].MatchType, Is.EqualTo(FlowZoneNameMatchType.Contains));
+        });
+    }
+
+    [Test]
+    public void ParsePatterns_WithEmptyDuplicateOrNullEntries_KeepsTheUsableOnes()
+    {
+        const string serializedPatterns =
+            "[null,{\"matchType\":\"Suffix\",\"value\":\"  _zone  \"},{\"matchType\":\"Suffix\",\"value\":\"_ZONE\"},"
+            + "{\"matchType\":\"Suffix\",\"value\":\"   \"},{\"matchType\":\"Suffix\"}]";
+
+        List<FlowZoneGroupPattern> patterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+
+        Assert.That(patterns, Has.Count.EqualTo(1));
+        Assert.That(patterns[0].Value, Is.EqualTo("_zone"));
+    }
+
+    [Test]
+    public void ParsePatterns_WithNonArrayJson_ReturnsEmptyList()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns("{\"matchType\":\"Suffix\",\"value\":\"_zone\"}"), Is.Empty);
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns("[1,2]"), Is.Empty);
+        });
     }
 
     [Test]

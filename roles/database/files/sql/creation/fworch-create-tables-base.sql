@@ -143,6 +143,12 @@ Create table "error"
  primary key ("error_id")
 );
 
+Create table "path_analysis_algorithm"
+(
+	"id" BIGSERIAL PRIMARY KEY,
+	"name" varchar NOT NULL UNIQUE
+);
+
 -- tenant -------------------------------------
 Create table "tenant"
 (

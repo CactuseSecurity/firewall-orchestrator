@@ -31,6 +31,24 @@
             </ExecutionModeAuthorizeView>
             <hr />
             <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5329"))">
+                    <h5>@(userConfig.GetText("network_topology"))</h5>
+                </li>
+            </ExecutionModeAuthorizeView>
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/settings/matrix">
+                        <span class="@Icons.Matrix"></span> @(userConfig.GetText("matrix"))
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="/settings/internet">
+                        <span class="@Icons.Network"></span> @(userConfig.GetText("internet"))
+                    </NavLink>
+                </li>
+            </ExecutionModeAuthorizeView>
+            <hr />
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5012"))">
                     <h5>@(userConfig.GetText("authorization"))</h5>
                 </li>

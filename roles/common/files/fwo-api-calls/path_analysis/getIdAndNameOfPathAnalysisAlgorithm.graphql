@@ -1,0 +1,6 @@
+query getIdAndNameOfPathAnalysisAlgorithm {
+  path_analysis_algorithm(order_by: [{ name: asc }]) {
+    id
+    name
+  }
+}

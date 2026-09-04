@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AngleSharp" Version="1.7.2" />
+		<PackageReference Include="AngleSharp" Version="1.7.3" />
 		<PackageReference Include="bunit" Version="2.9.0" />
 		<PackageReference Include="NSubstitute" Version="6.2.0" />
 		<PackageReference Include="PuppeteerSharp" Version="25.8.0" />

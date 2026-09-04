@@ -16,11 +16,11 @@ See documentation/developer-docs/versioning.md for the policy this file enforces
 from __future__ import annotations
 
 import argparse
-import difflib
 import json
 import re
 import subprocess
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -112,25 +112,38 @@ def revision_history_heading_version(heading: str) -> str | None:
     return match.group(1) if match is not None else None
 
 
+def final_revision_history_section(markdown: str) -> tuple[str, list[str]] | None:
+    """Return the final level-two heading and the lines beneath it."""
+    heading_entry = last_revision_history_heading_entry(markdown)
+    if heading_entry is None:
+        return None
+    lines = markdown.splitlines()
+    return (heading_entry[1], lines[heading_entry[0] + 1 :])
+
+
+def revision_history_content_counts(lines: list[str]) -> Counter[str]:
+    """Count meaningful non-heading lines in a revision-history section."""
+    content_lines: list[str] = []
+    for line in lines:
+        text = line.strip()
+        if not text.startswith("#") and any(character.isalnum() for character in text):
+            content_lines.append(line)
+    return Counter(content_lines)
+
+
 def revision_history_has_final_section_addition(base_markdown: str, merged_markdown: str) -> bool:
     """Return whether non-heading text was added below the final level-two heading."""
-    heading_entry = last_revision_history_heading_entry(merged_markdown)
-    if heading_entry is None:
+    merged_section = final_revision_history_section(merged_markdown)
+    if merged_section is None:
         return False
 
-    heading_line_index = heading_entry[0]
-    base_lines = base_markdown.splitlines()
-    merged_lines = merged_markdown.splitlines()
-    matcher = difflib.SequenceMatcher(a=base_lines, b=merged_lines, autojunk=False)
-    for change_type, _, _, merged_start, merged_end in matcher.get_opcodes():
-        if change_type == "equal":
-            continue
-        section_start = max(heading_line_index + 1, merged_start)
-        for line in merged_lines[section_start:merged_end]:
-            text = line.strip()
-            if not text.startswith("#") and any(character.isalnum() for character in text):
-                return True
-    return False
+    base_content: Counter[str] = Counter()
+    base_section = final_revision_history_section(base_markdown)
+    if base_section is not None:
+        base_content = revision_history_content_counts(base_section[1])
+
+    merged_content = revision_history_content_counts(merged_section[1])
+    return any(count > base_content[line] for line, count in merged_content.items())
 
 
 def evaluate_revision_history(

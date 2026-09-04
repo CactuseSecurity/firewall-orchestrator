@@ -129,6 +129,25 @@ class TestRevisionHistory:
     def test_text_added_to_final_section_is_detected(self) -> None:
         assert revision_history_has_final_section_addition(REVISION_HISTORY, REVISION_HISTORY_WITH_ADDITION)
 
+    def test_duplicate_text_added_to_final_section_is_detected(self) -> None:
+        merged_revision_history = f"{REVISION_HISTORY}- the current change\n"
+        assert revision_history_has_final_section_addition(REVISION_HISTORY, merged_revision_history)
+
+    def test_changing_only_the_final_heading_does_not_count_as_added_text(self) -> None:
+        merged_revision_history = REVISION_HISTORY.replace("## 9.4.5", "## 9.4.6")
+        assert not revision_history_has_final_section_addition(REVISION_HISTORY, merged_revision_history)
+
+    def test_reordering_final_section_does_not_count_as_added_text(self) -> None:
+        base_revision_history = "# Revision history\n\n## 9.4.5\n- first\n- second\n"
+        merged_revision_history = "# Revision history\n\n## 9.4.5\n- second\n- first\n"
+        assert not revision_history_has_final_section_addition(base_revision_history, merged_revision_history)
+
+    def test_large_repetitive_history_is_evaluated(self) -> None:
+        repeated_lines = "- repeated entry\n" * 20_000
+        base_revision_history = f"# Revision history\n\n## 9.4.5\n{repeated_lines}"
+        merged_revision_history = f"{base_revision_history}- added entry\n"
+        assert revision_history_has_final_section_addition(base_revision_history, merged_revision_history)
+
     @pytest.mark.parametrize(
         "merged_revision_history",
         [

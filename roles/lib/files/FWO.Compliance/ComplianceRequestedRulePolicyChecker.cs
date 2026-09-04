@@ -7,7 +7,9 @@ using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Data.Middleware;
 using FWO.Middleware.Client;
+using FWO.Logging;
 using FWO.Services.Workflow;
+using Microsoft.Extensions.DependencyInjection;
 using RestSharp;
 
 namespace FWO.Compliance
@@ -16,6 +18,7 @@ namespace FWO.Compliance
     {
         // Flow-sync queries currently require an mgmId variable; zero intentionally matches no management.
         private const int kNoManagementFilter = 0;
+        private const int kMaxMiddlewareGroupSelectors = 100;
         public async Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
         {
             List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
@@ -49,9 +52,14 @@ namespace FWO.Compliance
                 {
                     rules.Add(rule);
                 }
-                else
+                else if (HasUnresolvedGroup(task, networkGroupMembers, serviceGroupMembers))
                 {
                     return [];
+                }
+                else
+                {
+                    Log.WriteWarning("ComplianceRequestedRulePolicyChecker",
+                        $"Skipping request task {task.Id} because it contains elements that cannot be mapped to a technical rule.");
                 }
             }
 
@@ -79,25 +87,29 @@ namespace FWO.Compliance
                 .Where(element => !element.FlowNetworkGroupId.HasValue)
                 .Select(element => element.GroupName)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> requestedGroupNames = groupElements.Select(element => element.GroupName)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (middlewareClient != null)
+            Dictionary<long, HashSet<string>> requestedNamesById = groupElements
+                .Where(element => element.FlowNetworkGroupId.HasValue)
+                .GroupBy(element => element.FlowNetworkGroupId!.Value)
+                .ToDictionary(group => group.Key, group => group.Select(element => element.GroupName).ToHashSet(StringComparer.OrdinalIgnoreCase));
+            HashSet<string> namesWithIds = requestedNamesById.Values.SelectMany(names => names).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            IFlowGroupResolver? flowGroupResolver = FWO.Services.ServiceProvider.Services?.GetService<IFlowGroupResolver>();
+            if (middlewareClient != null || flowGroupResolver != null)
             {
-                RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new FlowGroupResolutionParameters
-                {
-                    NetworkGroupIds = groupIds.ToList(),
-                    NetworkGroupNames = groupNames.ToList()
-                });
-                EnsureSuccessful(response);
-                foreach (FlowNetworkGroupResolution group in response.Data?.NetworkGroups ?? [])
+                FlowGroupResolutionResult resolution = flowGroupResolver != null
+                    ? await flowGroupResolver.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters
+                    {
+                        NetworkGroupIds = groupIds.ToList(),
+                        NetworkGroupNames = groupNames.ToList()
+                    })
+                    : await ResolveFlowGroupsThroughMiddleware(middlewareClient!, groupIds, groupNames, true);
+                foreach (FlowNetworkGroupResolution group in resolution.NetworkGroups)
                 {
                     List<NwObjectElement> members = group.Members
                         .Select(ToNetworkElement)
                         .ToList();
-                    MergeNetworkGroupMembers(networkGroupMembers, group.Name, members);
-                    if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                    foreach (string key in GetResolvedGroupKeys(group.Id, group.Name, requestedNamesById, namesWithIds))
                     {
-                        MergeNetworkGroupMembers(networkGroupMembers, requestedGroupNames.Single(), members);
+                        MergeNetworkGroupMembers(networkGroupMembers, key, members);
                     }
                 }
                 return;
@@ -117,10 +129,9 @@ namespace FWO.Compliance
                     .Where(member => objectsById.ContainsKey(member.NwObjectId))
                     .Select(member => ToNetworkElement(objectsById[member.NwObjectId]))
                     .ToList();
-                MergeNetworkGroupMembers(networkGroupMembers, group.Name, members);
-                if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                foreach (string key in GetResolvedGroupKeys(group.Id, group.Name, requestedNamesById, namesWithIds))
                 {
-                    MergeNetworkGroupMembers(networkGroupMembers, requestedGroupNames.Single(), members);
+                    MergeNetworkGroupMembers(networkGroupMembers, key, members);
                 }
             }
         }
@@ -146,25 +157,29 @@ namespace FWO.Compliance
                 .Where(element => !element.FlowServiceGroupId.HasValue)
                 .Select(element => element.GroupName!)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            HashSet<string> requestedGroupNames = groupElements.Select(element => element.GroupName!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            if (middlewareClient != null)
+            Dictionary<long, HashSet<string>> requestedNamesById = groupElements
+                .Where(element => element.FlowServiceGroupId.HasValue)
+                .GroupBy(element => element.FlowServiceGroupId!.Value)
+                .ToDictionary(group => group.Key, group => group.Select(element => element.GroupName!).ToHashSet(StringComparer.OrdinalIgnoreCase));
+            HashSet<string> namesWithIds = requestedNamesById.Values.SelectMany(names => names).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            IFlowGroupResolver? flowGroupResolver = FWO.Services.ServiceProvider.Services?.GetService<IFlowGroupResolver>();
+            if (middlewareClient != null || flowGroupResolver != null)
             {
-                RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new FlowGroupResolutionParameters
-                {
-                    ServiceGroupIds = groupIds.ToList(),
-                    ServiceGroupNames = groupNames.ToList()
-                });
-                EnsureSuccessful(response);
-                foreach (FlowServiceGroupResolution group in response.Data?.ServiceGroups ?? [])
+                FlowGroupResolutionResult resolution = flowGroupResolver != null
+                    ? await flowGroupResolver.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters
+                    {
+                        ServiceGroupIds = groupIds.ToList(),
+                        ServiceGroupNames = groupNames.ToList()
+                    })
+                    : await ResolveFlowGroupsThroughMiddleware(middlewareClient!, groupIds, groupNames, false);
+                foreach (FlowServiceGroupResolution group in resolution.ServiceGroups)
                 {
                     List<NwServiceElement> members = group.Members
                         .Select(ToServiceElement)
                         .ToList();
-                    MergeServiceGroupMembers(serviceGroupMembers, group.Name, members);
-                    if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                    foreach (string key in GetResolvedGroupKeys(group.Id, group.Name, requestedNamesById, namesWithIds))
                     {
-                        MergeServiceGroupMembers(serviceGroupMembers, requestedGroupNames.Single(), members);
+                        MergeServiceGroupMembers(serviceGroupMembers, key, members);
                     }
                 }
                 return;
@@ -184,10 +199,9 @@ namespace FWO.Compliance
                     .Where(member => objectsById.ContainsKey(member.SvcObjectId))
                     .Select(member => ToServiceElement(objectsById[member.SvcObjectId]))
                     .ToList();
-                MergeServiceGroupMembers(serviceGroupMembers, group.Name, members);
-                if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                foreach (string key in GetResolvedGroupKeys(group.Id, group.Name, requestedNamesById, namesWithIds))
                 {
-                    MergeServiceGroupMembers(serviceGroupMembers, requestedGroupNames.Single(), members);
+                    MergeServiceGroupMembers(serviceGroupMembers, key, members);
                 }
             }
         }
@@ -218,12 +232,60 @@ namespace FWO.Compliance
 
         private static void EnsureSuccessful(RestResponse<FlowGroupResolutionResult> response)
         {
-            bool successfulStatus = (int)response.StatusCode is >= 200 and < 300;
-            if ((!response.IsSuccessful && !successfulStatus) || response.Data == null)
+            if (!response.IsSuccessful || response.Data == null)
             {
                 string details = response.ErrorException?.Message ?? response.ErrorMessage ?? response.StatusCode.ToString();
                 throw new InvalidOperationException($"Flow group resolution failed: {details}");
             }
+        }
+
+        private static async Task<FlowGroupResolutionResult> ResolveFlowGroupsThroughMiddleware(
+            MiddlewareClient middlewareClient, IEnumerable<long> groupIds, IEnumerable<string> groupNames, bool networkGroups)
+        {
+            List<FlowGroupResolutionResult> results = [];
+            foreach (long[] idChunk in groupIds.Chunk(kMaxMiddlewareGroupSelectors))
+            {
+                RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new()
+                {
+                    NetworkGroupIds = networkGroups ? idChunk.ToList() : [],
+                    ServiceGroupIds = networkGroups ? [] : idChunk.ToList()
+                });
+                EnsureSuccessful(response);
+                results.Add(response.Data!);
+            }
+
+            foreach (string[] nameChunk in groupNames.Chunk(kMaxMiddlewareGroupSelectors))
+            {
+                RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new()
+                {
+                    NetworkGroupNames = networkGroups ? nameChunk.ToList() : [],
+                    ServiceGroupNames = networkGroups ? [] : nameChunk.ToList()
+                });
+                EnsureSuccessful(response);
+                results.Add(response.Data!);
+            }
+
+            return new FlowGroupResolutionResult
+            {
+                NetworkGroups = results.SelectMany(result => result.NetworkGroups).ToList(),
+                ServiceGroups = results.SelectMany(result => result.ServiceGroups).ToList()
+            };
+        }
+
+        private static IEnumerable<string> GetResolvedGroupKeys(long groupId, string? groupName,
+            IReadOnlyDictionary<long, HashSet<string>> requestedNamesById, ISet<string> namesWithIds)
+        {
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                return [];
+            }
+
+            if (requestedNamesById.TryGetValue(groupId, out HashSet<string>? requestedNames))
+            {
+                return requestedNames;
+            }
+
+            return namesWithIds.Contains(groupName) ? [] : [groupName];
         }
 
         private static IEnumerable<TGroup> ResolveFlowGroups<TGroup>(IEnumerable<TGroup> groups, HashSet<long> groupIds, HashSet<string> groupNames)
@@ -366,6 +428,15 @@ namespace FWO.Compliance
         {
             return elements.Where(IsRequestedElementActive).Any(element =>
                 !string.IsNullOrWhiteSpace(element.GroupName) && !groups.ContainsKey(element.GroupName));
+        }
+
+        private static bool HasUnresolvedGroup(WfReqTask task,
+            IReadOnlyDictionary<string, List<NwObjectElement>> networkGroups,
+            IReadOnlyDictionary<string, List<NwServiceElement>> serviceGroups)
+        {
+            return HasUnresolvedGroup(task.GetNwObjectElements(ElemFieldType.source), networkGroups)
+                || HasUnresolvedGroup(task.GetNwObjectElements(ElemFieldType.destination), networkGroups)
+                || HasUnresolvedGroup(task.GetServiceElements(), serviceGroups);
         }
 
         private static Dictionary<string, List<NwObjectElement>> BuildNetworkGroupMembers(IEnumerable<WfReqTask> tasks)

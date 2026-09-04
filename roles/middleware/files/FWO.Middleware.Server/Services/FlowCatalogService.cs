@@ -7,6 +7,7 @@ using FWO.Data.Flow;
 using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Server.Responses;
+using FWO.Services.Workflow;
 using NetTools;
 
 namespace FWO.Middleware.Server.Services;
@@ -14,7 +15,7 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Represents the FlowCatalogService type.
 /// </summary>
-public sealed class FlowCatalogService
+public sealed class FlowCatalogService : IFlowGroupResolver
 {
     private readonly ApiConnection apiConnection;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);

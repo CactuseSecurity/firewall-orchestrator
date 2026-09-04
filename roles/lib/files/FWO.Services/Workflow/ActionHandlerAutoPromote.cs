@@ -40,6 +40,7 @@ namespace FWO.Services.Workflow
                 List<WfReqTask> requestedRuleTasks = policyCheckTasks.Where(IsPolicyCheckRuleTask).ToList();
                 if (requestedRuleTasks.Count == 0)
                 {
+                    Log.WriteWarning("Policy Check", "No eligible request-rule tasks were found for the conditional policy check.");
                     return false;
                 }
 
@@ -51,7 +52,7 @@ namespace FWO.Services.Workflow
                 }
                 if (requestedRulePolicyChecker == null)
                 {
-                    Log.WriteDebug("Policy Check", "No requested-rule policy checker factory is registered. Policy check cannot be executed.");
+                    Log.WriteWarning("Policy Check", "No requested-rule policy checker factory is registered. Policy check cannot be executed.");
                     return false;
                 }
 

@@ -6,6 +6,13 @@ using FWO.Middleware.Client;
 
 namespace FWO.Services.Workflow
 {
+    /// <summary>Resolves request-visible Flow groups for workflow policy checks.</summary>
+    public interface IFlowGroupResolver
+    {
+        /// <summary>Resolves the explicitly requested Flow groups and members.</summary>
+        Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters);
+    }
+
     public interface IRequestedRulePolicyChecker
     {
         /// <summary>

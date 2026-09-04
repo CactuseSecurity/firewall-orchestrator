@@ -154,10 +154,40 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsKnownSelectors()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupIds = [10],
+            NetworkGroupNames = ["network-group"],
+            ServiceGroupIds = [20],
+            ServiceGroupNames = ["service-group"]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsBlankGroupNames()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupNames = [" "]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must not be empty"));
+    }
+
+    [Test]
     public async Task FlowController_ResolveGroupMembers_RejectsUnknownFields()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
-        FlowGroupResolutionParameters request = new()
+        ResolveFlowGroupsRequest request = new()
         {
             AdditionalData = new Dictionary<string, JsonElement>
             {
@@ -174,7 +204,7 @@ internal class FlowControllerValidationTest
     public async Task FlowController_ResolveGroupMembers_RejectsTooManySelectors()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
-        FlowGroupResolutionParameters request = new()
+        ResolveFlowGroupsRequest request = new()
         {
             NetworkGroupIds = Enumerable.Range(1, 101).Select(id => (long)id).ToList()
         };
@@ -494,6 +524,15 @@ internal class FlowControllerValidationTest
     {
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
+            if (typeof(QueryResponseType) == typeof(List<FlowNwGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNwGroup>());
+            }
+            if (typeof(QueryResponseType) == typeof(List<FlowSvcGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowSvcGroup>());
+            }
+
             throw new InvalidOperationException("Validation should return before the API is queried.");
         }
 

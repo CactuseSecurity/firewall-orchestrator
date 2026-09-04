@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace FWO.Data.Middleware
 {
@@ -14,9 +12,6 @@ namespace FWO.Data.Middleware
         /// <summary>Gets or sets requested service group names.</summary>
         public List<string> ServiceGroupNames { get; set; } = [];
 
-        /// <summary>Gets unknown request fields for endpoint validation.</summary>
-        [JsonExtensionData]
-        public Dictionary<string, JsonElement>? AdditionalData { get; set; }
     }
 
     public sealed class FlowGroupResolutionResult

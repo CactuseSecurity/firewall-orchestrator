@@ -475,6 +475,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task BuildRulesFromRequestTasks_UsesRegisteredFlowGroupResolver()
+        {
+            TestFlowGroupResolver resolver = new()
+            {
+                Result = new FlowGroupResolutionResult
+                {
+                    NetworkGroups = [new FlowNetworkGroupResolution
+                    {
+                        Id = 601,
+                        Name = "resolver-destinations",
+                        Members = [new FlowNetworkMemberResolution
+                        {
+                            Id = 701, Name = "resolver-host", IpStart = "192.0.2.60", IpEnd = "192.0.2.60"
+                        }]
+                    }],
+                    ServiceGroups = [new FlowServiceGroupResolution
+                    {
+                        Id = 602,
+                        Name = "resolver-services",
+                        Members = [new FlowServiceMemberResolution
+                        {
+                            Id = 702, Name = "resolver-https", PortStart = 443, PortEnd = 443, ProtoId = 6
+                        }]
+                    }]
+                }
+            };
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IFlowGroupResolver>(resolver)
+                .BuildServiceProvider();
+
+            try
+            {
+                WfReqTask task = CreateEligibleRequestTask(39);
+                WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+                destination.IpString = null;
+                destination.GroupName = "resolver-destinations";
+                destination.FlowNetworkGroupId = 601;
+                WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+                service.Name = null;
+                service.Port = null;
+                service.GroupName = "resolver-services";
+                service.FlowServiceGroupId = 602;
+
+                List<Rule> rules = await InvokeBuildRules(checker, task);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(rules, Has.Count.EqualTo(1));
+                    Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.60/32"));
+                    Assert.That(rules[0].Services[0].Content.DestinationPort, Is.EqualTo(443));
+                    Assert.That(resolver.Requests, Has.Count.EqualTo(2));
+                    Assert.That(resolver.Requests.SelectMany(request => request.NetworkGroupIds), Is.EqualTo([601]));
+                    Assert.That(resolver.Requests.SelectMany(request => request.ServiceGroupIds), Is.EqualTo([602]));
+                });
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
+        }
+
+        [Test]
         public async Task BuildRulesFromRequestTasks_ReturnsNoRulesWhenMappedRuleHasNoTechnicalValues()
         {
             WfReqTask task = CreateEligibleRequestTask(31);
@@ -483,6 +546,81 @@ namespace FWO.Test
             List<Rule> rules = await BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_SkipsUnmappableTaskButKeepsOtherRules()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(35);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            WfReqTask validTask = CreateEligibleRequestTask(36);
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(unmappableTask, validTask);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Uid, Is.EqualTo("rule-36"));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_DoesNotMergeNameMatchIntoIdMatch()
+        {
+            TestFlowGroupMiddlewareClient middlewareClient = new()
+            {
+                Result = new FlowGroupResolutionResult
+                {
+                    NetworkGroups =
+                    [
+                        new FlowNetworkGroupResolution
+                        {
+                            Id = 501,
+                            Name = "flow-name",
+                            Members = [new FlowNetworkMemberResolution { Id = 1, IpStart = "192.0.2.1", IpEnd = "192.0.2.1" }]
+                        },
+                        new FlowNetworkGroupResolution
+                        {
+                            Id = 55,
+                            Name = "requested-name",
+                            Members = [new FlowNetworkMemberResolution { Id = 2, IpStart = "192.0.2.2", IpEnd = "192.0.2.2" }]
+                        }
+                    ]
+                }
+            };
+            ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
+            WfReqTask task = CreateEligibleRequestTask(37);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "requested-name";
+            destination.FlowNetworkGroupId = 501;
+
+            List<Rule> rules = await InvokeBuildRules(middlewareChecker, task);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos.Select(location => location.Object.IP), Is.EqualTo(["192.0.2.1/32"]));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ChunksMiddlewareGroupResolutionSelectors()
+        {
+            TestFlowGroupMiddlewareClient middlewareClient = new();
+            ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
+            WfReqTask task = CreateEligibleRequestTask(38);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "network-group-0";
+            destination.FlowNetworkGroupId = 1000;
+            task.Elements.AddRange(Enumerable.Range(1, 100).Select(index => new WfReqElement
+            {
+                Field = ElemFieldType.destination.ToString(),
+                GroupName = $"network-group-{index}",
+                FlowNetworkGroupId = 1000 + index
+            }));
+
+            await InvokeBuildRules(middlewareChecker, task);
+
+            Assert.That(middlewareClient.Requests, Has.Count.EqualTo(2));
+            Assert.That(middlewareClient.Requests.All(request => request.NetworkGroupIds.Count <= 100), Is.True);
+            Assert.That(middlewareClient.Requests.SelectMany(request => request.NetworkGroupIds).ToList(), Has.Count.EqualTo(101));
         }
 
         [Test]
@@ -569,14 +707,28 @@ namespace FWO.Test
                 {
                     Data = Result,
                     StatusCode = HttpStatusCode.OK,
-                    ResponseStatus = ResponseStatus.Completed
+                    ResponseStatus = ResponseStatus.Completed,
+                    IsSuccessStatusCode = true
                 };
                 if (FailureStatus.HasValue)
                 {
                     response.StatusCode = FailureStatus.Value;
                     response.Data = null;
+                    response.IsSuccessStatusCode = false;
                 }
                 return Task.FromResult(response);
+            }
+        }
+
+        private sealed class TestFlowGroupResolver : IFlowGroupResolver
+        {
+            public FlowGroupResolutionResult Result { get; set; } = new();
+            public List<FlowGroupResolutionParameters> Requests { get; } = [];
+
+            public Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
+            {
+                Requests.Add(parameters);
+                return Task.FromResult(Result);
             }
         }
     }

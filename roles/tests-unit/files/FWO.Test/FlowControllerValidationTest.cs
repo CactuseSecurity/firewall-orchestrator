@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.Server.Controllers;
@@ -137,6 +138,19 @@ internal class FlowControllerValidationTest
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'protocol'"));
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsEmptyRequest()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(null);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        FlowGroupResolutionResult response = (FlowGroupResolutionResult)((OkObjectResult)result.Result!).Value!;
+        Assert.That(response.NetworkGroups, Is.Empty);
+        Assert.That(response.ServiceGroups, Is.Empty);
     }
 
     [Test]

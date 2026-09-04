@@ -4,12 +4,15 @@ using FWO.Compliance;
 using FWO.Data;
 using FWO.Data.Flow;
 using FWO.Data.Workflow;
+using FWO.Data.Middleware;
+using FWO.Middleware.Client;
 using FWO.Services.Workflow;
 using FWO.Test.Fixtures;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NUnit.Framework;
 using System.Reflection;
+using RestSharp;
 
 namespace FWO.Test
 {
@@ -298,6 +301,67 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task BuildRulesFromRequestTasks_ResolvesGroupsByUniqueNameAndSkipsRemovedFlowRecords()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowNwGroup
+                    {
+                        Name = "named-network-group",
+                        NwGroupMembers =
+                        [
+                            new FlowNwGroupMember { NwObjectId = 401 },
+                            new FlowNwGroupMember { NwObjectId = 402 }
+                        ]
+                    },
+                    new FlowNwGroup { Name = "removed-network-group", State = FlowState.Removed }
+                ]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowNwObject { Id = 401, IpStart = "192.0.2.40", IpEnd = "192.0.2.40" },
+                    new FlowNwObject { Id = 402, IpStart = "192.0.2.41", IpEnd = "192.0.2.41", State = FlowState.Removed }
+                ]);
+
+            WfReqTask task = CreateEligibleRequestTask(32);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "named-network-group";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos.Select(location => location.Object.IP), Is.EqualTo(["192.0.2.40/32"]));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_DoesNotResolveAmbiguousFlowGroupName()
+        {
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
+                .Returns(
+                [
+                    new FlowNwGroup { Name = "ambiguous-group" },
+                    new FlowNwGroup { Name = "ambiguous-group" }
+                ]);
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
+                .Returns([]);
+
+            WfReqTask task = CreateEligibleRequestTask(33);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "ambiguous-group";
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
+
+            Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
         public async Task BuildRulesFromRequestTasks_ReturnsNoRulesWhenGroupCannotBeResolved()
         {
             ApiConnection.AsSub()
@@ -350,6 +414,77 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task BuildRulesFromRequestTasks_ResolvesNetworkAndServiceGroupsThroughMiddleware()
+        {
+            TestFlowGroupMiddlewareClient middlewareClient = new()
+            {
+                Result = new FlowGroupResolutionResult
+                {
+                    NetworkGroups =
+                    [
+                        new FlowNwGroup
+                        {
+                            Name = "remote-destinations",
+                            NwGroupMembers =
+                            [new FlowNwGroupMember
+                            {
+                                NwObject = new FlowNwObject
+                                {
+                                    Id = 301,
+                                    Name = "remote-host",
+                                    IpStart = "192.0.2.30",
+                                    IpEnd = "192.0.2.30"
+                                }
+                            }]
+                        }
+                    ],
+                    ServiceGroups =
+                    [
+                        new FlowSvcGroup
+                        {
+                            Name = "remote-services",
+                            SvcGroupMembers =
+                            [new FlowSvcGroupMember
+                            {
+                                SvcObject = new FlowSvcObject { Id = 302, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6 }
+                            }]
+                        }
+                    ]
+                }
+            };
+            ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
+            WfReqTask task = CreateEligibleRequestTask(30);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "remote-destinations";
+            WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
+            service.Name = null;
+            service.Port = null;
+            service.ProtoId = 0;
+            service.GroupName = "remote-services";
+
+            List<Rule> rules = await InvokeBuildRules(middlewareChecker, task);
+
+            Assert.That(rules, Has.Count.EqualTo(1));
+            Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.30/32"));
+            Assert.That(rules[0].Services[0].Content.DestinationPort, Is.EqualTo(443));
+            Assert.That(middlewareClient.Requests, Has.Count.EqualTo(2));
+            Assert.That(middlewareClient.Requests.SelectMany(request => request.NetworkGroupNames), Does.Contain("remote-destinations"));
+            Assert.That(middlewareClient.Requests.SelectMany(request => request.ServiceGroupNames), Does.Contain("remote-services"));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_ReturnsNoRulesWhenMappedRuleHasNoTechnicalValues()
+        {
+            WfReqTask task = CreateEligibleRequestTask(31);
+            task.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            List<Rule> rules = await BuildRulesFromRequestTasks(task);
+
+            Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
         public void ComplianceRequestedRulePolicyCheckerFactory_CreatesChecker()
         {
             ComplianceRequestedRulePolicyCheckerFactory factory = new();
@@ -392,11 +527,31 @@ namespace FWO.Test
 
         private async Task<List<Rule>> BuildRulesFromRequestTasks(params WfReqTask[] requestTasks)
         {
+            return await InvokeBuildRules(checker, requestTasks);
+        }
+
+        private static async Task<List<Rule>> InvokeBuildRules(ComplianceRequestedRulePolicyChecker policyChecker, params WfReqTask[] requestTasks)
+        {
             MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRulesFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new AssertionException("BuildRulesFromRequestTasks method not found.");
-            object? result = method.Invoke(checker, [requestTasks.AsEnumerable()]);
+            object? result = method.Invoke(policyChecker, [requestTasks.AsEnumerable()]);
             Task<List<Rule>> task = result as Task<List<Rule>> ?? throw new AssertionException("BuildRulesFromRequestTasks returned unexpected result.");
             return await task;
+        }
+
+        private sealed class TestFlowGroupMiddlewareClient : MiddlewareClient
+        {
+            public FlowGroupResolutionResult Result { get; set; } = new();
+            public List<FlowGroupResolutionParameters> Requests { get; } = [];
+
+            public TestFlowGroupMiddlewareClient() : base("https://middleware.example/")
+            { }
+
+            public override Task<RestResponse<FlowGroupResolutionResult>> ResolveFlowGroupMembers(FlowGroupResolutionParameters parameters)
+            {
+                Requests.Add(parameters);
+                return Task.FromResult(new RestResponse<FlowGroupResolutionResult>(new RestRequest()) { Data = Result });
+            }
         }
     }
 }

@@ -94,7 +94,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
-        public async Task<RestResponse<FlowGroupResolutionResult>> ResolveFlowGroupMembers(FlowGroupResolutionParameters parameters)
+        public virtual async Task<RestResponse<FlowGroupResolutionResult>> ResolveFlowGroupMembers(FlowGroupResolutionParameters parameters)
         {
             RestRequest request = new("flow/resolveGroupMembers", Method.Post);
             request.AddJsonBody(parameters);

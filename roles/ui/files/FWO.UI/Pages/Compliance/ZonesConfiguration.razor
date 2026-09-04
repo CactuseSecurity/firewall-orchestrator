@@ -41,7 +41,9 @@
             <form>
                 @if (!string.IsNullOrWhiteSpace(AutoCalculatedZoneCommunicationsWarning))
                 {
-                    <div class="alert alert-warning" role="alert">@AutoCalculatedZoneCommunicationsWarning</div>
+                    <div class="alert alert-warning" role="alert">
+                        @AutoCalculatedZoneCommunicationsWarning
+                    </div>
                 }
                 <div class="row mb-3">
                     <div class="col-3">
@@ -56,7 +58,7 @@
                         <label for="description" class="form-label">@(userConfig.GetText("description"))</label>
                         <textarea type="text" @bind="networkZoneInEdit.Description" class="form-control" id="description" placeholder="@(userConfig.GetText("description"))" />
                     </div>
-                    @if(userConfig.ComplianceMatrixAllowNetworkZones)
+                    @if(userConfig.MatrixAllowNestedZones)
                     {
                         <div class="col-3">
                             <label class="form-label">@(userConfig.GetText("superzone"))</label>
@@ -93,9 +95,14 @@
                             {
                                 <div class="input-group mb-2">
                                     <IpAddressInput @bind-IpRange="ipRangeToAdd" />
-                                    <button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">@userConfig.GetText("add")</button>
+                                    <button @onclick="AddIpRange" type="button" class="btn btn-success" id="addIpAddress">
+                                        @userConfig.GetText("add")
+                                    </button>
                                 </div>
-                                <EditList ElementType="IPAddressRange" Elements="networkZoneInEdit?.IPRanges" ElementsToAdd="addDel.IpRangesToAdd" ElementsToDelete="addDel.IpRangesToDelete">
+                                <EditList ElementType="IPAddressRange"
+                                        Elements="networkZoneInEdit?.IPRanges"
+                                        ElementsToAdd="addDel.IpRangesToAdd"
+                                        ElementsToDelete="addDel.IpRangesToDelete">
                                     <Display>
                                         @NetworkZoneService.DisplayIpRange(context)
                                     </Display>
@@ -103,7 +110,7 @@
                             }
                         }
                     </div>
-                    @if(userConfig.ComplianceMatrixAllowNetworkZones)
+                    @if(userConfig.MatrixAllowNestedZones)
                     {
                         <div class="col-3">
                             <label>@userConfig.GetText("subzones")</label>
@@ -117,7 +124,12 @@
                                         </ElementTemplate>
                                         <Append>
                                             <button @onclick="() => AddCommunicationZone(addDel.SubzonesToAdd, ref subzoneToAdd, ref subzoneInputClass)"
-                                                type="button" style="width: 60px" class="btn btn-success" id="addSubzone">@userConfig.GetText("add")</button>
+                                                    type="button"
+                                                    style="width: 60px"
+                                                    class="btn btn-success"
+                                                    id="addSubzone">
+                                                @userConfig.GetText("add")
+                                            </button>
                                         </Append>
                                     </Dropdown>
                                 </div>

@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Basics;
@@ -16,7 +17,6 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -25,6 +25,22 @@ namespace FWO.Test
     [TestFixture]
     internal class UiSettingsDefaultsTest
     {
+        private const long kNetworkZoneTreeId = 2;
+        private const string kNoneName = "None";
+        private const string kNetworkZoneTreeName = "Network Zone Tree";
+
+        /// <summary>
+        /// Builds the lookup rows as the API would return them, ordered by name like the real query.
+        /// </summary>
+        private static List<PathAnalysisAlgorithm> BuildPathAnalysisAlgorithms()
+        {
+            return
+            [
+                new PathAnalysisAlgorithm { Id = GlobalConst.kPathAnalysisAlgorithmNone, Name = kNoneName },
+                new PathAnalysisAlgorithm { Id = kNetworkZoneTreeId, Name = kNetworkZoneTreeName }
+            ];
+        }
+
         [Test]
         public async Task SettingsDefaults_RendersGlobalIconifyToggle()
         {
@@ -90,6 +106,99 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task SettingsDefaults_RendersPathAnalysisAlgorithmOptions()
+        {
+            await using BunitContext context =
+                CreateSavingContext(out RecordingSettingsApiConn apiConnection);
+
+            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IReadOnlyList<IElement> options =
+                    wrapper.FindAll("#pathAnalysisAlgorithm option");
+
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(options, Has.Count.EqualTo(2));
+                    Assert.That(options[0].GetAttribute("value"), Is.EqualTo(GlobalConst.kPathAnalysisAlgorithmNone.ToString()));
+                    Assert.That(options[0].TextContent, Is.EqualTo(kNoneName));
+                    Assert.That(options[1].GetAttribute("value"), Is.EqualTo(kNetworkZoneTreeId.ToString()));
+                    Assert.That(options[1].TextContent, Is.EqualTo(kNetworkZoneTreeName));
+                });
+            });
+        }
+
+        [Test]
+        public async Task SettingsDefaults_PreselectsStoredPathAnalysisAlgorithm()
+        {
+            await using BunitContext context = CreateSavingContext(
+                out RecordingSettingsApiConn apiConnection,
+                out SimulatedGlobalConfig globalConfig);
+
+            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
+            globalConfig.PathAnalysisAlgorithm = kNetworkZoneTreeId;
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IElement select = wrapper.Find("#pathAnalysisAlgorithm");
+                string? boundValue = select.GetAttribute("value");
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(boundValue, Is.EqualTo(kNetworkZoneTreeId.ToString()));
+                    Assert.That(
+                        wrapper.FindAll("#pathAnalysisAlgorithm option")
+                            .Any(option => option.GetAttribute("value") == boundValue),
+                        Is.True,
+                        "the value bound to the select must match one of its options");
+                });
+            });
+        }
+
+        [Test]
+        public async Task SettingsDefaults_SavePersistsSelectedPathAnalysisAlgorithm()
+        {
+            await using BunitContext context = CreateSavingContext(
+                out RecordingSettingsApiConn apiConnection,
+                out SimulatedGlobalConfig globalConfig);
+
+            apiConnection.PathAnalysisAlgorithms = BuildPathAnalysisAlgorithms();
+            globalConfig.PathAnalysisAlgorithm = GlobalConst.kPathAnalysisAlgorithmNone;
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+            wrapper.WaitForAssertion(() =>
+                Assert.That(wrapper.Find("#pathAnalysisAlgorithm"), Is.Not.Null));
+
+            wrapper.Find("#pathAnalysisAlgorithm").Change(kNetworkZoneTreeId.ToString());
+
+            SettingsDefaults component = wrapper.FindComponent<SettingsDefaults>().Instance;
+            ConfigData configData = GetPrivateField<ConfigData>(component, "configData");
+
+            Assert.That(
+                configData.PathAnalysisAlgorithm,
+                Is.EqualTo(kNetworkZoneTreeId),
+                "the option value has to be parsable into the bound property");
+
+            await InvokePrivateAsync(component, "Save");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(
+                    apiConnection.LastUpsertConfigItems.Any(item =>
+                        item.Key == "pathAnalysisAlgorithm"
+                        && item.Value == kNetworkZoneTreeId.ToString()),
+                    Is.True);
+            });
+        }
+
         private static BunitContext CreateContext()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -108,7 +217,7 @@ namespace FWO.Test
             context.Services.AddSingleton<AuthenticationStateProvider>(new DefaultsSettingsAuthStateProvider(Roles.Admin));
             context.Services.AddSingleton<DomEventService>();
             context.Services.AddSingleton<IEventMediator>(new RecordingEventMediator());
-            context.Services.AddSingleton<ApiConnection>(new SimulatedApiConnection());
+            context.Services.AddSingleton<ApiConnection>(new RecordingSettingsApiConn());
             context.Services.AddSingleton<MiddlewareClient>(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
@@ -117,7 +226,14 @@ namespace FWO.Test
 
         private static BunitContext CreateSavingContext(out RecordingSettingsApiConn apiConnection)
         {
-            SimulatedGlobalConfig globalConfig = new()
+            return CreateSavingContext(out apiConnection, out _);
+        }
+
+        private static BunitContext CreateSavingContext(
+            out RecordingSettingsApiConn apiConnection,
+            out SimulatedGlobalConfig globalConfig)
+        {
+            globalConfig = new()
             {
                 UiLanguages =
                 [

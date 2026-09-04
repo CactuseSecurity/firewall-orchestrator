@@ -647,4 +647,6 @@ Not supported any longer are:
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
+
+## 9.4.7 - 04.09.2026
 - enforce host-address masks for flow network-object range endpoints

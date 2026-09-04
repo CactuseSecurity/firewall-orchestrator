@@ -57,11 +57,12 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | `V > P` | fails otherwise: version must not go backwards |
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
-| `V != P` | `documentation/revision-history.md` ends with a `## V - DD.MM.YYYY` section | fails otherwise |
+| `V != P` | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
-The revision history is only checked when the version changes, which keeps the check objective
-and free of false positives.
+The revision history is only checked when the version changes. The baseline requirement is a
+final level-two heading containing the full `major.minor.patch` version, such as `## 9.4.6`. A
+date or other trailing heading text is allowed but not required.
 
 The merge ref is fetched three times because GitHub computes it asynchronously. If all attempts
 fail, the workflow queries the pull request's `mergeable` state. It reports merge conflicts only

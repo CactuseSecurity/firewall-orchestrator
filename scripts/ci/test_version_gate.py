@@ -15,12 +15,13 @@ from scripts.ci.version_gate import (
     evaluate_gate,
     evaluate_open_version,
     evaluate_tag,
-    last_revision_history_version,
+    last_revision_history_heading,
     main,
     parse_product_version,
     parse_version,
     read_tags,
     read_version,
+    revision_history_heading_version,
     run_command,
     sealed_versions,
     sealing_version,
@@ -41,8 +42,8 @@ REVISION_HISTORY = """# Revision history
 
 
 def revision_history_for(version: str) -> str:
-    """Build a revision history whose last section documents the given version."""
-    return f"{REVISION_HISTORY}\n## {version} - 02.09.2026\n- a new change\n"
+    """Build a revision history containing the baseline heading for a version."""
+    return f"{REVISION_HISTORY}\n## {version}\n- a new change\n"
 
 
 class TestParsing:
@@ -93,14 +94,34 @@ class TestTagClassification:
 
 
 class TestRevisionHistory:
-    def test_last_section_is_returned(self) -> None:
-        assert last_revision_history_version(REVISION_HISTORY) == "9.4.5"
+    @pytest.mark.parametrize(
+        "heading",
+        ["## 9.4.5", "## 9.4.5 - 01.09.2026", "## 9.4.5 - 01.09.2026 MAIN"],
+    )
+    def test_version_heading_allows_optional_trailing_text(self, heading: str) -> None:
+        heading_text = last_revision_history_heading(f"{heading}\n- change\n")
+        assert heading_text is not None
+        assert revision_history_heading_version(heading_text) == "9.4.5"
 
-    def test_main_marker_is_tolerated(self) -> None:
-        assert last_revision_history_version("## 9.4.5 - 01.09.2026 MAIN\n- change\n") == "9.4.5"
+    @pytest.mark.parametrize(
+        "heading",
+        ["## 9.3", "## 09.3.0", "## 9.03.0", "## 9.3.00", "## 9.3.0-dev"],
+    )
+    def test_noncanonical_version_headings_are_rejected(self, heading: str) -> None:
+        heading_text = last_revision_history_heading(f"{heading}\n- change\n")
+        assert heading_text is not None
+        assert revision_history_heading_version(heading_text) is None
 
-    def test_missing_section_returns_none(self) -> None:
-        assert last_revision_history_version("# Revision history\n\nno sections yet\n") is None
+    @pytest.mark.parametrize("heading", ["# 9.3.0", "### 9.3.0"])
+    def test_other_heading_levels_are_ignored(self, heading: str) -> None:
+        assert last_revision_history_heading(f"{heading}\n- change\n") is None
+
+    def test_final_level_two_heading_is_returned(self) -> None:
+        markdown = "## 9.4.6\n- new\n\n## 9.3 - 31.07.2026\n- legacy\n"
+        assert last_revision_history_heading(markdown) == "9.3 - 31.07.2026"
+
+    def test_missing_heading_returns_none(self) -> None:
+        assert last_revision_history_heading("# Revision history\n\nno sections yet\n") is None
 
 
 class TestGateWithoutVersionBump:
@@ -169,12 +190,18 @@ class TestGateWithVersionBump:
     def test_missing_revision_history_section_is_blocked(self) -> None:
         verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, REVISION_HISTORY)
         assert not verdict.ok
-        assert "last section is 9.4.5" in verdict.reason
+        assert "must end with a '## 9.4.6' heading" in verdict.reason
+
+    def test_matching_revision_history_heading_must_be_last(self) -> None:
+        revision_history = f"{revision_history_for('9.4.6')}\n## 9.3 - 31.07.2026\n- legacy heading\n"
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, revision_history)
+        assert not verdict.ok
+        assert "last level-two heading is '## 9.3 - 31.07.2026'" in verdict.reason
 
     def test_empty_revision_history_is_reported_as_missing(self) -> None:
         verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, "")
         assert not verdict.ok
-        assert "last section is missing" in verdict.reason
+        assert "last level-two heading is missing" in verdict.reason
 
     def test_malformed_merged_version_is_blocked(self) -> None:
         verdict = evaluate_gate("9.4", "9.4.5", {"9.4.5"}, REVISION_HISTORY)

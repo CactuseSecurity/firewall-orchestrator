@@ -22,7 +22,7 @@ REVISION_HISTORY = """# Revision history
 - current version
 """
 MERGED_REVISION_HISTORY = f"""{REVISION_HISTORY}
-## 9.4.6 - 02.09.2026
+## 9.4.6
 - proposed version
 """
 

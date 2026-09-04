@@ -28,10 +28,9 @@ PRODUCT_VERSION_PATTERN = re.compile(r'^product_version:\s*"?([^"\s]+)"?\s*$', r
 VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SEALING_TAG_PATTERN = re.compile(r"^v?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-dev)?$")
 VERSION_TAG_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)(?:-[0-9A-Za-z.-]+)?$")
-# Revision history headings look like "## 9.4.5 - 01.09.2026", optionally suffixed with " MAIN".
-REVISION_HISTORY_HEADING_PATTERN = re.compile(
-    r"^##\s+(\d+\.\d+\.\d+)\s+-\s+\d{2}\.\d{2}\.\d{4}(?:\s+MAIN)?\s*$",
-    re.MULTILINE,
+REVISION_HISTORY_HEADING_PATTERN = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
+REVISION_HISTORY_VERSION_PATTERN = re.compile(
+    r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:[ \t]+.*)?$",
 )
 # GitHub truncates commit status descriptions, so keep them short enough to stay readable.
 MAX_DESCRIPTION_LENGTH = 140
@@ -90,10 +89,16 @@ def sealed_versions(tags: list[str]) -> set[str]:
     return sealed
 
 
-def last_revision_history_version(markdown: str) -> str | None:
-    """Return the version of the last section in documentation/revision-history.md."""
-    matches: list[str] = REVISION_HISTORY_HEADING_PATTERN.findall(markdown)
-    return matches[-1] if matches else None
+def last_revision_history_heading(markdown: str) -> str | None:
+    """Return the text of the final level-two revision-history heading."""
+    headings: list[str] = REVISION_HISTORY_HEADING_PATTERN.findall(markdown)
+    return headings[-1] if headings else None
+
+
+def revision_history_heading_version(heading: str) -> str | None:
+    """Return the canonical version at the start of a revision-history heading."""
+    match = REVISION_HISTORY_VERSION_PATTERN.match(heading)
+    return match.group(1) if match is not None else None
 
 
 def evaluate_gate(
@@ -149,13 +154,15 @@ def evaluate_gate(
             reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
         )
 
-    last_documented_version = last_revision_history_version(revision_history)
+    last_heading = last_revision_history_heading(revision_history)
+    last_documented_version = revision_history_heading_version(last_heading) if last_heading is not None else None
     if last_documented_version != merged_version:
+        actual_heading = f"'## {last_heading}'" if last_heading is not None else "missing"
         return Verdict(
             ok=False,
             reason=(
-                f"documentation/revision-history.md must end with a '## {merged_version} - DD.MM.YYYY' "
-                f"section (last section is {last_documented_version or 'missing'})"
+                f"documentation/revision-history.md must end with a '## {merged_version}' heading "
+                f"(last level-two heading is {actual_heading})"
             ),
         )
 

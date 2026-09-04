@@ -1,4 +1,4 @@
--- issue #561: create new db schema network_zone 
+-- issue #561: create new db schema network_zone
 
 create schema if not exists network_zone;
 
@@ -126,8 +126,8 @@ WHERE id = 'complianceCheckSortMatrixByID';
 -- path analysis algorithm
 CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
 (
-	"id" BIGSERIAL PRIMARY KEY,
-	"name" varchar NOT NULL UNIQUE
+    "id" BIGSERIAL PRIMARY KEY,
+    "name" varchar NOT NULL UNIQUE
 );
 
 INSERT INTO path_analysis_algorithm (id, name) VALUES

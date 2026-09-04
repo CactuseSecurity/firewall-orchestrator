@@ -247,21 +247,21 @@
         </div>
     }
     <hr />
-        <div class="form-group row">
-            <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-4">
-                @(userConfig.GetText("path_analysis_algorithm")):
-            </label>
-            <div class="col-sm-4">
-                <select id="pathAnalysisAlgorithm"
-                        class="form-select"
-                        @bind="configData!.PathAnalysisAlgorithm">
-                    @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
-                    {
-                        <option value="@algorithm.Id">@algorithm.Name</option>
-                    }
-                </select>
-            </div>
-        </div>  
+    <div class="form-group row">
+        <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-4">
+            @(userConfig.GetText("path_analysis_algorithm")):
+        </label>
+        <div class="col-sm-4">
+            <select id="pathAnalysisAlgorithm"
+                    class="form-select"
+                    @bind="configData!.PathAnalysisAlgorithm">
+                @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                {
+                    <option value="@algorithm.Id">@algorithm.Name</option>
+                }
+            </select>
+        </div>
+    </div>
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>

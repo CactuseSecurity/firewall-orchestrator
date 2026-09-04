@@ -65,30 +65,20 @@ namespace FWO.Data.Flow
         /// <returns>The normalized patterns.</returns>
         public static List<FlowZoneGroupPattern> Normalize(IEnumerable<FlowZoneGroupPattern>? patterns)
         {
-            List<FlowZoneGroupPattern> normalizedPatterns = [];
-            HashSet<string> seenPatternKeys = [];
-
-            foreach (FlowZoneGroupPattern pattern in patterns ?? [])
-            {
-                if (pattern == null || string.IsNullOrWhiteSpace(pattern.Value) || !Enum.IsDefined(pattern.MatchType))
-                {
-                    continue;
-                }
-
-                FlowZoneGroupPattern normalizedPattern = new()
-                {
-                    MatchType = pattern.MatchType,
-                    CaseSensitive = pattern.CaseSensitive,
-                    Value = pattern.Value.Trim()
-                };
-
-                if (normalizedPattern.Value.Length > 0 && seenPatternKeys.Add(BuildPatternKey(normalizedPattern)))
-                {
-                    normalizedPatterns.Add(normalizedPattern);
-                }
-            }
-
+            SplitPatterns(patterns, out List<FlowZoneGroupPattern> normalizedPatterns, out _);
             return normalizedPatterns;
+        }
+
+        /// <summary>
+        /// Returns the patterns that <see cref="Normalize"/> would drop because an earlier entry already matches
+        /// the same names, so a caller can report them instead of losing them silently.
+        /// </summary>
+        /// <param name="patterns">The patterns to check.</param>
+        /// <returns>The duplicate patterns in configuration order.</returns>
+        public static List<FlowZoneGroupPattern> FindDuplicates(IEnumerable<FlowZoneGroupPattern>? patterns)
+        {
+            SplitPatterns(patterns, out _, out List<FlowZoneGroupPattern> duplicatePatterns);
+            return duplicatePatterns;
         }
 
         /// <summary>
@@ -132,6 +122,38 @@ namespace FWO.Data.Flow
                 FlowZoneNameMatchType.Exact => string.Equals(groupName, patternValue, comparison),
                 _ => false
             };
+        }
+
+        private static void SplitPatterns(IEnumerable<FlowZoneGroupPattern>? patterns,
+            out List<FlowZoneGroupPattern> normalizedPatterns, out List<FlowZoneGroupPattern> duplicatePatterns)
+        {
+            normalizedPatterns = [];
+            duplicatePatterns = [];
+            HashSet<string> seenPatternKeys = [];
+
+            foreach (FlowZoneGroupPattern pattern in patterns ?? [])
+            {
+                if (pattern == null || string.IsNullOrWhiteSpace(pattern.Value) || !Enum.IsDefined(pattern.MatchType))
+                {
+                    continue;
+                }
+
+                FlowZoneGroupPattern normalizedPattern = new()
+                {
+                    MatchType = pattern.MatchType,
+                    CaseSensitive = pattern.CaseSensitive,
+                    Value = pattern.Value.Trim()
+                };
+
+                if (seenPatternKeys.Add(BuildPatternKey(normalizedPattern)))
+                {
+                    normalizedPatterns.Add(normalizedPattern);
+                }
+                else
+                {
+                    duplicatePatterns.Add(normalizedPattern);
+                }
+            }
         }
 
         private static string BuildPatternKey(FlowZoneGroupPattern pattern)

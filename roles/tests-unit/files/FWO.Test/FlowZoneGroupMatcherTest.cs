@@ -156,6 +156,37 @@ internal class FlowZoneGroupMatcherTest
     }
 
     [Test]
+    public void FindDuplicates_ReturnsOnlyTheEntriesNormalizeWouldDrop()
+    {
+        List<FlowZoneGroupPattern> sourcePatterns =
+        [
+            new FlowZoneGroupPattern { MatchType = FlowZoneNameMatchType.Suffix, Value = "_zone" },
+            new FlowZoneGroupPattern { MatchType = FlowZoneNameMatchType.Suffix, Value = "  _ZONE  " },
+            new FlowZoneGroupPattern { MatchType = FlowZoneNameMatchType.Suffix, CaseSensitive = true, Value = "_ZONE" },
+            new FlowZoneGroupPattern { MatchType = FlowZoneNameMatchType.Prefix, Value = "   " }
+        ];
+
+        List<FlowZoneGroupPattern> duplicatePatterns = FlowZoneGroupMatcher.FindDuplicates(sourcePatterns);
+
+        Assert.That(duplicatePatterns, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(duplicatePatterns[0].Value, Is.EqualTo("_ZONE"));
+            Assert.That(FlowZoneGroupMatcher.Normalize(sourcePatterns), Has.Count.EqualTo(2));
+        });
+    }
+
+    [Test]
+    public void FindDuplicates_WithoutDuplicatesOrInput_ReturnsEmptyList()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(FlowZoneGroupMatcher.FindDuplicates(null), Is.Empty);
+            Assert.That(FlowZoneGroupMatcher.FindDuplicates(kSuffixPatterns), Is.Empty);
+        });
+    }
+
+    [Test]
     public void Normalize_WithNullInput_ReturnsEmptyList()
     {
         Assert.That(FlowZoneGroupMatcher.Normalize(null), Is.Empty);

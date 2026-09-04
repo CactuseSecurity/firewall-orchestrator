@@ -620,6 +620,63 @@ namespace FWO.Test
             component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
         }
 
+        [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_WithEmptyValue_KeepsRowAndReportsError()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(1));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Not.Contain("\"value\""));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.True);
+                Assert.That(uiMessages[0].Message, Is.EqualTo("E5297"));
+            });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_SaveZoneGroupPatterns_WithDuplicate_KeepsRowsAndNamesTheDuplicate()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[1].Value = "_ZONE";
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(2));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Not.Contain("\"value\""));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.True);
+                Assert.That(uiMessages[0].Message, Is.EqualTo("E5298: _ZONE"));
+            });
+        }
+
+        private static List<(string Title, string Message, bool IsError)> CaptureUiMessages(SettingsFlowGeneral page)
+        {
+            List<(string Title, string Message, bool IsError)> uiMessages = [];
+            SetMember(page, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)(
+                (_, title, message, isError) => uiMessages.Add((title, message, isError))));
+            return uiMessages;
+        }
+
         private static List<FlowZoneGroupPattern> GetZoneGroupPatterns(SettingsFlowGeneral page)
         {
             return (List<FlowZoneGroupPattern>)GetMember(page, "zoneGroupPatterns")!;

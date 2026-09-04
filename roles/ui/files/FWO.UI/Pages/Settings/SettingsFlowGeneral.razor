@@ -372,11 +372,31 @@
         return $"match_type_{matchType.ToString().ToLowerInvariant()}";
     }
 
+    private bool ZoneGroupPatternsSaveable()
+    {
+        if (zoneGroupPatterns.Exists(pattern => string.IsNullOrWhiteSpace(pattern.Value)))
+        {
+            DisplayMessageInUi(null, userConfig.GetText("flow_zone_groups"), userConfig.GetText("E5297"), true);
+            return false;
+        }
+
+        List<FlowZoneGroupPattern> duplicatePatterns = FlowZoneGroupMatcher.FindDuplicates(zoneGroupPatterns);
+        if (duplicatePatterns.Count > 0)
+        {
+            string duplicateValues = string.Join(", ", duplicatePatterns.Select(pattern => pattern.Value));
+            DisplayMessageInUi(null, userConfig.GetText("flow_zone_groups"),
+                $"{userConfig.GetText("E5298")}: {duplicateValues}", true);
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task SaveZoneGroupPatterns()
     {
         try
         {
-            if (configData == null)
+            if (configData == null || !ZoneGroupPatternsSaveable())
             {
                 return;
             }

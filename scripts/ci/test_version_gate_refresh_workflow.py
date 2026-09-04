@@ -46,15 +46,30 @@ def write_executable(path: Path, content: str) -> None:
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
 
-def refresh_output_at_pr_count(tmp_path: Path, pull_request_count: int) -> subprocess.CompletedProcess[str]:
-    """Execute the refresh script with a mocked number of open pull requests."""
+def execute_refresh_loop(
+    tmp_path: Path,
+    pull_requests: tuple[tuple[int, str], ...] = (),
+    workflow_runs: tuple[tuple[str, int, str], ...] = (),
+    failed_run_ids: tuple[int, ...] = (),
+    pull_request_count: int | None = None,
+) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    """Execute the refresh loop with mocked pull requests and workflow runs."""
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
+    rerun_log = tmp_path / "rerun-log"
     write_executable(
         fake_bin / "gh",
         """#!/bin/sh
 if [ "$1" = "pr" ]; then
     printf '[]\n'
+elif [ "$1" = "api" ]; then
+    printf '%s\n' "$MOCK_RUN_LINES"
+elif [ "$1" = "run" ] && [ "$2" = "rerun" ]; then
+    run_id="$3"
+    printf '%s\n' "$run_id" >> "$MOCK_RERUN_LOG"
+    case " $MOCK_FAILED_RUN_IDS " in
+        *" $run_id "*) exit 1 ;;
+    esac
 fi
 exit 0
 """,
@@ -64,10 +79,15 @@ exit 0
         """#!/bin/sh
 if [ "$1" = "length" ]; then
     printf '%s\n' "$MOCK_PR_COUNT"
+elif [ "$1" = "-r" ]; then
+    if [ -n "$MOCK_PR_LINES" ]; then
+        printf '%s\n' "$MOCK_PR_LINES"
+    fi
 fi
 exit 0
 """,
     )
+    effective_pull_request_count = len(pull_requests) if pull_request_count is None else pull_request_count
     environment = os.environ.copy()
     environment.update(
         {
@@ -75,13 +95,19 @@ exit 0
             "GATE_WORKFLOW": "version-gate.yml",
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
-            "MOCK_PR_COUNT": str(pull_request_count),
+            "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
+            "MOCK_PR_COUNT": str(effective_pull_request_count),
+            "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
+            "MOCK_RERUN_LOG": str(rerun_log),
+            "MOCK_RUN_LINES": "\n".join(
+                f"{head_sha}\t{run_id}\t{status}" for head_sha, run_id, status in workflow_runs
+            ),
             "PATH": f"{fake_bin}:{environment['PATH']}",
             "PULL_REQUEST_LIMIT": str(PULL_REQUEST_LIMIT),
             "SINGLE_PR": "",
         }
     )
-    return subprocess.run(  # noqa: S603
+    completed = subprocess.run(  # noqa: S603
         ["/bin/bash", "-c", workflow_step_script(WORKFLOW_PATH, RERUN_STEP_NAME)],
         check=False,
         capture_output=True,
@@ -89,6 +115,14 @@ exit 0
         env=environment,
         text=True,
     )
+    rerun_ids = rerun_log.read_text(encoding="utf-8").splitlines() if rerun_log.exists() else []
+    return (completed, rerun_ids)
+
+
+def refresh_output_at_pr_count(tmp_path: Path, pull_request_count: int) -> subprocess.CompletedProcess[str]:
+    """Execute the refresh script with a mocked number of open pull requests."""
+    completed, _ = execute_refresh_loop(tmp_path, pull_request_count=pull_request_count)
+    return completed
 
 
 def refresh_decision(
@@ -143,6 +177,64 @@ def test_warns_when_open_pull_request_limit_is_reached(
         "additional pull requests may exist and were not refreshed."
     )
     assert (warning in completed.stdout) is warning_expected
+
+
+def test_completed_run_for_matching_head_sha_is_rerun(tmp_path: Path) -> None:
+    """Match the pull request by head SHA and invoke the newest completed run."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((42, "head-a"),),
+        workflow_runs=(("other-head", 800, "completed"), ("head-a", 900, "completed")),
+    )
+
+    assert completed.returncode == 0
+    assert rerun_ids == ["900"]
+    assert "PR #42: re-running version gate run 900." in completed.stdout
+    assert completed.stderr == ""
+
+
+def test_in_progress_run_is_left_to_finish(tmp_path: Path) -> None:
+    """Do not restart a matching run that is already producing a fresh result."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((43, "head-b"),),
+        workflow_runs=(("head-b", 901, "in_progress"),),
+    )
+
+    assert completed.returncode == 0
+    assert rerun_ids == []
+    assert "run 901 is in_progress, it will report a fresh result on its own" in completed.stdout
+
+
+def test_unmatched_pull_requests_are_accumulated_and_fail(tmp_path: Path) -> None:
+    """Count every missing run and fail after processing the complete pull request list."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((44, "missing-a"), (45, "missing-b")),
+        workflow_runs=(("other-head", 902, "completed"),),
+    )
+
+    assert completed.returncode == 1
+    assert rerun_ids == []
+    assert "PR #44: no version gate run found for missing-a" in completed.stderr
+    assert "PR #45: no version gate run found for missing-b" in completed.stderr
+    assert "Could not refresh the version gate for 2 pull request(s)." in completed.stderr
+
+
+def test_rerun_failure_is_accumulated_without_stopping_the_loop(tmp_path: Path) -> None:
+    """Attempt later reruns before returning failure for a rejected rerun request."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((46, "head-c"), (47, "head-d")),
+        workflow_runs=(("head-c", 903, "completed"), ("head-d", 904, "completed")),
+        failed_run_ids=(903,),
+    )
+
+    assert completed.returncode == 1
+    assert rerun_ids == ["903", "904"]
+    assert "PR #46: could not re-run 903." in completed.stderr
+    assert "PR #47: re-running version gate run 904." in completed.stdout
+    assert "Could not refresh the version gate for 1 pull request(s)." in completed.stderr
 
 
 @pytest.mark.parametrize(

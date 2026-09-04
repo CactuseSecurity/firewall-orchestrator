@@ -1436,6 +1436,44 @@ namespace FWO.Test
             });
         }
 
+        [TestCase("10.0.0.1", "2001:db8::1")]
+        [TestCase("2001:db8::1", "10.0.0.1")]
+        public async Task CreateFlowInFlowDb_SkipsNetworkObjectWithMixedAddressFamilies(string requestedIpStart, string requestedIpEnd)
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.IpString = requestedIpStart;
+            source.IpEnd = requestedIpEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.InsertedNetworkObjects.Select(nwObject => nwObject.IpStart), Does.Not.Contain(requestedIpStart));
+                Assert.That(apiConn.InsertedAccess, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task CreateFlowInFlowDb_CreatesNetworkObjectWithinOneAddressFamily()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.IpString = "2001:db8::1";
+            source.IpEnd = "2001:db8::5";
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == "2001:db8::1");
+            Assert.That(inserted.IpEnd, Is.EqualTo("2001:db8::5"));
+        }
+
         private static void SetSelectedObjectAndServiceIds(WfReqTask task, long sourceObjectId, long destinationObjectId, long serviceId)
         {
             WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());

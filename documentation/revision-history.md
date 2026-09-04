@@ -650,5 +650,6 @@ Not supported any longer are:
 
 ## 9.4.7 - 04.09.2026
 - enforce host-address masks for flow network-object range endpoints
+- flow network-object ranges must now start and end in the same address family. A range from an IPv4 to an IPv6 address passed all previous checks, and the upgrade stops and names the affected objects if any exist, because such a range cannot be corrected automatically.
 - flow network objects created from a request element that carries a netmask now store the first and the last host address of that network instead of the network itself. Requests with such an element were previously stored with the netmask and would now be rejected by the flow database.
 - flow network objects whose range endpoints still carried a network mask are normalized by the upgrade to the first and the last host address of that network. Their stored hash no longer matches the changed endpoints and is recalculated by the next flow sync. If two of these objects end up on the same range, the flow sync reports them instead of recalculating, and they have to be merged manually.

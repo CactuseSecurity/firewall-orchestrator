@@ -25,6 +25,9 @@ create table flow.nwobject
         (family(ip_end) = 4 AND masklen(ip_end) = 32)
         OR (family(ip_end) = 6 AND masklen(ip_end) = 128)
     ),
+    -- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range
+    -- which starts in one address family and ends in the other
+    CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end)),
     check ((ip_start IS NULL) = (ip_end IS NULL)),
     check (ip_start <= ip_end),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))

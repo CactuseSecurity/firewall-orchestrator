@@ -120,6 +120,12 @@ namespace FWO.Services.Workflow
 
             string? ipStart = ToHostAddress(snapshot.Ip, false, snapshot.WorkflowElementId);
             string? ipEnd = ToHostAddress(string.IsNullOrWhiteSpace(snapshot.IpEnd) ? snapshot.Ip : snapshot.IpEnd, true, snapshot.WorkflowElementId);
+            if (!SharesAddressFamily(ipStart, ipEnd))
+            {
+                Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {snapshot.WorkflowElementId}: " +
+                    $"its range starts at '{ipStart}' and ends at '{ipEnd}', which belong to different address families.");
+                return null;
+            }
             string name = BuildNetworkObjectName(snapshot);
             bool isTechnical = !string.IsNullOrWhiteSpace(ipStart);
             string hash = isTechnical
@@ -161,6 +167,19 @@ namespace FWO.Services.Workflow
             // the requested endpoint carried a netmask, so the host address keeps that notation: it is then the
             // string the database returns for the row created from it, which keeps its stored hash valid
             return (isRangeEnd ? range.end : range.start).IpAsCidr();
+        }
+
+        /// <summary>
+        /// Returns whether both endpoints of a range belong to the same address family. A range from an IPv4 to an
+        /// IPv6 address passes every single-endpoint rule but describes nothing, so it is refused instead of stored.
+        /// An endpoint which is not set at all is not compared, the paired-null rule of the table covers that case.
+        /// </summary>
+        /// <param name="ipStart">The address opening the range.</param>
+        /// <param name="ipEnd">The address closing the range.</param>
+        private static bool SharesAddressFamily(string? ipStart, string? ipEnd)
+        {
+            return string.IsNullOrWhiteSpace(ipStart) || string.IsNullOrWhiteSpace(ipEnd)
+                || ipStart.IsV6Address() == ipEnd.IsV6Address();
         }
 
         /// <summary>

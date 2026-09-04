@@ -1,6 +1,25 @@
 -- Flow network-object ranges store individual endpoints. Keep the existing
 -- paired-null rule for FQDN objects, but require any populated endpoint to be
--- an IPv4 /32 or IPv6 /128 address.
+-- an IPv4 /32 or IPv6 /128 address, with both endpoints in the same address family.
+
+-- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range which starts in
+-- one address family and ends in the other. Such a range describes nothing and cannot be repaired without
+-- guessing which of the two endpoints was meant, so the upgrade names the rows and stops instead. This runs
+-- before the normalization below, so an upgrade which stops here has not changed any data yet.
+DO $$
+DECLARE
+    mixed_family_objects TEXT;
+BEGIN
+    SELECT string_agg(nwobj_id::text, ', ' ORDER BY nwobj_id) INTO mixed_family_objects
+        FROM flow.nwobject
+        WHERE ip_start IS NOT NULL
+          AND ip_end IS NOT NULL
+          AND family(ip_start) <> family(ip_end);
+
+    IF mixed_family_objects IS NOT NULL THEN
+        RAISE EXCEPTION 'flow.nwobject holds range endpoints of different address families in nwobj_id(s) %. Correct or remove these flow network objects, then run the upgrade again.', mixed_family_objects;
+    END IF;
+END $$;
 
 -- Installations upgraded from an earlier version can already hold network masks here:
 -- FlowDbCreatorObjectResolution.InsertNetworkObject writes request.reqelement.ip through
@@ -49,3 +68,6 @@ ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK
     (family(ip_end) = 4 AND masklen(ip_end) = 32)
     OR (family(ip_end) = 6 AND masklen(ip_end) = 128)
 );
+
+ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_same_family;
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));

@@ -650,3 +650,4 @@ Not supported any longer are:
 
 ## 9.4.7 - 04.09.2026
 - enforce host-address masks for flow network-object range endpoints
+- flow network objects whose range endpoints still carried a network mask are normalized by the upgrade to the first and the last host address of that network. Their stored hash no longer matches the changed endpoints and is recalculated by the next flow sync. If two of these objects end up on the same range, the flow sync reports them instead of recalculating, and they have to be merged manually.

@@ -65,7 +65,7 @@ class TestParsing:
         assert parse_version("9.4.5") == (9, 4, 5)
         assert parse_version("10.0.1") > parse_version("9.4.5")
 
-    @pytest.mark.parametrize("text", ["9.4", "9.4.5-dev", "v9.4.5", "", "nine"])
+    @pytest.mark.parametrize("text", ["9.4", "9.4.5-dev", "v9.4.5", "09.4.5", "9.04.5", "9.4.05", "", "nine"])
     def test_parse_version_rejects_malformed_versions(self, text: str) -> None:
         with pytest.raises(ValueError, match="valid product version"):
             parse_version(text)
@@ -81,7 +81,7 @@ class TestTagClassification:
         assert sealing_version(tag) is None
 
     def test_sealed_versions_collects_only_sealing_tags(self) -> None:
-        tags = ["v9.4.4", "v9.4.5-dev", "v9.4.6-rc1", "not-a-tag", "9.3.4"]
+        tags = ["v9.4.4", "v9.4.5-dev", "v09.4.6", "v9.4.6-rc1", "not-a-tag", "9.3.4"]
         assert sealed_versions(tags) == {"9.4.4", "9.4.5", "9.3.4"}
 
     @pytest.mark.parametrize("tag", ["v9.4.5", "v9.4.5-dev", "v9.4.5-rc1", "9.4.5-beta.2"])
@@ -114,6 +114,11 @@ class TestGateWithoutVersionBump:
         assert not verdict.ok
         assert "already sealed" in verdict.reason
 
+    def test_zero_padded_version_is_rejected(self) -> None:
+        verdict = evaluate_gate("9.04.5", "9.04.5", {"9.4.5"}, REVISION_HISTORY)
+        assert not verdict.ok
+        assert "valid product version" in verdict.reason
+
     def test_snapshot_tag_keeps_the_version_open(self) -> None:
         verdict = evaluate_gate("9.4.5", "9.4.5", sealed_versions(["v9.4.5-rc1"]), REVISION_HISTORY)
         assert verdict.ok
@@ -127,6 +132,16 @@ class TestGateWithVersionBump:
         verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, revision_history_for("9.4.6"))
         assert verdict.ok
         assert "opening version 9.4.6" in verdict.reason
+
+    def test_bump_from_zero_padded_base_version_is_rejected(self) -> None:
+        verdict = evaluate_gate("9.4.6", "9.04.5", {"9.4.5"}, revision_history_for("9.4.6"))
+        assert not verdict.ok
+        assert "valid product version" in verdict.reason
+
+    def test_zero_padded_bump_is_rejected(self) -> None:
+        verdict = evaluate_gate("9.04.6", "9.4.5", {"9.4.5"}, revision_history_for("9.4.6"))
+        assert not verdict.ok
+        assert "valid product version" in verdict.reason
 
     def test_bump_before_sealing_is_blocked(self) -> None:
         verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.4"}, revision_history_for("9.4.6"))
@@ -176,6 +191,11 @@ class TestOpenVersionAudit:
         assert not verdict.ok
         assert "Raise product_version" in verdict.reason
 
+    def test_zero_padded_branch_version_is_rejected(self) -> None:
+        verdict = evaluate_open_version("9.04.5", {"9.4.5"})
+        assert not verdict.ok
+        assert "valid product version" in verdict.reason
+
     def test_malformed_branch_version_fails(self) -> None:
         assert not evaluate_open_version("nine", set()).ok
 
@@ -183,6 +203,15 @@ class TestOpenVersionAudit:
 class TestTagValidation:
     def test_matching_tag_passes(self) -> None:
         assert evaluate_tag("v9.4.5", "9.4.5").ok
+
+    @pytest.mark.parametrize(
+        ("tag", "product_version"),
+        [("v9.04.5", "9.4.5"), ("v9.4.5", "9.04.5"), ("v9.04.5-rc1", "9.4.5")],
+    )
+    def test_zero_padded_tag_or_product_version_is_rejected(self, tag: str, product_version: str) -> None:
+        verdict = evaluate_tag(tag, product_version)
+        assert not verdict.ok
+        assert "valid product version" in verdict.reason
 
     def test_snapshot_tag_must_match_too(self) -> None:
         assert evaluate_tag("v9.4.5-rc1", "9.4.5").ok

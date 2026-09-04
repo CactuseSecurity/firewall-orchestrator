@@ -61,7 +61,7 @@ jobs:
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$REF_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+          if [[ "$REF_NAME" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-dev)?$ ]]; then
             echo "Tag '$REF_NAME' seals a version, refreshing open pull requests."
             echo "run=true" >> "$GITHUB_OUTPUT"
           else

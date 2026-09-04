@@ -25,8 +25,8 @@ from pathlib import Path
 
 # Same product_version extraction as the Sonar workflows use, see .github/workflows/sonarcloud.yml.
 PRODUCT_VERSION_PATTERN = re.compile(r'^product_version:\s*"?([^"\s]+)"?\s*$', re.MULTILINE)
-VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
-SEALING_TAG_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)(?:-dev)?$")
+VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+SEALING_TAG_PATTERN = re.compile(r"^v?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-dev)?$")
 VERSION_TAG_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)(?:-[0-9A-Za-z.-]+)?$")
 # Revision history headings look like "## 9.4.5 - 01.09.2026", optionally suffixed with " MAIN".
 REVISION_HISTORY_HEADING_PATTERN = re.compile(
@@ -186,7 +186,13 @@ def evaluate_tag(tag: str, tagged_version: str) -> Verdict:
     if version is None:
         return Verdict(ok=True, reason=f"tag '{tag}' is not a version tag, nothing to validate")
 
-    if version != tagged_version:
+    try:
+        parsed_tag_version = parse_version(version)
+        parsed_product_version = parse_version(tagged_version)
+    except ValueError as error:
+        return Verdict(ok=False, reason=str(error))
+
+    if parsed_tag_version != parsed_product_version:
         return Verdict(
             ok=False,
             reason=(

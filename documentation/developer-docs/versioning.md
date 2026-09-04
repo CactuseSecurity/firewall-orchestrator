@@ -28,6 +28,10 @@ For example, `9.3.0` is stored as the product version. Release tags may
 optionally have a `v` prefix, for example `v9.3.0` or `9.3.0`. The established
 repository convention is to use the `v` prefix.
 
+Each component must be `0` or start with a non-zero digit. Leading zeros are not
+valid, so use `9.4.6`, never `9.04.6`, in `product_version`, release tags, and
+revision-history headings.
+
 ## Version lifecycle
 
 A version is **open** while it is the version in

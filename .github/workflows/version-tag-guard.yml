@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ ! "$TAG_NAME" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-dev)?$ ]]; then
+          if [[ ! "$TAG_NAME" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-dev)?$ ]]; then
             echo "Tag '$TAG_NAME' does not seal a version, skipping the ancestry check."
             exit 0
           fi

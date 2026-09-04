@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -667,6 +668,35 @@ namespace FWO.Test
                 Assert.That(uiMessages[0].IsError, Is.True);
                 Assert.That(uiMessages[0].Message, Is.EqualTo("E5298: _ZONE"));
             });
+        }
+
+        [Test]
+        public async Task FlowGeneralPage_ZoneGroupPatternRowControls_FollowWorkInProgress()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            component.Render();
+            Assert.That(FindZoneGroupRowControls(component).Exists(control => control.HasAttribute("disabled")), Is.False);
+
+            SetMember(component.Instance, "workInProgress", true);
+            component.Render();
+
+            List<IElement> rowControls = FindZoneGroupRowControls(component);
+            Assert.That(rowControls, Has.Count.EqualTo(4));
+            Assert.That(rowControls.TrueForAll(control => control.HasAttribute("disabled")), Is.True);
+        }
+
+        private static List<IElement> FindZoneGroupRowControls(IRenderedComponent<SettingsFlowGeneral> component)
+        {
+            IElement patternRow = component.FindAll("table")
+                .First(table => table.QuerySelector("input.form-check-input") != null)
+                .QuerySelectorAll("tbody tr")[0];
+            return [.. patternRow.QuerySelectorAll("select, input, button")];
         }
 
         private static List<(string Title, string Message, bool IsError)> CaptureUiMessages(SettingsFlowGeneral page)

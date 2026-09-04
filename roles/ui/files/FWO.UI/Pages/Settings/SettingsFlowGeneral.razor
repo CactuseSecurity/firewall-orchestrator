@@ -96,7 +96,7 @@
                         FlowZoneGroupPattern pattern = zoneGroupPatterns[patternIndex];
                         <tr @key="pattern">
                             <td>
-                                <select class="form-select form-select-sm" value="@pattern.MatchType"
+                                <select class="form-select form-select-sm" value="@pattern.MatchType" disabled="@workInProgress"
                                         @onchange="args => SetZoneGroupMatchType(pattern, args.Value?.ToString())">
                                     @foreach (FlowZoneNameMatchType matchType in ZoneNameMatchTypes)
                                     {
@@ -105,13 +105,14 @@
                                 </select>
                             </td>
                             <td class="text-center">
-                                <input type="checkbox" class="form-check-input" @bind="pattern.CaseSensitive" />
+                                <input type="checkbox" class="form-check-input" disabled="@workInProgress" @bind="pattern.CaseSensitive" />
                             </td>
                             <td>
-                                <input type="text" class="form-control form-control-sm" @bind="pattern.Value" />
+                                <input type="text" class="form-control form-control-sm" disabled="@workInProgress" @bind="pattern.Value" />
                             </td>
                             <td>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveZoneGroupPattern(patternIndex)" title="@(userConfig.GetText("delete"))">
+                                <button type="button" class="btn btn-sm btn-danger" disabled="@workInProgress"
+                                        @onclick="() => RemoveZoneGroupPattern(patternIndex)" title="@(userConfig.GetText("delete"))">
                                     <span class="@Icons.Delete"></span>
                                 </button>
                             </td>

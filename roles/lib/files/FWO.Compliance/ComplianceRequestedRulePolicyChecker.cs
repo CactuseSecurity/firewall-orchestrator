@@ -272,8 +272,8 @@ namespace FWO.Compliance
             };
         }
 
-        private static IEnumerable<string> GetResolvedGroupKeys(long groupId, string? groupName,
-            IReadOnlyDictionary<long, HashSet<string>> requestedNamesById, ISet<string> namesWithIds)
+        private static HashSet<string> GetResolvedGroupKeys(long groupId, string? groupName,
+            Dictionary<long, HashSet<string>> requestedNamesById, HashSet<string> namesWithIds)
         {
             if (string.IsNullOrWhiteSpace(groupName))
             {

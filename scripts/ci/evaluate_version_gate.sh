@@ -12,7 +12,8 @@
 # code from the pull request, which is what makes it safe to run from pull_request_target.
 #
 # Usage: evaluate_version_gate.sh <pr-number> [base-branch]
-# Requires: git and python3, run from a checkout of the base branch.
+# Requires: git, gh and python3, run from a checkout of the base branch with GH_TOKEN and
+# GH_REPO set for read-only pull request access.
 #
 # NOTE: this script's behavior is documented in
 # documentation/developer-docs/github/version-gate-workflow.md - please keep that doc in
@@ -35,11 +36,22 @@ for attempt in 1 2 3; do
         break
     fi
     echo "Merge ref for PR #${pr_number} not available yet (attempt ${attempt})."
-    sleep $((attempt * 10))
+    if [[ "$attempt" -lt 3 ]]; then
+        sleep $((attempt * 10))
+    fi
 done
 
 if [[ "$merge_ref_available" != "true" ]]; then
-    echo "Cannot determine the merged product version. Resolve the merge conflicts first." >&2
+    if ! mergeable_state="$(gh pr view "$pr_number" --json mergeable --jq .mergeable)"; then
+        echo "Cannot determine the merged product version or query pull request mergeability." >&2
+        echo "Re-run the workflow after checking GitHub connectivity and pull request status." >&2
+    elif [[ "$mergeable_state" == "CONFLICTING" ]]; then
+        echo "Cannot determine the merged product version. GitHub reports merge conflicts." >&2
+        echo "Resolve the merge conflicts and update the pull request." >&2
+    else
+        echo "Cannot determine the merged product version. GitHub reports mergeability as '${mergeable_state}'." >&2
+        echo "The merge ref may still be computing or its fetch may have failed; re-run the workflow." >&2
+    fi
     exit 1
 fi
 

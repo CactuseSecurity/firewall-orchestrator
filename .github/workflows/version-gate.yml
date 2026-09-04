@@ -21,10 +21,11 @@ on:
     branches:
       - develop
 
-# Read-only. The gate reports through its own job status and publishes nothing, so it
-# needs no write access at all, which also leaves the pull_request_target token worthless.
+# Read-only. The gate reports through its own job status and publishes nothing. Pull request
+# access is used only to diagnose a missing merge ref, so no write permission is needed.
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: version-gate-pr-${{ github.event.pull_request.number }}
@@ -48,6 +49,8 @@ jobs:
 
       - name: Evaluate version gate
         env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: scripts/ci/evaluate_version_gate.sh "$PR_NUMBER" "$PR_BASE_REF"

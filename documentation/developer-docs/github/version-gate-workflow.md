@@ -58,17 +58,22 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | `V != P` | `documentation/revision-history.md` ends with a `## V - DD.MM.YYYY` section | fails otherwise |
-| any | `refs/pull/<n>/merge` exists | fails otherwise: resolve the merge conflicts |
+| any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
 The revision history is only checked when the version changes, which keeps the check objective
 and free of false positives.
 
+The merge ref is fetched three times because GitHub computes it asynchronously. If all attempts
+fail, the workflow queries the pull request's `mergeable` state. It reports merge conflicts only
+when GitHub returns `CONFLICTING`; `UNKNOWN`, `MERGEABLE`, and query failures remain fail-closed
+but ask for a retry because the ref may still be computing or its fetch may have failed.
+
 ### Security
 
-The job runs under `pull_request_target` but holds a **read-only** token: it publishes
-nothing, so it needs no write permission at all and the elevated context is worthless to a
-fork. It checks out the **base** branch, never the pull request head, and reads pull request
-content with `git show` as inert data. No fork code is executed and no
+The job runs under `pull_request_target` but holds a **read-only** token with contents and pull
+request access: it publishes nothing and needs no write permission. It checks out the **base**
+branch, never the pull request head, and reads pull request content with `git show` as inert data.
+No fork code is executed and no
 `allow-unsafe-pr-checkout` is used.
 
 Checking out the base branch also means the gate logic itself comes from `develop`. A pull

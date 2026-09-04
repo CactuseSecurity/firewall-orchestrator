@@ -1,115 +1,198 @@
--- Centralize modelling and workflow history without losing existing entries.
+-- issue #561: create new db schema network_zone
+
+create schema if not exists network_zone;
+
+-- move and rename the tables, guarded so the upgrade can be re-run safely
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN
+        SELECT * FROM (VALUES
+            ('network_zone',    'zone'),
+            ('ip_range',        'ip_range')
+        ) AS t(old_name, new_name)
+    LOOP
+        IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'compliance' AND tablename = r.old_name) THEN
+            EXECUTE format('ALTER TABLE compliance.%I SET SCHEMA network_zone', r.old_name);
+            IF r.old_name <> r.new_name THEN
+                EXECUTE format('ALTER TABLE network_zone.%I RENAME TO %I', r.old_name, r.new_name);
+            END IF;
+        END IF;
+    END LOOP;
+END $$;
+
+-- rename foreign keys
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN
+        SELECT * FROM (VALUES
+            ('compliance_ip_range_network_zone_foreign_key',    'network_zone_ip_range_zone_foreign_key', 'network_zone', 'ip_range'),
+            ('compliance_super_zone_foreign_key',    'network_zone_super_zone_foreign_key', 'network_zone', 'zone'),
+            ('compliance_from_network_zone_communication_foreign_key',    'network_zone_from_zone_communication_foreign_key', 'compliance', 'network_zone_communication'),
+            ('compliance_to_network_zone_communication_foreign_key',    'network_zone_to_zone_communication_foreign_key', 'compliance', 'network_zone_communication')
+        ) AS t(old_name, new_name, schema_name, table_name)
+    LOOP
+        IF EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = to_regclass(format('%I.%I', r.schema_name, r.table_name))
+            AND conname = r.old_name
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = to_regclass(format('%I.%I', r.schema_name, r.table_name))
+            AND conname = r.new_name
+        ) THEN
+            EXECUTE format('ALTER TABLE %I.%I RENAME CONSTRAINT %I TO %I',
+                r.schema_name,
+                r.table_name,
+                r.old_name,
+                r.new_name
+            );
+        END IF;
+    END LOOP;
+END $$;
+
+-- rename primary key
 DO $$
 BEGIN
-    IF to_regclass('public.change_history') IS NULL
-       AND to_regclass('modelling.change_history') IS NOT NULL THEN
-        ALTER TABLE modelling.change_history SET SCHEMA public;
+    IF EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.zone'::regclass
+        AND conname = 'network_zone_pkey'
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.zone'::regclass
+        AND conname = 'zone_pkey'
+    )
+    THEN ALTER TABLE network_zone.zone RENAME CONSTRAINT network_zone_pkey TO zone_pkey;
     END IF;
-END
-$$;
+END $$;
 
-CREATE TABLE IF NOT EXISTS public.change_history (
-    id BIGSERIAL PRIMARY KEY,
-    app_id INTEGER,
-    ticket_id BIGINT,
-    -- Names the subsystem that wrote the row. It is the discriminator for object_type
-    -- and the basis of the read permissions of the modelling roles, so it is set by the
-    -- API and never derived from imported data.
-    module VARCHAR NOT NULL DEFAULT 'modelling',
-    change_type INTEGER,
-    -- Holds two disjoint enums, selected by module:
-    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
-    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
-    object_type INTEGER,
-    object_id BIGINT,
-    change_text TEXT,
-    -- Free text supplied by the client. changer_id is set by the API from the
-    -- authenticated session and is the trustworthy identity of the two.
-    changer VARCHAR,
-    changer_id INTEGER,
-    change_time TIMESTAMP DEFAULT NOW(),
-    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
-    -- name configured by the customer. Never used to tell modules apart, see module.
-    change_source VARCHAR NOT NULL DEFAULT 'manual',
-    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
-    workflow_phase INTEGER,
-    old_data JSONB,
-    new_data JSONB,
-    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE
+-- rename sequence
+DO $$
+BEGIN
+    IF to_regclass('network_zone.network_zone_id_seq') IS NOT NULL
+    AND to_regclass('network_zone.zone_id_seq') IS NULL
+    THEN ALTER SEQUENCE network_zone.network_zone_id_seq RENAME TO zone_id_seq;
+    END IF;
+END $$;
+
+GRANT USAGE ON SCHEMA network_zone TO fwo_ro;
+GRANT SELECT ON ALL TABLES IN SCHEMA network_zone TO fwo_ro;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA network_zone TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT SELECT ON TABLES TO fwo_ro;
+ALTER DEFAULT PRIVILEGES IN SCHEMA network_zone GRANT USAGE, SELECT ON SEQUENCES TO fwo_ro;
+
+-- renamed config keys
+UPDATE config SET config_key = 'matrixAllowNestedZones'
+WHERE config_key = 'complianceMatrixAllowNetworkZones';
+UPDATE config SET config_key = 'sortMatrixByID'
+WHERE config_key = 'complianceCheckSortMatrixByID';
+
+-- renamed text ids
+UPDATE customtxt SET id = 'autoCalcInternetZone'
+WHERE id = 'complianceCheckAutoCalcInternetZone';
+UPDATE customtxt SET id = 'privateAdressSpace'
+WHERE id = 'complianceCheckPrivateAdressSpace';
+UPDATE customtxt SET id = 'documentationSamples'
+WHERE id = 'complianceCheckDocumentationSamples';
+UPDATE customtxt SET id = 'treatDynamicAndDomainObjectsAsInternet'
+WHERE id = 'complianceCheckTreatDynamicAndDomainObjectsAsInternet';
+UPDATE customtxt SET id = 'autoCalcUndefinedInternalZone'
+WHERE id = 'complianceCheckAutoCalcUndefinedInternalZone';
+UPDATE customtxt SET id = 'excludeFromInternetZone'
+WHERE id = 'complianceCheckExcludeFromInternetZone';
+UPDATE customtxt SET id = 'loopbackLocal'
+WHERE id = 'complianceCheckLoopbackLocal';
+UPDATE customtxt SET id = 'multicastBroadcast'
+WHERE id = 'complianceCheckMulticastBroadcast';
+UPDATE customtxt SET id = 'internetSettingsDiv'
+WHERE id = 'complianceCheckDiv';
+UPDATE customtxt SET id = 'autoCalculatedZonesAtTheEnd'
+WHERE id = 'complianceCheckAutoCalculatedZonesAtTheEnd';
+UPDATE customtxt SET id = 'matrixAllowNestedZones'
+WHERE id = 'complianceMatrixAllowNetworkZones';
+UPDATE customtxt SET id = 'sortMatrixByID'
+WHERE id = 'complianceCheckSortMatrixByID';
+
+-- path analysis algorithm
+CREATE TABLE IF NOT EXISTS "path_analysis_algorithm"
+(
+    "id" BIGSERIAL PRIMARY KEY,
+    "name" varchar NOT NULL UNIQUE
 );
 
--- Every entry that exists before this upgrade is modelling history, so the column default
--- migrates them without a separate backfill.
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS module VARCHAR NOT NULL DEFAULT 'modelling';
+INSERT INTO path_analysis_algorithm (id, name) VALUES
+    (1, 'None'),
+    (2, 'Network Zone Tree')
+ON CONFLICT (name) DO NOTHING;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS ticket_id BIGINT;
+INSERT INTO config (config_key, config_value, config_user)
+VALUES ('pathAnalysisAlgorithm', 1, 0)
+ON CONFLICT (config_key, config_user) DO NOTHING;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS changer_id INTEGER;
+GRANT SELECT ON TABLE path_analysis_algorithm TO fwo_ro;
+GRANT USAGE, SELECT ON SEQUENCE path_analysis_algorithm_id_seq TO fwo_ro;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS workflow_phase INTEGER;
+-- Network Zone Tree
+ALTER TABLE network_zone.ip_range
+ADD COLUMN IF NOT EXISTS id BIGSERIAL;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS old_data JSONB;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conrelid = 'network_zone.ip_range'::regclass
+          AND conname = 'ip_range_id_pkey'
+    ) THEN
+        ALTER TABLE network_zone.ip_range
+            DROP CONSTRAINT IF EXISTS ip_range_pkey;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS new_data JSONB;
+        ALTER TABLE network_zone.ip_range
+            ADD CONSTRAINT ip_range_id_pkey PRIMARY KEY (id);
+    END IF;
+END $$;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_root
+(
+    dev_id BIGINT NOT NULL,
+    ip_range_id BIGINT NOT NULL,
+    order_to_root BIGINT NOT NULL,
+    PRIMARY KEY (ip_range_id, dev_id)
+);
 
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_module_check;
+CREATE TABLE IF NOT EXISTS network_zone.device_ip_range_internet
+(
+    dev_id BIGINT NOT NULL,
+    ip_range_id BIGINT NOT NULL,
+    order_to_internet BIGINT NOT NULL,
+    PRIMARY KEY (ip_range_id, dev_id)
+);
 
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'));
+ALTER TABLE network_zone.device_ip_range_root DROP CONSTRAINT IF EXISTS dev_id_device_ip_range_root;
+ALTER TABLE network_zone.device_ip_range_root DROP CONSTRAINT IF EXISTS ip_range_id_device_ip_range_root;
+ALTER TABLE network_zone.device_ip_range_internet DROP CONSTRAINT IF EXISTS dev_id_device_ip_range_internet;
+ALTER TABLE network_zone.device_ip_range_internet DROP CONSTRAINT IF EXISTS ip_range_id_device_ip_range_internet;
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT dev_id_device_ip_range_root FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_root ADD CONSTRAINT ip_range_id_device_ip_range_root FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT dev_id_device_ip_range_internet FOREIGN KEY (dev_id) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE network_zone.device_ip_range_internet ADD CONSTRAINT ip_range_id_device_ip_range_internet FOREIGN KEY (ip_range_id) REFERENCES network_zone.ip_range(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 
-UPDATE public.change_history SET change_source = 'manual' WHERE change_source IS NULL;
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
 
-ALTER TABLE public.change_history
-ALTER COLUMN change_source SET DEFAULT 'manual';
-
-ALTER TABLE public.change_history
-ALTER COLUMN change_source SET NOT NULL;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_owner_foreign_key;
-
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES public.owner (id) ON UPDATE RESTRICT ON DELETE SET NULL;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_ticket_foreign_key;
-
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket (id) ON UPDATE RESTRICT ON DELETE SET NULL;
-
--- The table is insert heavy and read rarely, so the index set is kept minimal and the two
--- per-object indices are partial: a workflow row has no app_id and a modelling row has no
--- ticket_id, so each row maintains only the indices that apply to it. id is part of the sort
--- key because change_time is not unique and paging by it alone is unstable.
-DROP INDEX IF EXISTS public.idx_change_history_app_id;
-
-DROP INDEX IF EXISTS public.idx_change_history_ticket_id;
-
-DROP INDEX IF EXISTS public.idx_change_history_change_time;
-
-DROP INDEX IF EXISTS public.idx_modelling_change_history01;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON public.change_history (module, change_time DESC, id DESC);
-
-CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON public.change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON public.change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON public.change_history (change_time DESC) WHERE audit_proof_critical;
-
-GRANT SELECT ON public.change_history TO fwo_ro;
-
-GRANT SELECT ON SEQUENCE public.change_history_id_seq TO fwo_ro;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);

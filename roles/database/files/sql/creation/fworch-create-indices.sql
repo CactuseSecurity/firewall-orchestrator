@@ -104,9 +104,19 @@ create unique index if not exists only_one_default_owner on owner(is_default)
 where is_default = true;
 
 -- compliance
-Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- network_zone
+Create index IF NOT EXISTS idx_fkey_network_zone_id on network_zone.ip_range USING HASH (network_zone_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;

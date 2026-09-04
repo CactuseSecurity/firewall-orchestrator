@@ -1,5 +1,4 @@
 @using FWO.Config.Api
-@using FWO.Data
 @using FWO.Basics
 
 @inject UserConfig userConfig
@@ -18,6 +17,14 @@
                 </a>
                 <a class="nav-link" href="/help/settings/gateways/?lang=@($"{userConfig.GetUserLanguage()}")">
                     <span class="@Icons.Gateway"></span> @(userConfig.GetText("gateways"))
+                </a>
+                <p></p>
+                <h5>@(userConfig.GetText("network_topology"))</h5>
+                <a class="nav-link" href="/help/settings/matrix/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Matrix"></span> @(userConfig.GetText("matrix"))
+                </a>
+                <a class="nav-link" href="/help/settings/internet/?lang=@($"{userConfig.GetUserLanguage()}")">
+                    <span class="@Icons.Network"></span> @(userConfig.GetText("internet"))
                 </a>
                 <p></p>
                 <h5>@(userConfig.GetText("authorization"))</h5>

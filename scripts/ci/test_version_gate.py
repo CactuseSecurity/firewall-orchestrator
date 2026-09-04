@@ -189,6 +189,30 @@ class TestGateWithoutVersionBump:
         assert not verdict.ok
         assert "add revision-history text" in verdict.reason
 
+    def test_verified_automation_can_skip_revision_history(self) -> None:
+        verdict = evaluate_gate(
+            "9.4.5",
+            "9.4.5",
+            set(),
+            REVISION_HISTORY,
+            REVISION_HISTORY,
+            revision_history_required=False,
+        )
+        assert verdict.ok
+        assert "revision history is exempt" in verdict.reason
+
+    def test_verified_automation_still_obeys_version_rules(self) -> None:
+        verdict = evaluate_gate(
+            "9.4.5",
+            "9.4.5",
+            {"9.4.5"},
+            REVISION_HISTORY,
+            REVISION_HISTORY,
+            revision_history_required=False,
+        )
+        assert not verdict.ok
+        assert "already sealed" in verdict.reason
+
 
 class TestGateWithVersionBump:
     def test_bump_after_sealing_passes(self) -> None:
@@ -366,6 +390,32 @@ class TestCommandLine:
             ]
         )
         assert run_command(arguments).ok
+
+    def test_gate_command_can_skip_revision_history(self, tmp_path: Path) -> None:
+        history = tmp_path / "revision-history.md"
+        history.write_text(REVISION_HISTORY, encoding="utf-8")
+        tags = tmp_path / "tags.txt"
+        tags.write_text("", encoding="utf-8")
+
+        arguments = build_parser().parse_args(
+            [
+                "gate",
+                "--merged-version",
+                "9.4.5",
+                "--base-version",
+                "9.4.5",
+                "--revision-history",
+                str(history),
+                "--base-revision-history",
+                str(history),
+                "--tags-file",
+                str(tags),
+                "--skip-revision-history",
+            ]
+        )
+        verdict = run_command(arguments)
+        assert verdict.ok
+        assert "revision history is exempt" in verdict.reason
 
     def test_check_open_command(self, tmp_path: Path) -> None:
         tags = tmp_path / "tags.txt"

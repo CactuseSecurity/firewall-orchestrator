@@ -31,7 +31,8 @@ gate entry and nothing else. That single check run is what branch protection mus
 ### What is compared
 
 [`scripts/ci/evaluate_version_gate.sh`](../../../scripts/ci/evaluate_version_gate.sh) resolves
-five inputs and hands them to the gate:
+the version inputs, revision-history inputs, pull request identity and changed paths before it
+invokes the gate:
 
 | Input | Source |
 | --- | --- |
@@ -40,6 +41,8 @@ five inputs and hands them to the gate:
 | merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
 | base revision history | the same file at the base branch tip |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
+| pull request identity | author, head branch and head repository from the trusted event payload |
+| changed paths | the diff from the base tip to `refs/pull/<n>/merge` |
 
 Reading `V` from the **merge result** rather than from the pull request head is deliberate. A
 pull request that never touched `all.yml` inherits the base version automatically, so it is not
@@ -47,7 +50,7 @@ falsely blocked for being out of date, and only pull requests that actually chan
 are held to the bump rules. This also makes the "require branches to be up to date before
 merging" branch protection setting unnecessary for the gate.
 
-All five inputs are resolved when the job runs. Nothing is baked into the check run, which is
+All inputs are resolved when the job runs. Nothing is baked into the check run, which is
 what lets a plain re-run produce a different, correct verdict later.
 
 ### Verdicts
@@ -59,15 +62,22 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | `V > P` | fails otherwise: version must not go backwards |
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
-| any | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
-| any | the pull request adds text below that final heading | fails otherwise |
+| non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
+| non-automated | the pull request adds text below that final heading | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
-Every pull request must add at least one non-empty, non-heading line below the final level-two
-heading. That heading must contain the merged full `major.minor.patch` version, such as
-`## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull request
-that keeps the version extends the existing final section, while a version bump adds a new final
-section and text beneath it.
+Every non-automated pull request must add at least one non-empty, non-heading line below the
+final level-two heading. That heading must contain the merged full `major.minor.patch` version,
+such as `## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull
+request that keeps the version extends the existing final section, while a version bump adds a
+new final section and text beneath it.
+
+The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
+author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for
+the two established `.agents` pointer automations: `CactusAutomation` on
+`automation/submodule_update`, and `github-actions[bot]` on `bot/update-agents-submodule`. An
+agents update qualifies only when `.agents` is its sole changed path. All of these automated pull
+requests remain subject to the core version lifecycle rules.
 
 The merge ref is fetched three times because GitHub computes it asynchronously. If all attempts
 fail, the workflow queries the pull request's `mergeable` state. It reports merge conflicts only

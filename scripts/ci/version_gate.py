@@ -164,6 +164,7 @@ def evaluate_gate(
     sealed: set[str],
     merged_revision_history: str,
     base_revision_history: str,
+    revision_history_required: bool = True,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
@@ -210,6 +211,9 @@ def evaluate_gate(
                 reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
             )
         version_reason = f"version {base_version} is sealed, opening version {merged_version}"
+
+    if not revision_history_required:
+        return Verdict(ok=True, reason=f"{version_reason}; revision history is exempt for this automated pull request")
 
     revision_history_verdict = evaluate_revision_history(
         merged_version,
@@ -301,6 +305,11 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--base-file", help="all.yml as it looks on the base branch")
     gate.add_argument("--revision-history", help="revision-history.md as it looks on refs/pull/<n>/merge")
     gate.add_argument("--base-revision-history", required=True, help="revision-history.md on the base branch")
+    gate.add_argument(
+        "--skip-revision-history",
+        action="store_true",
+        help="skip revision-history validation for a caller-verified automated pull request",
+    )
     gate.add_argument("--tags-file", help=tags_help)
 
     audit = subparsers.add_parser("check-open", help="check that a branch sits on an unsealed version")
@@ -328,6 +337,7 @@ def run_command(arguments: argparse.Namespace) -> Verdict:
             sealed_versions(read_tags(arguments.tags_file)),
             merged_revision_history,
             Path(arguments.base_revision_history).read_text(encoding="utf-8"),
+            not arguments.skip_revision_history,
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

@@ -57,6 +57,8 @@ def create_repository(
     *,
     include_merge_ref: bool = True,
     version_is_bumped: bool = False,
+    agents_pointer_change: bool = False,
+    additional_change: bool = False,
     tags: tuple[str, ...] = (),
 ) -> Path:
     """Create a checkout and local bare origin containing the refs used by the gate."""
@@ -77,6 +79,8 @@ def create_repository(
     (inventory / "all.yml").write_text(BASE_CONFIGURATION, encoding="utf-8")
     (documentation / "revision-history.md").write_text(REVISION_HISTORY, encoding="utf-8")
     shutil.copy2(VERSION_GATE_PATH, implementation / "version_gate.py")
+    if agents_pointer_change:
+        (repository / ".agents").write_text("old pointer\n", encoding="utf-8")
 
     run_git(repository, ["add", "."])
     run_git(repository, ["commit", "-m", "test fixture"])
@@ -87,6 +91,12 @@ def create_repository(
         (documentation / "revision-history.md").write_text(MERGED_REVISION_HISTORY, encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
+    if agents_pointer_change:
+        (repository / ".agents").write_text("new pointer\n", encoding="utf-8")
+        if additional_change:
+            (repository / "README.md").write_text("unrelated change\n", encoding="utf-8")
+        run_git(repository, ["add", "."])
+        run_git(repository, ["commit", "-m", "advance agents pointer"])
     if include_merge_ref:
         run_git(repository, ["push", "origin", "HEAD:refs/pull/42/merge"])
     for tag in tags:
@@ -134,6 +144,9 @@ def run_gate(
     mergeable_state: str = "UNKNOWN",
     gh_succeeds: bool = True,
     fail_base_fetch: bool = False,
+    pr_author: str = "",
+    pr_head_ref: str = "",
+    pr_head_repository: str = "",
 ) -> subprocess.CompletedProcess[str]:
     """Run the real shell gate against a local origin and mocked remote services."""
     fake_bin = create_fake_commands(tmp_path)
@@ -146,6 +159,9 @@ def run_gate(
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
             "PATH": f"{fake_bin}:{environment['PATH']}",
+            "PR_AUTHOR": pr_author,
+            "PR_HEAD_REF": pr_head_ref,
+            "PR_HEAD_REPOSITORY": pr_head_repository,
         }
     )
     return subprocess.run(  # noqa: S603
@@ -192,6 +208,123 @@ def test_sealed_version_fails_and_prints_verdict(tmp_path: Path) -> None:
     assert completed.returncode == 1
     assert completed.stdout == ""
     assert "Version gate failed: version 9.4.5 is already sealed" in completed.stderr
+
+
+def test_dependabot_pull_request_skips_revision_history(tmp_path: Path) -> None:
+    """Recognize an upstream Dependabot identity and branch together."""
+    repository = create_repository(tmp_path)
+
+    completed = run_gate(
+        tmp_path,
+        repository,
+        pr_author="dependabot[bot]",
+        pr_head_ref="dependabot/pip/develop/cryptography-50.0.1",
+        pr_head_repository="CactuseSecurity/firewall-orchestrator",
+    )
+
+    assert completed.returncode == 0
+    assert "revision history is exempt for this automated pull request" in completed.stdout
+
+
+@pytest.mark.parametrize(
+    ("pr_author", "pr_head_ref"),
+    [
+        ("CactusAutomation", "automation/submodule_update"),
+        ("github-actions[bot]", "bot/update-agents-submodule"),
+    ],
+)
+def test_agents_pointer_pull_request_skips_revision_history(
+    tmp_path: Path,
+    pr_author: str,
+    pr_head_ref: str,
+) -> None:
+    """Recognize both established agents-pointer automation mechanisms."""
+    repository = create_repository(tmp_path, agents_pointer_change=True)
+
+    completed = run_gate(
+        tmp_path,
+        repository,
+        pr_author=pr_author,
+        pr_head_ref=pr_head_ref,
+        pr_head_repository="CactuseSecurity/firewall-orchestrator",
+    )
+
+    assert completed.returncode == 0
+    assert "revision history is exempt for this automated pull request" in completed.stdout
+
+
+@pytest.mark.parametrize(
+    ("pr_author", "pr_head_ref", "pr_head_repository"),
+    [
+        ("developer", "dependabot/pip/develop/example", "CactuseSecurity/firewall-orchestrator"),
+        ("dependabot[bot]", "feature/example", "CactuseSecurity/firewall-orchestrator"),
+        ("dependabot[bot]", "dependabot/pip/develop/example", "contributor/firewall-orchestrator"),
+    ],
+)
+def test_dependabot_exemption_cannot_be_selected_by_branch_name_alone(
+    tmp_path: Path,
+    pr_author: str,
+    pr_head_ref: str,
+    pr_head_repository: str,
+) -> None:
+    """Require the trusted author, branch prefix and upstream repository together."""
+    repository = create_repository(tmp_path)
+
+    completed = run_gate(
+        tmp_path,
+        repository,
+        pr_author=pr_author,
+        pr_head_ref=pr_head_ref,
+        pr_head_repository=pr_head_repository,
+    )
+
+    assert completed.returncode == 1
+    assert "add revision-history text" in completed.stderr
+
+
+def test_agents_pointer_exemption_rejects_additional_changes(tmp_path: Path) -> None:
+    """Require `.agents` to be the automated pull request's only changed path."""
+    repository = create_repository(tmp_path, agents_pointer_change=True, additional_change=True)
+
+    completed = run_gate(
+        tmp_path,
+        repository,
+        pr_author="CactusAutomation",
+        pr_head_ref="automation/submodule_update",
+        pr_head_repository="CactuseSecurity/firewall-orchestrator",
+    )
+
+    assert completed.returncode == 1
+    assert "add revision-history text" in completed.stderr
+
+
+@pytest.mark.parametrize(
+    ("pr_author", "pr_head_ref", "pr_head_repository"),
+    [
+        ("developer", "automation/submodule_update", "CactuseSecurity/firewall-orchestrator"),
+        ("CactusAutomation", "feature/example", "CactuseSecurity/firewall-orchestrator"),
+        ("CactusAutomation", "automation/submodule_update", "contributor/firewall-orchestrator"),
+    ],
+)
+def test_agents_pointer_exemption_requires_exact_automation_identity(
+    tmp_path: Path,
+    pr_author: str,
+    pr_head_ref: str,
+    pr_head_repository: str,
+) -> None:
+    """Reject `.agents` changes that do not carry the complete trusted identity."""
+    repository = create_repository(tmp_path, agents_pointer_change=True)
+
+    completed = run_gate(
+        tmp_path,
+        repository,
+        pr_author=pr_author,
+        pr_head_ref=pr_head_ref,
+        pr_head_repository=pr_head_repository,
+    )
+
+    assert completed.returncode == 1
+    assert "add revision-history text" in completed.stderr
 
 
 def test_base_fetch_failure_is_propagated(tmp_path: Path) -> None:

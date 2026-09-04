@@ -134,14 +134,21 @@ runs on every pull request that targets `develop`. Its single job,
 - the version its merge result carries is already sealed by a release tag,
 - it raises `product_version` while the previous version has no sealing tag yet,
 - it raises `product_version` to an already sealed version, or lowers it,
-- the final level-two heading in [`documentation/revision-history.md`](../revision-history.md)
+- for non-automated pull requests, the final level-two heading in
+  [`documentation/revision-history.md`](../revision-history.md)
   does not match the merged `product_version`,
-- it does not add text below that final revision-history heading.
+- for non-automated pull requests, it does not add text below that final revision-history heading.
 
-Every pull request must add at least one non-empty, non-heading line to the final revision-history
-section. The final heading must contain the full `major.minor.patch` version; a date or other
-trailing heading text may be included but is not required. Pull requests that keep the current
-version extend its section, while a version bump adds the new version as the final section.
+Every non-automated pull request must add at least one non-empty, non-heading line to the final
+revision-history section. The final heading must contain the full `major.minor.patch` version; a
+date or other trailing heading text may be included but is not required. Pull requests that keep
+the current version extend its section, while a version bump adds the new version as the final
+section.
+
+Upstream Dependabot pull requests and the repository's automated `.agents` pointer-only pull
+requests are exempt from the revision-history requirements. The exemption verifies the expected
+automation author, internal head repository and branch; `.agents` updates must also change no
+other path. Automated pull requests still have to satisfy every product-version lifecycle rule.
 
 The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
 `all.yml` inherits the base branch version and is never blocked for being out of date.

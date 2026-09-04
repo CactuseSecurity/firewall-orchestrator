@@ -13,7 +13,8 @@
 #
 # Usage: evaluate_version_gate.sh <pr-number> [base-branch]
 # Requires: git, gh and python3, run from a checkout of the base branch with GH_TOKEN and
-# GH_REPO set for read-only pull request access.
+# GH_REPO set for read-only pull request access. PR_AUTHOR, PR_HEAD_REF and PR_HEAD_REPOSITORY
+# carry the trusted pull_request_target event metadata used for automation exemptions.
 #
 # NOTE: this script's behavior is documented in
 # documentation/developer-docs/github/version-gate-workflow.md - please keep that doc in
@@ -62,6 +63,21 @@ git show "refs/fwo/pr-merge:documentation/revision-history.md" >"${work_dir}/rev
 git show "refs/fwo/base:inventory/group_vars/all.yml" >"${work_dir}/base-all.yml"
 git show "refs/fwo/base:documentation/revision-history.md" >"${work_dir}/base-revision-history.md"
 
+changed_paths="$(git diff --name-only refs/fwo/base refs/fwo/pr-merge)"
+pr_author="${PR_AUTHOR:-}"
+pr_head_ref="${PR_HEAD_REF:-}"
+pr_head_repository="${PR_HEAD_REPOSITORY:-}"
+revision_history_arguments=()
+
+if [[ "$pr_head_repository" == "$GH_REPO" && "$pr_author" == "dependabot[bot]" && "$pr_head_ref" == dependabot/* ]]; then
+    revision_history_arguments+=(--skip-revision-history)
+elif [[ "$pr_head_repository" == "$GH_REPO" && "$changed_paths" == ".agents" ]]; then
+    if [[ "$pr_author" == "CactusAutomation" && "$pr_head_ref" == "automation/submodule_update" ]] || \
+        [[ "$pr_author" == "github-actions[bot]" && "$pr_head_ref" == "bot/update-agents-submodule" ]]; then
+        revision_history_arguments+=(--skip-revision-history)
+    fi
+fi
+
 # Only the tag names matter, so list them on the remote instead of fetching tag objects.
 # They are read here, at run time, which is what makes a re-run pick up a new sealing tag.
 git ls-remote --tags origin | sed 's#.*refs/tags/##; s#\^{}$##' | sort -u >"${work_dir}/tags.txt"
@@ -73,7 +89,8 @@ python3 scripts/ci/version_gate.py gate \
     --base-file "${work_dir}/base-all.yml" \
     --revision-history "${work_dir}/revision-history.md" \
     --base-revision-history "${work_dir}/base-revision-history.md" \
-    --tags-file "${work_dir}/tags.txt" >"$verdict_file" || gate_exit=$?
+    --tags-file "${work_dir}/tags.txt" \
+    "${revision_history_arguments[@]}" >"$verdict_file" || gate_exit=$?
 
 reason="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["reason"])' "$verdict_file")"
 

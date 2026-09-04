@@ -540,7 +540,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
-    <li>Alle &Auml;nderungen an erstellten Workflow-Tickets werden dokumentiert; auditkritische Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden gesondert markiert.</li>
+    <li>Alle &Auml;nderungen an erstellten Workflow-Tickets werden f&uuml;r die Audit-Auswertung aufgezeichnet; auditkritische Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden gesondert markiert.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -556,7 +556,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Rule reports can be filtered by source and destination object types.</li>
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
-    <li>All changes to created workflow tickets are documented; audit-critical content changes by users other than the requester are marked separately.</li>
+    <li>All changes to created workflow tickets are recorded for audit evaluation; audit-critical content changes by users other than the requester are marked separately.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -8009,8 +8009,8 @@ INSERT INTO txt VALUES ('H8014', 'German',  '<a href="/help/workflow/actions">Ak
 INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Actions</a>: To support processing of the requests, different kinds of actions can be defined.
     This includes automatic state forwarding or the request of further approvals. Also configuration of calls to external components is in preparation.
 ');
-INSERT INTO txt VALUES ('H8015', 'German',  'Nach Erstellung eines Tickets werden alle Inhalts- und Standard-Workflow-&Auml;nderungen wie Statuswechsel und Genehmigungen zentral mit Workflow-Phase und vorherigen sowie neuen Werten dokumentiert. In der Benutzeroberfl&auml;che vorgenommene Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden als auditkritisch markiert.');
-INSERT INTO txt VALUES ('H8015', 'English', 'After a ticket has been created, all content and standard workflow changes, including state transitions and approvals, are recorded centrally with the workflow phase and previous and new values. Content changes made in the user interface by users other than the requester are marked as audit-critical.');
+INSERT INTO txt VALUES ('H8015', 'German',  'Nach Erstellung eines Tickets werden alle Inhalts- und Standard-Workflow-&Auml;nderungen wie Statuswechsel und Genehmigungen zentral mit Workflow-Phase und vorherigen sowie neuen Werten aufgezeichnet. In der Benutzeroberfl&auml;che vorgenommene Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden dabei als auditkritisch markiert. Die Aufzeichnung dient der Auswertung durch Auditoren und wird nicht in der Benutzeroberfl&auml;che angezeigt.');
+INSERT INTO txt VALUES ('H8015', 'English', 'After a ticket has been created, all content and standard workflow changes, including state transitions and approvals, are recorded centrally with the workflow phase and previous and new values. Content changes made in the user interface by users other than the requester are marked as audit-critical. The recording is meant for evaluation by auditors and is not displayed in the user interface.');
 INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
     Entsprechend der Objekthierarchie sind die Status voneinander abh&auml;ngig.
 ');

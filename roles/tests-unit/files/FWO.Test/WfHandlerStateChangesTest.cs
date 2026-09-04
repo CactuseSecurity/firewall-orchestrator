@@ -24,7 +24,7 @@ namespace FWO.Test
         {
             ActionHandler actionHandler = new(apiConnection, handler);
             actionHandler.Init([]).GetAwaiter().GetResult();
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true, WorkflowPhases.request);
             typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
         }
 

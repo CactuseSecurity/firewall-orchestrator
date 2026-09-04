@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
+using FWO.Logging;
 
 namespace FWO.Services.Workflow
 {
@@ -20,16 +21,30 @@ namespace FWO.Services.Workflow
             ChangeHistoryObjectType ObjectType, long ObjectId);
 
         /// <summary>
-        /// Stores a structured workflow change and classifies selected UI content edits as audit-prove critical.
+        /// Loads the stored state of a ticket before a change, so it can be compared against the new state.
         /// </summary>
+        /// <param name="ticketId">Id of the ticket to load.</param>
+        /// <returns>The stored ticket, or null when it could not be loaded.</returns>
+        /// <remarks>
+        /// GetTicket reports its own errors and yields an empty ticket on failure. Returning null in that
+        /// case keeps a failed read from being written to the history as an empty previous state.
+        /// </remarks>
+        public async Task<WfTicket?> LoadPreviousTicket(long ticketId)
+        {
+            WfTicket previousTicket = await GetTicket(ticketId);
+            return previousTicket.Id == ticketId ? previousTicket : null;
+        }
+
+        /// <summary>
+        /// Stores a structured workflow change and classifies selected UI content edits as audit-proof critical.
+        /// </summary>
+        /// <remarks>
+        /// Never throws: change history is observational, so a failure to record a change must not abort the
+        /// workflow operation that caused it, nor the state change actions that follow it.
+        /// </remarks>
         private async Task LogWorkflowChange(WorkflowChangeTarget target, string changeText,
             object? oldValue, object? newValue, UiUser? requester, bool contentChange)
         {
-            if (WorkflowPhase is null)
-            {
-                return;
-            }
-
             JsonElement oldData = JsonSerializer.SerializeToElement(oldValue);
             JsonElement newData = JsonSerializer.SerializeToElement(newValue);
             if (oldData.GetRawText() == newData.GetRawText())
@@ -40,6 +55,7 @@ namespace FWO.Services.Workflow
             var variables = new
             {
                 appId = (int?)null,
+                module = GlobalConst.kModuleWorkflow,
                 ticketId = target.TicketId,
                 changeType = (int)target.ChangeType,
                 objectType = (int)target.ObjectType,
@@ -50,9 +66,17 @@ namespace FWO.Services.Workflow
                 workflowPhase = (int)WorkflowPhase,
                 oldData,
                 newData,
-                auditProveCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId
+                auditProofCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId
             };
-            await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, variables);
+            try
+            {
+                await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, variables);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Workflow Change History",
+                    $"Could not record {target.ChangeType} of {target.ObjectType} {target.ObjectId} for ticket {target.TicketId}.", exception);
+            }
         }
 
         /// <summary>

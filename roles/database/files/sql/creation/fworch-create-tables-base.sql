@@ -387,16 +387,30 @@ CREATE TABLE change_history
     id BIGSERIAL PRIMARY KEY,
     app_id INTEGER,
     ticket_id BIGINT,
+    -- Names the subsystem that wrote the row. It is the discriminator for object_type
+    -- and the basis of the read permissions of the modelling roles, so it is set by the
+    -- API and never derived from imported data.
+    module VARCHAR NOT NULL DEFAULT 'modelling',
     change_type INTEGER,
+    -- Holds two disjoint enums, selected by module:
+    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
+    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
     object_type INTEGER,
     object_id BIGINT,
     change_text TEXT,
+    -- Free text supplied by the client. changer_id is set by the API from the
+    -- authenticated session and is the trustworthy identity of the two.
     changer VARCHAR,
+    changer_id INTEGER,
     -- Kept timezone-naive for compatibility with migrated modelling history.
     change_time TIMESTAMP DEFAULT NOW(),
-    change_source VARCHAR DEFAULT 'manual',
+    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
+    -- name configured by the customer. Never used to tell modules apart, see module.
+    change_source VARCHAR NOT NULL DEFAULT 'manual',
+    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
     workflow_phase INTEGER,
     old_data JSONB,
     new_data JSONB,
-    audit_prove_critical BOOLEAN NOT NULL DEFAULT FALSE
+    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'))
 );

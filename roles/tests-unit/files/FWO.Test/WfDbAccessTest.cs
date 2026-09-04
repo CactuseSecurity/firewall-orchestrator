@@ -5,6 +5,7 @@ using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
@@ -63,6 +64,10 @@ namespace FWO.Test
             public int UpdateTicketStateCallCount { get; private set; }
             public int AddHistoryEntryCallCount { get; private set; }
             public object? LastHistoryVariables { get; private set; }
+            public long NewApprovalId { get; set; } = 301;
+            public int GetTicketByIdCallCount { get; private set; }
+            public bool ThrowOnGetTicketById { get; set; }
+            public bool ThrowOnAddHistoryEntry { get; set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -75,10 +80,19 @@ namespace FWO.Test
                 {
                     AddHistoryEntryCallCount++;
                     LastHistoryVariables = variables;
+                    if (ThrowOnAddHistoryEntry)
+                    {
+                        throw new InvalidOperationException("field 'insert_change_history' not found in type: 'mutation_root'");
+                    }
                     return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
                 if (query == RequestQueries.getTicketById)
                 {
+                    GetTicketByIdCallCount++;
+                    if (ThrowOnGetTicketById)
+                    {
+                        throw new InvalidOperationException("ticket could not be read");
+                    }
                     return Task.FromResult((T)(object)Ticket);
                 }
                 if (query == RequestQueries.newTicket)
@@ -108,6 +122,13 @@ namespace FWO.Test
                 if (query == RequestQueries.updateApproval)
                 {
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedApprovalId });
+                }
+                if (query == RequestQueries.newApproval)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = new ReturnId[] { new ReturnId { NewIdLong = NewApprovalId } }
+                    });
                 }
                 if (query == RequestQueries.updateTicketState)
                 {
@@ -257,7 +278,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket1 = new() { Id = 1, Requester = new UiUser { DbId = 200 } };
             WfTicket ticket2 = new() { Id = 2, Requester = new UiUser { DbId = 201 } };
@@ -286,7 +307,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             List<WfTicket> tickets = [new WfTicket { Id = 1 }];
 
@@ -306,7 +327,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new() { Id = 1, Requester = new UiUser { DbId = 42 } };
             List<WfTicket> tickets = [ticket];
@@ -360,7 +381,7 @@ namespace FWO.Test
                     }
                 }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new()
             {
@@ -387,7 +408,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new()
             {
@@ -413,7 +434,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new()
             {
@@ -459,7 +480,7 @@ namespace FWO.Test
                 new() { Id = 1, Name = "requested" },
                 new() { Id = 2, Name = "approval" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket result = await dbAccess.AddTicketToDb(new WfTicket
             {
@@ -521,7 +542,7 @@ namespace FWO.Test
                 ActStateMatrix = requestTaskMatrix
             };
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             SetWorkflowContext(wfHandler, dbAccess);
             SetRequestTaskStateMatrix(wfHandler, requestTaskMatrix);
             await actionHandler.Init(new List<WfState>
@@ -558,7 +579,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new()
             {
@@ -587,7 +608,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new()
             {
@@ -866,6 +887,200 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AddReqTaskToDb_LogsInsertWithNewTaskId()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewReqTaskId = 201,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.request);
+            WfReqTask reqTask = new() { Id = 0, TicketId = 101, Title = "New task" };
+
+            await dbAccess.AddReqTaskToDb(reqTask);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryStringValue(apiConn, "changeType"), Is.EqualTo(((int)ModellingTypes.ChangeType.Insert).ToString()));
+            Assert.That(HistoryStringValue(apiConn, "objectType"), Is.EqualTo(((int)ChangeHistoryObjectType.RequestTask).ToString()));
+            // the logged object id has to be the id assigned by the insert, not the transient zero
+            Assert.That(HistoryStringValue(apiConn, "objectId"), Is.EqualTo("201"));
+        }
+
+        [Test]
+        public async Task DeleteReqTaskFromDb_LogsDeleteWithPreviousContent()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                DeletedReqTaskId = 100,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.request);
+
+            await dbAccess.DeleteReqTaskFromDb(new WfReqTask { Id = 100, TicketId = 101, Title = "Removed task" });
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryStringValue(apiConn, "changeType"), Is.EqualTo(((int)ModellingTypes.ChangeType.Delete).ToString()));
+            Assert.That(HistoryRawValue(apiConn, "newData"), Is.EqualTo("null"));
+        }
+
+        [Test]
+        public async Task AddImplTaskToDb_LogsInsertWithNewTaskId()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewImplTaskId = 200,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+
+            await dbAccess.AddImplTaskToDb(new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" });
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryStringValue(apiConn, "objectType"), Is.EqualTo(((int)ChangeHistoryObjectType.ImplementationTask).ToString()));
+            Assert.That(HistoryStringValue(apiConn, "objectId"), Is.EqualTo("200"));
+        }
+
+        [Test]
+        public async Task DeleteImplTaskFromDb_LogsDeleteWithPreviousContent()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                DeletedImplTaskId = 200,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+
+            await dbAccess.DeleteImplTaskFromDb(new WfImplTask { Id = 200, TicketId = 101, Title = "Removed implementation" });
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryStringValue(apiConn, "changeType"), Is.EqualTo(((int)ModellingTypes.ChangeType.Delete).ToString()));
+            Assert.That(HistoryRawValue(apiConn, "newData"), Is.EqualTo("null"));
+        }
+
+        [Test]
+        public async Task AddApprovalToDb_LogsInsertForApproval()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.AddApprovalToDb(new WfApproval { Id = 0, TaskId = 100, StateId = 1 }, 101, apiConn.Ticket.Requester);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryStringValue(apiConn, "objectType"), Is.EqualTo(((int)ChangeHistoryObjectType.Approval).ToString()));
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_DoesNotLogWhenPreviousTicketCannotBeRead()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                ThrowOnGetTicketById = true,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // a failed read must not be recorded as an empty previous state
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task UpdateTicketStateInDb_DoesNotLogWhenPreviousTicketCannotBeRead()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                ThrowOnGetTicketById = true,
+                Ticket = new WfTicket { Id = 101, StateId = 1, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketStateInDb(new WfTicket { Id = 101, StateId = 2 }, false);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.Zero);
+            Assert.That(apiConn.UpdateTicketStateCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UpdateTicketStateInDb_ReusesSuppliedPreviousTicketWithoutReadingItAgain()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, StateId = 1, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+            WfTicket? storedTicket = await dbAccess.LoadPreviousTicket(101);
+            int readsAfterLoad = apiConn.GetTicketByIdCallCount;
+
+            await dbAccess.UpdateTicketStateInDb(new WfTicket { Id = 101, StateId = 2 }, false, storedTicket);
+
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(readsAfterLoad));
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_TagsEntryWithWorkflowModule()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // module, not change_source, is what separates the two producers of this table
+            Assert.That(HistoryStringValue(apiConn, "module"), Is.EqualTo(GlobalConst.kModuleWorkflow));
+            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kWorkflow));
+        }
+
+        [Test]
+        public async Task LoadPreviousTicket_ReturnsNullWhenTicketCannotBeRead()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                ThrowOnGetTicketById = true,
+                Ticket = new WfTicket { Id = 101 }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.request);
+
+            Assert.That(await dbAccess.LoadPreviousTicket(101), Is.Null);
+        }
+
+        [Test]
+        public async Task UpdateTicketStateInDb_RunsStateActionsWhenHistoryInsertIsRejected()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                ThrowOnAddHistoryEntry = true,
+                Ticket = new WfTicket { Id = 101, StateId = 1, Requester = new UiUser { DbId = 7 } }
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            bool errorShown = false;
+            WfDbAccess dbAccess = new((_, _, _, isError) => errorShown |= isError, userConfig, apiConn,
+                actionHandler, false, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketStateInDb(new WfTicket { Id = 101, StateId = 2 }, false);
+
+            // a rejected history insert must neither surface as an error nor abort the state change
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(apiConn.UpdateTicketStateCallCount, Is.EqualTo(1));
+            Assert.That(errorShown, Is.False);
+        }
+
+        [Test]
         public async Task AddReqTaskToDb_ReturnsZero_WhenInsertReturnsNoIds()
         {
             WfDbAccessTestApiConn apiConn = new()
@@ -876,7 +1091,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -911,7 +1126,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -940,7 +1155,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -971,7 +1186,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -1011,7 +1226,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -1038,7 +1253,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -1062,7 +1277,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqTask reqTask = new()
             {
@@ -1085,7 +1300,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqElement element = new()
             {
@@ -1114,7 +1329,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfReqElement element = new()
             {
@@ -1142,7 +1357,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             MethodInfo? method = typeof(WfDbAccess).GetMethod("DeleteReqElementFromDb", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
@@ -1162,7 +1377,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1196,7 +1411,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1232,7 +1447,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1275,7 +1490,7 @@ namespace FWO.Test
             {
                 new() { Id = 1, Name = "requested" }
             });
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1319,7 +1534,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1352,7 +1567,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplTask implTask = new()
             {
@@ -1375,7 +1590,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplElement element = new()
             {
@@ -1404,7 +1619,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfImplElement element = new()
             {
@@ -1432,7 +1647,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 42, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             MethodInfo? method = typeof(WfDbAccess).GetMethod("DeleteImplElementFromDb", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(method, Is.Not.Null);
@@ -1449,7 +1664,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = new() { Id = 2, Requester = new UiUser { DbId = 201 } };
             List<WfTicket> tickets = [ticket];
@@ -1479,7 +1694,7 @@ namespace FWO.Test
             userConfig.ReqOwnerBased = true;
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket? ticket = await dbAccess.FetchTicket(2, [7], _ => true);
 
@@ -1501,7 +1716,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket? ticket = await dbAccess.FetchTicket(2, null, _ => false);
 
@@ -1525,7 +1740,7 @@ namespace FWO.Test
             userConfig.ReqOwnerBased = true;
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             StateMatrix matrix = new() { LowestInputState = 0, LowestEndState = 10 };
 
             List<WfTicket> tickets = await dbAccess.FetchTickets(matrix, [7], false, false, _ => true);
@@ -1550,7 +1765,7 @@ namespace FWO.Test
             userConfig.ReqOwnerBased = true;
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, true);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, true, WorkflowPhases.request);
             StateMatrix matrix = new() { LowestInputState = 0, LowestEndState = 10 };
 
             List<WfTicket> tickets = await dbAccess.FetchTickets(matrix, [7], false, false, _ => true);
@@ -1576,7 +1791,7 @@ namespace FWO.Test
             userConfig.ReqOwnerBased = true;
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket? ticket = await dbAccess.FetchTicket(2, [], _ => true);
 
@@ -1614,7 +1829,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             WfTicket ticket = await dbAccess.GetTicket(2);
 
@@ -1661,7 +1876,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             StateMatrix matrix = new() { LowestInputState = 0, LowestEndState = 10 };
 
             List<WfTicket> tickets = await dbAccess.FetchTickets(matrix, null, false, true, null);
@@ -1690,7 +1905,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             List<WfTicket> tickets = await dbAccess.GetTicketsByParameters(
                 WfTaskType.access.ToString(),
@@ -1719,7 +1934,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             bool found = await dbAccess.FindRuleUid(1, "uid");
 
@@ -1734,7 +1949,7 @@ namespace FWO.Test
             await userConfig.InitWithUserId(apiConn, 100, false);
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConn, wfHandler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
 
             bool found = await dbAccess.FindRuleUid(1, "uid");
 
@@ -1943,9 +2158,27 @@ namespace FWO.Test
             return property!.GetValue(apiConnection.LastHistoryVariables)?.ToString();
         }
 
+        private static async Task<WfDbAccess> CreateHistoryDbAccess(WfDbAccessTestApiConn apiConnection, WorkflowPhases phase)
+        {
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConnection, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConnection, wfHandler);
+            await actionHandler.Init(new List<WfState>());
+            return new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, actionHandler, false, phase);
+        }
+
+        private static string? HistoryRawValue(WfDbAccessTestApiConn apiConnection, string name)
+        {
+            PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty(name);
+            Assert.That(property, Is.Not.Null);
+            object? value = property!.GetValue(apiConnection.LastHistoryVariables);
+            return value is System.Text.Json.JsonElement element ? element.GetRawText() : value?.ToString();
+        }
+
         private static bool HistoryCriticalFlag(WfDbAccessTestApiConn apiConnection)
         {
-            PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty("auditProveCritical");
+            PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty("auditProofCritical");
             Assert.That(property, Is.Not.Null);
             return (bool)property!.GetValue(apiConnection.LastHistoryVariables)!;
         }

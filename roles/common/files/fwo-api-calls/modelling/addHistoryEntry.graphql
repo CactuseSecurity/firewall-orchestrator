@@ -1,20 +1,22 @@
 mutation addHistoryEntry(
   $appId: Int
+  $module: String! = "modelling"
   $changeType: Int!
   $objectType: Int!
   $objectId: bigint!
   $changeText: String
   $changer: String!
-  $changeSource: String
+  $changeSource: String! = "manual"
   $ticketId: bigint
   $workflowPhase: Int
   $oldData: jsonb
   $newData: jsonb
-  $auditProveCritical: Boolean! = false
+  $auditProofCritical: Boolean! = false
 ) {
   insert_change_history(
     objects: {
       app_id: $appId
+      module: $module
       change_type: $changeType
       object_type: $objectType
       object_id: $objectId
@@ -25,7 +27,7 @@ mutation addHistoryEntry(
       workflow_phase: $workflowPhase
       old_data: $oldData
       new_data: $newData
-      audit_prove_critical: $auditProveCritical
+      audit_proof_critical: $auditProofCritical
     }
   ) {
     returning {

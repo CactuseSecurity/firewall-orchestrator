@@ -8,7 +8,7 @@ using System.Collections.Generic;
 
 namespace FWO.Services.Workflow
 {
-    public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, WorkflowPhases? WorkflowPhase = null, bool IsUiContext = true)
+    public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, WorkflowPhases WorkflowPhase, bool IsUiContext = true)
     {
         public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
             Func<WfTicket, bool>? ticketFilter = null)
@@ -191,10 +191,10 @@ namespace FWO.Services.Workflow
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(WfApproval approval, long ticketId, UiUser? requester, bool triggerActions = true)
+        public async Task UpdateApprovalInDb(WfApproval approval, long ticketId, UiUser? requester, bool triggerActions = true, WfTicket? previousTicket = null)
         {
-            WfTicket previousTicket = await GetTicket(ticketId);
-            WfApproval? previousApproval = previousTicket.Tasks
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticketId);
+            WfApproval? previousApproval = storedTicket?.Tasks
                 .SelectMany(task => task.Approvals)
                 .FirstOrDefault(item => item.Id == approval.Id);
             try
@@ -404,9 +404,9 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null)
         {
-            WfTicket previousTicket = await GetTicket(ticket.Id);
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticket.Id);
             try
             {
                 var Variables = new
@@ -424,8 +424,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
-                        "Updated workflow ticket state", WorkflowStateSnapshot(previousTicket), WorkflowStateSnapshot(ticket), previousTicket.Requester, false);
+                    if (storedTicket != null)
+                    {
+                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                            "Updated workflow ticket state", WorkflowStateSnapshot(storedTicket), WorkflowStateSnapshot(ticket), storedTicket.Requester, false);
+                    }
                     if (triggerActions)
                     {
                         await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
@@ -438,10 +441,10 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null)
         {
-            WfTicket previousTicket = await GetTicket(reqtask.TicketId);
-            WfReqTask? previousTask = previousTicket.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
+            WfReqTask? previousTask = storedTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var Variables = new
@@ -464,7 +467,7 @@ namespace FWO.Services.Workflow
                     if (previousTask != null)
                     {
                         await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                            "Updated workflow request task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(reqtask), previousTicket.Requester, false);
+                            "Updated workflow request task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(reqtask), storedTicket?.Requester, false);
                     }
                     if (triggerActions)
                     {
@@ -483,10 +486,10 @@ namespace FWO.Services.Workflow
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true, WfTicket? previousTicket = null)
         {
-            WfTicket previousTicket = await GetTicket(impltask.TicketId);
-            WfImplTask? previousTask = previousTicket.Tasks
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
+            WfImplTask? previousTask = storedTicket?.Tasks
                 .SelectMany(task => task.ImplementationTasks)
                 .FirstOrDefault(task => task.Id == impltask.Id);
             try
@@ -511,7 +514,7 @@ namespace FWO.Services.Workflow
                     if (previousTask != null)
                     {
                         await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
-                            "Updated workflow implementation task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(impltask), previousTicket.Requester, false);
+                            "Updated workflow implementation task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(impltask), storedTicket?.Requester, false);
                     }
                     if (triggerActions)
                     {

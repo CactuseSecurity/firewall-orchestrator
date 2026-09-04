@@ -1,5 +1,6 @@
 ﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Flow;
@@ -2036,6 +2037,7 @@ namespace FWO.Test
             Assert.That(GetVariable<int>(updateVars, "propAppId"), Is.EqualTo(7));
             object? historyVars = apiConn.Variables[apiConn.Queries.IndexOf(ModellingQueries.addHistoryEntry)];
             Assert.That(GetVariable<int?>(historyVars, "appId"), Is.EqualTo(7));
+            Assert.That(GetVariable<string>(historyVars, "module"), Is.EqualTo(GlobalConst.kModuleModelling));
             Assert.That(GetVariable<int>(historyVars, "changeType"), Is.EqualTo((int)ModellingTypes.ChangeType.Update));
             Assert.That(GetVariable<long>(historyVars, "objectId"), Is.EqualTo(41));
         }

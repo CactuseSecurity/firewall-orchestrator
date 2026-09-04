@@ -264,8 +264,8 @@ namespace FWO.Test
             {
                 return;
             }
-            string? changeSource = variables.GetType().GetProperty("changeSource")?.GetValue(variables)?.ToString();
-            if (changeSource == GlobalConst.kWorkflow)
+            string? module = variables.GetType().GetProperty("module")?.GetValue(variables)?.ToString();
+            if (module == GlobalConst.kModuleWorkflow)
             {
                 WorkflowChanges.Add(historyEntry);
             }

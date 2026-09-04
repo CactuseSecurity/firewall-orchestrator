@@ -637,7 +637,7 @@ public sealed class FlowRequestService : IDisposable
             throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
         }
 
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true);
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false);
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
 

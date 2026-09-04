@@ -850,7 +850,7 @@ namespace FWO.Test
             ReloadApiConnection apiConnection = new(refreshedTicket);
             WfHandler handler = new();
             handler.userConfig.ReqOwnerBased = false;
-            WfDbAccess dbAccess = new((_, _, _, _) => { }, handler.userConfig, apiConnection, null!, true);
+            WfDbAccess dbAccess = new((_, _, _, _) => { }, handler.userConfig, apiConnection, null!, true, WorkflowPhases.request);
             SetPrivateField(handler, "dbAcc", dbAccess);
             return handler;
         }

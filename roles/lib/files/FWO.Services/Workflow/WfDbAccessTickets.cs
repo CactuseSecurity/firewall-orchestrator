@@ -92,7 +92,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
         {
-            WfTicket previousTicket = await GetTicket(ticket.Id);
+            WfTicket? previousTicket = await LoadPreviousTicket(ticket.Id);
             try
             {
                 // Ticket locking is task-scoped: header metadata remains writable while request-task updates are guarded separately.
@@ -105,8 +105,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
-                    await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
-                        "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester, true);
+                    if (previousTicket != null)
+                    {
+                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                            "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester, true);
+                    }
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }

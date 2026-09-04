@@ -12,6 +12,9 @@ namespace FWO.Data.Modelling
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int? AppId { get; set; }
 
+        [JsonProperty("module"), JsonPropertyName("module")]
+        public string Module { get; set; } = GlobalConst.kModuleModelling;
+
         [JsonProperty("change_type"), JsonPropertyName("change_type")]
         public int ChangeType { get; set; }
 
@@ -26,6 +29,9 @@ namespace FWO.Data.Modelling
 
         [JsonProperty("changer"), JsonPropertyName("changer")]
         public string Changer { get; set; } = "";
+
+        [JsonProperty("changer_id"), JsonPropertyName("changer_id")]
+        public int? ChangerId { get; set; }
 
         [JsonProperty("change_time"), JsonPropertyName("change_time")]
         public DateTime? ChangeTime { get; set; }
@@ -45,7 +51,7 @@ namespace FWO.Data.Modelling
         [JsonProperty("new_data"), JsonPropertyName("new_data")]
         public object? NewData { get; set; }
 
-        [JsonProperty("audit_prove_critical"), JsonPropertyName("audit_prove_critical")]
-        public bool AuditProveCritical { get; set; }
+        [JsonProperty("audit_proof_critical"), JsonPropertyName("audit_proof_critical")]
+        public bool AuditProofCritical { get; set; }
     }
 }

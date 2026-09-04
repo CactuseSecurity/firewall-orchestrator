@@ -173,9 +173,15 @@ No new secrets, apps or environments are required.
 
 ## Rollout
 
-Do not make **`Gate pull request version`** a required check until the workflow has been merged
-and every open pull request has produced its first gate run. The refresh workflow can only re-run
-an existing run for a pull request's current head SHA; it cannot create that first run.
+The repository's default branch is `main`. GitHub resolves `pull_request_target` and
+`workflow_dispatch` workflows from the default branch, so merging these files only into
+`develop` does not activate the pull request gate or its manual refresh entry point. They become
+available after the workflow reaches `main`, normally when the next stable release tag
+fast-forwards `main`.
+
+Do not make **`Gate pull request version`** a required check until the workflow is on `main` and
+every open pull request has produced its first gate run. The refresh workflow can only re-run an
+existing run for a pull request's current head SHA; it cannot create that first run.
 
 Activate the gate in this order:
 
@@ -183,24 +189,31 @@ Activate the gate in this order:
    target `*`, restrict tag creation, and grant bypass only to trusted release maintainers. This
    protects the tag-triggered refresh workflow's `actions: write` permission from its first run.
 2. Merge the workflow into `develop`, but do not add the required status check yet. The refresh
-   run triggered by this merge is expected to fail for previously open pull requests because
-   they have no gate run to refresh.
-3. Re-trigger every open pull request targeting `develop` by editing its title or description.
+   workflow may run for this `develop` push, but it cannot initialize pull request gates and may
+   fail during this rollout phase. Re-triggering pull requests now does not help because the
+   `pull_request_target` workflow is not yet on the default branch.
+3. Before publishing the next stable release, configure the release GitHub App, repository
+   variable, and tag-only `stable-release` environment described in the
+   [repository release configuration](../versioning.md#repository-release-configuration).
+4. Create the next stable `vX.Y.Z` tag on the release commit in `develop` and wait for
+   **Fast-forward main to release tag** to complete. Confirm that `main` points to that commit and
+   contains `.github/workflows/version-gate.yml` before continuing.
+5. Re-trigger every open pull request targeting `develop` by editing its title or description.
    The `edited` event creates its first **`Gate pull request version`** run. A new commit, reopen,
    or ready-for-review event also works.
-4. Wait until every open pull request shows **`Gate pull request version`** for its current head
+6. Wait until every open pull request shows **`Gate pull request version`** for its current head
    SHA. Resolve genuine failures before continuing.
-5. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
+7. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
    every open pull request successfully, with no `no version gate run found` errors. Investigate
    the 200-pull-request limit warning before continuing if it appears.
-6. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
+8. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
    ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
-7. Verify the required check with a pull request targeting `develop`: it must fail without a valid
+9. Verify the required check with a pull request targeting `develop`: it must fail without a valid
    revision-history addition and pass after the pull request satisfies the documented rules.
 
 The same limitation applies after GitHub deletes an old workflow run under the repository's
 Actions retention policy. If an open pull request has no retained gate run for its current head
-SHA, re-trigger it with one of the pull request events in step 3 before relying on the refresh
+SHA, re-trigger it with one of the pull request events in step 5 before relying on the refresh
 workflow again.
 
 ## Local use

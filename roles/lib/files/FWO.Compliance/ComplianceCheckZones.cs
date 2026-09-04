@@ -189,7 +189,7 @@ namespace FWO.Compliance
         /// Groups network objects by their associated compliance zone.
         /// </summary>
         /// <param name="objectsWithZones">Network objects enriched by their zones.</param>
-        private Dictionary<ComplianceNetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> objectsWithZones)
+        private static Dictionary<ComplianceNetworkZone, List<NetworkObject>> MapObjectsByZone(List<(NetworkObject networkObject, List<ComplianceNetworkZone> networkZones)> objectsWithZones)
         {
             Dictionary<ComplianceNetworkZone, List<NetworkObject>> map = new();
 
@@ -277,7 +277,7 @@ namespace FWO.Compliance
         /// Detects assessability issues (like overly broad objects) for a given network object.
         /// </summary>
         /// <param name="networkObject">Network object to evaluate.</param>
-        private AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
+        private static AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
         {
             if (networkObject.IP == null || networkObject.IpEnd == null)
                 return AssessabilityIssue.IPNull;

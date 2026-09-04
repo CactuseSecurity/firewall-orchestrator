@@ -52,11 +52,11 @@ namespace FWO.Test
                 IP = "::/128",
                 IpEnd = "::/128"
             };
-            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Static | BindingFlags.NonPublic)!;
             object?[] parameters = new object?[1];
             parameters[0] = networkObject;
 
-            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
+            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(null, parameters);
 
             Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
         }
@@ -70,11 +70,11 @@ namespace FWO.Test
                 IP = ip,
                 IpEnd = ipEnd
             };
-            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Static | BindingFlags.NonPublic)!;
             object?[] parameters = new object?[1];
             parameters[0] = networkObject;
 
-            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
+            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(null, parameters);
 
             Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
         }

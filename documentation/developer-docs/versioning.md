@@ -245,6 +245,12 @@ Configure branch protection for `develop` to require the check
 it in the pull request is only the workflow name. Without this, the Version gate reports
 its verdict but does not prevent a merge.
 
+Enable the required check only after completing the ordered
+[version-gate rollout](github/version-gate-workflow.md#rollout). In particular, every pull
+request that was already open when the workflow was merged must first be re-triggered so it has
+a gate run for its current head SHA; the refresh workflow can re-run existing checks but cannot
+create their first run.
+
 Do not enable "Require branches to be up to date before merging" for the sake of the
 gate. The gate already evaluates the merge result, so an out-of-date pull request is
 judged by what merging it would actually produce.

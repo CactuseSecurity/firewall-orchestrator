@@ -171,6 +171,38 @@ tag is pushed, and any direct push that bypassed the required check.
 
 No new secrets, apps or environments are required.
 
+## Rollout
+
+Do not make **`Gate pull request version`** a required check until the workflow has been merged
+and every open pull request has produced its first gate run. The refresh workflow can only re-run
+an existing run for a pull request's current head SHA; it cannot create that first run.
+
+Activate the gate in this order:
+
+1. **Before merging the workflow**, create the mandatory tag ruleset described above. It must
+   target `*`, restrict tag creation, and grant bypass only to trusted release maintainers. This
+   protects the tag-triggered refresh workflow's `actions: write` permission from its first run.
+2. Merge the workflow into `develop`, but do not add the required status check yet. The refresh
+   run triggered by this merge is expected to fail for previously open pull requests because
+   they have no gate run to refresh.
+3. Re-trigger every open pull request targeting `develop` by editing its title or description.
+   The `edited` event creates its first **`Gate pull request version`** run. A new commit, reopen,
+   or ready-for-review event also works.
+4. Wait until every open pull request shows **`Gate pull request version`** for its current head
+   SHA. Resolve genuine failures before continuing.
+5. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
+   every open pull request successfully, with no `no version gate run found` errors. Investigate
+   the 200-pull-request limit warning before continuing if it appears.
+6. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
+   ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
+7. Verify the required check with a pull request targeting `develop`: it must fail without a valid
+   revision-history addition and pass after the pull request satisfies the documented rules.
+
+The same limitation applies after GitHub deletes an old workflow run under the repository's
+Actions retention policy. If an open pull request has no retained gate run for its current head
+SHA, re-trigger it with one of the pull request events in step 3 before relying on the refresh
+workflow again.
+
 ## Local use
 
 The gate can be evaluated by hand from a checkout:

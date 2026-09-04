@@ -102,6 +102,7 @@
       - fworch-create-tables-modelling.sql
       - fworch-create-tables-request.sql
       - fworch-create-tables-flow.sql
+      - fworch-create-tables-network_zone.sql
       - fworch-create-tables-logging.sql
       - fworch-create-tables-compliance.sql
       - fworch-create-constraints.sql

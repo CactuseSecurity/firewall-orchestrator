@@ -117,8 +117,8 @@
             case FileUploadCase.ImportAppServerFromCSV:
                 await fileUploadService.ImportAppServersFromCSV(InputFileChangeEventArgs.File.Name ?? "noName");
                 break;
-            case FileUploadCase.ImportComplianceMatrix:
-                await fileUploadService.ImportComplianceMatrix(InputFileChangeEventArgs.File.Name ?? "noName");
+            case FileUploadCase.ImportMatrix:
+                await fileUploadService.ImportMatrix(InputFileChangeEventArgs.File.Name ?? "noName");
                 break;
             default:
                 break;

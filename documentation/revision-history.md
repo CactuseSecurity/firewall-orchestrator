@@ -643,5 +643,9 @@ Not supported any longer are:
 - Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.
 
 ## 9.4.6 - 02.09.2026
+- move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
+- add central setting for path analysis algorithm
+- move many compliance settings regarding matrix and internet to their own setting page in new section network topology
+- prepare network zone tree algorithm in database
 - Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
 - The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version

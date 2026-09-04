@@ -106,17 +106,17 @@ would still merge onto it from green to red. Neither change sends the affected p
 event of their own, so this workflow re-runs the Version gate workflow for each of them with
 `gh run rerun`. That rewrites the same check run in place rather than adding a second signal.
 
-It always refreshes after a push to `develop`, skips tags that do not seal a version, needs no
-checkout at all, and matches pull requests to runs by head SHA:
+It always refreshes after a push to `develop`, skips tags that do not seal a version, and needs no
+checkout at all. For each open pull request it asks GitHub for only the newest gate run matching
+that head SHA:
 
 ```bash
-gh api --paginate ".../workflows/version-gate.yml/runs?event=pull_request_target" \
-    --jq '.workflow_runs[] | [.head_sha, .id, .status] | @tsv'
+gh api ".../workflows/version-gate.yml/runs?event=pull_request_target&head_sha=$head_sha&per_page=1"
 ```
 
-Runs come back newest first, so the first line matching a pull request's head SHA is that pull
-request's most recent gate run. Runs that are not yet `completed` are left alone, because they
-will report a fresh result on their own.
+Filtering server-side keeps refresh cost bounded by the number of open pull requests rather than
+the workflow's complete historical run count. Runs that are not yet `completed` are left alone,
+because they will report a fresh result on their own.
 
 The open pull request query is capped at 200 entries. Reaching that cap emits a workflow warning
 because additional pull requests may exist and retain stale gate results.

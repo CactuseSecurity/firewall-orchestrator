@@ -56,6 +56,7 @@ def execute_refresh_loop(
     """Execute the refresh loop with mocked pull requests and workflow runs."""
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
+    api_log = tmp_path / "api-log"
     rerun_log = tmp_path / "rerun-log"
     write_executable(
         fake_bin / "gh",
@@ -63,7 +64,12 @@ def execute_refresh_loop(
 if [ "$1" = "pr" ]; then
     printf '[]\n'
 elif [ "$1" = "api" ]; then
-    printf '%s\n' "$MOCK_RUN_LINES"
+    request="$2"
+    printf '%s\n' "$request" >> "$MOCK_API_LOG"
+    head_sha="${request#*head_sha=}"
+    head_sha="${head_sha%%&*}"
+    printf '%s\n' "$MOCK_RUN_LINES" | awk -F '\t' -v sha="$head_sha" \
+        '$1 == sha { print $2 "\t" $3; exit }'
 elif [ "$1" = "run" ] && [ "$2" = "rerun" ]; then
     run_id="$3"
     printf '%s\n' "$run_id" >> "$MOCK_RERUN_LOG"
@@ -95,6 +101,7 @@ exit 0
             "GATE_WORKFLOW": "version-gate.yml",
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
+            "MOCK_API_LOG": str(api_log),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
             "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
@@ -191,6 +198,8 @@ def test_completed_run_for_matching_head_sha_is_rerun(tmp_path: Path) -> None:
     assert rerun_ids == ["900"]
     assert "PR #42: re-running version gate run 900." in completed.stdout
     assert completed.stderr == ""
+    api_request = (tmp_path / "api-log").read_text(encoding="utf-8")
+    assert "event=pull_request_target&head_sha=head-a&per_page=1" in api_request
 
 
 def test_in_progress_run_is_left_to_finish(tmp_path: Path) -> None:

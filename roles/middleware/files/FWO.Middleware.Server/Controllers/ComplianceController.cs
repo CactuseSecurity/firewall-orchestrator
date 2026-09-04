@@ -25,11 +25,11 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Import Compliance Matrix
         /// </summary>
-        /// <param name="parameters">ComplianceImportMatrixParameters</param>
+        /// <param name="parameters">ImportMatrixParameters</param>
         /// <returns>Failed import filenames</returns>
         [HttpPost("ImportMatrix")]
         [Authorize(Roles = $"{Roles.Admin}")]
-        public async Task<string> Post([FromBody] ComplianceImportMatrixParameters parameters)
+        public async Task<string> Post([FromBody] ImportMatrixParameters parameters)
         {
             try
             {

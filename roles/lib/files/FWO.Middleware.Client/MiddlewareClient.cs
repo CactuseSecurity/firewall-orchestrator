@@ -268,7 +268,7 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<string>(request);
         }
 
-        public async Task<RestResponse<string>> ImportCompianceMatrix(ComplianceImportMatrixParameters parameters)
+        public async Task<RestResponse<string>> ImportMatrix(ImportMatrixParameters parameters)
         {
             RestRequest request = new("Compliance/ImportMatrix", Method.Post);
             request.AddJsonBody(parameters);

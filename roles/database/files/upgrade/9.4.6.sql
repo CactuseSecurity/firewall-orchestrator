@@ -196,3 +196,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
 ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
+
+-- issue #5205: the violation type cannot always be derived from the criterion, e.g. a criterion that
+-- could not be evaluated for the address family of an object is recorded as not assessable
+ALTER TABLE compliance.violation
+ADD COLUMN IF NOT EXISTS violation_type TEXT;

@@ -97,9 +97,14 @@ namespace FWO.Data
 
                     violation = new(id, violationBase);
 
-                    // Parse Violation Type via criterion.
+                    // Use the persisted violation type and fall back to the criterion for rows written
+                    // before the type was persisted.
 
-                    violation.Type = violation.ParseViolationType(violation.Criterion);
+                    ComplianceViolationType persistedType = ComplianceViolation.ParsePersistedViolationType(violationBase.ViolationType);
+
+                    violation.Type = persistedType == ComplianceViolationType.None
+                        ? violation.ParseViolationType(violation.Criterion)
+                        : persistedType;
                 }
             }
 

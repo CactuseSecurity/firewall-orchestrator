@@ -2192,6 +2192,8 @@ INSERT INTO txt VALUES ('assess_host_address',  'German',   'Netzwerkobjekte in 
 INSERT INTO txt VALUES ('assess_host_address',  'English',  'Network objects in source or destination with 0.0.0.0/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'German',   'Netzwerkobjekte in Quelle oder Ziel mit 255.255.255.255/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'English',  'Network objects in source or destination with 255.255.255.255/32');
+INSERT INTO txt VALUES ('assess_no_matching_zone', 'German',   'Netzwerkobjekte in Quelle oder Ziel ohne zuordenbare Netzwerkzone');
+INSERT INTO txt VALUES ('assess_no_matching_zone', 'English',  'Network objects in source or destination without an assignable network zone');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -7593,6 +7595,7 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
     <code>ipStart</code> und <code>ipEnd</code> akzeptieren IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
     CIDR-Netze werden mit <code>ipNetwork</code> &uuml;bergeben und vor der Pr&uuml;fung in ihre Bereichsgrenzen aufgel&ouml;st. <code>ipNetwork</code> schlie&szlig;t <code>ipStart</code> und <code>ipEnd</code> aus und muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
     Kriterien, die nur IPv4 unterst&uuml;tzen, melden einen IPv6-Flow als nicht bewertbar (<code>NotAssessable</code>) statt als Verletzung.
+    Das gilt auch f&uuml;r die Zonenmatrix: L&auml;sst sich ein Objekt keiner konfigurierten Netzwerkzone zuordnen, wird der Flow als nicht bewertbar gemeldet und nicht als konform.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
     Ist ein Flow konform, ist die Liste <code>violations</code> leer.
 ');
@@ -7609,6 +7612,7 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
     <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
     CIDR networks are supplied through <code>ipNetwork</code> and expanded to their range boundaries before evaluation. <code>ipNetwork</code> excludes <code>ipStart</code> and <code>ipEnd</code> and has to carry the network address itself; set host bits are rejected.
     Criteria that only support IPv4 report an IPv6 flow as not assessable (<code>NotAssessable</code>) instead of as a violation.
+    This includes the zone matrix: an object that cannot be assigned to any configured network zone is reported as not assessable rather than as compliant.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
     When a flow is compliant, the <code>violations</code> list is empty.
 ');

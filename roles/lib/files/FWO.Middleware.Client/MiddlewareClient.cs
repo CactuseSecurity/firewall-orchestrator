@@ -94,6 +94,9 @@ namespace FWO.Middleware.Client
             return await restClient.ExecuteAsync<List<string>>(request);
         }
 
+        /// <summary>
+        /// Resolves explicitly requested Flow network and service groups through the middleware API.
+        /// </summary>
         public virtual async Task<RestResponse<FlowGroupResolutionResult>> ResolveFlowGroupMembers(FlowGroupResolutionParameters parameters)
         {
             RestRequest request = new("flow/resolveGroupMembers", Method.Post);

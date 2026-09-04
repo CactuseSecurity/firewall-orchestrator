@@ -79,6 +79,8 @@ namespace FWO.Compliance
                 .Where(element => !element.FlowNetworkGroupId.HasValue)
                 .Select(element => element.GroupName)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> requestedGroupNames = groupElements.Select(element => element.GroupName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (middlewareClient != null)
             {
                 RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new FlowGroupResolutionParameters
@@ -86,12 +88,17 @@ namespace FWO.Compliance
                     NetworkGroupIds = groupIds.ToList(),
                     NetworkGroupNames = groupNames.ToList()
                 });
-                foreach (FlowNwGroup group in response.Data?.NetworkGroups ?? [])
+                EnsureSuccessful(response);
+                foreach (FlowNetworkGroupResolution group in response.Data?.NetworkGroups ?? [])
                 {
-                    MergeNetworkGroupMembers(networkGroupMembers, group.Name, group.NwGroupMembers
-                        .Where(member => IsActive(member.NwObject))
-                        .Select(member => ToNetworkElement(member.NwObject))
-                        .ToList());
+                    List<NwObjectElement> members = group.Members
+                        .Select(ToNetworkElement)
+                        .ToList();
+                    MergeNetworkGroupMembers(networkGroupMembers, group.Name, members);
+                    if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                    {
+                        MergeNetworkGroupMembers(networkGroupMembers, requestedGroupNames.Single(), members);
+                    }
                 }
                 return;
             }
@@ -102,14 +109,19 @@ namespace FWO.Compliance
             List<FlowNwGroup> groups = await groupsTask ?? [];
             List<FlowNwObject> objects = await objectsTask ?? [];
             Dictionary<long, FlowNwObject> objectsById = objects
-                .Where(obj => !string.Equals(obj.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase) && obj.RemovedDate == null)
+                .Where(IsActiveAndVisible)
                 .ToDictionary(obj => obj.Id);
             foreach (FlowNwGroup group in ResolveFlowGroups(groups, groupIds, groupNames))
             {
-                MergeNetworkGroupMembers(networkGroupMembers, group.Name, group.NwGroupMembers
+                List<NwObjectElement> members = group.NwGroupMembers
                     .Where(member => objectsById.ContainsKey(member.NwObjectId))
                     .Select(member => ToNetworkElement(objectsById[member.NwObjectId]))
-                    .ToList());
+                    .ToList();
+                MergeNetworkGroupMembers(networkGroupMembers, group.Name, members);
+                if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                {
+                    MergeNetworkGroupMembers(networkGroupMembers, requestedGroupNames.Single(), members);
+                }
             }
         }
 
@@ -134,6 +146,8 @@ namespace FWO.Compliance
                 .Where(element => !element.FlowServiceGroupId.HasValue)
                 .Select(element => element.GroupName!)
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> requestedGroupNames = groupElements.Select(element => element.GroupName!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (middlewareClient != null)
             {
                 RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new FlowGroupResolutionParameters
@@ -141,12 +155,17 @@ namespace FWO.Compliance
                     ServiceGroupIds = groupIds.ToList(),
                     ServiceGroupNames = groupNames.ToList()
                 });
-                foreach (FlowSvcGroup group in response.Data?.ServiceGroups ?? [])
+                EnsureSuccessful(response);
+                foreach (FlowServiceGroupResolution group in response.Data?.ServiceGroups ?? [])
                 {
-                    MergeServiceGroupMembers(serviceGroupMembers, group.Name, group.SvcGroupMembers
-                        .Where(member => IsActive(member.SvcObject))
-                        .Select(member => ToServiceElement(member.SvcObject))
-                        .ToList());
+                    List<NwServiceElement> members = group.Members
+                        .Select(ToServiceElement)
+                        .ToList();
+                    MergeServiceGroupMembers(serviceGroupMembers, group.Name, members);
+                    if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                    {
+                        MergeServiceGroupMembers(serviceGroupMembers, requestedGroupNames.Single(), members);
+                    }
                 }
                 return;
             }
@@ -157,14 +176,19 @@ namespace FWO.Compliance
             List<FlowSvcGroup> groups = await groupsTask ?? [];
             List<FlowSvcObject> objects = await objectsTask ?? [];
             Dictionary<long, FlowSvcObject> objectsById = objects
-                .Where(obj => !string.Equals(obj.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase) && obj.RemovedDate == null)
+                .Where(IsActiveAndVisible)
                 .ToDictionary(obj => obj.Id);
             foreach (FlowSvcGroup group in ResolveFlowGroups(groups, groupIds, groupNames))
             {
-                MergeServiceGroupMembers(serviceGroupMembers, group.Name, group.SvcGroupMembers
+                List<NwServiceElement> members = group.SvcGroupMembers
                     .Where(member => objectsById.ContainsKey(member.SvcObjectId))
                     .Select(member => ToServiceElement(objectsById[member.SvcObjectId]))
-                    .ToList());
+                    .ToList();
+                MergeServiceGroupMembers(serviceGroupMembers, group.Name, members);
+                if (groupIds.Contains(group.Id) && requestedGroupNames.Count == 1)
+                {
+                    MergeServiceGroupMembers(serviceGroupMembers, requestedGroupNames.Single(), members);
+                }
             }
         }
 
@@ -173,9 +197,33 @@ namespace FWO.Compliance
             return !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase) && flowObject.RemovedDate == null;
         }
 
+        private static bool IsActiveAndVisible(FlowNwObject flowObject)
+        {
+            return IsActive(flowObject)
+                && flowObject.ShowInRequestModule
+                && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsActive(FlowSvcObject flowObject)
         {
             return !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase) && flowObject.RemovedDate == null;
+        }
+
+        private static bool IsActiveAndVisible(FlowSvcObject flowObject)
+        {
+            return IsActive(flowObject)
+                && flowObject.ShowInRequestModule
+                && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static void EnsureSuccessful(RestResponse<FlowGroupResolutionResult> response)
+        {
+            bool successfulStatus = (int)response.StatusCode is >= 200 and < 300;
+            if ((!response.IsSuccessful && !successfulStatus) || response.Data == null)
+            {
+                string details = response.ErrorException?.Message ?? response.ErrorMessage ?? response.StatusCode.ToString();
+                throw new InvalidOperationException($"Flow group resolution failed: {details}");
+            }
         }
 
         private static IEnumerable<TGroup> ResolveFlowGroups<TGroup>(IEnumerable<TGroup> groups, HashSet<long> groupIds, HashSet<string> groupNames)
@@ -183,7 +231,10 @@ namespace FWO.Compliance
         {
             List<TGroup> activeGroups = groups
                 .Where(group => !string.IsNullOrWhiteSpace(group.Name))
-                .Where(group => !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase) && group.RemovedDate == null)
+                .Where(group => !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(group.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
+                    && group.ShowInRequestModule
+                    && group.RemovedDate == null)
                 .ToList();
             List<TGroup> idMatches = activeGroups.Where(group => groupIds.Contains(group.Id)).ToList();
             foreach (TGroup group in idMatches)
@@ -219,6 +270,17 @@ namespace FWO.Compliance
             };
         }
 
+        private static NwObjectElement ToNetworkElement(FlowNetworkMemberResolution member)
+        {
+            return new NwObjectElement
+            {
+                Name = member.Name,
+                IpString = member.IpStart,
+                IpEndString = member.IpEnd,
+                FlowNetworkObjectId = member.Id
+            };
+        }
+
         private static NwServiceElement ToServiceElement(FlowSvcObject flowObject)
         {
             return new NwServiceElement
@@ -228,6 +290,18 @@ namespace FWO.Compliance
                 PortEnd = flowObject.PortEnd,
                 ProtoId = flowObject.ProtoId,
                 FlowServiceObjectId = flowObject.Id
+            };
+        }
+
+        private static NwServiceElement ToServiceElement(FlowServiceMemberResolution member)
+        {
+            return new NwServiceElement
+            {
+                Name = member.Name,
+                Port = member.PortStart,
+                PortEnd = member.PortEnd,
+                ProtoId = member.ProtoId,
+                FlowServiceObjectId = member.Id
             };
         }
 

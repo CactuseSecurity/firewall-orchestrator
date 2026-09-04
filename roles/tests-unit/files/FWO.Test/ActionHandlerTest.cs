@@ -22,6 +22,7 @@ using System.Text.Json;
 namespace FWO.Test
 {
     [TestFixture]
+    [NonParallelizable]
     internal class ActionHandlerTest
     {
         private sealed class ActionHandlerTestApiConn : SimulatedApiConnection

@@ -183,8 +183,8 @@ internal class FlowCatalogServiceTest
         });
 
         Assert.That(result.NetworkGroups, Has.Count.EqualTo(1));
-        Assert.That(result.NetworkGroups[0].NwGroupMembers, Has.Count.EqualTo(1));
-        Assert.That(result.NetworkGroups[0].NwGroupMembers[0].NwObject.IpStart, Is.EqualTo("192.0.2.10"));
+        Assert.That(result.NetworkGroups[0].Members, Has.Count.EqualTo(1));
+        Assert.That(result.NetworkGroups[0].Members[0].IpStart, Is.EqualTo("192.0.2.10"));
         Dictionary<string, object> where = GetWhereClause(apiConnection.SentVariables[0]);
         Assert.That(where.ContainsKey("_or"), Is.True);
         Dictionary<string, object> visibility = (Dictionary<string, object>)where["show_in_request_module"];
@@ -235,8 +235,8 @@ internal class FlowCatalogServiceTest
         });
 
         Assert.That(result.ServiceGroups, Has.Count.EqualTo(1));
-        Assert.That(result.ServiceGroups[0].SvcGroupMembers, Has.Count.EqualTo(1));
-        Assert.That(result.ServiceGroups[0].SvcGroupMembers[0].SvcObject.PortStart, Is.EqualTo(443));
+        Assert.That(result.ServiceGroups[0].Members, Has.Count.EqualTo(1));
+        Assert.That(result.ServiceGroups[0].Members[0].PortStart, Is.EqualTo(443));
         Assert.That(emptyResult.NetworkGroups, Is.Empty);
         Assert.That(emptyResult.ServiceGroups, Is.Empty);
     }

@@ -92,21 +92,11 @@ public sealed class FlowCatalogService
 
         return new FlowGroupResolutionResult
         {
-            NetworkGroups = (await networkGroupsTask ?? [])
-                .Where(IsActiveAndVisible)
-                .Select(group =>
-                {
-                    group.NwGroupMembers = group.NwGroupMembers.Where(member => IsActiveAndVisible(member.NwObject)).ToList();
-                    return group;
-                })
+            NetworkGroups = ResolveGroupMatches(await networkGroupsTask ?? [], parameters.NetworkGroupIds, parameters.NetworkGroupNames)
+                .Select(ToNetworkGroupResolution)
                 .ToList(),
-            ServiceGroups = (await serviceGroupsTask ?? [])
-                .Where(IsActiveAndVisible)
-                .Select(group =>
-                {
-                    group.SvcGroupMembers = group.SvcGroupMembers.Where(member => IsActiveAndVisible(member.SvcObject)).ToList();
-                    return group;
-                })
+            ServiceGroups = ResolveGroupMatches(await serviceGroupsTask ?? [], parameters.ServiceGroupIds, parameters.ServiceGroupNames)
+                .Select(ToServiceGroupResolution)
                 .ToList()
         };
     }
@@ -198,8 +188,10 @@ public sealed class FlowCatalogService
 
     private static bool IsActiveAndVisible(FlowGroup group)
     {
-        return group.ShowInRequestModule
+        return !string.IsNullOrWhiteSpace(group.Name)
+            && group.ShowInRequestModule
             && !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(group.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
             && group.RemovedDate == null;
     }
 
@@ -207,6 +199,7 @@ public sealed class FlowCatalogService
     {
         return flowObject.ShowInRequestModule
             && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
             && flowObject.RemovedDate == null;
     }
 
@@ -214,7 +207,74 @@ public sealed class FlowCatalogService
     {
         return flowObject.ShowInRequestModule
             && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
             && flowObject.RemovedDate == null;
+    }
+
+    private static FlowNetworkGroupResolution ToNetworkGroupResolution(FlowNwGroup group)
+    {
+        return new FlowNetworkGroupResolution
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Members = group.NwGroupMembers
+                .Where(member => IsActiveAndVisible(member.NwObject))
+                .Select(member => new FlowNetworkMemberResolution
+                {
+                    Id = member.NwObject.Id,
+                    Name = member.NwObject.Name ?? string.Empty,
+                    IpStart = member.NwObject.IpStart ?? string.Empty,
+                    IpEnd = member.NwObject.IpEnd ?? string.Empty
+                })
+                .ToList()
+        };
+    }
+
+    private static FlowServiceGroupResolution ToServiceGroupResolution(FlowSvcGroup group)
+    {
+        return new FlowServiceGroupResolution
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Members = group.SvcGroupMembers
+                .Where(member => IsActiveAndVisible(member.SvcObject))
+                .Select(member => new FlowServiceMemberResolution
+                {
+                    Id = member.SvcObject.Id,
+                    Name = member.SvcObject.Name,
+                    PortStart = member.SvcObject.PortStart,
+                    PortEnd = member.SvcObject.PortEnd,
+                    ProtoId = member.SvcObject.ProtoId
+                })
+                .ToList()
+        };
+    }
+
+    private static IEnumerable<TGroup> ResolveGroupMatches<TGroup>(IEnumerable<TGroup> groups, IEnumerable<long> ids, IEnumerable<string> names)
+        where TGroup : FlowGroup
+    {
+        List<TGroup> activeGroups = groups.Where(IsActiveAndVisible).ToList();
+        List<TGroup> idMatches = activeGroups.Where(group => ids.Contains(group.Id)).ToList();
+        foreach (TGroup group in idMatches)
+        {
+            yield return group;
+        }
+
+        foreach (string name in names.Where(name => !string.IsNullOrWhiteSpace(name)))
+        {
+            if (idMatches.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            List<TGroup> nameMatches = activeGroups
+                .Where(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (nameMatches.Count == 1)
+            {
+                yield return nameMatches[0];
+            }
+        }
     }
 
     private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)

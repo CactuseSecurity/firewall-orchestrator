@@ -154,6 +154,37 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsUnknownFields()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowGroupResolutionParameters request = new()
+        {
+            AdditionalData = new Dictionary<string, JsonElement>
+            {
+                ["unexpected"] = JsonDocument.Parse("1").RootElement
+            }
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsTooManySelectors()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        FlowGroupResolutionParameters request = new()
+        {
+            NetworkGroupIds = Enumerable.Range(1, 101).Select(id => (long)id).ToList()
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetServiceObjectId_RejectsInvalidPortRange()
     {
         FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));

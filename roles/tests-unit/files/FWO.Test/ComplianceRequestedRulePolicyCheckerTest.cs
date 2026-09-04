@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NUnit.Framework;
 using System.Reflection;
+using System.Net;
 using RestSharp;
 
 namespace FWO.Test
@@ -235,6 +236,7 @@ namespace FWO.Test
                     {
                         Id = 101,
                         Name = "existing-app-servers",
+                        ShowInRequestModule = true,
                         NwGroupMembers =
                         [
                             new FlowNwGroupMember { NwGroupId = 101, NwObjectId = 999 },
@@ -246,7 +248,7 @@ namespace FWO.Test
                 .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
                 .Returns(
                 [
-                    new FlowNwObject { Id = 201, Name = "app-server-1", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }
+                    new FlowNwObject { Id = 201, Name = "app-server-1", IpStart = "192.0.2.10", IpEnd = "192.0.2.10", ShowInRequestModule = true }
                 ]);
 
             WfReqTask ruleTask = CreateEligibleRequestTask(25);
@@ -273,14 +275,20 @@ namespace FWO.Test
                     {
                         Id = 102,
                         Name = "web-services",
-                        SvcGroupMembers = [new FlowSvcGroupMember { SvcGroupId = 102, SvcObjectId = 202 }]
+                        ShowInRequestModule = true,
+                        SvcGroupMembers =
+                        [
+                            new FlowSvcGroupMember { SvcGroupId = 102, SvcObjectId = 202 },
+                            new FlowSvcGroupMember { SvcGroupId = 102, SvcObjectId = 203 }
+                        ]
                     }
                 ]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowSvcObject>>(FlowQueries.getFlowSyncSvcObjects, Arg.Any<object>())
                 .Returns(
                 [
-                    new FlowSvcObject { Id = 202, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6 }
+                    new FlowSvcObject { Id = 202, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6, ShowInRequestModule = true },
+                    new FlowSvcObject { Id = 203, Name = "denied", PortStart = 444, PortEnd = 444, ProtoId = 6, ShowInRequestModule = true, State = FlowState.Denied }
                 ]);
 
             WfReqTask ruleTask = CreateEligibleRequestTask(27);
@@ -310,20 +318,23 @@ namespace FWO.Test
                     new FlowNwGroup
                     {
                         Name = "named-network-group",
+                        ShowInRequestModule = true,
                         NwGroupMembers =
                         [
                             new FlowNwGroupMember { NwObjectId = 401 },
                             new FlowNwGroupMember { NwObjectId = 402 }
                         ]
                     },
-                    new FlowNwGroup { Name = "removed-network-group", State = FlowState.Removed }
+                    new FlowNwGroup { Name = "removed-network-group", State = FlowState.Removed },
+                    new FlowNwGroup { Name = "denied-network-group", State = FlowState.Denied, ShowInRequestModule = true }
                 ]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
                 .Returns(
                 [
-                    new FlowNwObject { Id = 401, IpStart = "192.0.2.40", IpEnd = "192.0.2.40" },
-                    new FlowNwObject { Id = 402, IpStart = "192.0.2.41", IpEnd = "192.0.2.41", State = FlowState.Removed }
+                    new FlowNwObject { Id = 401, IpStart = "192.0.2.40", IpEnd = "192.0.2.40", ShowInRequestModule = true },
+                    new FlowNwObject { Id = 402, IpStart = "192.0.2.41", IpEnd = "192.0.2.41", State = FlowState.Removed },
+                    new FlowNwObject { Id = 403, IpStart = "192.0.2.43", IpEnd = "192.0.2.43", State = FlowState.Denied, ShowInRequestModule = true }
                 ]);
 
             WfReqTask task = CreateEligibleRequestTask(32);
@@ -344,8 +355,8 @@ namespace FWO.Test
                 .SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowSyncNwGroups, Arg.Any<object>())
                 .Returns(
                 [
-                    new FlowNwGroup { Name = "ambiguous-group" },
-                    new FlowNwGroup { Name = "ambiguous-group" }
+                    new FlowNwGroup { Name = "ambiguous-group", ShowInRequestModule = true },
+                    new FlowNwGroup { Name = "ambiguous-group", ShowInRequestModule = true }
                 ]);
             ApiConnection.AsSub()
                 .SendQueryAsync<List<FlowNwObject>>(FlowQueries.getFlowSyncNwObjects, Arg.Any<object>())
@@ -420,36 +431,24 @@ namespace FWO.Test
             {
                 Result = new FlowGroupResolutionResult
                 {
-                    NetworkGroups =
-                    [
-                        new FlowNwGroup
+                    NetworkGroups = [new FlowNetworkGroupResolution
+                    {
+                        Id = 501,
+                        Name = "remote-destinations",
+                        Members = [new FlowNetworkMemberResolution
                         {
-                            Name = "remote-destinations",
-                            NwGroupMembers =
-                            [new FlowNwGroupMember
-                            {
-                                NwObject = new FlowNwObject
-                                {
-                                    Id = 301,
-                                    Name = "remote-host",
-                                    IpStart = "192.0.2.30",
-                                    IpEnd = "192.0.2.30"
-                                }
-                            }]
-                        }
-                    ],
-                    ServiceGroups =
-                    [
-                        new FlowSvcGroup
+                            Id = 301, Name = "remote-host", IpStart = "192.0.2.30", IpEnd = "192.0.2.30"
+                        }]
+                    }],
+                    ServiceGroups = [new FlowServiceGroupResolution
+                    {
+                        Id = 502,
+                        Name = "remote-services",
+                        Members = [new FlowServiceMemberResolution
                         {
-                            Name = "remote-services",
-                            SvcGroupMembers =
-                            [new FlowSvcGroupMember
-                            {
-                                SvcObject = new FlowSvcObject { Id = 302, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6 }
-                            }]
-                        }
-                    ]
+                            Id = 302, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6
+                        }]
+                    }]
                 }
             };
             ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
@@ -457,11 +456,13 @@ namespace FWO.Test
             WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
             destination.IpString = null;
             destination.GroupName = "remote-destinations";
+            destination.FlowNetworkGroupId = 501;
             WfReqElement service = task.Elements.Single(element => element.Field == ElemFieldType.service.ToString());
             service.Name = null;
             service.Port = null;
             service.ProtoId = 0;
             service.GroupName = "remote-services";
+            service.FlowServiceGroupId = 502;
 
             List<Rule> rules = await InvokeBuildRules(middlewareChecker, task);
 
@@ -469,8 +470,8 @@ namespace FWO.Test
             Assert.That(rules[0].Tos[0].Object.IP, Is.EqualTo("192.0.2.30/32"));
             Assert.That(rules[0].Services[0].Content.DestinationPort, Is.EqualTo(443));
             Assert.That(middlewareClient.Requests, Has.Count.EqualTo(2));
-            Assert.That(middlewareClient.Requests.SelectMany(request => request.NetworkGroupNames), Does.Contain("remote-destinations"));
-            Assert.That(middlewareClient.Requests.SelectMany(request => request.ServiceGroupNames), Does.Contain("remote-services"));
+            Assert.That(middlewareClient.Requests.SelectMany(request => request.NetworkGroupIds), Does.Contain(501));
+            Assert.That(middlewareClient.Requests.SelectMany(request => request.ServiceGroupIds), Does.Contain(502));
         }
 
         [Test]
@@ -482,6 +483,19 @@ namespace FWO.Test
             List<Rule> rules = await BuildRulesFromRequestTasks(task);
 
             Assert.That(rules, Is.Empty);
+        }
+
+        [Test]
+        public void BuildRulesFromRequestTasks_ThrowsWhenMiddlewareGroupResolutionFails()
+        {
+            TestFlowGroupMiddlewareClient middlewareClient = new() { FailureStatus = HttpStatusCode.Forbidden };
+            ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
+            WfReqTask task = CreateEligibleRequestTask(34);
+            WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            destination.IpString = null;
+            destination.GroupName = "forbidden-group";
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await InvokeBuildRules(middlewareChecker, task));
         }
 
         [Test]
@@ -543,6 +557,7 @@ namespace FWO.Test
         {
             public FlowGroupResolutionResult Result { get; set; } = new();
             public List<FlowGroupResolutionParameters> Requests { get; } = [];
+            public HttpStatusCode? FailureStatus { get; set; }
 
             public TestFlowGroupMiddlewareClient() : base("https://middleware.example/")
             { }
@@ -550,7 +565,18 @@ namespace FWO.Test
             public override Task<RestResponse<FlowGroupResolutionResult>> ResolveFlowGroupMembers(FlowGroupResolutionParameters parameters)
             {
                 Requests.Add(parameters);
-                return Task.FromResult(new RestResponse<FlowGroupResolutionResult>(new RestRequest()) { Data = Result });
+                RestResponse<FlowGroupResolutionResult> response = new(new RestRequest())
+                {
+                    Data = Result,
+                    StatusCode = HttpStatusCode.OK,
+                    ResponseStatus = ResponseStatus.Completed
+                };
+                if (FailureStatus.HasValue)
+                {
+                    response.StatusCode = FailureStatus.Value;
+                    response.Data = null;
+                }
+                return Task.FromResult(response);
             }
         }
     }

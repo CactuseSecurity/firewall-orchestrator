@@ -17,6 +17,7 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
 {
+    private const int kMaxGroupSelectors = 100;
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
@@ -136,11 +137,31 @@ public class FlowCatalogController : ControllerBase
     /// Resolves the supplied request-visible Flow groups and returns their active members.
     /// Only explicitly requested IDs or names are resolved.
     /// </summary>
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.WorkflowRolesList}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.WorkflowRolesList}")]
     [HttpPost("resolveGroupMembers")]
     public async Task<ActionResult<FlowGroupResolutionResult>> ResolveGroupMembers([FromBody] FlowGroupResolutionParameters? request)
     {
         request ??= new FlowGroupResolutionParameters();
+        request.NetworkGroupIds ??= [];
+        request.NetworkGroupNames ??= [];
+        request.ServiceGroupIds ??= [];
+        request.ServiceGroupNames ??= [];
+        if (request.AdditionalData?.Count > 0)
+        {
+            return BadRequest("Unknown group resolver request fields were supplied.");
+        }
+        if (request.NetworkGroupIds.Count + request.NetworkGroupNames.Count
+            + request.ServiceGroupIds.Count + request.ServiceGroupNames.Count > kMaxGroupSelectors)
+        {
+            return BadRequest($"At most {kMaxGroupSelectors} group selectors are allowed.");
+        }
+
+        if (request.NetworkGroupNames.Any(string.IsNullOrWhiteSpace)
+            || request.ServiceGroupNames.Any(string.IsNullOrWhiteSpace))
+        {
+            return BadRequest("Group names must not be empty.");
+        }
+
         return Ok(await flowCatalogService.ResolveFlowGroupMembersAsync(request));
     }
 

@@ -151,6 +151,8 @@ is pushed. The `develop` trigger clears stale failures when a version bump merge
 tag trigger makes step 3 of the lifecycle bite: pull requests that were green on the now
 sealed version turn red immediately. Neither case needs a push to the pull request. The tag
 list and merge result are read when the gate runs, so a re-run reaches the current verdict.
+The workflow warns if its query reaches the limit of 200 open pull requests because any
+additional pull requests may retain stale gates.
 
 The **Version tag guard** workflow
 ([`.github/workflows/version-tag-guard.yml`](../../.github/workflows/version-tag-guard.yml))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -13,6 +14,8 @@ WORKFLOW_PATH = WORKFLOW_DIRECTORY / "version-gate-refresh.yml"
 TAG_GUARD_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "version-tag-guard.yml"
 FAST_FORWARD_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "fast-forward-main-to-release-tag.yml"
 TRIGGER_STEP_NAME = "Decide whether open pull request gates need refresh"
+RERUN_STEP_NAME = "Re-run the version gate for every open pull request"
+PULL_REQUEST_LIMIT = 200
 SCRIPT_INDENT = " " * 10
 
 
@@ -35,6 +38,57 @@ def workflow_step_script(path: Path, step_name: str) -> str:
         else:
             script_lines.append("")
     return "\n".join(script_lines)
+
+
+def write_executable(path: Path, content: str) -> None:
+    """Create a fake command used to isolate workflow shell from GitHub services."""
+    path.write_text(content, encoding="utf-8")
+    path.chmod(path.stat().st_mode | stat.S_IXUSR)
+
+
+def refresh_output_at_pr_count(tmp_path: Path, pull_request_count: int) -> subprocess.CompletedProcess[str]:
+    """Execute the refresh script with a mocked number of open pull requests."""
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    write_executable(
+        fake_bin / "gh",
+        """#!/bin/sh
+if [ "$1" = "pr" ]; then
+    printf '[]\n'
+fi
+exit 0
+""",
+    )
+    write_executable(
+        fake_bin / "jq",
+        """#!/bin/sh
+if [ "$1" = "length" ]; then
+    printf '%s\n' "$MOCK_PR_COUNT"
+fi
+exit 0
+""",
+    )
+    environment = os.environ.copy()
+    environment.update(
+        {
+            "BASE_BRANCH": "develop",
+            "GATE_WORKFLOW": "version-gate.yml",
+            "GH_REPO": "CactuseSecurity/firewall-orchestrator",
+            "GH_TOKEN": "test-token",
+            "MOCK_PR_COUNT": str(pull_request_count),
+            "PATH": f"{fake_bin}:{environment['PATH']}",
+            "PULL_REQUEST_LIMIT": str(PULL_REQUEST_LIMIT),
+            "SINGLE_PR": "",
+        }
+    )
+    return subprocess.run(  # noqa: S603
+        ["/bin/bash", "-c", workflow_step_script(WORKFLOW_PATH, RERUN_STEP_NAME)],
+        check=False,
+        capture_output=True,
+        cwd=tmp_path,
+        env=environment,
+        text=True,
+    )
 
 
 def refresh_decision(
@@ -69,6 +123,26 @@ def test_workflow_listens_for_develop_updates() -> None:
     workflow = read_workflow()
     expected_trigger = "  push:\n    branches:\n      - develop\n    tags:"
     assert expected_trigger in workflow
+
+
+@pytest.mark.parametrize(
+    ("pull_request_count", "warning_expected"),
+    [(PULL_REQUEST_LIMIT - 1, False), (PULL_REQUEST_LIMIT, True)],
+)
+def test_warns_when_open_pull_request_limit_is_reached(
+    tmp_path: Path,
+    pull_request_count: int,
+    warning_expected: bool,
+) -> None:
+    """Warn that pull requests beyond the query cap may retain stale gates."""
+    completed = refresh_output_at_pr_count(tmp_path, pull_request_count)
+
+    assert completed.returncode == 0
+    warning = (
+        f"::warning::Open pull request query reached its limit of {PULL_REQUEST_LIMIT}; "
+        "additional pull requests may exist and were not refreshed."
+    )
+    assert (warning in completed.stdout) is warning_expected
 
 
 @pytest.mark.parametrize(

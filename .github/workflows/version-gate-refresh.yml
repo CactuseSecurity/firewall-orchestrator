@@ -29,6 +29,7 @@ permissions:
 env:
   BASE_BRANCH: develop
   GATE_WORKFLOW: version-gate.yml
+  PULL_REQUEST_LIMIT: 200
 
 jobs:
   refresh-open-prs:
@@ -82,8 +83,12 @@ jobs:
           if [[ -n "${SINGLE_PR:-}" ]]; then
             pull_requests="[$(gh pr view "$SINGLE_PR" --json number,headRefOid)]"
           else
-            pull_requests="$(gh pr list --base "$BASE_BRANCH" --state open --limit 200 \
+            pull_requests="$(gh pr list --base "$BASE_BRANCH" --state open --limit "$PULL_REQUEST_LIMIT" \
               --json number,headRefOid)"
+            pull_request_count="$(jq length <<<"$pull_requests")"
+            if [[ "$pull_request_count" -ge "$PULL_REQUEST_LIMIT" ]]; then
+              echo "::warning::Open pull request query reached its limit of ${PULL_REQUEST_LIMIT}; additional pull requests may exist and were not refreshed."
+            fi
           fi
 
           # Newest first, so the first line matching a head sha is that pull request's

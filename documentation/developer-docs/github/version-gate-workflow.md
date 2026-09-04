@@ -103,6 +103,9 @@ Runs come back newest first, so the first line matching a pull request's head SH
 request's most recent gate run. Runs that are not yet `completed` are left alone, because they
 will report a fresh result on their own.
 
+The open pull request query is capped at 200 entries. Reaching that cap emits a workflow warning
+because additional pull requests may exist and retain stale gate results.
+
 A re-run replays the workflow file from the original run, but the checkout, the tag list and the
 gate script are all resolved at run time, so the verdict is current even if the workflow YAML
 has since changed. If a pull request cannot be refreshed at all — no run found, or the re-run

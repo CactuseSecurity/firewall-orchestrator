@@ -108,6 +108,62 @@
     - test
     - integrationtests
 
+# The importer has to be the last service which is started. An import which is already running
+# while one of its dependencies restarts loses its API connection and is rolled back, and every
+# play above this one may still restart such a dependency - finalize restarts apache, the
+# middleware and the UI, and the integration tests restart the middleware (sample-auth-data) and
+# apache (test-auth). So keep this play last and do not start the importer anywhere before it.
+# It carries the same tags as the finalize play: every tag selection which restarts a dependency
+# selects finalize, and finalize clears a failed start limit before this play restarts the service.
+- hosts: importers
+  tasks:
+    # a host can be listed in the importers group without the importer having been deployed to it
+    # in this run, and systemd fails a restart of a unit it does not know
+    - name: check for importer service unit
+      stat:
+        path: "{{ item }}/{{ product_name }}-importer-api.service"
+      loop: "{{ fworch_systemd_unit_search_dirs }}"
+      register: importer_service_unit
+      become: true
+      when: "not installation_mode == 'uninstall'"
+
+    # restarted rather than started: every installer run restarts apache unconditionally, so an
+    # import which was in flight is lost either way, and only a restart makes sure the importer
+    # reconnects to the api and middleware it has just been separated from. the unit is enabled by
+    # the importer role, this task only decides when the service runs
+    - name: restart importer service once all of its dependencies are up for good
+      ansible.builtin.systemd:
+        name: "{{ product_name }}-importer-api"
+        state: restarted
+        daemon_reload: true
+      become: true
+      register: importer_service_start
+      when:
+        - "not installation_mode == 'uninstall'"
+        - importer_service_unit.results | default([]) | selectattr('stat.exists') | list | length > 0
+  tags:
+    - finalize
+    - backend
+    - frontend
+    - importer
+    - ui
+
+# separate play so that the assertions below carry the test tags only - tags of a play are added
+# to every task in it, so a task in the play above could be widened but never narrowed down to
+# "test". It is guarded by the restart above having run: a run which only selects the test tags
+# does not restart the importer, and the tests it just executed restarted apache and the
+# middleware, so the importer is legitimately older than its dependencies there.
+- hosts: importers
+  tasks:
+    - name: importer service startup order testing
+      import_tasks: roles/tests-integration/tasks/test-importer-service-start-order.yml
+      when:
+        - importer_service_start is defined
+        - not importer_service_start is skipped
+  tags:
+    - test
+    - integrationtests
+
 - hosts: all
   tasks:
     # display status & pwds

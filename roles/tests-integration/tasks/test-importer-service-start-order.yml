@@ -1,0 +1,78 @@
+---
+# verifies the state the installation ends in: the importer and all of its dependencies are
+# running, and the importer was activated after all of them. an import which is already running
+# while apache, the api or the middleware restarts loses its api connection and has to be rolled
+# back, so the importer has to be the last service the installer starts.
+#
+# this test is imported by the last play in site.yml and has to stay there. run from within the
+# integration tests it would check the ordering before those tests restart the middleware
+# (sample-auth-data) and apache (test-auth) themselves. since the same play restarts the importer
+# a few tasks earlier, the ordering assert cannot fail because of that restart - it is a canary
+# for anything which restarts an importer dependency after it.
+
+- debug:
+    msg: starting importer service start order tests
+
+# the timestamps read below are monotonic, i.e. counted from the boot of the host they are read
+# on, so only dependencies which live on the same host as the importer can be compared
+- name: determine the importer dependencies installed on this host
+  set_fact:
+    importer_service_name: "{{ product_name }}-importer-api"
+    importer_dependency_service_names: >-
+      {{
+        ([webserver_package_name] if ['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0 else [])
+        + ([api_service_name] if 'apiserver' in group_names else [])
+        + ([middleware_service_name] if 'middlewareserver' in group_names else [])
+      }}
+
+# on a host which runs nothing but the importer there is no dependency left to compare it to, so
+# only the "is running" part of this test has any effect there - say so instead of reporting a
+# green ordering test which checked nothing
+- debug:
+    msg: >-
+      comparing the activation time of {{ importer_service_name }} against
+      {{ importer_dependency_service_names | default([]) | join(', ') | default('no dependency on this host', true) }}
+
+- name: read the activation times of the importer and of its dependencies
+  command: "systemctl show {{ item }}.service --property=ActiveEnterTimestampMonotonic --value"
+  loop: "{{ [importer_service_name] + (importer_dependency_service_names | default([])) }}"
+  register: service_activation_times
+  changed_when: false
+  become: true
+  when: "'importers' in group_names"
+
+# systemd reports an activation time of 0 for a service which is inactive, failed or unknown, and
+# comparing two of those would let this test pass while nothing is running at all
+- name: the importer and all of its dependencies must be active
+  assert:
+    that:
+      - item.stdout | trim | int > 0
+    fail_msg: >-
+      {{ item.item }} reports no activation timestamp and is therefore not running - check
+      'systemctl status {{ item.item }}' (a unit name which does not exist reports the same)
+  loop: "{{ service_activation_times.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: "'importers' in group_names"
+
+- name: the importer must have been activated after all of its dependencies
+  assert:
+    that:
+      - importer_activated_at | int >= item.stdout | trim | int
+    fail_msg: >-
+      {{ importer_service_name }} was activated at {{ importer_activated_at }} and therefore
+      before {{ item.item }} at {{ item.stdout | trim }} (monotonic, in microseconds since boot).
+      An import which is already running while {{ item.item }} restarts loses its api connection
+      and has to be rolled back, so the importer has to be started after it. If the two timestamps
+      are only seconds apart, {{ item.item }} restarted itself (all of them run with
+      Restart=always) after the installer had already restarted the importer - check
+      'journalctl -u {{ item.item }}' for the reason and repeat the run.
+  vars:
+    importer_activated_at: >-
+      {{ service_activation_times.results
+         | selectattr('item', 'equalto', importer_service_name)
+         | map(attribute='stdout') | first | trim }}
+  loop: "{{ service_activation_times.results | default([]) | rejectattr('item', 'equalto', importer_service_name) | list }}"
+  loop_control:
+    label: "{{ item.item }}"
+  when: "'importers' in group_names"

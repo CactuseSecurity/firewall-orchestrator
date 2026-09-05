@@ -1,5 +1,6 @@
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
@@ -7,7 +8,7 @@ using System.Collections.Generic;
 
 namespace FWO.Services.Workflow
 {
-    public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin)
+    public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, WorkflowPhases WorkflowPhase, bool IsUiContext = true)
     {
         public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
             Func<WfTicket, bool>? ticketFilter = null)
@@ -153,7 +154,7 @@ namespace FWO.Services.Workflow
         }
         // Approvals
 
-        public async Task<long> AddApprovalToDb(WfApproval approval)
+        public async Task<long> AddApprovalToDb(WfApproval approval, long ticketId, UiUser? requester)
         {
             long returnId = 0;
             try
@@ -177,6 +178,8 @@ namespace FWO.Services.Workflow
                     int newStateId = approval.StateId;
                     returnId = returnIds[0].NewIdLong;
                     approval.Id = returnId;
+                    await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.Approval, approval.Id),
+                        "Added workflow approval", null, ApprovalHistorySnapshot(approval), requester, false);
                     approval.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
                 }
@@ -188,8 +191,12 @@ namespace FWO.Services.Workflow
             return returnId;
         }
 
-        public async Task UpdateApprovalInDb(WfApproval approval, bool triggerActions = true)
+        public async Task UpdateApprovalInDb(WfApproval approval, long ticketId, UiUser? requester, bool triggerActions = true, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticketId);
+            WfApproval? previousApproval = storedTicket?.Tasks
+                .SelectMany(task => task.Approvals)
+                .FirstOrDefault(item => item.Id == approval.Id);
             try
             {
                 var Variables = new
@@ -207,6 +214,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    if (previousApproval != null)
+                    {
+                        await LogWorkflowChange(new(ticketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Approval, approval.Id),
+                            "Updated workflow approval", ApprovalHistorySnapshot(previousApproval), ApprovalHistorySnapshot(approval), requester, false);
+                    }
                     if (triggerActions)
                     {
                         await ActionHandler.DoStateChangeActions(approval, WfObjectScopes.Approval);
@@ -392,8 +404,9 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticket.Id);
             try
             {
                 var Variables = new
@@ -411,6 +424,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    if (storedTicket != null)
+                    {
+                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                            "Updated workflow ticket state", TicketStateSnapshot(storedTicket), TicketStateSnapshot(ticket), storedTicket.Requester, false);
+                    }
                     if (triggerActions)
                     {
                         await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
@@ -423,8 +441,10 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
+            WfReqTask? previousTask = storedTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var Variables = new
@@ -444,6 +464,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    if (storedTicket != null && previousTask != null)
+                    {
+                        await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
+                            "Updated workflow request task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(reqtask), storedTicket.Requester, false);
+                    }
                     if (triggerActions)
                     {
                         await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
@@ -461,8 +486,12 @@ namespace FWO.Services.Workflow
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true, WfTicket? previousTicket = null)
         {
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
+            WfImplTask? previousTask = storedTicket?.Tasks
+                .SelectMany(task => task.ImplementationTasks)
+                .FirstOrDefault(task => task.Id == impltask.Id);
             try
             {
                 var Variables = new
@@ -482,6 +511,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    if (storedTicket != null && previousTask != null)
+                    {
+                        await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
+                            "Updated workflow implementation task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(impltask), storedTicket.Requester, false);
+                    }
                     if (triggerActions)
                     {
                         await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);

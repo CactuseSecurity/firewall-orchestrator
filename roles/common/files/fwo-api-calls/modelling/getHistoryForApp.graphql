@@ -1,13 +1,23 @@
 query getHistoryForApp ($appId: Int!){
-  modelling_change_history (where: {app_id: {_eq: $appId}} order_by: { change_time: desc }){
+  change_history (
+    where: { app_id: { _eq: $appId } }
+    order_by: [{ change_time: desc }, { id: desc }]
+  ){
     id
     app_id
+    module
     change_type
     object_type
     object_id
     change_text
     changer
+    changer_id
     change_time
     change_source
+    ticket_id
+    workflow_phase
+    old_data
+    new_data
+    audit_proof_critical
   }
 }

@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using System.Linq;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Data.Modelling;
 using FWO.Logging;
 
 namespace FWO.Services.Workflow
@@ -91,6 +92,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task<WfTicket> UpdateTicketInDb(WfTicket ticket)
         {
+            WfTicket? previousTicket = await LoadPreviousTicket(ticket.Id);
             try
             {
                 // Ticket locking is task-scoped: header metadata remains writable while request-task updates are guarded separately.
@@ -103,6 +105,11 @@ namespace FWO.Services.Workflow
                 }
                 else
                 {
+                    if (previousTicket != null)
+                    {
+                        await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
+                            "Updated workflow ticket", TicketHistorySnapshot(previousTicket), TicketHistorySnapshot(ticket), previousTicket.Requester, true);
+                    }
                     await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
                 }
             }

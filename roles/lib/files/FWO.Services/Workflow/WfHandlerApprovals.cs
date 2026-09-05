@@ -77,7 +77,7 @@ namespace FWO.Services.Workflow
             if (!approval.InitialApproval && dbAcc != null)
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
-                approval.Id = await dbAcc.AddApprovalToDb(approval);
+                approval.Id = await dbAcc.AddApprovalToDb(approval, ActTicket.Id, ActTicket.Requester);
                 DisplayMessageInUi(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
             ActReqTask.Approvals.Add(approval);
@@ -163,7 +163,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                await dbAcc.UpdateApprovalInDb(ActApproval, triggerActions);
+                await dbAcc.UpdateApprovalInDb(ActApproval, ActTicket.Id, ActTicket.Requester, triggerActions);
             }
             ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
         }

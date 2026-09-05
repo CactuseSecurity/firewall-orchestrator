@@ -49,6 +49,12 @@ namespace FWO.Basics
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
+        // change_history.module: names the subsystem that wrote a history row and therefore
+        // which enum its object_type has to be read against. Workflow rows use the same literal as
+        // their change_source, because the workflow module has exactly one provenance. Keeping it a
+        // single constant avoids two identical literals that would silently drift apart.
+        public const string kModuleModelling = "modelling";
+        public const string kModuleWorkflow = "workflow";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";

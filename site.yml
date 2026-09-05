@@ -96,6 +96,13 @@
 
 - hosts: all
   roles:
+    - { role: sbom, when: "generate_sbom|bool and not installation_mode == 'uninstall'" }
+  tags:
+    - sbom
+    - finalize
+
+- hosts: all
+  roles:
     - { role: tests-unit, when: not installation_mode == 'uninstall' }
   tags:
     - test

@@ -240,7 +240,99 @@ Example:
 ./scripts/run-playbook-with-sudo.sh site.yml -e "ui_comm_mode=no_ws"
 ```
 
+## Host-wide installer settings
+
+`inventory/hosts.yml` and `inventory/group_vars/` are tracked files in the git repository
+the installer is run from, so anything changed there is lost by a fresh clone and
+conflicts on `git pull`. Settings that must outlive an upgrade belong in
+
+```
+/etc/fworch/fwo-install-settings.yml
+```
+
+which is the same file as `/usr/local/fworch/etc/fwo-install-settings.yml` - the installer
+keeps `/etc/fworch` as a symlink to it, on install and on upgrade alike. Either path works.
+
+`site.yml` reads that file in its first play, so it applies to **every** way of starting
+the installer - `./scripts/run-playbook-with-sudo.sh` and a plain `ansible-playbook
+site.yml` alike, and to a tag-limited run such as `--tags certificates`. It overrides
+`inventory/group_vars/`, and anything given on the command line still overrides the file.
+The run reports what it applied:
+
+```
+TASK [report the endpoints the installer settings put in force] ****************
+ok: [localhost] => {
+    "msg": "Applied installer settings from /etc/fworch/fwo-install-settings.yml - api: fwo.example.com, middleware: fwo.example.com, ui: fwo.example.com"
+}
+```
+
+If that task does not appear, the file was not found and nothing in it is in force.
+
+It is shared by every clone on the host by design: two administrators upgrading the same
+installation from their own repositories would otherwise write different endpoints into
+`fworch.json` and have the certificates reissued for different names.
+
+A commented reference copy is installed next to it as
+`/etc/fworch/fwo-install-settings.template.yml`, refreshed on every run. It is never read
+by the installer, so the quickest start is to copy it and edit:
+
+```console
+cd /etc/fworch
+sudo cp fwo-install-settings.template.yml fwo-install-settings.yml
+sudo chmod 644 fwo-install-settings.yml
+sudo editor fwo-install-settings.yml
+```
+
+Copied verbatim it changes nothing, so it is safe to put in place before deciding what to
+set. Keep at least one active setting in the file: a settings file that holds only
+comments is not a dictionary and Ansible rejects it.
+
+The most common use is giving the endpoints a DNS name instead of the inventory's
+`localhost` - one line covers the api, middleware and ui of a single-host installation:
+
+```yaml
+# /etc/fworch/fwo-install-settings.yml
+fwo_endpoint_hostname: fwo.example.com
+```
+
+Any other inventory variable may be set the same way, one per line. On a distributed
+installation `fwo_endpoint_hostname` is refused, because it would give every endpoint the
+same name; set `api_hostname`, `api_network_listening_ip_address`, `middleware_hostname`
+and `ui_hostname` there individually instead, or name the hosts in `inventory/hosts.yml`.
+
+Before the very first installation neither the directory nor the `/etc/fworch` symlink
+exists yet, so the bootstrap uses the real path. Creating it early is safe - the installer
+decides whether FWO is already installed by the presence of `fworch.json`, not of the
+directory:
+
+```console
+sudo mkdir -p /usr/local/fworch/etc
+sudo tee /usr/local/fworch/etc/fwo-install-settings.yml <<'EOF'
+fwo_endpoint_hostname: fwo.example.com
+EOF
+sudo chmod 644 /usr/local/fworch/etc/fwo-install-settings.yml
+```
+
+Two things to know about the file:
+
+- It must contain **no secrets**. The directory is world-readable so that every
+  administrator who may run the installer can read the file, and the installer fails with
+  a `chmod` hint if it cannot.
+- An **uninstall deletes it** along with the rest of `/usr/local/fworch`. Copy it out
+  first if the reinstall is meant to keep the same endpoint names - otherwise the
+  reinstall silently falls back to the inventory names and issues certificates for those.
+
+An installation that moved `fworch_parent_dir` away from `/usr/local` sets
+`FWORCH_LOCAL_SETTINGS` to the file's path instead; the launcher cannot read Ansible
+variables to find it. That variable also selects a different file for a single run, and
+the launcher fails rather than continuing silently if it points at a file that is missing.
+
 ### Specifying server name and aliases
+
+`ui_server_name` defaults to the name the UI host carries in `inventory/hosts.yml`, and
+that name is also the one the UI certificate is issued for, so naming the host there is
+normally all that is needed. The parameters below add further names on top of it - each
+one is added to the certificate as well.
 
 To make sure that firewall orchestrator UI webserver responds to the correct DNS name, you may add the following parameters:
 
@@ -268,7 +360,19 @@ Example to set fwodemo.cactus.de and fwo2.cactus.de as websrver names:
 
 ## Distributed setup with multiple servers
 
-You have to edit inventory/hosts.yml according to your needs
+Single-host installations are the default. They set `distributed_install: false`
+in `inventory/group_vars/all.yml`, which restricts PostgreSQL and internal LDAP
+to the IPv4 and IPv6 localhost interfaces. Hasura retains its existing IPv4
+localhost listener.
+
+Before placing FWO components on separate servers, enable their existing network
+listener behavior in `inventory/group_vars/all.yml`:
+
+```yaml
+distributed_install: true
+```
+
+You then have to edit inventory/hosts.yml according to your needs.
 
 install-srv is the local machine the installation is started from. By default FWO is installed on this server
 

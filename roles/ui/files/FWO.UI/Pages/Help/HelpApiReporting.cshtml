@@ -41,6 +41,9 @@ curl --request POST \
         <li>@userConfig.GetText("H6905")</li>
         <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
+    --cert /etc/fworch/secrets/client/client.crt \
+    --key /etc/fworch/secrets/client/client.key \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'x-hasura-role: reporter-viewall' \
@@ -94,6 +97,9 @@ curl --request POST \
         <li>@userConfig.GetText("H6902")</li>
         <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
+    --cert /etc/fworch/secrets/client/client.crt \
+    --key /etc/fworch/secrets/client/client.key \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'x-hasura-role: reporter-viewall' \
@@ -134,6 +140,9 @@ curl --request POST \
         <li>@userConfig.GetText("H6903")</li>
         <pre class="code-block" data-lang="bash"><code>
 curl --request POST \
+    --cert /etc/fworch/secrets/client/client.crt \
+    --key /etc/fworch/secrets/client/client.key \
+    --cacert /etc/fworch/fworch-trust-bundle.crt \
     --url https://localhost:9443/api/v1/graphql \
     --header 'content-type: application/json' \
     --header 'x-hasura-role: reporter-viewall' \

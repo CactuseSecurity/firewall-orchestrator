@@ -1,0 +1,201 @@
+---
+# community.crypto needs the cryptography python library on the target, and this
+# role runs on every host - including importer- and database-only nodes, which no
+# other role installs it for. It also has to be present before the first
+# community.crypto task rather than in a later play, because certificates are
+# issued here.
+- name: Install the python library community.crypto needs
+  package:
+    name: "{{ internalca_crypto_packages }}"
+    state: present
+  become: true
+  environment: "{{ proxy_env }}"
+
+- name: Create internal CA on the designated issuer host
+  include_tasks: create-ca.yml
+  when: inventory_hostname == internalca_ca_host
+
+- name: Read internal CA certificate from issuer
+  slurp:
+    src: "{{ internalca_ca_certificate }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_ca_certificate_content
+  run_once: true
+  become: true
+
+- name: Store internal CA certificate for all hosts
+  set_fact:
+    internalca_ca_certificate_pem: "{{ internalca_ca_certificate_content.content }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  delegate_facts: true
+  run_once: true
+
+- name: Install internal CA trust anchor
+  include_tasks: install-trust.yml
+
+# Deliberately every host, not just the issuer. Leaves are signed with
+# delegate_to, which runs on the CA host regardless of whether that host failed
+# its own tasks earlier in the play - so a guard that only ran on the issuer
+# would not actually stop anyone from issuing. Each host checks the anchor it
+# has just installed and stops itself.
+- name: Guard against an expiring internal CA
+  include_tasks: check-ca-expiry.yml
+
+- name: Detect customer managed certificates during upgrade
+  include_tasks: detect-existing-certificates.yml
+  when: installation_mode == 'upgrade'
+
+# slapd reads its key as its own service account, so the identity has to be issued
+# to that account rather than to root and chowned afterwards by the openldap-server
+# role: the chown made every later internalCA run change the ownership back, which
+# reported the identity as renewed on every run and restarted slapd for nothing, and
+# it does not run at all for "--tags certificates", which would leave slapd a key it
+# cannot read. On a fresh installation slapd is not installed yet and the account
+# does not exist, so root is used and the openldap-server role does the first chown.
+- name: Look up the slapd service account
+  getent:
+    database: passwd
+    key: "{{ openldap_server_user }}"
+  register: internalca_ldap_user_lookup
+  failed_when: false
+  changed_when: false
+  when:
+    - "'middlewareserver' in group_names"
+    - not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+- name: Build internal CA certificate profiles for this host
+  set_fact:
+    internalca_certificate_profiles: >-
+      {{
+        [
+          {
+            'name': 'client',
+            'certificate': internalca_client_certificate,
+            'private_key': internalca_client_private_key,
+            'csr': internalca_client_csr,
+            'owner': fworch_user,
+            'group': fworch_group,
+            'common_name': product_name ~ '-' ~ inventory_hostname ~ '-client',
+            'extended_key_usage': ['clientAuth']
+          }
+        ]
+        + (
+          [
+            {
+              'name': 'apache-server',
+              'certificate': internalca_apache_certificate,
+              'private_key': internalca_apache_private_key,
+              'csr': internalca_apache_csr,
+              'owner': 'root',
+              'group': 'root',
+              'common_name': inventory_hostname,
+              'subject_alt_name': internalca_apache_subject_alt_names,
+              'extended_key_usage': ['serverAuth']
+            }
+          ] if internalca_issue_apache_certificate | bool and ('apiserver' in group_names or 'middlewareserver' in group_names or 'frontends' in group_names) else []
+        )
+        + (
+          [
+            {
+              'name': 'ldap-server',
+              'certificate': internalca_ldap_certificate,
+              'private_key': internalca_ldap_private_key,
+              'csr': internalca_ldap_csr,
+              'owner': internalca_ldap_identity_owner,
+              'group': internalca_ldap_identity_owner,
+              'common_name': openldap_server,
+              'subject_alt_name': internalca_ldap_subject_alt_names,
+              'extended_key_usage': ['serverAuth']
+            }
+          ] if 'middlewareserver' in group_names and not (internalca_preserve_ldap_certificate | default(false) | bool) else []
+        )
+      }}
+  vars:
+    # The slapd account when it already exists on this host, root otherwise (the fresh
+    # installation case, where the package creating it is installed later). Keyed on the
+    # returned passwd entry, not on the task result: failed_when overrides the module's
+    # own failure, so a missing account still reports failed = false.
+    internalca_ldap_identity_owner: >-
+      {{
+        openldap_server_user
+        if openldap_server_user in
+           (internalca_ldap_user_lookup.ansible_facts.getent_passwd | default({}, true))
+        else 'root'
+      }}
+    # LDAP clients now verify the host name (TLS_REQCERT demand), and openldap_server
+    # is usually an IP literal, which only matches an iPAddress SAN - a dNSName
+    # holding the same digits does not. Loopback stays in regardless, because slapd
+    # is always also reachable there.
+    #
+    # The output for an IPv4 literal and for a host name is deliberately left exactly as
+    # it was, redundant DNS entry included: changing it would re-issue the slapd
+    # certificate and restart slapd on every upgrade of every existing installation for
+    # no functional gain. Only the IPv6 case - which no existing installation can be in,
+    # since an IPv6 name was never emitted as anything usable - drops the dNSName.
+    internalca_ldap_subject_alt_names: >-
+      {{
+        (
+          (['IP:' ~ openldap_server] if ':' in openldap_server else ['DNS:' ~ openldap_server])
+          + ['IP:127.0.0.1']
+          + (['IP:' ~ openldap_server] if openldap_server is match(internalca_ipv4_pattern) else [])
+        ) | unique
+      }}
+    # The names Apache serves as ServerName/ServerAlias, minus the demo
+    # placeholders an untouched installation still carries. ServerAlias may hold
+    # several space separated names, and each needs its own SAN entry - emitting
+    # the raw value would produce one malformed entry covering nothing.
+    internalca_ui_host_names: >-
+      {{
+        ((ui_server_name | default('')) ~ ' ' ~ (ui_server_alias | default('')))
+        | split
+        | reject('in', internalca_placeholder_host_names)
+        | list
+      }}
+    # Every name this host's FWO endpoints are addressed under, as plain host names.
+    # The names anything actually connects to come from internalca_endpoint_host_names,
+    # the one list the retained certificate preflight also reads, so a name that reaches
+    # fworch.json or an integration test cannot be missing from the certificate.
+    #
+    # Added on top, and deliberately only here: api_hostname, the browser-only ui aliases
+    # and loopback. A certificate FWO issues covers whatever it is told to, so an extra
+    # name costs nothing; a certificate FWO retains belongs to the operator and must not
+    # be rejected over a name no client uses. That asymmetry is the whole point of
+    # keeping the two lists apart.
+    internalca_apache_host_names: >-
+      {{
+        (
+          [inventory_hostname, ansible_facts['hostname'], 'localhost', ipv4_loopback_address]
+          + internalca_endpoint_host_names
+          + ([api_hostname] if 'apiserver' in group_names else [])
+          + (internalca_ui_host_names if 'frontends' in group_names else [])
+        ) | reject('equalto', '') | unique
+      }}
+    # An IP literal is only matched by an iPAddress SAN - a dNSName holding the same
+    # digits is not - so each collected name is emitted as the entry type it can
+    # actually be matched by. Deciding it here rather than at every call site is what
+    # lets a name be put into the inventory without also knowing which kind it is.
+    # internalca_ip_literal_pattern covers IPv6 as well, and must be used with `search`:
+    # with the IPv4-only pattern an IPv6 endpoint was emitted as DNS:2001:db8::1, an
+    # entry nothing can ever match, so the certificate silently did not cover the host.
+    internalca_apache_subject_alt_names: >-
+      {{
+        (internalca_apache_host_names | select('search', internalca_ip_literal_pattern)
+          | map('regex_replace', '^', 'IP:') | list)
+        + (internalca_apache_host_names | reject('search', internalca_ip_literal_pattern)
+          | map('regex_replace', '^', 'DNS:') | list)
+      }}
+
+- name: Issue internal CA certificates for this host
+  include_tasks: issue-certificates.yml
+
+- name: Validate the configured Apache intermediate certificate chain
+  include_tasks: validate-apache-intermediates.yml
+  when:
+    - internalca_apache_intermediate_certificates | length > 0
+    - "['apiserver', 'middlewareserver', 'frontends'] | intersect(group_names) | length > 0"
+
+# Only on an existing installation: on a fresh one the services do not exist yet and
+# the roles installing them start them with the identity issued above.
+- name: Restart the services whose identity was renewed
+  include_tasks: restart-consumers.yml
+  when: installation_mode != 'new'

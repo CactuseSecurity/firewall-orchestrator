@@ -1,8 +1,5 @@
 # Firewall Orchestrator Revision History
 
-pre-5, a product called IT Security Organizer and was closed source. It was developed starting in 2005.
-In 2020 we decided to re-launch a new
-
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module
   - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
@@ -608,7 +605,7 @@ Not supported any longer are:
 ## 9.3.4 - 11.08.2026
 - fix a bug in reporting ui where users with role modeller and reporter could not fetch rsb data for app rule reports
 
-## 9.4.0 - 13.08.2026
+### 9.4.0 - 13.08.2026
 - add logging schema for imported traffic log entries with their owner and count
 - make replacement of existing log entries for applications contained in an import file configurable
 - increase of unit-tests
@@ -647,3 +644,44 @@ Not supported any longer are:
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
+
+## 9.5.0 - 03.09.2026
+- introducing
+  - an internal CA and certificate checks for all internal communication
+  - client certificates for graphql API access to prevent unauthorized access
+  - validated Apache intermediate certificate-chain references for administrator-managed certificates
+- application roles may now only be changed by an owner holding the modeller role
+- the ldap connection passwords are no longer readable via the API, not even for auditors
+- **the middleware now verifies LDAP server certificates instead of accepting any of them.**
+  This applies to every LDAP connection using TLS, internal and external alike. A connection
+  whose certificate is issued by FWO's internal CA, or by a CA the middleware host already
+  trusts, keeps working untouched. A connection whose certificate is self-signed, issued by a
+  private CA that is not in the host trust store, or does not carry the address the connection
+  is configured with, was silently accepted before and is now rejected - which means those
+  users can no longer log in. Add the issuing CA to the middleware host's trust store, or have
+  the certificate reissued for the address FWO connects to. The middleware names the server and
+  the reason in its log (category LdapTls). The installer refuses the upgrade up front if a
+  retained administrator-managed OpenLDAP certificate does not cover the configured address,
+  or if its issuing root CA is not configured as `internalca_peer_ca_certificate`
+- installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
+  so an installation that must be addressed under a specific DNS name - a name an
+  administrator-managed certificate was issued for, above all - is configured in one place
+- installer: new host-wide settings file /etc/fworch/fwo-install-settings.yml,
+  read by every installer run from any clone on the host, whichever way ansible was started,
+  and outside the git repository, so
+  local settings survive git pull and every administrator upgrades with the same endpoints;
+  fwo_endpoint_hostname there names all endpoints of a single-host installation at once,
+  and a commented fwo-install-settings.template.yml is installed beside it for reference
+- the middleware no longer waits for an unreachable API forever before starting its web server;
+  it now names the endpoint and what to check in the log and exits, instead of reporting itself
+  as running while its reverse proxy answers 503
+- installer: an internal CA certificate is now reissued as soon as it stops covering a name
+  the installation addresses its endpoint under, not only when it approaches expiry, so
+  renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
+  leaves every FWO client failing on a TLS host name mismatch
+- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
+  Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
+  upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now
+  stops an upgrade from an older version before it changes anything, naming the two-step path
+  (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
+  schema changes silently

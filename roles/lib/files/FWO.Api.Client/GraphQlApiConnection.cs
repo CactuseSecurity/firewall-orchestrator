@@ -1,6 +1,5 @@
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Basics;
-using FWO.Basics.Exceptions;
 using FWO.Logging;
 using GraphQL;
 using GraphQL.Client.Abstractions;
@@ -8,45 +7,40 @@ using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
 using GraphQL.Client.Serializer.SystemTextJson;
 using Newtonsoft.Json.Linq;
-using System.Net.Http.Headers;
-using System.Security.Authentication;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 
 namespace FWO.Api.Client
 {
-    public class GraphQlApiConnection : ApiConnection
+    public partial class GraphQlApiConnection : ApiConnection
     {
         private const string LogCategory = "API Connections";
         // Server URL
         public string ApiServerUri { get; private set; } = "";
 
         private GraphQLHttpClient? graphQlClient;
-        private GraphQLHttpClient? graphQlSubscriptionClient;
-
-        private readonly AsyncLocal<List<string>?> roleStack = new();
-        private string defaultRole = "";
-        private List<string> allowedRoles = [];
-        private string ambientRole = "";
-        private string forcedExecutionMode = "";
-        private bool restrictElevatedRoleSwitches = false;
+        // Set inside subscriptionsLock, so a reconnect that already passed its own disposal
+        // check cannot rebind subscriptions onto a client this instance is tearing down.
         private bool _disposed;
-
-        private readonly SemaphoreSlim _reconnectLock = new(1, 1);
 
         private GraphQLHttpClient CreateClient(string apiServerUri)
         {
-            HttpClientHandler handler = new()
-            {
-                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-            };
+            bool useTls = GraphQlTlsCertificateSupport.UsesTls(apiServerUri);
+            HttpClientHandler handler = GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
 
             GraphQLHttpClient client = new(new GraphQLHttpClientOptions()
             {
                 EndPoint = new Uri(apiServerUri),
                 HttpMessageHandler = handler,
-                UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons          
-                ConfigureWebsocketOptions = webSocketOptions => webSocketOptions.RemoteCertificateValidationCallback += (message, cert, chain, errors) => true
+                UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons
+                // Subscriptions run over websockets, which need the same client identity as
+                // the http requests. Certificate validation is left at the platform default.
+                ConfigureWebsocketOptions = webSocketOptions =>
+                {
+                    if (useTls)
+                    {
+                        webSocketOptions.ClientCertificates.Add(GraphQlTlsCertificateSupport.GetClientCertificate());
+                        webSocketOptions.RemoteCertificateValidationCallback = (_, certificate, chain, errors) => GraphQlTlsCertificateSupport.ValidateApiServerCertificate(certificate, chain, errors);
+                    }
+                }
             }, ApiConstants.UseSystemTextJsonSerializer ? new SystemTextJsonSerializer() : new NewtonsoftJsonSerializer());
 
             client.HttpClient.Timeout = new TimeSpan(1, 0, 0);
@@ -56,6 +50,8 @@ namespace FWO.Api.Client
         /// <summary>
         /// Creates the replacement client used when subscriptions reconnect.
         /// </summary>
+        /// <param name="apiServerUri">The API endpoint the client addresses.</param>
+        /// <returns>The client the reconnected subscriptions are bound to.</returns>
         protected virtual GraphQLHttpClient CreateSubscriptionClient(string apiServerUri)
         {
             return CreateClient(apiServerUri);
@@ -66,7 +62,7 @@ namespace FWO.Api.Client
             // Save Server URI
             this.ApiServerUri = ApiServerUri;
             graphQlClient = CreateClient(this.ApiServerUri);
-            graphQlSubscriptionClient = CreateClient(this.ApiServerUri);
+            InitializeSubscriptionClient();
         }
 
         public GraphQlApiConnection(string ApiServerUri, string jwt)
@@ -78,231 +74,6 @@ namespace FWO.Api.Client
         public GraphQlApiConnection(string ApiServerUri)
         {
             Initialize(ApiServerUri);
-        }
-
-        public override void SetAuthHeader(string jwt)
-        {
-            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-            ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
-            UpdateJwtRoleState(jwt);
-            ApplyAuthHeader(graphQlClient, jwt);
-            ApplyAuthHeader(graphQlSubscriptionClient, jwt);
-
-            InvokeOnAuthHeaderChanged(this, jwt);
-        }
-
-        private void ApplyAuthHeader(GraphQLHttpClient client, string jwt)
-        {
-            client.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
-            client.Options.ConfigureWebSocketConnectionInitPayload = _ => CreateWebSocketConnectionInitPayload(client);
-        }
-
-        public override void SetRole(string role)
-        {
-            if (restrictElevatedRoleSwitches && IsForcedExecutionMode(role))
-            {
-                throw new AuthenticationException($"Execution mode '{GlobalConst.kUserRolesSelection}' does not allow switching to role: {role}");
-            }
-
-            PushRole(IsForcedExecutionMode(forcedExecutionMode) ? forcedExecutionMode : role);
-        }
-
-        private void ApplyExecutionMode(string role, bool restrictElevatedRoles)
-        {
-            forcedExecutionMode = IsForcedExecutionMode(role) ? role : "";
-            restrictElevatedRoleSwitches = restrictElevatedRoles;
-            ambientRole = "";
-            roleStack.Value = null;
-        }
-
-        public override void SetExecutionMode(ClaimsPrincipal user, string role)
-        {
-            if (IsForcedExecutionMode(role) && !HasAllowedRole(user, role))
-            {
-                throw new AuthenticationException($"User is not allowed to use execution mode: {role}");
-            }
-
-            List<string> userRoles = ExecutionModeHelper.GetUserRoles(user);
-            string selectedExecutionMode = ExecutionModeHelper.NormalizeExecutionMode(userRoles, role);
-            string normalizedRole = selectedExecutionMode.Equals(GlobalConst.kUserRolesSelection, StringComparison.OrdinalIgnoreCase) ? "" : selectedExecutionMode;
-            ApplyExecutionMode(normalizedRole, normalizedRole == "" && HasSelectableUserRole(user));
-            InvokeOnExecutionModeChanged(this, GetExecutionMode());
-        }
-
-        public override void SetAmbientRole(ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            if (targetRoleList.Count == 0)
-            {
-                ambientRole = "";
-                return;
-            }
-
-            bool includeElevatedRoles = !HasSelectableUserRole(user);
-            ambientRole = IsForcedExecutionMode(user)
-                ? forcedExecutionMode
-                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
-                    ?? "";
-        }
-
-        public override string GetExecutionMode()
-        {
-            return forcedExecutionMode == "" ? GlobalConst.kUserRolesSelection : forcedExecutionMode;
-        }
-
-        public bool IsActRole(string role)
-        {
-            return role == GetActRole();
-        }
-
-        public override string GetActRole()
-        {
-            ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-
-            List<string>? roles = roleStack.Value;
-            if (roles != null && roles.Count > 0)
-            {
-                return roles[^1];
-            }
-            if (!string.IsNullOrWhiteSpace(ambientRole))
-            {
-                return ambientRole;
-            }
-            return GetBaselineRole();
-        }
-
-        public override void SetBestRole(ClaimsPrincipal user, List<string> targetRoleList)
-        {
-            bool includeElevatedRoles = !HasSelectableUserRole(user);
-            string targetRole = IsForcedExecutionMode(user)
-                ? forcedExecutionMode
-                : GetFirstAllowedRole(user, targetRoleList, includeElevatedRoles)
-                    ?? throw new AuthenticationException($"User has none of the required roles: {string.Join(", ", targetRoleList)}");
-            PushRole(targetRole);
-        }
-
-        private static string? GetFirstAllowedRole(ClaimsPrincipal user, List<string> targetRoleList, bool includeElevatedRoles)
-        {
-            foreach (string targetRole in targetRoleList)
-            {
-                if ((includeElevatedRoles || !IsForcedExecutionMode(targetRole)) && HasAllowedRole(user, targetRole))
-                {
-                    return targetRole;
-                }
-            }
-            return null;
-        }
-
-        private bool IsForcedExecutionMode(ClaimsPrincipal user)
-        {
-            return IsForcedExecutionMode(forcedExecutionMode) && HasAllowedRole(user, forcedExecutionMode);
-        }
-
-        private static bool IsForcedExecutionMode(string role)
-        {
-            return role.Equals(FWO.Basics.Roles.Admin, StringComparison.OrdinalIgnoreCase)
-                || role.Equals(FWO.Basics.Roles.Auditor, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool HasSelectableUserRole(ClaimsPrincipal user)
-        {
-            return ExecutionModeHelper.GetUserRoles(user).Any(role => !IsForcedExecutionMode(role) && !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role));
-        }
-
-        private string GetBaselineRole()
-        {
-            if (IsForcedExecutionMode(forcedExecutionMode))
-            {
-                return forcedExecutionMode;
-            }
-            if (restrictElevatedRoleSwitches && IsForcedExecutionMode(defaultRole))
-            {
-                return "";
-            }
-            return defaultRole;
-        }
-
-        private string GetRequestRole()
-        {
-            string role = GetActRole();
-            if (!string.IsNullOrWhiteSpace(role) && HasExplicitRole())
-            {
-                return role;
-            }
-            if (IsForcedExecutionMode(forcedExecutionMode))
-            {
-                return role;
-            }
-            if (!string.IsNullOrWhiteSpace(ambientRole))
-            {
-                return ambientRole;
-            }
-            if (!string.IsNullOrWhiteSpace(role))
-            {
-                return role;
-            }
-            if (RequiresExplicitRole())
-            {
-                throw new AuthenticationException("GraphQL API call requires an explicit role for users with multiple application roles. Use RunWithBestRole or RunWithRole.");
-            }
-            return role;
-        }
-
-        private bool HasExplicitRole()
-        {
-            List<string>? roles = roleStack.Value;
-            return roles != null && roles.Any(role => !string.IsNullOrWhiteSpace(role));
-        }
-
-        private bool RequiresExplicitRole()
-        {
-            return allowedRoles
-                .Where(role => !FWO.Basics.RoleGroups.IsTechnicalOrAnonymous(role))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Count() > 1;
-        }
-
-        public override void SwitchBack()
-        {
-            List<string>? roles = roleStack.Value;
-            if (roles == null || roles.Count == 0)
-            {
-                return;
-            }
-
-            List<string> newRoles = [.. roles];
-            newRoles.RemoveAt(newRoles.Count - 1);
-            roleStack.Value = newRoles;
-        }
-
-        private void PushRole(string role)
-        {
-            List<string>? roles = roleStack.Value;
-            List<string> newRoles = roles == null ? [] : [.. roles];
-            newRoles.Add(role);
-            roleStack.Value = newRoles;
-        }
-
-        private static bool HasAllowedRole(ClaimsPrincipal user, string role)
-        {
-            return ExecutionModeHelper.GetUserRoles(user).Contains(role, StringComparer.OrdinalIgnoreCase);
-        }
-
-        private void UpdateJwtRoleState(string jwt)
-        {
-            defaultRole = "";
-            allowedRoles = [];
-            try
-            {
-                JwtSecurityToken token = new JwtSecurityTokenHandler().ReadJwtToken(jwt);
-                defaultRole = token.Claims.FirstOrDefault(claim => claim.Type == "x-hasura-default-role")?.Value ?? "";
-                allowedRoles = JwtClaimParser.ExtractStringClaimValues(token.Claims, "x-hasura-allowed-roles");
-            }
-            catch
-            {
-                defaultRole = "";
-                allowedRoles = [];
-            }
         }
 
         /// <summary>
@@ -439,82 +210,6 @@ namespace FWO.Api.Client
             }
 
             return ConvertChunkResponse<QueryResponseType>(mergedResponse);
-        }
-
-        public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler, GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null, string? operationName = null)
-        {
-            try
-            {
-                GraphQlApiSubscription<SubscriptionResponseType> newSub;
-
-                lock (subscriptionsLock)
-                {
-                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
-                    GraphQLRequest request = CreateSubscriptionRequest(subscription, variables, operationName);
-                    newSub = new(this, graphQlSubscriptionClient, request, exceptionHandler, subscriptionUpdateHandler);
-                    subscriptions.Add(newSub);
-                }
-
-                return newSub;
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError(LogCategory, "Error while creating subscription to GraphQL API.", exception);
-                throw;
-            }
-        }
-
-        public override async Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
-        {
-            await _reconnectLock.WaitAsync(ct);
-
-            try
-            {
-                ct.ThrowIfCancellationRequested();
-
-                GraphQLHttpClient oldSubscriptionClient;
-                GraphQLHttpClient newSubscriptionClient;
-                List<ApiSubscription> activeSubscriptions;
-
-                lock (subscriptionsLock)
-                {
-                    ObjectDisposedException.ThrowIf(_disposed, this);
-                    ObjectDisposedException.ThrowIf(graphQlClient is null, graphQlClient);
-                    ObjectDisposedException.ThrowIf(graphQlSubscriptionClient is null, graphQlSubscriptionClient);
-
-                    subscriptions.RemoveAll(subscription => subscription.IsDisposed);
-                    activeSubscriptions = [.. subscriptions];
-                    oldSubscriptionClient = graphQlSubscriptionClient;
-                    newSubscriptionClient = CreateSubscriptionClient(ApiServerUri);
-                    UpdateJwtRoleState(jwt);
-                    ApplyAuthHeader(graphQlClient, jwt);
-                    ApplyAuthHeader(newSubscriptionClient, jwt);
-
-                    graphQlSubscriptionClient = newSubscriptionClient;
-                }
-
-                Log.WriteInfo(LogCategory, $"Reconnecting {activeSubscriptions.Count} API subscriptions after JWT refresh.");
-
-                foreach (ApiSubscription subscription in activeSubscriptions)
-                {
-                    subscription.Rebind(newSubscriptionClient);
-                }
-
-                oldSubscriptionClient.Dispose();
-            }
-            catch (TaskCanceledException)
-            {
-                Log.WriteDebug(LogCategory, $"{nameof(ReconnectSubscriptionsAsync)} was cancelled.");
-            }
-            catch (Exception ex) when (ex is ObjectDisposedException)
-            {
-                Log.WriteError(LogCategory, "Error while reconnecting subscription", ex);
-            }
-            finally
-            {
-                _reconnectLock.Release();
-            }
         }
 
         private static List<object?> ExtractChunkItems(object variables, string variableName)
@@ -830,13 +525,18 @@ namespace FWO.Api.Client
         {
             if (disposing)
             {
-                _reconnectLock.Wait();
+                // Held for the whole teardown so a reconnect in flight finishes first: it
+                // hands its subscriptions a new client, and disposing underneath it would
+                // leave them bound to a disposed one.
+                reconnectLock.Wait();
                 try
                 {
                     List<ApiSubscription> subscriptionsToDispose;
                     GraphQLHttpClient? currentGraphQlClient;
                     GraphQLHttpClient? currentGraphQlSubscriptionClient;
 
+                    // The state is taken and cleared under the lock, and the disposals run
+                    // outside it: disposing a subscription reaches back into this instance.
                     lock (subscriptionsLock)
                     {
                         _disposed = true;
@@ -858,63 +558,14 @@ namespace FWO.Api.Client
                 }
                 finally
                 {
-                    _reconnectLock.Release();
+                    reconnectLock.Release();
                 }
-            }
-        }
-
-        public override void DisposeSubscriptions<T>()
-        {
-            List<ApiSubscription> subscriptionsToDispose;
-
-            lock (subscriptionsLock)
-            {
-                subscriptionsToDispose = [.. subscriptions.Where(_ => _.GetType() == typeof(T))];
-
-                subscriptions.RemoveAll(_ => _.GetType() == typeof(T));
-            }
-
-            foreach (ApiSubscription subscription in subscriptionsToDispose)
-            {
-                subscription.Dispose();
             }
         }
 
         private GraphQLHttpRequest CreateHttpRequest(string role, string query, object? variables, string? operationName)
         {
             return new RoleGraphQLHttpRequest(role, query, variables, operationName);
-        }
-
-        private object CreateWebSocketConnectionInitPayload(GraphQLHttpClient client)
-        {
-            string role = GetRequestRole();
-            Dictionary<string, object?> headers = new()
-            {
-                ["authorization"] = client.HttpClient.DefaultRequestHeaders.Authorization?.ToString()
-            };
-            if (!string.IsNullOrWhiteSpace(role))
-            {
-                headers["x-hasura-role"] = role;
-            }
-
-            return new Dictionary<string, object?> { ["headers"] = headers };
-        }
-
-        private GraphQLRequest CreateSubscriptionRequest(string query, object? variables, string? operationName)
-        {
-            string role = GetRequestRole();
-            GraphQLRequest request = new(query, variables, operationName);
-            if (!string.IsNullOrWhiteSpace(role))
-            {
-                request.Extensions = new Dictionary<string, object?>
-                {
-                    ["headers"] = new Dictionary<string, object?>
-                    {
-                        ["x-hasura-role"] = role
-                    }
-                };
-            }
-            return request;
         }
 
         private sealed class RoleGraphQLHttpRequest(string role, string query, object? variables = null, string? operationName = null)

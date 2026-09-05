@@ -24,13 +24,158 @@
   environment: "{{ proxy_env }}"
   tags: ["test", "integrationtests"]
 
-- block:
-      - name: Install the openldap and required Packages
-        package:
-            name: "{{ item }}"
-            state: present
-        loop: "{{ openldap_server_pkgs }}"
+# System defaults for every libldap client on this host, so an administrator
+# running ldapsearch by hand verifies the connection instead of trusting anything.
+# The template existed but was never rendered by any task, which left the whole
+# file - and the trust anchor documentation/certificates.md says it carries -
+# without effect. Written in both installation modes: an upgrade changes the
+# anchor from the old self-signed leaf to the internal CA.
+- name: Configure system wide ldap client defaults
+  template:
+      src: ldap.conf.j2
+      dest: "{{ openldap_server_app_path }}/ldap.conf"
+      owner: root
+      group: root
+      mode: "0644"
+  become: true
+  tags: ["test", "integrationtests"]
 
+# Hoisted out of the installation block below. internalCA issues the slapd identity
+# to the slapd account directly, but it cannot do that before this role has
+# installed the package that creates the account - so on a fresh installation the
+# identity arrives owned by root and is handed over here. Leaving these inside the
+# "new" block meant an upgrade handed slapd a private key it cannot read, and
+# because slapd is only restarted there as well, the breakage stayed invisible
+# until the next restart or reboot - at which point all LDAP authentication is down.
+- name: Install the openldap and required Packages
+  package:
+      name: "{{ item }}"
+      state: present
+  loop: "{{ openldap_server_pkgs }}"
+  become: true
+
+- name: Configure LDAP protocol, URI and port
+  lineinfile:
+      path: "{{ openldap_service_defaults_file }}"
+      create: true
+      regexp: "^SLAPD_SERVICES="
+      line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
+  become: true
+
+- name: Grant slapd access to its internal CA identity
+  file:
+      path: "{{ openldap_server_cert_path }}"
+      state: directory
+      recurse: true
+      owner: "{{ openldap_server_user }}"
+      group: "{{ openldap_server_user }}"
+  become: true
+  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+- name: Allow slapd to traverse the certificate parent directory
+  file:
+      path: "{{ openldap_server_cert_path | dirname }}"
+      state: directory
+      owner: root
+      group: root
+      mode: "0755"
+  become: true
+  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+
+# Older installations created a local slapd unit override on every OS. Debian's
+# packaged unit already consumes /etc/default/slapd and must not retain that legacy
+# override. Other supported distributions still need the override rendered from the
+# current defaults file. Reconcile the unit in both installation modes so upgrades
+# cannot keep starting slapd with an obsolete listener list.
+- name: Remove Debian slapd override
+  file:
+      path: /etc/systemd/system/slapd.service.d/override.conf
+      state: absent
+  become: true
+  when: ansible_facts['distribution'] == "Debian"
+
+- name: Create slapd systemd override directory
+  file:
+      path: /etc/systemd/system/slapd.service.d
+      state: directory
+  become: true
+  when: ansible_facts['distribution'] != "Debian"
+
+- name: Read slapd systemd unit type
+  command: systemctl show -p Type --value slapd.service
+  register: slapd_unit_type
+  changed_when: false
+  become: true
+  when: ansible_facts['distribution'] != "Debian"
+
+- name: Configure slapd systemd service
+  template:
+      src: override.conf.j2
+      dest: /etc/systemd/system/slapd.service.d/override.conf
+  become: true
+  when: ansible_facts['distribution'] != "Debian"
+
+- name: Reload systemd after reconciling the slapd service
+  systemd:
+      daemon_reload: true
+  become: true
+  changed_when: false
+
+# slapd reads its listener list once, when it starts, so the defaults file written
+# above says nothing about what the running process actually serves. Deciding the
+# restart on whether *this* run changed that file loses the restart for good as soon
+# as a run is interrupted between the two tasks: the next run finds the file already
+# correct, reports no change, and slapd keeps serving the listeners it was started
+# with - the configuration and the process stay apart with nothing to bring them back
+# together. The running command line is the honest input for that decision, and using
+# it makes the restart self healing on the next run.
+- name: Read the state of the slapd service
+  systemd:
+      name: slapd
+  register: openldap_service_state
+  become: true
+  changed_when: false
+  failed_when: false
+
+- name: Read the command line of the running slapd
+  slurp:
+      src: "/proc/{{ openldap_slapd_main_pid }}/cmdline"
+  vars:
+      openldap_slapd_main_pid: "{{ (openldap_service_state.status | default({})).get('MainPID', '0') }}"
+  register: openldap_service_command_line
+  become: true
+  failed_when: false
+  when: openldap_slapd_main_pid != '0'
+
+# The -h value is a single argument holding the whole space separated URL list, so it
+# comes back whole when the NUL separated /proc entry is cut into arguments.
+- name: Read the listeners the running slapd was started with
+  set_fact:
+      openldap_running_services: >-
+        {{ slapd_arguments[slapd_arguments.index('-h') + 1]
+           if '-h' in slapd_arguments
+              and slapd_arguments.index('-h') + 1 < slapd_arguments | length
+           else '' }}
+  vars:
+      slapd_arguments: >-
+        {{ openldap_service_command_line.content | default('') | b64decode
+           | regex_findall("[^\x00]+") }}
+
+# A reissued certificate or changed listener configuration is only picked up when
+# slapd reloads. On a new installation the block below starts slapd anyway.
+- name: Restart slapd when it does not serve its configured runtime configuration
+  systemd:
+      name: slapd
+      state: restarted
+  become: true
+  when:
+      - installation_mode == "upgrade"
+      - >-
+        internalca_ldap_identity_changed | default(false) | bool
+        or openldap_running_services | split | sort
+           != openldap_server_services | trim | split | sort
+
+- block:
       ### Clean up slapd.d
 
       - name: Create the empty configuration directory
@@ -74,21 +219,6 @@
         register: root_password
 
       ### TLS
-      - name: Create ldap certificates
-        include_role:
-            name: openssl-cert
-        vars:
-            openssl_cert_path: "{{ openldap_server_cert_path }}"
-            openssl_user: "{{ openldap_server_user }}"
-            openssl_private_key: "{{ openldap_server_private_key }}"
-            openssl_csr: "{{ openldap_server_csr }}"
-            openssl_country: "{{ openldap_server_country }}"
-            openssl_state: "{{ openldap_server_state }}"
-            openssl_location: "{{ openldap_server_location }}"
-            openssl_organization: "{{ openldap_server_organization }}"
-            openssl_email_address: "{{ openldap_server_email_address }}"
-            openssl_cert: "{{ openldap_server_cert }}"
-
       ### Config files
       - name: Create the directory for ldap database
         file:
@@ -111,13 +241,6 @@
             force: false
             mode: 0640
 
-      - name: Configure LDAP protocol, URI and port
-        lineinfile:
-            path: "{{ openldap_service_defaults_file }}"
-            create: true
-            regexp: "^SLAPD_SERVICES="
-            line: 'SLAPD_SERVICES="{{ openldap_server_services }}"'
-
       - name: Initialize ldap config
         command: slapadd -F {{ openldap_server_app_path }}/slapd.d -n 0 -l {{ openldap_server_app_path }}/slapd.d/config.ldif
 
@@ -127,31 +250,6 @@
             state: directory
             recurse: true
             owner: "{{ openldap_server_user }}"
-
-      ### systemctl
-      - name: Remove Debian slapd override
-        file:
-            path: /etc/systemd/system/slapd.service.d/override.conf
-            state: absent
-        when: ansible_facts['distribution'] == "Debian"
-
-      - name: Create dir to enable TLS for slapd service
-        file:
-            path: /etc/systemd/system/slapd.service.d
-            recurse: true
-        when: ansible_facts['distribution'] != "Debian"
-
-      - name: Read slapd systemd unit type
-        command: systemctl show -p Type --value slapd.service
-        register: slapd_unit_type
-        changed_when: false
-        when: ansible_facts['distribution'] != "Debian"
-
-      - name: Enable TLS for slapd service
-        template:
-            src: override.conf.j2
-            dest: /etc/systemd/system/slapd.service.d/override.conf
-        when: ansible_facts['distribution'] != "Debian"
 
       - name: Start the slapd service
         block:

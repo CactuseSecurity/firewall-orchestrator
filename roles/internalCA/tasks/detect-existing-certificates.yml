@@ -1,0 +1,318 @@
+---
+# Decides whether an already installed certificate belongs to the operator and
+# must be left alone. Anything FWO issued itself - the historical self-signed
+# certificate or a leaf from our own internal CA - is replaced so it keeps
+# being renewed.
+# Shared with the private-key preflight in roles/common, which must inspect the key of
+# the very same vhost before it restarts Apache.
+- name: Select installed Apache configuration file
+  set_fact:
+    internalca_existing_apache_configuration: "{{ apache_vhost_conf_file }}"
+  when: "'apiserver' in group_names or 'middlewareserver' in group_names or 'frontends' in group_names"
+
+- name: Read installed Apache configuration
+  slurp:
+    src: "{{ internalca_existing_apache_configuration }}"
+  register: internalca_existing_apache_configuration_content
+  failed_when: false
+  when: internalca_existing_apache_configuration is defined
+
+# Block scalars keep backslashes verbatim, so these patterns use single
+# backslashes. Doubling them would silently never match and fall through to the
+# legacy defaults below.
+- name: Determine existing Apache certificate paths
+  set_fact:
+    internalca_existing_apache_certificate: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_certificate, true)
+      }}
+    internalca_existing_apache_private_key: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)') | first)
+        | default(internalca_legacy_apache_private_key, true)
+      }}
+    internalca_existing_peer_ca_intermediate_certificates: >-
+      {{
+        (internalca_existing_apache_configuration_content.content | default('') | b64decode
+        | regex_findall('(?m)^\s*SSLCertificateChainFile\s+([^\s]+)') | first)
+        | default('', true)
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+- name: Check existing Apache certificate and private key
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_existing_apache_certificate }}"
+    - "{{ internalca_existing_apache_private_key }}"
+  register: internalca_existing_apache_files
+  become: true
+  when: internalca_existing_apache_configuration is defined
+
+# x509_certificate_info works for every key algorithm; the previous
+# "openssl rsa -modulus" comparison aborted on EC keys, which are the default.
+- name: Read existing Apache certificate identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_existing_apache_certificate }}"
+  register: internalca_existing_apache_certificate_info
+  failed_when: false
+  become: true
+  when:
+    - internalca_existing_apache_configuration is defined
+    - internalca_existing_apache_files.results[0].stat.exists
+
+- name: Read existing Apache private key identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_existing_apache_private_key }}"
+  register: internalca_existing_apache_key_info
+  failed_when: false
+  become: true
+  when:
+    - internalca_existing_apache_configuration is defined
+    - internalca_existing_apache_files.results[1].stat.exists
+
+# A file that is present but unreadable is not the same as an absent one. Without
+# this check the fingerprint comparison below simply evaluates to false and FWO
+# silently repoints Apache at its own certificate - which is what happens to a
+# passphrase protected private key, the most common way an operator manages one.
+# Collected in a fact first: a loop is templated before its when is evaluated, so
+# looping over the stat results directly would break on hosts that have no vhost.
+- name: Collect unreadable Apache identity files
+  set_fact:
+    internalca_unreadable_apache_files: >-
+      {{
+        ([internalca_existing_apache_certificate]
+          if internalca_existing_apache_files.results[0].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_apache_certificate_info
+          else [])
+        + ([internalca_existing_apache_private_key]
+          if internalca_existing_apache_files.results[1].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_apache_key_info
+          else [])
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+- name: Fail when an existing Apache identity cannot be read
+  fail:
+    msg: >-
+      Cannot read {{ internalca_unreadable_apache_files | join(' and ') }} on
+      {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
+      cannot tell whether this identity is customer managed, and it must not
+      decide on its own. A passphrase protected private key is the usual cause.
+      Remove the passphrase, or set internalca_issue_apache_certificate to false
+      to keep FWO away from this identity entirely.
+  when: internalca_unreadable_apache_files | default([]) | length > 0
+
+- name: Preserve customer managed Apache certificates
+  set_fact:
+    internalca_preserve_apache_certificate: >-
+      {{
+        internalca_existing_apache_files.results[0].stat.exists
+        and internalca_existing_apache_files.results[1].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_apache_certificate_info
+        and 'public_key_fingerprints' in internalca_existing_apache_key_info
+        and internalca_existing_apache_certificate_info.public_key_fingerprints.sha256
+            == internalca_existing_apache_key_info.public_key_fingerprints.sha256
+        and internalca_existing_apache_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
+        and not (
+          internalca_existing_apache_certificate_info.subject.get('organizationName', '') == 'Cactus eSecurity'
+          and internalca_existing_apache_certificate_info.issuer.get('organizationName', '') == 'Cactus eSecurity'
+        )
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+# Only a host that keeps its customer-managed leaf resolves an intermediate chain. On a
+# host FWO issues the leaf for, internalca_apache_intermediate_certificates stays empty:
+# serving the customer chain there would be wrong, and validating the FWO leaf against
+# the customer root - which is what the configured global asks for - must fail. That is
+# why the global stays an input and the per-host value is a separate name.
+- name: Retain customer managed Apache certificate paths
+  set_fact:
+    internalca_apache_certificate: "{{ internalca_existing_apache_certificate }}"
+    internalca_apache_private_key: "{{ internalca_existing_apache_private_key }}"
+    internalca_apache_intermediate_certificates: >-
+      {{
+        internalca_peer_ca_intermediate_certificates
+        if internalca_peer_ca_intermediate_certificates | length > 0
+        else internalca_existing_peer_ca_intermediate_certificates
+      }}
+    internalca_issue_apache_certificate: false
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+# Applies to any Apache endpoint FWO clients verify, not just the API: the
+# integration tests validate the middleware and UI endpoints against the same
+# trust bundle, so a retained certificate on those hosts fails just as hard.
+- name: Require an explicit trust bundle for a retained Apache certificate
+  fail:
+    msg: >-
+      The existing Apache certificate on {{ inventory_hostname }} is customer
+      managed. Set internalca_peer_ca_certificate to the path of its issuing
+      root CA certificate on every FWO component before upgrading. The
+      {{ product_name }} internal CA alone cannot validate the retained certificate.
+      The issuer is added to FWO's trust configuration rather than replacing the
+      internal CA, so endpoints that still serve an internal CA certificate keep working.
+  when:
+    - internalca_preserve_apache_certificate | default(false) | bool
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
+# Checked here rather than at the first TLS handshake: without it the run stays green
+# for another ten minutes and then fails deep inside the integration tests with a bare
+# "Hostname mismatch", or with a middleware that never binds its port because the API
+# client rejected a certificate that does not name api_uri's host.
+- name: Require a retained Apache certificate to cover every FWO endpoint name
+  include_tasks: validate-retained-certificate.yml
+  vars:
+    retained_certificate_subject: Apache
+    retained_certificate_path: "{{ internalca_existing_apache_certificate }}"
+    retained_certificate_info: "{{ internalca_existing_apache_certificate_info }}"
+    retained_certificate_required_names: "{{ internalca_endpoint_host_names }}"
+    # One folded scalar per remedy, and neither names the missing entries: that count is
+    # only known inside the include, and a Jinja literal broken across lines inside a
+    # folded scalar would keep its newline and indentation in the operator's message.
+    single_host_remedy: >-
+      Set fwo_endpoint_hostname in {{ fworch_conf_dir }}/fwo-install-settings.yml to a name
+      the certificate covers, or have the certificate reissued for the names listed above.
+    # fwo_endpoint_hostname names all three endpoints at once, but roles/common refuses it
+    # on an inventory holding more than one host - which is exactly where the endpoints were
+    # named individually and so exactly where this failure is most likely. Naming it there
+    # would send the operator into a second, different failure.
+    multi_host_remedy: >-
+      This inventory spreads {{ product_name }} over {{ fworch_inventory_hosts | length }}
+      hosts, so fwo_endpoint_hostname is refused here. Set
+      api_network_listening_ip_address, middleware_hostname and ui_hostname individually in
+      {{ fworch_conf_dir }}/fwo-install-settings.yml to names the certificate covers, or have
+      the certificate reissued for the names listed above.
+    retained_certificate_remedy: >-
+      {{ single_host_remedy if fworch_inventory_hosts | default([]) | length <= 1 else multi_host_remedy }}
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+- name: Check existing LDAP certificate and private key
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_ldap_certificate }}"
+    - "{{ internalca_ldap_private_key }}"
+  register: internalca_existing_ldap_files
+  become: true
+  when: "'middlewareserver' in group_names"
+
+- name: Read existing LDAP certificate identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ldap_certificate }}"
+  register: internalca_existing_ldap_certificate_info
+  failed_when: false
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_existing_ldap_files.results[0].stat.exists
+
+- name: Read existing LDAP private key identity
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_ldap_private_key }}"
+  register: internalca_existing_ldap_key_info
+  failed_when: false
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_existing_ldap_files.results[1].stat.exists
+
+# Same reasoning as for the Apache identity above: an unreadable file must stop
+# the run rather than quietly demote slapd to an FWO issued certificate.
+- name: Collect unreadable LDAP identity files
+  set_fact:
+    internalca_unreadable_ldap_files: >-
+      {{
+        ([internalca_ldap_certificate]
+          if internalca_existing_ldap_files.results[0].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_ldap_certificate_info
+          else [])
+        + ([internalca_ldap_private_key]
+          if internalca_existing_ldap_files.results[1].stat.exists
+          and 'public_key_fingerprints' not in internalca_existing_ldap_key_info
+          else [])
+      }}
+  when: "'middlewareserver' in group_names"
+
+- name: Fail when an existing LDAP identity cannot be read
+  fail:
+    msg: >-
+      Cannot read {{ internalca_unreadable_ldap_files | join(' and ') }} on
+      {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
+      cannot tell whether this identity is customer managed, and it must not
+      decide on its own. A passphrase protected private key is the usual cause.
+      Remove the passphrase, or move the identity out of
+      {{ internalca_ldap_cert_dir }} if slapd should not use it.
+  when: internalca_unreadable_ldap_files | default([]) | length > 0
+
+- name: Preserve customer managed LDAP certificates
+  set_fact:
+    internalca_preserve_ldap_certificate: >-
+      {{
+        internalca_existing_ldap_files.results[0].stat.exists
+        and internalca_existing_ldap_files.results[1].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_ldap_certificate_info
+        and 'public_key_fingerprints' in internalca_existing_ldap_key_info
+        and internalca_existing_ldap_certificate_info.public_key_fingerprints.sha256
+            == internalca_existing_ldap_key_info.public_key_fingerprints.sha256
+        and internalca_existing_ldap_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
+        and not (
+          internalca_existing_ldap_certificate_info.subject.get('organizationName', '') == 'IT'
+          and internalca_existing_ldap_certificate_info.issuer.get('organizationName', '') == 'IT'
+        )
+      }}
+  when: "'middlewareserver' in group_names"
+
+# Mirrors the guard the Apache identity has above, and for a sharper reason. The
+# middleware accepts an LDAP server certificate on exactly two routes: one the host
+# already trusts, or one that chains to the trust bundle - the internal CA plus
+# internalca_peer_ca_certificate. A retained slapd certificate is by definition not from
+# the internal CA, so with no peer CA configured only the host trust store is left, and
+# nothing in this run can establish that the issuing CA is in it - a chain through an
+# intermediate cannot be resolved from the files on disk either. Naming the issuing root
+# as the peer CA is additive and safe whichever route ends up being used: roles/internalCA
+# installs it as an FWO owned trust anchor beside the internal CA and replaces nothing. So
+# it is asked for here, rather than after an upgrade that ends green and then rejects
+# every login.
+- name: Require an explicit trust bundle for a retained LDAP certificate
+  fail:
+    msg: >-
+      The existing OpenLDAP certificate on {{ inventory_hostname }}
+      ({{ internalca_ldap_certificate }}) is customer managed, issued by
+      {{ internalca_existing_ldap_certificate_info.issuer.get('commonName', 'an unnamed CA') }}.
+      Set internalca_peer_ca_certificate to the path of its issuing root CA certificate on
+      every {{ product_name }} component before upgrading. The middleware verifies this
+      certificate against the trust bundle, and the internal CA alone cannot validate it,
+      so without the issuer every login fails with a rejection logged under LdapTls. Move
+      the identity out of {{ internalca_ldap_cert_dir }} instead if slapd should go back to
+      an {{ product_name }} issued certificate. The issuer is added to the trust
+      configuration rather than replacing the internal CA, so endpoints that still serve an
+      internal CA certificate keep working.
+  when:
+    - internalca_preserve_ldap_certificate | default(false) | bool
+    - internalca_peer_ca_certificate == internalca_ca_certificate_local
+
+# The same question for the slapd identity, and it matters more than it looks: the
+# middleware now verifies the LDAP server certificate instead of accepting any, and it
+# connects to openldap_server - 127.0.0.1 on a single-host installation. A customer
+# managed slapd certificate almost never carries that, so without this the upgrade
+# succeeds and every login afterwards fails on a TLS host name mismatch, with nothing
+# pointing at the certificate. There is no fwo_endpoint_hostname equivalent here, so the
+# remedy is the certificate itself or letting FWO issue the identity again.
+- name: Require a retained LDAP certificate to cover the address the middleware uses
+  include_tasks: validate-retained-certificate.yml
+  vars:
+    retained_certificate_subject: OpenLDAP
+    retained_certificate_path: "{{ internalca_ldap_certificate }}"
+    retained_certificate_info: "{{ internalca_existing_ldap_certificate_info }}"
+    retained_certificate_required_names: "{{ [openldap_server] | reject('equalto', '') | list }}"
+    retained_certificate_remedy: >-
+      Have the certificate reissued for {{ openldap_server }}, or move it out of
+      {{ internalca_ldap_cert_dir }} so {{ product_name }} issues the slapd identity from its
+      internal CA again. Until then the middleware cannot open an LDAP connection and no
+      user can log in.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool

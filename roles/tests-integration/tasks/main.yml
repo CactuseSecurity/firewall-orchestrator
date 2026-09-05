@@ -7,6 +7,31 @@
   become: true
   environment: "{{ proxy_env }}"
 
+- name: Read the configured middleware URI
+  ansible.builtin.slurp:
+    src: "{{ fworch_conf_file }}"
+  register: test_fwo_config_file
+  become: true
+
+- name: Parse the configured middleware URI
+  ansible.builtin.set_fact:
+    test_middleware_uri: >-
+      {{ (test_fwo_config_file.content | b64decode | from_json).middleware_uri }}
+
+- name: Derive the configured HTTPS middleware endpoint
+  ansible.builtin.set_fact:
+    test_middleware_host: "{{ test_middleware_uri | urlsplit('hostname') }}"
+    test_middleware_port: "{{ (test_middleware_uri | urlsplit('port')) | default(443, true) }}"
+
+- name: Require an HTTPS middleware endpoint in the FWO configuration
+  ansible.builtin.assert:
+    that:
+      - test_middleware_uri | urlsplit('scheme') == 'https'
+      - test_middleware_host | length > 0
+    fail_msg: >-
+      {{ fworch_conf_file }} must define middleware_uri as an HTTPS Apache
+      endpoint, but contains {{ test_middleware_uri }}.
+
 - name: randomize test names to avoid interference with production data
   set_fact:
     test_postfix: "_test_{{ randomly_generated_pwd }}"
@@ -77,9 +102,29 @@
 - name: systemd unit testing
   import_tasks: test-systemd-units.yml
 
+- name: internal service listener testing
+  import_tasks: test-internal-service-listeners.yml
+
 - name: Apache TLS key preflight testing
   import_tasks: test-apache-tls-key-preflight.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Apache intermediate chain configuration testing
+  import_tasks: test-apache-intermediate-chain.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Apache endpoint name coverage testing
+  import_tasks: test-apache-endpoint-names.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Retained certificate endpoint name preflight testing
+  import_tasks: test-retained-certificate-preflight.yml
+  when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+# On the database host because that is the role whose migration files the guard protects.
+- name: Upgrade source version guard testing
+  import_tasks: test-upgrade-source-version-guard.yml
+  when: "'databaseserver' in group_names"
 
 - name: finalize handler for deleting test data
   set_fact:

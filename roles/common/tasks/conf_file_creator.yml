@@ -17,10 +17,17 @@
         product_version: "{{ product_version }}"
         fworch_home: "{{ fworch_home }}"
         dotnet_mode: "{{ dotnet_mode }}" 
-        api_uri: "https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql"
+        # Every endpoint is taken from the inventory derived variable rather than
+        # rebuilt here: a second copy of the same expression is how the deployed
+        # configuration and the certificate SANs, which are built from those same
+        # variables, silently end up describing different endpoints.
+        api_uri: "{{ api_uri }}"
         api_hasura_jwt_alg: "{{ api_hasura_jwt_alg }}"
-        middleware_native_uri: "http://{{ middleware_hostname }}:{{ middleware_internal_port }}/"
+        middleware_native_uri: "{{ middleware_native_uri }}"
         middleware_uri: "{{ middleware_uri }}"
+        tls_client_certificate: "{{ internalca_client_certificate }}"
+        tls_client_private_key: "{{ internalca_client_private_key }}"
+        tls_ca_certificate: "{{ internalca_trust_bundle }}"
         remote_addresses: []
 
   - name: create central conf file by dumping varibale as json file
@@ -31,5 +38,65 @@
       group: "{{ fworch_group }}"
       mode: "0640"
     when: installation_mode == "new"
+
+  - name: Read existing configuration during upgrade
+    slurp:
+      src: "{{ fworch_conf_file }}"
+    register: existing_config_json
+    when: installation_mode == "upgrade"
+
+  # The whole file is rewritten below, so an unparsable original has to be caught
+  # with a message naming it. Only the parse is wrapped, so a genuine write
+  # failure further down is not mislabelled as a broken config file.
+  - name: Parse the existing configuration during upgrade
+    block:
+      - name: Read the existing configuration into a fact
+        set_fact:
+          existing_config: "{{ existing_config_json.content | b64decode | from_json }}"
+    rescue:
+      - name: Report an unreadable existing configuration
+        fail:
+          msg: >-
+            {{ fworch_conf_file }} on {{ inventory_hostname }} is not valid JSON,
+            so the TLS identity paths cannot be added to it. Repair or restore the
+            file before upgrading; the installer will not overwrite it in this state.
+    when: installation_mode == "upgrade"
+
+  # The endpoint values are derived from the inventory, so they are refreshed
+  # rather than carried over: an operator who moves the middleware and upgrades
+  # would otherwise keep the old endpoint here, the ui would keep addressing it,
+  # and the integration tests read the same file and would agree with it instead
+  # of catching the divergence. dotnet_mode is refreshed for the same reason: the
+  # systemd units are templated from the inventory variable on every run, so a
+  # carried over value makes this file name a build configuration the services do
+  # not run from, which is exactly the wrong answer when it is read to diagnose one.
+  - name: Add TLS identity paths and refresh derived endpoints during upgrade
+    copy:
+      content: >-
+        {{
+          existing_config | combine(
+            {
+              'tls_client_certificate': internalca_client_certificate,
+              'tls_client_private_key': internalca_client_private_key,
+              'tls_ca_certificate': internalca_trust_bundle,
+              'dotnet_mode': config_json.dotnet_mode,
+              'api_uri': config_json.api_uri,
+              'middleware_uri': config_json.middleware_uri,
+              'middleware_native_uri': config_json.middleware_native_uri
+            }
+          ) | to_nice_json
+        }}
+      dest: "{{ fworch_conf_file }}"
+      owner: "{{ fworch_user }}"
+      group: "{{ fworch_group }}"
+      mode: "0640"
+      # The previous configuration is the only record of any hand edit an operator
+      # made, and this task replaces the file wholesale.
+      backup: true
+    # Suppresses the content diff only. Failures stay visible, unlike with no_log:
+    # the file holds no secrets today, but dumping an entire config into a --diff
+    # or CI log is noise that also invites one to be added unnoticed later.
+    diff: false
+    when: installation_mode == "upgrade"
 
   become: true

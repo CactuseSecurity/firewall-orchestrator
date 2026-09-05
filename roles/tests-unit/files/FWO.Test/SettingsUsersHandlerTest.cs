@@ -1096,7 +1096,7 @@ namespace FWO.Test
                 Queries.Add((query, variables));
                 object result = query switch
                 {
-                    var value when value == AuthQueries.getLdapConnections => ConnectedLdaps,
+                    var value when value == AuthQueries.getLdapConnectionsWithoutSecrets => ConnectedLdaps,
                     var value when value == AuthQueries.getTenants => Tenants,
                     var value when value == AuthQueries.updateUserEmail => new ReturnId { UpdatedId = GetVariable<int>(variables, "id") },
                     var value when value == AuthQueries.upsertUiUser => new ReturnIdWrapper { ReturnIds = [new ReturnId { NewId = NextNewUserId }] },

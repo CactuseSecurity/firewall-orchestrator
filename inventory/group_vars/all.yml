@@ -1,5 +1,17 @@
 ### general settings
-product_version: "9.4.6"
+product_version: "9.5.0"
+# The oldest product version an upgrade may start from, enforced by
+# roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
+# database. It exists because 9.5.0 removed the migration files below 8.0:
+# upgrade-database.yml runs the upgrade files it finds above the installed version, not
+# the ones that version needs, so a source below this floor would skip schema changes
+# without saying so. Raise it with every further removal of upgrade files - the floor and
+# the oldest file under roles/database/files/upgrade must stay adjacent releases - and
+# keep documentation/installer/server-upgrade.md in sync.
+minimum_upgrade_source_version: "8.0"
+# The last release that still carries the removed migration files, so an installation
+# below the floor can get here in two upgrades instead of a reinstall.
+minimum_upgrade_source_release: "v8.9.6"
 ansible_user: "{{ lookup('env', 'USER') }}"
 ansible_become_method: sudo
 ansible_python_interpreter: /usr/bin/python3
@@ -10,11 +22,53 @@ installer_controller_tmp_dir: "{{ lookup('env', 'HOME') }}/.fworch/tmp"
 installer_tmp_dir: "{{ ansible_user_dir }}/.fworch/tmp"
 
 ### host information
+# Every name below is taken from inventory/hosts.yml, which is therefore the single
+# place a host has to be renamed. That matters for TLS: the names derived here end up
+# in api_uri, middleware_uri and the Apache certificate's subjectAltName alike, so an
+# installation whose endpoints must be addressed under a specific name - a DNS name a
+# retained administrator-managed certificate was issued for, above all - only has to
+# carry that name in inventory/hosts.yml. See documentation/certificates.md.
+#
+# One name for all three FWO endpoints, for the common case of a single host that has to
+# be addressed under a specific DNS name. Empty by default, which leaves every name
+# exactly as the inventory has it. It exists because inventory/hosts.yml is a tracked
+# file in the git repository the installer is run from, so an edit there is lost by a
+# fresh clone and conflicts on git pull: set this in the host wide settings file below
+# instead, which lives outside the repository. Only correct when the api, middleware and
+# ui are on one host - roles/common refuses a multi host inventory with it set.
+fwo_endpoint_hostname: ""
+# The hosts this installation is spread over. Global rather than a set_fact in roles/common
+# because roles/internalCA reports it in a failure message and "--tags certificates" runs
+# internalCA without common - a set_fact there is simply undefined in exactly the run that
+# reissues the certificates. Defined once, here, so the two cannot drift.
+fworch_inventory_hosts: >-
+  {{
+    ['databaseserver', 'apiserver', 'middlewareserver', 'frontends', 'importers']
+    | map('extract', groups)
+    | select('defined')
+    | flatten
+    | unique
+  }}
+# Operator owned installer input, read by scripts/run-playbook-with-sudo.sh and passed as
+# extra variables, so it outranks everything in this file. Shared by every clone on the
+# host on purpose: two administrators upgrading the same installation from their own
+# repositories would otherwise write different endpoints into fworch.json and have
+# certificates reissued for different names. The path is also hard coded in that script,
+# which cannot read Ansible variables - keep the two in step, and see the script for the
+# FWORCH_LOCAL_SETTINGS override that a relocated fworch_home needs.
+fwo_install_settings_file: "{{ fworch_conf_dir }}/fwo-install-settings.yml"
 importer_hostname: "{{ groups['importers'].0 }}"
-ui_hostname: "{{ groups['frontends'].0 }}"
+ui_hostname: "{{ fwo_endpoint_hostname or groups['frontends'].0 }}"
 syslog_host: "{{ groups['logserver'].0 }}"
+# Not derived from fwo_endpoint_hostname: this is the inventory host the database tasks
+# are delegated to, not an address anything connects to (that is fworch_db_connect_host),
+# and delegate_to only accepts a name the inventory actually has.
 fworch_db_host: "{{ groups['databaseserver'].0 }}"
-api_hostname: "{{  groups['apiserver'].0 }}"
+# Only ever added to the subjectAltName of a certificate FWO issues, and deliberately not
+# offered as an operator setting: api_uri is built from api_network_listening_ip_address and
+# the api vhost serves api_server_name, so a second name here connects to nothing. Do not
+# put it back into operator guidance or into a check that can block an upgrade.
+api_hostname: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 sample_hostname: "{{ groups['sampleserver'].0 }}"
 
 # fworch_db_host_ip: "{{ hostvars[fworch_db_host]['ansible_host'] }}"
@@ -24,6 +78,9 @@ sample_hostname: "{{ groups['sampleserver'].0 }}"
 #   uninstall     - runs uninstall-fworch.yml
 #   upgrade       - installs on top of an existing system preserving any existing data in ldap, database, api
 installation_mode: new
+# Keep internal data services on the IPv4 and IPv6 loopback interfaces by default.
+# Set this to true only when FWO components are installed on separate hosts.
+distributed_install: false
 install_syslog: true
 add_demo_data: true
 api_docu: false
@@ -80,9 +137,137 @@ fworch_systemd_start_limit_burst: 30
 fworch_ui_memory_max_percent: 50
 fworch_middleware_memory_max_percent: 30
 fworch_importer_memory_max_percent: 40
-fworch_ui_memory_max: "{{ 'infinity' if fworch_ui_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_ui_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
-fworch_middleware_memory_max: "{{ 'infinity' if fworch_middleware_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_middleware_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
-fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent | int <= 0 else ((ansible_memtotal_mb | int * fworch_importer_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_ui_memory_max: "{{ 'infinity' if fworch_ui_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_ui_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_middleware_memory_max: "{{ 'infinity' if fworch_middleware_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_middleware_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+fworch_importer_memory_max: "{{ 'infinity' if fworch_importer_memory_max_percent | int <= 0 else ((ansible_facts['memtotal_mb'] | int * fworch_importer_memory_max_percent | int / 100) | round | int) ~ 'M' }}"
+
+### internal certificate authority
+# Only the settings below are global. Everything else the internalCA role needs
+# stays in roles/internalCA/defaults/main.yml - a variable must be defined in
+# exactly one of the two places, or the two copies drift apart.
+#
+# Global because roles other than internalCA read them: role defaults are only
+# in scope while their own role runs, so the api, middleware, ui, openldap-server,
+# common and tests-integration roles cannot see internalCA's defaults.
+
+# Applies to the GraphQL API vhost only. The middleware REST API is deliberately
+# reachable without a client certificate, because external callers authenticate
+# to it with username/password to obtain their JWT.
+graphql_api_requires_client_certificate: true
+
+# read by roles/api, roles/middleware and roles/ui apache templates
+internalca_apache_certificate: "{{ fworch_secrets_dir }}/apache/server.crt"
+internalca_apache_private_key: "{{ fworch_secrets_dir }}/apache/server.key"
+# Optional PEM bundle containing the intermediate CA certificates Apache must
+# send after a customer-managed leaf certificate. Keep the issuing root in
+# internalca_peer_ca_certificate; roots are trust anchors and are not part of
+# the server chain. The path must exist on every host serving an FWO Apache
+# endpoint. Existing SSLCertificateChainFile settings are retained on upgrade.
+internalca_peer_ca_intermediate_certificates: ""
+# The intermediates this host's Apache actually serves, resolved per host by
+# roles/internalCA. It carries internalca_peer_ca_intermediate_certificates only on a
+# host that keeps a customer-managed certificate; a host serving an FWO-issued leaf
+# keeps it empty, because that leaf must neither present a customer chain nor be
+# validated against a customer root. It is a separate name because
+# internalca_peer_ca_intermediate_certificates may be passed with --extra-vars, and
+# no set_fact can narrow an extra variable.
+internalca_apache_intermediate_certificates: ""
+
+# Global rather than an internalCA role default because roles/tests-integration includes
+# roles/internalCA/tasks/validate-retained-certificate.yml to test it, and a role
+# default is invisible from another role - which is how a variable ends up silently
+# undefined in exactly the run that was meant to check it.
+#
+# Single-quoted rather than a block scalar, so the backslash reaches Jinja verbatim.
+# Doubling it makes every IP literal fail the test, which silently drops the IP SAN
+# entries api_uri is built from and turns the retained certificate check into a
+# comparison of an IP against the dNSName entries it can never be matched by.
+internalca_ipv4_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'
+# Every host name that has to be certified as an iPAddress entry rather than a dNSName.
+# An IPv4 literal is matched anchored, so a name like 10.0.0.7.example.com stays a name;
+# the second alternative is a bare colon, which is deliberately unanchored because no DNS
+# host name may contain one, so its presence alone identifies an IPv6 literal. Use it with
+# the `search` test, never `match` - `match` anchors at the start and would miss the colon.
+internalca_ip_literal_pattern: '^[0-9]{1,3}(\.[0-9]{1,3}){3}$|:'
+# Canonicalises a list of IP literals so two spellings of one IPv6 address compare equal:
+# 2001:0DB8::1 and 2001:db8:0:0:0:0:0:1 are the same address, and a preflight that compared
+# them as strings would reject a certificate that covers the endpoint. IPv4 literals and
+# anything without a colon pass through untouched.
+#
+# Jinja has no functions, so this reads a conventional input variable: set
+# internalca_ip_names_input in the task's vars and read the result here. It returns a
+# space separated string - an IP literal can never contain a space - so callers split it.
+# ansible.utils/netcommon (the ipaddr filter) is deliberately not used: neither collection
+# is pinned in collections/requirements.yml, and adding a dependency to the installer for
+# this would be out of proportion.
+internalca_canonical_ip_names: >-
+  {%- set canonical = [] -%}
+  {%- for value in internalca_ip_names_input | default([]) -%}
+    {%- set address = value | lower -%}
+    {%- if ':' in address -%}
+      {%- set parts = address.partition('::') -%}
+      {%- set head = parts[0].split(':') | reject('equalto', '') | list -%}
+      {%- set tail = parts[2].split(':') | reject('equalto', '') | list -%}
+      {%- set groups = (head + ['0'] * (8 - (head | length) - (tail | length)) + tail) if parts[1] else head -%}
+      {%- set expanded = [] -%}
+      {%- for group in groups -%}{%- set _ = expanded.append(group.lstrip('0') or '0') -%}{%- endfor -%}
+      {%- set _ = canonical.append(expanded | join(':')) -%}
+    {%- else -%}
+      {%- set _ = canonical.append(address) -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {{ canonical | join(' ') }}
+# The names FWO's own components actually connect to, taken from the very variables the
+# endpoints are built from - api_uri from api_network_listening_ip_address,
+# middleware_uri from middleware_hostname, the ui tests from ui_hostname. Both the
+# subjectAltName of a certificate FWO issues and the preflight over a certificate FWO
+# retains read this one list, because a name that only one of them knows about is
+# precisely how a green install ends up with an endpoint no client can validate.
+#
+# api_hostname is deliberately NOT here. Nothing connects to it and no vhost serves it -
+# api_uri is built from api_network_listening_ip_address and the api vhost's ServerName
+# is api_server_name - so it belongs in a certificate FWO issues (where an extra name is
+# free) but must never block an upgrade over a certificate FWO merely retains. This list
+# is the blocking one; internalca_apache_host_names is the generous one.
+internalca_endpoint_host_names: >-
+  {{
+    (
+      ([api_network_listening_ip_address] if 'apiserver' in group_names else [])
+      + ([middleware_hostname] if 'middlewareserver' in group_names else [])
+      + ([ui_hostname] if 'frontends' in group_names else [])
+    ) | reject('equalto', '') | unique | list
+  }}
+
+# read by roles/common (fworch.json) and roles/tests-integration
+internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
+internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"
+
+# The issuer copy of the CA certificate exists only on the CA host and sits in a
+# root-only directory. Every host gets a world-readable copy at this path, and
+# that is the one all unprivileged consumers must reference. Read by roles/api,
+# roles/openldap-server, roles/common and roles/tests-integration.
+internalca_ca_trust_anchor: "{{ product_name }}-internal-ca.crt"
+internalca_ca_certificate_local: "{{ fworch_conf_dir }}/{{ internalca_ca_trust_anchor }}"
+# An additional issuer to trust besides the FWO internal CA. Leave it at the
+# internal CA - the default - unless an upgrade retained a customer-managed Apache
+# certificate; then set it to that certificate's issuing root CA, at the same path
+# on every FWO host. It is *added* to the internal CA rather than replacing it,
+# because retention is decided per host: in a distributed installation one Apache
+# endpoint can keep a customer-managed certificate while another still serves an
+# internal CA one, and a single anchor could not cover both.
+internalca_peer_ca_certificate: "{{ internalca_ca_certificate_local }}"
+# The FWO-owned operating-system trust-store anchor for a configured peer CA.
+# It is separate from the customer-supplied source file so uninstall can remove
+# only the copy managed by FWO.
+internalca_peer_ca_trust_anchor: "{{ product_name }}-peer-ca.crt"
+# The anchors FWO's own TLS clients validate FWO endpoints against, written to
+# fworch.json as tls_ca_certificate and used by the importer, the customizing
+# scripts, the .NET GraphQL and LDAP clients and the integration tests. Assembled
+# by roles/internalCA from the internal CA plus internalca_peer_ca_certificate.
+# Distinct from internalca_ca_certificate_local, which stays the internal CA alone:
+# that one is what Apache verifies *client* certificates against, and adding a
+# customer issuer there would let it mint FWO client identities.
+internalca_trust_bundle: "{{ fworch_conf_dir }}/{{ product_name }}-trust-bundle.crt"
 
 # setting default proxy (may be overwritten via --extra-vars)
 # Lowercase proxy variables take precedence over uppercase when both are set.
@@ -128,6 +313,34 @@ dbadmin_password_file: "{{ fworch_secrets_dir }}/dbadmin_pwd"
 fworch_db_password_file: "{{ fworch_secrets_dir }}/fworch_db_pwd"
 api_user: fwo_api
 api_user_password_file: "{{ fworch_secrets_dir }}/api_db_pwd"
+# Loopback literals, so the listener settings below and the integration test that
+# checks them do not each hardcode their own copy.
+ipv4_loopback_address: "127.0.0.1"
+ipv6_loopback_address: "::1"
+# Whether this host actually has an IPv6 loopback. Binding [::1] explicitly is fatal
+# for slapd and logged as an error by PostgreSQL on hosts booted with ipv6.disable=1,
+# and the wildcard listener forms these settings replaced used to hide that by
+# silently degrading to IPv4.
+ipv6_loopback_available: >-
+  {{ ansible_facts['lo']['ipv6'] | default([])
+     | selectattr('address', 'equalto', ipv6_loopback_address)
+     | list
+     | length > 0 }}
+
+postgresql_listening_addresses: >-
+  {{ api_network_listening_ip_address ~ ',' ~ api_local_listening_ip_address
+     if distributed_install | default(false) | bool
+     else ([api_local_listening_ip_address]
+           + ([ipv6_loopback_address] if ipv6_loopback_available | bool else [])) | join(',') }}
+
+# The address a client opens its PostgreSQL connection to. Deliberately not
+# fworch_db_host: that one names the inventory host the database tasks are delegated
+# to, and renaming it in inventory/hosts.yml must not change where clients connect.
+# On a single host installation PostgreSQL listens on loopback only (see
+# postgresql_listening_addresses) and pg_hba grants access to 127.0.0.0/8 and ::1/128
+# alone, so any other address - including the host's own DNS name - is refused.
+fworch_db_connect_host: >-
+  {{ fworch_db_host if distributed_install | default(false) | bool else ipv4_loopback_address }}
 
 ###############################################################
 ### api
@@ -138,7 +351,7 @@ api_legacy_service_names:
   - fworch-hasura-docker-api
   - hasura-docker-api
 api_local_listening_ip_address: "127.0.0.1"
-api_network_listening_ip_address: "{{ groups['apiserver'].0 }}"
+api_network_listening_ip_address: "{{ fwo_endpoint_hostname or groups['apiserver'].0 }}"
 # api_network_listening_ip_address: "{{ hostvars[groups['apiserver'].0].ip_address }}"
 # api_server_ip_address: "{{ groups['apiserver'].0 }}"
 api_web_port: 9443
@@ -153,16 +366,104 @@ jwt_private_key_file: "{{ fworch_secrets_dir }}/jwt_private_key.pem"
 jwt_public_key_file: "{{ fworch_secrets_dir }}/jwt_public_key.pem"
 ldap_manager_pwd_file: "{{ fworch_secrets_dir }}/ldap_manager_pwd"
 
-middleware_hostname: "127.0.0.1"
+# The public name of the middleware Apache endpoint: what middleware_uri is addressed
+# under, what its certificate has to be valid for, and what Apache serves as
+# ServerName. Taken from the inventory like every other endpoint name, so a renamed
+# host needs no second edit here. This is *not* the address the middleware's own web
+# server binds to - see middleware_native_listener_address below.
+middleware_hostname: "{{ fwo_endpoint_hostname or groups['middlewareserver'].0 }}"
 ldif_changetype: add
 middleware_service_name: "{{ product_name }}-middleware"
 openldap_server_enable_ssl: true
+
+# slapd listener URLs. Global rather than an openldap-server role default because the
+# integration test asserts the deployed value against it - re-deriving the string
+# there would only test that two copies of the same expression agree.
+#
+# slapd treats a failed bind as fatal (-h takes the whole list), so [::1] is listed
+# only where it can actually be bound. A single-host installation stays on loopback;
+# a distributed one keeps the wildcard ldaps:/// form.
+openldap_loopback_listeners: >-
+  {{
+    (['ldap://' ~ ipv4_loopback_address ~ '/']
+     + (['ldap://[' ~ ipv6_loopback_address ~ ']/'] if ipv6_loopback_available | bool else [])
+     + ((['ldaps://' ~ ipv4_loopback_address ~ '/']
+         + (['ldaps://[' ~ ipv6_loopback_address ~ ']/'] if ipv6_loopback_available | bool else []))
+        if openldap_server_enable_ssl else [])
+    ) | join(' ')
+  }}
+openldap_server_services: >-
+  {{
+    ("ldap://" ~ openldap_server ~ "/ ldaps:///"
+      if openldap_server_enable_ssl else "ldap://" ~ openldap_server ~ "/")
+    if distributed_install | default(false) | bool
+    else openldap_loopback_listeners
+  }}
+# The listener URLs above carry no port, so slapd uses the protocol defaults. Named
+# here so the integration test does not have to restate the numbers.
+openldap_plain_listener_port: 389
+openldap_tls_listener_port: 636
+
+# The service account slapd runs as, named by the distribution package. Global
+# rather than an openldap-server role var: internalCA issues the slapd identity to
+# this account and the sample-data role writes files for it, and neither can see
+# that role's vars. The openldap-server role still loads the same value from its
+# OS specific vars, which resolves to the identical name.
+openldap_server_user: "{{ 'ldap' if ansible_facts['os_family'] == 'RedHat' else 'openldap' }}"
+
+# TLS options for the ldapsearch/ldapmodify command line calls made by the
+# middleware, sample-data, sample-auth-data, openldap-server and tests-integration
+# roles. These options override /etc/ldap/ldap.conf, so leaving them at
+# TLS_REQCERT=never - as they were - meant FWO's own tooling never verified an LDAP
+# connection no matter what that file said.
+#
+# Global rather than per role: five different roles build this, and a role default
+# would be out of scope in four of them. That is also why openldap_server_cert stays
+# behind an is-defined guard - it is an openldap-server role default and is simply
+# absent everywhere else, which is what made the old TLS_CACERT a no-op there too.
+#
+# The fwo_ prefix comes from a collision that no longer exists: the openldap-server
+# upgrade files 5.4.1.yml and 6.4.9.yml set a fact named ldap_tls_opts pinned to
+# TLS_REQCERT=never, and a set_fact outranks group_vars for the rest of the play, so
+# under that name every later LDAP call of such an upgrade fell back to no
+# verification. Those files were removed in 9.5.0 together with every other upgrade
+# step below minimum_upgrade_source_version. The prefix is kept anyway: renaming a
+# variable five roles read buys nothing, and the distinct name is still the safer one
+# should an upgrade file ever set a fact of that name again.
+fwo_ldap_tls_opts: >-
+  {% if openldap_server_enable_ssl | default(false) -%}
+  {%- if not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
+  -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_ca_certificate_local }}
+  {%- else -%}
+  -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
+  {%- endif -%}
+  {%- endif %}
+
+# The same decision for the Ansible ldap_* modules, which take it as parameters
+# rather than command line options. These carry the Manager bind password, so an
+# unverified channel here hands it to anything that can answer on the LDAP port.
+# ldap_verify_certs is false only where verification cannot work: TLS is off or
+# an upgrade retained a customer-managed certificate whose issuer is not known.
+ldap_verify_certs: >-
+  {{ openldap_server_enable_ssl | default(false) | bool
+     and not (internalca_preserve_ldap_certificate | default(false) | bool) }}
+ldap_module_ca_path: "{{ internalca_ca_certificate_local if ldap_verify_certs | bool else omit }}"
 
 # middleware web server
 middleware_web_listener_port: 8888
 middleware_uri: "https://{{ middleware_hostname }}:{{ middleware_web_listener_port }}/"
 ##### application server data
 middleware_internal_port: 8880
+# The address the middleware's own web server binds to, and the same address its
+# Apache reverse proxy forwards to - the proxy is installed by roles/middleware and is
+# therefore always on the middleware host itself, so this never has to leave loopback.
+# Kept apart from middleware_hostname on purpose: Kestrel treats every host name other
+# than "localhost" as a wildcard bind, so putting a routable name here would publish
+# middleware_internal_port on every interface, unauthenticated and without TLS, behind
+# the reverse proxy's back. An IPv4 literal rather than "localhost", so the bind and
+# the proxy target cannot end up on different loopback families.
+middleware_native_listener_address: "{{ ipv4_loopback_address }}"
+middleware_native_uri: "http://{{ middleware_native_listener_address }}:{{ middleware_internal_port }}/"
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"
@@ -200,6 +501,20 @@ fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
 http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/sites-available/' }}"
+# The FWO Apache vhost this host serves, empty on a host without one. Defined once
+# because roles/common validates the private key it references before Apache is
+# restarted and roles/internalCA reads its certificate paths; deriving it twice is how
+# the two ended up inspecting different files.
+apache_vhost_conf_file: >-
+  {{
+    http_conf_dir ~ product_name ~ '-api.conf'
+    if 'apiserver' in group_names
+    else http_conf_dir ~ product_name ~ '-mw.conf'
+    if 'middlewareserver' in group_names
+    else http_conf_dir ~ product_name ~ '-ui.conf'
+    if 'frontends' in group_names
+    else ''
+  }}
 wsgi_package_name: "{{ 'python3-mod_wsgi' if ansible_facts['os_family'] == 'RedHat' else 'libapache2-mod-wsgi' }}"
 apache_packages: "{{ [webserver_package_name, wsgi_package_name] + (['mod_ssl'] if ansible_facts['os_family'] == 'RedHat' else []) }}"
 apache_ports_config_file: "{{ '/etc/httpd/conf.d/fworch-ports.conf' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/ports.conf' }}"

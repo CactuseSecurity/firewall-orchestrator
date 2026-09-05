@@ -54,7 +54,7 @@ jobs:
               {"os":"ubuntu-26.04","python":"3.12","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.12"},
               {"os":"ubuntu-26.04","python":"3.13","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.13"},
               {"os":"ubuntu-26.04","python":"3.14","integration":false,"label":"Test install on ubuntu-26.04 with Python 3.14"},
-              {"os":"ubuntu-24.04","python":"3.10","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.10"},
+              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-24.04 with Python 3.10"},
               {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
               {"os":"ubuntu-24.04","python":"3.12","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.12"},
               {"os":"ubuntu-24.04","python":"3.13","integration":false,"label":"Test install on ubuntu-24.04 with Python 3.13"},
@@ -66,8 +66,18 @@ jobs:
               {"os":"ubuntu-22.04","python":"3.14","integration":false,"label":"Test install on ubuntu-22.04 with Python 3.14"}
             ]}'
           else
+            # Both pinned ansible generations, and both with the integration tests, because
+            # requirements.txt installs ansible 10.7.0 (ansible-core 2.18) below python 3.11
+            # and 12.3.0 (core 2.19) from 3.11 up, and the two do not evaluate a "when" or
+            # "assert.that" the same way: core 2.18 wraps the expression as
+            # "{% if <expr> %}", where Jinja's if-statement parser rejects a bare
+            # conditional expression that core 2.19 accepts as an expression. A matrix that
+            # runs the roles/tests-integration suite on one generation only cannot see that
+            # class of defect at all - it reached a customer installation once already.
+            # Keep an integration run on each generation, or the older one is untested.
             matrix='{"include":[
-              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"}
+              {"os":"ubuntu-24.04","python":"3.11","integration":true,"label":"Test install on ubuntu-latest"},
+              {"os":"ubuntu-24.04","python":"3.10","integration":true,"label":"Test install on ubuntu-latest with ansible-core 2.18"}
             ]}'
           fi
 
@@ -147,6 +157,14 @@ jobs:
             FWO_TEST_USERNAME=integration_user_jwt_refresh_test \
             FWO_TEST_PASSWORD=testpassword \
             dotnet test /usr/local/fworch/test/csharp/FWO.Test/FWO.Test.csproj --filter "FullyQualifiedName~AuthenticationTokenIntegrationTest"
+
+      - name: Collect middleware diagnostics after JWT test failure
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo systemctl status fworch-middleware --no-pager || true
+          sudo journalctl -u fworch-middleware --no-pager -n 200 || true
+          sudo tail -n 200 /var/log/fworch/middleware.log || true
+          sudo tail -n 200 /var/log/apache2/error.log || true
 
       - name: Run Ansible integration tests with cleanup
         if: ${{ matrix.integration && success() }}

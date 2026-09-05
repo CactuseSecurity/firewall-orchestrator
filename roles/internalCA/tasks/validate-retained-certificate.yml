@@ -1,0 +1,105 @@
+---
+# Refuses to build FWO endpoints that a retained administrator-managed certificate does
+# not cover. A retained certificate is the operator's, so FWO cannot widen its
+# subjectAltName - it can only decline to point its own components at names the
+# certificate will make them reject.
+#
+# Shared by the Apache and the OpenLDAP identity: both ask the same question of a
+# certificate, and two copies of this matching would drift apart, leaving one leg
+# accepting what the other rejects. In its own file so roles/tests-integration drives
+# this code rather than a copy of it.
+#
+# Inputs, all required:
+#   retained_certificate_subject       - what is being checked, e.g. "Apache" (for the message)
+#   retained_certificate_path          - path to the certificate (for the message)
+#   retained_certificate_info          - a registered x509_certificate_info result
+#   retained_certificate_required_names- plain host names that must be covered
+#   retained_certificate_remedy        - the caller's advice, appended to the message
+# Optional:
+#   retained_certificate_lead          - how to name the certificate in the message, for a
+#                                        caller whose certificate is not a retained one
+# Output: internalca_uncovered_certificate_names, or a failure naming them.
+
+# Split out so the canonicaliser in internalca_canonical_ip_names is applied to both
+# sides of the comparison from one definition: it reads a conventional input variable,
+# so each side needs its own task. Comparing raw strings instead would reject a
+# certificate that covers the endpoint under a different spelling of the same address.
+- name: Canonicalise the IP entries of the {{ retained_certificate_subject }} certificate
+  set_fact:
+    internalca_retained_certificate_ip_names: "{{ internalca_canonical_ip_names | split }}"
+    internalca_retained_certificate_alt_names: "{{ retained_subject_alt_names }}"
+    internalca_retained_certificate_dns_names: >-
+      {{
+        retained_subject_alt_names | select('match', '^DNS:')
+        | map('regex_replace', '^DNS:', '') | map('lower') | list
+      }}
+  vars:
+    # Absent and empty are the same answer here, and x509_certificate_info reports the
+    # first as None rather than as a missing key, hence the boolean default.
+    retained_subject_alt_names: >-
+      {{ retained_certificate_info.subject_alt_name | default([], true) }}
+    internalca_ip_names_input: >-
+      {{
+        retained_subject_alt_names | select('match', '^IP:')
+        | map('regex_replace', '^IP:', '') | list
+      }}
+
+- name: Canonicalise the IP names the {{ retained_certificate_subject }} certificate must cover
+  set_fact:
+    internalca_required_ip_names: "{{ internalca_canonical_ip_names | split }}"
+  vars:
+    internalca_ip_names_input: >-
+      {{ retained_certificate_required_names | select('search', internalca_ip_literal_pattern) | list }}
+
+- name: Collect the names the {{ retained_certificate_subject }} certificate does not cover
+  set_fact:
+    internalca_uncovered_certificate_names: "{{ uncovered_names | split }}"
+  vars:
+    # IP literals are compared canonically, so IPv6 matches whatever spelling the
+    # certificate used; DNS names are compared case insensitively because the resolver
+    # is. A wildcard covers exactly one label, so a name is also accepted when its parent
+    # domain appears as *.parent - customer certificates are commonly issued that way,
+    # and failing the upgrade over one would be worse than not checking at all.
+    #
+    # The IP branch walks the canonical list in step with the uncanonicalised names, so
+    # the message can still report the address the way the operator wrote it. Names are
+    # joined into a string because a host name can never contain whitespace; the consumer
+    # above splits it back into a list.
+    uncovered_names: >-
+      {%- set uncovered = [] -%}
+      {%- set ip_position = namespace(index=0) -%}
+      {%- for host_name in retained_certificate_required_names -%}
+        {%- if host_name is search(internalca_ip_literal_pattern) -%}
+          {%- if internalca_required_ip_names[ip_position.index] not in internalca_retained_certificate_ip_names -%}
+            {%- set _ = uncovered.append(host_name) -%}
+          {%- endif -%}
+          {%- set ip_position.index = ip_position.index + 1 -%}
+        {%- elif host_name | lower not in internalca_retained_certificate_dns_names
+                 and host_name | lower | regex_replace('^[^.]+\.', '*.') not in internalca_retained_certificate_dns_names -%}
+          {%- set _ = uncovered.append(host_name) -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {{ uncovered | join(' ') }}
+
+- name: Fail on a name the {{ retained_certificate_subject }} certificate does not cover
+  vars:
+    # Only the opening clause is the caller's, and only because the certificate is not
+    # always a retained one: roles/tests-integration drives this file against the
+    # certificate a host actually serves, which is usually one FWO issued, and
+    # "customer managed ... kept on" would name it wrongly there. Everything the matching
+    # itself concluded stays here, so two callers cannot report it differently.
+    retained_certificate_default_lead: >-
+      The customer managed {{ retained_certificate_subject }} certificate kept on
+      {{ inventory_hostname }} ({{ retained_certificate_path }})
+  fail:
+    msg: >-
+      {{ retained_certificate_lead | default(retained_certificate_default_lead, true) }}
+      has no subjectAltName
+      entry for {{ internalca_uncovered_certificate_names | join(', ') }}, but
+      {{ product_name }} addresses this host under exactly
+      {{ 'that name' if internalca_uncovered_certificate_names | length == 1 else 'those names' }},
+      so its own components would reject the certificate they are being pointed at.
+      The certificate covers
+      {{ internalca_retained_certificate_alt_names | join(', ') | default('nothing - it carries no subjectAltName extension', true) }}.
+      {{ retained_certificate_remedy }}
+  when: internalca_uncovered_certificate_names | default([]) | length > 0

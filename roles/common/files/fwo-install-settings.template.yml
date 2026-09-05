@@ -1,0 +1,73 @@
+---
+# Reference copy of the host-wide installer settings file. Inert as it stands, in two
+# ways: the installer only ever reads fwo-install-settings.yml in this directory, never
+# this template, and the single active setting below is its own default. To put it to use:
+#
+#     cd /etc/fworch          # a symlink to /usr/local/fworch/etc; either path works
+#     sudo cp fwo-install-settings.template.yml fwo-install-settings.yml
+#     sudo chmod 644 fwo-install-settings.yml
+#     sudo editor fwo-install-settings.yml
+#
+# WHAT THIS FILE IS FOR
+# inventory/hosts.yml and inventory/group_vars/ are tracked files in the git repository
+# the installer is run from, so anything set there is discarded by a fresh clone and
+# conflicts on "git pull". This file lives outside the repository, and every installer run
+# from any clone on this host reads it - site.yml loads it in its first play, so it applies
+# however the installer was started. That also stops two administrators upgrading the same
+# installation with different settings and having the certificates reissued for different
+# names each time.
+#
+# Settings here are passed to Ansible as extra variables, so they override everything in
+# inventory/group_vars/. Anything given on the installer command line still overrides this
+# file. Any inventory variable may be set; the ones below are the ones installations
+# actually need.
+#
+# TWO THINGS TO KNOW
+#   - Put no secrets in here. This directory is world-readable by design, so that every
+#     administrator who may run the installer can read the file.
+#   - "installation_mode=uninstall" deletes this directory along with the rest of the
+#     installation. Copy the file out first if the reinstall has to keep the same names.
+#
+# Do not move this file into the repository's inventory/ directory: everything there is
+# parsed as an inventory source, and a settings file would warn on every single run.
+#
+# Full documentation: documentation/installer/install-advanced.md, section
+# "Host-wide installer settings", and documentation/certificates.md for the naming rules
+# that TLS imposes.
+
+
+### The name this installation is addressed under
+# One name for the api, the middleware and the ui of a single-host installation. Empty
+# means "use the host names from inventory/hosts.yml", which is the shipped localhost.
+# It has to be a name the certificate those endpoints serve is valid for - FWO's own
+# internal CA issues for whatever is set here, but an administrator-managed certificate
+# cannot be extended, so with one of those this must match a name it already carries.
+# Keep the active line: a settings file holding only comments is not a dictionary and the
+# installer rejects it.
+fwo_endpoint_hostname: ""
+# fwo_endpoint_hostname: fwo.example.com
+
+# On an installation spread over several hosts, fwo_endpoint_hostname is refused - it
+# would give every endpoint the same name. Name the hosts in inventory/hosts.yml, or set
+# each endpoint here. api_uri is built from api_network_listening_ip_address, so that one
+# is the API's name and not only its listener address. There is deliberately no second
+# setting for the API's name here: one would only be a name nothing connects to.
+# api_network_listening_ip_address: fwo-api.example.com
+# middleware_hostname: fwo-mw.example.com
+# ui_hostname: fwo-ui.example.com
+# distributed_install: true
+
+# Further names the UI is reached under, space separated. Each one is served as an Apache
+# ServerAlias and added to the UI certificate.
+# ui_server_alias: fwo.example.com fwo-alt.example.com
+
+
+### Administrator-managed Apache certificates
+# Set when this installation keeps its own certificate on an FWO Apache endpoint instead
+# of one from the internal CA. The issuing root goes here - FWO adds it to its trust
+# configuration rather than replacing the internal CA, so an endpoint that still serves an
+# internal CA certificate keeps working. PEM only, and the path must exist on every FWO
+# host. The intermediates are needed only when the leaf was not signed by the root
+# directly; keep the root out of that bundle.
+# internalca_peer_ca_certificate: /etc/ssl/certs/customer-root.pem
+# internalca_peer_ca_intermediate_certificates: /etc/ssl/certs/customer-intermediates.pem

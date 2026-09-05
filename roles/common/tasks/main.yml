@@ -51,6 +51,53 @@
           development or test environments.
       when: testkeys | default(false) | bool
 
+    # PostgreSQL and slapd are bound to loopback unless distributed_install is set,
+    # and those listener settings are rewritten on every run, upgrades included. On an
+    # inventory that spreads FWO over several hosts that would silently cut the
+    # components off from each other - and for an upgrade, take a working
+    # installation down - so treat the combination as the misconfiguration it is
+    # rather than narrowing the listeners and finding out afterwards.
+
+    - name: fail when a multi host inventory would be narrowed to loopback
+      fail:
+        msg: >-
+          This inventory spreads {{ product_name }} over
+          {{ fworch_inventory_hosts | length }} hosts
+          ({{ fworch_inventory_hosts | join(', ') }}), but distributed_install is
+          false. The database and LDAP listeners would be bound to loopback only and
+          the components could not reach each other.
+          {{
+            'This is an upgrade, so that would take a working installation down.'
+            if installation_mode == 'upgrade' else ''
+          }}
+          Set distributed_install=true for a multi host installation.
+      when:
+        - fworch_inventory_hosts | length > 1
+        - not (distributed_install | default(false) | bool)
+        # An uninstall writes no listener configuration, so the misconfiguration
+        # cannot bite there - and refusing to run would leave the operator unable
+        # to remove the very installation the guard is complaining about.
+        - installation_mode != 'uninstall'
+
+    # fwo_endpoint_hostname is a single-host convenience: it gives the api, the middleware
+    # and the ui one and the same name. On a distributed inventory that is silently wrong
+    # rather than broken - each endpoint would be certified for, and addressed under,
+    # another host's name - so it is refused here instead of applied.
+    - name: fail when the shared endpoint name is set on a multi host inventory
+      fail:
+        msg: >-
+          fwo_endpoint_hostname is set to {{ fwo_endpoint_hostname }}, but this inventory
+          spreads {{ product_name }} over {{ fworch_inventory_hosts | length }} hosts
+          ({{ fworch_inventory_hosts | join(', ') }}). It gives the api, middleware and ui
+          endpoints one and the same name, which is only correct when they are installed on
+          one host. Name the hosts in inventory/hosts.yml instead, or set
+          api_network_listening_ip_address, middleware_hostname and ui_hostname
+          individually in {{ fwo_install_settings_file }}.
+      when:
+        - fwo_endpoint_hostname | default('') | length > 0
+        - fworch_inventory_hosts | length > 1
+        - installation_mode != 'uninstall'
+
     - name: fail if already installed and installation_mode is new
       fail:
         msg: "Found existing installation but running with installation_mode set to {{ installation_mode }}. If you want to upgrade, use 'installation_mode=upgrade'."
@@ -61,10 +108,13 @@
         msg: "Could not find existing installation but running with installation_mode set to {{ installation_mode }}. Try running with installation_mode=new"
       when: not already_installed and installation_mode == "upgrade"
 
-    - name: include OS specific preparation tasks
-      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
-
-      # when upgrading check if we are not attempting a downgrade
+      # When upgrading, check that the installed version is one we can upgrade from -
+      # neither newer than this checkout nor older than the oldest migration it still
+      # carries. Deliberately placed before the OS preparation tasks: everything here
+      # only reads the installed configuration, while os/<family>.yml already updates the
+      # package cache and, on an upgrade with pending OS packages, switches the
+      # maintenance web site over. A version this checkout cannot upgrade has to be
+      # rejected before any of that, so the operator is left exactly as they were.
     - block:
         - name: fetch remote config file
           fetch:
@@ -87,7 +137,17 @@
             msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
           when: old_version is version(product_version, '>')
 
+          # The other end of the same question: not too new, but too old for the
+          # migration files this repository still carries.
+        - name: check that the installed version can still be upgraded from
+          include_tasks: validate-upgrade-source-version.yml
+          vars:
+            upgrade_source_version: "{{ old_version }}"
+
       when: already_installed and installation_mode == "upgrade"
+
+    - name: include OS specific preparation tasks
+      include_tasks: "os/{{ ansible_facts['os_family'] }}.yml"
 
     - name: create group {{ fworch_group }}
       group:
@@ -390,6 +450,19 @@
         owner: "{{ fworch_user }}"
         group: "{{ fworch_group }}"
         mode: "0755"
+
+    # Reference only - the installer reads fwo-install-settings.yml, never the template.
+    # Deployed next to where the real file belongs so an administrator on the host finds it
+    # without the repository, and refreshed on every run so it documents the release that
+    # is installed. It deliberately does not create or touch the settings file itself:
+    # that one is the operator's, and an installer that wrote it would fight them.
+    - name: install the host wide installer settings template for reference
+      copy:
+        src: fwo-install-settings.template.yml
+        dest: "{{ fworch_conf_dir }}/fwo-install-settings.template.yml"
+        owner: "{{ fworch_user }}"
+        group: "{{ fworch_group }}"
+        mode: "0644"
 
     - name: create dir for passwords
       file:

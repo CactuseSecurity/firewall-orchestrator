@@ -1,20 +1,52 @@
 # library for FWORCH API calls
 import argparse
+import functools
 import getpass
 import json
 import sys
 from typing import Any
 
 import requests
-import urllib3
 
 HTTP_OK: int = 200
 # (connect, read) timeout tuple so a stalled endpoint cannot hang the customizing run
 HTTP_TIMEOUT: tuple[int, int] = (60, 14400)
+FWO_CONFIG_FILE: str = "/etc/fworch/fworch.json"
 
 
 class CustomizingError(Exception):
     """Raised for errors when calling the FWO API from customizing scripts."""
+
+
+@functools.lru_cache(maxsize=1)
+def read_tls_identity(fwo_config_filename: str) -> tuple[tuple[str, str], str]:
+    """
+    Return the local FWO client certificate pair and the internal CA bundle.
+
+    The API vhost requires a client certificate, and requests resolves verify=True
+    to the certifi bundle, which does not contain FWO's internal CA.
+    """
+    try:
+        fwo_config: dict[str, Any] = read_json_file(fwo_config_filename)
+        return (
+            (str(fwo_config["tls_client_certificate"]), str(fwo_config["tls_client_private_key"])),
+            str(fwo_config["tls_ca_certificate"]),
+        )
+    except KeyError as exc:
+        raise CustomizingError(
+            f"fwo_api ERROR: TLS identity missing from {fwo_config_filename}: {exc.args[0]}"
+        ) from exc
+
+
+def configure_tls(session: requests.Session, fwo_config_filename: str | None = None) -> None:
+    """
+    Present the local FWO client identity and verify the peer against the internal CA.
+
+    The config location is resolved here rather than as a default argument so the module
+    constant stays the single source of truth and tests can redirect it without replacing
+    the reader, which would leave the reader untested.
+    """
+    session.cert, session.verify = read_tls_identity(fwo_config_filename or FWO_CONFIG_FILE)
 
 
 def call(
@@ -32,7 +64,7 @@ def call(
     full_query: dict[str, Any] = {"query": query, "variables": query_variables}
 
     with requests.Session() as session:
-        session.verify = False
+        configure_tls(session)
         session.headers.update(request_headers)
 
         try:
@@ -51,7 +83,7 @@ def login(
     payload: dict[str, str] = {"Username": user, "Password": password}
 
     with requests.Session() as session:
-        session.verify = False
+        configure_tls(session)
         session.headers.update({"Content-Type": "application/json"})
 
         try:
@@ -251,8 +283,7 @@ if __name__ == "__main__":  # pragma: no cover
         sys.exit(1)
 
     settings_file: str = args.custom_settings_file
-    fwo_config_filename: str = "/etc/fworch/fworch.json"
-    urllib3.disable_warnings()
+    fwo_config_filename: str = FWO_CONFIG_FILE
 
     fwo_config: dict[str, Any] = read_json_file(fwo_config_filename)
     user_management_api_base_url: str = fwo_config["middleware_uri"]

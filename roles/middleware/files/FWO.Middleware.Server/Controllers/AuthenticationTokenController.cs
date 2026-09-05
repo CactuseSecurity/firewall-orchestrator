@@ -369,9 +369,6 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Revoke")]
         public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
         {
-            string auditIdentity = "";
-            bool revocationMayHaveCommitted = false;
-
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))
@@ -397,11 +394,19 @@ namespace FWO.Middleware.Server.Controllers
                     Dn = ""
                 };
 
-                auditIdentity = $"User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\"";
+                int revokedTokens;
+                try
+                {
+                    revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                }
+                catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+                {
+                    Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" may have been revoked because the API became unreachable during the operation.");
 
-                revocationMayHaveCommitted = true;
-                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
-                revocationMayHaveCommitted = false;
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        "The API could not be reached while revoking the token. Please retry.");
+                }
 
                 if (revokedTokens != 1)
                 {
@@ -416,17 +421,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
             {
-                // Same reasoning as in RefreshToken, without its second case: the token is
-                // never left half revoked, so a retry is always worth making. It may answer
-                // 401 rather than 200 - that is what a revoke which had already committed
-                // before the connection died looks like - and to a caller that wants the
-                // token gone, that is the same end state.
                 Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
-
-                if (revocationMayHaveCommitted)
-                {
-                    WriteAudit(nameof(RevokeToken), $"Refresh token for {auditIdentity} may have been revoked because the API became unreachable during the operation.");
-                }
 
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "The API could not be reached while revoking the token. Please retry.");

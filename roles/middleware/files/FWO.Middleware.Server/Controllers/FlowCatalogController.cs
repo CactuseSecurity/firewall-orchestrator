@@ -17,7 +17,6 @@ namespace FWO.Middleware.Server.Controllers;
 [Route("api/flow")]
 public class FlowCatalogController : ControllerBase
 {
-    private const int kMaxGroupSelectors = 100;
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
@@ -159,9 +158,9 @@ public class FlowCatalogController : ControllerBase
         request.ServiceGroupIds ??= [];
         request.ServiceGroupNames ??= [];
         if (request.NetworkGroupIds.Count + request.NetworkGroupNames.Count
-            + request.ServiceGroupIds.Count + request.ServiceGroupNames.Count > kMaxGroupSelectors)
+            + request.ServiceGroupIds.Count + request.ServiceGroupNames.Count > FlowGroupResolutionParameters.MaxSelectors)
         {
-            return BadRequest($"At most {kMaxGroupSelectors} group selectors are allowed.");
+            return BadRequest($"At most {FlowGroupResolutionParameters.MaxSelectors} group selectors are allowed.");
         }
 
         if (request.NetworkGroupNames.Any(string.IsNullOrWhiteSpace)

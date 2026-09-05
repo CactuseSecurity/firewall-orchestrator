@@ -40,7 +40,13 @@ namespace FWO.Services.Workflow
                 List<WfReqTask> requestedRuleTasks = policyCheckTasks.Where(IsPolicyCheckRuleTask).ToList();
                 if (requestedRuleTasks.Count == 0)
                 {
-                    Log.WriteWarning("Policy Check", "No eligible request-rule tasks were found for the conditional policy check.");
+                    if (policyCheckTasks.Count > 0)
+                    {
+                        Log.WriteInfo("Policy Check", "No policy-checkable rule tasks were found; treating the conditional policy check as compliant.");
+                        return true;
+                    }
+
+                    Log.WriteWarning("Policy Check", "No request tasks were available for the conditional policy check.");
                     return false;
                 }
 
@@ -95,7 +101,9 @@ namespace FWO.Services.Workflow
                 .Where(task => task.GetServiceElements().Count > 0)
                 .Concat(ticket.Tasks.Where(task =>
                     task.TaskType == WfTaskType.group_create.ToString()
-                    || task.TaskType == WfTaskType.group_modify.ToString()))
+                    || task.TaskType == WfTaskType.group_modify.ToString()
+                    || (string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase)
+                        && task.GetRuleElements().Count > 0)))
                 .Distinct()
                 .ToList();
         }

@@ -85,7 +85,13 @@ namespace FWO.Config.Api
 
         private static Dictionary<string, string> GetLanguageDictionary(Dictionary<string, Dictionary<string, string>> dictionaries, string language)
         {
-            return dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary) ? dictionary : [];
+            if (dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary))
+            {
+                return dictionary;
+            }
+
+            Log.WriteWarning("Language", $"Language dictionary for '{language}' was not found.");
+            return [];
         }
 
         public UserConfig() : base()
@@ -146,8 +152,8 @@ namespace FWO.Config.Api
             if (globalConfig != null)
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
-                Translate = globalConfig.LangDict[languageName];
-                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : globalConfig.OverDict[languageName];
+                Translate = GetLanguageDictionary(globalConfig.LangDict, languageName);
+                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : GetLanguageDictionary(globalConfig.OverDict, languageName);
                 User.Language = languageName;
                 InvokeOnChange(this, []);
             }
@@ -171,7 +177,7 @@ namespace FWO.Config.Api
             if (globalConfig != null && globalConfig.LangDict.TryGetValue(User.Language, out Dictionary<string, string>? langDict))
             {
                 Translate = langDict;
-                Overwrite = globalConfig.OverDict[User.Language];
+                Overwrite = GetLanguageDictionary(globalConfig.OverDict, User.Language);
             }
         }
 
@@ -228,11 +234,14 @@ namespace FWO.Config.Api
                     {
                         defaultLanguage = GlobalConst.kEnglish;
                     }
-                    if (globalConfig.LangDict[defaultLanguage].TryGetValue(key, out string? defaultLangValue))
+                    if (globalConfig.LangDict.TryGetValue(defaultLanguage, out Dictionary<string, string>? defaultDictionary)
+                        && defaultDictionary.TryGetValue(key, out string? defaultLangValue))
                     {
                         return Convert(defaultLangValue);
                     }
-                    else if (defaultLanguage != GlobalConst.kEnglish && globalConfig.LangDict[GlobalConst.kEnglish].TryGetValue(key, out string? englValue))
+                    else if (defaultLanguage != GlobalConst.kEnglish
+                        && globalConfig.LangDict.TryGetValue(GlobalConst.kEnglish, out Dictionary<string, string>? englishDictionary)
+                        && englishDictionary.TryGetValue(key, out string? englValue))
                     {
                         return Convert(englValue);
                     }

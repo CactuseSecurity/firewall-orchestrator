@@ -58,6 +58,17 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AreRequestTasksCompliant_ReturnsFalseWhenAnEligibleTaskCannotBeMapped()
+        {
+            WfReqTask unmappableTask = CreateEligibleRequestTask(15);
+            unmappableTask.Elements.Single(element => element.Field == ElemFieldType.source.ToString()).IpString = null;
+
+            bool result = await checker.AreRequestTasksCompliant([5], [unmappableTask, CreateEligibleRequestTask(16)]);
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
         public async Task AreRequestTasksCompliant_CanonicalAnyServiceViolatesTechnicalForbiddenService()
         {
             CompliancePolicy policy = new()
@@ -508,6 +519,7 @@ namespace FWO.Test
 
             try
             {
+                ComplianceRequestedRulePolicyChecker resolverChecker = new(UserConfig, ApiConnection);
                 WfReqTask task = CreateEligibleRequestTask(39);
                 WfReqElement destination = task.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
                 destination.IpString = null;
@@ -519,7 +531,7 @@ namespace FWO.Test
                 service.GroupName = "resolver-services";
                 service.FlowServiceGroupId = 602;
 
-                List<Rule> rules = await InvokeBuildRules(checker, task);
+                List<Rule> rules = await InvokeBuildRules(resolverChecker, task);
 
                 Assert.Multiple(() =>
                 {
@@ -597,6 +609,42 @@ namespace FWO.Test
 
             Assert.That(rules, Has.Count.EqualTo(1));
             Assert.That(rules[0].Tos.Select(location => location.Object.IP), Is.EqualTo(["192.0.2.1/32"]));
+        }
+
+        [Test]
+        public async Task BuildRulesFromRequestTasks_StoresIdResolvedGroupUnderAliasAndRealName()
+        {
+            TestFlowGroupMiddlewareClient middlewareClient = new()
+            {
+                Result = new FlowGroupResolutionResult
+                {
+                    NetworkGroups = [new FlowNetworkGroupResolution
+                    {
+                        Id = 501,
+                        Name = "real-name",
+                        Members = [new FlowNetworkMemberResolution
+                        {
+                            Id = 701, Name = "host", IpStart = "192.0.2.50", IpEnd = "192.0.2.50"
+                        }]
+                    }]
+                }
+            };
+            ComplianceRequestedRulePolicyChecker middlewareChecker = new(UserConfig, ApiConnection, middlewareClient);
+            WfReqTask aliasTask = CreateEligibleRequestTask(40);
+            WfReqElement aliasDestination = aliasTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            aliasDestination.IpString = null;
+            aliasDestination.GroupName = "alias-name";
+            aliasDestination.FlowNetworkGroupId = 501;
+            WfReqTask realNameTask = CreateEligibleRequestTask(41);
+            WfReqElement realDestination = realNameTask.Elements.Single(element => element.Field == ElemFieldType.destination.ToString());
+            realDestination.IpString = null;
+            realDestination.GroupName = "real-name";
+
+            List<Rule> rules = await InvokeBuildRules(middlewareChecker, aliasTask, realNameTask);
+
+            Assert.That(rules, Has.Count.EqualTo(2));
+            Assert.That(rules.SelectMany(rule => rule.Tos).Select(location => location.Object.IP),
+                Is.EqualTo(["192.0.2.50/32", "192.0.2.50/32"]));
         }
 
         [Test]

@@ -16,23 +16,30 @@ namespace FWO.Compliance
 {
     public class ComplianceRequestedRulePolicyChecker(UserConfig userConfig, ApiConnection apiConnection, MiddlewareClient? middlewareClient = null) : IRequestedRulePolicyChecker
     {
-        // Flow-sync queries currently require an mgmId variable; zero intentionally matches no management.
+        // This fallback supports library consumers that do not register a resolver or middleware client.
         private const int kNoManagementFilter = 0;
-        private const int kMaxMiddlewareGroupSelectors = 100;
+        private readonly IFlowGroupResolver? flowGroupResolver = middlewareClient == null
+            ? FWO.Services.ServiceProvider.Services?.GetService<IFlowGroupResolver>()
+            : null;
         public async Task<bool> AreRequestTasksCompliant(IEnumerable<int> policyIds, IEnumerable<WfReqTask> requestTasks)
         {
             List<int> selectedPolicyIds = policyIds.Where(id => id > 0).Distinct().ToList();
-            List<Rule> rules = await BuildRulesFromRequestTasks(requestTasks);
-            if (selectedPolicyIds.Count == 0 || rules.Count == 0)
+            RuleBuildResult assessment = await BuildRuleAssessmentFromRequestTasks(requestTasks);
+            if (selectedPolicyIds.Count == 0 || assessment.Rules.Count == 0 || assessment.HasUnassessableTasks)
             {
                 return false;
             }
 
             ComplianceCheck complianceCheck = new(userConfig, apiConnection);
-            return await complianceCheck.AreRulesCompliant(selectedPolicyIds, rules);
+            return await complianceCheck.AreRulesCompliant(selectedPolicyIds, assessment.Rules);
         }
 
         private async Task<List<Rule>> BuildRulesFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
+        {
+            return (await BuildRuleAssessmentFromRequestTasks(requestTasks)).Rules;
+        }
+
+        private async Task<RuleBuildResult> BuildRuleAssessmentFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
         {
             List<WfReqTask> tasks = requestTasks.ToList();
             Dictionary<string, List<NwObjectElement>> networkGroupMembers = BuildNetworkGroupMembers(tasks);
@@ -40,6 +47,7 @@ namespace FWO.Compliance
             await AddFlowNetworkGroupMembers(tasks, networkGroupMembers);
             await AddFlowServiceGroupMembers(tasks, serviceGroupMembers);
             List<Rule> rules = [];
+            bool hasUnassessableTasks = false;
 
             foreach (WfReqTask task in tasks
                 .Where(task => !string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase))
@@ -54,17 +62,20 @@ namespace FWO.Compliance
                 }
                 else if (HasUnresolvedGroup(task, networkGroupMembers, serviceGroupMembers))
                 {
-                    return [];
+                    return new RuleBuildResult([], true);
                 }
                 else
                 {
+                    hasUnassessableTasks = true;
                     Log.WriteWarning("ComplianceRequestedRulePolicyChecker",
                         $"Skipping request task {task.Id} because it contains elements that cannot be mapped to a technical rule.");
                 }
             }
 
-            return rules;
+            return new RuleBuildResult(rules, hasUnassessableTasks);
         }
+
+        private sealed record RuleBuildResult(List<Rule> Rules, bool HasUnassessableTasks);
 
         private async Task AddFlowNetworkGroupMembers(IEnumerable<WfReqTask> tasks,
             Dictionary<string, List<NwObjectElement>> networkGroupMembers)
@@ -92,7 +103,6 @@ namespace FWO.Compliance
                 .GroupBy(element => element.FlowNetworkGroupId!.Value)
                 .ToDictionary(group => group.Key, group => group.Select(element => element.GroupName).ToHashSet(StringComparer.OrdinalIgnoreCase));
             HashSet<string> namesWithIds = requestedNamesById.Values.SelectMany(names => names).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            IFlowGroupResolver? flowGroupResolver = FWO.Services.ServiceProvider.Services?.GetService<IFlowGroupResolver>();
             if (middlewareClient != null || flowGroupResolver != null)
             {
                 FlowGroupResolutionResult resolution = flowGroupResolver != null
@@ -162,7 +172,6 @@ namespace FWO.Compliance
                 .GroupBy(element => element.FlowServiceGroupId!.Value)
                 .ToDictionary(group => group.Key, group => group.Select(element => element.GroupName!).ToHashSet(StringComparer.OrdinalIgnoreCase));
             HashSet<string> namesWithIds = requestedNamesById.Values.SelectMany(names => names).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            IFlowGroupResolver? flowGroupResolver = FWO.Services.ServiceProvider.Services?.GetService<IFlowGroupResolver>();
             if (middlewareClient != null || flowGroupResolver != null)
             {
                 FlowGroupResolutionResult resolution = flowGroupResolver != null
@@ -243,7 +252,7 @@ namespace FWO.Compliance
             MiddlewareClient middlewareClient, IEnumerable<long> groupIds, IEnumerable<string> groupNames, bool networkGroups)
         {
             List<FlowGroupResolutionResult> results = [];
-            foreach (long[] idChunk in groupIds.Chunk(kMaxMiddlewareGroupSelectors))
+            foreach (long[] idChunk in groupIds.Chunk(FlowGroupResolutionParameters.MaxSelectors))
             {
                 RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new()
                 {
@@ -254,7 +263,7 @@ namespace FWO.Compliance
                 results.Add(response.Data!);
             }
 
-            foreach (string[] nameChunk in groupNames.Chunk(kMaxMiddlewareGroupSelectors))
+            foreach (string[] nameChunk in groupNames.Chunk(FlowGroupResolutionParameters.MaxSelectors))
             {
                 RestResponse<FlowGroupResolutionResult> response = await middlewareClient.ResolveFlowGroupMembers(new()
                 {
@@ -282,7 +291,11 @@ namespace FWO.Compliance
 
             if (requestedNamesById.TryGetValue(groupId, out HashSet<string>? requestedNames))
             {
-                return requestedNames;
+                HashSet<string> resolvedKeys = new(requestedNames, StringComparer.OrdinalIgnoreCase)
+                {
+                    groupName
+                };
+                return resolvedKeys;
             }
 
             return namesWithIds.Contains(groupName) ? [] : [groupName];

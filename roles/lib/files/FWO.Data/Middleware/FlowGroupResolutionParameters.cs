@@ -3,6 +3,9 @@ namespace FWO.Data.Middleware
 {
     public sealed class FlowGroupResolutionParameters
     {
+        /// <summary>Maximum number of group selectors accepted by the resolver endpoint.</summary>
+        public const int MaxSelectors = 100;
+
         /// <summary>Gets or sets requested network group IDs.</summary>
         public List<long> NetworkGroupIds { get; set; } = [];
         /// <summary>Gets or sets requested network group names.</summary>

@@ -1470,6 +1470,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ExecutePolicyCheck_ReturnsTrueForDeleteOnlyTicket()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 24,
+                RequestAction = nameof(RequestAction.delete),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.rule.ToString(),
+                    RequestAction = nameof(RequestAction.delete),
+                    RuleUid = "rule-24"
+                }]
+            });
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task ExecutePolicyCheck_ReturnsTrueForGroupOnlyTicket()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 25,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    IpString = "10.0.0.1/32"
+                }]
+            });
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
         public async Task ExecutePolicyCheck_ReturnsFalseWhenPolicyCheckerThrows()
         {
             ActionHandlerTestPolicyChecker policyChecker = new()

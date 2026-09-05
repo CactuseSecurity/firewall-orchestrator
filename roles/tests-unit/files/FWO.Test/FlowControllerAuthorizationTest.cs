@@ -27,6 +27,14 @@ internal class FlowControllerAuthorizationTest
         Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}"));
     }
 
+    [Test]
+    public void GroupResolver_AllowsWorkflowRoles()
+    {
+        AuthorizeAttribute authorize = GetAuthorizeAttribute(typeof(FlowCatalogController), nameof(FlowCatalogController.ResolveGroupMembers));
+
+        Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}"));
+    }
+
     [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.CreateRequest))]
     public void WriteFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
     {

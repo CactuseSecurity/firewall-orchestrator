@@ -17,7 +17,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
-        private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
+        private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";

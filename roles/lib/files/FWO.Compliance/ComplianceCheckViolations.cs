@@ -27,17 +27,27 @@ namespace FWO.Compliance
         {
             // Flattening groups can yield the same object more than once, which would record the same
             // violation twice.
-            foreach (NetworkObject source in notAssessableSources.Distinct())
+            foreach (NetworkObject source in notAssessableSources.DistinctBy(GetNetworkObjectIdentity))
             {
                 CreateZoneAssessabilityViolation(rule, criterion, source, true);
             }
 
-            foreach (NetworkObject destination in notAssessableDestinations.Distinct())
+            foreach (NetworkObject destination in notAssessableDestinations.DistinctBy(GetNetworkObjectIdentity))
             {
                 CreateZoneAssessabilityViolation(rule, criterion, destination, false);
             }
 
             return notAssessableSources.Count == 0 && notAssessableDestinations.Count == 0;
+        }
+
+        /// <summary>
+        /// Returns a stable identity for persisted objects and a value identity for transient objects.
+        /// </summary>
+        private static string GetNetworkObjectIdentity(NetworkObject networkObject)
+        {
+            return networkObject.Id > 0
+                ? $"id:{networkObject.Id}"
+                : $"value:{networkObject.Name}|{networkObject.IP}|{networkObject.IpEnd}|{networkObject.Type.Name}";
         }
 
         /// <summary>

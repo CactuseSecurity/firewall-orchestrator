@@ -45,7 +45,14 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             ranges,
             zones,
             globalConfig.AutoCalculateInternetZone,
-            globalConfig.GetText("internet_local_zone"));
+            globalConfig.GetText("internet_local_zone"),
+            out List<IPAddressRange> unassignableRanges);
+
+        if (unassignableRanges.Count > 0)
+        {
+            string rangesDescription = string.Join(", ", unassignableRanges.Select(range => $"{range.Begin}-{range.End}"));
+            throw new ArgumentException($"The following IP ranges could not be assigned to a network zone: {rangesDescription}");
+        }
 
         return resolvedZones
             .Where(IsPersistedMatrixZone)

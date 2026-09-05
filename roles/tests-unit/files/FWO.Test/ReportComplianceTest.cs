@@ -510,6 +510,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SetComplianceDataForRule_RetainsRealViolationAlongsidePartialAssessabilityIssue()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            ComplianceViolation partialAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Matrix)
+            }, type: ComplianceViolationType.NotAssessable);
+            partialAssessabilityIssue.Details = "Object has no matching zone";
+            Rule rule = new()
+            {
+                Violations = [matrixViolation, partialAssessabilityIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.MultipleViolations));
+                Assert.That(rule.ViolationDetails, Does.Contain(matrixViolation.Details));
+                Assert.That(rule.ViolationDetails, Does.Contain(partialAssessabilityIssue.Details));
+            });
+        }
+
+        [Test]
         public void DetermineCompliance_CountsOnlyViolationsWithinThePrintedViolationLimit()
         {
             SimulatedGlobalConfig singleViolationConfig = new()
@@ -561,6 +587,10 @@ namespace FWO.Test
             };
             ComplianceViolation notAssessableViolation = CreateDiffViolation(13, 101, "rule-a");
             notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
+            notAssessableViolation.Criterion = new ComplianceCriterion
+            {
+                CriterionType = nameof(ComplianceViolationType.NotAssessable)
+            };
             Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
             activeRule.Violations.Add(notAssessableViolation);
             List<Rule> activeRules = new()
@@ -803,7 +833,16 @@ namespace FWO.Test
 
         private static List<ComplianceViolation> CreateTypedViolations(params ComplianceViolationType[] types)
         {
-            return types.Select(type => new ComplianceViolation { Type = type }).ToList();
+            return types.Select(type => new ComplianceViolation
+            {
+                Type = type,
+                Criterion = new ComplianceCriterion
+                {
+                    CriterionType = type == ComplianceViolationType.NotAssessable
+                        ? nameof(ComplianceViolationType.NotAssessable)
+                        : nameof(CriterionType.Matrix)
+                }
+            }).ToList();
         }
 
         private static Rule CreateActiveRule(string ruleUid, ComplianceViolation? currentViolation = null, int mgmtId = 1)

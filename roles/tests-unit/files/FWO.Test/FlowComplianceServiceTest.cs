@@ -184,6 +184,28 @@ internal class FlowComplianceServiceTest
     }
 
     [Test]
+    public async Task GetFlowComplianceStateAsync_MultipleUnassignableObjectsReportEachObject()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildCompliantMatrixOnlyRequest();
+        request.Source =
+        [
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1", IpEnd = "2001:db8::1" },
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8:1::1", IpEnd = "2001:db8:1::1" }
+        ];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Violations, Has.Count.EqualTo(2));
+            Assert.That(result[0].Violations.All(violation => violation.Type == nameof(ComplianceViolationType.NotAssessable)), Is.True);
+        });
+    }
+
+    [Test]
     public async Task GetFlowComplianceStateAsync_BroadIpv4FlowUnderIpv4OnlyCriterion_ReportsCidrLengthViolation()
     {
         FlowComplianceServiceApiConn apiConnection = new();

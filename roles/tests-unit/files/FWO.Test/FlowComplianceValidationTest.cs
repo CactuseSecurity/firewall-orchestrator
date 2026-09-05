@@ -152,6 +152,36 @@ internal class FlowComplianceValidationTest
         });
     }
 
+    [Test]
+    public void GetFlowComplianceState_RejectsIpv4MappedIpv6Network()
+    {
+        bool valid = TryValidateSourceNetwork("::ffff:192.0.2.0/120", out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("IPv4-mapped IPv6"));
+        });
+    }
+
+    [Test]
+    public void TryValidateIpRange_RejectsIpv4MappedIpv6Bound()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
+            "::ffff:192.0.2.10",
+            "::ffff:192.0.2.11",
+            "address",
+            0,
+            out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorMessage, Does.Contain("IPv4-mapped IPv6"));
+        });
+    }
+
     [TestCase("10.0.0.0")]
     [TestCase("2001:db8::")]
     [TestCase("/24")]

@@ -330,6 +330,11 @@ public static class FlowComplianceRequestValidator
             return (false, errorFactory("has an invalid 'ipEnd' value."));
         }
 
+        if (ipStart.IsIPv4MappedToIPv6 || ipEnd.IsIPv4MappedToIPv6)
+        {
+            return (false, errorFactory("contains an IPv4-mapped IPv6 value. Use the dotted IPv4 form instead."));
+        }
+
         if (ipStart.AddressFamily != ipEnd.AddressFamily)
         {
             return (false, errorFactory("must use the same address family for 'ipStart' and 'ipEnd'."));
@@ -371,6 +376,13 @@ public static class FlowComplianceRequestValidator
             return true;
         }
 
+        if (parsedAddress.IsIPv4MappedToIPv6)
+        {
+            normalizedIpAddress = string.Empty;
+            errorMessage = $"has an IPv4-mapped IPv6 value in '{fieldName}'. Use the dotted IPv4 form instead.";
+            return false;
+        }
+
         int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
         if (!int.TryParse(mask, out int prefixLength) || prefixLength != hostPrefixLength)
         {
@@ -404,6 +416,12 @@ public static class FlowComplianceRequestValidator
             || !int.TryParse(ipNetwork[(maskSeparatorIndex + 1)..], out int prefixLength))
         {
             errorMessage = "has an invalid 'ipNetwork' value.";
+            return false;
+        }
+
+        if (parsedAddress.IsIPv4MappedToIPv6)
+        {
+            errorMessage = "has an IPv4-mapped IPv6 value in 'ipNetwork'. Use the dotted IPv4 form instead.";
             return false;
         }
 

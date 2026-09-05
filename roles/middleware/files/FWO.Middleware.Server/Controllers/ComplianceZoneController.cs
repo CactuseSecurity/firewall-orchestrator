@@ -65,6 +65,10 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
         {
             return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
         }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(exception.Message);
+        }
         catch (Exception exception)
         {
             Log.WriteError("Resolve Zones For Objects", "Error while resolving object zones.", exception);

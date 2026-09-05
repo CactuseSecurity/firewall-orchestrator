@@ -326,20 +326,7 @@ namespace FWO.Report
 
                 if (rule.Violations.Count > 0)
                 {
-                    if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
-                    {
-                        ruleCompliance = ComplianceViolationType.NotAssessable;
-                    }
-                    else if (rule.Violations.Count == 1)
-                    {
-                        // TODO: implement
-
-                        ruleCompliance = ComplianceViolationType.MultipleViolations;
-                    }
-                    else
-                    {
-                        ruleCompliance = ComplianceViolationType.MultipleViolations;
-                    }
+                    ruleCompliance = DetermineCompliance(SelectDecisiveViolations(rule.Violations));
                 }
 
                 rule.Compliance = ruleCompliance;
@@ -569,7 +556,7 @@ namespace FWO.Report
             // Assessability outranks every other type: several assessability issues still read as not assessable
             // rather than as multiple violations, so this cannot be folded into the count below.
 
-            if (violations.Any(IsNotAssessable))
+            if (violations.Any(IsRuleNotAssessable))
             {
                 return ComplianceViolationType.NotAssessable;
             }
@@ -594,8 +581,8 @@ namespace FWO.Report
         /// <returns>The decisive subset, or all violations when the rule is assessable.</returns>
         private static List<ComplianceViolation> SelectDecisiveViolations(List<ComplianceViolation> violations)
         {
-            return violations.Any(IsNotAssessable)
-                ? violations.Where(IsNotAssessable).ToList()
+            return violations.Any(IsRuleNotAssessable)
+                ? violations.Where(IsRuleNotAssessable).ToList()
                 : violations.ToList();
         }
 
@@ -604,9 +591,10 @@ namespace FWO.Report
         /// </summary>
         /// <param name="violation">Violation to classify.</param>
         /// <returns>True when the violation reports that the rule cannot be assessed.</returns>
-        private static bool IsNotAssessable(ComplianceViolation violation)
+        private static bool IsRuleNotAssessable(ComplianceViolation violation)
         {
-            return violation.Type == ComplianceViolationType.NotAssessable;
+            return violation.Type == ComplianceViolationType.NotAssessable
+                && violation.Criterion?.CriterionType == nameof(ComplianceViolationType.NotAssessable);
         }
 
         protected virtual bool ShowRule(Rule rule)

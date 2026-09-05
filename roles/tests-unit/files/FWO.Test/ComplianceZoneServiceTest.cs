@@ -171,6 +171,39 @@ internal class ComplianceZoneServiceTest
     }
 
     [Test]
+    public void ResolveZonesForObjectsAsync_ReportsUnassignableIpv6Range()
+    {
+        ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+        List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
+        List<ComplianceNetworkZone> zones = [new ComplianceNetworkZone
+        {
+            Id = 10,
+            Name = "IPv4 Zone",
+            IPRanges = [new NetTools.IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))]
+        }];
+        ComplianceZoneServiceApiConn apiConnection = new(
+            configItems,
+            matrices,
+            zones);
+        ComplianceZoneService service = new(apiConnection, new SimulatedGlobalConfig { ComplianceDesignatedZoneMatrixId = 12 });
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects = [new ResolveZonesForObjectsRequest.LeafObjectRequest
+            {
+                Name = "IPv6 Host",
+                Type = "host",
+                IpStart = "2001:db8::1",
+                IpEnd = "2001:db8::1"
+            }]
+        };
+
+        ArgumentException? exception = Assert.ThrowsAsync<ArgumentException>(
+            async () => await service.ResolveZonesForObjectsAsync(request));
+
+        Assert.That(exception!.Message, Does.Contain("2001:db8::1-2001:db8::1"));
+    }
+
+    [Test]
     public async Task ResolveZonesForObjectsAsync_ResolvesRangeLeaves()
     {
         ComplianceZoneServiceApiConn apiConnection = new(

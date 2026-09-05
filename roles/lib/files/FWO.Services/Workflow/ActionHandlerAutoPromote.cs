@@ -1,3 +1,4 @@
+using FWO.Api.Client.Queries;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using System.Text.Json;
@@ -35,18 +36,34 @@ namespace FWO.Services.Workflow
         {
             try
             {
-                List<WfReqTask> requestedRuleTasks = GetRequestedRuleTasksForCallingTicket(statefulObject, scope);
+                List<WfReqTask> policyCheckTasks = await GetRequestedRuleTasksForCallingTicket(statefulObject, scope);
+                List<WfReqTask> requestedRuleTasks = policyCheckTasks.Where(IsPolicyCheckRuleTask).ToList();
                 if (requestedRuleTasks.Count == 0)
                 {
+                    if (policyCheckTasks.Count > 0)
+                    {
+                        Log.WriteInfo("Policy Check", "No policy-checkable rule tasks were found; treating the conditional policy check as compliant.");
+                        return true;
+                    }
+
+                    Log.WriteWarning("Policy Check", "No request tasks were available for the conditional policy check.");
                     return false;
                 }
 
                 if (requestedRulePolicyChecker == null)
                 {
+                    Log.WriteDebug("Policy Check", "No policy checker is attached to the action handler. Resolving the configured policy checker factory.");
+                    requestedRulePolicyChecker = (ServiceProvider.Services?.GetService(typeof(IRequestedRulePolicyCheckerFactory))
+                        as IRequestedRulePolicyCheckerFactory)?.Create(wfHandler.userConfig, apiConnection, wfHandler.MiddlewareClient);
+                }
+                if (requestedRulePolicyChecker == null)
+                {
+                    Log.WriteWarning("Policy Check", "No requested-rule policy checker factory is registered. Policy check cannot be executed.");
                     return false;
                 }
 
-                bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, requestedRuleTasks);
+                bool isCompliant = await requestedRulePolicyChecker.AreRequestTasksCompliant(selectedPolicyIds, policyCheckTasks);
+                Log.WriteDebug("Policy Check", $"Requested-rule policy check completed with result '{isCompliant}'.");
                 await AttachPolicyCheckResultLabel(requestedRuleTasks, checkResultLabel, isCompliant);
                 return isCompliant;
             }
@@ -70,23 +87,35 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private List<WfReqTask> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private async Task<List<WfReqTask>> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            WfTicket? ticket = GetCallingTicket(statefulObject, scope);
+            WfTicket? ticket = await GetCallingTicket(statefulObject, scope);
             if (ticket == null)
             {
                 return [];
             }
 
             return ticket.Tasks
-                .Where(task => task.ManagementId != null)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.source).Count > 0)
                 .Where(task => task.GetNwObjectElements(ElemFieldType.destination).Count > 0)
                 .Where(task => task.GetServiceElements().Count > 0)
+                .Concat(ticket.Tasks.Where(task =>
+                    task.TaskType == WfTaskType.group_create.ToString()
+                    || task.TaskType == WfTaskType.group_modify.ToString()
+                    || (string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase)
+                        && task.GetRuleElements().Count > 0)))
+                .Distinct()
                 .ToList();
         }
 
-        private WfTicket? GetCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
+        private static bool IsPolicyCheckRuleTask(WfReqTask task)
+        {
+            return task.GetNwObjectElements(ElemFieldType.source).Count > 0
+                && task.GetNwObjectElements(ElemFieldType.destination).Count > 0
+                && task.GetServiceElements().Count > 0;
+        }
+
+        private async Task<WfTicket?> GetCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             if (scope == WfObjectScopes.Ticket && statefulObject is WfTicket ticket)
             {
@@ -98,13 +127,35 @@ namespace FWO.Services.Workflow
                 return wfHandler.ActTicket;
             }
 
-            return scope switch
+            WfReqTask? requestTask = scope switch
             {
-                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => new WfTicket { Tasks = [reqTask] },
-                WfObjectScopes.ImplementationTask when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
-                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => new WfTicket { Tasks = [wfHandler.ActReqTask] },
+                WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask => reqTask,
+                WfObjectScopes.ImplementationTask when wfHandler.ActReqTask.Id > 0 => wfHandler.ActReqTask,
+                WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => wfHandler.ActReqTask,
                 _ => null
             };
+            if (requestTask?.TicketId > 0)
+            {
+                try
+                {
+                    WfTicket? fullTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById,
+                        new { id = requestTask.TicketId });
+                    if (fullTicket?.Id > 0)
+                    {
+                        fullTicket.UpdateCidrsInTaskElements();
+                        return fullTicket;
+                    }
+                    return new WfTicket { Tasks = [requestTask] };
+                }
+                catch (Exception exc)
+                {
+                    Log.WriteWarning("Policy Check", $"Could not load full ticket {requestTask.TicketId} for policy check. Falling back to the current request task. {exc.Message}");
+                }
+            }
+
+            return requestTask == null
+                ? null
+                : new WfTicket { Tasks = [requestTask] };
         }
     }
 }

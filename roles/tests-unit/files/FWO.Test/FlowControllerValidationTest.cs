@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Middleware.Server.Controllers;
@@ -137,6 +138,80 @@ internal class FlowControllerValidationTest
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'protocol'"));
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsEmptyRequest()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(null);
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+        FlowGroupResolutionResult response = (FlowGroupResolutionResult)((OkObjectResult)result.Result!).Value!;
+        Assert.That(response.NetworkGroups, Is.Empty);
+        Assert.That(response.ServiceGroups, Is.Empty);
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_AllowsKnownSelectors()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupIds = [10],
+            NetworkGroupNames = ["network-group"],
+            ServiceGroupIds = [20],
+            ServiceGroupNames = ["service-group"]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsBlankGroupNames()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
+        {
+            NetworkGroupNames = [" "]
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must not be empty"));
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsUnknownFields()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        ResolveFlowGroupsRequest request = new()
+        {
+            AdditionalData = new Dictionary<string, JsonElement>
+            {
+                ["unexpected"] = JsonDocument.Parse("1").RootElement
+            }
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task FlowController_ResolveGroupMembers_RejectsTooManySelectors()
+    {
+        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        ResolveFlowGroupsRequest request = new()
+        {
+            NetworkGroupIds = Enumerable.Range(1, 101).Select(id => (long)id).ToList()
+        };
+
+        ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(request);
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
     [Test]
@@ -449,6 +524,15 @@ internal class FlowControllerValidationTest
     {
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
+            if (typeof(QueryResponseType) == typeof(List<FlowNwGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNwGroup>());
+            }
+            if (typeof(QueryResponseType) == typeof(List<FlowSvcGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowSvcGroup>());
+            }
+
             throw new InvalidOperationException("Validation should return before the API is queried.");
         }
 

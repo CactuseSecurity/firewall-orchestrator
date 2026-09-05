@@ -647,3 +647,5 @@ Not supported any longer are:
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
+- Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
+- The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version

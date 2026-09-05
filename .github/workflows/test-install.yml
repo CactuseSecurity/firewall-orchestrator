@@ -193,3 +193,6 @@ jobs:
       - run: ruff check
 
       - run: ruff format --exit-non-zero-on-format
+
+      - name: Version gate unit tests
+        run: ".venv/bin/python -m pytest -q scripts/ci"

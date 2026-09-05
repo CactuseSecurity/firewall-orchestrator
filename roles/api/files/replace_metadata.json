@@ -3015,7 +3015,7 @@
                       "audit_proof_critical"
                     ]
                   },
-                  "comment": ""
+                  "comment": "No changer_id preset: internal middleware JWTs (JwtWriter.CreateJWTInternal) carry no x-hasura-user-id session variable, so a preset would make every history insert of a background job fail. Rows written by the middleware itself keep changer_id NULL and are identified by changer alone."
                 },
                 {
                   "role": "requester",

@@ -45,9 +45,12 @@ namespace FWO.Services.Workflow
         private async Task LogWorkflowChange(WorkflowChangeTarget target, string changeText,
             object? oldValue, object? newValue, UiUser? requester, bool contentChange)
         {
-            JsonElement oldData = JsonSerializer.SerializeToElement(oldValue);
-            JsonElement newData = JsonSerializer.SerializeToElement(newValue);
-            if (oldData.GetRawText() == newData.GetRawText())
+            // The snapshots travel as GraphQL variables and are serialized by the serializer the
+            // connection was built with, which is Newtonsoft (ApiConstants.UseSystemTextJsonSerializer
+            // is false). Json.NET cannot serialize a System.Text.Json.JsonElement - it would write the
+            // wrapper's ValueKind instead of the snapshot - so the snapshots are passed on unchanged.
+            // System.Text.Json is used in process only, to detect whether anything changed at all.
+            if (JsonSerializer.Serialize(oldValue) == JsonSerializer.Serialize(newValue))
             {
                 return;
             }
@@ -62,10 +65,10 @@ namespace FWO.Services.Workflow
                 objectId = target.ObjectId,
                 changeText,
                 changer = UserConfig.User.Name,
-                changeSource = GlobalConst.kWorkflow,
+                changeSource = GlobalConst.kModuleWorkflow,
                 workflowPhase = (int)WorkflowPhase,
-                oldData,
-                newData,
+                oldData = oldValue,
+                newData = newValue,
                 auditProofCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId
             };
             try
@@ -166,16 +169,40 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Selects standard workflow state and assignment fields for history entries.
+        /// Selects the ticket fields written by the ticket state mutation.
         /// </summary>
-        private static object WorkflowStateSnapshot(WfStatefulObject item)
+        /// <remarks>
+        /// A state snapshot has to cover exactly what its mutation persists: a field the mutation writes
+        /// but the snapshot omits is both missing from the recorded change and invisible to the
+        /// change detection in LogWorkflowChange, which would drop the entry altogether.
+        /// </remarks>
+        private static object TicketStateSnapshot(WfTicket ticket)
         {
             return new
             {
-                item.StateId,
-                CurrentHandler = item.CurrentHandler?.DbId,
-                RecentHandler = item.RecentHandler?.DbId,
-                item.AssignedGroup
+                ticket.StateId,
+                ticket.CompletionDate,
+                ticket.Deadline,
+                ticket.Priority
+            };
+        }
+
+        /// <summary>
+        /// Selects the task fields written by the request and implementation task state mutations.
+        /// </summary>
+        /// <remarks>
+        /// Both mutations persist the same set of fields, see the remark on TicketStateSnapshot.
+        /// </remarks>
+        private static object TaskStateSnapshot(WfTaskBase task)
+        {
+            return new
+            {
+                task.StateId,
+                task.Start,
+                task.Stop,
+                CurrentHandler = task.CurrentHandler?.DbId,
+                RecentHandler = task.RecentHandler?.DbId,
+                task.AssignedGroup
             };
         }
 

@@ -8,6 +8,9 @@ using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 using FWO.Services;
 using FWO.Services.Workflow;
+using GraphQL;
+using GraphQL.Client.Serializer.Newtonsoft;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using System.Reflection;
 
@@ -55,6 +58,7 @@ namespace FWO.Test
             public int DeleteReqElementCallCount { get; private set; }
             public int NewImplTaskCallCount { get; private set; }
             public int UpdateImplTaskCallCount { get; private set; }
+            public int UpdateImplTaskStateCallCount { get; private set; }
             public int DeleteImplTaskCallCount { get; private set; }
             public int NewImplElementCallCount { get; private set; }
             public int UpdateImplElementCallCount { get; private set; }
@@ -151,6 +155,11 @@ namespace FWO.Test
                 if (query == RequestQueries.updateImplementationTask)
                 {
                     UpdateImplTaskCallCount++;
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedImplTaskId });
+                }
+                if (query == RequestQueries.updateImplementationTaskState)
+                {
+                    UpdateImplTaskStateCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedImplTaskId });
                 }
                 if (query == RequestQueries.deleteImplementationTask)
@@ -653,7 +662,7 @@ namespace FWO.Test
 
             Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
             Assert.That(apiConn.LastHistoryVariables, Is.Not.Null);
-            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kWorkflow));
+            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kModuleWorkflow));
             Assert.That(HistoryCriticalFlag(apiConn), Is.True);
         }
 
@@ -1038,7 +1047,7 @@ namespace FWO.Test
 
             // module, not change_source, is what separates the two producers of this table
             Assert.That(HistoryStringValue(apiConn, "module"), Is.EqualTo(GlobalConst.kModuleWorkflow));
-            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kWorkflow));
+            Assert.That(HistoryStringValue(apiConn, "changeSource"), Is.EqualTo(GlobalConst.kModuleWorkflow));
         }
 
         [Test]
@@ -2088,6 +2097,217 @@ namespace FWO.Test
             Assert.That(variables["device"], Is.EqualTo(7));
         }
 
+        [Test]
+        public async Task LogWorkflowChange_WritesPayloadThatSurvivesTheTransportSerializer()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // the variables are serialized by the same serializer GraphQlApiConnection uses, so a payload
+            // type Json.NET cannot handle would reach the database as wrapper metadata instead of data
+            GraphQLRequest request = new() { Query = ModellingQueries.addHistoryEntry, Variables = apiConn.LastHistoryVariables };
+            string payload = new NewtonsoftJsonSerializer().SerializeToString(request);
+            Assert.Multiple(() =>
+            {
+                Assert.That(payload, Does.Contain("Old title"));
+                Assert.That(payload, Does.Contain("Corrected title"));
+                Assert.That(payload, Does.Not.Contain("ValueKind"));
+            });
+        }
+
+        [Test]
+        public async Task UpdateTicketStateInDb_RecordsCompletionDateWithoutStateChange()
+        {
+            DateTime completion = new(2026, 9, 5, 10, 30, 0, DateTimeKind.Unspecified);
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, StateId = 60, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+
+            await dbAccess.UpdateTicketStateInDb(new WfTicket { Id = 101, StateId = 60, CompletionDate = completion }, false);
+
+            // the mutation writes closed, deadline and priority, so a change to one of them is a change
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryRawValue(apiConn, "newData"), Does.Contain("CompletionDate"));
+            Assert.That(HistoryRawValue(apiConn, "oldData"), Does.Contain("null"));
+        }
+
+        [Test]
+        public async Task UpdateReqTaskStateInDb_RecordsStopTimeWithoutStateChange()
+        {
+            DateTime stop = new(2026, 9, 5, 11, 0, 0, DateTimeKind.Unspecified);
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101, StateId = 60 } }
+                }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+
+            await dbAccess.UpdateReqTaskStateInDb(new WfReqTask { Id = 100, TicketId = 101, StateId = 60, Stop = stop }, false);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryRawValue(apiConn, "newData"), Does.Contain("Stop"));
+        }
+
+        [Test]
+        public async Task UpdateImplTaskStateInDb_RecordsStartTimeWithoutStateChange()
+        {
+            DateTime start = new(2026, 9, 5, 12, 0, 0, DateTimeKind.Unspecified);
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedImplTaskId = 200,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101, ImplementationTasks = { new WfImplTask { Id = 200, TicketId = 101, StateId = 60 } } } }
+                }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+
+            await dbAccess.UpdateImplTaskStateInDb(new WfImplTask { Id = 200, TicketId = 101, StateId = 60, Start = start }, false);
+
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryRawValue(apiConn, "newData"), Does.Contain("Start"));
+        }
+
+        [Test]
+        public async Task UpdateReqTaskAdditionalInfo_IsNeverAuditProofCritical()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskAdditionalInfoId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101 } }
+                }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+            WfReqTask reqTask = new() { Id = 100, TicketId = 101 };
+            reqTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "77");
+
+            await dbAccess.UpdateReqTaskAdditionalInfo(reqTask);
+
+            // additional info is written by workflow actions, not typed by the user acting on the ticket
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(1));
+            Assert.That(HistoryCriticalFlag(apiConn), Is.False);
+        }
+
+        [Test]
+        public async Task ReqTaskWrites_ReuseSuppliedPreviousTicketWithoutReadingItAgain()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewReqTaskId = 201,
+                DeletedReqTaskId = 100,
+                UpdatedReqTaskAdditionalInfoId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101 } }
+                }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.request);
+            WfTicket? storedTicket = await dbAccess.LoadPreviousTicket(101);
+            int readsAfterLoad = apiConn.GetTicketByIdCallCount;
+            WfReqTask changedTask = new() { Id = 100, TicketId = 101 };
+            changedTask.SetAddInfo(AdditionalInfoKeys.FlowBundleId, "77");
+
+            await dbAccess.AddReqTaskToDb(new WfReqTask { Id = 0, TicketId = 101, Title = "New task" }, storedTicket);
+            await dbAccess.UpdateReqTaskAdditionalInfo(changedTask, storedTicket);
+            await dbAccess.DeleteReqTaskFromDb(new WfReqTask { Id = 100, TicketId = 101, Title = "Removed task" }, storedTicket);
+
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(readsAfterLoad));
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public async Task ImplTaskWrites_ReuseSuppliedPreviousTicketWithoutReadingItAgain()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewImplTaskId = 200,
+                DeletedImplTaskId = 200,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+            WfTicket? storedTicket = await dbAccess.LoadPreviousTicket(101);
+            int readsAfterLoad = apiConn.GetTicketByIdCallCount;
+
+            await dbAccess.AddImplTaskToDb(new WfImplTask { Id = 0, TicketId = 101, Title = "New implementation" }, storedTicket);
+            await dbAccess.DeleteImplTaskFromDb(new WfImplTask { Id = 200, TicketId = 101, Title = "Removed implementation" }, storedTicket);
+
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(readsAfterLoad));
+            Assert.That(apiConn.AddHistoryEntryCallCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task ConfCleanupImplTasks_ReadsPreviousTicketOnceForAllTasks()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                DeletedImplTaskId = 200,
+                Ticket = new WfTicket { Id = 101, Requester = new UiUser { DbId = 7 } }
+            };
+            WfHandler wfHandler = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.implementation);
+            SetWorkflowContext(wfHandler, dbAccess);
+            wfHandler.ActReqTask = new WfReqTask { Id = 100, TicketId = 101 };
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 200, TicketId = 101 });
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 201, TicketId = 101 });
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 202, TicketId = 101 });
+
+            await wfHandler.ConfCleanupImplTasks();
+
+            Assert.That(apiConn.DeleteImplTaskCallCount, Is.EqualTo(3));
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SetAddInfoInReqTasks_ReadsPreviousTicketOncePerTicket()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskAdditionalInfoId = 100,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101 } }
+                }
+            };
+            WfHandler wfHandler = new();
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+            SetWorkflowContext(wfHandler, dbAccess);
+            List<WfReqTask> reqTasks = new()
+            {
+                new WfReqTask { Id = 100, TicketId = 101 },
+                new WfReqTask { Id = 101, TicketId = 101 },
+                new WfReqTask { Id = 102, TicketId = 101 }
+            };
+
+            await wfHandler.SetAddInfoInReqTasks(reqTasks, "PolicyCheck", "true");
+
+            Assert.That(apiConn.UpdateReqTaskAdditionalInfoCallCount, Is.EqualTo(3));
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(1));
+        }
+
         private static WfState CreatePromotingState(int stateId)
         {
             return new WfState
@@ -2172,8 +2392,9 @@ namespace FWO.Test
         {
             PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty(name);
             Assert.That(property, Is.Not.Null);
-            object? value = property!.GetValue(apiConnection.LastHistoryVariables);
-            return value is System.Text.Json.JsonElement element ? element.GetRawText() : value?.ToString();
+            // The payload fields are handed to the transport serializer unchanged, so read them back the
+            // way that serializer would write them instead of calling ToString on the CLR object.
+            return JsonConvert.SerializeObject(property!.GetValue(apiConnection.LastHistoryVariables));
         }
 
         private static bool HistoryCriticalFlag(WfDbAccessTestApiConn apiConnection)

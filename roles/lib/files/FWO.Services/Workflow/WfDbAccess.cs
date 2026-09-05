@@ -427,7 +427,7 @@ namespace FWO.Services.Workflow
                     if (storedTicket != null)
                     {
                         await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.Ticket, ticket.Id),
-                            "Updated workflow ticket state", WorkflowStateSnapshot(storedTicket), WorkflowStateSnapshot(ticket), storedTicket.Requester, false);
+                            "Updated workflow ticket state", TicketStateSnapshot(storedTicket), TicketStateSnapshot(ticket), storedTicket.Requester, false);
                     }
                     if (triggerActions)
                     {
@@ -467,7 +467,7 @@ namespace FWO.Services.Workflow
                     if (storedTicket != null && previousTask != null)
                     {
                         await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                            "Updated workflow request task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(reqtask), storedTicket.Requester, false);
+                            "Updated workflow request task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(reqtask), storedTicket.Requester, false);
                     }
                     if (triggerActions)
                     {
@@ -514,7 +514,7 @@ namespace FWO.Services.Workflow
                     if (storedTicket != null && previousTask != null)
                     {
                         await LogWorkflowChange(new(impltask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.ImplementationTask, impltask.Id),
-                            "Updated workflow implementation task state", WorkflowStateSnapshot(previousTask), WorkflowStateSnapshot(impltask), storedTicket.Requester, false);
+                            "Updated workflow implementation task state", TaskStateSnapshot(previousTask), TaskStateSnapshot(impltask), storedTicket.Requester, false);
                     }
                     if (triggerActions)
                     {

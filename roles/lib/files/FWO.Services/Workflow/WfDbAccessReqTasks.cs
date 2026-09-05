@@ -13,10 +13,14 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Creates a request task and persists its nested request elements.
         /// </summary>
-        public async Task<long> AddReqTaskToDb(WfReqTask reqtask)
+        /// <param name="reqtask">Request task to create.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, so callers adding several tasks to
+        /// the same ticket do not read the full ticket graph once per task.</param>
+        /// <returns>Id of the created request task, or 0 when the insert failed.</returns>
+        public async Task<long> AddReqTaskToDb(WfReqTask reqtask, WfTicket? previousTicket = null)
         {
             long returnId = 0;
-            WfTicket? previousTicket = await LoadPreviousTicket(reqtask.TicketId);
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
             try
             {
                 var variables = BuildReqTaskInsertVariables(reqtask);
@@ -39,14 +43,14 @@ namespace FWO.Services.Workflow
                     foreach (var approval in reqtask.Approvals)
                     {
                         approval.TaskId = returnId;
-                        await AddApprovalToDb(approval, reqtask.TicketId, previousTicket?.Requester);
+                        await AddApprovalToDb(approval, reqtask.TicketId, storedTicket?.Requester);
                     }
                     foreach (var owner in reqtask.Owners)
                     {
                         await AssignOwnerInDb(returnId, owner.Owner.Id);
                     }
                     await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                        "Added workflow request task", null, RequestTaskHistorySnapshot(reqtask), previousTicket?.Requester, true);
+                        "Added workflow request task", null, RequestTaskHistorySnapshot(reqtask), storedTicket?.Requester, true);
                     reqtask.MarkCreatedStateChanged(newStateId);
                     await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
                 }
@@ -101,10 +105,19 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Updates the additional info field of a request task.
         /// </summary>
-        public async Task UpdateReqTaskAdditionalInfo(WfReqTask reqtask)
+        /// <param name="reqtask">Request task whose additional info is written.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, so callers updating several tasks of
+        /// the same ticket do not read the full ticket graph once per task.</param>
+        /// <remarks>
+        /// Additional info holds bookkeeping keys written by workflow actions (flow bundle id, external
+        /// ticket id, policy check labels), not text a user typed, so these writes are recorded as
+        /// non-content changes and never counted as audit-proof critical. Content edits of a request task
+        /// go through UpdateReqTaskInDb.
+        /// </remarks>
+        public async Task UpdateReqTaskAdditionalInfo(WfReqTask reqtask, WfTicket? previousTicket = null)
         {
-            WfTicket? previousTicket = await LoadPreviousTicket(reqtask.TicketId);
-            WfReqTask? previousTask = previousTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
+            WfReqTask? previousTask = storedTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
                 var variables = new
@@ -117,10 +130,10 @@ namespace FWO.Services.Workflow
                 {
                     DisplayMessageInUi(null, UserConfig.GetText("save_task"), UserConfig.GetText("E8004"), true);
                 }
-                else if (previousTicket != null && previousTask != null)
+                else if (storedTicket != null && previousTask != null)
                 {
                     await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Update, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                        "Updated workflow request task", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), previousTicket.Requester, true);
+                        "Updated workflow request task additional info", RequestTaskHistorySnapshot(previousTask), RequestTaskHistorySnapshot(reqtask), storedTicket.Requester, false);
                 }
             }
             catch (Exception exception)
@@ -132,9 +145,12 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Deletes a request task.
         /// </summary>
-        public async Task DeleteReqTaskFromDb(WfReqTask reqtask)
+        /// <param name="reqtask">Request task to delete.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, so callers deleting several tasks of
+        /// the same ticket do not read the full ticket graph once per task.</param>
+        public async Task DeleteReqTaskFromDb(WfReqTask reqtask, WfTicket? previousTicket = null)
         {
-            WfTicket? previousTicket = await LoadPreviousTicket(reqtask.TicketId);
+            WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
             try
             {
                 long delId = (await ApiConnection.SendQueryAsync<ReturnId>(RequestQueries.deleteRequestTask, new { id = reqtask.Id })).DeletedIdLong;
@@ -145,7 +161,7 @@ namespace FWO.Services.Workflow
                 else
                 {
                     await LogWorkflowChange(new(reqtask.TicketId, ModellingTypes.ChangeType.Delete, ChangeHistoryObjectType.RequestTask, reqtask.Id),
-                        "Deleted workflow request task", RequestTaskHistorySnapshot(reqtask), null, previousTicket?.Requester, true);
+                        "Deleted workflow request task", RequestTaskHistorySnapshot(reqtask), null, storedTicket?.Requester, true);
                 }
             }
             catch (Exception exception)

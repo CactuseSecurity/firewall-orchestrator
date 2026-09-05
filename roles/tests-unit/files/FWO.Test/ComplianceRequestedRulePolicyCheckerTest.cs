@@ -732,11 +732,15 @@ namespace FWO.Test
 
         private static async Task<List<Rule>> InvokeBuildRules(ComplianceRequestedRulePolicyChecker policyChecker, params WfReqTask[] requestTasks)
         {
-            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRulesFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new AssertionException("BuildRulesFromRequestTasks method not found.");
+            MethodInfo method = typeof(ComplianceRequestedRulePolicyChecker).GetMethod("BuildRuleAssessmentFromRequestTasks", BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new AssertionException("BuildRuleAssessmentFromRequestTasks method not found.");
             object? result = method.Invoke(policyChecker, [requestTasks.AsEnumerable()]);
-            Task<List<Rule>> task = result as Task<List<Rule>> ?? throw new AssertionException("BuildRulesFromRequestTasks returned unexpected result.");
-            return await task;
+            Task task = result as Task ?? throw new AssertionException("BuildRuleAssessmentFromRequestTasks returned unexpected result.");
+            await task;
+            object assessment = task.GetType().GetProperty("Result")?.GetValue(task)
+                ?? throw new AssertionException("Rule assessment result was missing.");
+            return (List<Rule>)(assessment.GetType().GetProperty("Rules")?.GetValue(assessment)
+                ?? throw new AssertionException("Rule assessment rules were missing."));
         }
 
         private sealed class TestFlowGroupMiddlewareClient : MiddlewareClient

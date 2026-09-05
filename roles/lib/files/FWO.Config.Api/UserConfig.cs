@@ -64,7 +64,7 @@ namespace FWO.Config.Api
         {
             User = user;
             Translate = GetLanguageDictionary(globalConfig.LangDict, user.Language!);
-            Overwrite = apiConnection != null ? Task.Run(async () => await GetCustomDict(user.Language!)).Result : GetLanguageDictionary(globalConfig.OverDict, user.Language!);
+            Overwrite = Task.Run(async () => await GetCustomDict(user.Language!)).Result;
             this.globalConfig = globalConfig;
             OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             globalConfig.OnChange += OnGlobalConfigChange;
@@ -153,7 +153,7 @@ namespace FWO.Config.Api
             {
                 await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateUserLanguage, new { id = User.DbId, language = languageName });
                 Translate = GetLanguageDictionary(globalConfig.LangDict, languageName);
-                Overwrite = apiConnection != null ? await GetCustomDict(languageName) : GetLanguageDictionary(globalConfig.OverDict, languageName);
+                Overwrite = await GetCustomDict(languageName);
                 User.Language = languageName;
                 InvokeOnChange(this, []);
             }
@@ -225,29 +225,43 @@ namespace FWO.Config.Api
             {
                 return Convert(translateValue);
             }
-            else
+            return GetFallbackText(key);
+        }
+
+        private string GetFallbackText(string key)
+        {
+            if (globalConfig == null)
             {
-                if (globalConfig != null)
-                {
-                    string defaultLanguage = globalConfig.DefaultLanguage;
-                    if (defaultLanguage == "")
-                    {
-                        defaultLanguage = GlobalConst.kEnglish;
-                    }
-                    if (globalConfig.LangDict.TryGetValue(defaultLanguage, out Dictionary<string, string>? defaultDictionary)
-                        && defaultDictionary.TryGetValue(key, out string? defaultLangValue))
-                    {
-                        return Convert(defaultLangValue);
-                    }
-                    else if (defaultLanguage != GlobalConst.kEnglish
-                        && globalConfig.LangDict.TryGetValue(GlobalConst.kEnglish, out Dictionary<string, string>? englishDictionary)
-                        && englishDictionary.TryGetValue(key, out string? englValue))
-                    {
-                        return Convert(englValue);
-                    }
-                }
                 return GlobalConst.kUndefinedText;
             }
+
+            string defaultLanguage = string.IsNullOrEmpty(globalConfig.DefaultLanguage)
+                ? GlobalConst.kEnglish
+                : globalConfig.DefaultLanguage;
+            if (TryGetText(globalConfig.LangDict, defaultLanguage, key, out string defaultText))
+            {
+                return Convert(defaultText);
+            }
+
+            return defaultLanguage != GlobalConst.kEnglish
+                && TryGetText(globalConfig.LangDict, GlobalConst.kEnglish, key, out string englishText)
+                ? Convert(englishText)
+                : GlobalConst.kUndefinedText;
+        }
+
+        private static bool TryGetText(Dictionary<string, Dictionary<string, string>> dictionaries,
+            string language, string key, out string text)
+        {
+            text = string.Empty;
+            if (!dictionaries.TryGetValue(language, out Dictionary<string, string>? dictionary)
+                || !dictionary.TryGetValue(key, out string? foundText)
+                || foundText == null)
+            {
+                return false;
+            }
+
+            text = foundText;
+            return true;
         }
 
         public string PureLine(string text)

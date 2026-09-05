@@ -34,11 +34,6 @@ namespace FWO.Compliance
             return await complianceCheck.AreRulesCompliant(selectedPolicyIds, assessment.Rules);
         }
 
-        private async Task<List<Rule>> BuildRulesFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
-        {
-            return (await BuildRuleAssessmentFromRequestTasks(requestTasks)).Rules;
-        }
-
         private async Task<RuleBuildResult> BuildRuleAssessmentFromRequestTasks(IEnumerable<WfReqTask> requestTasks)
         {
             List<WfReqTask> tasks = requestTasks.ToList();

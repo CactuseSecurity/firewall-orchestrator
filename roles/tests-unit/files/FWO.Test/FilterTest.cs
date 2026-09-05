@@ -4,6 +4,7 @@ using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using System.Reflection;
@@ -393,6 +394,30 @@ namespace FWO.Test
             StringAssert.Contains("rulebase_links(where:", query.FullQuery);
             StringAssert.DoesNotContain("rulebase_links(where: { }) { rules (", query.FullQuery);
             StringAssert.Contains("rulebases { id uid name rules (", query.FullQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void AppRulesRebuildIncludesLateRuleOwnerPrefilter()
+        {
+            ReportTemplate template = new("", new()
+            {
+                ReportType = (int)ReportType.AppRules
+            });
+            template.ReportParams.ModellingFilter.SelectedOwner = new FwoOwner { Id = 17 };
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            query.QueryParameters.Add("$appRulesRuleOwnerPrefilterMarker: String! ");
+            query.QueryVariables["appRulesRuleOwnerPrefilterMarker"] = "%FWOC%";
+            short ownerMappingSourceId = (short)(int)OwnerMappingSourceStm.NameField;
+            query.AddRuleWhereAndFilter("{ rule_name: { _ilike: $appRulesRuleOwnerPrefilterMarker } }");
+            query.AddRuleWhereAndFilter($"{{ rule_metadatum: {{ rule_owners: {{ owner_id: {{ _eq: 17 }}, owner_mapping_source_id: {{ _eq: {ownerMappingSourceId} }}, removed: {{ _is_null: true }} }} }} }}");
+            query.RebuildLegacyRulesQuery(template);
+
+            StringAssert.Contains("get_rules_for_owner(args: {ownerid: 17 ", query.FullQuery);
+            StringAssert.Contains("$appRulesRuleOwnerPrefilterMarker: String!", query.FullQuery);
+            StringAssert.Contains("rule_name: { _ilike: $appRulesRuleOwnerPrefilterMarker }", query.FullQuery);
+            StringAssert.Contains($"rule_metadatum: {{ rule_owners: {{ owner_id: {{ _eq: 17 }}, owner_mapping_source_id: {{ _eq: {ownerMappingSourceId} }}, removed: {{ _is_null: true }} }} }}", query.FullQuery);
         }
 
         [Test]

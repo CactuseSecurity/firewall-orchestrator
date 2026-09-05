@@ -75,6 +75,7 @@ namespace FWO.Report
             bool keepFetching = true;
 
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
+            await PrepareQueryBeforeFetch(managementsWithRelevantImportId, apiConnection);
             ReportData.ManagementData = [];
             foreach (var management in managementsWithRelevantImportId)
             {
@@ -133,6 +134,7 @@ namespace FWO.Report
             Query.QueryVariables[QueryVar.Offset] = 0;
 
             List<ManagementReport> managementsWithRelevantImportId = await GetRelevantImportIds(apiConnection);
+            await PrepareQueryBeforeFetch(managementsWithRelevantImportId, apiConnection);
             ReportData.ManagementData = [];
             foreach (ManagementReport management in managementsWithRelevantImportId)
             {
@@ -230,6 +232,14 @@ namespace FWO.Report
         }
 
         internal readonly record struct RuleAttachCounts(int Attached, int Skipped);
+
+        /// <summary>
+        /// Allows specialized rule reports to adjust the query after relevant imports were resolved.
+        /// </summary>
+        protected virtual Task PrepareQueryBeforeFetch(List<ManagementReport> managementsWithRelevantImportId, ApiConnection apiConnection)
+        {
+            return Task.CompletedTask;
+        }
 
         /// <summary>
         /// Appends a flat page of rules to the matching rulebase shells already present in the management report.

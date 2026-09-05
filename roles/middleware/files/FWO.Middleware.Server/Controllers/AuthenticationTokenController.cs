@@ -32,6 +32,13 @@ namespace FWO.Middleware.Server.Controllers
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
 
+        private enum RefreshTokenConsumptionState
+        {
+            NotAttempted,
+            MayBeConsumed,
+            Consumed
+        }
+
         /// <summary>
         /// Constructor needing jwt writer, ldap list and connection
         /// </summary>
@@ -253,16 +260,14 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
-            // Set before the single-use token is spent rather than after, because a failure
-            // on the consuming call itself is ambiguous: the mutation may have committed
-            // before the connection died. From this point on the attempt is not repeatable,
-            // so an API failure must not invite a retry that can only answer "invalid".
-            bool refreshTokenMayBeSpent = false;
+            // Track the consuming call separately from confirmed consumption because a
+            // connection failure during the mutation cannot reveal whether it committed.
+            RefreshTokenConsumptionState consumptionState = RefreshTokenConsumptionState.NotAttempted;
 
             // Captured as soon as the user is known so that the audit trail can name whose
             // session ended even when the failure happens later, outside the scope the user
             // is declared in.
-            string auditIdentity = "the presented refresh token";
+            string auditIdentity = "";
 
             try
             {
@@ -299,7 +304,7 @@ namespace FWO.Middleware.Server.Controllers
                 auditIdentity = $"User \"{user.Name}\" with DN: \"{user.Dn}\"";
 
                 // Consume the old refresh token exactly once before minting a new pair.
-                refreshTokenMayBeSpent = true;
+                consumptionState = RefreshTokenConsumptionState.MayBeConsumed;
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
@@ -308,6 +313,8 @@ namespace FWO.Middleware.Server.Controllers
 
                     return Unauthorized("Invalid or expired refresh token");
                 }
+
+                consumptionState = RefreshTokenConsumptionState.Consumed;
 
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
 
@@ -323,7 +330,7 @@ namespace FWO.Middleware.Server.Controllers
                 // Whether it may be repeated depends on how far it got, so say which.
                 Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
 
-                if (refreshTokenMayBeSpent)
+                if (consumptionState == RefreshTokenConsumptionState.Consumed)
                 {
                     // Audited like every other terminal outcome of this endpoint: a token
                     // was spent and a session ended, which is exactly what the trail is for.
@@ -336,13 +343,18 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
                 }
 
+                if (consumptionState == RefreshTokenConsumptionState.MayBeConsumed)
+                {
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} may have been consumed because the API became unreachable during the operation.");
+                }
+
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "The API could not be reached while refreshing the token. Please retry.");
             }
             catch (Exception ex)
             {
                 Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
-                return BadRequest(ex.Message);
+                return BadRequest("The refresh could not be completed.");
             }
         }
 
@@ -357,6 +369,9 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Revoke")]
         public async Task<ActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
         {
+            string auditIdentity = "";
+            bool revocationMayHaveCommitted = false;
+
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))
@@ -382,7 +397,11 @@ namespace FWO.Middleware.Server.Controllers
                     Dn = ""
                 };
 
+                auditIdentity = $"User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\"";
+
+                revocationMayHaveCommitted = true;
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                revocationMayHaveCommitted = false;
 
                 if (revokedTokens != 1)
                 {
@@ -404,13 +423,18 @@ namespace FWO.Middleware.Server.Controllers
                 // token gone, that is the same end state.
                 Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
 
+                if (revocationMayHaveCommitted)
+                {
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for {auditIdentity} may have been revoked because the API became unreachable during the operation.");
+                }
+
                 return StatusCode(StatusCodes.Status503ServiceUnavailable,
                     "The API could not be reached while revoking the token. Please retry.");
             }
             catch (Exception ex)
             {
                 Log.WriteError(kRevokeLogCategory, "Failed to revoke token", ex);
-                return BadRequest(ex.Message);
+                return BadRequest("The revocation could not be completed.");
             }
         }
 

@@ -450,6 +450,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RefreshToken_DoesNotExposeApiErrors()
+        {
+            const string apiError = "permission denied for table refresh_token";
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException(apiError)
+            });
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(),
+                Is.EqualTo("The refresh could not be completed."));
+        }
+
+        [Test]
+        public async Task RefreshToken_ReportsAmbiguousConsumptionAsRetryable()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult response = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(response.Value?.ToString(), Does.Contain("Please retry"));
+            });
+        }
+
+        [Test]
+        public async Task RefreshToken_AuditsAmbiguousConsumption()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            string log = await CaptureConsoleOutputAsync(() => controller.RefreshToken(
+                new RefreshTokenRequest { RefreshToken = "refresh-token" }));
+
+            Assert.That(log, Does.Contain(
+                $"Refresh token for User \"login-user\" with DN: \"{kRoleUserDn}\" may have been consumed " +
+                "because the API became unreachable during the operation."));
+        }
+
+        [Test]
         public async Task RevokeToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -461,6 +524,41 @@ namespace FWO.Test
 
             Assert.That(result, Is.TypeOf<ObjectResult>());
             Assert.That(((ObjectResult)result).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+        }
+
+        [Test]
+        public async Task RevokeToken_DoesNotExposeApiErrors()
+        {
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection
+            {
+                ThrowOnQuery = new InvalidOperationException("field refresh_token does not exist")
+            });
+
+            ActionResult result = await controller.RevokeToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            Assert.That(result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)result).Value?.ToString(),
+                Is.EqualTo("The revocation could not be completed."));
+        }
+
+        [Test]
+        public async Task RevokeToken_AuditsAmbiguousRevocation()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => query == AuthQueries.revokeRefreshToken
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(apiConnection);
+
+            string log = await CaptureConsoleOutputAsync(() => controller.RevokeToken(
+                new RefreshTokenRequest { RefreshToken = "refresh-token" }));
+
+            Assert.That(log, Does.Contain(
+                "Refresh token for User \"login-user\" with DN: \"uid=login-user,ou=users,dc=fworch,dc=internal\" " +
+                "may have been revoked because the API became unreachable during the operation."));
         }
 
         [Test]
@@ -883,6 +981,23 @@ namespace FWO.Test
             MethodInfo method = typeof(AuthenticationTokenController).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingMethodException(typeof(AuthenticationTokenController).FullName, methodName);
             return (T)method.Invoke(null, arguments)!;
+        }
+
+        private static async Task<string> CaptureConsoleOutputAsync(Func<Task> action)
+        {
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+            try
+            {
+                Console.SetOut(logOutput);
+                await action();
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+
+            return logOutput.ToString();
         }
 
         private static string ExtractOkString(ActionResult<string> result)

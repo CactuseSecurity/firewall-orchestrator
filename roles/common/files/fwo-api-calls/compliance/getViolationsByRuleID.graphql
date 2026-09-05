@@ -8,5 +8,6 @@ query getViolationsByRuleID($ruleId: bigint) {
     removed_date
     risk_score
     rule_id
+    violation_type
   }
 }

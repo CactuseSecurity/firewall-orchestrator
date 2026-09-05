@@ -540,6 +540,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
+    <li>Die REST-Schnittstelle zur Compliance-Pr&uuml;fung von Flows unterst&uuml;tzt IPv4- und IPv6-Bereiche sowie CIDR-Netze.</li>
+    <li>Geplante Compliance-Pr&uuml;fungen melden Regeln mit Objekten, die keiner Netzwerkzone zugeordnet werden k&ouml;nnen, insbesondere IPv6-Objekte, als nicht bewertbar statt als konform.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -555,6 +557,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Rule reports can be filtered by source and destination object types.</li>
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
+    <li>The REST endpoint for flow compliance checks supports IPv4 and IPv6 ranges as well as CIDR networks.</li>
+    <li>Scheduled compliance checks report rules with objects that cannot be assigned to a network zone, especially IPv6 objects, as not assessable instead of compliant.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -2190,6 +2194,8 @@ INSERT INTO txt VALUES ('assess_host_address',  'German',   'Netzwerkobjekte in 
 INSERT INTO txt VALUES ('assess_host_address',  'English',  'Network objects in source or destination with 0.0.0.0/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'German',   'Netzwerkobjekte in Quelle oder Ziel mit 255.255.255.255/32');
 INSERT INTO txt VALUES ('assess_broadcast',     'English',  'Network objects in source or destination with 255.255.255.255/32');
+INSERT INTO txt VALUES ('assess_no_matching_zone', 'German',   'Netzwerkobjekte in Quelle oder Ziel ohne zuordenbare Netzwerkzone');
+INSERT INTO txt VALUES ('assess_no_matching_zone', 'English',  'Network objects in source or destination without an assignable network zone');
 
 -- settings
 INSERT INTO txt VALUES ('devices',				'German', 	'Ger&auml;te');
@@ -7559,7 +7565,7 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         </tbody>
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
-    F&uuml;r <code>getAddressObjectId</code> d&uuml;rfen <code>ipStart</code> und <code>ipEnd</code> als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
+    F&uuml;r <code>getAddressObjectId</code> akzeptieren <code>ipStart</code> und <code>ipEnd</code> IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
 ');
 INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
     All endpoints use <code>POST</code>.
@@ -7576,7 +7582,7 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         </tbody>
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
-    For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
+    For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
 ');
 INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code>.
@@ -7588,7 +7594,10 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
         </tbody>
     </table>
     F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
-    <code>ipStart</code> und <code>ipEnd</code> d&uuml;rfen als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
+    <code>ipStart</code> und <code>ipEnd</code> akzeptieren IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
+    CIDR-Netze werden mit <code>ipNetwork</code> &uuml;bergeben und vor der Pr&uuml;fung in ihre Bereichsgrenzen aufgel&ouml;st. <code>ipNetwork</code> schlie&szlig;t <code>ipStart</code> und <code>ipEnd</code> aus und muss die Netzadresse selbst enthalten; gesetzte Hostbits werden abgelehnt.
+    Kriterien, die nur IPv4 unterst&uuml;tzen, melden einen IPv6-Flow als nicht bewertbar (<code>NotAssessable</code>) statt als Verletzung.
+    Das gilt auch f&uuml;r die Zonenmatrix: L&auml;sst sich ein Objekt keiner konfigurierten Netzwerkzone zuordnen, wird der Flow als nicht bewertbar gemeldet und nicht als konform.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
     Ist ein Flow konform, ist die Liste <code>violations</code> leer.
 ');
@@ -7602,10 +7611,15 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
         </tbody>
     </table>
     For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
-    <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
+    <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
+    CIDR networks are supplied through <code>ipNetwork</code> and expanded to their range boundaries before evaluation. <code>ipNetwork</code> excludes <code>ipStart</code> and <code>ipEnd</code> and has to carry the network address itself; set host bits are rejected.
+    Criteria that only support IPv4 report an IPv6 flow as not assessable (<code>NotAssessable</code>) instead of as a violation.
+    This includes the zone matrix: an object that cannot be assigned to any configured network zone is reported as not assessable rather than as compliant.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
     When a flow is compliant, the <code>violations</code> list is empty.
 ');
+INSERT INTO txt VALUES ('H9085', 'German',  'Kann ein Objekt keiner konfigurierten Netzwerkzone zugeordnet werden, wird die betroffene Regel in geplanten Compliance-Pr&uuml;fungen und Berichten als nicht bewertbar gemeldet. Dies gilt insbesondere f&uuml;r IPv6-Objekte, wenn keine passende IPv6-Zone konfiguriert ist. Andere festgestellte Compliance-Verst&ouml;&szlig;e derselben Regel bleiben im Bericht sichtbar.');
+INSERT INTO txt VALUES ('H9085', 'English', 'When an object cannot be assigned to a configured network zone, scheduled compliance checks and reports mark the affected rule as not assessable. This applies especially to IPv6 objects when no matching IPv6 zone is configured. Other detected compliance violations for the same rule remain visible in the report.');
 INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>

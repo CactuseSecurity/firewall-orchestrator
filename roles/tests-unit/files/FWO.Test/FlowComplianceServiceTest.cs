@@ -1,5 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Compliance;
+using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Middleware.Server.Controllers;
@@ -8,6 +10,7 @@ using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using System.Reflection;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -15,6 +18,26 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowComplianceServiceTest
 {
+    private static readonly string[] kExpectedMatrixAndServiceViolationTypes =
+    [
+        nameof(CriterionType.ForbiddenService),
+        nameof(CriterionType.Matrix)
+    ];
+
+    private static readonly string[] kExpectedAllViolationTypes =
+    [
+        nameof(CriterionType.Assessability),
+        nameof(CriterionType.ForbidBidirectionalDuplicate),
+        nameof(CriterionType.ForbidZonesAsDestination),
+        nameof(CriterionType.ForbidZonesAsSource),
+        nameof(CriterionType.ForbiddenService),
+        nameof(CriterionType.Matrix),
+        nameof(CriterionType.MinimumCIDRLength),
+        FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType
+    ];
+
+    private static readonly string[] kExpectedMatrixViolationType = [nameof(CriterionType.Matrix)];
+
     [Test]
     public async Task GetPolicyIdsAsync_ReturnsActivePolicies()
     {
@@ -85,12 +108,89 @@ internal class FlowComplianceServiceTest
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
             Assert.That(result[0].Policy.Name, Is.EqualTo("Matrix and Service Policy"));
             Assert.That(result[0].Violations, Has.Count.EqualTo(2));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EqualTo(kExpectedMatrixAndServiceViolationTypes));
+            Assert.That(result[0].Violations.Single(v => v.Type == "Matrix").Count, Is.EqualTo(1));
+            Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getLanguages), Is.EqualTo(0));
             Assert.That(apiConnection.CountQueries(ConfigQueries.getTextsPerLanguage), Is.EqualTo(0));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getPolicyById));
             Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.getNetworkZonesForMatrix));
             Assert.That(apiConnection.SentQueries, Does.Contain(DeviceQueries.getManagementNames));
+        });
+    }
+
+    [Test]
+    public void FlowComplianceStateResponse_NormalizesViolationTypesAndOrdersGroups()
+    {
+        CompliancePolicy policy = BuildPolicy();
+        ComplianceCheck complianceCheck = new(UserConfig.ForTextOnly(new SimulatedGlobalConfig(), false), new FlowComplianceServiceApiConn())
+        {
+            Policy = policy
+        };
+        complianceCheck.CurrentViolationsInCheck.AddRange(
+        [
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.MatrixViolation,
+                CriterionId = 101
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ServiceViolation,
+                CriterionId = 102
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.NotAssessable
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.MinimumCIDRLengthViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ZoneObjectSourceViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.ZoneObjectDestinationViolation
+            },
+            new ComplianceViolation
+            {
+                Type = ComplianceViolationType.BidirectionalDuplicateViolation
+            },
+            new ComplianceViolation
+            {
+                CriterionId = 101
+            },
+            new ComplianceViolation
+            {
+                Criterion = policy.Criteria[0].Content
+            },
+            new ComplianceViolation
+            {
+                Criterion = new ComplianceCriterion
+                {
+                    Id = 999,
+                    Name = "Custom Criterion",
+                    CriterionType = "CustomCriterion"
+                }
+            }
+        ]);
+
+        FlowComplianceStateResponse response = InvokeToResponse(7, policy, complianceCheck);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Violations.Select(violation => violation.Type), Is.EqualTo(kExpectedAllViolationTypes));
+            Assert.That(response.Violations.Single(violation => violation.Type == "Assessability").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidBidirectionalDuplicate").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidZonesAsDestination").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbidZonesAsSource").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "ForbiddenService").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == "Matrix").Count, Is.EqualTo(3));
+            Assert.That(response.Violations.Single(violation => violation.Type == "MinimumCIDRLength").Count, Is.EqualTo(1));
+            Assert.That(response.Violations.Single(violation => violation.Type == FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType).Count, Is.EqualTo(1));
         });
     }
 
@@ -154,9 +254,11 @@ internal class FlowComplianceServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result[0].Policy.Id, Is.EqualTo(7));
-            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix", "ForbiddenService" }));
+            Assert.That(result[0].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixAndServiceViolationTypes));
+            Assert.That(result[0].Violations.Single(v => v.Type == "ForbiddenService").Count, Is.EqualTo(2));
             Assert.That(result[1].Policy.Id, Is.EqualTo(8));
-            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(new[] { "Matrix" }));
+            Assert.That(result[1].Violations.Select(v => v.Type), Is.EquivalentTo(kExpectedMatrixViolationType));
+            Assert.That(result[1].Violations.Single().Count, Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(DeviceQueries.getManagementNames), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(1));
             Assert.That(apiConnection.CountQueries(ComplianceQueries.getPolicyById), Is.EqualTo(2));
@@ -171,6 +273,14 @@ internal class FlowComplianceServiceTest
         apiConnection.PoliciesById[8] = BuildMatrixOnlyPolicy();
         apiConnection.Managements = [new Management { Id = 1, Uid = "mgmt-1" }];
         apiConnection.NetworkZones = BuildNetworkZones();
+    }
+
+    private static FlowComplianceStateResponse InvokeToResponse(int policyId, CompliancePolicy? policy, ComplianceCheck complianceCheck)
+    {
+        MethodInfo method = typeof(FlowComplianceService).GetMethod("ToResponse", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("FlowComplianceService.ToResponse helper not found.");
+
+        return (FlowComplianceStateResponse)method.Invoke(null, [policyId, policy, complianceCheck])!;
     }
 
     private static GetFlowComplianceStateRequest BuildComplianceRequest()
@@ -262,6 +372,16 @@ internal class FlowComplianceServiceTest
                     {
                         Id = 102,
                         Name = "Forbidden Service",
+                        CriterionType = nameof(CriterionType.ForbiddenService),
+                        Content = "443/TCP"
+                    }
+                },
+                new ComplianceCriterionWrapper
+                {
+                    Content = new ComplianceCriterion
+                    {
+                        Id = 103,
+                        Name = "Forbidden Service Duplicate",
                         CriterionType = nameof(CriterionType.ForbiddenService),
                         Content = "443/TCP"
                     }

@@ -156,10 +156,12 @@ public sealed class FlowComplianceService
                 Name = policyResolved ? policy!.Name : string.Empty
             },
             Violations = complianceCheck.CurrentViolationsInCheck
-                .Select(violation => new FlowComplianceStateResponse.ComplianceViolationResponse
+                .GroupBy(violation => MapViolationType(violation, complianceCheck.Policy))
+                .OrderBy(violationGroup => violationGroup.Key, StringComparer.Ordinal)
+                .Select(violationGroup => new FlowComplianceStateResponse.ComplianceViolationResponse
                 {
-                    Id = violation.Id,
-                    Type = MapViolationType(violation, complianceCheck.Policy)
+                    Type = violationGroup.Key,
+                    Count = violationGroup.Count()
                 })
                 .ToList()
         };
@@ -167,26 +169,25 @@ public sealed class FlowComplianceService
 
     private static string MapViolationType(ComplianceViolation violation, CompliancePolicy? policy)
     {
-        if (violation.Type != ComplianceViolationType.None)
-        {
-            return violation.Type.ToString();
-        }
-
-        string? criterionType = policy?.Criteria
+        ComplianceCriterion? criterion = policy?.Criteria
             .FirstOrDefault(wrapper => wrapper.Content.Id == violation.CriterionId)
-            ?.Content.CriterionType
-            ?? violation.Criterion?.CriterionType;
+            ?.Content
+            ?? violation.Criterion;
 
-        return criterionType switch
+        ComplianceViolationType violationType = violation.Type != ComplianceViolationType.None
+            ? violation.Type
+            : violation.ParseViolationType(criterion);
+
+        return violationType switch
         {
-            nameof(CriterionType.Matrix) => "Matrix",
-            nameof(CriterionType.Assessability) => "Assessability",
-            nameof(CriterionType.ForbiddenService) => "ForbiddenService",
-            nameof(CriterionType.MinimumCIDRLength) => nameof(CriterionType.MinimumCIDRLength),
-            nameof(CriterionType.ForbidZonesAsSource) => nameof(CriterionType.ForbidZonesAsSource),
-            nameof(CriterionType.ForbidZonesAsDestination) => nameof(CriterionType.ForbidZonesAsDestination),
-            nameof(CriterionType.ForbidBidirectionalDuplicate) => nameof(CriterionType.ForbidBidirectionalDuplicate),
-            _ => string.Empty
+            ComplianceViolationType.MatrixViolation => nameof(CriterionType.Matrix),
+            ComplianceViolationType.NotAssessable => nameof(CriterionType.Assessability),
+            ComplianceViolationType.ServiceViolation => nameof(CriterionType.ForbiddenService),
+            ComplianceViolationType.MinimumCIDRLengthViolation => nameof(CriterionType.MinimumCIDRLength),
+            ComplianceViolationType.ZoneObjectSourceViolation => nameof(CriterionType.ForbidZonesAsSource),
+            ComplianceViolationType.ZoneObjectDestinationViolation => nameof(CriterionType.ForbidZonesAsDestination),
+            ComplianceViolationType.BidirectionalDuplicateViolation => nameof(CriterionType.ForbidBidirectionalDuplicate),
+            _ => FlowComplianceStateResponse.ComplianceViolationResponse.UnknownType
         };
     }
 }

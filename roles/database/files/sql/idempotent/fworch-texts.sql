@@ -7590,6 +7590,7 @@ INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b>
     F&uuml;r <code>getFlowComplianceState</code> werden Quellen und Ziele als IP-Bereiche sowie Dienste als Portbereiche mit Protokoll &uuml;bergeben.
     <code>ipStart</code> und <code>ipEnd</code> d&uuml;rfen als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
     Die Antwort liefert pro angefragter Policy einen Block mit <code>policy</code> und <code>violations</code>.
+    <code>violations</code> ist nach Versto&szlig;typ gruppiert; jeder Eintrag enth&auml;lt <code>type</code> und <code>count</code>.
     Ist ein Flow konform, ist die Liste <code>violations</code> leer.
 ');
 INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b> provides policy lookup and compliance functions below <code>/api/flow</code>.
@@ -7604,6 +7605,7 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
     For <code>getFlowComplianceState</code>, sources and destinations are passed as IP ranges and services as port ranges with protocol.
     <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
     The response returns one block per requested policy with <code>policy</code> and <code>violations</code>.
+    <code>violations</code> is grouped by violation type; each item contains <code>type</code> and <code>count</code>.
     When a flow is compliant, the <code>violations</code> list is empty.
 ');
 INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.

@@ -15,6 +15,7 @@ using NUnit.Framework.Legacy;
 namespace FWO.Test
 {
     [TestFixture]
+    [NonParallelizable]
     internal class ReportRulesTest
     {
         private static readonly int[] ExpectedStandardRulePageOffsets = [0, 2];

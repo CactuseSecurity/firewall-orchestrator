@@ -81,7 +81,7 @@ namespace FWO.Test
 
                         new()
                         {
-                            CriterionType = nameof(ComplianceViolationType.NotAssessable)
+                            CriterionType = nameof(CriterionType.Assessability)
                         },
                         type: ComplianceViolationType.NotAssessable
 
@@ -120,7 +120,7 @@ namespace FWO.Test
 
                         new()
                         {
-                            CriterionType = nameof(ComplianceViolationType.ServiceViolation)
+                            CriterionType = nameof(CriterionType.ForbiddenService)
                         },
                         type: ComplianceViolationType.ServiceViolation
 
@@ -536,6 +536,69 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SetComplianceDataForRule_SeveralAssessabilityCriterionIssuesStayNotAssessable()
+        {
+            // The criterion type is the one the GraphQL layer delivers for the Assessability criterion, so this
+            // test fails if the whole-rule assessability check is compared against any other enum's member name.
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
+            ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            Rule rule = new()
+            {
+                Violations = [firstIssue, secondIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_AssessabilityCriterionIssueOutranksRealViolation()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            ComplianceViolation ruleAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Assessability)
+            }, type: ComplianceViolationType.NotAssessable);
+            ruleAssessabilityIssue.Details = "Object without address";
+            Rule rule = new()
+            {
+                Violations = [matrixViolation, ruleAssessabilityIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+                Assert.That(rule.ViolationDetails, Does.Contain(ruleAssessabilityIssue.Details));
+                Assert.That(rule.ViolationDetails, Does.Not.Contain(matrixViolation.Details));
+            });
+        }
+
+        [Test]
+        public void GetViewDataFromRules_SeveralAssessabilityCriterionIssuesStayNotAssessable()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
+            ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            Rule rule = new()
+            {
+                Violations = [firstIssue, secondIssue]
+            };
+            List<Rule> rules = [rule];
+
+            report.GetViewDataFromRules(rules);
+
+            Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+        }
+
+        [Test]
         public void DetermineCompliance_CountsOnlyViolationsWithinThePrintedViolationLimit()
         {
             SimulatedGlobalConfig singleViolationConfig = new()
@@ -589,7 +652,7 @@ namespace FWO.Test
             notAssessableViolation.Type = ComplianceViolationType.NotAssessable;
             notAssessableViolation.Criterion = new ComplianceCriterion
             {
-                CriterionType = nameof(ComplianceViolationType.NotAssessable)
+                CriterionType = nameof(CriterionType.Assessability)
             };
             Rule activeRule = CreateActiveRule("rule-a", CreateDiffViolation(12, 101, "rule-a"));
             activeRule.Violations.Add(notAssessableViolation);
@@ -825,7 +888,7 @@ namespace FWO.Test
                 Details = $"Violation {id}",
                 Criterion = new ComplianceCriterion
                 {
-                    CriterionType = "Matrix"
+                    CriterionType = nameof(CriterionType.Matrix)
                 },
                 Type = ComplianceViolationType.MatrixViolation
             };
@@ -839,7 +902,7 @@ namespace FWO.Test
                 Criterion = new ComplianceCriterion
                 {
                     CriterionType = type == ComplianceViolationType.NotAssessable
-                        ? nameof(ComplianceViolationType.NotAssessable)
+                        ? nameof(CriterionType.Assessability)
                         : nameof(CriterionType.Matrix)
                 }
             }).ToList();

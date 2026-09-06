@@ -14,6 +14,8 @@ public static class FlowComplianceRequestValidator
     private const int Ipv4HostPrefixLength = 32;
     private const int Ipv6HostPrefixLength = 128;
     private const int BitsPerByte = 8;
+    private const int Ipv4CompatiblePrefixByteCount = 12;
+    private const uint Ipv6LoopbackSuffix = 1;
     private const string GetPolicyIdsEndpointName = "getPolicyIds";
     private const string GetFlowComplianceStateEndpointName = "getFlowComplianceState";
 
@@ -330,9 +332,14 @@ public static class FlowComplianceRequestValidator
             return (false, errorFactory("has an invalid 'ipEnd' value."));
         }
 
-        if (ipStart.IsIPv4MappedToIPv6 || ipEnd.IsIPv4MappedToIPv6)
+        if (IsIpv4EncodedAsIpv6(ipStart))
         {
-            return (false, errorFactory("contains an IPv4-mapped IPv6 value. Use the dotted IPv4 form instead."));
+            return (false, errorFactory(BuildIpv4EncodedAsIpv6Error(ipStart, "ipStart")));
+        }
+
+        if (IsIpv4EncodedAsIpv6(ipEnd))
+        {
+            return (false, errorFactory(BuildIpv4EncodedAsIpv6Error(ipEnd, "ipEnd")));
         }
 
         if (ipStart.AddressFamily != ipEnd.AddressFamily)
@@ -346,6 +353,56 @@ public static class FlowComplianceRequestValidator
         }
 
         return (true, null);
+    }
+
+    /// <summary>
+    /// True for IPv6 values that only re-encode an IPv4 address: the IPv4-mapped form and the deprecated
+    /// IPv4-compatible form of RFC 4291 section 2.5.5.1. Both are classified as IPv6 downstream and could
+    /// therefore never overlap an IPv4 compliance zone, so they are rejected instead of silently evaluated.
+    /// </summary>
+    /// <param name="address">Address to classify.</param>
+    /// <returns>True when the address is an IPv4 address written in IPv6 notation.</returns>
+    private static bool IsIpv4EncodedAsIpv6(IPAddress address)
+    {
+        if (address.IsIPv4MappedToIPv6)
+        {
+            return true;
+        }
+
+        if (address.AddressFamily != AddressFamily.InterNetworkV6)
+        {
+            return false;
+        }
+
+        byte[] addressBytes = address.GetAddressBytes();
+        for (int index = 0; index < Ipv4CompatiblePrefixByteCount; index++)
+        {
+            if (addressBytes[index] != 0)
+            {
+                return false;
+            }
+        }
+
+        uint embeddedIpv4 = 0;
+        for (int index = Ipv4CompatiblePrefixByteCount; index < addressBytes.Length; index++)
+        {
+            embeddedIpv4 = (embeddedIpv4 << BitsPerByte) | addressBytes[index];
+        }
+
+        // The unspecified address and the IPv6 loopback share the leading zero bytes but denote no IPv4 address.
+        return embeddedIpv4 > Ipv6LoopbackSuffix;
+    }
+
+    /// <summary>
+    /// Builds the rejection message for an IPv6 value that only re-encodes an IPv4 address.
+    /// </summary>
+    /// <param name="address">The rejected address.</param>
+    /// <param name="fieldName">Name of the request field carrying the address.</param>
+    /// <returns>The error message naming the notation that was used.</returns>
+    private static string BuildIpv4EncodedAsIpv6Error(IPAddress address, string fieldName)
+    {
+        string notation = address.IsIPv4MappedToIPv6 ? "IPv4-mapped" : "IPv4-compatible";
+        return $"has an {notation} IPv6 value in '{fieldName}'. Use the dotted IPv4 form instead.";
     }
 
     /// <summary>
@@ -376,10 +433,10 @@ public static class FlowComplianceRequestValidator
             return true;
         }
 
-        if (parsedAddress.IsIPv4MappedToIPv6)
+        if (IsIpv4EncodedAsIpv6(parsedAddress))
         {
             normalizedIpAddress = string.Empty;
-            errorMessage = $"has an IPv4-mapped IPv6 value in '{fieldName}'. Use the dotted IPv4 form instead.";
+            errorMessage = BuildIpv4EncodedAsIpv6Error(parsedAddress, fieldName);
             return false;
         }
 
@@ -419,9 +476,9 @@ public static class FlowComplianceRequestValidator
             return false;
         }
 
-        if (parsedAddress.IsIPv4MappedToIPv6)
+        if (IsIpv4EncodedAsIpv6(parsedAddress))
         {
-            errorMessage = "has an IPv4-mapped IPv6 value in 'ipNetwork'. Use the dotted IPv4 form instead.";
+            errorMessage = BuildIpv4EncodedAsIpv6Error(parsedAddress, "ipNetwork");
             return false;
         }
 

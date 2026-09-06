@@ -587,14 +587,16 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Single definition of what marks a violation as an assessability issue.
+        /// Single definition of what marks a violation as an assessability issue for the whole rule. Only the
+        /// Assessability criterion judges the rule as such; every other criterion can attach a not-assessable
+        /// violation for a single object, and that must not outrank the rule's real violations.
         /// </summary>
         /// <param name="violation">Violation to classify.</param>
         /// <returns>True when the violation reports that the rule cannot be assessed.</returns>
         private static bool IsRuleNotAssessable(ComplianceViolation violation)
         {
             return violation.Type == ComplianceViolationType.NotAssessable
-                && violation.Criterion?.CriterionType == nameof(ComplianceViolationType.NotAssessable);
+                && violation.Criterion?.CriterionType == nameof(CriterionType.Assessability);
         }
 
         protected virtual bool ShowRule(Rule rule)

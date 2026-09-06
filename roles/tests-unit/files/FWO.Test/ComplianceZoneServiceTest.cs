@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Middleware.Server.Requests;
@@ -197,7 +198,7 @@ internal class ComplianceZoneServiceTest
             }]
         };
 
-        ArgumentException? exception = Assert.ThrowsAsync<ArgumentException>(
+        UnassignableIpRangesException? exception = Assert.ThrowsAsync<UnassignableIpRangesException>(
             async () => await service.ResolveZonesForObjectsAsync(request));
 
         Assert.That(exception!.Message, Does.Contain("2001:db8::1-2001:db8::1"));

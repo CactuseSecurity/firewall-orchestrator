@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -65,7 +66,7 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
         {
             return Ok(await complianceZoneService.ResolveZonesForObjectsAsync(request));
         }
-        catch (ArgumentException exception)
+        catch (UnassignableIpRangesException exception)
         {
             return BadRequest(exception.Message);
         }

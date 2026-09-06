@@ -166,6 +166,67 @@ internal class FlowComplianceValidationTest
     }
 
     [Test]
+    public void GetFlowComplianceState_RejectsIpv4CompatibleIpv6Network()
+    {
+        bool valid = TryValidateSourceNetwork("::192.0.2.0/120", out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("IPv4-compatible IPv6"));
+        });
+    }
+
+    [Test]
+    public void TryValidateIpRange_RejectsIpv4CompatibleIpv6Bound()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
+            "::192.0.2.10",
+            "::192.0.2.11",
+            "address",
+            0,
+            out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorMessage, Does.Contain("IPv4-compatible IPv6"));
+        });
+    }
+
+    [Test]
+    public void TryValidateIpRange_RejectsIpv4CompatibleIpv6BoundCarryingHostMask()
+    {
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(
+            "::192.0.2.10/128",
+            "::192.0.2.10/128",
+            "address",
+            0,
+            out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorMessage, Does.Contain("IPv4-compatible IPv6"));
+        });
+    }
+
+    [TestCase("::", "::")]
+    [TestCase("::1", "::1")]
+    public void TryValidateIpRange_AcceptsIpv6AddressesWithLeadingZeroBytes(string ipStart, string ipEnd)
+    {
+        // '::' and '::1' share the 96 leading zero bits of the IPv4-compatible form but denote no IPv4 address.
+        bool valid = FlowComplianceRequestValidator.TryValidateIpRange(ipStart, ipEnd, "address", 0, out string? errorMessage);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorMessage, Is.Null);
+        });
+    }
+
+    [Test]
     public void TryValidateIpRange_RejectsIpv4MappedIpv6Bound()
     {
         bool valid = FlowComplianceRequestValidator.TryValidateIpRange(

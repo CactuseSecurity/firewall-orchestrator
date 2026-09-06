@@ -405,7 +405,9 @@ CREATE TABLE change_history
     object_id BIGINT,
     change_text TEXT,
     -- Free text supplied by the client. changer_id is set by the API from the
-    -- authenticated session and is the trustworthy identity of the two.
+    -- authenticated session and is the trustworthy identity of the two. It stays null for rows
+    -- written outside a user session, because the middleware-server role carries no user id; in
+    -- that case changer names the automation, see FWO.Basics.GlobalConst.kAutomationChanger.
     changer VARCHAR,
     changer_id INTEGER,
     -- Kept timezone-naive for compatibility with migrated modelling history.

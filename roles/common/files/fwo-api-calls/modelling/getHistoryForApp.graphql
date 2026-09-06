@@ -1,6 +1,6 @@
 query getHistoryForApp ($appId: Int!){
   change_history (
-    where: { app_id: { _eq: $appId } }
+    where: { app_id: { _eq: $appId }, module: { _eq: "modelling" } }
     order_by: [{ change_time: desc }, { id: desc }]
   ){
     id

@@ -2308,6 +2308,78 @@ namespace FWO.Test
             Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(1));
         }
 
+        [Test]
+        public async Task UpdateActReqTaskStateFromApprovals_ReadsPreviousTicketOnceForAllImplTasks()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedReqTaskId = 100,
+                UpdatedImplTaskId = 200,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    Requester = new UiUser { DbId = 7 },
+                    Tasks = { new WfReqTask { Id = 100, TicketId = 101 } }
+                }
+            };
+            WfHandler wfHandler = new()
+            {
+                ActStateMatrix = new StateMatrix { LowestInputState = 0, LowestStartedState = 2, LowestEndState = 5 },
+                MasterStateMatrix = new StateMatrix { LowestInputState = 0, LowestStartedState = 2, LowestEndState = 5 }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval);
+            SetWorkflowContext(wfHandler, dbAccess);
+            wfHandler.ActReqTask = new WfReqTask { Id = 100, TicketId = 101 };
+            wfHandler.ActTicket = new WfTicket { Id = 101, Tasks = { wfHandler.ActReqTask } };
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 200, TicketId = 101 });
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 201, TicketId = 101 });
+            wfHandler.ActReqTask.ImplementationTasks.Add(new WfImplTask { Id = 202, TicketId = 101 });
+
+            MethodInfo? method = typeof(WfHandler).GetMethod("UpdateActReqTaskStateFromApprovals", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(method, Is.Not.Null);
+            await (Task)method!.Invoke(wfHandler, WithoutTriggerActions)!;
+
+            // one read for the request task state update, one hoisted read shared by all impl tasks
+            Assert.That(apiConn.UpdateImplTaskStateCallCount, Is.EqualTo(3));
+            Assert.That(apiConn.GetTicketByIdCallCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_NamesTheAutomation_WhenThereIsNoUserSession()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            // the middleware server writes with a UserConfig that has no user, see UserConfig.ForGlobalSettings
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "");
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // changer_id is already null for that role, so an empty changer would leave the row unattributable
+            Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain(GlobalConst.kAutomationChanger));
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_KeepsTheUserName_WhenThereIsAUserSession()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "alice");
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain("alice"));
+                Assert.That(HistoryRawValue(apiConn, "changer"), Does.Not.Contain(GlobalConst.kAutomationChanger));
+            });
+        }
+
         private static WfState CreatePromotingState(int stateId)
         {
             return new WfState
@@ -2378,10 +2450,14 @@ namespace FWO.Test
             return property!.GetValue(apiConnection.LastHistoryVariables)?.ToString();
         }
 
-        private static async Task<WfDbAccess> CreateHistoryDbAccess(WfDbAccessTestApiConn apiConnection, WorkflowPhases phase)
+        private static async Task<WfDbAccess> CreateHistoryDbAccess(WfDbAccessTestApiConn apiConnection, WorkflowPhases phase, string? userName = null)
         {
             UserConfig userConfig = new();
             await userConfig.InitWithUserId(apiConnection, 42, false);
+            if (userName != null)
+            {
+                userConfig.User.Name = userName;
+            }
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConnection, wfHandler);
             await actionHandler.Init(new List<WfState>());
@@ -2419,6 +2495,9 @@ namespace FWO.Test
 
             stateMatrixField!.SetValue(wfHandler, stateMatrixDict);
         }
+
+        // reflection argument list, kept in a field so no inline array argument is introduced
+        private static readonly object[] WithoutTriggerActions = [false];
 
         private static void SetWorkflowContext(WfHandler wfHandler, WfDbAccess dbAccess)
         {

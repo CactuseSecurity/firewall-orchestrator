@@ -182,12 +182,18 @@ namespace FWO.Services.Workflow
             await UpdateActReqTaskState(triggerActions);
 
             // in the case impl tasks are already existing
+            // Read the stored ticket once instead of once per implementation task: UpdateImplTaskStateInDb
+            // loads the full ticket graph when it is not given one, which matters for request tasks
+            // spread over many devices.
+            WfTicket? storedTicket = dbAcc != null && ActReqTask.ImplementationTasks.Count > 0
+                ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId)
+                : null;
             foreach (var implTask in ActReqTask.ImplementationTasks)
             {
                 implTask.StateId = ActReqTask.StateId;
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions);
+                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions, storedTicket);
                 }
             }
         }

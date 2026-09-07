@@ -313,7 +313,7 @@ namespace FWO.Test
                 Name = name,
                 IpData =
                 [
-                    new ModellingImportAreaIpData
+                    new ZoneIpRangeData
                     {
                         Name = $"{name} subnet",
                         Ip = ip,

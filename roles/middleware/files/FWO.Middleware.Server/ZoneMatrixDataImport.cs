@@ -22,6 +22,7 @@ namespace FWO.Middleware.Server
         List<ComplianceNetworkZone> ExistingZones = [];
         readonly Dictionary<string, int> ZoneIds = [];
         int MatrixId = 0;
+        DeviceNameResolver? deviceLookup;
         private const string LogMessageTitle = "Import Network Zone Matrix Data";
         private const string LevelFile = "Import File";
         private const string LevelZone = "Zone";
@@ -89,6 +90,7 @@ namespace FWO.Middleware.Server
             try
             {
                 ImportNwZoneMatrixData importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
+                deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
                 CheckData(importedZoneMatrixData);
                 (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
                 responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
@@ -103,7 +105,7 @@ namespace FWO.Middleware.Server
             return responsMessage;
         }
 
-        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData)
+        private void CheckData(ImportNwZoneMatrixData importedZoneMatrixData)
         {
             if (string.IsNullOrEmpty(importedZoneMatrixData.Name))
             {
@@ -116,6 +118,28 @@ namespace FWO.Middleware.Server
             if (importedZoneMatrixData.NetworkZones.Select(z => z.IdString).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
                 throw new ArgumentException("Duplicate Zone IdStrings");
+            }
+            CheckDeviceData(importedZoneMatrixData);
+        }
+
+        private void CheckDeviceData(ImportNwZoneMatrixData importedZoneMatrixData)
+        {
+            foreach (NetworkZoneData networkZone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (ZoneIpRangeData subnet in networkZone.IpData)
+                {
+                    foreach (DeviceRefData device in subnet.PathToRoot.Concat(subnet.PathToInternet))
+                    {
+                        if (deviceLookup.IsAmbiguous(device.MgmtName, device.DeviceName))
+                        {
+                            throw new ArgumentException($"Device name {device.DeviceName} in manager {device.MgmtName} is ambiguous");
+                        }
+                        else if (deviceLookup.Resolve(device.MgmtName, device.DeviceName) is null)
+                        {
+                            throw new ArgumentException($"Could not resolve device {device.DeviceName} in manager {device.MgmtName}");
+                        }
+                    }
+                }
             }
         }
 
@@ -317,7 +341,7 @@ namespace FWO.Middleware.Server
             return (0, 0);
         }
 
-        private static IPAddressRange ConvertIpDataToAddressRange(ModellingImportAreaIpData importAreaIpData)
+        private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)
         {
             string Ip = importAreaIpData.Ip;
             string? IpEnd = importAreaIpData.IpEnd;

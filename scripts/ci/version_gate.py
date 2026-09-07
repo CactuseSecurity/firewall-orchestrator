@@ -128,14 +128,16 @@ def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[str]
     """
     added_lines: list[tuple[int, str]] = []
     removed_lines: list[str] = []
-    line_number = 0
+    # None marks "still in this file's header". Zero cannot serve as that marker: git writes
+    # '@@ -1 +0,0 @@' for a deletion at the head of a file, so zero is a legal hunk start.
+    line_number: int | None = None
     for line in diff_text.splitlines():
         hunk = DIFF_HUNK_PATTERN.match(line)
         if line.startswith("diff --git"):
-            line_number = 0
+            line_number = None
         elif hunk is not None:
             line_number = int(hunk.group(1))
-        elif line_number == 0:
+        elif line_number is None:
             continue  # header lines of the current file, before its first hunk
         elif line.startswith("+"):
             added_lines.append((line_number, line[1:]))

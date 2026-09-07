@@ -648,9 +648,11 @@ Not supported any longer are:
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
 
-## 9.4.7 - 04.09.2026
+## 9.4.7 - 07.09.2026
 - enforce host-address masks for flow network-object range endpoints
-- flow network-object ranges must now start and end in the same address family. A range from an IPv4 to an IPv6 address passed all previous checks, and the upgrade stops and names the affected objects if any exist, because such a range cannot be corrected automatically.
-- when the flow creation refuses a request element because its addresses cannot be stored - a range mixing IPv4 and IPv6, or a value that is no address - the confirmation message now names the reason and the refused value instead of only reporting that the flow creation failed
-- flow network objects created from a request element now store both range endpoints as a host address in CIDR notation: a network becomes its first and its last address, and a host gets its /32 or /128 mask. A host was previously stored without that mask, which gave it a different hash than the identical imported object and could leave the flow database with two objects for the same address, a state the flow sync reports instead of resolving.
-- flow network objects whose range endpoints still carried a network mask are normalized by the upgrade to the first and the last host address of that network. Their stored hash no longer matches the changed endpoints and is recalculated by the next flow sync; a request reaching the flow database before that sync still finds these objects by their range instead of creating them again. If two of these objects end up on the same range, the flow sync reports them instead of recalculating, and they have to be merged manually.
+- require both endpoints of a flow network-object range to be of the same address family
+- store the range endpoints of flow network objects created from a request in CIDR notation
+- widen a requested network endpoint to the first and the last host address of that network
+- name the refused addresses in the message of a failed flow creation
+- normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- stop the upgrade and name the affected flow network objects when their endpoints mix address families

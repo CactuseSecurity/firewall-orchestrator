@@ -541,6 +541,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
+    <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -556,6 +557,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
+    <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

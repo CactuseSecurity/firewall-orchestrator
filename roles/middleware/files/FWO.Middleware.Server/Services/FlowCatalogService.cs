@@ -24,7 +24,7 @@ public sealed class FlowCatalogService : IDisposable
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
     private readonly object zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
-    private List<FlowZoneGroupPattern> zonePatterns = [];
+    private IReadOnlyList<FlowZoneGroupPattern> zonePatterns = [];
     private string? parsedZonePatternConfig;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
@@ -64,9 +64,11 @@ public sealed class FlowCatalogService : IDisposable
     /// <summary>
     /// Returns the configured zone name patterns, parsing the config value only when it changed.
     /// The parse reports unusable entries to the log, so it must not run once per request.
+    /// The cache is shared by every caller of this singleton and is replaced rather than modified,
+    /// so it is handed out read-only and callers keep a stable snapshot.
     /// </summary>
     /// <returns>The configured zone name patterns.</returns>
-    private List<FlowZoneGroupPattern> GetZonePatterns()
+    private IReadOnlyList<FlowZoneGroupPattern> GetZonePatterns()
     {
         string serializedPatterns = globalConfig.FlowZoneGroupNamePatterns ?? "";
 
@@ -116,7 +118,7 @@ public sealed class FlowCatalogService : IDisposable
     public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
     {
         List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
-        List<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
+        IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
         SeparatedAddressGroupsResponse separatedGroups = new();
 
         foreach (FlowNwGroup flowGroup in flowGroups)

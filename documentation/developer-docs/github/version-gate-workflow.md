@@ -124,8 +124,12 @@ Filtering server-side keeps refresh cost bounded by the number of open pull requ
 the workflow's complete historical run count. Runs that are not yet `completed` are left alone,
 because they will report a fresh result on their own.
 
-The open pull request query is capped at 200 entries. Reaching that cap emits a workflow warning
-because additional pull requests may exist and retain stale gate results.
+The open pull request query is capped at 200 entries, which bounds the cost of the refresh loop.
+Reaching that cap is accepted rather than treated as a failure: the job stays green and warns with
+the number of open pull requests it did not refresh, counted through a single GraphQL
+`pullRequests(states: OPEN).totalCount` query. Those pull requests keep their previous gate result
+until an event of their own, or a manual **Version gate refresh** with their `pr` number, updates
+it. When the count query itself fails, the warning names the cap without a number.
 
 A re-run replays the workflow file from the original run, but the checkout, the tag list and the
 gate script are all resolved at run time, so the verdict is current even if the workflow YAML

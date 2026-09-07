@@ -53,6 +53,7 @@ def execute_refresh_loop(
     failed_run_ids: tuple[int, ...] = (),
     failed_run_lookup_shas: tuple[str, ...] = (),
     pull_request_count: int | None = None,
+    open_pull_request_total: int | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     """Execute the refresh loop with mocked pull requests and workflow runs."""
     fake_bin = tmp_path / "bin"
@@ -64,6 +65,12 @@ def execute_refresh_loop(
         """#!/bin/sh
 if [ "$1" = "pr" ]; then
     printf '[]\n'
+elif [ "$1" = "api" ] && [ "$2" = "graphql" ]; then
+    if [ -z "$MOCK_OPEN_PR_TOTAL" ]; then
+        echo "API error: 502" >&2
+        exit 1
+    fi
+    printf '%s\n' "$MOCK_OPEN_PR_TOTAL"
 elif [ "$1" = "api" ]; then
     request="$2"
     printf '%s\n' "$request" >> "$MOCK_API_LOG"
@@ -111,6 +118,7 @@ exit 0
             "MOCK_API_LOG": str(api_log),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
+            "MOCK_OPEN_PR_TOTAL": "" if open_pull_request_total is None else str(open_pull_request_total),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
             "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
             "MOCK_RERUN_LOG": str(rerun_log),
@@ -134,9 +142,17 @@ exit 0
     return (completed, rerun_ids)
 
 
-def refresh_output_at_pr_count(tmp_path: Path, pull_request_count: int) -> subprocess.CompletedProcess[str]:
+def refresh_output_at_pr_count(
+    tmp_path: Path,
+    pull_request_count: int,
+    open_pull_request_total: int | None = None,
+) -> subprocess.CompletedProcess[str]:
     """Execute the refresh script with a mocked number of open pull requests."""
-    completed, _ = execute_refresh_loop(tmp_path, pull_request_count=pull_request_count)
+    completed, _ = execute_refresh_loop(
+        tmp_path,
+        pull_request_count=pull_request_count,
+        open_pull_request_total=open_pull_request_total,
+    )
     return completed
 
 
@@ -183,15 +199,26 @@ def test_warns_when_open_pull_request_limit_is_reached(
     pull_request_count: int,
     warning_expected: bool,
 ) -> None:
-    """Warn that pull requests beyond the query cap may retain stale gates."""
-    completed = refresh_output_at_pr_count(tmp_path, pull_request_count)
+    """Warn that pull requests beyond the query cap retain stale gates."""
+    completed = refresh_output_at_pr_count(tmp_path, pull_request_count, open_pull_request_total=237)
 
     assert completed.returncode == 0
     warning = (
-        f"::warning::Open pull request query reached its limit of {PULL_REQUEST_LIMIT}; "
-        "additional pull requests may exist and were not refreshed."
+        f"::warning::Refreshed {PULL_REQUEST_LIMIT} of 237 open pull requests; "
+        f"{237 - PULL_REQUEST_LIMIT} were not refreshed and keep their previous gate result."
     )
     assert (warning in completed.stdout) is warning_expected
+
+
+def test_unknown_open_pull_request_total_still_warns_about_the_cap(tmp_path: Path) -> None:
+    """A failing count query must not hide the cap, and must not fail the job either."""
+    completed = refresh_output_at_pr_count(tmp_path, PULL_REQUEST_LIMIT)
+
+    assert completed.returncode == 0
+    assert (
+        f"::warning::Open pull request query reached its limit of {PULL_REQUEST_LIMIT}; "
+        "additional pull requests may exist and were not refreshed." in completed.stdout
+    )
 
 
 def test_failing_run_lookup_keeps_refreshing_the_remaining_pull_requests(tmp_path: Path) -> None:

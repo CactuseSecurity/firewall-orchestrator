@@ -87,7 +87,24 @@ jobs:
               --json number,headRefOid)"
             pull_request_count="$(jq length <<<"$pull_requests")"
             if [[ "$pull_request_count" -ge "$PULL_REQUEST_LIMIT" ]]; then
-              echo "::warning::Open pull request query reached its limit of ${PULL_REQUEST_LIMIT}; additional pull requests may exist and were not refreshed."
+              # The cap bounds the cost of the loop below. Pull requests beyond it keep their
+              # previous gate result on purpose, so report how many they are: the number is what
+              # tells a maintainer how much has to be refreshed by hand.
+              if ! open_pull_request_count="$(gh api graphql \
+                -f query='query($owner: String!, $name: String!, $base: String!) {
+                  repository(owner: $owner, name: $name) {
+                    pullRequests(states: OPEN, baseRefName: $base) { totalCount }
+                  }
+                }' \
+                -f owner="${GH_REPO%%/*}" -f name="${GH_REPO##*/}" -f base="$BASE_BRANCH" \
+                --jq '.data.repository.pullRequests.totalCount')"; then
+                open_pull_request_count=""
+              fi
+              if [[ -n "$open_pull_request_count" ]]; then
+                echo "::warning::Refreshed ${pull_request_count} of ${open_pull_request_count} open pull requests; $((open_pull_request_count - pull_request_count)) were not refreshed and keep their previous gate result."
+              else
+                echo "::warning::Open pull request query reached its limit of ${PULL_REQUEST_LIMIT}; additional pull requests may exist and were not refreshed."
+              fi
             fi
           fi
 

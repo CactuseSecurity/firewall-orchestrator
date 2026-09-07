@@ -1462,6 +1462,42 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task CreateFlowInFlowDb_ReadsAnEndpointGivenInRangeNotation()
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.1-10.0.0.5", "10.0.1.1", 443);
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == "10.0.0.1/32");
+            Assert.That(inserted.IpEnd, Is.EqualTo("10.0.0.5/32"));
+        }
+
+        [TestCase("not-an-ip", "10.0.0.5")]
+        [TestCase("10.0.0.1", "not-an-ip")]
+        [TestCase("10.0.0.1/33", "10.0.0.5")]
+        public async Task CreateFlowInFlowDb_SkipsNetworkObjectWithUnreadableEndpoint(string requestedIpStart, string requestedIpEnd)
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.9", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.IpString = requestedIpStart;
+            source.IpEnd = requestedIpEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.InsertedNetworkObjects.Select(nwObject => nwObject.IpStart), Does.Not.Contain(requestedIpStart));
+                Assert.That(apiConn.InsertedAccess, Is.Null);
+            });
+        }
+
         [TestCase("10.0.0.1", "2001:db8::1")]
         [TestCase("2001:db8::1", "10.0.0.1")]
         public async Task CreateFlowInFlowDb_SkipsNetworkObjectWithMixedAddressFamilies(string requestedIpStart, string requestedIpEnd)

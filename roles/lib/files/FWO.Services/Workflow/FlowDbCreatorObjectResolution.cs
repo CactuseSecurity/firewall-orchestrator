@@ -118,8 +118,11 @@ namespace FWO.Services.Workflow
                 return null;
             }
 
-            string? ipStart = ToHostAddress(snapshot.Ip, false, snapshot.WorkflowElementId);
-            string? ipEnd = ToHostAddress(string.IsNullOrWhiteSpace(snapshot.IpEnd) ? snapshot.Ip : snapshot.IpEnd, true, snapshot.WorkflowElementId);
+            if (!TryGetHostAddress(snapshot.Ip, false, snapshot.WorkflowElementId, out string? ipStart)
+                || !TryGetHostAddress(string.IsNullOrWhiteSpace(snapshot.IpEnd) ? snapshot.Ip : snapshot.IpEnd, true, snapshot.WorkflowElementId, out string? ipEnd))
+            {
+                return null;
+            }
             if (!SharesAddressFamily(ipStart, ipEnd))
             {
                 Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {snapshot.WorkflowElementId}: " +
@@ -151,23 +154,31 @@ namespace FWO.Services.Workflow
         /// flow sync both read the endpoints back from the cidr columns, so that notation is the one to write:
         /// a host stored without its mask hashes differently from the identical imported object and is inserted
         /// a second time, which leaves the flow sync with two rows recalculating to one hash.
+        /// An endpoint which cannot be read as an address at all is refused rather than forwarded: the column no
+        /// longer accepts it, so passing it on would only turn a request the requester can still correct into a
+        /// failed mutation.
         /// </summary>
         /// <param name="ip">The endpoint as requested, in any notation.</param>
         /// <param name="isRangeEnd">Whether the endpoint closes the range instead of opening it.</param>
         /// <param name="workflowElementId">Id of the workflow element the endpoint belongs to, for logging.</param>
-        /// <returns>The host address to store, or the unchanged value when it cannot be read as an address.</returns>
-        private static string? ToHostAddress(string? ip, bool isRangeEnd, long workflowElementId)
+        /// <param name="hostAddress">The host address to store, or the endpoint itself when it is not set at all.</param>
+        /// <returns>Whether the endpoint could be read; false for a value which is set but is no address.</returns>
+        private static bool TryGetHostAddress(string? ip, bool isRangeEnd, long workflowElementId, out string? hostAddress)
         {
+            hostAddress = ip;
             if (string.IsNullOrWhiteSpace(ip))
             {
-                return ip;
+                return true;
             }
             if (!ip.TryParseIPStringToRange(out (string start, string end) range))
             {
-                Log.WriteWarning(LogMessageTitle, $"Could not read the network endpoint '{ip}' of workflow element {workflowElementId} as an address range, storing it unchanged.");
-                return ip;
+                Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {workflowElementId}: " +
+                    $"its endpoint '{ip}' cannot be read as an IP address or range.");
+                hostAddress = null;
+                return false;
             }
-            return (isRangeEnd ? range.end : range.start).IpAsCidr();
+            hostAddress = (isRangeEnd ? range.end : range.start).IpAsCidr();
+            return true;
         }
 
         /// <summary>

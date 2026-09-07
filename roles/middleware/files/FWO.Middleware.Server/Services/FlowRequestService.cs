@@ -22,6 +22,7 @@ public sealed class FlowRequestService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly Lazy<UserConfig> workflowUserConfig;
     private readonly ApiSubscription? configSubscription;
 
     /// <summary>
@@ -31,6 +32,7 @@ public sealed class FlowRequestService : IDisposable
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
+        workflowUserConfig = new(() => UserConfig.ForGlobalSettings(this.globalConfig, this.apiConnection, this.globalConfig.DefaultLanguage));
         try
         {
             configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
@@ -630,7 +632,7 @@ public sealed class FlowRequestService : IDisposable
     /// </summary>
     private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
     {
-        using UserConfig userConfig = new();
+        UserConfig userConfig = workflowUserConfig.Value;
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {
@@ -874,5 +876,9 @@ public sealed class FlowRequestService : IDisposable
     public void Dispose()
     {
         configSubscription?.Dispose();
+        if (workflowUserConfig.IsValueCreated)
+        {
+            workflowUserConfig.Value.Dispose();
+        }
     }
 }

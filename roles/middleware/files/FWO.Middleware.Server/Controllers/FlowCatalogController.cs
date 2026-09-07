@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data.Middleware;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -55,6 +56,14 @@ public class FlowCatalogController : ControllerBase
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
+    private static readonly RequestRootValidationSchema ResolveFlowGroupsRootSchema = new(
+        nameof(ResolveGroupMembers),
+        [
+            new RequestKeyDefinition("networkGroupIds", "Network Flow group IDs to resolve."),
+            new RequestKeyDefinition("networkGroupNames", "Network Flow group names to resolve."),
+            new RequestKeyDefinition("serviceGroupIds", "Service Flow group IDs to resolve."),
+            new RequestKeyDefinition("serviceGroupNames", "Service Flow group names to resolve.")
+        ]);
 
     private readonly FlowCatalogService flowCatalogService;
 
@@ -129,6 +138,44 @@ public class FlowCatalogController : ControllerBase
         }
 
         return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
+    }
+
+    /// <summary>
+    /// Resolves the supplied request-visible Flow groups and returns their active members.
+    /// Only explicitly requested IDs or names are resolved.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}")]
+    [HttpPost("resolveGroupMembers")]
+    public async Task<ActionResult<FlowGroupResolutionResult>> ResolveGroupMembers([FromBody] ResolveFlowGroupsRequest? request)
+    {
+        request ??= new ResolveFlowGroupsRequest();
+        if (!RequestRootValidator.TryValidate(request, ResolveFlowGroupsRootSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+        request.NetworkGroupIds ??= [];
+        request.NetworkGroupNames ??= [];
+        request.ServiceGroupIds ??= [];
+        request.ServiceGroupNames ??= [];
+        if (request.NetworkGroupIds.Count + request.NetworkGroupNames.Count
+            + request.ServiceGroupIds.Count + request.ServiceGroupNames.Count > FlowGroupResolutionParameters.MaxSelectors)
+        {
+            return BadRequest($"At most {FlowGroupResolutionParameters.MaxSelectors} group selectors are allowed.");
+        }
+
+        if (request.NetworkGroupNames.Any(string.IsNullOrWhiteSpace)
+            || request.ServiceGroupNames.Any(string.IsNullOrWhiteSpace))
+        {
+            return BadRequest("Group names must not be empty.");
+        }
+
+        return Ok(await flowCatalogService.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters
+        {
+            NetworkGroupIds = request.NetworkGroupIds,
+            NetworkGroupNames = request.NetworkGroupNames,
+            ServiceGroupIds = request.ServiceGroupIds,
+            ServiceGroupNames = request.ServiceGroupNames
+        }));
     }
 
     /// <summary>

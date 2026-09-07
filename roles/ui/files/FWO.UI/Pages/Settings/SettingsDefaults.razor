@@ -374,8 +374,15 @@ else
     }
 
     /// <summary>
-    /// Loads the public internal CA certificate without blocking the remaining settings.
+    /// Loads the public internal CA certificate before the rest of the settings.
     /// </summary>
+    /// <remarks>
+    /// Awaited up front rather than after the first render: it reads one local file of a
+    /// couple of kilobytes, so nothing measurable is gained by deferring it, and having the
+    /// certificate present before the first render keeps its block from appearing late.
+    /// It cannot hold the page back on a failure either - a failed read is reported and
+    /// leaves the string empty, which hides the block instead of blocking initialization.
+    /// </remarks>
     private async Task LoadInternalCaCertificate()
     {
         try

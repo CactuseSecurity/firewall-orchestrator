@@ -129,9 +129,9 @@ because additional pull requests may exist and retain stale gate results.
 
 A re-run replays the workflow file from the original run, but the checkout, the tag list and the
 gate script are all resolved at run time, so the verdict is current even if the workflow YAML
-has since changed. If a pull request cannot be refreshed at all — no run found, or the re-run
-was rejected — the job fails loudly, because that pull request would otherwise keep a stale
-green gate.
+has since changed. If a pull request cannot be refreshed at all — the run query failed, no run
+was found, or the re-run was rejected — the loop counts it and moves on to the next pull request,
+and the job then fails loudly, because that pull request would otherwise keep a stale green gate.
 
 This workflow lives in its own file on purpose: a second job inside `version-gate.yml` would add
 a permanently skipped entry to every pull request.

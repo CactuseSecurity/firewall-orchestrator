@@ -51,6 +51,7 @@ def execute_refresh_loop(
     pull_requests: tuple[tuple[int, str], ...] = (),
     workflow_runs: tuple[tuple[str, int, str], ...] = (),
     failed_run_ids: tuple[int, ...] = (),
+    failed_run_lookup_shas: tuple[str, ...] = (),
     pull_request_count: int | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     """Execute the refresh loop with mocked pull requests and workflow runs."""
@@ -68,6 +69,12 @@ elif [ "$1" = "api" ]; then
     printf '%s\n' "$request" >> "$MOCK_API_LOG"
     head_sha="${request#*head_sha=}"
     head_sha="${head_sha%%&*}"
+    case " $MOCK_FAILED_RUN_LOOKUP_SHAS " in
+        *" $head_sha "*)
+            echo "API error: 502" >&2
+            exit 1
+            ;;
+    esac
     printf '%s\n' "$MOCK_RUN_LINES" | awk -F '\t' -v sha="$head_sha" \
         '$1 == sha { print $2 "\t" $3; exit }'
 elif [ "$1" = "run" ] && [ "$2" = "rerun" ]; then
@@ -103,6 +110,7 @@ exit 0
             "GH_TOKEN": "test-token",
             "MOCK_API_LOG": str(api_log),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
+            "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
             "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
             "MOCK_RERUN_LOG": str(rerun_log),
@@ -184,6 +192,23 @@ def test_warns_when_open_pull_request_limit_is_reached(
         "additional pull requests may exist and were not refreshed."
     )
     assert (warning in completed.stdout) is warning_expected
+
+
+def test_failing_run_lookup_keeps_refreshing_the_remaining_pull_requests(tmp_path: Path) -> None:
+    """A failing run query must cost one pull request, not the rest of the loop."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((41, "head-a"), (42, "head-b"), (43, "head-c")),
+        workflow_runs=(("head-a", 900, "completed"), ("head-b", 901, "completed"), ("head-c", 902, "completed")),
+        failed_run_lookup_shas=("head-b",),
+    )
+
+    assert rerun_ids == ["900", "902"]
+    assert "PR #41: re-running version gate run 900." in completed.stdout
+    assert "PR #43: re-running version gate run 902." in completed.stdout
+    assert "PR #42: could not query the version gate run for head-b." in completed.stderr
+    assert "Could not refresh the version gate for 1 pull request(s)." in completed.stderr
+    assert completed.returncode == 1
 
 
 def test_completed_run_for_matching_head_sha_is_rerun(tmp_path: Path) -> None:

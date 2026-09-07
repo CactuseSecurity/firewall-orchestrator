@@ -95,9 +95,14 @@ jobs:
           while read -r number head_sha; do
             # GitHub returns runs newest first. Filter server-side so refresh cost is
             # bounded by the open pull request count instead of all historical runs.
-            run_line="$(gh api \
+            # Guarded, so one failing query costs this pull request and not the rest of the loop.
+            if ! run_line="$(gh api \
               "repos/${GH_REPO}/actions/workflows/${GATE_WORKFLOW}/runs?event=pull_request_target&head_sha=${head_sha}&per_page=1" \
-              --jq '.workflow_runs[0] | select(. != null) | [.id, .status] | @tsv')"
+              --jq '.workflow_runs[0] | select(. != null) | [.id, .status] | @tsv')"; then
+              echo "PR #${number}: could not query the version gate run for ${head_sha}." >&2
+              unrefreshed=$((unrefreshed + 1))
+              continue
+            fi
             if [[ -z "$run_line" ]]; then
               echo "PR #${number}: no version gate run found for ${head_sha}, cannot refresh." >&2
               unrefreshed=$((unrefreshed + 1))

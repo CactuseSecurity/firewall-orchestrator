@@ -121,6 +121,11 @@
   import_tasks: test-retained-certificate-preflight.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
 
+# On the middleware host because that is where slapd and the system wide ldap.conf are.
+- name: LDAP client TLS policy and retained chain preflight testing
+  import_tasks: test-ldap-client-tls.yml
+  when: "'middlewareserver' in group_names"
+
 # On the database host because that is the role whose migration files the guard protects.
 - name: Upgrade source version guard testing
   import_tasks: test-upgrade-source-version-guard.yml

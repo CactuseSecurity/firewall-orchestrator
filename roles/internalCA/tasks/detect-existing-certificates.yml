@@ -316,3 +316,30 @@
   when:
     - "'middlewareserver' in group_names"
     - internalca_preserve_ldap_certificate | default(false) | bool
+
+# The address was the first half of the question, the issuer is the second. Every LDAP
+# client of this installation - the middleware, the installer's own ldapsearch/ldapmodify
+# calls and the Ansible ldap_* modules that carry the Manager bind password - now
+# verifies the slapd certificate against the trust bundle, which holds CA certificates
+# only. So the retained leaf has to reach one of them through whatever the certificate
+# file itself carries, and the guard above established only that a peer CA is configured,
+# not that it is this certificate's issuer or that the chain closes. Asked here, at the
+# gate, because the alternative is an upgrade that migrates the database, switches the
+# maintenance site over and then dies on a bare transport error from the first ldapmodify
+# of the middleware role.
+- name: Require a retained LDAP certificate to chain to the trust bundle
+  include_tasks: validate-retained-chain.yml
+  vars:
+    retained_chain_subject: OpenLDAP
+    retained_chain_certificate: "{{ internalca_ldap_certificate }}"
+    retained_chain_remedy: >-
+      The certificate names {{ internalca_existing_ldap_certificate_info.issuer.get('commonName',
+      'an unnamed CA') }} as its issuer. Configure the root that issued it as
+      internalca_peer_ca_certificate - that file is read as a PEM bundle, so several roots
+      can be named in one file - and append any intermediate between the two to
+      {{ internalca_ldap_certificate }}, which is the chain slapd presents. Moving the
+      identity out of {{ internalca_ldap_cert_dir }} instead makes {{ product_name }} issue
+      the slapd identity from its internal CA again.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool

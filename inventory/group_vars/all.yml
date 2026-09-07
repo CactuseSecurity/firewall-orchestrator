@@ -418,9 +418,10 @@ openldap_server_user: "{{ 'ldap' if ansible_facts['os_family'] == 'RedHat' else 
 # connection no matter what that file said.
 #
 # Global rather than per role: five different roles build this, and a role default
-# would be out of scope in four of them. That is also why openldap_server_cert stays
-# behind an is-defined guard - it is an openldap-server role default and is simply
-# absent everywhere else, which is what made the old TLS_CACERT a no-op there too.
+# would be out of scope in four of them. That is also why the anchor named here is
+# internalca_trust_bundle and not openldap_server_cert: the latter is an
+# openldap-server role default and is simply absent in the other four roles, which is
+# what made the TLS_CACERT of the previous version a no-op there.
 #
 # The fwo_ prefix comes from a collision that no longer exists: the openldap-server
 # upgrade files 5.4.1.yml and 6.4.9.yml set a fact named ldap_tls_opts pinned to
@@ -431,16 +432,19 @@ openldap_server_user: "{{ 'ldap' if ansible_facts['os_family'] == 'RedHat' else 
 # variable five roles read buys nothing, and the distinct name is still the safer one
 # should an upgrade file ever set a fact of that name again.
 fwo_ldap_tls_opts: >-
-  {% if openldap_server_enable_ssl | default(false) -%}
+  {% if openldap_server_enable_ssl | default(false) | bool -%}
   -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_trust_bundle }}
   {%- endif %}
 
 # The same decision for the Ansible ldap_* modules, which take it as parameters
 # rather than command line options. These carry the Manager bind password, so an
 # unverified channel here hands it to anything that can answer on the LDAP port.
-# TLS-enabled installations always verify against the assembled trust bundle. A
-# retained customer-managed certificate requires its issuing root during the
-# internalCA preflight, so that issuer is available here alongside the internal CA.
+# TLS-enabled installations always verify against the assembled trust bundle, which
+# holds the internal CA and any configured internalca_peer_ca_certificate. Where an
+# upgrade retained a customer-managed slapd certificate, the internalCA preflight has
+# already refused to continue unless a peer CA is configured and the retained leaf
+# builds to an anchor in that bundle (validate-retained-chain.yml), so an anchor for
+# it is on disk here rather than merely asked for.
 ldap_verify_certs: >-
   {{ openldap_server_enable_ssl | default(false) | bool }}
 ldap_module_ca_path: "{{ internalca_trust_bundle if ldap_verify_certs | bool else omit }}"

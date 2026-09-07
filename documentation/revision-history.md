@@ -662,7 +662,9 @@ Not supported any longer are:
   the certificate reissued for the address FWO connects to. The middleware names the server and
   the reason in its log (category LdapTls). The installer refuses the upgrade up front if a
   retained administrator-managed OpenLDAP certificate does not cover the configured address,
-  or if its issuing root CA is not configured as `internalca_peer_ca_certificate`
+  if its issuing root CA is not configured as `internalca_peer_ca_certificate`, or if the
+  certificate cannot be built to one of the configured anchors at all - a leaf whose issuing
+  intermediate the certificate file does not carry, for instance
 - installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
   so an installation that must be addressed under a specific DNS name - a name an
   administrator-managed certificate was issued for, above all - is configured in one place

@@ -17,27 +17,27 @@ file explicitly. The issuer copy under `/usr/local/fworch/etc/secrets/ca/` is
 root-only and exists on the middleware server alone, so every host also
 receives a world-readable copy at `/etc/fworch/fworch-internal-ca.crt`
 (`internalca_ca_certificate_local`). That is the path Apache client
-verification and `ldap.conf` use; never reference the issuer copy from another
-host.
+verification uses; never reference the issuer copy from another host.
 
 Alongside it every host receives `/etc/fworch/fworch-trust-bundle.crt`
 (`internalca_trust_bundle`), which holds the internal CA plus any additional issuer
 configured as `internalca_peer_ca_certificate`. Clients that load
 `tls_ca_certificate` - the importer, the customizing scripts and the GraphQL and
-LDAP clients - validate FWO endpoints against it; see *administrator managed
-certificates* below for why the two files are kept apart.
+LDAP clients - validate FWO endpoints against it, and so does `ldap.conf`; see
+*administrator managed certificates* below for why the two files are kept apart.
 
 The installer writes the system-wide LDAP client configuration (`/etc/ldap/ldap.conf`
 on Debian, `/etc/openldap/ldap.conf` on RedHat) on the middleware host, pointing
-`TLS_CACERT` at `internalca_ca_certificate_local` - the internal CA, since FWO's own
-OpenLDAP certificate always comes from it - and setting `TLS_REQCERT demand`, so an administrator
+`TLS_CACERT` at the trust bundle and setting `TLS_REQCERT demand`, so an administrator
 running `ldapsearch` by hand verifies the connection. The installer's own
 `ldapsearch`/`ldapmodify` calls pass the same settings explicitly through
 `fwo_ldap_tls_opts`, defined once in `inventory/group_vars/all.yml` (the `fwo_`
 prefix keeps it clear of the same-named fact that the released 5.4.1 and 6.4.9
-OpenLDAP upgrade files still set to `TLS_REQCERT=never`). Verification is
-relaxed to `never` only when an upgrade retained a customer-managed OpenLDAP
-certificate whose issuer this installation does not know. The Ansible `ldap_*`
+OpenLDAP upgrade files still set to `TLS_REQCERT=never`). Every TLS-enabled
+installation verifies, the retained-certificate case included: the anchor is the
+bundle rather than the internal CA alone precisely so that a customer-managed slapd
+certificate can be validated too, and `roles/internalCA` refuses an upgrade that
+keeps one it cannot build to an anchor in that bundle. The Ansible `ldap_*`
 modules take the same decision through `ldap_verify_certs` and
 `ldap_module_ca_path`, since those tasks carry the Manager bind password.
 
@@ -53,21 +53,27 @@ middleware host's trust store before upgrading.
 The **address** matters as much as the issuer: a host name mismatch is rejected outright and
 is never rescued by the internal CA, so the certificate has to carry the address the
 connection is configured with - as an `IP:` entry when that address is an IP literal, since a
-`DNS:` entry holding the same digits does not match it. Note this validation is the
-middleware's own and is deliberately stricter than the `TLS_REQCERT never` the installer
-falls back to for its own `ldapsearch` calls against a retained certificate; the two are not
-in conflict, but a retained certificate that satisfies the installer can still be refused by
-the middleware.
+`DNS:` entry holding the same digits does not match it. This validation is the middleware's
+own and is not identical to what `libldap` does for the installer's `ldapsearch` calls: the
+middleware additionally accepts anything the host itself trusts, so a certificate the
+installer's own calls reject can still satisfy the middleware, and both reject a name
+mismatch.
 
 FWO's own internal OpenLDAP is unaffected while its certificate comes from the internal CA.
 If an upgrade retains an administrator-managed certificate there instead, the installer
-checks it before going any further, on both counts, rather than completing and leaving every
-login broken: one that does not cover `openldap_server` fails the run naming the missing
-address, and one whose issuing root is not configured as `internalca_peer_ca_certificate`
-fails naming the issuer. The second check is deliberately asked for even when the issuing CA
-already happens to be a trust anchor on the middleware host - the installer cannot establish
-that from the files it can see, least of all through an intermediate, and naming the root as
-the peer CA is additive: it is installed beside the internal CA and replaces nothing.
+checks it before going any further, on all three counts, rather than completing and leaving
+every login broken. One that does not cover `openldap_server` fails the run naming the
+missing address. One retained while `internalca_peer_ca_certificate` is still at its default
+fails naming the issuer, because the internal CA alone cannot validate it. And one that
+cannot be built to an anchor in the trust bundle from the certificate file itself fails
+quoting what OpenSSL said - a leaf whose issuing intermediate the file does not carry, or a
+leaf from a root other than the one configured, both land here. The peer CA is asked for
+even when the issuing CA already happens to be a trust anchor on the middleware host: the
+installer's own LDAP calls read the bundle and not the host trust store, and naming the root
+as the peer CA is additive, since it is installed beside the internal CA and replaces
+nothing. Both the intermediate and the second-root case are fixable without reissuing
+anything - append the intermediate to the certificate file slapd serves, or name both roots
+in the one file `internalca_peer_ca_certificate` points at, which is read as a PEM bundle.
 
 The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 `internalca_key_curve: secp256r1`). For environments with legacy TLS clients,

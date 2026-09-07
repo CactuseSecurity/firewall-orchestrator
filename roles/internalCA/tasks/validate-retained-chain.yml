@@ -1,0 +1,70 @@
+---
+# Proves that a retained administrator-managed certificate can actually be validated by
+# the FWO clients that will be pointed at it, by building it to an anchor in the trust
+# bundle exactly the way those clients do.
+#
+# Needed because covering the endpoint names is only half the question. The bundle holds
+# CA certificates, and a leaf reaches one of them only if every intermediate on the way
+# is served alongside the leaf. A retained certificate file that carries the leaf alone,
+# or one issued by a root other than the configured internalca_peer_ca_certificate,
+# therefore cannot be validated - and the peer CA guard establishes only that the setting
+# is off its default, never that the configured root is this certificate's issuer.
+#
+# Checked here rather than at the first handshake: without it the run continues into the
+# service roles and dies on a bare "Can't contact LDAP server" from the first ldapmodify,
+# after the database migration and the maintenance switch-over, with nothing naming the
+# certificate.
+#
+# community.crypto cannot answer this - x509_certificate_info reads one certificate and
+# does not build chains - so openssl verify is used, as in validate-apache-intermediates.yml.
+#
+# Inputs, all required except the bundle:
+#   retained_chain_subject      - what is being checked, e.g. "OpenLDAP" (for the message)
+#   retained_chain_certificate  - path to the certificate file the endpoint serves
+#   retained_chain_remedy       - the caller's advice, appended to the message
+# Optional:
+#   retained_chain_trust_bundle - anchors to build against; the installed trust bundle by
+#                                 default, overridable so roles/tests-integration can
+#                                 drive this file against generated certificates
+- name: Verify the retained {{ retained_chain_subject }} certificate reaches a trusted anchor
+  # The certificate file is passed as -untrusted as well, deliberately: that file is the
+  # whole chain the server presents, so a leaf accompanied by its intermediate is accepted
+  # while a leaf on its own is not - which is precisely what the client will conclude.
+  command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}"
+      - -untrusted
+      - "{{ retained_chain_certificate }}"
+      - "{{ retained_chain_certificate }}"
+  register: internalca_retained_chain_verification
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Fail when the retained {{ retained_chain_subject }} certificate cannot be validated
+  vars:
+    # openssl reports the depth, the reason and the file on separate lines. Joined into
+    # one sentence because a fail message must not carry a raw newline: it is assembled
+    # from folded scalars, and an embedded line break turns the operator's message into
+    # something no log line shows whole.
+    #
+    # Double quoted, not a folded block: YAML decodes \n to a real newline before Jinja
+    # sees the expression, while a folded scalar hands Jinja the two characters
+    # backslash-n, which split() then never matches - measured, and it left every line
+    # break in the message. The line breaks inside the quotes fold to spaces.
+    internalca_retained_chain_report: "{{
+      (internalca_retained_chain_verification.stderr
+        | default(internalca_retained_chain_verification.stdout, true))
+      | split('\n') | map('trim') | reject('equalto', '') | join('; ') }}"
+  fail:
+    msg: >-
+      The customer managed {{ retained_chain_subject }} certificate kept on
+      {{ inventory_hostname }} ({{ retained_chain_certificate }}) cannot be built to any
+      anchor in {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }},
+      so every {{ product_name }} client that validates this endpoint would reject it.
+      OpenSSL reported: {{ internalca_retained_chain_report }}.
+      {{ retained_chain_remedy }}
+  when: internalca_retained_chain_verification.rc != 0

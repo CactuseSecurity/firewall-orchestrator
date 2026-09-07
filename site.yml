@@ -197,12 +197,25 @@
       import_tasks: scripts/show-fworch-listeners.yml
       become: true
 
+    # Read from the world readable copy every host receives, not from the issuer copy on
+    # the CA host. internalca_ca_certificate_local and the anchor file name it is built
+    # from are defined in inventory/group_vars/all.yml, so they are in scope in every
+    # play, while internalca_ca_host is a roles/internalCA default and is not: delegating
+    # to it here failed the whole installation on the very last play with
+    # "'internalca_ca_host' is undefined". The local copy is the file the documentation
+    # tells an operator to trust anyway.
+    #
+    # failed_when: false because this is the closing information display of a completed
+    # installation. Everything that depends on the certificate has already run and
+    # succeeded by now, so not being able to print it must not turn a good installation
+    # into a failed run - it reports that it could not, instead.
     - name: read the internal CA certificate for browser trust setup
       ansible.builtin.slurp:
         src: "{{ internalca_ca_certificate_local }}"
       register: fwo_internal_ca_certificate
-      delegate_to: "{{ internalca_ca_host }}"
+      become: true
       run_once: true
+      failed_when: false
       when: installation_mode in ['new', 'upgrade']
       tags:
         - backend
@@ -212,6 +225,8 @@
         - api
         - certificates
 
+    # "content is defined" rather than "is not skipped": it is false for a skipped read
+    # and for a failed one alike, which is what the two branches here need.
     - name: display the internal CA certificate for browser trust setup
       ansible.builtin.debug:
         msg:
@@ -221,7 +236,25 @@
       run_once: true
       when:
         - installation_mode in ['new', 'upgrade']
-        - fwo_internal_ca_certificate is not skipped
+        - fwo_internal_ca_certificate.content is defined
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
+
+    - name: report that the internal CA certificate could not be shown
+      ansible.builtin.debug:
+        msg: >-
+          Could not read {{ internalca_ca_certificate_local }}, so the internal CA
+          certificate is not printed here. That file is the one to trust on the browser
+          host; the installation itself is unaffected.
+      run_once: true
+      when:
+        - installation_mode in ['new', 'upgrade']
+        - fwo_internal_ca_certificate.content is not defined
       tags:
         - backend
         - frontend

@@ -181,10 +181,18 @@ class TestRevisionHistory:
         merged_revision_history = "# Revision history\n\n## 9.4.5\n  - the current change\n- another change\n"
         assert has_addition(base_revision_history, merged_revision_history)
 
-    def test_relocating_the_first_line_of_the_file_does_not_count_as_added_text(self) -> None:
+    def test_relocating_an_entry_into_the_final_section_counts_as_added_text(self) -> None:
+        # The cancellation covers the final section only, so text moved in from elsewhere in
+        # the file is text this section did not have, see F21.
+        base_revision_history = f"{REVISION_HISTORY}\n## 9.4.6\n- a new change\n"
+        merged_revision_history = "# Revision history\n\n## 9.4.4 - 27.08.2026\n- something older\n\n"
+        merged_revision_history += "## 9.4.5 - 01.09.2026\n\n## 9.4.6\n- a new change\n- the current change\n"
+        assert has_addition(base_revision_history, merged_revision_history)
+
+    def test_relocating_the_first_line_of_the_file_counts_as_added_text(self) -> None:
         base_revision_history = "- the current change\n\n## 9.4.6\n"
         merged_revision_history = "\n## 9.4.6\n- the current change\n"
-        assert not has_addition(base_revision_history, merged_revision_history)
+        assert has_addition(base_revision_history, merged_revision_history)
 
     def test_text_added_to_an_earlier_section_does_not_count(self) -> None:
         merged_revision_history = REVISION_HISTORY.replace("- something older\n", "- something older\n- and more\n")
@@ -235,7 +243,10 @@ class TestUnifiedDiffParsing:
             "-- the current change\n"
             "+- the rewritten change\n"
         )
-        assert parse_unified_diff(revision_history_diff) == ([(7, "- the rewritten change")], ["- the current change"])
+        assert parse_unified_diff(revision_history_diff) == (
+            [(7, "- the rewritten change")],
+            [(7, "- the current change")],
+        )
 
     def test_deletion_at_the_head_of_the_file_is_recorded(self) -> None:
         # Git writes '+0,0' for a deletion block at the head of a file, which must not be
@@ -243,7 +254,14 @@ class TestUnifiedDiffParsing:
         revision_history_diff = "@@ -1 +0,0 @@\n-- the current change\n@@ -3,0 +3 @@\n+- the current change\n"
         assert parse_unified_diff(revision_history_diff) == (
             [(3, "- the current change")],
-            ["- the current change"],
+            [(0, "- the current change")],
+        )
+
+    def test_removed_lines_carry_the_position_their_hunk_is_anchored_at(self) -> None:
+        revision_history_diff = "@@ -4 +3,0 @@\n-- misfiled entry\n@@ -8,0 +8 @@\n+- misfiled entry\n"
+        assert parse_unified_diff(revision_history_diff) == (
+            [(8, "- misfiled entry")],
+            [(3, "- misfiled entry")],
         )
 
     def test_context_lines_advance_the_line_number(self) -> None:

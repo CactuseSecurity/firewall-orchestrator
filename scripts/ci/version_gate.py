@@ -119,31 +119,34 @@ def is_revision_history_content(line: str) -> bool:
     return not text.startswith("#") and any(character.isalnum() for character in text)
 
 
-def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[str]]:
+def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
     """
     Split a unified diff into its added and removed lines.
 
-    Added lines carry their line number in the new file, taken from the hunk headers, so a
-    caller can tell where in the new file an addition landed.
+    Both carry a line number in the new file: an added line its own, a removed line the
+    position its hunk is anchored at, which is where the removed text sat relative to the
+    new file. That lets a caller tell which part of the new file a change belongs to.
     """
     added_lines: list[tuple[int, str]] = []
-    removed_lines: list[str] = []
+    removed_lines: list[tuple[int, str]] = []
     # None marks "still in this file's header". Zero cannot serve as that marker: git writes
     # '@@ -1 +0,0 @@' for a deletion at the head of a file, so zero is a legal hunk start.
     line_number: int | None = None
+    hunk_anchor = 0
     for line in diff_text.splitlines():
         hunk = DIFF_HUNK_PATTERN.match(line)
         if line.startswith("diff --git"):
             line_number = None
         elif hunk is not None:
             line_number = int(hunk.group(1))
+            hunk_anchor = line_number
         elif line_number is None:
             continue  # header lines of the current file, before its first hunk
         elif line.startswith("+"):
             added_lines.append((line_number, line[1:]))
             line_number += 1
         elif line.startswith("-"):
-            removed_lines.append(line[1:])
+            removed_lines.append((hunk_anchor, line[1:]))
         elif line.startswith(" "):
             line_number += 1
     return (added_lines, removed_lines)
@@ -157,7 +160,8 @@ def revision_history_has_final_section_addition(merged_markdown: str, revision_h
     the base and merged snapshots, because a new version section is a different section than
     the base's final one: its text may legitimately repeat wording of an earlier section.
     Lines are compared by their stripped text, so re-indenting or reordering existing entries
-    cancels out instead of counting as an addition.
+    cancels out instead of counting as an addition. That cancellation is scoped to the final
+    section: text moved into it from an earlier section is text this section did not have.
     """
     heading_entry = last_revision_history_heading_entry(merged_markdown)
     if heading_entry is None:
@@ -170,8 +174,12 @@ def revision_history_has_final_section_addition(merged_markdown: str, revision_h
         for line_number, line in added_lines
         if line_number > heading_line_number and is_revision_history_content(line)
     )
-    removed_content = Counter(line.strip() for line in removed_lines if is_revision_history_content(line))
-    return any(count > removed_content[text] for text, count in added_below_heading.items())
+    removed_below_heading = Counter(
+        line.strip()
+        for line_number, line in removed_lines
+        if line_number >= heading_line_number and is_revision_history_content(line)
+    )
+    return any(count > removed_below_heading[text] for text, count in added_below_heading.items())
 
 
 def evaluate_revision_history(

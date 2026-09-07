@@ -75,8 +75,9 @@ new final section and text beneath it.
 The addition is taken from the pull request's diff of the file rather than from a comparison of
 the base and merged snapshots. A version bump creates a *different* final section than the base's,
 so its text may legitimately repeat wording of an earlier section. Added and removed lines are
-compared by their stripped text, so reordering or re-indenting existing entries cancels out
-instead of counting as an addition.
+compared by their stripped text, so reordering or re-indenting entries of the final section
+cancels out instead of counting as an addition. That cancellation covers the final section only:
+an entry moved into it from an earlier section is text the section did not have, and counts.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for

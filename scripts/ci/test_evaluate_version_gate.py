@@ -65,6 +65,7 @@ def create_repository(
     agents_pointer_change: bool = False,
     additional_change: bool = False,
     repeat_previous_entry: bool = False,
+    added_upgrade_file: str | None = None,
     tags: tuple[str, ...] = (),
 ) -> Path:
     """Create a checkout and local bare origin containing the refs used by the gate."""
@@ -98,6 +99,10 @@ def create_repository(
         )
         (inventory / "all.yml").write_text(MERGED_CONFIGURATION, encoding="utf-8")
         (documentation / "revision-history.md").write_text(merged_revision_history, encoding="utf-8")
+        if added_upgrade_file is not None:
+            upgrade_directory = repository / "roles" / "database" / "files" / "upgrade"
+            upgrade_directory.mkdir(parents=True, exist_ok=True)
+            (upgrade_directory / added_upgrade_file).write_text("-- test upgrade\n", encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
     if agents_pointer_change:
@@ -216,6 +221,25 @@ def test_open_version_passes_and_prints_verdict(tmp_path: Path) -> None:
         "revision history adds text for version 9.4.6"
     )
     assert completed.stderr == ""
+
+
+def test_upgrade_file_for_the_opened_version_passes(tmp_path: Path) -> None:
+    """An upgrade file named after the version the pull request opens reaches every installation."""
+    repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.6.sql", tags=("v9.4.5",))
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:
+    """An upgrade file below the base version is skipped by installations already on it."""
+    repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.4.sql", tags=("v9.4.5",))
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert "9.4.4.sql is below version 9.4.5" in completed.stderr
 
 
 def test_sealed_version_fails_and_prints_verdict(tmp_path: Path) -> None:

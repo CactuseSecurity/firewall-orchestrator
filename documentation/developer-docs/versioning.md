@@ -112,6 +112,15 @@ Do not modify upgrade scripts belonging to older versions. Every new upgrade
 operation must be safe to execute repeatedly. Use guards such as
 `IF NOT EXISTS` or `ON CONFLICT DO NOTHING` where appropriate.
 
+The file name decides whether the script ever runs.
+[`roles/database/tasks/upgrade-database.yml`](../../roles/database/tasks/upgrade-database.yml)
+selects a script when its version is at least the version installed on the system and at most
+`product_version`, so a script named above `product_version` is never selected, and one named
+below a version an installation has already taken is skipped by that installation. Neither case
+reports anything: the upgrade play succeeds and the changes simply never arrive. This is why the
+name has to be renumbered together with `product_version` whenever another pull request opens a
+higher version first - the version gate checks both directions.
+
 For example:
 
 ```sql
@@ -142,7 +151,9 @@ runs on every pull request that targets `develop`. Its single job,
 - for non-automated pull requests, the final level-two heading in
   [`documentation/revision-history.md`](../revision-history.md)
   does not match the merged `product_version`,
-- for non-automated pull requests, it does not add text below that final revision-history heading.
+- for non-automated pull requests, it does not add text below that final revision-history heading,
+- an upgrade script under `roles/database/files/upgrade/` carries a version above the merged
+  `product_version`, or the pull request adds one below the version of the base branch.
 
 Every non-automated pull request must add at least one non-empty, non-heading line to the final
 revision-history section. The final heading must contain the full `major.minor.patch` version; a

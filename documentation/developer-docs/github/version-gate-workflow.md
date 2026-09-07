@@ -40,6 +40,8 @@ invokes the gate:
 | base version `P` | `product_version` in the same file at the base branch tip |
 | merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
 | revision-history diff | `git diff --unified=0` of that file, base tip to `refs/pull/<n>/merge` |
+| merged upgrade files | names in `roles/database/files/upgrade/` at `refs/pull/<n>/merge` |
+| base upgrade files | names in the same directory at the base branch tip |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
 | pull request identity | author, head branch and head repository from the trusted event payload |
 | changed paths | the diff from the base tip to `refs/pull/<n>/merge` |
@@ -62,6 +64,8 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | `V > P` | fails otherwise: version must not go backwards |
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
+| any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
+| any | no upgrade file the pull request adds is named below `P` | fails otherwise: rename it to `V` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated | the pull request adds text below that final heading | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
@@ -84,6 +88,16 @@ everything below a newly inserted final heading is text that section did not hav
 entry that keeps its wording while moving under the new heading, which git renders as a context
 line rather than as an addition. Renaming an existing heading is not opening a section, so a bump
 that only rewrites the heading still fails, and a new heading with nothing beneath it fails too.
+
+The upgrade-file rules follow the selection in
+[`roles/database/tasks/upgrade-database.yml`](../../../roles/database/tasks/upgrade-database.yml),
+which runs a script when its version is at least the installed version and at most
+`product_version`. A script above `V` is never selected. A script the pull request adds below `P`
+is skipped by every installation that has already taken `P` - the case where another pull request
+opens a higher version and merges first, leaving this one with a file that no upgraded
+installation runs. Both are silent at run time, which is why they are caught here. Names that do
+not carry a version are left to the upgrade play, and files the base branch already carries are
+not judged again, so an old script keeps its name.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for

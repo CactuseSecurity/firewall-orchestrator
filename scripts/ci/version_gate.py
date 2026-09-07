@@ -34,8 +34,11 @@ REVISION_HISTORY_VERSION_PATTERN = re.compile(
     r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:[ \t]+.*)?$",
 )
 DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+UPGRADE_FILE_PATTERN = re.compile(r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)\.sql$")
 # GitHub truncates commit status descriptions, so keep them short enough to stay readable.
 MAX_DESCRIPTION_LENGTH = 140
+# major, minor and patch, the patch level being optional in a few old upgrade file names.
+VERSION_PART_COUNT = 3
 
 
 @dataclass(frozen=True)
@@ -67,6 +70,20 @@ def parse_version(text: str) -> tuple[int, int, int]:
     if match is None:
         raise ValueError(f"'{text}' is not a valid product version, expected major.minor.patch")
     return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
+
+
+def upgrade_file_version(file_name: str) -> tuple[int, int, int] | None:
+    """
+    Return the version an upgrade file name carries, or None when the name is not a version.
+
+    Upgrade files are named after the version they upgrade to, with the patch level omitted
+    on a few old ones (9.0.sql), which is read as .0 here.
+    """
+    match = UPGRADE_FILE_PATTERN.match(file_name)
+    if match is None:
+        return None
+    major, minor, patch = [*match.group(1).split("."), "0"][:VERSION_PART_COUNT]
+    return (int(major), int(minor), int(patch))
 
 
 def sealing_version(tag: str) -> str | None:
@@ -228,6 +245,65 @@ def evaluate_revision_history(
     return Verdict(ok=True, reason=f"revision history adds text for version {merged_version}")
 
 
+def evaluate_upgrade_files(
+    merged_version: str,
+    base_version: str,
+    merged_upgrade_files: list[str],
+    base_upgrade_files: list[str],
+) -> Verdict:
+    """
+    Decide whether the upgrade files of the merge result can still reach an installation.
+
+    roles/database/tasks/upgrade-database.yml selects an upgrade file when its version is
+    at least the version installed on the system and at most product_version. A file above
+    product_version is therefore never selected, and a file below the version the base
+    branch already carries is skipped by every installation which has taken that version.
+    Both cases are silent: the upgrade play succeeds and the changes simply never arrive.
+
+    The second case is the merge-order hazard between two pull requests: whichever opens the
+    lower version and merges second keeps an upgrade file that no upgraded installation runs.
+
+    File names which do not carry a version are left to the upgrade play itself.
+    """
+    try:
+        merged = parse_version(merged_version)
+        base = parse_version(base_version)
+    except ValueError as error:
+        return Verdict(ok=False, reason=str(error))
+
+    above_product_version: list[str] = []
+    for file_name in merged_upgrade_files:
+        file_version = upgrade_file_version(file_name)
+        if file_version is not None and file_version > merged:
+            above_product_version.append(file_name)
+    if above_product_version:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"upgrade file {', '.join(sorted(above_product_version))} is above product_version "
+                f"{merged_version} and would never run. Raise product_version in "
+                f"inventory/group_vars/all.yml or rename the file."
+            ),
+        )
+
+    behind_base_version: list[str] = []
+    for file_name in sorted(set(merged_upgrade_files) - set(base_upgrade_files)):
+        file_version = upgrade_file_version(file_name)
+        if file_version is not None and file_version < base:
+            behind_base_version.append(file_name)
+    if behind_base_version:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"upgrade file {', '.join(behind_base_version)} is below version {base_version} of the "
+                f"base branch, so installations already on {base_version} would skip it. "
+                f"Rename it to {merged_version}.sql."
+            ),
+        )
+
+    return Verdict(ok=True, reason="every upgrade file can be selected")
+
+
 def evaluate_gate(
     merged_version: str,
     base_version: str,
@@ -235,12 +311,16 @@ def evaluate_gate(
     merged_revision_history: str,
     revision_history_diff: str,
     revision_history_required: bool = True,
+    merged_upgrade_files: list[str] | None = None,
+    base_upgrade_files: list[str] | None = None,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
 
     merged_version is read from refs/pull/<n>/merge so that a pull request which does not
-    touch all.yml automatically inherits the base version instead of being blocked.
+    touch all.yml automatically inherits the base version instead of being blocked. The
+    upgrade file names are read from the same two refs and stay empty when the caller does
+    not supply them, which keeps that rule out of the way of callers that only test versions.
     """
     try:
         merged = parse_version(merged_version)
@@ -281,6 +361,15 @@ def evaluate_gate(
                 reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
             )
         version_reason = f"version {base_version} is sealed, opening version {merged_version}"
+
+    upgrade_file_verdict = evaluate_upgrade_files(
+        merged_version,
+        base_version,
+        merged_upgrade_files or [],
+        base_upgrade_files or [],
+    )
+    if not upgrade_file_verdict.ok:
+        return upgrade_file_verdict
 
     if not revision_history_required:
         return Verdict(ok=True, reason=f"{version_reason}; revision history is exempt for this automated pull request")
@@ -362,6 +451,14 @@ def read_tags(file_path: str | None) -> list[str]:
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
+def read_names(file_path: str | None) -> list[str]:
+    """Read newline separated file names, or none when no file is given."""
+    if file_path is None:
+        return []
+    text = Path(file_path).read_text(encoding="utf-8")
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command line parser with one subcommand per gate."""
     parser = argparse.ArgumentParser(description="Firewall Orchestrator version gate")
@@ -383,6 +480,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-revision-history",
         action="store_true",
         help="skip revision-history validation for a caller-verified automated pull request",
+    )
+    gate.add_argument(
+        "--upgrade-files",
+        help="newline separated names of roles/database/files/upgrade on refs/pull/<n>/merge",
+    )
+    gate.add_argument(
+        "--base-upgrade-files",
+        help="newline separated names of roles/database/files/upgrade on the base branch",
     )
     gate.add_argument("--tags-file", help=tags_help)
 
@@ -412,6 +517,8 @@ def run_command(arguments: argparse.Namespace) -> Verdict:
             merged_revision_history,
             Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
             not arguments.skip_revision_history,
+            read_names(arguments.upgrade_files),
+            read_names(arguments.base_upgrade_files),
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

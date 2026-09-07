@@ -17,6 +17,7 @@ from scripts.ci.version_gate import (
     evaluate_open_version,
     evaluate_revision_history,
     evaluate_tag,
+    evaluate_upgrade_files,
     last_revision_history_heading,
     main,
     parse_product_version,
@@ -30,6 +31,7 @@ from scripts.ci.version_gate import (
     sealed_versions,
     sealing_version,
     tag_version,
+    upgrade_file_version,
 )
 
 if TYPE_CHECKING:
@@ -411,6 +413,75 @@ class TestGateWithVersionBump:
         verdict = evaluate_gate("9.4", "9.4.5", {"9.4.5"}, *gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "valid product version" in verdict.reason
+
+
+class TestUpgradeFileNames:
+    def test_patchless_name_is_read_as_patch_zero(self) -> None:
+        assert upgrade_file_version("9.0.sql") == (9, 0, 0)
+
+    def test_name_without_a_version_is_ignored(self) -> None:
+        assert upgrade_file_version("cleanup.sql") is None
+        assert upgrade_file_version("9.4.7.sql.bak") is None
+
+
+class TestUpgradeFileSelection:
+    def test_file_for_the_opened_version_passes(self) -> None:
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.6", ["9.4.6.sql", "9.4.7.sql"], ["9.4.6.sql"])
+        assert verdict.ok
+
+    def test_file_for_the_still_open_version_passes(self) -> None:
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], [])
+        assert verdict.ok
+
+    def test_file_left_behind_by_a_higher_version_merging_first_fails(self) -> None:
+        verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.5.0.sql", "9.4.7.sql"], ["9.5.0.sql"])
+        assert not verdict.ok
+        assert "9.4.7.sql is below version 9.5.0" in verdict.reason
+        assert "Rename it to 9.5.1.sql" in verdict.reason
+
+    def test_file_above_the_product_version_fails(self) -> None:
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.6", ["9.5.0.sql"], [])
+        assert not verdict.ok
+        assert "above product_version 9.4.7" in verdict.reason
+
+    def test_file_the_base_branch_already_carries_is_not_judged_again(self) -> None:
+        verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.4.7.sql"], ["9.4.7.sql"])
+        assert verdict.ok
+
+    def test_names_without_a_version_are_left_alone(self) -> None:
+        assert evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql"], []).ok
+
+    def test_malformed_version_fails(self) -> None:
+        assert not evaluate_upgrade_files("nine", "9.4.6", ["9.4.7.sql"], []).ok
+
+
+class TestGateWithUpgradeFiles:
+    def test_gate_rejects_an_upgrade_file_below_the_base_version(self) -> None:
+        verdict = evaluate_gate(
+            "9.5.1",
+            "9.5.0",
+            {"9.5.0"},
+            *gate_inputs(revision_history_for("9.5.1")),
+            merged_upgrade_files=["9.5.0.sql", "9.4.7.sql"],
+            base_upgrade_files=["9.5.0.sql"],
+        )
+        assert not verdict.ok
+        assert "would skip it" in verdict.reason
+
+    def test_gate_accepts_an_upgrade_file_for_the_opened_version(self) -> None:
+        verdict = evaluate_gate(
+            "9.5.1",
+            "9.5.0",
+            {"9.5.0"},
+            *gate_inputs(revision_history_for("9.5.1")),
+            merged_upgrade_files=["9.5.0.sql", "9.5.1.sql"],
+            base_upgrade_files=["9.5.0.sql"],
+        )
+        assert verdict.ok
+
+    def test_gate_without_upgrade_file_names_is_unchanged(self) -> None:
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.6")))
+        assert verdict.ok
 
 
 class TestOpenVersionAudit:

@@ -327,7 +327,7 @@ class FwoApi:
         password: str | None,
         user_management_api_base_url: str | None,
         method: str = "api/AuthenticationToken/GetTokenPair",
-    ):
+    ) -> str:
         payload: dict[str, str | None] = {"Username": user, "Password": password}
         return FwoApi._post_auth_request(payload, user_management_api_base_url, method, action="login", user=user)
 

@@ -114,6 +114,20 @@ class TestContainsJwtExpiredError:
         assert FwoApi._contains_jwt_expired_error(None) is False
 
 
+class TestPostQueryNonJsonBody:
+    """Covers _post_query()'s branch for a successful response with a non-JSON body."""
+
+    def test_reraises_value_error_for_a_non_json_response_body(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(200, json_data=None, text="not json")])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+
+        with pytest.raises(ValueError, match="response has no JSON body"):
+            api._post_query(session, {"query": "query { ok }"})
+
+        assert session.calls == 1
+
+
 class TestRefreshJwt:
     def test_updates_jwt_and_rotated_refresh_token_on_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         session = _FakeSession(

@@ -148,7 +148,9 @@ Every non-automated pull request must add at least one non-empty, non-heading li
 revision-history section. The final heading must contain the full `major.minor.patch` version; a
 date or other trailing heading text may be included but is not required. Pull requests that keep
 the current version extend its section, while a version bump adds the new version as the final
-section.
+section. The addition is read from the pull request's own diff of the file, so a new section may
+repeat the wording of an earlier one, while merely reordering or re-indenting existing entries
+does not count as an addition.
 
 Upstream Dependabot pull requests and the repository's automated `.agents` pointer-only pull
 requests are exempt from the revision-history requirements. The exemption verifies the expected

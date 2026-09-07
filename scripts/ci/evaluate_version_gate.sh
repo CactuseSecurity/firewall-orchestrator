@@ -61,7 +61,12 @@ git fetch --quiet --no-tags --depth=1 origin "+refs/heads/${base_branch}:refs/fw
 git show "refs/fwo/pr-merge:inventory/group_vars/all.yml" >"${work_dir}/merged-all.yml"
 git show "refs/fwo/pr-merge:documentation/revision-history.md" >"${work_dir}/revision-history.md"
 git show "refs/fwo/base:inventory/group_vars/all.yml" >"${work_dir}/base-all.yml"
-git show "refs/fwo/base:documentation/revision-history.md" >"${work_dir}/base-revision-history.md"
+
+# The revision-history rule asks what this pull request adds, which only the diff answers: a
+# new version section is a different section than the base's final one, so comparing the two
+# snapshots would reject a new section that repeats wording of an earlier one.
+git diff --unified=0 refs/fwo/base refs/fwo/pr-merge -- documentation/revision-history.md \
+    >"${work_dir}/revision-history.diff"
 
 changed_paths="$(git diff --name-only refs/fwo/base refs/fwo/pr-merge)"
 pr_author="${PR_AUTHOR:-}"
@@ -88,7 +93,7 @@ python3 scripts/ci/version_gate.py gate \
     --merged-file "${work_dir}/merged-all.yml" \
     --base-file "${work_dir}/base-all.yml" \
     --revision-history "${work_dir}/revision-history.md" \
-    --base-revision-history "${work_dir}/base-revision-history.md" \
+    --revision-history-diff "${work_dir}/revision-history.diff" \
     --tags-file "${work_dir}/tags.txt" \
     "${revision_history_arguments[@]}" >"$verdict_file" || gate_exit=$?
 

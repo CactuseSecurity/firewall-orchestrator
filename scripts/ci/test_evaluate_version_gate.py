@@ -25,6 +25,11 @@ MERGED_REVISION_HISTORY = f"""{REVISION_HISTORY}
 ## 9.4.6
 - proposed version
 """
+# A new section may legitimately repeat the wording of an earlier one, see F16.
+REPEATING_MERGED_REVISION_HISTORY = f"""{REVISION_HISTORY}
+## 9.4.6
+- current version
+"""
 
 
 def write_executable(path: Path, content: str) -> None:
@@ -59,6 +64,7 @@ def create_repository(
     version_is_bumped: bool = False,
     agents_pointer_change: bool = False,
     additional_change: bool = False,
+    repeat_previous_entry: bool = False,
     tags: tuple[str, ...] = (),
 ) -> Path:
     """Create a checkout and local bare origin containing the refs used by the gate."""
@@ -87,8 +93,11 @@ def create_repository(
     run_git(repository, ["remote", "add", "origin", str(remote)])
     run_git(repository, ["push", "origin", "HEAD:refs/heads/develop"])
     if version_is_bumped:
+        merged_revision_history = (
+            REPEATING_MERGED_REVISION_HISTORY if repeat_previous_entry else MERGED_REVISION_HISTORY
+        )
         (inventory / "all.yml").write_text(MERGED_CONFIGURATION, encoding="utf-8")
-        (documentation / "revision-history.md").write_text(MERGED_REVISION_HISTORY, encoding="utf-8")
+        (documentation / "revision-history.md").write_text(merged_revision_history, encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
     if agents_pointer_change:
@@ -183,6 +192,16 @@ def run_with_missing_merge_ref(
     """Run the gate with a local origin that has no pull request merge ref."""
     repository = create_repository(tmp_path, include_merge_ref=False)
     return run_gate(tmp_path, repository, mergeable_state=mergeable_state, gh_succeeds=gh_succeeds)
+
+
+def test_new_section_repeating_an_earlier_entry_passes(tmp_path: Path) -> None:
+    """A new version section counts as an addition even when it repeats an earlier entry."""
+    repository = create_repository(tmp_path, version_is_bumped=True, repeat_previous_entry=True, tags=("v9.4.5",))
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode == 0
+    assert "revision history adds text for version 9.4.6" in completed.stdout
 
 
 def test_open_version_passes_and_prints_verdict(tmp_path: Path) -> None:

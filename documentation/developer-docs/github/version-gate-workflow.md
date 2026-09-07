@@ -39,7 +39,7 @@ invokes the gate:
 | merged version `V` | `product_version` in `inventory/group_vars/all.yml` at `refs/pull/<n>/merge` |
 | base version `P` | `product_version` in the same file at the base branch tip |
 | merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
-| base revision history | the same file at the base branch tip |
+| revision-history diff | `git diff --unified=0` of that file, base tip to `refs/pull/<n>/merge` |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
 | pull request identity | author, head branch and head repository from the trusted event payload |
 | changed paths | the diff from the base tip to `refs/pull/<n>/merge` |
@@ -71,6 +71,12 @@ final level-two heading. That heading must contain the merged full `major.minor.
 such as `## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull
 request that keeps the version extends the existing final section, while a version bump adds a
 new final section and text beneath it.
+
+The addition is taken from the pull request's diff of the file rather than from a comparison of
+the base and merged snapshots. A version bump creates a *different* final section than the base's,
+so its text may legitimately repeat wording of an earlier section. Added and removed lines are
+compared by their stripped text, so reordering or re-indenting existing entries cancels out
+instead of counting as an addition.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for
@@ -221,12 +227,12 @@ workflow again.
 The gate can be evaluated by hand from a checkout:
 
 ```bash
-git show origin/develop:documentation/revision-history.md >/tmp/fwo-base-revision-history.md
+git diff --unified=0 origin/develop HEAD -- documentation/revision-history.md >/tmp/fwo-revision-history.diff
 
 python3 scripts/ci/version_gate.py gate \
     --merged-version 9.4.6 --base-version 9.4.5 \
     --revision-history documentation/revision-history.md \
-    --base-revision-history /tmp/fwo-base-revision-history.md
+    --revision-history-diff /tmp/fwo-revision-history.diff
 
 python3 scripts/ci/version_gate.py check-open --file inventory/group_vars/all.yml
 

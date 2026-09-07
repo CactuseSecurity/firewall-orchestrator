@@ -33,6 +33,7 @@ REVISION_HISTORY_HEADING_PATTERN = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTI
 REVISION_HISTORY_VERSION_PATTERN = re.compile(
     r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:[ \t]+.*)?$",
 )
+DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # GitHub truncates commit status descriptions, so keep them short enough to stay readable.
 MAX_DESCRIPTION_LENGTH = 140
 
@@ -112,44 +113,69 @@ def revision_history_heading_version(heading: str) -> str | None:
     return match.group(1) if match is not None else None
 
 
-def final_revision_history_section(markdown: str) -> tuple[str, list[str]] | None:
-    """Return the final level-two heading and the lines beneath it."""
-    heading_entry = last_revision_history_heading_entry(markdown)
+def is_revision_history_content(line: str) -> bool:
+    """Return whether a revision-history line carries text rather than a heading or a separator."""
+    text = line.strip()
+    return not text.startswith("#") and any(character.isalnum() for character in text)
+
+
+def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[str]]:
+    """
+    Split a unified diff into its added and removed lines.
+
+    Added lines carry their line number in the new file, taken from the hunk headers, so a
+    caller can tell where in the new file an addition landed.
+    """
+    added_lines: list[tuple[int, str]] = []
+    removed_lines: list[str] = []
+    line_number = 0
+    for line in diff_text.splitlines():
+        hunk = DIFF_HUNK_PATTERN.match(line)
+        if line.startswith("diff --git"):
+            line_number = 0
+        elif hunk is not None:
+            line_number = int(hunk.group(1))
+        elif line_number == 0:
+            continue  # header lines of the current file, before its first hunk
+        elif line.startswith("+"):
+            added_lines.append((line_number, line[1:]))
+            line_number += 1
+        elif line.startswith("-"):
+            removed_lines.append(line[1:])
+        elif line.startswith(" "):
+            line_number += 1
+    return (added_lines, removed_lines)
+
+
+def revision_history_has_final_section_addition(merged_markdown: str, revision_history_diff: str) -> bool:
+    """
+    Return whether the pull request adds non-heading text below the final level-two heading.
+
+    The decision is taken from the diff of the pull request rather than from a comparison of
+    the base and merged snapshots, because a new version section is a different section than
+    the base's final one: its text may legitimately repeat wording of an earlier section.
+    Lines are compared by their stripped text, so re-indenting or reordering existing entries
+    cancels out instead of counting as an addition.
+    """
+    heading_entry = last_revision_history_heading_entry(merged_markdown)
     if heading_entry is None:
-        return None
-    lines = markdown.splitlines()
-    return (heading_entry[1], lines[heading_entry[0] + 1 :])
-
-
-def revision_history_content_counts(lines: list[str]) -> Counter[str]:
-    """Count meaningful non-heading lines in a revision-history section."""
-    content_lines: list[str] = []
-    for line in lines:
-        text = line.strip()
-        if not text.startswith("#") and any(character.isalnum() for character in text):
-            content_lines.append(line)
-    return Counter(content_lines)
-
-
-def revision_history_has_final_section_addition(base_markdown: str, merged_markdown: str) -> bool:
-    """Return whether non-heading text was added below the final level-two heading."""
-    merged_section = final_revision_history_section(merged_markdown)
-    if merged_section is None:
         return False
 
-    base_content: Counter[str] = Counter()
-    base_section = final_revision_history_section(base_markdown)
-    if base_section is not None:
-        base_content = revision_history_content_counts(base_section[1])
-
-    merged_content = revision_history_content_counts(merged_section[1])
-    return any(count > base_content[line] for line, count in merged_content.items())
+    heading_line_number = heading_entry[0] + 1
+    added_lines, removed_lines = parse_unified_diff(revision_history_diff)
+    added_below_heading = Counter(
+        line.strip()
+        for line_number, line in added_lines
+        if line_number > heading_line_number and is_revision_history_content(line)
+    )
+    removed_content = Counter(line.strip() for line in removed_lines if is_revision_history_content(line))
+    return any(count > removed_content[text] for text, count in added_below_heading.items())
 
 
 def evaluate_revision_history(
     merged_version: str,
-    base_revision_history: str,
     merged_revision_history: str,
+    revision_history_diff: str,
 ) -> Verdict:
     """Check the final section version and that the pull request adds text beneath it."""
     last_heading = last_revision_history_heading(merged_revision_history)
@@ -163,7 +189,7 @@ def evaluate_revision_history(
                 f"(last level-two heading is {actual_heading})"
             ),
         )
-    if not revision_history_has_final_section_addition(base_revision_history, merged_revision_history):
+    if not revision_history_has_final_section_addition(merged_revision_history, revision_history_diff):
         return Verdict(
             ok=False,
             reason=f"add revision-history text below the final '## {merged_version}' heading",
@@ -176,7 +202,7 @@ def evaluate_gate(
     base_version: str,
     sealed: set[str],
     merged_revision_history: str,
-    base_revision_history: str,
+    revision_history_diff: str,
     revision_history_required: bool = True,
 ) -> Verdict:
     """
@@ -230,8 +256,8 @@ def evaluate_gate(
 
     revision_history_verdict = evaluate_revision_history(
         merged_version,
-        base_revision_history,
         merged_revision_history,
+        revision_history_diff,
     )
     if not revision_history_verdict.ok:
         return revision_history_verdict
@@ -317,7 +343,11 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--base-version")
     gate.add_argument("--base-file", help="all.yml as it looks on the base branch")
     gate.add_argument("--revision-history", help="revision-history.md as it looks on refs/pull/<n>/merge")
-    gate.add_argument("--base-revision-history", required=True, help="revision-history.md on the base branch")
+    gate.add_argument(
+        "--revision-history-diff",
+        required=True,
+        help="unified diff of revision-history.md from the base branch to refs/pull/<n>/merge",
+    )
     gate.add_argument(
         "--skip-revision-history",
         action="store_true",
@@ -349,7 +379,7 @@ def run_command(arguments: argparse.Namespace) -> Verdict:
             read_version(arguments.base_version, arguments.base_file),
             sealed_versions(read_tags(arguments.tags_file)),
             merged_revision_history,
-            Path(arguments.base_revision_history).read_text(encoding="utf-8"),
+            Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
             not arguments.skip_revision_history,
         )
     if arguments.command == "check-open":

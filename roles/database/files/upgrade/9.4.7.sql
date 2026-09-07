@@ -41,12 +41,8 @@ BEGIN
     UPDATE flow.nwobject
         SET ip_start = host(ip_start)::cidr,
             ip_end = host(broadcast(ip_end))::cidr
-        WHERE (ip_start IS NOT NULL AND NOT (
-                  (family(ip_start) = 4 AND masklen(ip_start) = 32)
-                  OR (family(ip_start) = 6 AND masklen(ip_start) = 128)))
-           OR (ip_end IS NOT NULL AND NOT (
-                  (family(ip_end) = 4 AND masklen(ip_end) = 32)
-                  OR (family(ip_end) = 6 AND masklen(ip_end) = 128)));
+        WHERE (ip_start IS NOT NULL AND NOT is_single_ip(ip_start))
+           OR (ip_end IS NOT NULL AND NOT is_single_ip(ip_end));
 
     GET DIAGNOSTICS normalized_rows = ROW_COUNT;
 
@@ -55,19 +51,15 @@ BEGIN
     END IF;
 END $$;
 
+-- is_single_ip() is the /32-or-/128 predicate above, and is what the host constraints of nw_object
+-- and owner_network use. fworch-create-tables-flow.sql has to spell it out because install-database.yml
+-- creates the flow tables before fworch-create-constraints.sql defines the function, while an upgrade
+-- always runs against a database which already has it.
 ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_start_is_host;
-ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK
-(
-    (family(ip_start) = 4 AND masklen(ip_start) = 32)
-    OR (family(ip_start) = 6 AND masklen(ip_start) = 128)
-);
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
 
 ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_end_is_host;
-ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK
-(
-    (family(ip_end) = 4 AND masklen(ip_end) = 32)
-    OR (family(ip_end) = 6 AND masklen(ip_end) = 128)
-);
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_single_ip(ip_end));
 
 ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_same_family;
 ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));

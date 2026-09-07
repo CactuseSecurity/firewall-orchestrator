@@ -2358,7 +2358,7 @@ namespace FWO.Test
             await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
 
             // changer_id is already null for that role, so an empty changer would leave the row unattributable
-            Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain(GlobalConst.kAutomationChanger));
+            Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain(Roles.MiddlewareServer));
         }
 
         [Test]
@@ -2376,7 +2376,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain("alice"));
-                Assert.That(HistoryRawValue(apiConn, "changer"), Does.Not.Contain(GlobalConst.kAutomationChanger));
+                Assert.That(HistoryRawValue(apiConn, "changer"), Does.Not.Contain(Roles.MiddlewareServer));
             });
         }
 

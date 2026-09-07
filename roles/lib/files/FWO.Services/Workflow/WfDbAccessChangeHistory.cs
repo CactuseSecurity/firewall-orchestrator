@@ -64,7 +64,7 @@ namespace FWO.Services.Workflow
                 objectType = (int)target.ObjectType,
                 objectId = target.ObjectId,
                 changeText,
-                changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? GlobalConst.kAutomationChanger : UserConfig.User.Name,
+                changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? Roles.MiddlewareServer : UserConfig.User.Name,
                 changeSource = GlobalConst.kModuleWorkflow,
                 workflowPhase = (int)WorkflowPhase,
                 oldData = oldValue,

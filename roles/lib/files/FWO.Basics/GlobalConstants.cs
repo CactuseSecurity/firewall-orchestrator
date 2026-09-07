@@ -55,11 +55,6 @@ namespace FWO.Basics
         // single constant avoids two identical literals that would silently drift apart.
         public const string kModuleModelling = "modelling";
         public const string kModuleWorkflow = "workflow";
-        // change_history.changer for rows written outside a user session, where there is no
-        // authenticated identity: the middleware server's scheduled and action driven writes run
-        // with a UserConfig that has no user, so changer would otherwise be the empty string while
-        // changer_id is already null, leaving the row unattributable.
-        public const string kAutomationChanger = "fwo-automation";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";

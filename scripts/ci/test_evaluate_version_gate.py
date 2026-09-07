@@ -127,6 +127,14 @@ def create_fake_commands(tmp_path: Path) -> Path:
     write_executable(
         fake_bin / "git",
         f"""#!/bin/sh
+if [ "${{FAIL_UPGRADE_LISTING:-false}}" = "true" ]; then
+    case "$*" in
+        *ls-tree*upgrade*)
+            echo "mocked upgrade listing failure" >&2
+            exit {MOCKED_COMMAND_FAILURE_EXIT}
+            ;;
+    esac
+fi
 if [ "${{FAIL_BASE_FETCH:-false}}" = "true" ]; then
     case "$*" in
         *refs/heads/develop:refs/fwo/base*)
@@ -230,6 +238,17 @@ def test_upgrade_file_for_the_opened_version_passes(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode == 0, completed.stderr
+
+
+def test_failing_upgrade_listing_fails_the_gate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A listing that cannot be read must stop the gate, not turn the upgrade rule off."""
+    repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.6.sql", tags=("v9.4.5",))
+    monkeypatch.setenv("FAIL_UPGRADE_LISTING", "true")
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert "Version gate passed" not in completed.stdout
 
 
 def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:

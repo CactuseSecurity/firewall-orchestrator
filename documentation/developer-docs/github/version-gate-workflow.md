@@ -108,6 +108,10 @@ modifies* below `P` is skipped by every installation that has already taken `P` 
 another pull request opens a higher version and merges first, leaving this one with a file that no
 upgraded installation runs. Both are silent at run time, which is why they are caught here.
 
+Both upgrade-file inputs are read with a path-limited `git ls-tree` / `git diff`, so a missing
+directory yields an empty listing while a real git failure stops the job. The rule is never
+silently switched off by an unreadable listing.
+
 A name the upgrade play reads as a version but this gate does not - `9.4.07.sql`, whose padding
 Ansible's loose comparison places at `9.4.7` - is refused rather than interpreted, because leaving
 it unjudged is what lets it slip past both rules above. Only files the pull request touches are

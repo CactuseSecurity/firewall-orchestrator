@@ -151,19 +151,28 @@ runs on every pull request that targets `develop`. Its single job,
 - for non-automated pull requests, the final level-two heading in
   [`documentation/revision-history.md`](../revision-history.md)
   does not match the merged `product_version`,
-- for non-automated pull requests, it does not add text below that final revision-history heading,
+- for non-automated pull requests, it adds no text below that final revision-history heading, or
+  leaves that section empty when the pull request is the one that opens it,
 - an upgrade script under `roles/database/files/upgrade/` carries a version above the merged
   `product_version`, or the pull request adds one below the version of the base branch.
 
-Every non-automated pull request must add at least one non-empty, non-heading line to the final
-revision-history section. The final heading must contain the full `major.minor.patch` version; a
-date or other trailing heading text may be included but is not required. Pull requests that keep
-the current version extend its section, while a version bump adds the new version as the final
-section. The addition is read from the pull request's own diff of the file, so a new section may
-repeat the wording of an earlier one, while merely reordering or re-indenting entries of the final
-section does not count as an addition. Moving an entry into the final section from an earlier one
-does count, including the reclassification a version bump by someone else forces on an open pull
-request. Renaming the final heading without writing anything beneath it does not.
+A non-automated pull request that keeps the current version must add at least one non-empty,
+non-heading line to the final revision-history section. One that opens a new final section must
+leave that section non-empty. The final heading must contain the full `major.minor.patch`
+version; a date or other trailing heading text may be included but is not required.
+
+For a pull request that extends an existing section, the addition is read from the pull request's
+own diff of the file, so a new section may repeat the wording of an earlier one, while merely
+reordering or re-indenting entries of that section does not count as an addition. Moving an entry
+into it from an earlier section does count, including the reclassification a version bump by
+someone else forces on an open pull request. Renaming the final heading is not opening a section,
+so a bump that only rewrites the heading does not count either.
+
+For a pull request that opens the final section, the gate requires only that the section is not
+empty, and its entries may be lines that were already in the file. Moving an entry under a newly
+inserted heading and splitting an existing section in two are the same edit to git — the entry is
+a context line either way — so the gate cannot tell them apart. It accepts the reclassification
+this lifecycle requires, and therefore also accepts a bump that only re-files existing entries.
 
 Upstream Dependabot pull requests and the repository's automated `.agents` pointer-only pull
 requests are exempt from the revision-history requirements. The exemption verifies the expected

@@ -67,14 +67,16 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds is named below `P` | fails otherwise: rename it to `V` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
-| non-automated | the pull request adds text below that final heading | fails otherwise |
+| non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
+| non-automated, section opened | that new final section is not empty | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
-Every non-automated pull request must add at least one non-empty, non-heading line below the
-final level-two heading. That heading must contain the merged full `major.minor.patch` version,
-such as `## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull
-request that keeps the version extends the existing final section, while a version bump adds a
-new final section and text beneath it.
+A non-automated pull request that extends the existing final section must add at least one
+non-empty, non-heading line below its heading; one that opens the final section must leave it
+non-empty. That heading must contain the merged full `major.minor.patch` version, such as
+`## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull request
+that keeps the version extends the existing final section, while a version bump adds a new final
+section and text beneath it.
 
 The addition is taken from the pull request's diff of the file rather than from a comparison of
 the base and merged snapshots. A version bump creates a *different* final section than the base's,
@@ -88,6 +90,14 @@ everything below a newly inserted final heading is text that section did not hav
 entry that keeps its wording while moving under the new heading, which git renders as a context
 line rather than as an addition. Renaming an existing heading is not opening a section, so a bump
 that only rewrites the heading still fails, and a new heading with nothing beneath it fails too.
+
+The cost of reading an opened section from the merged file is that its entries need not come from
+the pull request. Inserting the new heading in the middle of the existing final section splits it
+and leaves the trailing entries as context lines, which produces the same diff as moving an entry
+under the new heading — `+` a blank line and `+` the heading, nothing else. The two cannot be told
+apart, so accepting the reclassification the versioning lifecycle requires also accepts a bump
+that only re-files existing entries. The gate enforces that an opened section is not empty, not
+that its text is new.
 
 The upgrade-file rules follow the selection in
 [`roles/database/tasks/upgrade-database.yml`](../../../roles/database/tasks/upgrade-database.yml),

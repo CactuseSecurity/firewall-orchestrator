@@ -198,6 +198,24 @@ class TestRevisionHistory:
         merged_revision_history = f"{REVISION_HISTORY}\n## 9.4.6 - 07.09.2026\n- my change\n"
         assert has_addition(base_revision_history, merged_revision_history)
 
+    def test_renaming_the_final_heading_beside_another_edit_does_not_count_as_added_text(self) -> None:
+        # A line inserted next to the heading puts both edits in one hunk, where the removed
+        # heading is reported at the hunk's position rather than its own, see F23.
+        base_revision_history = "# Revision history\n\n## 9.4.4\n- older\n\n## 9.4.5 - 01.09.2026\n- entry A\n"
+        with_blank_line = "# Revision history\n\n## 9.4.4\n- older\n\n\n## 9.4.6 - 07.09.2026\n- entry A\n"
+        with_entry_above = "# Revision history\n\n## 9.4.4\n- older\n- extra\n## 9.4.6 - 07.09.2026\n- entry A\n"
+
+        assert not has_addition(base_revision_history, with_blank_line)
+        assert not has_addition(base_revision_history, with_entry_above)
+
+    def test_splitting_the_final_section_counts_as_added_text(self) -> None:
+        # Accepted, not overlooked: splitting a section and moving an entry under a new heading
+        # are the same edit to git, so requiring new text here would fail the reclassification
+        # the versioning lifecycle asks for, see F24 and documentation/developer-docs/versioning.md.
+        base_revision_history = "# Revision history\n\n## 9.4.5 - 01.09.2026\n- entry A\n- entry B\n"
+        merged_revision_history = "# Revision history\n\n## 9.4.5 - 01.09.2026\n- entry A\n\n## 9.4.6\n- entry B\n"
+        assert has_addition(base_revision_history, merged_revision_history)
+
     def test_opening_an_empty_section_does_not_count_as_added_text(self) -> None:
         assert not has_addition(REVISION_HISTORY, f"{REVISION_HISTORY}\n## 9.4.6 - 07.09.2026\n\n")
 

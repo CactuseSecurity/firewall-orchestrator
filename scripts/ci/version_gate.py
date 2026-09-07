@@ -174,9 +174,26 @@ def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tupl
     return (added_lines, removed_lines)
 
 
-def has_heading_at(diff_lines: list[tuple[int, str]], line_number: int) -> bool:
-    """Return whether the given diff lines carry a level-two heading at a line number."""
-    return any(number == line_number and is_revision_history_heading(line) for number, line in diff_lines)
+def count_headings(diff_lines: list[tuple[int, str]]) -> int:
+    """Count the level-two headings among the given diff lines."""
+    return sum(1 for _, line in diff_lines if is_revision_history_heading(line))
+
+
+def opens_final_section(
+    added_lines: list[tuple[int, str]],
+    removed_lines: list[tuple[int, str]],
+    final_heading: str,
+) -> bool:
+    """
+    Return whether the pull request created the final section rather than renaming its heading.
+
+    Both tests compare heading *text*, never line numbers: added lines carry their own position
+    while removed lines carry their hunk's, so any line inserted next to the heading would break
+    a positional comparison. A rename replaces one heading with another and leaves the number of
+    headings unchanged, while opening a section raises it.
+    """
+    final_heading_is_added = any(line.strip() == final_heading for _, line in added_lines)
+    return final_heading_is_added and count_headings(added_lines) > count_headings(removed_lines)
 
 
 def revision_history_has_final_section_addition(merged_markdown: str, revision_history_diff: str) -> bool:
@@ -199,13 +216,13 @@ def revision_history_has_final_section_addition(merged_markdown: str, revision_h
         return False
 
     heading_line_number = heading_entry[0] + 1
+    merged_lines = merged_markdown.splitlines()
     added_lines, removed_lines = parse_unified_diff(revision_history_diff)
-    if has_heading_at(added_lines, heading_line_number) and not has_heading_at(removed_lines, heading_line_number):
-        # The pull request opened this section rather than renaming an existing heading, so
-        # every line below the heading is text the section did not have. Reading them from the
-        # merged file also catches the entries git renders as context because they kept their
-        # wording while moving under the new heading.
-        return any(is_revision_history_content(line) for line in merged_markdown.splitlines()[heading_entry[0] + 1 :])
+    if opens_final_section(added_lines, removed_lines, merged_lines[heading_entry[0]].strip()):
+        # The pull request opened this section, so every line below the heading is text the
+        # section did not have. Reading them from the merged file also catches the entries git
+        # renders as context because they kept their wording while moving under the new heading.
+        return any(is_revision_history_content(line) for line in merged_lines[heading_line_number:])
 
     added_below_heading = Counter(
         line.strip()

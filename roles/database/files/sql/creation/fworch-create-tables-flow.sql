@@ -15,19 +15,10 @@ create table flow.nwobject
     state varchar(32) NOT NULL DEFAULT 'requested',
     removed_date Timestamp with time zone,
     show_in_request_module boolean NOT NULL DEFAULT FALSE,
-    CONSTRAINT flow_nwobject_ip_start_is_host CHECK
-    (
-        (family(ip_start) = 4 AND masklen(ip_start) = 32)
-        OR (family(ip_start) = 6 AND masklen(ip_start) = 128)
-    ),
-    CONSTRAINT flow_nwobject_ip_end_is_host CHECK
-    (
-        (family(ip_end) = 4 AND masklen(ip_end) = 32)
-        OR (family(ip_end) = 6 AND masklen(ip_end) = 128)
-    ),
-    -- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range
-    -- which starts in one address family and ends in the other
-    CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end)),
+    -- the host and address family rules for ip_start and ip_end are added in
+    -- fworch-create-constraints.sql, as flow_nwobject_ip_start_is_host, flow_nwobject_ip_end_is_host
+    -- and flow_nwobject_ip_same_family. The first two call is_single_ip(), which that same file
+    -- creates and which does not exist yet at this point in the creation process
     check ((ip_start IS NULL) = (ip_end IS NULL)),
     check (ip_start <= ip_end),
     check (state IN ('requested', 'denied', 'implemented', 'removed'))

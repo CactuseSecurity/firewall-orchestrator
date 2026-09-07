@@ -51,10 +51,9 @@ BEGIN
     END IF;
 END $$;
 
--- is_single_ip() is the /32-or-/128 predicate above, and is what the host constraints of nw_object
--- and owner_network use. fworch-create-tables-flow.sql has to spell it out because install-database.yml
--- creates the flow tables before fworch-create-constraints.sql defines the function, while an upgrade
--- always runs against a database which already has it.
+-- is_single_ip() is the /32-or-/128 predicate above, and is what the host constraints of nw_object and
+-- owner_network use. A fresh install adds the same three constraints in fworch-create-constraints.sql,
+-- so both ways of arriving at 9.4.7 define them identically.
 ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_start_is_host;
 ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
 

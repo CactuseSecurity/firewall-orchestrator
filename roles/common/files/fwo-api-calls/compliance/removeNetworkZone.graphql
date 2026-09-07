@@ -1,10 +1,10 @@
 mutation removeNetworkZone (
   $id: bigint!
   $removed: timestamptz
-  $deleteIpRangesExp: [compliance_ip_range_bool_exp!]!
+  $deleteIpRangesExp: [network_zone_ip_range_bool_exp!]!
   $deleteZoneCommunicationExp: [compliance_network_zone_communication_bool_exp!]!
 ) {
-  update_compliance_network_zone_by_pk (
+  update_network_zone_zone_by_pk (
     pk_columns: { id: $id }
     _set: {
       removed: $removed
@@ -12,7 +12,7 @@ mutation removeNetworkZone (
     updatedId: id
   }
 
-  update_compliance_ip_range (
+  update_network_zone_ip_range (
     where: {
       network_zone_id: {_eq: $id},
       _or: $deleteIpRangesExp

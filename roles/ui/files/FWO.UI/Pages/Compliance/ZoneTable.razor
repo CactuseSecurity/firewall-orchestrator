@@ -77,7 +77,7 @@
 
 	private bool SubzonesPossible()
 	{
-		return userConfig.ComplianceMatrixAllowNetworkZones && 
+		return userConfig.MatrixAllowNestedZones &&
 			NetworkZones.Where(zone => object.Equals(zone.Superzone, Superzone)).Any(z => z.IPRanges.Count() == 0);
 	}
 }

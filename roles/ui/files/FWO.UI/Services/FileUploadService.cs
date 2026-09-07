@@ -37,7 +37,7 @@ namespace FWO.Ui.Services
         private readonly FileUploadEvent CustomLogoUploadEvent;
         private readonly FileUploadEvent FileUploadEvent;
         private readonly AppServerImportEvent AppServerImportEvent;
-        private readonly FileUploadEvent ComplianceMatrixImportEvent;
+        private readonly FileUploadEvent MatrixImportEvent;
 
         public FileUploadService(ApiConnection apiConnection, UserConfig userConfig, MiddlewareClient middlewareClient, string allowedFileFormats, IEventMediator eventMediator)
         {
@@ -51,7 +51,7 @@ namespace FWO.Ui.Services
             CustomLogoUploadEvent = new();
             FileUploadEvent = new();
             AppServerImportEvent = new();
-            ComplianceMatrixImportEvent = new();
+            MatrixImportEvent = new();
         }
 
         public async Task<FileUploadEventArgs> ReadFileToBytes(InputFileChangeEventArgs args)
@@ -201,24 +201,24 @@ namespace FWO.Ui.Services
             }
         }
 
-        public async Task ImportComplianceMatrix(string filename = "")
+        public async Task ImportMatrix(string filename = "")
         {
             string data = System.Text.Encoding.UTF8.GetString(UploadedData);
-            ComplianceImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
-            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportCompianceMatrix(importParams);
-            if (ComplianceMatrixImportEvent.EventArgs is not null)
+            ImportMatrixParameters importParams = new() { FileName = filename, Data = data, UserName = UserConfig.User.Name, UserDn = UserConfig.User.Dn };
+            RestResponse<string> middlewareServerResponse = await MiddlewareClient.ImportMatrix(importParams);
+            if (MatrixImportEvent.EventArgs is not null)
             {
                 if (middlewareServerResponse.StatusCode != HttpStatusCode.OK)
                 {
-                    ComplianceMatrixImportEvent.EventArgs.Success = false;
-                    ComplianceMatrixImportEvent.EventArgs.Data = GetResponseMessage(middlewareServerResponse);
+                    MatrixImportEvent.EventArgs.Success = false;
+                    MatrixImportEvent.EventArgs.Data = GetResponseMessage(middlewareServerResponse);
                 }
                 else
                 {
-                    ComplianceMatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
-                    ComplianceMatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
+                    MatrixImportEvent.EventArgs.Success = middlewareServerResponse.Data?.StartsWith("Ok") ?? false;
+                    MatrixImportEvent.EventArgs.Data = middlewareServerResponse.Data;
                 }
-                EventMediator.Publish(nameof(ImportComplianceMatrix), ComplianceMatrixImportEvent);
+                EventMediator.Publish(nameof(ImportMatrix), MatrixImportEvent);
             }
         }
 

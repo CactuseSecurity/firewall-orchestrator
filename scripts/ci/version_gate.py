@@ -271,7 +271,7 @@ def evaluate_upgrade_files(
     merged_version: str,
     base_version: str,
     merged_upgrade_files: list[str],
-    base_upgrade_files: list[str],
+    changed_upgrade_files: list[str],
 ) -> Verdict:
     """
     Decide whether the upgrade files of the merge result can still reach an installation.
@@ -284,6 +284,10 @@ def evaluate_upgrade_files(
 
     The second case is the merge-order hazard between two pull requests: whichever opens the
     lower version and merges second keeps an upgrade file that no upgraded installation runs.
+    It is judged over the upgrade files the pull request touches, not over the names it adds,
+    because appending statements to an older file strands them exactly as adding one does -
+    which is why versioning.md forbids modifying the upgrade script of an older version. Files
+    the pull request deletes drop out, as they are not in the merge result.
 
     File names which do not carry a version are left to the upgrade play itself.
     """
@@ -309,7 +313,7 @@ def evaluate_upgrade_files(
         )
 
     behind_base_version: list[str] = []
-    for file_name in sorted(set(merged_upgrade_files) - set(base_upgrade_files)):
+    for file_name in sorted(set(changed_upgrade_files) & set(merged_upgrade_files)):
         file_version = upgrade_file_version(file_name)
         if file_version is not None and file_version < base:
             behind_base_version.append(file_name)
@@ -318,8 +322,8 @@ def evaluate_upgrade_files(
             ok=False,
             reason=(
                 f"upgrade file {', '.join(behind_base_version)} is below version {base_version} of the "
-                f"base branch, so installations already on {base_version} would skip it. "
-                f"Rename it to {merged_version}.sql."
+                f"base branch, so installations already on {base_version} would skip the change. "
+                f"Put it in {merged_version}.sql instead."
             ),
         )
 
@@ -379,15 +383,16 @@ def evaluate_gate(
     revision_history_diff: str,
     revision_history_required: bool = True,
     merged_upgrade_files: list[str] | None = None,
-    base_upgrade_files: list[str] | None = None,
+    changed_upgrade_files: list[str] | None = None,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
 
     merged_version is read from refs/pull/<n>/merge so that a pull request which does not
     touch all.yml automatically inherits the base version instead of being blocked. The
-    upgrade file names are read from the same two refs and stay empty when the caller does
-    not supply them, which keeps that rule out of the way of callers that only test versions.
+    upgrade file names are read from the merge result and from the diff against the base, and
+    stay empty when the caller does not supply them, which keeps that rule out of the way of
+    callers that only test versions.
     """
     try:
         version_verdict = evaluate_version_lifecycle(merged_version, base_version, sealed)
@@ -400,7 +405,7 @@ def evaluate_gate(
         merged_version,
         base_version,
         merged_upgrade_files or [],
-        base_upgrade_files or [],
+        changed_upgrade_files or [],
     )
     if not upgrade_file_verdict.ok:
         return upgrade_file_verdict
@@ -523,8 +528,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="newline separated names of roles/database/files/upgrade on refs/pull/<n>/merge",
     )
     gate.add_argument(
-        "--base-upgrade-files",
-        help="newline separated names of roles/database/files/upgrade on the base branch",
+        "--changed-upgrade-files",
+        help="newline separated names in roles/database/files/upgrade the pull request adds or modifies",
     )
     gate.add_argument("--tags-file", help=tags_help)
 
@@ -555,7 +560,7 @@ def run_command(arguments: argparse.Namespace) -> Verdict:
             Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
             not arguments.skip_revision_history,
             read_names(arguments.upgrade_files),
-            read_names(arguments.base_upgrade_files),
+            read_names(arguments.changed_upgrade_files),
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

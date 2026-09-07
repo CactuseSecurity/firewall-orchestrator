@@ -108,8 +108,9 @@ as the file name, including the patch component:
 roles/database/files/upgrade/9.3.0.sql
 ```
 
-Do not modify upgrade scripts belonging to older versions. Every new upgrade
-operation must be safe to execute repeatedly. Use guards such as
+Do not modify upgrade scripts belonging to older versions - the version gate refuses a pull
+request that adds or modifies a script named below the version the base branch carries. Every
+new upgrade operation must be safe to execute repeatedly. Use guards such as
 `IF NOT EXISTS` or `ON CONFLICT DO NOTHING` where appropriate.
 
 The file name decides whether the script ever runs.

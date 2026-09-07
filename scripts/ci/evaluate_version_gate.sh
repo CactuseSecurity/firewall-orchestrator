@@ -68,13 +68,14 @@ git show "refs/fwo/base:inventory/group_vars/all.yml" >"${work_dir}/base-all.yml
 git diff --unified=0 refs/fwo/base refs/fwo/pr-merge -- documentation/revision-history.md \
     >"${work_dir}/revision-history.diff"
 
-# The upgrade files are compared as two listings rather than as a diff, because the rule asks
-# which versions each side carries. A branch without the directory yields an empty listing.
+# The merge result's upgrade files are listed rather than diffed, because the first rule asks
+# which versions it carries. A branch without the directory yields an empty listing. The second
+# rule needs the files this pull request touches, added and modified alike, which is a diff.
 upgrade_dir="roles/database/files/upgrade"
 : >"${work_dir}/merged-upgrade-files.txt"
-: >"${work_dir}/base-upgrade-files.txt"
 git ls-tree --name-only "refs/fwo/pr-merge:${upgrade_dir}" >"${work_dir}/merged-upgrade-files.txt" 2>/dev/null || true
-git ls-tree --name-only "refs/fwo/base:${upgrade_dir}" >"${work_dir}/base-upgrade-files.txt" 2>/dev/null || true
+git diff --name-only refs/fwo/base refs/fwo/pr-merge -- "${upgrade_dir}" \
+    | sed "s#^${upgrade_dir}/##" >"${work_dir}/changed-upgrade-files.txt"
 
 changed_paths="$(git diff --name-only refs/fwo/base refs/fwo/pr-merge)"
 pr_author="${PR_AUTHOR:-}"
@@ -103,7 +104,7 @@ python3 scripts/ci/version_gate.py gate \
     --revision-history "${work_dir}/revision-history.md" \
     --revision-history-diff "${work_dir}/revision-history.diff" \
     --upgrade-files "${work_dir}/merged-upgrade-files.txt" \
-    --base-upgrade-files "${work_dir}/base-upgrade-files.txt" \
+    --changed-upgrade-files "${work_dir}/changed-upgrade-files.txt" \
     --tags-file "${work_dir}/tags.txt" \
     "${revision_history_arguments[@]}" >"$verdict_file" || gate_exit=$?
 

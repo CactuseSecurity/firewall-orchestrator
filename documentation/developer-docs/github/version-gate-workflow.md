@@ -41,7 +41,7 @@ invokes the gate:
 | merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
 | revision-history diff | `git diff --unified=0` of that file, base tip to `refs/pull/<n>/merge` |
 | merged upgrade files | names in `roles/database/files/upgrade/` at `refs/pull/<n>/merge` |
-| base upgrade files | names in the same directory at the base branch tip |
+| changed upgrade files | names in that directory the pull request adds or modifies |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
 | pull request identity | author, head branch and head repository from the trusted event payload |
 | changed paths | the diff from the base tip to `refs/pull/<n>/merge` |
@@ -65,7 +65,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
-| any | no upgrade file the pull request adds is named below `P` | fails otherwise: rename it to `V` |
+| any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
 | non-automated, section opened | that new final section is not empty | fails otherwise |
@@ -102,12 +102,16 @@ that its text is new.
 The upgrade-file rules follow the selection in
 [`roles/database/tasks/upgrade-database.yml`](../../../roles/database/tasks/upgrade-database.yml),
 which runs a script when its version is at least the installed version and at most
-`product_version`. A script above `V` is never selected. A script the pull request adds below `P`
-is skipped by every installation that has already taken `P` - the case where another pull request
-opens a higher version and merges first, leaving this one with a file that no upgraded
-installation runs. Both are silent at run time, which is why they are caught here. Names that do
-not carry a version are left to the upgrade play, and files the base branch already carries are
-not judged again, so an old script keeps its name.
+`product_version`. A script above `V` is never selected. A script the pull request adds *or
+modifies* below `P` is skipped by every installation that has already taken `P` - the case where
+another pull request opens a higher version and merges first, leaving this one with a file that no
+upgraded installation runs. Both are silent at run time, which is why they are caught here.
+
+The second rule reads the files the pull request touches rather than the names it adds, because
+appending statements to an older script strands them exactly as adding one does, and comparing
+name listings cannot see that. Scripts the pull request leaves alone are not judged, so an old
+script keeps its name; scripts it deletes are not judged either, as they are not in the merge
+result. Names that do not carry a version are left to the upgrade play.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for

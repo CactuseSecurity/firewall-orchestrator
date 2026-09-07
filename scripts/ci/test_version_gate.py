@@ -13,6 +13,7 @@ from scripts.ci.version_gate import (
     MAX_DESCRIPTION_LENGTH,
     Verdict,
     build_parser,
+    count_headings,
     evaluate_gate,
     evaluate_open_version,
     evaluate_revision_history,
@@ -21,6 +22,7 @@ from scripts.ci.version_gate import (
     evaluate_version_lifecycle,
     last_revision_history_heading,
     main,
+    opens_final_section,
     parse_product_version,
     parse_unified_diff,
     parse_version,
@@ -199,6 +201,11 @@ class TestRevisionHistory:
         merged_revision_history = f"{REVISION_HISTORY}\n## 9.4.6 - 07.09.2026\n- my change\n"
         assert has_addition(base_revision_history, merged_revision_history)
 
+    def test_renaming_the_final_heading_and_adding_a_sub_heading_does_not_count_as_added_text(self) -> None:
+        base_revision_history = "# Revision history\n\n## 9.4.5 - 01.09.2026\n- entry A\n- entry B\n"
+        merged_revision_history = "# Revision history\n\n## 9.4.6 - 07.09.2026\n### details\n- entry A\n- entry B\n"
+        assert not has_addition(base_revision_history, merged_revision_history)
+
     def test_renaming_the_final_heading_beside_another_edit_does_not_count_as_added_text(self) -> None:
         # A line inserted next to the heading puts both edits in one hunk, where the removed
         # heading is reported at the hunk's position rather than its own, see F23.
@@ -308,6 +315,43 @@ class TestUnifiedDiffParsing:
 
     def test_empty_diff_has_no_changed_lines(self) -> None:
         assert parse_unified_diff("") == ([], [])
+
+
+class TestOpensFinalSection:
+    def test_inserted_heading_opens_a_section(self) -> None:
+        added_lines = [(8, ""), (9, "## 9.4.6 - 07.09.2026")]
+
+        assert opens_final_section(added_lines, [], "## 9.4.6 - 07.09.2026")
+
+    def test_renamed_heading_does_not_open_a_section(self) -> None:
+        added_lines = [(3, "## 9.4.6 - 07.09.2026")]
+        removed_lines = [(3, "## 9.4.5 - 01.09.2026")]
+
+        assert not opens_final_section(added_lines, removed_lines, "## 9.4.6 - 07.09.2026")
+
+    def test_added_sub_heading_does_not_turn_a_rename_into_an_opened_section(self) -> None:
+        # '###' is not a section heading where the final section is located, so it must not be
+        # one where headings are counted either, see F26.
+        added_lines = [(3, "## 9.4.6 - 07.09.2026"), (4, "### details")]
+        removed_lines = [(3, "## 9.4.5 - 01.09.2026")]
+
+        assert not opens_final_section(added_lines, removed_lines, "## 9.4.6 - 07.09.2026")
+
+    def test_heading_added_elsewhere_does_not_open_the_final_section(self) -> None:
+        added_lines = [(4, "## 9.4.5 - 01.09.2026")]
+
+        assert not opens_final_section(added_lines, [], "## 9.4.6 - 07.09.2026")
+
+    def test_only_level_two_headings_are_counted(self) -> None:
+        diff_lines = [
+            (1, "## 9.4.6 - 07.09.2026"),
+            (2, "### details"),
+            (3, "#### more"),
+            (4, "##missing space"),
+            (5, "- an entry"),
+        ]
+
+        assert count_headings(diff_lines) == 1
 
 
 class TestVersionLifecycle:

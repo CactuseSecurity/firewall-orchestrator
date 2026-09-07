@@ -137,8 +137,13 @@ def is_revision_history_content(line: str) -> bool:
 
 
 def is_revision_history_heading(line: str) -> bool:
-    """Return whether a revision-history line is a level-two version heading."""
-    return line.strip().startswith("##")
+    """
+    Return whether a revision-history line is a level-two section heading.
+
+    The same pattern that locates the final section decides this, so a line counts as a
+    heading exactly when it could be one: '### details' is a sub-heading, not a section.
+    """
+    return REVISION_HISTORY_HEADING_PATTERN.fullmatch(line) is not None
 
 
 def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:

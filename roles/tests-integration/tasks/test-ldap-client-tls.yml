@@ -366,6 +366,79 @@
       was given:
       {{ test_retained_chain_fallback_message | default('it did not fail at all') }}
 
+# openssl answers a file it cannot read in wording of its own, and a preflight that does
+# not recognise it answers a missing file with advice about the issuing CA. Both shapes
+# are covered: an anchor file openssl cannot load, and a certificate file holding no
+# certificate - openssl phrases those two differently.
+- name: Write a certificate file holding no certificate
+  copy:
+    content: this file holds no PEM certificate
+    dest: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
+    mode: "0600"
+
+- name: Verify the preflight reports an unreadable anchor file as such
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/absent-bundle.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_anchor_read_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_anchor_read_rejected: true
+        test_retained_chain_anchor_read_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert an unreadable anchor file is not blamed on the issuing CA
+  assert:
+    that:
+      - test_retained_chain_anchor_read_rejected | bool
+      - "'could not be checked at all' in test_retained_chain_anchor_read_message"
+      # Both paths are named, since openssl points at one of them and the operator has to
+      # know which is which.
+      - "test_retained_chain_directory.path ~ '/absent-bundle.crt' in test_retained_chain_anchor_read_message"
+      - "test_retained_chain_directory.path ~ '/direct-leaf.crt' in test_retained_chain_anchor_read_message"
+      # Neither caller remedy applies to a file that cannot be read.
+      - "'Configure the root that issued it.' not in test_retained_chain_anchor_read_message"
+      - "'Have the certificate reissued.' not in test_retained_chain_anchor_read_message"
+      - "'cannot be built to any anchor' not in test_retained_chain_anchor_read_message"
+      - "'\n' not in test_retained_chain_anchor_read_message"
+    fail_msg: >-
+      The retained chain preflight did not recognise an unreadable anchor file:
+      {{ test_retained_chain_anchor_read_message | default('it did not fail at all') }}
+
+- name: Verify the preflight reports a certificate file holding no certificate as such
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_cert_read_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_cert_read_rejected: true
+        test_retained_chain_cert_read_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert a certificate file holding no certificate is not blamed on the issuing CA
+  assert:
+    that:
+      - test_retained_chain_cert_read_rejected | bool
+      - "'could not be checked at all' in test_retained_chain_cert_read_message"
+      - "'Configure the root that issued it.' not in test_retained_chain_cert_read_message"
+      - "'Have the certificate reissued.' not in test_retained_chain_cert_read_message"
+      - "'\n' not in test_retained_chain_cert_read_message"
+    fail_msg: >-
+      The retained chain preflight did not recognise a certificate file that holds no
+      certificate:
+      {{ test_retained_chain_cert_read_message | default('it did not fail at all') }}
+
 - name: Remove the retained chain preflight test directory
   file:
     path: "{{ test_retained_chain_directory.path }}"

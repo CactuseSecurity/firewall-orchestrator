@@ -61,19 +61,19 @@ mismatch.
 
 FWO's own internal OpenLDAP is unaffected while its certificate comes from the internal CA.
 If an upgrade retains an administrator-managed certificate there instead, the installer
-checks it on all three counts, rather than completing and leaving every login broken. The
-checks run in the `internalCA` play, which is `any_errors_fatal`, so a refusal aborts the
-run for every host before the database is migrated and before any service is reconfigured -
-on a distributed installation too, where only the middleware host reaches them. What has
-already happened at that point is the switch of the web endpoints to the maintenance site,
-which `roles/common` performs earlier in every upgrade: the endpoints stay on it until the
-certificate is corrected and the upgrade re-run. One that does not cover `openldap_server`
-fails the run naming the missing address. One retained while
-`internalca_peer_ca_certificate` is still at its default fails naming the issuer, because
-the internal CA alone cannot validate it. And one that
-cannot be built to an anchor in the trust bundle from the certificate file itself fails
-quoting what OpenSSL said - a leaf whose issuing intermediate the file does not carry, or a
-leaf from a root other than the one configured, both land here. The peer CA is asked for
+checks it on all three counts, rather than completing and leaving every login broken. Both
+installer preflight plays - `common` and `internalCA` - are `any_errors_fatal`, so a
+refusal aborts the run for every host before the database is migrated and before any
+service is reconfigured, on a distributed installation too, where only the middleware host
+reaches these checks. What has already happened at that point is the switch of the web
+endpoints to the maintenance site, which `roles/common` performs earlier in every upgrade:
+the endpoints stay on it until the certificate is corrected and the upgrade re-run. One
+that does not cover `openldap_server` fails the run naming the missing address. One
+retained while `internalca_peer_ca_certificate` is still at its default fails naming the
+issuer, because the internal CA alone cannot validate it. And one that cannot be built to
+an anchor in the trust bundle from the certificate file itself fails quoting what OpenSSL
+said - a leaf whose issuing intermediate the file does not carry, or a leaf from a root
+other than the one configured, both land here. The peer CA is asked for
 even when the issuing CA already happens to be a trust anchor on the middleware host: the
 installer's own LDAP calls read the bundle and not the host trust store, and naming the root
 as the peer CA is additive, since it is installed beside the internal CA and replaces

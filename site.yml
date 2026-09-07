@@ -49,7 +49,20 @@
     - api
     - certificates
 
+# any_errors_fatal for the same reason as the internalCA play below, and this is the play
+# where it matters most: the upgrade source version guard and the Apache private key
+# preflight both live here, and a failing host is otherwise merely dropped - so on a
+# distributed installation the database play went on to migrate the schema on another host
+# after a preflight had just refused the upgrade. The flag only ever fires for a failure
+# inside its own play, so a host already unreachable in an earlier play does not abort the
+# run for the others.
+#
+# The cost is deliberate: OS preparation and package installation happen here too, so a
+# failure on one host now stops the whole run rather than installing the rest. For an
+# installer that is the safer half of the trade - a partially prepared installation is
+# what the preflights in this play exist to prevent.
 - hosts: all
+  any_errors_fatal: true
   roles:
     - { role: common }
   tags:

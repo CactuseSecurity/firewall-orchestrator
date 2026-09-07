@@ -22,11 +22,12 @@
 # does not build chains - so openssl verify is used, as in validate-apache-intermediates.yml.
 #
 # openssl refuses for more reasons than a broken chain, and the advice differs, so the
-# caller passes both: retained_chain_remedy is used when no anchor could be reached, and
-# retained_chain_replacement_remedy when the certificate itself is unusable whatever the
-# trust configuration says - expired, not yet valid, or unreadable. Handing one remedy to
-# every verdict is what made the first version of this check tell the operator of an
-# expired certificate to configure its issuing root.
+# caller passes two remedies and this file answers the third case itself:
+#   no anchor reached      -> retained_chain_remedy
+#   outside its validity   -> retained_chain_replacement_remedy (falls back to the above)
+#   input openssl can't read -> answered here, naming the certificate and the anchor file
+# Handing one remedy to every verdict is what made the first version of this check tell
+# the operator of an expired certificate to configure its issuing root.
 #
 # Inputs, all required except the last two:
 #   retained_chain_subject      - what is being checked, e.g. "OpenLDAP" (for the message)
@@ -71,26 +72,45 @@
       (internalca_retained_chain_verification.stderr
         | default(internalca_retained_chain_verification.stdout, true))
       | split('\n') | map('trim') | reject('equalto', '') | join('; ') }}"
-    # Keyed on the wording openssl uses for verify errors 9 and 10 and for an input it
-    # cannot read, rather than on the numeric code: the code is not printed on every
-    # openssl generation, the text is. Anything else is a chain that reached no anchor,
-    # which is what this check was written for and the case the caller's chain remedy
-    # addresses.
-    internalca_retained_chain_unusable: >-
+    # Three outcomes need three answers, and openssl only says which one it is in prose,
+    # so the wording is what this keys on - not the numeric code, which is not printed on
+    # every openssl generation.
+    #
+    # The phrases were measured on openssl 3.0.13, the generation the supported
+    # distributions ship. An anchor file that is missing, unreadable or holds no
+    # certificate is always "Error loading file <path>"; a certificate file that is
+    # missing is "Could not open file or uri for loading certs of untrusted certificates
+    # from <path>" and one that holds no certificate is "Could not read any untrusted
+    # certificates from <path>". "Cannot open" and "unable to load" are the openssl 1.x
+    # phrasings of the same conditions and are kept for RedHat 8, which still ships it.
+    # Getting this list wrong is not a cosmetic matter: an unmatched read failure falls
+    # through to the no-anchor branch and answers a missing file with advice about the
+    # issuing CA.
+    internalca_retained_chain_input_error: >-
       {{
-        internalca_retained_chain_report is search('has expired')
-        or internalca_retained_chain_report is search('is not yet valid')
+        internalca_retained_chain_report is search('Error loading file')
+        or internalca_retained_chain_report is search('Could not open file or uri')
+        or internalca_retained_chain_report is search('Could not read any')
         or internalca_retained_chain_report is search('Cannot open')
         or internalca_retained_chain_report is search('unable to load')
       }}
-    # Only the chain case can be blamed on the trust configuration. An expired or
-    # unreadable certificate would be refused whatever the anchors are, and saying it
-    # "reaches no anchor" would send the operator to the peer CA setting for nothing.
+    internalca_retained_chain_invalid_period: >-
+      {{
+        internalca_retained_chain_report is search('has expired')
+        or internalca_retained_chain_report is search('is not yet valid')
+      }}
+    # Only the last of the three can be blamed on the trust configuration. A certificate
+    # outside its validity period would be refused whatever the anchors are, and an input
+    # openssl could not read was never compared to an anchor at all - calling either of
+    # them "reaches no anchor" sends the operator to the peer CA setting for nothing.
     #
-    # Two folded scalars and a ternary rather than one expression: adjacent string
+    # Separate folded scalars and a ternary rather than one expression: adjacent string
     # literals are not concatenated in Jinja, and a folded scalar keeps a backslash
     # verbatim, so an apostrophe inside a Jinja string literal here is a trap.
-    internalca_retained_chain_unusable_verdict: >-
+    internalca_retained_chain_input_verdict: >-
+      could not be checked at all - openssl could not read the certificate or the anchors
+      it was pointed at, so make both readable and rerun
+    internalca_retained_chain_period_verdict: >-
       cannot be used at all - openssl refused it before any anchor was reached
     internalca_retained_chain_anchor_verdict: >-
       cannot be built to any anchor in
@@ -101,9 +121,27 @@
       not let this upgrade continue
     internalca_retained_chain_verdict: >-
       {{
-        internalca_retained_chain_unusable_verdict
-        if internalca_retained_chain_unusable | bool
+        internalca_retained_chain_input_verdict
+        if internalca_retained_chain_input_error | bool
+        else internalca_retained_chain_period_verdict
+        if internalca_retained_chain_invalid_period | bool
         else internalca_retained_chain_anchor_verdict
+      }}
+    # No caller remedy fits a file openssl could not read: neither reissuing the
+    # certificate nor naming another root makes an unreadable file readable. The two paths
+    # involved are known here, so this branch answers for itself.
+    internalca_retained_chain_input_remedy: >-
+      The two files are {{ retained_chain_certificate }} and
+      {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}. OpenSSL
+      names the one it stumbled over above; check that it exists, is readable by root and
+      holds PEM certificates.
+    internalca_retained_chain_advice: >-
+      {{
+        internalca_retained_chain_input_remedy
+        if internalca_retained_chain_input_error | bool
+        else (retained_chain_replacement_remedy | default(retained_chain_remedy, true))
+        if internalca_retained_chain_invalid_period | bool
+        else retained_chain_remedy
       }}
   fail:
     msg: >-
@@ -111,6 +149,5 @@
       {{ inventory_hostname }} ({{ retained_chain_certificate }})
       {{ internalca_retained_chain_verdict }}.
       OpenSSL reported: {{ internalca_retained_chain_report }}.
-      {{ retained_chain_replacement_remedy | default(retained_chain_remedy, true)
-         if internalca_retained_chain_unusable | bool else retained_chain_remedy }}
+      {{ internalca_retained_chain_advice }}
   when: internalca_retained_chain_verification.rc != 0

@@ -176,6 +176,11 @@ class TestRevisionHistory:
         merged_revision_history = "# Revision history\n\n## 9.4.5\n  - the current change \n"
         assert not has_addition(base_revision_history, merged_revision_history)
 
+    def test_reindenting_does_not_mask_a_real_addition(self) -> None:
+        base_revision_history = "# Revision history\n\n## 9.4.5\n- the current change\n"
+        merged_revision_history = "# Revision history\n\n## 9.4.5\n  - the current change\n- another change\n"
+        assert has_addition(base_revision_history, merged_revision_history)
+
     def test_text_added_to_an_earlier_section_does_not_count(self) -> None:
         merged_revision_history = REVISION_HISTORY.replace("- something older\n", "- something older\n- and more\n")
         assert not has_addition(REVISION_HISTORY, merged_revision_history)

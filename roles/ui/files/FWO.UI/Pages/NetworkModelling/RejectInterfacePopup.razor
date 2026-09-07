@@ -96,6 +96,8 @@
             WorkInProgress = true;
             try
             {
+                await ConnHandler.RefreshActConn();
+                long? ticketId = ConnHandler.ActConn.TicketId;
                 ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
                 bool saved = AllowAdminReject
                     ? await ConnHandler.SavePropertiesOnly()
@@ -105,7 +107,7 @@
                     return;
                 }
                 await ConnHandler.RemoveFromAllSelections();
-                await RejectInTicket();
+                await RejectInTicket(ticketId);
                 await RefreshParent();
                 Close();
             }
@@ -120,12 +122,12 @@
         }
     }
 
-    private async Task RejectInTicket()
+    private async Task RejectInTicket(long? ticketId)
     {
-        if(ConnHandler != null && ConnHandler.ActConn.TicketId != null)
+        if(ConnHandler != null && ticketId != null)
         {
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
-            if(await ticketCreator.PromoteNewInterfaceImplTask((long)ConnHandler.ActConn.TicketId, ExtStates.Rejected, Reason,
+            if(await ticketCreator.PromoteNewInterfaceImplTask(ticketId.Value, ExtStates.Rejected, Reason,
                 BuildNotificationPlaceholderData()))
             {
                 DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
@@ -136,19 +138,19 @@
     private NotificationPlaceholderData BuildNotificationPlaceholderData()
     {
         string interfaceName = ConnHandler?.ActConn.Name ?? "";
-        string interfaceUrl = ConnHandler == null
+        string interfaceUrl = ConnHandler?.Application == null
             ? ""
             : $"{userConfig.UiHostName}/{PageName.Modelling}/{ConnHandler.Application.ExtAppId}/{ConnHandler.ActConn.Id}";
         return new NotificationPlaceholderData
         {
-            RequestingAppName = ConnHandler?.ActConn.App.Name ?? "",
-            RequestingAppId = ConnHandler?.ActConn.App.ExtAppId ?? "",
+            RequestingAppName = ConnHandler?.ActConn.App?.Name ?? "",
+            RequestingAppId = ConnHandler?.ActConn.App?.ExtAppId ?? "",
             InterfaceName = interfaceName,
             InterfaceLinkText = userConfig.GetText("interface"),
             InterfaceLinkName = interfaceName,
             InterfaceLinkUrl = interfaceUrl,
-            Reason = Reason,
-            UserName = userConfig.User.Name,
+            Content = Reason,
+            UserName = userConfig.User?.Name ?? "",
             RequestDate = ConnHandler?.ActConn.CreationDate?.ToString("dd.MM.yyyy") ?? ""
         };
     }

@@ -912,12 +912,15 @@ namespace FWO.Test
         {
             TextWriter originalOut = Console.Out;
             StringWriter writer = new();
-            Console.SetOut(writer);
+            Console.SetOut(TextWriter.Synchronized(writer));
             try
             {
                 await action();
                 await writer.FlushAsync();
-                return writer.ToString();
+                lock (writer)
+                {
+                    return writer.ToString();
+                }
             }
             finally
             {

@@ -1074,6 +1074,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_PropagatesNotificationPlaceholderData()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfImplTask implTask = new() { Id = 12, TicketId = 42, StateId = 5 };
+            NotificationPlaceholderData placeholderData = new() { Content = "Rejected because the interface is obsolete." };
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 66, placeholderData])!;
+
+            Assert.That(parameters.NotificationPlaceholders, Is.SameAs(placeholderData));
+            Assert.That(parameters.NotificationPlaceholders!.Content, Is.EqualTo("Rejected because the interface is obsolete."));
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_UsesScopeSpecificIds()
         {
             WfHandler wfHandler = new() { ActTicket = new WfTicket { Id = 400 } };

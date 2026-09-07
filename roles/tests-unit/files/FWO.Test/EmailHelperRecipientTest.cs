@@ -323,6 +323,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendWorkflowActionEmail_UsesCallerContentForContentPlaceholder()
+        {
+            CapturingEmailHelper helper = new(new SimulatedUserConfig());
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "owner@example.test",
+                EmailBody = $"Reject reason: {Placeholder.CONTENT}"
+            };
+            WorkflowEmailContent workflowContent = new()
+            {
+                PlainText = "workflow content",
+                Html = "<p>workflow content</p>"
+            };
+            NotificationPlaceholderData placeholderData = new() { Content = "not approved" };
+
+            await helper.SendWorkflowActionEmail(notification, new WfStatefulObject(), null,
+                workflowContent: workflowContent, placeholderData: placeholderData);
+
+            Assert.That(helper.CapturedBody, Is.EqualTo("Reject reason: not approved"));
+        }
+
+        [Test]
         public async Task GetRecipientsReturnsDummyForOtherAddressesOption()
         {
             EmailHelper helper = CreateEmailHelper();

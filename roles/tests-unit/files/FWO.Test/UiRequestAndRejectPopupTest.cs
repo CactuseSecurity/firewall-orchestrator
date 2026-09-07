@@ -370,7 +370,7 @@ namespace FWO.Test
                 Assert.That(data.InterfaceName, Is.EqualTo("iface21"));
                 Assert.That(data.RequestingAppName, Is.EqualTo("Requesting App"));
                 Assert.That(data.RequestingAppId, Is.EqualTo("REQ-APP"));
-                Assert.That(data.Reason, Is.EqualTo("not approved"));
+                Assert.That(data.Content, Is.EqualTo("not approved"));
                 Assert.That(data.RequestDate, Is.EqualTo("02.01.2025"));
                 Assert.That(data.InterfaceLinkUrl, Is.EqualTo("https://fwo.example/networkmodelling/OWNER-APP/21"));
             });

@@ -392,7 +392,8 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true,
+            NotificationPlaceholderData? placeholderData = null)
         {
             try
             {
@@ -413,7 +414,7 @@ namespace FWO.Services.Workflow
                 {
                     if (triggerActions)
                     {
-                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket), placeholderData);
                     }
                 }
             }
@@ -423,7 +424,8 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true,
+            NotificationPlaceholderData? placeholderData = null)
         {
             try
             {
@@ -446,7 +448,8 @@ namespace FWO.Services.Workflow
                 {
                     if (triggerActions)
                     {
-                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId,
+                            placeholderData: placeholderData);
                     }
                 }
             }

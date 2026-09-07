@@ -117,7 +117,7 @@ namespace FWO.Services
                 : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc, ScopedUserEmailBcc, userGrpDn);
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner, placeholderData);
-            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner,
+            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
                 placeholderData, renderHtmlLinks: true);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
             await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
@@ -127,6 +127,17 @@ namespace FWO.Services
             }
             return await SendEmail(tos, subject, body, ccs, bccs,
                 notification.Layout == NotificationLayout.HtmlInBody, attachment);
+        }
+
+        private static string BuildWorkflowActionBody(FwoNotification notification, WorkflowEmailContent? workflowContent,
+            NotificationPlaceholderData? placeholderData)
+        {
+            if (!string.IsNullOrWhiteSpace(placeholderData?.Content))
+            {
+                return NotificationEmailLayoutHelper.BuildBody(notification, placeholderData.Content);
+            }
+
+            return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
         }
 
         private async Task LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,

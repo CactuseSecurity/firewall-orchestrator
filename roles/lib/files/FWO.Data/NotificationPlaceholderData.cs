@@ -41,6 +41,9 @@ namespace FWO.Data
         [JsonProperty("reason"), JsonPropertyName("reason")]
         public string Reason { get; set; } = "";
 
+        [JsonProperty("content"), JsonPropertyName("content")]
+        public string Content { get; set; } = "";
+
         [JsonProperty("user_name"), JsonPropertyName("user_name")]
         public string UserName { get; set; } = "";
 

@@ -624,8 +624,8 @@ namespace FWO.Test
             TimeRef timeRef = (TimeRef)apiConn.InsertedAccess!.AccessTimeObjects!.Data.Single();
             Assert.That(timeRef.TimeObjId, Is.EqualTo(insertedTimeObject.Id));
             string expectedAccessHash = FlowHashGenerator.GenerateAccessHash(
-                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1")],
-                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1/32", "10.0.0.1/32")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1/32", "10.0.1.1/32")],
                 [FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443)],
                 [insertedTimeObject.Hash],
                 true);
@@ -889,7 +889,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateFlowInFlowDb_ReusesExistingNetworkGroup()
         {
-            string memberHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
+            string memberHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1/32", "10.0.0.1/32");
             string groupHash = FlowHashGenerator.GenerateGroupHash([memberHash]);
             FlowDbCreatorTestApiConn apiConn = new();
             apiConn.ExistingNetworkObjects.Add(new FlowNwObject { Id = 10, Hash = memberHash });
@@ -1075,8 +1075,8 @@ namespace FWO.Test
             Assert.That(result, Is.True);
             Assert.That(apiConn.InsertedAccess!.AllowsTraffic, Is.False);
             string expectedAccessHash = FlowHashGenerator.GenerateAccessHash(
-                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1")],
-                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.0.1/32", "10.0.0.1/32")],
+                [FlowHashGenerator.GenerateNwObjectHash("10.0.1.1/32", "10.0.1.1/32")],
                 [FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443)],
                 [],
                 false);
@@ -1210,8 +1210,8 @@ namespace FWO.Test
         [Test]
         public async Task CreateFlowInFlowDb_ReusesGeneratedNetworkAndServiceObjects()
         {
-            string sourceHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1", "10.0.0.1");
-            string destinationHash = FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1");
+            string sourceHash = FlowHashGenerator.GenerateNwObjectHash("10.0.0.1/32", "10.0.0.1/32");
+            string destinationHash = FlowHashGenerator.GenerateNwObjectHash("10.0.1.1/32", "10.0.1.1/32");
             string serviceHash = FlowHashGenerator.GenerateSvcObjectHash(6, 443, 443);
             FlowDbCreatorTestApiConn apiConn = new();
             apiConn.ExistingNetworkObjects.Add(new FlowNwObject { Id = 10, Hash = sourceHash });
@@ -1284,7 +1284,7 @@ namespace FWO.Test
         [Test]
         public async Task CreateFlowInFlowDb_DeduplicatesDirectAndGroupMemberDestinations()
         {
-            string destinationHash = FlowHashGenerator.GenerateNwObjectHash("10.0.1.1", "10.0.1.1");
+            string destinationHash = FlowHashGenerator.GenerateNwObjectHash("10.0.1.1/32", "10.0.1.1/32");
             FlowDbCreatorTestApiConn apiConn = new();
             apiConn.ExistingNetworkObjects.Add(new FlowNwObject { Id = 11, Hash = destinationHash });
             FlowNwGroup destinationGroup = new()
@@ -1389,10 +1389,11 @@ namespace FWO.Test
             Assert.That(inserted.IpEnd, Is.EqualTo("10.0.1.255/32"));
         }
 
-        [TestCase("10.0.0.1")]
-        [TestCase("10.0.0.1/32")]
-        [TestCase("2001:db8::1/128")]
-        public async Task CreateFlowInFlowDb_KeepsHostEndpointUnchanged(string requestedIp)
+        [TestCase("10.0.0.1", "10.0.0.1/32")]
+        [TestCase("10.0.0.1/32", "10.0.0.1/32")]
+        [TestCase("2001:db8::1", "2001:db8::1/128")]
+        [TestCase("2001:db8::1/128", "2001:db8::1/128")]
+        public async Task CreateFlowInFlowDb_StoresHostEndpointInCidrNotation(string requestedIp, string expectedIp)
         {
             FlowDbCreatorTestApiConn apiConn = new();
             FlowDbCreator flowDbCreator = new(apiConn);
@@ -1401,12 +1402,37 @@ namespace FWO.Test
             bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
 
             Assert.That(result, Is.True);
-            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == requestedIp);
+            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == expectedIp);
             Assert.Multiple(() =>
             {
-                Assert.That(inserted.IpEnd, Is.EqualTo(requestedIp));
-                Assert.That(inserted.Hash, Is.EqualTo(FlowHashGenerator.GenerateNwObjectHash(requestedIp, requestedIp)));
+                Assert.That(inserted.IpEnd, Is.EqualTo(expectedIp));
+                Assert.That(inserted.Hash, Is.EqualTo(FlowHashGenerator.GenerateNwObjectHash(expectedIp, expectedIp)));
             });
+        }
+
+        /// <summary>
+        /// The flow sync recalculates the hash of every flow object from the endpoints the cidr columns return, and
+        /// reports two objects recalculating to one hash as a conflict it refuses to resolve. A request-created
+        /// object must therefore carry the hash of its own stored endpoints, or it is inserted a second time by the
+        /// import of the same address and stalls the flow sync for that management.
+        /// </summary>
+        [TestCase("10.0.0.1", "10.0.0.1")]
+        [TestCase("10.0.0.0/24", "10.0.0.0/24")]
+        [TestCase("2001:db8::1", "2001:db8::1")]
+        public async Task CreateFlowInFlowDb_StoresHashMatchingTheHashRecalculatedFromTheStoredEndpoints(string requestedIpStart, string requestedIpEnd)
+        {
+            FlowDbCreatorTestApiConn apiConn = new();
+            FlowDbCreator flowDbCreator = new(apiConn);
+            WfReqTask task = CreateAccessTask(11, "10.0.0.9", "10.0.1.1", 443);
+            WfReqElement source = task.Elements.Single(element => element.Field == ElemFieldType.source.ToString());
+            source.IpString = requestedIpStart;
+            source.IpEnd = requestedIpEnd;
+
+            bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(result, Is.True);
+            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.Id == apiConn.UpdatedRequestElements.Single(update => update.Id == source.Id).FlowNetworkObjectId);
+            Assert.That(inserted.TryCalculateHash(), Is.EqualTo(inserted.Hash));
         }
 
         [Test]
@@ -1470,8 +1496,8 @@ namespace FWO.Test
             bool? result = await flowDbCreator.CreateFlowInFlowDb(new WfStateAction { Name = "Create flow" }, task, WfObjectScopes.RequestTask, null, task.TicketId);
 
             Assert.That(result, Is.True);
-            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == "2001:db8::1");
-            Assert.That(inserted.IpEnd, Is.EqualTo("2001:db8::5"));
+            FlowNwObject inserted = apiConn.InsertedNetworkObjects.Single(nwObject => nwObject.IpStart == "2001:db8::1/128");
+            Assert.That(inserted.IpEnd, Is.EqualTo("2001:db8::5/128"));
         }
 
         private static void SetSelectedObjectAndServiceIds(WfReqTask task, long sourceObjectId, long destinationObjectId, long serviceId)

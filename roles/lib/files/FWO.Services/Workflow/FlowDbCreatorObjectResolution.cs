@@ -143,19 +143,22 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Reduces a range endpoint to the single host address flow.nwobject accepts: a network is replaced by its
-        /// first address when it opens the range and by its last address when it closes it. Request elements carry
-        /// whatever netmask the requester supplied, while the flow database only stores /32 and /128 endpoints.
-        /// An endpoint which already addresses a single host is returned unchanged, so that the deterministic hash
-        /// of an object created before this normalization stays the same and the object is still found by it.
+        /// Reduces a range endpoint to the single host address flow.nwobject accepts, in the CIDR notation the
+        /// column returns: a network is replaced by its first address when it opens the range and by its last
+        /// address when it closes it, and a host address gets its /32 or /128 mask. Request elements carry
+        /// whatever notation the requester supplied, while the deterministic hash of a flow object is only
+        /// stable when every writer spells the same address the same way. FlowNwObject.TryCalculateHash and the
+        /// flow sync both read the endpoints back from the cidr columns, so that notation is the one to write:
+        /// a host stored without its mask hashes differently from the identical imported object and is inserted
+        /// a second time, which leaves the flow sync with two rows recalculating to one hash.
         /// </summary>
-        /// <param name="ip">The endpoint as requested, with or without netmask.</param>
+        /// <param name="ip">The endpoint as requested, in any notation.</param>
         /// <param name="isRangeEnd">Whether the endpoint closes the range instead of opening it.</param>
         /// <param name="workflowElementId">Id of the workflow element the endpoint belongs to, for logging.</param>
-        /// <returns>The host address to store, or the unchanged value when it is already one or cannot be parsed.</returns>
+        /// <returns>The host address to store, or the unchanged value when it cannot be read as an address.</returns>
         private static string? ToHostAddress(string? ip, bool isRangeEnd, long workflowElementId)
         {
-            if (string.IsNullOrWhiteSpace(ip) || AddressesSingleHost(ip))
+            if (string.IsNullOrWhiteSpace(ip))
             {
                 return ip;
             }
@@ -164,8 +167,6 @@ namespace FWO.Services.Workflow
                 Log.WriteWarning(LogMessageTitle, $"Could not read the network endpoint '{ip}' of workflow element {workflowElementId} as an address range, storing it unchanged.");
                 return ip;
             }
-            // the requested endpoint carried a netmask, so the host address keeps that notation: it is then the
-            // string the database returns for the row created from it, which keeps its stored hash valid
             return (isRangeEnd ? range.end : range.start).IpAsCidr();
         }
 
@@ -180,17 +181,6 @@ namespace FWO.Services.Workflow
         {
             return string.IsNullOrWhiteSpace(ipStart) || string.IsNullOrWhiteSpace(ipEnd)
                 || ipStart.IsV6Address() == ipEnd.IsV6Address();
-        }
-
-        /// <summary>
-        /// Returns whether an endpoint addresses exactly one host, either without a netmask at all or with the
-        /// full-length mask of its address family. Only those two forms survive StripOffUnnecessaryNetmask
-        /// without a netmask, so any endpoint keeping one spans more than a single address.
-        /// </summary>
-        /// <param name="ip">The endpoint to check, with or without netmask.</param>
-        private static bool AddressesSingleHost(string ip)
-        {
-            return ip.StripOffUnnecessaryNetmask().GetNetmask().Length == 0;
         }
 
         /// <summary>

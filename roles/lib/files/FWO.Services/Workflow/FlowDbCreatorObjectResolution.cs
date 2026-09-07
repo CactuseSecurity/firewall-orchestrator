@@ -13,6 +13,8 @@ namespace FWO.Services.Workflow
     /// </summary>
     public partial class FlowDbCreator
     {
+        private const string kMixedAddressFamiliesTextKey = "flow_creation_mixed_address_families";
+        private const string kUnreadableAddressTextKey = "flow_creation_unreadable_address";
         private static readonly List<string> kReusableFlowStates = [FlowState.Requested, FlowState.Implemented];
 
         /// <summary>
@@ -125,8 +127,8 @@ namespace FWO.Services.Workflow
             }
             if (!SharesAddressFamily(ipStart, ipEnd))
             {
-                Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {snapshot.WorkflowElementId}: " +
-                    $"its range starts at '{ipStart}' and ends at '{ipEnd}', which belong to different address families.");
+                RefuseNetworkObject(snapshot.WorkflowElementId, kMixedAddressFamiliesTextKey, $"{ipStart} - {ipEnd}",
+                    $"its range starts at '{ipStart}' and ends at '{ipEnd}', which belong to different address families");
                 return null;
             }
             string name = BuildNetworkObjectName(snapshot);
@@ -163,7 +165,7 @@ namespace FWO.Services.Workflow
         /// <param name="workflowElementId">Id of the workflow element the endpoint belongs to, for logging.</param>
         /// <param name="hostAddress">The host address to store, or the endpoint itself when it is not set at all.</param>
         /// <returns>Whether the endpoint could be read; false for a value which is set but is no address.</returns>
-        private static bool TryGetHostAddress(string? ip, bool isRangeEnd, long workflowElementId, out string? hostAddress)
+        private bool TryGetHostAddress(string? ip, bool isRangeEnd, long workflowElementId, out string? hostAddress)
         {
             hostAddress = ip;
             if (string.IsNullOrWhiteSpace(ip))
@@ -172,13 +174,27 @@ namespace FWO.Services.Workflow
             }
             if (!ip.TryParseIPStringToRange(out (string start, string end) range))
             {
-                Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {workflowElementId}: " +
-                    $"its endpoint '{ip}' cannot be read as an IP address or range.");
+                RefuseNetworkObject(workflowElementId, kUnreadableAddressTextKey, ip,
+                    $"its endpoint '{ip}' cannot be read as an IP address or range");
                 hostAddress = null;
                 return false;
             }
             hostAddress = (isRangeEnd ? range.end : range.start).IpAsCidr();
             return true;
+        }
+
+        /// <summary>
+        /// Logs why a network object was not created and keeps the reason for the caller that reports the flow
+        /// creation, so that a requester who can correct the value learns which value it was.
+        /// </summary>
+        /// <param name="workflowElementId">Id of the refused workflow element.</param>
+        /// <param name="reasonTextKey">Key of the localized text naming the reason.</param>
+        /// <param name="refusedValue">The value the element was refused for, as the requester wrote it.</param>
+        /// <param name="logDetail">The same reason spelled out for the log.</param>
+        private void RefuseNetworkObject(long workflowElementId, string reasonTextKey, string refusedValue, string logDetail)
+        {
+            Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {workflowElementId}: {logDetail}.");
+            refusals.Add(new FlowCreationRefusal { ReasonTextKey = reasonTextKey, RefusedValue = refusedValue });
         }
 
         /// <summary>

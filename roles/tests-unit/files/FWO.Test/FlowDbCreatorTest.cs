@@ -1554,6 +1554,7 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.InsertedNetworkObjects.Select(nwObject => nwObject.IpStart), Does.Not.Contain(requestedIpStart));
                 Assert.That(apiConn.InsertedAccess, Is.Null);
+                Assert.That(flowDbCreator.Refusals.Single().ReasonTextKey, Is.EqualTo("flow_creation_unreadable_address"));
             });
         }
 
@@ -1575,6 +1576,7 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.InsertedNetworkObjects.Select(nwObject => nwObject.IpStart), Does.Not.Contain(requestedIpStart));
                 Assert.That(apiConn.InsertedAccess, Is.Null);
+                Assert.That(flowDbCreator.Refusals.Select(refusal => refusal.ReasonTextKey), Is.EqualTo(new List<string> { "flow_creation_mixed_address_families" }));
             });
         }
 

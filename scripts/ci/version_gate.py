@@ -35,6 +35,8 @@ REVISION_HISTORY_VERSION_PATTERN = re.compile(
 )
 DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 UPGRADE_FILE_PATTERN = re.compile(r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)\.sql$")
+# What upgrade-database.yml reads as a version: the name without its extension, digits and dots.
+VERSION_LIKE_UPGRADE_FILE_PATTERN = re.compile(r"^[0-9][0-9.]*\.sql$")
 # GitHub truncates commit status descriptions, so keep them short enough to stay readable.
 MAX_DESCRIPTION_LENGTH = 140
 # major, minor and patch, the patch level being optional in a few old upgrade file names.
@@ -267,6 +269,38 @@ def evaluate_revision_history(
     return Verdict(ok=True, reason=f"revision history adds text for version {merged_version}")
 
 
+def is_version_like_upgrade_file(file_name: str) -> bool:
+    """Return whether the upgrade play reads the file name as a version."""
+    return VERSION_LIKE_UPGRADE_FILE_PATTERN.fullmatch(file_name) is not None
+
+
+def non_canonical_upgrade_files(file_names: list[str]) -> list[str]:
+    """Return the upgrade files the play reads as a version but the gate refuses to interpret."""
+    return sorted(
+        file_name
+        for file_name in file_names
+        if is_version_like_upgrade_file(file_name) and upgrade_file_version(file_name) is None
+    )
+
+
+def upgrade_files_above_version(file_names: list[str], version: tuple[int, int, int]) -> list[str]:
+    """Return the upgrade files named above a version, which the upgrade play never selects."""
+    return sorted(
+        file_name
+        for file_name in file_names
+        if (file_version := upgrade_file_version(file_name)) is not None and file_version > version
+    )
+
+
+def upgrade_files_below_version(file_names: list[str], version: tuple[int, int, int]) -> list[str]:
+    """Return the upgrade files named below a version, which installations on it skip."""
+    return sorted(
+        file_name
+        for file_name in file_names
+        if (file_version := upgrade_file_version(file_name)) is not None and file_version < version
+    )
+
+
 def evaluate_upgrade_files(
     merged_version: str,
     base_version: str,
@@ -289,7 +323,13 @@ def evaluate_upgrade_files(
     which is why versioning.md forbids modifying the upgrade script of an older version. Files
     the pull request deletes drop out, as they are not in the merge result.
 
-    File names which do not carry a version are left to the upgrade play itself.
+    A name the play reads as a version but this gate does not, such as the zero-padded
+    9.4.07.sql, is refused outright rather than interpreted: the play compares it loosely and
+    would place it at 9.4.7, so leaving it unjudged hides exactly the two silent cases above.
+    Only the files the pull request touches are held to that, which leaves the padded names
+    this repository carries from its 5.1 releases alone.
+
+    File names which do not carry a version at all are left to the upgrade play itself.
     """
     try:
         merged = parse_version(merged_version)
@@ -297,26 +337,31 @@ def evaluate_upgrade_files(
     except ValueError as error:
         return Verdict(ok=False, reason=str(error))
 
-    above_product_version: list[str] = []
-    for file_name in merged_upgrade_files:
-        file_version = upgrade_file_version(file_name)
-        if file_version is not None and file_version > merged:
-            above_product_version.append(file_name)
+    changed_in_merge_result = sorted(set(changed_upgrade_files) & set(merged_upgrade_files))
+
+    above_product_version = upgrade_files_above_version(merged_upgrade_files, merged)
     if above_product_version:
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(sorted(above_product_version))} is above product_version "
+                f"upgrade file {', '.join(above_product_version)} is above product_version "
                 f"{merged_version} and would never run. Raise product_version in "
                 f"inventory/group_vars/all.yml or rename the file."
             ),
         )
 
-    behind_base_version: list[str] = []
-    for file_name in sorted(set(changed_upgrade_files) & set(merged_upgrade_files)):
-        file_version = upgrade_file_version(file_name)
-        if file_version is not None and file_version < base:
-            behind_base_version.append(file_name)
+    non_canonical = non_canonical_upgrade_files(changed_in_merge_result)
+    if non_canonical:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"upgrade file {', '.join(non_canonical)} is not named after a plain "
+                f"major.minor.patch version, so the upgrade play and this gate would read it "
+                f"differently. Name it {merged_version}.sql, without zero-padded components."
+            ),
+        )
+
+    behind_base_version = upgrade_files_below_version(changed_in_merge_result, base)
     if behind_base_version:
         return Verdict(
             ok=False,

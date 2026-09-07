@@ -232,6 +232,16 @@ def test_upgrade_file_for_the_opened_version_passes(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stderr
 
 
+def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:
+    """A padded name is read as a version by the upgrade play but by no rule of this gate."""
+    repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.06.sql", tags=("v9.4.5",))
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert "9.4.06.sql is not named after a plain major.minor.patch version" in completed.stderr
+
+
 def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:
     """An upgrade file below the base version is skipped by installations already on it."""
     repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.4.sql", tags=("v9.4.5",))

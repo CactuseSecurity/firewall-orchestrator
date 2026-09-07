@@ -66,6 +66,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
+| any | every upgrade file the pull request adds or modifies carries a plain `major.minor.patch` name | fails otherwise: name it `V.sql` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
 | non-automated, section opened | that new final section is not empty | fails otherwise |
@@ -106,6 +107,11 @@ which runs a script when its version is at least the installed version and at mo
 modifies* below `P` is skipped by every installation that has already taken `P` - the case where
 another pull request opens a higher version and merges first, leaving this one with a file that no
 upgraded installation runs. Both are silent at run time, which is why they are caught here.
+
+A name the upgrade play reads as a version but this gate does not - `9.4.07.sql`, whose padding
+Ansible's loose comparison places at `9.4.7` - is refused rather than interpreted, because leaving
+it unjudged is what lets it slip past both rules above. Only files the pull request touches are
+held to that, so the padded names carried over from the 5.1 releases stay as they are.
 
 The second rule reads the files the pull request touches rather than the names it adds, because
 appending statements to an older script strands them exactly as adding one does, and comparing

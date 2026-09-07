@@ -371,6 +371,79 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ResolveZonesForObjects_ReturnsBadRequestListingUnassignableRanges()
+        {
+            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
+            IPAddressRange[] ipv4ZoneRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))];
+            List<ComplianceNetworkZone> zones =
+            [
+                new ComplianceNetworkZone
+                {
+                    Id = 10,
+                    Name = "IPv4 Zone",
+                    IPRanges = ipv4ZoneRanges
+                }
+            ];
+            DummyApiConnection apiConnection = new(configItems, matrices, zones);
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            List<ResolveZonesForObjectsRequest.ObjectRequest> requestedObjects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "IPv6 Host",
+                    Type = "host",
+                    IpStart = "2001:db8::1",
+                    IpEnd = "2001:db8::1"
+                }
+            ];
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects = requestedObjects
+            });
+
+            Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(
+                ((BadRequestObjectResult)result.Result!).Value?.ToString(),
+                Does.Contain("2001:db8::1-2001:db8::1"));
+        }
+
+        [Test]
+        public async Task ResolveZonesForObjects_ReturnsServerErrorForOtherArgumentException()
+        {
+            // Only the deliberate unassignable-ranges signal may reach the client. Any other argument exception
+            // raised inside the service is a defect and must be logged as a server error instead of echoed as 400.
+            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
+            List<ComplianceNetworkZone> zones = [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }];
+            DummyApiConnection apiConnection = new(
+                configItems,
+                matrices,
+                zones,
+                networkZoneQueryException: new ArgumentException("Zone query argument rejected."));
+            ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
+            List<ResolveZonesForObjectsRequest.ObjectRequest> requestedObjects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Leaf",
+                    Type = "network",
+                    IpStart = "10.0.0.1",
+                    IpEnd = "10.0.0.1"
+                }
+            ];
+
+            ActionResult<List<ComplianceDesignatedZoneResponse>> result = await controller.ResolveZonesForObjects(new ResolveZonesForObjectsRequest
+            {
+                Objects = requestedObjects
+            });
+
+            Assert.That(result.Result, Is.TypeOf<StatusCodeResult>());
+            Assert.That(((StatusCodeResult)result.Result!).StatusCode, Is.EqualTo(500));
+        }
+
+        [Test]
         public async Task ResolveZonesForObjects_ReturnsBadRequestWhenValidationFails()
         {
             ComplianceZoneController controller = new(CreateZoneService(new DummyApiConnection(), 12));
@@ -420,19 +493,22 @@ namespace FWO.Test
                 List<ComplianceNetworkZone>? zones = null,
                 bool throwOnMatrixQuery = false,
                 bool throwOnNetworkZoneQuery = false,
-                bool throwOnViolationCount = false)
+                bool throwOnViolationCount = false,
+                Exception? networkZoneQueryException = null)
             {
                 this.configItems = configItems ?? [];
                 this.matrices = matrices ?? [];
                 this.zones = zones ?? [];
                 this.throwOnMatrixQuery = throwOnMatrixQuery;
-                this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery;
+                this.throwOnNetworkZoneQuery = throwOnNetworkZoneQuery || networkZoneQueryException != null;
                 this.throwOnViolationCount = throwOnViolationCount;
+                this.networkZoneQueryException = networkZoneQueryException;
             }
 
             private readonly bool throwOnMatrixQuery;
             private readonly bool throwOnNetworkZoneQuery;
             private readonly bool throwOnViolationCount;
+            private readonly Exception? networkZoneQueryException;
 
             public override void SetAuthHeader(string jwt) { }
             public override void SetRole(string role) { }
@@ -486,7 +562,7 @@ namespace FWO.Test
                 {
                     if (throwOnNetworkZoneQuery)
                     {
-                        throw new InvalidOperationException("Network zone query failed.");
+                        throw networkZoneQueryException ?? new InvalidOperationException("Network zone query failed.");
                     }
 
                     LastNetworkZoneQuery = query;

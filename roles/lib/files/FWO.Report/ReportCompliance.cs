@@ -326,7 +326,7 @@ namespace FWO.Report
 
                 if (rule.Violations.Count > 0)
                 {
-                    ruleCompliance = DetermineCompliance(SelectDecisiveViolations(rule.Violations));
+                    ruleCompliance = DetermineCompliance(rule.Violations);
                 }
 
                 rule.Compliance = ruleCompliance;
@@ -502,13 +502,12 @@ namespace FWO.Report
                 rule.Compliance = ComplianceViolationType.None;
                 int addedViolationDetails = 0;
 
-                // If rule is not assessable only display assessability issues in details.
+                // Every violation is displayed. A single unassessable object must not hide the violations the
+                // other criteria did find on the remaining objects of the same rule.
 
-                List<ComplianceViolation> violations = SelectDecisiveViolations(rule.Violations);
+                rule.Compliance = DetermineCompliance(rule.Violations);
 
-                rule.Compliance = DetermineCompliance(violations);
-
-                foreach (ComplianceViolation violation in violations)
+                foreach (ComplianceViolation violation in rule.Violations)
                 {
                     // Cut violation details when printed violations limit is reached.
 
@@ -547,16 +546,17 @@ namespace FWO.Report
 
         /// <summary>
         /// Determines compliance using the same precedence and violation-detail limit as the report formatter.
-        /// Accepts either a rule's full violation list or the decisive subset; both yield the same state.
+        /// Expects a rule's full violation list, because the assessability precedence is decided over all of them.
         /// </summary>
         /// <param name="violations">Violations to judge.</param>
         /// <returns>The single state that represents the given violations.</returns>
         protected ComplianceViolationType DetermineCompliance(List<ComplianceViolation> violations)
         {
-            // Assessability outranks every other type: several assessability issues still read as not assessable
-            // rather than as multiple violations, so this cannot be folded into the count below.
+            // A rule reads as not assessable only when nothing else could be judged about it, which is the case
+            // exactly when every violation it carries is an assessability issue. Several such issues still read as
+            // not assessable rather than as multiple violations, so this cannot be folded into the count below.
 
-            if (violations.Any(IsRuleNotAssessable))
+            if (violations.Count > 0 && violations.TrueForAll(IsNotAssessableViolation))
             {
                 return ComplianceViolationType.NotAssessable;
             }
@@ -574,29 +574,16 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Selects the violations a rule is judged and rendered by. An unassessable rule is represented by its
-        /// assessability issues alone, because no other criterion can be evaluated for it.
-        /// </summary>
-        /// <param name="violations">All violations attached to the rule.</param>
-        /// <returns>The decisive subset, or all violations when the rule is assessable.</returns>
-        private static List<ComplianceViolation> SelectDecisiveViolations(List<ComplianceViolation> violations)
-        {
-            return violations.Any(IsRuleNotAssessable)
-                ? violations.Where(IsRuleNotAssessable).ToList()
-                : violations.ToList();
-        }
-
-        /// <summary>
-        /// Single definition of what marks a violation as an assessability issue for the whole rule. Only the
-        /// Assessability criterion judges the rule as such; every other criterion can attach a not-assessable
-        /// violation for a single object, and that must not outrank the rule's real violations.
+        /// Single definition of what marks a violation as an assessability issue. Every criterion records these
+        /// per object, the Assessability criterion included, so no single one of them describes the whole rule.
+        /// Whether the rule is unassessable is therefore decided in <see cref="DetermineCompliance"/> over the
+        /// rule's complete violation list, never by one violation on its own.
         /// </summary>
         /// <param name="violation">Violation to classify.</param>
-        /// <returns>True when the violation reports that the rule cannot be assessed.</returns>
-        private static bool IsRuleNotAssessable(ComplianceViolation violation)
+        /// <returns>True when the violation reports that an object of the rule could not be assessed.</returns>
+        private static bool IsNotAssessableViolation(ComplianceViolation violation)
         {
-            return violation.Type == ComplianceViolationType.NotAssessable
-                && violation.Criterion?.CriterionType == nameof(CriterionType.Assessability);
+            return violation.Type == ComplianceViolationType.NotAssessable;
         }
 
         protected virtual bool ShowRule(Rule rule)

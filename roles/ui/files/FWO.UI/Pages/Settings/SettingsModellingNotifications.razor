@@ -1,12 +1,7 @@
-@using FWO.Api.Client.Queries
 @using FWO.Basics
 @using FWO.Config.Api.Data
 @using FWO.Data
-@using FWO.Data.Middleware
-@using FWO.Middleware.Client
 @using FWO.Services
-@using FWO.Ui.Data
-@using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modellingnotifications"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -16,7 +11,7 @@
 @inject UserConfig userConfig
 
 <div class="input-group">
-    <h3>@(userConfig.GetText("interfaces"))</h3>
+    <h3>@(userConfig.GetText("notifications"))</h3>
     <HelpLink Page="settings/modellingnotifications" />
 </div>
 <hr />

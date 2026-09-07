@@ -96,6 +96,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RequestInterfacePopup_SendRequest_ContinuesWhenInputIsValid()
+        {
+            using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
+            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+            userConfig.ModReqInterfaceName = "req-interface";
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
+                context,
+                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
+                new FwoOwner { Id = 12, Name = "Requester" },
+                messageSink: (exception, title, message, isError) => messages.Add((exception, title, message, isError)));
+
+            component.Find("input[type='text']").Change("branch-if");
+            component.Find("textarea").Change("needed");
+            await component.InvokeAsync(() => component.FindAll("button.btn-primary").Single().Click());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Exception, Is.Not.Null);
+                Assert.That(messages[0].Message, Is.Not.EqualTo(userConfig.GetText("E5102")));
+                Assert.That(messages[0].Message, Is.Not.EqualTo(userConfig.GetText("E9012")));
+                Assert.That(component.Instance.Display, Is.True);
+            });
+        }
+
+        [Test]
         public async Task RequestInterfacePopup_LoadImmediateRequestNotification_ReturnsDeadlineNoneNotification()
         {
             using BunitContext context = CreateContext(new RequestPopupNotificationApiConn(), Roles.Modeller);
@@ -374,6 +401,87 @@ namespace FWO.Test
                 Assert.That(data.RequestDate, Is.EqualTo("02.01.2025"));
                 Assert.That(data.InterfaceLinkUrl, Is.EqualTo("https://fwo.example/networkmodelling/OWNER-APP/21"));
             });
+        }
+
+        [Test]
+        public void RejectInterfacePopup_BuildsEmptyNotificationContextForMissingConnectionData()
+        {
+            using BunitContext context = CreateContext(Roles.Modeller);
+            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new RejectInterfacePopupTestApiConn(),
+                userConfig,
+                new ModellingConnection { Id = 21, IsInterface = true });
+            handler.Application = null!;
+            IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(context, handler);
+            SetPrivateMember(component.Instance, "Reason", "reject reason");
+
+            MethodInfo method = typeof(RejectInterfacePopup).GetMethod("BuildNotificationPlaceholderData", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildNotificationPlaceholderData method not found.");
+            NotificationPlaceholderData data = (NotificationPlaceholderData)(method.Invoke(component.Instance, null)
+                ?? throw new InvalidOperationException("BuildNotificationPlaceholderData returned null."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(data.InterfaceName, Is.Empty);
+                Assert.That(data.RequestingAppName, Is.Empty);
+                Assert.That(data.RequestingAppId, Is.Empty);
+                Assert.That(data.InterfaceLinkUrl, Is.Empty);
+                Assert.That(data.Content, Is.EqualTo("reject reason"));
+                Assert.That(data.UserName, Is.EqualTo(userConfig.User.Name));
+                Assert.That(data.RequestDate, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task RejectInterfacePopup_RejectInTicket_SkipsWhenTicketIdIsMissing()
+        {
+            using BunitContext context = CreateContext(Roles.Modeller);
+            RejectInterfacePopupTestApiConn apiConn = new();
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                apiConn,
+                (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>(),
+                new ModellingConnection { Id = 21, IsInterface = true });
+            IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(context, handler);
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = new();
+            SetPrivateMember(component.Instance, "DisplayMessageInUi",
+                (Action<Exception?, string, string, bool>)((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
+
+            MethodInfo method = typeof(RejectInterfacePopup).GetMethod("RejectInTicket", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("RejectInTicket method not found.");
+            Task task = (Task)(method.Invoke(component.Instance, new object?[] { null })
+                ?? throw new InvalidOperationException("RejectInTicket returned null task."));
+            await task;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(messages, Is.Empty);
+                Assert.That(apiConn.UpdateConnectionPropertiesCalls, Is.Zero);
+                Assert.That(apiConn.RemoveSelectedConnectionCalls, Is.Zero);
+            });
+        }
+
+        [Test]
+        public async Task RejectInterfacePopup_RejectInTicket_SkipsWhenConnectionHandlerIsMissing()
+        {
+            using BunitContext context = CreateContext(Roles.Modeller);
+            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new RejectInterfacePopupTestApiConn(),
+                userConfig,
+                new ModellingConnection { Id = 21, IsInterface = true });
+            IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(
+                context,
+                handler,
+                messageSink: null);
+            SetPrivateMember(component.Instance, "ConnHandler", null);
+
+            MethodInfo method = typeof(RejectInterfacePopup).GetMethod("RejectInTicket", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("RejectInTicket method not found.");
+            Task task = (Task)(method.Invoke(component.Instance, new object?[] { 123L })
+                ?? throw new InvalidOperationException("RejectInTicket returned null task."));
+
+            Assert.DoesNotThrowAsync(async () => await task);
         }
 
         [Test]

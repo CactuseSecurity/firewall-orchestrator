@@ -33,7 +33,7 @@ namespace FWO.Test
 
             page.WaitForAssertion(() =>
             {
-                Assert.That(page.Markup, Does.Contain("Interfaces"));
+                Assert.That(page.Markup, Does.Contain("Notifications"));
                 Assert.That(page.Markup, Does.Contain("Initial request"));
                 Assert.That(page.Markup, Does.Contain("Reminder"));
                 Assert.That(page.Markup, Does.Contain("Decommission"));

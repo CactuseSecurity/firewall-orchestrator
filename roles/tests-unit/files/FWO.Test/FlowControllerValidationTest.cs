@@ -145,7 +145,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowController_ResolveGroupMembers_AllowsEmptyRequest()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(null);
 
@@ -158,7 +159,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowController_ResolveGroupMembers_AllowsKnownSelectors()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
         {
@@ -174,7 +176,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowController_ResolveGroupMembers_RejectsBlankGroupNames()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
 
         ActionResult<FlowGroupResolutionResult> result = await controller.ResolveGroupMembers(new ResolveFlowGroupsRequest
         {
@@ -188,7 +191,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowController_ResolveGroupMembers_RejectsUnknownFields()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
         ResolveFlowGroupsRequest request = new()
         {
             AdditionalData = new Dictionary<string, JsonElement>
@@ -205,7 +209,8 @@ internal class FlowControllerValidationTest
     [Test]
     public async Task FlowController_ResolveGroupMembers_RejectsTooManySelectors()
     {
-        FlowCatalogController controller = new(new FlowCatalogService(new ValidationApiConnection()));
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
         ResolveFlowGroupsRequest request = new()
         {
             NetworkGroupIds = Enumerable.Range(1, 101).Select(id => (long)id).ToList()

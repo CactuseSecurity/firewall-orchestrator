@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
@@ -274,6 +275,116 @@ internal class FlowCatalogServiceTest
             new FlowNwGroup { Id = 503, Name = "dmz-zone", State = FlowState.Implemented },
             new FlowNwGroup { Id = 504, Name = "dmz-ZONE", State = FlowState.Implemented }
         ];
+    }
+
+    [Test]
+    public async Task ResolveFlowGroupMembersAsync_UsesRequestedSelectorsAndFiltersInactiveMembers()
+    {
+        FlowCatalogServiceApiConn apiConnection = new()
+        {
+            AddressGroups =
+            [
+                new FlowNwGroup
+                {
+                    Id = 20,
+                    Name = "VisibleGroup",
+                    State = FlowState.Implemented,
+                    ShowInRequestModule = true,
+                    NwGroupMembers =
+                    [
+                        new FlowNwGroupMember
+                        {
+                            NwObjectId = 100,
+                            NwObject = new FlowNwObject
+                            {
+                                Id = 100,
+                                IpStart = "192.0.2.10",
+                                IpEnd = "192.0.2.10",
+                                State = FlowState.Implemented,
+                                ShowInRequestModule = true
+                            }
+                        },
+                        new FlowNwGroupMember
+                        {
+                            NwObjectId = 101,
+                            NwObject = new FlowNwObject
+                            {
+                                Id = 101,
+                                State = FlowState.Removed,
+                                ShowInRequestModule = true
+                            }
+                        }
+                    ]
+                },
+                new FlowNwGroup { Id = 21, Name = "HiddenGroup", ShowInRequestModule = false }
+            ]
+        };
+
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        FlowGroupResolutionResult result = await service.ResolveFlowGroupMembersAsync(new()
+        {
+            NetworkGroupIds = [20],
+            NetworkGroupNames = ["VisibleGroup"]
+        });
+
+        Assert.That(result.NetworkGroups, Has.Count.EqualTo(1));
+        Assert.That(result.NetworkGroups[0].Members, Has.Count.EqualTo(1));
+        Assert.That(result.NetworkGroups[0].Members[0].IpStart, Is.EqualTo("192.0.2.10"));
+        Dictionary<string, object> where = GetWhereClause(apiConnection.SentVariables[0]);
+        Assert.That(where.ContainsKey("_or"), Is.True);
+        Dictionary<string, object> visibility = (Dictionary<string, object>)where["show_in_request_module"];
+        Assert.That(visibility["_eq"], Is.EqualTo(true));
+    }
+
+    [Test]
+    public async Task ResolveFlowGroupMembersAsync_ResolvesServiceMembersAndAllowsEmptySelectors()
+    {
+        FlowCatalogServiceApiConn apiConnection = new()
+        {
+            ServiceGroups =
+            [
+                new FlowSvcGroup
+                {
+                    Id = 30,
+                    Name = "VisibleServices",
+                    State = FlowState.Implemented,
+                    ShowInRequestModule = true,
+                    SvcGroupMembers =
+                    [new FlowSvcGroupMember
+                    {
+                        SvcObject = new FlowSvcObject
+                        {
+                            Id = 300,
+                            Name = "HTTPS",
+                            PortStart = 443,
+                            PortEnd = 443,
+                            ProtoId = 6,
+                            ShowInRequestModule = true
+                        }
+                    }]
+                }
+            ]
+        };
+        using FlowCatalogService service = new(apiConnection, new GlobalConfig());
+
+        FlowGroupResolutionResult result = await service.ResolveFlowGroupMembersAsync(new()
+        {
+            ServiceGroupNames = ["VisibleServices"]
+        });
+        FlowGroupResolutionResult emptyResult = await service.ResolveFlowGroupMembersAsync(new()
+        {
+            NetworkGroupIds = null!,
+            NetworkGroupNames = null!,
+            ServiceGroupIds = null!,
+            ServiceGroupNames = null!
+        });
+
+        Assert.That(result.ServiceGroups, Has.Count.EqualTo(1));
+        Assert.That(result.ServiceGroups[0].Members, Has.Count.EqualTo(1));
+        Assert.That(result.ServiceGroups[0].Members[0].PortStart, Is.EqualTo(443));
+        Assert.That(emptyResult.NetworkGroups, Is.Empty);
+        Assert.That(emptyResult.ServiceGroups, Is.Empty);
     }
 
     [Test]

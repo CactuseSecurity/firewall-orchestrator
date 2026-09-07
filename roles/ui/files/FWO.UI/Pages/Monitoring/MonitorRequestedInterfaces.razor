@@ -604,7 +604,7 @@ else
                 .ToDictionary(group => group.Key, group => group.First());
 
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User,
-                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
             int rejectedCount = 0;
             foreach (long ticketId in OpenRemovedTicketIds)
             {
@@ -665,7 +665,7 @@ else
         WorkInProgress = true;
         await states.Init(apiConnection);
         wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
-            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)) { };
+            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)) { };
         wfHandler.ReadOnlyMode = true;
         await wfHandler.Init();
         WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);

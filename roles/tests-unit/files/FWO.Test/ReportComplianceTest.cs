@@ -229,6 +229,74 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DetermineCompliance_PrintedViolationLimitKeepsRealViolationDecisive()
+        {
+            // With a limit of one printed violation the state describes that single violation, so it must be the
+            // real one whichever position the API returned it in - otherwise the list order decides whether the
+            // rule reads as not assessable and its real violation disappears from the report.
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            List<ComplianceViolation> assessabilityIssueFirst = CreateTypedViolations(
+                ComplianceViolationType.NotAssessable,
+                ComplianceViolationType.MatrixViolation);
+            List<ComplianceViolation> realViolationFirst = CreateTypedViolations(
+                ComplianceViolationType.MatrixViolation,
+                ComplianceViolationType.NotAssessable);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    report.DetermineCompliancePublic(assessabilityIssueFirst),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    report.DetermineCompliancePublic(realViolationFirst),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+
+                // A rule without any real violation still reads as not assessable under the same limit.
+
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.NotAssessable,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+            });
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_PrintsRealViolationBeforeAssessabilityIssue()
+        {
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            ComplianceViolation assessabilityIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Assessability)
+            }, type: ComplianceViolationType.NotAssessable);
+            assessabilityIssue.Details = "Object without address";
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(2, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            Rule rule = new()
+            {
+                Violations = [assessabilityIssue, matrixViolation]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(rule.ViolationDetails, Does.Contain(matrixViolation.Details));
+                Assert.That(rule.ViolationDetails, Does.Not.Contain(assessabilityIssue.Details));
+                Assert.That(rule.ViolationDetails, Does.Contain("Too many violations to display (2)"));
+            });
+        }
+
+        [Test]
         public void DetermineCompliance_CountsOnlyViolationsWithinThePrintedViolationLimit()
         {
             SimulatedGlobalConfig singleViolationConfig = new()

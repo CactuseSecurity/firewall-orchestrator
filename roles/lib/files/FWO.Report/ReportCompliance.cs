@@ -505,9 +505,11 @@ namespace FWO.Report
                 // Every violation is displayed. A single unassessable object must not hide the violations the
                 // other criteria did find on the remaining objects of the same rule.
 
-                rule.Compliance = DetermineCompliance(rule.Violations);
+                List<ComplianceViolation> violations = OrderViolationsForReport(rule.Violations);
 
-                foreach (ComplianceViolation violation in rule.Violations)
+                rule.Compliance = DetermineCompliance(violations);
+
+                foreach (ComplianceViolation violation in violations)
                 {
                     // Cut violation details when printed violations limit is reached.
 
@@ -565,12 +567,29 @@ namespace FWO.Report
                 ? Math.Min(violations.Count, _maxPrintedViolations)
                 : violations.Count;
 
+            // The state has to describe what the report prints, and the printed violations are the first ones in
+            // report order. Reading violations[0] instead would let the order the API happens to return decide
+            // whether a truncated rule states its real violation or the assessability issue next to it.
+
             return processedViolationCount switch
             {
                 0 => ComplianceViolationType.None,
-                1 => violations[0].Type,
+                1 => OrderViolationsForReport(violations)[0].Type,
                 _ => ComplianceViolationType.MultipleViolations
             };
+        }
+
+        /// <summary>
+        /// Orders violations the way the report prints them: real violations first, assessability issues last.
+        /// The printed-violation limit cuts the tail, so an assessability issue must never occupy a printed slot
+        /// while a real violation of the same rule goes unreported. Ordering is stable, so violations of the same
+        /// kind keep the order they were fetched in.
+        /// </summary>
+        /// <param name="violations">Violations attached to the rule.</param>
+        /// <returns>The violations in the order the report judges and prints them.</returns>
+        private static List<ComplianceViolation> OrderViolationsForReport(List<ComplianceViolation> violations)
+        {
+            return violations.OrderBy(IsNotAssessableViolation).ToList();
         }
 
         /// <summary>

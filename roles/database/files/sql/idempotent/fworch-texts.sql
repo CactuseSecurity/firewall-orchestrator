@@ -541,7 +541,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
     <li>Die REST-Schnittstelle zur Compliance-Pr&uuml;fung von Flows unterst&uuml;tzt IPv4- und IPv6-Bereiche sowie CIDR-Netze.</li>
-    <li>Geplante Compliance-Pr&uuml;fungen melden Regeln mit Objekten, die keiner Netzwerkzone zugeordnet werden k&ouml;nnen, insbesondere IPv6-Objekte, als nicht bewertbar statt als konform.</li>
+    <li>Geplante Compliance-Pr&uuml;fungen melden Objekte, die keiner Netzwerkzone zugeordnet werden k&ouml;nnen, insbesondere IPv6-Objekte, als nicht bewertbar statt die Regel als konform zu melden. Hat dieselbe Regel echte Verst&ouml;&szlig;e, bleiben diese ma&szlig;geblich und im Bericht sichtbar.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -558,7 +558,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
     <li>The REST endpoint for flow compliance checks supports IPv4 and IPv6 ranges as well as CIDR networks.</li>
-    <li>Scheduled compliance checks report rules with objects that cannot be assigned to a network zone, especially IPv6 objects, as not assessable instead of compliant.</li>
+    <li>Scheduled compliance checks report objects that cannot be assigned to a network zone, especially IPv6 objects, as not assessable instead of reporting the rule as compliant. Where the same rule has real violations, those stay decisive and visible in the report.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -7566,6 +7566,7 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
     F&uuml;r <code>getAddressObjectId</code> akzeptieren <code>ipStart</code> und <code>ipEnd</code> IPv4- und IPv6-Bereiche, ohne Maske oder mit der Hostmaske (<code>/32</code> bzw. <code>/128</code>); jede andere Maske wird abgelehnt.
+    IPv6-Werte, die lediglich eine IPv4-Adresse abbilden - die IPv4-mapped-Form (<code>::ffff:a.b.c.d</code>) und die veraltete IPv4-compatible-Form (<code>::a.b.c.d</code>) - werden ebenfalls abgelehnt; die IPv4-Schreibweise ist zu verwenden.
 ');
 INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
     All endpoints use <code>POST</code>.
@@ -7583,6 +7584,7 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
     For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> accept IPv4 and IPv6 ranges, without a mask or with the host mask (<code>/32</code> or <code>/128</code>); every other mask is rejected.
+    IPv6 values that merely re-encode an IPv4 address - the IPv4-mapped form (<code>::ffff:a.b.c.d</code>) and the deprecated IPv4-compatible form (<code>::a.b.c.d</code>) - are rejected as well; use the IPv4 notation instead.
 ');
 INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code>.

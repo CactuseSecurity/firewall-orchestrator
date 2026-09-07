@@ -258,6 +258,8 @@ public class FlowCatalogController : ControllerBase
     /// This lookup is not scoped to a modeller or owner.
     /// IPv4 and IPv6 ranges are accepted through ipStart and ipEnd.
     /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
+    /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]

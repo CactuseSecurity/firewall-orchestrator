@@ -138,7 +138,9 @@ namespace FWO.Test
             };
             List<Rule>[] ruleChunks = [new List<Rule>() { partiallyAssessable }];
 
-            string controlDetails = CreateViolationDetailsControlString(foundDate, 9) + "<br>" + CreateViolationDetailsControlString(foundDate, 10);
+            // The real violation is printed first, so it survives the printed-violation limit; the assessability
+            // note follows it.
+            string controlDetails = CreateViolationDetailsControlString(foundDate, 10) + "<br>" + CreateViolationDetailsControlString(foundDate, 9);
 
             // ACT
 

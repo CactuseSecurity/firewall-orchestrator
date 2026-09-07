@@ -535,6 +535,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
     <li>Bei eigenen Apache-Zertifikaten kann der Installer nun eine Zwischenzertifikatskette pr&uuml;fen und f&uuml;r alle TLS-Clients bereitstellen.</li>
+    <li>Das öffentliche interne CA-Zertifikat kann nun auf der Startseite der Einstellungen angezeigt, kopiert und heruntergeladen werden.</li>
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
@@ -546,6 +547,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
     <li>For administrator-managed Apache certificates, the installer can now validate and serve an intermediate certificate chain to every TLS client.</li>
+    <li>The public internal CA certificate can now be viewed, copied and downloaded from the settings default page.</li>
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
@@ -1920,6 +1922,12 @@ INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
 INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
+INSERT INTO txt VALUES ('internal_ca_certificate', 'German', 'Internes CA-Zertifikat');
+INSERT INTO txt VALUES ('internal_ca_certificate', 'English', 'Internal CA certificate');
+INSERT INTO txt VALUES ('internal_ca_certificate_description', 'German', 'Dieses öffentliche CA-Zertifikat kann heruntergeladen oder kopiert und auf Client-Systemen als vertrauenswürdige Zertifizierungsstelle installiert werden.');
+INSERT INTO txt VALUES ('internal_ca_certificate_description', 'English', 'Download or copy this public CA certificate and install it as a trusted certificate authority on client systems.');
+INSERT INTO txt VALUES ('internal_ca_certificate_load_error', 'German', 'Das interne CA-Zertifikat konnte nicht geladen werden.');
+INSERT INTO txt VALUES ('internal_ca_certificate_load_error', 'English', 'The internal CA certificate could not be loaded.');
 INSERT INTO txt VALUES ('workflow_filters',		'German', 	'Workflow-Filter');
 INSERT INTO txt VALUES ('workflow_filters',	    'English', 	'Workflow Filters');
 INSERT INTO txt VALUES ('other_filters',		'German', 	'Weitere Filter');

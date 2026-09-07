@@ -204,6 +204,13 @@
       delegate_to: "{{ internalca_ca_host }}"
       run_once: true
       when: installation_mode in ['new', 'upgrade']
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
 
     - name: display the internal CA certificate for browser trust setup
       ansible.builtin.debug:
@@ -215,6 +222,13 @@
       when:
         - installation_mode in ['new', 'upgrade']
         - fwo_internal_ca_certificate is not skipped
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
 
     - name: display secrets for this installation
       debug:

@@ -36,6 +36,7 @@ namespace FWO.Test
           ""tls_client_certificate"": ""/etc/fworch/secrets/client/client.crt"",
           ""tls_client_private_key"": ""/etc/fworch/secrets/client/client.key"",
           ""tls_ca_certificate"": ""/etc/fworch/fworch-internal-ca.crt"",
+          ""internal_ca_certificate"": ""/etc/fworch/fworch-internal-ca.crt"",
           ""product_version"": ""500""
         }";
 
@@ -123,6 +124,7 @@ z2cAR6HkNFB63sh2qZwtC0utP3i3yXlDSxD8lQ7A7NYlifRszw==
             ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.crt", ConfigFile.TlsClientCertificate);
             ClassicAssert.AreEqual("/etc/fworch/secrets/client/client.key", ConfigFile.TlsClientPrivateKey);
             ClassicAssert.AreEqual("/etc/fworch/fworch-internal-ca.crt", ConfigFile.TlsCaCertificate);
+            ClassicAssert.AreEqual("/etc/fworch/fworch-internal-ca.crt", ConfigFile.InternalCaCertificate);
             ClassicAssert.AreEqual("500", ConfigFile.ProductVersion);
         }
 

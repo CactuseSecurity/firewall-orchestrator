@@ -59,6 +59,9 @@ namespace FWO.Config.File
             [JsonPropertyName("tls_ca_certificate")]
             public string? TlsCaCertificatePath { get; set; }
 
+            [JsonPropertyName("internal_ca_certificate")]
+            public string? InternalCaCertificatePath { get; set; }
+
             [JsonPropertyName("remote_addresses")]
             public string[]? RemoteAddresses { get; set; }
 
@@ -121,6 +124,17 @@ namespace FWO.Config.File
             get
             {
                 return CriticalConfigValueLoaded(Data.TlsCaCertificatePath);
+            }
+        }
+
+        /// <summary>
+        /// Path to the public certificate of FWO's internal certificate authority.
+        /// </summary>
+        public static string InternalCaCertificate
+        {
+            get
+            {
+                return CriticalConfigValueLoaded(Data.InternalCaCertificatePath);
             }
         }
 

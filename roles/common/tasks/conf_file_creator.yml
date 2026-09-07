@@ -28,6 +28,7 @@
         tls_client_certificate: "{{ internalca_client_certificate }}"
         tls_client_private_key: "{{ internalca_client_private_key }}"
         tls_ca_certificate: "{{ internalca_trust_bundle }}"
+        internal_ca_certificate: "{{ internalca_ca_certificate_local }}"
         remote_addresses: []
 
   - name: create central conf file by dumping varibale as json file
@@ -79,6 +80,7 @@
               'tls_client_certificate': internalca_client_certificate,
               'tls_client_private_key': internalca_client_private_key,
               'tls_ca_certificate': internalca_trust_bundle,
+              'internal_ca_certificate': internalca_ca_certificate_local,
               'dotnet_mode': config_json.dotnet_mode,
               'api_uri': config_json.api_uri,
               'middleware_uri': config_json.middleware_uri,

@@ -119,6 +119,11 @@ def is_revision_history_content(line: str) -> bool:
     return not text.startswith("#") and any(character.isalnum() for character in text)
 
 
+def is_revision_history_heading(line: str) -> bool:
+    """Return whether a revision-history line is a level-two version heading."""
+    return line.strip().startswith("##")
+
+
 def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
     """
     Split a unified diff into its added and removed lines.
@@ -152,6 +157,11 @@ def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tupl
     return (added_lines, removed_lines)
 
 
+def has_heading_at(diff_lines: list[tuple[int, str]], line_number: int) -> bool:
+    """Return whether the given diff lines carry a level-two heading at a line number."""
+    return any(number == line_number and is_revision_history_heading(line) for number, line in diff_lines)
+
+
 def revision_history_has_final_section_addition(merged_markdown: str, revision_history_diff: str) -> bool:
     """
     Return whether the pull request adds non-heading text below the final level-two heading.
@@ -162,6 +172,10 @@ def revision_history_has_final_section_addition(merged_markdown: str, revision_h
     Lines are compared by their stripped text, so re-indenting or reordering existing entries
     cancels out instead of counting as an addition. That cancellation is scoped to the final
     section: text moved into it from an earlier section is text this section did not have.
+
+    A section the pull request opens is decided from the merged file instead, because an entry
+    that keeps its wording while moving under a newly inserted heading is a context line of the
+    diff rather than an addition. Renaming an existing heading is not opening a section.
     """
     heading_entry = last_revision_history_heading_entry(merged_markdown)
     if heading_entry is None:
@@ -169,6 +183,13 @@ def revision_history_has_final_section_addition(merged_markdown: str, revision_h
 
     heading_line_number = heading_entry[0] + 1
     added_lines, removed_lines = parse_unified_diff(revision_history_diff)
+    if has_heading_at(added_lines, heading_line_number) and not has_heading_at(removed_lines, heading_line_number):
+        # The pull request opened this section rather than renaming an existing heading, so
+        # every line below the heading is text the section did not have. Reading them from the
+        # merged file also catches the entries git renders as context because they kept their
+        # wording while moving under the new heading.
+        return any(is_revision_history_content(line) for line in merged_markdown.splitlines()[heading_entry[0] + 1 :])
+
     added_below_heading = Counter(
         line.strip()
         for line_number, line in added_lines

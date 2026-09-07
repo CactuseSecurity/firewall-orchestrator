@@ -189,6 +189,16 @@ class TestRevisionHistory:
         merged_revision_history += "## 9.4.5 - 01.09.2026\n\n## 9.4.6\n- a new change\n- the current change\n"
         assert has_addition(base_revision_history, merged_revision_history)
 
+    def test_bump_relocating_the_previous_section_trailing_entry_counts_as_added_text(self) -> None:
+        # Git renders the moved entry as a context line, so the new section is judged from the
+        # merged file rather than from the diff's added lines, see F22.
+        base_revision_history = f"{REVISION_HISTORY}- my change\n"
+        merged_revision_history = f"{REVISION_HISTORY}\n## 9.4.6 - 07.09.2026\n- my change\n"
+        assert has_addition(base_revision_history, merged_revision_history)
+
+    def test_opening_an_empty_section_does_not_count_as_added_text(self) -> None:
+        assert not has_addition(REVISION_HISTORY, f"{REVISION_HISTORY}\n## 9.4.6 - 07.09.2026\n\n")
+
     def test_relocating_the_first_line_of_the_file_counts_as_added_text(self) -> None:
         base_revision_history = "- the current change\n\n## 9.4.6\n"
         merged_revision_history = "\n## 9.4.6\n- the current change\n"
@@ -267,6 +277,13 @@ class TestUnifiedDiffParsing:
     def test_context_lines_advance_the_line_number(self) -> None:
         revision_history_diff = "@@ -6,2 +6,3 @@\n context line\n+- added below context\n"
         assert parse_unified_diff(revision_history_diff) == ([(7, "- added below context")], [])
+
+    def test_missing_newline_marker_advances_no_line_number(self) -> None:
+        revision_history_diff = "@@ -7,0 +8,2 @@\n+- added entry\n\\ No newline at end of file\n+- second entry\n"
+        assert parse_unified_diff(revision_history_diff) == (
+            [(8, "- added entry"), (9, "- second entry")],
+            [],
+        )
 
     def test_empty_diff_has_no_changed_lines(self) -> None:
         assert parse_unified_diff("") == ([], [])

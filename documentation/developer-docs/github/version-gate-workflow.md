@@ -79,6 +79,12 @@ compared by their stripped text, so reordering or re-indenting entries of the fi
 cancels out instead of counting as an addition. That cancellation covers the final section only:
 an entry moved into it from an earlier section is text the section did not have, and counts.
 
+A section the pull request *opens* is judged from the merged file rather than from the diff:
+everything below a newly inserted final heading is text that section did not have, including an
+entry that keeps its wording while moving under the new heading, which git renders as a context
+line rather than as an addition. Renaming an existing heading is not opening a section, so a bump
+that only rewrites the heading still fails, and a new heading with nothing beneath it fails too.
+
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for
 the two established `.agents` pointer automations: `CactusAutomation` on

@@ -655,4 +655,5 @@ Not supported any longer are:
 - widen a requested network endpoint to the first and the last host address of that network
 - name the refused addresses in the message of a failed flow creation
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families

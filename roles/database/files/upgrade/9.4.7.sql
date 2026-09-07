@@ -37,6 +37,7 @@ END $$;
 DO $$
 DECLARE
     normalized_rows INTEGER;
+    colliding_objects TEXT;
 BEGIN
     UPDATE flow.nwobject
         SET ip_start = host(ip_start)::cidr,
@@ -46,8 +47,26 @@ BEGIN
 
     GET DIAGNOSTICS normalized_rows = ROW_COUNT;
 
-    IF normalized_rows > 0 THEN
+    -- objects sharing a range recalculate to one hash, which is the case the repair refuses to
+    -- resolve, so it is named here instead of being promised away by the notice below
+    SELECT string_agg(shared_range_objects, '; ' ORDER BY shared_range_objects) INTO colliding_objects
+        FROM (
+            SELECT string_agg(nwobj_id::text, ', ' ORDER BY nwobj_id) AS shared_range_objects
+                FROM flow.nwobject
+                WHERE ip_start IS NOT NULL
+                  AND ip_end IS NOT NULL
+                GROUP BY ip_start, ip_end
+                HAVING count(*) > 1
+        ) AS ranges_held_more_than_once;
+
+    IF normalized_rows > 0 AND colliding_objects IS NULL THEN
         RAISE NOTICE 'flow.nwobject: normalized % row(s) with network endpoints to their first/last host address, their nwobj_hash is recalculated by the next flow sync', normalized_rows;
+    ELSIF normalized_rows > 0 THEN
+        RAISE NOTICE 'flow.nwobject: normalized % row(s) with network endpoints to their first/last host address', normalized_rows;
+    END IF;
+
+    IF colliding_objects IS NOT NULL THEN
+        RAISE WARNING 'flow.nwobject holds more than one object on the same range: nwobj_id(s) %. The next flow sync reports these and recalculates no hash for their management until they are merged manually, so the flow database and the request module keep working with stale hashes.', colliding_objects;
     END IF;
 END $$;
 

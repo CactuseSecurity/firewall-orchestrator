@@ -18,6 +18,12 @@ namespace FWO.Data
         [JsonProperty("additional_info"), JsonPropertyName("additional_info")]
         public Dictionary<string, string>? AdditionalInfo { get; set; }
 
+        /// <summary>
+        /// Transient display value used by the owner recertification table for the selected additional-info column.
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public string AdditionalInfoValue { get; set; } = "";
+
         [JsonProperty("criticality"), JsonPropertyName("criticality")]
         public string? Criticality { get; set; }
 
@@ -83,6 +89,7 @@ namespace FWO.Data
             LastRecertCheck = owner.LastRecertCheck;
             RecertCheckParamString = owner.RecertCheckParamString;
             AdditionalInfo = owner.AdditionalInfo == null ? null : new Dictionary<string, string>(owner.AdditionalInfo);
+            AdditionalInfoValue = owner.AdditionalInfoValue;
             Criticality = owner.Criticality;
             OwnerLifeCycleStateId = owner.OwnerLifeCycleStateId;
             OwnerLifeCycleState = owner.OwnerLifeCycleState == null ? null : new OwnerLifeCycleState(owner.OwnerLifeCycleState);

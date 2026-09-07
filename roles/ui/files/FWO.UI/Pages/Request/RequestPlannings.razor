@@ -52,7 +52,7 @@ else
             {
                 OwnerIds = (await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection, DisplayMessageInUi)).ConvertAll(x => x.Id);
             }
-            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)){};
+            wfHandler = new (DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User, apiConnection, middlewareClient, WorkflowPhases.planning, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)){};
             await Reset();
             await HandleTicketId();
             wfHandler.SetContinueEnv(ObjAction.plan);

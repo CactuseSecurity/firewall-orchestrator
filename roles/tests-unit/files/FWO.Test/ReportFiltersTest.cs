@@ -25,7 +25,7 @@ namespace FWO.Test
                     TaskTypes = [WfTaskType.access, WfTaskType.rule_modify],
                     StateIds = [3, 7],
                     Phase = "implementation",
-                    LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.value, Value = "true" },
+                    AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.value, Value = "true" },
                     DetailedView = true,
                     ShowFullTicket = false
                 }
@@ -37,9 +37,9 @@ namespace FWO.Test
             Assert.That(reportParams.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_modify }));
             Assert.That(reportParams.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 3, 7 }));
             Assert.That(reportParams.WorkflowFilter.Phase, Is.EqualTo("implementation"));
-            Assert.That(reportParams.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
-            Assert.That(reportParams.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.value));
-            Assert.That(reportParams.WorkflowFilter.LabelFilter.Value, Is.EqualTo("true"));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+            Assert.That(reportParams.WorkflowFilter.AddInfoFilter.Value, Is.EqualTo("true"));
             Assert.That(reportParams.WorkflowFilter.DetailedView, Is.True);
             Assert.That(reportParams.WorkflowFilter.ShowFullTicket, Is.False);
         }
@@ -84,7 +84,7 @@ namespace FWO.Test
                         TaskTypes = [WfTaskType.access, WfTaskType.rule_delete],
                         StateIds = [9],
                         Phase = "review",
-                        LabelFilter = new() { Name = "policy_check", Mode = WorkflowLabelFilterMode.not_existing },
+                        AddInfoFilter = new() { Name = "policy_check", Mode = AddInfoFilterMode.not_existing },
                         DetailedView = true,
                         ShowFullTicket = false
                     },
@@ -99,9 +99,9 @@ namespace FWO.Test
             Assert.That(filters.WorkflowFilter.TaskTypes, Is.EqualTo(new List<WfTaskType> { WfTaskType.access, WfTaskType.rule_delete }));
             Assert.That(filters.WorkflowFilter.StateIds, Is.EqualTo(new List<int> { 9 }));
             Assert.That(filters.WorkflowFilter.Phase, Is.EqualTo("review"));
-            Assert.That(filters.WorkflowFilter.LabelFilter.Name, Is.EqualTo("policy_check"));
-            Assert.That(filters.WorkflowFilter.LabelFilter.Mode, Is.EqualTo(WorkflowLabelFilterMode.not_existing));
-            Assert.That(filters.WorkflowFilter.LabelFilter.Value, Is.EqualTo(string.Empty));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Name, Is.EqualTo("policy_check"));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.not_existing));
+            Assert.That(filters.WorkflowFilter.AddInfoFilter.Value, Is.EqualTo(string.Empty));
             Assert.That(filters.WorkflowFilter.DetailedView, Is.True);
             Assert.That(filters.WorkflowFilter.ShowFullTicket, Is.False);
             Assert.That(filters.TimeFilter.TimeRangeShortcut, Is.EqualTo("last week"));
@@ -122,6 +122,54 @@ namespace FWO.Test
             ReportParams reportParams = filters.ToReportParams();
 
             Assert.That(reportParams.IncludeObjects, Is.True);
+        }
+
+        [Test]
+        public void ReportData_CopyConstructor_CopiesOwnerAddInfoFilter()
+        {
+            ReportData reportData = new()
+            {
+                OwnerAdditionalInfoKey = "business_unit",
+                OwnerAddInfoFilter = new AddInfoFilter
+                {
+                    Name = "business_unit",
+                    Mode = AddInfoFilterMode.value,
+                    Value = "Payments"
+                }
+            };
+
+            ReportData copiedFromNull = new((ReportData?)null);
+            ReportData copiedReportData = new(reportData);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFromNull.OwnerAdditionalInfoKey, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFromNull.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedReportData.OwnerAdditionalInfoKey, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Name, Is.EqualTo("business_unit"));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.value));
+                Assert.That(copiedReportData.OwnerAddInfoFilter.Value, Is.EqualTo("Payments"));
+                Assert.That(ReferenceEquals(copiedReportData.OwnerAddInfoFilter, reportData.OwnerAddInfoFilter), Is.False);
+            });
+        }
+
+        [Test]
+        public void ModellingFilter_CopyConstructor_NullSourceKeepsDefaults()
+        {
+            ModellingFilter copiedFilter = new(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(copiedFilter.SelectedOwners, Is.Empty);
+                Assert.That(copiedFilter.SelectedTemplateOwner.Id, Is.EqualTo(0));
+                Assert.That(copiedFilter.ShowSourceMatch, Is.True);
+                Assert.That(copiedFilter.ShowDestinationMatch, Is.True);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Name, Is.Empty);
+                Assert.That(copiedFilter.OwnerAddInfoFilter.Mode, Is.EqualTo(AddInfoFilterMode.existing));
+                Assert.That(copiedFilter.OwnerRecertId, Is.Null);
+                Assert.That(copiedFilter.ReportId, Is.Null);
+            });
         }
 
         [Test]

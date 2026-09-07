@@ -6,7 +6,8 @@
 <div class="p-3">
     @if(ReportType == ReportType.OwnerRecertification)
     {
-        <ReportOwnerRecertParamSelection @bind-ModellingFilter="ModellingFilter" />
+        <ReportOwnerRecertParamSelection @bind-ModellingFilter="ModellingFilter"
+                                         AvailableAddInfoNames="AvailableAddInfoNames" />
     }
     else
     {
@@ -83,6 +84,9 @@
 
     [Parameter]
     public ReportType ReportType { get; set; } = ReportType.Connections;
+
+    [Parameter]
+    public IEnumerable<string>? AvailableAddInfoNames { get; set; }
 
     private List<FwoOwner> ownerList = [];
     private List<OwnerRecertification> ownerRecerts = [];

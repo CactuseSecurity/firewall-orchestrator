@@ -1,8 +1,8 @@
-query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromState: Int!, $toState: Int!) {
+query getTicketsByParameters($createdFrom: timestamp, $createdUntil: timestamp, $taskType: String, $fromState: Int!, $toState: Int!) {
   request_ticket(where: {
   _and: [
     {
-      date_created: { _lte: $cutOffDate }
+      date_created: { _gte: $createdFrom, _lte: $createdUntil }
     },
     {
       reqtasks: {
@@ -38,6 +38,10 @@ query getTicketsByParameters($cutOffDate: timestamp, $taskType: String, $fromSta
           id
           name
           app_id_external
+          owner_responsibles {
+            dn
+            responsible_type
+          }
         }
       }
     }

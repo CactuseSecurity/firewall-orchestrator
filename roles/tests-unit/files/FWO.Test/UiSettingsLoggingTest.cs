@@ -1,6 +1,8 @@
 using System.Reflection;
 using System.Text.Json;
+using System.Linq;
 using FWO.Config.Api.Data;
+using FWO.Data.Enums;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
 
@@ -113,6 +115,48 @@ namespace FWO.Test
             Assert.That(GetPrivateField<ConfigData>(component, "configData").LogDataRetentionDays, Is.EqualTo(90));
         }
 
+        [Test]
+        public async Task Save_PersistsPreparedPathsAndClampsMinimumValues()
+        {
+            SettingsLogging component = new();
+            RecordingSettingsApiConn apiConnection = new();
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ImportLogDataPath = JsonSerializer.Serialize(new List<string> { "existing" }),
+                ImportLogDataScriptArgs = "--old",
+                ImportLogDataSleepTime = 60,
+                ImportLogDataSleepTimeUnit = LogDataImportIntervalUnit.Minutes,
+                ImportLogDataMaxEntries = 5,
+                LogDataRetentionDays = 10,
+                AllowLogDataPortWithoutProtocol = false,
+                ReplaceExistingLogData = false,
+                ShowLogDataInConnections = false
+            };
+            SimulatedUserConfig userConfig = new();
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ImportLogDataMaxEntries = 0;
+            editableConfig.LogDataRetentionDays = 0;
+            editableConfig.ImportLogDataScriptArgs = "--new";
+
+            SetMember(component, "globalConfig", globalConfig);
+            SetMember(component, "apiConnection", apiConnection);
+            SetMember(component, "userConfig", userConfig);
+            SetPrivateField(component, "configData", editableConfig);
+            SetPrivateField(component, "logDataPaths", new List<string> { "existing" });
+            SetPrivateField(component, "pathsToAdd", new List<string> { "/usr/local/fworch/scripts/customizing/log_data_import/import_log_data_from_git.py" });
+            SetPrivateField(component, "pathsToDelete", new List<string>());
+
+            await InvokePrivateMethodAsync("Save", component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "importLogDataPath").Value, Does.Contain("\"/usr/local/fworch/scripts/customizing/log_data_import/import_log_data_from_git\""));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "importLogDataMaxEntries").Value, Is.EqualTo("1"));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "logDataRetentionDays").Value, Is.EqualTo("1"));
+            });
+        }
+
         private static SettingsLogging CreateComponentWithMaxEntries(int maxEntries)
         {
             SettingsLogging component = new();
@@ -130,11 +174,39 @@ namespace FWO.Test
             method.Invoke(component, null);
         }
 
+        private static async Task InvokePrivateMethodAsync(string methodName, object component)
+        {
+            MethodInfo method = component.GetType().GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(component.GetType().FullName, methodName);
+            Task task = (Task)(method.Invoke(component, null) ?? throw new InvalidOperationException($"{methodName} returned null task."));
+            await task;
+        }
+
         private static void SetPrivateField<T>(SettingsLogging component, string fieldName, T value)
         {
             FieldInfo field = typeof(SettingsLogging).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(typeof(SettingsLogging).FullName, fieldName);
             field.SetValue(component, value);
+        }
+
+        private static void SetMember(object component, string memberName, object? value)
+        {
+            Type type = component.GetType();
+            FieldInfo? field = type.GetField(memberName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            if (field != null)
+            {
+                field.SetValue(component, value);
+                return;
+            }
+
+            PropertyInfo? property = type.GetProperty(memberName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            if (property != null)
+            {
+                property.SetValue(component, value);
+                return;
+            }
+
+            throw new MissingMemberException(type.FullName, memberName);
         }
 
         private static T GetPrivateField<T>(SettingsLogging component, string fieldName)

@@ -126,7 +126,7 @@ namespace FWO.Middleware.Server
                     WorkInProgress = true;
                     if (await NewImportFound())
                     {
-                        NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection, []);
+                        NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
                         if (notificationService.Notifications.Count == 0)
                         {
                             Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");

@@ -1,0 +1,36 @@
+@page "/help/settings/modellingnotifications"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("notifications"))</h3>
+    <h4>@(Html.Raw(userConfig.GetText("request_interface")))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5622")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5630")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5623")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5624")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5625")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5626")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5624a")))</li>
+    </ul>
+    <h4>@(Html.Raw(userConfig.GetText("reminders")))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5629")))</li>
+    </ul>
+    <h4>@(Html.Raw(userConfig.GetText("decommission")))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5660")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5661")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5662")))</li>
+    </ul>
+</div>

@@ -127,6 +127,57 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task FlowServiceObjectsPage_CreateCustomAnyService_ReusesCanonicalFlowObject()
+        {
+            string anyServiceHash = FlowHashGenerator.GenerateSvcObjectHash(GlobalConst.kAnyIpProtocolId, null, null);
+            FlowSvcObject existingFlowSvcObject = new()
+            {
+                Id = 777,
+                Name = "ANY",
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                Hash = anyServiceHash,
+                State = FlowState.Implemented,
+                ShowInRequestModule = true
+            };
+            NetworkService anyService = new()
+            {
+                Id = 11,
+                Name = "ALL",
+                Uid = "svc-any",
+                DestinationPort = null,
+                DestinationPortEnd = null,
+                ProtoId = GlobalConst.kAnyIpProtocolId,
+                FlowServiceObjectId = null,
+                Type = new NetworkServiceType { Name = ServiceType.SimpleService },
+                FlowActive = false
+            };
+            await using BunitContext context = CreateCustomServiceCreateContext(
+                out FlowServiceObjectsCustomCreateApiConn apiConnection,
+                existingFlowSvcObject,
+                anyService);
+
+            IRenderedComponent<SettingsFlowServiceObjects> component = RenderPage<SettingsFlowServiceObjects>(context);
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn.btn-sm.btn-primary"), Is.Not.Empty));
+
+            component.FindAll("button.btn.btn-sm.btn-primary")[0].Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("input.form-control.form-control-sm"), Is.Not.Empty));
+            component.FindAll("input.form-control.form-control-sm")[0].Change("Different Any Name");
+            component.FindAll("button.btn-outline-primary")[0].Click();
+            component.WaitForAssertion(() => Assert.That(component.FindAll("button.btn-success"), Is.Not.Empty));
+            component.FindAll("button.btn.btn-sm.btn-primary")[^1].Click();
+
+            component.WaitForAssertion(() =>
+            {
+                Assert.That(apiConnection.Queries, Does.Not.Contain(FlowQueries.insertFlowSvcObjects));
+                Assert.That(apiConnection.InsertedServiceObject, Is.Null);
+                Assert.That(apiConnection.MappingCalls, Is.EqualTo(new List<(long ServiceId, long FlowSvcobjId, bool ActiveOnMgm)>
+                {
+                    (11, 777, true)
+                }));
+            });
+        }
+
+        [Test]
         public async Task FlowServiceObjectsPage_CreateCustomObject_DoesNotOfferServiceGroupCandidates()
         {
             await using BunitContext context = CreateCustomServiceCreateContext(out _);
@@ -678,14 +729,17 @@ namespace FWO.Test
                 .ToList();
         }
 
-        private static BunitContext CreateCustomServiceCreateContext(out FlowServiceObjectsCustomCreateApiConn apiConnection)
+        private static BunitContext CreateCustomServiceCreateContext(
+            out FlowServiceObjectsCustomCreateApiConn apiConnection,
+            FlowSvcObject? existingFlowSvcObject = null,
+            NetworkService? customServiceCandidate = null)
         {
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
             context.Services.AddLocalization();
             context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
-            apiConnection = new FlowServiceObjectsCustomCreateApiConn();
+            apiConnection = new FlowServiceObjectsCustomCreateApiConn(existingFlowSvcObject, customServiceCandidate);
             context.Services.AddSingleton<ApiConnection>(apiConnection);
             context.Services.AddScoped<DomEventService>();
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig
@@ -1397,7 +1451,9 @@ namespace FWO.Test
             ]
         };
 
-        public FlowServiceObjectsCustomCreateApiConn(FlowSvcObject? existingFlowSvcObject = null)
+        public FlowServiceObjectsCustomCreateApiConn(
+            FlowSvcObject? existingFlowSvcObject = null,
+            NetworkService? customServiceCandidate = null)
         {
             flowSvcObject = existingFlowSvcObject ?? new FlowSvcObject
             {
@@ -1410,6 +1466,10 @@ namespace FWO.Test
                 State = FlowState.Requested,
                 ShowInRequestModule = true
             };
+            if (customServiceCandidate != null)
+            {
+                managementOne.Services[0] = customServiceCandidate;
+            }
         }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)

@@ -186,6 +186,25 @@ public class ApiExampleCatalogTest
     }
 
     /// <summary>
+    /// Verifies the flow catalog response example documents portless protocol-only services.
+    /// </summary>
+    [Test]
+    public void FlowCatalogExamplesIncludePortlessServices()
+    {
+        Assert.That(catalog.TryGetExample(typeof(List<ServiceObjectResponse>), out object? responseExample), Is.True);
+
+        List<ServiceObjectResponse> response = (List<ServiceObjectResponse>)responseExample!;
+        string responseJson = JsonSerializer.Serialize(response, serializerOptions);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Any(service => service.PortStart is null && service.PortEnd is null), Is.True);
+            Assert.That(responseJson, Does.Contain("\"portStart\":null"));
+            Assert.That(responseJson, Does.Contain("\"portEnd\":null"));
+        });
+    }
+
+    /// <summary>
     /// Verifies the owner response example covers detailed response fields.
     /// </summary>
     [Test]

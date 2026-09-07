@@ -235,23 +235,23 @@
         {
             firstWorkflowPage = "/request/ticketsoverview";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.request] && CanUseAnyRole(Roles.Requester))
+        else if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.request, out bool requestActive) && requestActive && CanUseAnyRole(Roles.Requester))
         {
             firstWorkflowPage = "/request/tickets";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.approval] && CanUseAnyRole(Roles.Approver))
+        else if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalActive) && approvalActive && CanUseAnyRole(Roles.Approver))
         {
             firstWorkflowPage = "/request/approvals";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.planning] && CanUseAnyRole(Roles.Planner))
+        else if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive && CanUseAnyRole(Roles.Planner))
         {
             firstWorkflowPage = "/request/plannings";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.implementation] && CanUseAnyRole(Roles.Implementer))
+        else if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.implementation, out bool implementationActive) && implementationActive && CanUseAnyRole(Roles.Implementer))
         {
             firstWorkflowPage = "/request/implementations";
         }
-        else if (stateMatrix.PhaseActive[WorkflowPhases.review] && CanUseAnyRole(Roles.Reviewer))
+        else if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.review, out bool reviewActive) && reviewActive && CanUseAnyRole(Roles.Reviewer))
         {
             firstWorkflowPage = "/request/reviews";
         }

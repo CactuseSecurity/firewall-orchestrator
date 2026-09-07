@@ -29,6 +29,13 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     public class UiMainLayoutTest
     {
+        private static readonly IEnumerable<string> AdminRequesterRoles = [Roles.Admin, Roles.Requester];
+        private static readonly List<string> WorkflowRoles = [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
+        private static readonly List<string> PersonalSettingsAmbientRoles = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
+            Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        private static readonly string[] ReportAmbientRoles = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
+            Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+
         private static MethodInfo GetPrivateMethod(string name)
         {
             return typeof(MainLayout).GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)
@@ -140,16 +147,10 @@ namespace FWO.Test
                 ["/settings/user"] = [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
                     Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/language"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/report"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/modellingpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/settings/recertificationpersonal"] = [Roles.Admin, Roles.FwAdmin, Roles.Auditor],
-                ["/report/generation"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
-                ["/report/schedule"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
-                ["/report/archive"] = [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller,
-                    Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin],
+                ["/settings/personal"] = PersonalSettingsAmbientRoles,
+                ["/report/generation"] = ReportAmbientRoles.ToList(),
+                ["/report/schedule"] = ReportAmbientRoles.ToList(),
+                ["/report/archive"] = ReportAmbientRoles.ToList(),
                 ["/networkmodelling"] = [Roles.Modeller, Roles.Admin, Roles.Auditor],
                 ["/certification"] = [Roles.Recertifier, Roles.Modeller, Roles.Admin, Roles.Auditor],
                 ["/request/tickets"] = [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor],
@@ -180,6 +181,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task NavigationToPersonalSettingsExpandsWorkflowRolesIntoAmbientRoleSelection()
+        {
+            await using MainLayoutFixture fixture = new(roles: AdminRequesterRoles);
+            fixture.ApiConnection.AmbientRoleRequests.Clear();
+            fixture.ApiConnection.AmbientRoleSelections.Clear();
+
+            fixture.NavigationManager.NavigateTo("/settings/personal");
+
+            fixture.Layout.WaitForAssertion(() =>
+            {
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(PersonalSettingsAmbientRoles));
+                Assert.That(fixture.ApiConnection.AmbientRoleSelections.Last(), Is.EqualTo(Roles.Requester));
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Does.Contain(Roles.Requester));
+            });
+        }
+
+        [Test]
         public async Task NavigationToAmbientRoleSmokeRouteUpdatesApiConnection()
         {
             await using MainLayoutFixture fixture = new(roles: [Roles.Reporter, Roles.Modeller, Roles.Recertifier]);
@@ -189,16 +207,7 @@ namespace FWO.Test
 
             fixture.Layout.WaitForAssertion(() =>
             {
-                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(new[]
-                {
-                    Roles.ReporterViewAll,
-                    Roles.Reporter,
-                    Roles.Modeller,
-                    Roles.Recertifier,
-                    Roles.Admin,
-                    Roles.Auditor,
-                    Roles.FwAdmin
-                }));
+                Assert.That(fixture.ApiConnection.AmbientRoleRequests.Last(), Is.EqualTo(ReportAmbientRoles));
                 Assert.That(fixture.ApiConnection.LastAmbientUser?.Identity?.Name, Is.EqualTo("tester"));
             });
         }

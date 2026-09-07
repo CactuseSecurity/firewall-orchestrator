@@ -48,7 +48,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void FlattenRuleServices_ShouldDropTypelessPlaceholder()
+        public void GetRuleServices_ShouldPreserveGroupsAndDropTypelessPlaceholder()
         {
             var placeholder = new NetworkService
             {
@@ -89,13 +89,55 @@ namespace FWO.Test
                 ]
             };
 
-            List<NetworkService> result = InvokePrivateFlatten<NetworkService>("FlattenRuleServices",
+            List<NetworkService> result = InvokePrivateFlatten<NetworkService>("GetRuleServices",
                 [placeholder, group]);
 
             ClassicAssert.AreEqual(1, result.Count);
             ClassicAssert.IsFalse(result.Any(item => item.Id == placeholder.Id));
-            ClassicAssert.IsFalse(result.Any(item => item.Id == group.Id));
+            ClassicAssert.IsTrue(result.Any(item => item.Id == group.Id));
+            ClassicAssert.IsFalse(result.Any(item => item.Id == leaf.Id));
+        }
+
+        [Test]
+        public void GetRuleServicesWithMembers_ShouldPreserveGroupsAndIncludeLeafMembers()
+        {
+            NetworkService leaf = new()
+            {
+                Id = 11,
+                Name = "Leaf Service",
+                Type = new NetworkServiceType { Name = "service" },
+                DestinationPort = 443,
+                Protocol = new NetworkProtocol { Name = "tcp" }
+            };
+
+            NetworkService nestedGroup = new()
+            {
+                Id = 12,
+                Name = "Nested Group",
+                Type = new NetworkServiceType { Name = ServiceType.Group }
+            };
+
+            List<GroupFlat<NetworkService>> groupMembers = new()
+            {
+                new GroupFlat<NetworkService> { Id = 15, Object = nestedGroup },
+                new GroupFlat<NetworkService> { Id = 16, Object = leaf }
+            };
+
+            NetworkService group = new()
+            {
+                Id = 14,
+                Name = "Service Group",
+                Type = new NetworkServiceType { Name = ServiceType.Group },
+                ServiceGroupFlats = groupMembers.ToArray()
+            };
+
+            List<NetworkService> input = new() { group };
+            List<NetworkService> result = InvokePrivateFlatten<NetworkService>("GetRuleServicesWithMembers", input);
+
+            ClassicAssert.AreEqual(2, result.Count);
+            ClassicAssert.IsTrue(result.Any(item => item.Id == group.Id));
             ClassicAssert.IsTrue(result.Any(item => item.Id == leaf.Id));
+            ClassicAssert.IsFalse(result.Any(item => item.Id == nestedGroup.Id));
         }
 
         private static List<T> InvokePrivateFlatten<T>(string methodName, List<T> input)

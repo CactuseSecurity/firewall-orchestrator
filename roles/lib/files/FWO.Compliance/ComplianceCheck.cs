@@ -615,7 +615,10 @@ namespace FWO.Compliance
         {
             List<IPAddressRange> ranges = [];
 
-            if (networkObject.Type.Name == ObjectType.IPRange || (networkObject.Type.Name == ObjectType.Network && networkObject.IP.Equals(networkObject.IpEnd) == false))
+            if ((networkObject.Type.Name == ObjectType.IPRange || networkObject.Type.Name == ObjectType.Network)
+                && !string.IsNullOrWhiteSpace(networkObject.IP)
+                && !string.IsNullOrWhiteSpace(networkObject.IpEnd)
+                && (networkObject.Type.Name == ObjectType.IPRange || !string.Equals(networkObject.IP, networkObject.IpEnd, StringComparison.Ordinal)))
             {
                 if (IPAddress.TryParse(networkObject.IP.StripOffNetmask(), out IPAddress? ipStart) && IPAddress.TryParse(networkObject.IpEnd.StripOffNetmask(), out IPAddress? ipEnd))
                 {
@@ -624,12 +627,11 @@ namespace FWO.Compliance
             }
             else if (networkObject.Type.Name != ObjectType.Group && networkObject.ObjectGroupFlats.Length > 0)
             {
-                for (int j = 0; j < networkObject.ObjectGroupFlats.Length; j++)
+                foreach (NetworkObject groupMember in networkObject.ObjectGroupFlats
+                    .Select(groupFlat => groupFlat.Object)
+                    .OfType<NetworkObject>())
                 {
-                    if (networkObject.ObjectGroupFlats[j].Object != null)
-                    {
-                        ranges.AddRange(ParseIpRange(networkObject.ObjectGroupFlats[j].Object!));
-                    }
+                    ranges.AddRange(ParseIpRange(groupMember));
                 }
             }
             else if (networkObject.IP != null)
@@ -1222,6 +1224,11 @@ namespace FWO.Compliance
         /// <param name="protocolToken">Restricted protocol token.</param>
         private static bool MatchesRestrictedServiceDefinition(NetworkService service, int rangeStart, int rangeEnd, string protocolToken)
         {
+            if (IsCanonicalAnyService(service))
+            {
+                return true;
+            }
+
             if (!ServiceProtocolMatches(service, protocolToken) || service.DestinationPort == null)
             {
                 return false;
@@ -1231,6 +1238,17 @@ namespace FWO.Compliance
             int serviceRangeEnd = service.DestinationPortEnd ?? serviceRangeStart;
 
             return serviceRangeStart <= rangeEnd && serviceRangeEnd >= rangeStart;
+        }
+
+        /// <summary>
+        /// Determines whether a service represents the imported, protocol-agnostic ANY service.
+        /// </summary>
+        /// <param name="service">Service to evaluate.</param>
+        private static bool IsCanonicalAnyService(NetworkService service)
+        {
+            return (service.ProtoId ?? service.Protocol?.Id) == GlobalConst.kAnyIpProtocolId
+                && service.DestinationPort == null
+                && service.DestinationPortEnd == null;
         }
 
         /// <summary>
@@ -1433,11 +1451,11 @@ namespace FWO.Compliance
             {
                 List<ComplianceNetworkZone> networkZones = [];
 
-                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && (dataItem.networkObject.Type.Name == "dynamic_net_obj" || dataItem.networkObject.Type.Name == "domain"))
+                if (_autoCalculatedInternetZoneActive && _treatDomainAndDynamicObjectsAsInternet && ObjectType.IsDynamicallyResolvedObject(dataItem.networkObject.Type.Name))
                 {
-                    List<ComplianceNetworkZone> complianceNetworkZones = networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone).ToList();
+                    List<ComplianceNetworkZone> autoCalculatedInternetZones = [.. networkZonesForCriterion.Where(zone => zone.IsAutoCalculatedInternetZone)];
 
-                    foreach (ComplianceNetworkZone zone in complianceNetworkZones)
+                    foreach (ComplianceNetworkZone zone in autoCalculatedInternetZones)
                     {
                         networkZones.Add(zone);
                     }
@@ -1543,7 +1561,7 @@ namespace FWO.Compliance
             if (_userConfig.GlobalConfig is GlobalConfig globalConfig && globalConfig.AutoCalculateInternetZone && globalConfig.TreatDynamicAndDomainObjectsAsInternet)
             {
                 networkObjects = networkObjects
-                    .Where(n => !new List<string> { "domain", "dynamic_net_obj" }.Contains(n.Type.Name))
+                    .Where(n => !ObjectType.IsDynamicallyResolvedObject(n.Type.Name))
                     .ToList();
             }
 
@@ -1556,7 +1574,10 @@ namespace FWO.Compliance
         /// <param name="networkObject">Network object to evaluate.</param>
         private AssessabilityIssue? TryGetAssessabilityIssue(NetworkObject networkObject)
         {
-            if (networkObject.IP == null && networkObject.IpEnd == null)
+            if (networkObject.IP == null || networkObject.IpEnd == null)
+                return AssessabilityIssue.IPNull;
+
+            if (networkObject.IP == "::/128" && networkObject.IpEnd == "::/128")
                 return AssessabilityIssue.IPNull;
 
             if (networkObject.IP == "0.0.0.0/32" && networkObject.IpEnd == "255.255.255.255/32")

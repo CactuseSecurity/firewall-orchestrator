@@ -1,10 +1,14 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Middleware.Server;
 using FWO.Services;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
+using System.IO;
 using System.Reflection;
 
 namespace FWO.Test
@@ -24,6 +28,9 @@ namespace FWO.Test
         private static readonly string[] kResolvedDns = ["cn=alice,dc=test", "cn=bob,dc=test", "cn=external,dc=test"];
         private static readonly string[] kOverrideRecipients = ["override@example.test"];
         private static readonly string[] kScopedRecipients = ["scoped@example.test"];
+        private static readonly string[] kAliceBobRecipients = ["alice@example.test", "bob@example.test"];
+        private static readonly string[] kAliceRecipients = ["alice@example.test"];
+        private static readonly string[] kAliceAndEmptyRecipients = ["alice@example.test", string.Empty];
         private static readonly List<string> kOtherAddressRecipients = ["a@test", "b@test"];
         private static readonly List<string> kJsonOtherAddressList = ["json-a@test", "json-b@test"];
         private static readonly List<string> kLegacyRecipients = ["legacy@test"];
@@ -35,6 +42,7 @@ namespace FWO.Test
         private static readonly string[] kResolverDns = ["cn=existing,dc=test", "cn=fresh,dc=test"];
         private static readonly string[] kOwnerGroupDns = ["cn=network-team,dc=test", "cn=external,dc=test"];
         private static readonly string[] kResolvedRecipients = ["new@example.test", "fresh@example.test"];
+        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
 
         private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
             IWorkflowRecipientResolver? recipientResolver = null)
@@ -144,6 +152,102 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetRecipientsKeepsConfiguredResponsiblesWhenActiveTypesAreUnavailable()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=support,dc=test", Email = "support@example.test" },
+                new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
+            });
+
+            FwoOwner owner = new();
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeSupporting, "cn=support,dc=test");
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            EmailRecipientSelection selection = new()
+            {
+                None = false,
+                OwnerResponsibleTypeIds = new List<int>
+                {
+                    GlobalConst.kOwnerResponsibleTypeSupporting,
+                    GlobalConst.kOwnerResponsibleTypeMain
+                }
+            };
+
+            List<string> recipients = await helper.GetRecipients(selection.ToConfigValue(), owner, null);
+
+            Assert.That(recipients, Is.EquivalentTo(kSupportAndMainRecipients));
+        }
+
+        [Test]
+        public async Task GetRecipientsResolvesAssignedGroupUsersThroughOwnerGroups()
+        {
+            List<UserGroup> ownerGroups = new()
+            {
+                new UserGroup
+                {
+                    Dn = "cn=network-team,dc=test",
+                    Users =
+                    [
+                        new UiUser { Dn = "cn=alice,dc=test" },
+                        new UiUser { Dn = "cn=bob,dc=test" }
+                    ]
+                }
+            };
+            EmailHelper helper = CreateEmailHelper(
+                ownerGroups,
+                useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=alice,dc=test", Email = "alice@example.test" },
+                new() { Dn = "cn=bob,dc=test", Email = "bob@example.test" }
+            });
+
+            WfStatefulObject statefulObject = new()
+            {
+                AssignedGroup = "cn=network-team,dc=test"
+            };
+
+            List<string> recipients = await helper.GetRecipients(EmailRecipientOption.AssignedGroup, statefulObject, null, null, null);
+
+            Assert.That(recipients, Is.EqualTo(kAliceBobRecipients));
+        }
+
+        [Test]
+        public async Task GetRecipientsReturnsEmptyForUnresolvedAssignedGroupMembers()
+        {
+            List<UserGroup> ownerGroups = new()
+            {
+                new UserGroup
+                {
+                    Dn = "cn=network-team,dc=test",
+                    Users =
+                    [
+                        new UiUser { Dn = "cn=alice,dc=test" },
+                        new UiUser { Dn = "cn=missing,dc=test" }
+                    ]
+                }
+            };
+            EmailHelper helper = CreateEmailHelper(
+                ownerGroups,
+                useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=alice,dc=test", Email = "alice@example.test" }
+            });
+
+            WfStatefulObject statefulObject = new()
+            {
+                AssignedGroup = "cn=network-team,dc=test"
+            };
+
+            List<string> recipients = await helper.GetRecipients(EmailRecipientOption.AssignedGroup, statefulObject, null, null, null);
+
+            Assert.That(recipients, Is.EqualTo(kAliceAndEmptyRecipients));
+        }
+
+        [Test]
         public async Task GetRecipientsReturnsEmptyForConfiguredResponsiblesWithoutDummy()
         {
             EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
@@ -151,6 +255,54 @@ namespace FWO.Test
             List<string> recipients = await helper.GetRecipients(EmailRecipientOption.ConfiguredResponsibles, null, null, null, null);
 
             Assert.That(recipients, Is.Empty);
+        }
+
+        [Test]
+        public async Task InitLogsWarningWhenOwnerResponsibleTypesCannotBeLoaded()
+        {
+            EmailHelper helper = new(new ThrowingOwnerResponsibleTypesApiConnection(), null,
+                new SimulatedUserConfig { UseDummyEmailAddress = false }, DefaultInit.DoNothing);
+
+            string output = await CaptureConsoleAsync(() => helper.Init());
+
+            Assert.That(output, Does.Contain("Could not load owner responsible types"));
+        }
+
+        [Test]
+        public async Task CollectRecipientsLogsWarningWhenNoRecipientsResolve()
+        {
+            SimulatedGlobalConfig globalConfig = new() { UseDummyEmailAddress = false, DummyEmailAddress = "dummy@example.test" };
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                globalConfig,
+                new NotificationServiceWithRecipientsApiConn(),
+                new List<UserGroup>());
+
+            FwoNotification notification = new()
+            {
+                NotificationClient = NotificationClient.InterfaceRequest,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = ""
+            };
+
+            string output = await CaptureConsoleAsync(async () =>
+            {
+                MethodInfo method = typeof(NotificationService).GetMethod(
+                    "CollectRecipients",
+                    BindingFlags.Instance | BindingFlags.NonPublic,
+                    null,
+                    kCollectRecipientsParameterTypes,
+                    null)
+                    ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
+
+                object?[] args = new object?[] { notification, null, false, false };
+                Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, args)!;
+                List<string> recipients = await task;
+
+                Assert.That(recipients, Is.Empty);
+            });
+
+            Assert.That(output, Does.Contain("No recipients resolved"));
         }
 
         [Test]
@@ -229,6 +381,28 @@ namespace FWO.Test
             List<string> fallbackRecipients = await helper.GetRecipients(fallbackSelection, owner, null);
 
             Assert.That(fallbackRecipients, Is.EqualTo(kSupportRecipients));
+        }
+
+        [Test]
+        public async Task GetRecipientsFallbackToMainResponsibleIfOwnerGroupEmptyUsesMainResponsible()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
+            });
+
+            FwoOwner owner = new();
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+
+            List<string> recipients = await helper.GetRecipients(
+                EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty,
+                null,
+                owner,
+                null,
+                null);
+
+            Assert.That(recipients, Is.EqualTo(kMainRecipients));
         }
 
         [Test]
@@ -639,6 +813,7 @@ namespace FWO.Test
                 new() { Id = 7, Active = true },
                 new() { Id = 11, Active = true }
             });
+            SetPrivateField(helper, "ownerResponsibleTypesLoaded", true);
 
             List<int> activeIds = InvokePrivate<List<int>>(helper, "GetActiveOwnerResponsibleTypeIds", Array.Empty<object?>());
 
@@ -768,6 +943,70 @@ namespace FWO.Test
                 }
 
                 throw new NotSupportedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
+            }
+        }
+
+        private sealed class ThrowingOwnerResponsibleTypesApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>) && query == OwnerQueries.getOwnerResponsibleTypes)
+                {
+                    throw new InvalidOperationException("owner responsible types unavailable");
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiUser>());
+                }
+
+                throw new NotSupportedException($"Unexpected query type {typeof(QueryResponseType).Name}.");
+            }
+        }
+
+        private sealed class NotificationServiceWithRecipientsApiConn : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(List<FwoNotification>) && query == NotificationQueries.getNotifications)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<FwoNotification>());
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>) && query == OwnerQueries.getOwnerResponsibleTypes)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<OwnerResponsibleType>
+                    {
+                        new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Name = "Main", Active = true, SortOrder = 10 }
+                    });
+                }
+
+                if (typeof(QueryResponseType) == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<UiUser>
+                    {
+                        new() { Dn = "cn=main,dc=test", Email = "main@example.test" }
+                    });
+                }
+
+                throw new NotImplementedException($"Query not implemented in notification service test api: {query}");
+            }
+        }
+
+        private static async Task<string> CaptureConsoleAsync(Func<Task> action)
+        {
+            TextWriter originalOut = Console.Out;
+            StringWriter writer = new();
+            Console.SetOut(writer);
+            try
+            {
+                await action();
+                await writer.FlushAsync();
+                return writer.ToString();
+            }
+            finally
+            {
+                Console.SetOut(originalOut);
             }
         }
     }

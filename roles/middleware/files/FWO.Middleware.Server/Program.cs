@@ -3,11 +3,14 @@ using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.File;
+using FWO.Compliance;
 using FWO.Logging;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.OpenApi;
 using FWO.Middleware.Server.Services;
 using FWO.Services;
+using FWO.Services.RuleTreeBuilder;
+using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
@@ -96,9 +99,13 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();
+builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProvider.GetRequiredService<FlowCatalogService>());
 builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
+builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
+
 builder.Services.AddApiExamples();
 
 builder.Services.AddAuthentication(confOptions =>
@@ -170,6 +177,8 @@ builder.Services.AddOpenApi("v1", options =>
 });
 
 WebApplication app = builder.Build();
+
+FWO.Services.ServiceProvider.Services = app.Services;
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

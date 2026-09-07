@@ -189,6 +189,10 @@ def parse_rulebase_chunk(
     policy_structure: list[dict[str, Any]],
 ):
     for chunk in rulebase_to_parse["chunks"]:
+        if "rulebase" not in chunk:
+            FWOLogger.debug("found unparsable rulebase chunk: " + str(chunk), 9)
+            continue
+
         for rule in chunk["rulebase"]:
             if "rule-number" in rule:
                 parse_single_rule(rule, normalized_rulebase, normalized_rulebase.uid, None, gateway, policy_structure)
@@ -348,7 +352,7 @@ def parse_single_rule(
     parent_rule_uid = _parse_parent_rule_uid(parent_uid, native_rule=native_rule)
 
     # new in v5.5.1:
-    rule_type = native_rule.get("rule_type", "access")
+    rule_type = "nat" if native_rule.get("nat_rule") else "access"
 
     comments = native_rule.get("comments")
     if comments == "":
@@ -384,9 +388,13 @@ def parse_single_rule(
         "last_change_admin": sanitize(last_change_admin),
         "parent_rule_uid": sanitize(parent_rule_uid),
         "last_hit": sanitize(last_hit),
+        "nat_rule": bool(native_rule.get("nat_rule", False)),
+        "access_rule": bool(native_rule.get("access_rule", True)),
     }
     if comments is not None:
         rule["rule_comment"] = sanitize(comments)
+    if native_rule.get("xlate_rule_uid") is not None:
+        rule["xlate_rule_uid"] = sanitize(native_rule["xlate_rule_uid"])
     rulebase.rules.update({rule["rule_uid"]: RuleNormalized(**rule)})
 
 
@@ -471,7 +479,7 @@ def check_and_add_section_header(
     src_rulebase: dict[str, Any],
     target_rulebase: Rulebase,
     layer_name: str,
-    import_id: str,
+    import_id: int,
     section_header_uids: set[str],
 ):
     # TODO: re-implement
@@ -482,7 +490,7 @@ def insert_section_header_rule(
     _target_rulebase: Rulebase,
     _section_name: str,
     _layer_name: str,
-    _import_id: str,
+    _import_id: int,
     _src_rulebase_uid: str,
     _section_header_uids: set[str],
     _parent_uid: str,

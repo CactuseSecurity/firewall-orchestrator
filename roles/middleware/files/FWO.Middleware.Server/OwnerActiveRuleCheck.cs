@@ -56,9 +56,8 @@ namespace FWO.Middleware.Server
                 return 0;
             }
 
-            List<UserGroup> ownerGroups = await MiddlewareServerServices.GetInternalGroups(apiConnection);
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.AppDecomm, GlobalConfig, apiConnection, ownerGroups);
+                NotificationClient.AppDecomm, GlobalConfig, apiConnection);
 
             IOrderedEnumerable<Rule> orderedRules = activeRules.OrderBy(rule => rule.Uid, StringComparer.OrdinalIgnoreCase);
             string textBody = BuildRuleTextBody(owner, GlobalConfig.OwnerActiveRuleEmailBody, "", orderedRules);

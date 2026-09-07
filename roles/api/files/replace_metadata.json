@@ -22,7 +22,7 @@
                       "column": "criterion_id",
                       "table": {
                         "name": "ip_range",
-                        "schema": "compliance"
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -45,8 +45,8 @@
                     "foreign_key_constraint_on": {
                       "column": "criterion_id",
                       "table": {
-                        "name": "network_zone",
-                        "schema": "compliance"
+                        "name": "zone",
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -234,9 +234,369 @@
             },
             {
               "table": {
-                "name": "ip_range",
-                "schema": "compliance"
+                "name": "device_ip_range_root",
+                "schema": "network_zone"
               },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "dev_id"
+                  }
+                },
+                {
+                  "name": "ip_range",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_range_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {
+                      "device": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_root"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "device_ip_range_internet",
+                "schema": "network_zone"
+              },
+              "object_relationships": [
+                {
+                  "name": "device",
+                  "using": {
+                    "foreign_key_constraint_on": "dev_id"
+                  }
+                },
+                {
+                  "name": "ip_range",
+                  "using": {
+                    "foreign_key_constraint_on": "ip_range_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {
+                      "device": {
+                        "_and": [
+                          {
+                            "mgm_id": {
+                              "_in": "x-hasura-visible-managements"
+                            }
+                          },
+                          {
+                            "dev_id": {
+                              "_in": "x-hasura-visible-devices"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "dev_id",
+                      "ip_range_id",
+                      "order_to_internet"
+                    ],
+                    "filter": {},
+                    "check": null
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "ip_range",
+                "schema": "network_zone"
+              },
+              "array_relationships": [
+                {
+                  "name": "root_device_ip_ranges",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_range_id",
+                      "table": {
+                        "name": "device_ip_range_root",
+                        "schema": "network_zone"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "internet_device_ip_ranges",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "ip_range_id",
+                      "table": {
+                        "name": "device_ip_range_internet",
+                        "schema": "network_zone"
+                      }
+                    }
+                  }
+                }
+              ],
               "object_relationships": [
                 {
                   "name": "criterion",
@@ -295,7 +655,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -311,7 +672,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -327,7 +689,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -343,7 +706,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {}
                   },
@@ -359,7 +723,8 @@
                       "criterion_id",
                       "name",
                       "created",
-                      "removed"
+                      "removed",
+                      "id"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -403,8 +768,8 @@
             },
             {
               "table": {
-                "name": "network_zone",
-                "schema": "compliance"
+                "name": "zone",
+                "schema": "network_zone"
               },
               "object_relationships": [
                 {
@@ -428,7 +793,7 @@
                       "column": "network_zone_id",
                       "table": {
                         "name": "ip_range",
-                        "schema": "compliance"
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -463,8 +828,8 @@
                     "foreign_key_constraint_on": {
                       "column": "super_network_zone_id",
                       "table": {
-                        "name": "network_zone",
-                        "schema": "compliance"
+                        "name": "zone",
+                        "schema": "network_zone"
                       }
                     }
                   }
@@ -996,7 +1361,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1016,7 +1382,8 @@
                       "rule_id",
                       "rule_uid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "allow_aggregations": true
                   },
                   "comment": ""
                 },
@@ -1226,6 +1593,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "access_hash",
                       "allows_traffic",
                       "owner_id",
                       "removed_date",
@@ -1667,6 +2035,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwgrp_hash",
                       "removed_date",
                       "state"
                     ],
@@ -1918,6 +2287,7 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
+                      "nwobj_hash",
                       "removed_date",
                       "state"
                     ],
@@ -2023,7 +2393,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcgrp_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2277,7 +2648,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "svcobj_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2446,7 +2818,8 @@
                   "permission": {
                     "columns": [
                       "removed_date",
-                      "state"
+                      "state",
+                      "timeobj_hash"
                     ],
                     "filter": {},
                     "check": null
@@ -2510,6 +2883,17 @@
                       "modelled",
                       "log_time",
                       "logging_rule_name",
+                      "owner_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "log_time",
                       "owner_id"
                     ],
                     "filter": {}
@@ -2911,6 +3295,16 @@
                     ],
                     "filter": {},
                     "allow_aggregations": true
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 },
@@ -3803,7 +4197,8 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "nwgroup_id"
+                      "nwgroup_id",
+                      "app_id"
                     ],
                     "filter": {}
                   },
@@ -4969,6 +5364,16 @@
                       "json_data",
                       "ack_timestamp",
                       "alert_timestamp"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "alert_id",
+                      "ack_by"
                     ],
                     "filter": {}
                   }
@@ -7456,6 +7861,30 @@
               ],
               "array_relationships": [
                 {
+                  "name": "root_device_ip_ranges",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "dev_id",
+                      "table": {
+                        "name": "device_ip_range_root",
+                        "schema": "network_zone"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "internet_device_ip_ranges",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "dev_id",
+                      "table": {
+                        "name": "device_ip_range_internet",
+                        "schema": "network_zone"
+                      }
+                    }
+                  }
+                },
+                {
                   "name": "alerts",
                   "using": {
                     "foreign_key_constraint_on": {
@@ -8222,6 +8651,84 @@
                 {
                   "role": "middleware-server",
                   "permission": {
+                    "filter": {}
+                  }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "path_analysis_algorithm",
+                "schema": "public"
+              },
+              "select_permissions": [
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
+                    "filter": {}
+                  }
+                },
+                {
+                  "role": "reporter-viewall",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "name"
+                    ],
                     "filter": {}
                   }
                 }

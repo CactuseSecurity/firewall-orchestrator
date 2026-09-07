@@ -155,6 +155,16 @@ jobs:
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
 
 
+  launcher-guard-tests:
+    name: Launcher guard regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Stubbed ansible/ansible-galaxy, so no real Ansible install is needed.
+      - name: Run run-playbook-with-sudo.sh guard tests
+        run: ./scripts/tests/test-run-playbook-with-sudo.sh
+
   python-code-check:
     name: Python Code Check
     runs-on: ubuntu-latest

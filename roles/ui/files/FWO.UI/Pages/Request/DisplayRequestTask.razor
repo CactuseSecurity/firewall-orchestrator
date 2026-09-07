@@ -300,7 +300,7 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                     Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                     Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
+                    IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
                     EditSources="CanEditReqTaskField(WorkflowEditableFieldKeys.Source)"
                     EditDestinations="CanEditReqTaskField(WorkflowEditableFieldKeys.Destination)"
                     EditServices="CanEditReqTaskField(WorkflowEditableFieldKeys.Services)" />
@@ -330,7 +330,7 @@
                                 else
                                 {
                                     <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                                        IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                                        IpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
                                 }
                             </div>
                         }
@@ -497,7 +497,8 @@
     private List<WfTaskType> availableTaskTypes { get; set; } = [];
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
-    private List<IpProtocol> ipProtos = [];
+    private List<IpProtocol> displayIpProtos = [];
+    private List<IpProtocol> selectableIpProtos = [];
 
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -545,8 +546,10 @@
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
             managements.AddRange(await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames));
-            ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
-                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            displayIpProtos = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+            selectableIpProtos = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(protocols),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
             selectableDevices =
@@ -749,11 +752,11 @@
         {
             return element.GroupName;
         }
-        if (!string.IsNullOrEmpty(element.Name) && element.Port == 0)
+        if (!string.IsNullOrEmpty(element.Name) && element.Port is null or 0)
         {
             return element.Name;
         }
-        return DisplayBase.DisplayService(element, ipProtos);
+        return DisplayBase.DisplayService(element, displayIpProtos);
     }
 
     private bool NeedsManualDeviceSelection()

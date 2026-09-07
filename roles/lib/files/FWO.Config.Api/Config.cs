@@ -68,7 +68,7 @@ namespace FWO.Config.Api
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
-                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
+                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId });
                 if (configItems.Length > 0)
                 {
                     Update(configItems);
@@ -86,11 +86,32 @@ namespace FWO.Config.Api
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems);
-                OnChange?.Invoke(this, configItems);
-                Initialized = true;
+                ApplySubscriptionUpdate(configItems);
             }
             finally { semaphoreSlim.Release(); }
+        }
+
+        /// <summary>
+        /// Merges a partial subscription update into the raw snapshot before applying it.
+        /// </summary>
+        public void MergeSubscriptionUpdateHandler(ConfigItem[] configItems)
+        {
+            if (_isDisposed) return;
+            semaphoreSlim.Wait();
+            try
+            {
+                Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
+                MergeRawConfigItems(configItems);
+                ApplySubscriptionUpdate(configItems);
+            }
+            finally { semaphoreSlim.Release(); }
+        }
+
+        private void ApplySubscriptionUpdate(ConfigItem[] configItems)
+        {
+            Update(configItems);
+            OnChange?.Invoke(this, configItems);
+            Initialized = true;
         }
 
         protected void Update(ConfigItem[] configItems)

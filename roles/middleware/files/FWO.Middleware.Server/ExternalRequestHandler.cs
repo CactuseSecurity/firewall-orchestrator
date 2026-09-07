@@ -811,7 +811,7 @@ namespace FWO.Middleware.Server
                 WfReqTask? furtherTask = ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == actTaskNumber);
                 if (furtherTask != null)
                 {
-                    await UpdateTaskState(furtherTask, ExtStates.ExtReqRejected.ToString());
+                    await UpdateTaskState(ticket, furtherTask, ExtStates.ExtReqRejected.ToString());
                     actTaskNumber++;
                 }
                 else
@@ -880,7 +880,7 @@ namespace FWO.Middleware.Server
             ticket.Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given"));
             ticket.Priority = SCTicketPriority.Low.ToString();
             ticket.Requester = requester?.Name ?? "";
-            ModellingNamingConvention? namingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(UserConfig.ModNamingConvention);
+            ModellingNamingConvention namingConvention = ModellingNamingConvention.FromJson(UserConfig.ModNamingConvention);
             await ticket.CreateRequestString(reqTasks, ipProtos, namingConvention);
             actTaskType = ticket.GetTaskTypeAsString(reqTasks[0]);
             return ticket.TicketText;
@@ -922,7 +922,7 @@ namespace FWO.Middleware.Server
                     {
                         await wfHandler.SetAddInfoInReqTask(updatedTask, AdditionalInfoKeys.ExtIcketId, extReq.ExtTicketId);
                     }
-                    await UpdateTaskState(updatedTask, extReq.ExtRequestState);
+                    await UpdateTaskState(ticket, updatedTask, extReq.ExtRequestState);
 
                     if (extReq.ExtRequestState == ExtStates.ExtReqDone.ToString())
                     {
@@ -940,7 +940,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task UpdateTaskState(WfReqTask reqTask, string extReqState)
+        private async Task UpdateTaskState(WfTicket ticket, WfReqTask reqTask, string extReqState)
         {
             int? internalStateId = extStateHandler?.GetInternalStateId(extReqState);
 
@@ -956,6 +956,7 @@ namespace FWO.Middleware.Server
 
             if (reqTask.StateId != internalStateId)
             {
+                wfHandler.SetTicketEnv(ticket);
                 wfHandler.SetReqTaskEnv(reqTask);
                 reqTask.StateId = internalStateId.Value;
                 await wfHandler.PromoteReqTask(reqTask);

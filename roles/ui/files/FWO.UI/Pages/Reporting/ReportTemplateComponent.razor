@@ -129,7 +129,11 @@
             }
             @if (reportTypeInEdit == ReportType.OwnerRecertification)
             {
-                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter" UseLightText="false" UseFormLayout="true" />
+                <ReportOwnerRecertParamSelection @bind-ModellingFilter="reportTemplateInEdit.ReportParams.ModellingFilter"
+                                                  AvailableAddInfoNames="availableAddInfoNames"
+                                                  IdPrefix="templateOwnerAddInfo"
+                                                  UseLightText="false"
+                                                  UseFormLayout="true" />
                 <ReportRecertParamSelection @bind-FilterInput="reportTemplateInEdit.Filter"
                                             @bind-RecertFilter="reportTemplateInEdit.ReportParams.RecertFilter"
                                             ReportType="reportTypeInEdit"
@@ -172,7 +176,7 @@
             }
             @if (reportTypeInEdit.IsWorkflowReport())
             {
-                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" />
+                <ReportWorkflowParamSelection @bind-WorkflowFilter="reportTemplateInEdit.ReportParams.WorkflowFilter" SelectedReportType="reportTypeInEdit" UseLightText="false" UseFormLayout="true" IdPrefix="templateWorkflowAddInfo" />
             }
 
             @if (reportTemplateInEdit.ReportParams.TenantFilter.IsActive)
@@ -244,6 +248,7 @@
     public ReportTemplate reportTemplateInEdit = new();
     private ReportType reportTypeInEdit = ReportType.Rules;
     private List<FwoOwner> recertOwnerList = [];
+    private List<string>? availableAddInfoNames;
     private List<FwoOwner> modOwnerList = [];
 
     private string tmpTemplateCommentKey = "";
@@ -266,6 +271,7 @@
         try
         {
             recertOwnerList = await apiConnection.SendQueryAsync<List<FwoOwner>>(FWO.Api.Client.Queries.OwnerQueries.getOwners);
+            RefreshAvailableAddInfoNames();
             if (reportVisibility.ModellingRelated)
             {
                 modOwnerList = await ModellingHandlerBase.GetOwnApps(authenticationStateTask!, userConfig, apiConnection,
@@ -298,6 +304,18 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("template_fetch"), "", true);
         }
+    }
+
+    private void RefreshAvailableAddInfoNames()
+    {
+        List<string> addInfoNames = recertOwnerList
+            .SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>())
+            .Where(key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(key => key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        availableAddInfoNames = addInfoNames.Count > 0 ? addInfoNames : null;
     }
 
     public void Collapse()

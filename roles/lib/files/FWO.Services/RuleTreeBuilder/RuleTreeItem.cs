@@ -39,6 +39,12 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public bool IsOrderedLayerHeader { get; set; } = false;
         /// <summary>
+        /// Flag to mark the synthetic policy-container header (e.g. Check Point's package
+        /// rulebase). It is visible but, like a section header, never consumes a dotted
+        /// hierarchy number so the first real ordered layer beneath it stays numbered "1".
+        /// </summary>
+        public bool IsPolicyHeader { get; set; } = false;
+        /// <summary>
         /// Flag to mark items that act as roots of concatenations
         /// </summary>
         public bool IsConcatenationRoot { get; set; } = false;

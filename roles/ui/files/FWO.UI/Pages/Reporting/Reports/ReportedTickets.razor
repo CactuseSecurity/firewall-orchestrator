@@ -42,11 +42,11 @@
                 </Template>
             </Column>
         }
-        @if (HasLabelColumn())
+        @if (HasAddInfoColumn())
         {
-            <Column TableItem="WfTicket" Title="@LabelName" Field="@(x => x.Id)" Sortable="false" Filterable="false">
+            <Column TableItem="WfTicket" Title="@AddInfoName" Field="@(x => x.Id)" Sortable="false" Filterable="false">
                 <Template Context="ticket">
-                    @(GetLabelValue(ticket))
+                    @(GetAddInfoValue(ticket))
                 </Template>
             </Column>
         }
@@ -166,7 +166,7 @@
     public WorkflowReferenceDate ReferenceDate { get; set; } = WorkflowReferenceDate.TicketCreation;
 
     [Parameter]
-    public string LabelName { get; set; } = "";
+    public string AddInfoName { get; set; } = "";
 
     [Parameter]
     public bool DetailedView { get; set; }
@@ -236,9 +236,9 @@
         return task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId);
     }
 
-    private bool HasLabelColumn()
+    private bool HasAddInfoColumn()
     {
-        return !string.IsNullOrWhiteSpace(LabelName);
+        return !string.IsNullOrWhiteSpace(AddInfoName);
     }
 
     private bool HasReferenceDateColumn()
@@ -252,14 +252,14 @@
         return referenceDate?.ToString() ?? "";
     }
 
-    private string GetLabelValue(WfTicket ticket)
+    private string GetAddInfoValue(WfTicket ticket)
     {
-        if (!HasLabelColumn())
+        if (!HasAddInfoColumn())
         {
             return "";
         }
 
-        return WorkflowTicketSelectionHelper.GetLabelValue(ticket, LabelName);
+        return WorkflowTicketSelectionHelper.GetAddInfoValue(ticket, AddInfoName);
     }
 
     private List<WfReqTask> GetDisplayedTasks(WfTicket ticket)

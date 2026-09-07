@@ -1,0 +1,10 @@
+query getActiveViolationsBeforeDate($where: compliance_violation_bool_exp!) {
+  compliance_violation(
+    distinct_on: [mgmt_uid, rule_uid]
+    order_by: [{ mgmt_uid: asc }, { rule_uid: asc }]
+    where: $where
+  ) {
+    mgmt_uid
+    rule_uid
+  }
+}

@@ -1,0 +1,7 @@
+query countComplianceDiffViolations($where: compliance_violation_bool_exp!) {
+  compliance_violation_aggregate(where: $where) {
+    aggregate {
+      count
+    }
+  }
+}

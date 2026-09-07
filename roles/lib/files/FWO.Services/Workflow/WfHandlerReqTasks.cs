@@ -56,6 +56,10 @@ namespace FWO.Services.Workflow
 
         public void SelectReqTask(WfReqTask reqTask, ObjAction action)
         {
+            if (action == ObjAction.add && reqTask.TicketId <= 0 && ActTicket != null)
+            {
+                reqTask.TicketId = ActTicket.Id;
+            }
             SetReqTaskEnv(reqTask);
             SetReqTaskMode(action);
         }
@@ -129,17 +133,49 @@ namespace FWO.Services.Workflow
         public void SetReqTaskEnv(WfReqTask reqTask)
         {
             ActReqTask = new(reqTask);
-            WfTicket? tick = TicketList.FirstOrDefault(x => x.Id == ActReqTask.TicketId);
-            if (tick != null)
-            {
-                ActTicket = tick;
-            }
+            ActTicket = ResolveTicketForReqTask(reqTask) ?? throw new InvalidOperationException($"Could not resolve ticket {ActReqTask.TicketId} for request task {reqTask.Id}.");
             ActStateMatrix = stateMatrixDict.Matrices[reqTask.TaskType];
+        }
+
+        /// <summary>
+        /// Resolves the ticket that belongs to the supplied request task from the current context or ticket list.
+        /// </summary>
+        private WfTicket? ResolveTicketForReqTask(WfReqTask reqTask)
+        {
+            if (reqTask.TicketId > 0)
+            {
+                if (ActTicket != null && ActTicket.Id == reqTask.TicketId)
+                {
+                    return ActTicket;
+                }
+
+                return TicketList.FirstOrDefault(ticket => ticket.Id == reqTask.TicketId);
+            }
+
+            if (ActTicket != null)
+            {
+                if (AddTicketMode && ActTicket.Id <= 0)
+                {
+                    return ActTicket;
+                }
+
+                if (ActTicket.Tasks.Contains(reqTask))
+                {
+                    return ActTicket;
+                }
+            }
+
+            return TicketList.FirstOrDefault(ticket => ticket.Tasks.Any(task => task.Id == reqTask.Id));
         }
 
         public bool TrySetReqTaskEnv(WfReqTask reqTask)
         {
             if (!stateMatrixDict.Matrices.ContainsKey(reqTask.TaskType))
+            {
+                return false;
+            }
+
+            if (ResolveTicketForReqTask(reqTask) == null)
             {
                 return false;
             }

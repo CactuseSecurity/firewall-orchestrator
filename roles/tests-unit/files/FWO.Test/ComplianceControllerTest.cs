@@ -145,7 +145,7 @@ namespace FWO.Test
         {
             ComplianceController controller = new(new DummyApiConnection());
 
-            string result = await controller.Post(new ComplianceImportMatrixParameters
+            string result = await controller.Post(new ImportMatrixParameters
             {
                 FileName = "matrix.csv",
                 Data = "name;value",

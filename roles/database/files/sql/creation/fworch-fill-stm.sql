@@ -2,6 +2,10 @@
 INSERT INTO language ("name", "culture_info") VALUES('German', 'de-DE');
 INSERT INTO language ("name", "culture_info") VALUES('English', 'en-US');
 
+INSERT INTO path_analysis_algorithm ("id", "name") VALUES
+    (1,'None'),
+    (2, 'Network Zone Tree');
+
 insert into uiuser (uiuser_id, uiuser_username, uuid) VALUES (0,'default', 'default');
 
 insert into parent_rule_type (id, name) VALUES (1, 'section');          -- do not restart numbering
@@ -188,6 +192,8 @@ insert into stm_link_type (id, name) VALUES (2, 'ordered');
 insert into stm_link_type (id, name) VALUES (3, 'inline');
 insert into stm_link_type (id, name) VALUES (4, 'concatenated');
 insert into stm_link_type (id, name) VALUES (5, 'domain');
+insert into stm_link_type (id, name) VALUES (6, 'nat');
+insert into stm_link_type (id, name) VALUES (7, 'policy');
 
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (1, 'empty group');
 -- insert into compliance.assessability_issue_type (type_id, type_name) VALUES (2, 'broadcast address');

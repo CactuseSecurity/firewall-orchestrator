@@ -1,0 +1,46 @@
+@page "/help/settings/personal"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("personal_settings"))</h3>
+
+    <h4>@(userConfig.GetText("language_settings"))</h4>
+    <p>@(Html.Raw(userConfig.GetText("U5412")))</p>
+
+    <h4>@(userConfig.GetText("display_settings"))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5618")))</p>
+
+    <h4>@(userConfig.GetText("report_settings"))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5471")))</p>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5412")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5422")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5423")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5456")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5447")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5448")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5462")))</li>
+    </ul>
+
+    <h4>@(userConfig.GetText("recert_settings"))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5481")))</p>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5419")))</li>
+    </ul>
+
+    <h4>@(userConfig.GetText("modelling_settings"))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5621")))</p>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H5605")))</li>
+    </ul>
+</div>

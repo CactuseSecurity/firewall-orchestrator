@@ -108,12 +108,12 @@ namespace FWO.Data.Report
 
         public string NameAndDeviceNames(string separator = ", ")
         {
-            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+            return $"{Name} [{string.Join(separator, Devices.Select(device => device.Name).Distinct())}]";
         }
 
         public string NameAndRulebaseNames(string separator = ", ")
         {
-            return $"{Name} [{string.Join(separator, Array.ConvertAll(Devices, device => device.Name))}]";
+            return $"{Name} [{string.Join(separator, Devices.Select(device => device.Name).Distinct())}]";
         }
 
         /// <summary>

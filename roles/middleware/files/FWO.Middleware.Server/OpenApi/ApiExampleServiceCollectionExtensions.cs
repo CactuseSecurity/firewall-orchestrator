@@ -30,6 +30,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, AddressObjectResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressGroupResponseExample>();
         services.AddSingleton<IApiExampleProvider, ServiceObjectResponseExample>();
+        services.AddSingleton<IApiExampleProvider, ServiceObjectResponseListExample>();
         services.AddSingleton<IApiExampleProvider, ServiceGroupResponseExample>();
         services.AddSingleton<IApiExampleProvider, TimeObjectResponseExample>();
         services.AddSingleton<IApiExampleProvider, AddressObjectIdResponseExample>();
@@ -398,6 +399,37 @@ public sealed class ServiceObjectResponseExample : ApiExampleProvider<ServiceObj
         Protocol = "tcp",
         State = "active",
         ShowInRequest = true
+    };
+}
+
+/// <summary>
+/// Provides service catalog response examples for port-based and protocol-only services.
+/// </summary>
+public sealed class ServiceObjectResponseListExample : ApiExampleProvider<List<ServiceObjectResponse>>
+{
+    /// <inheritdoc />
+    public override List<ServiceObjectResponse> GetExample() => new()
+    {
+        new ServiceObjectResponse
+        {
+            Id = 3001,
+            Name = "https",
+            PortStart = 443,
+            PortEnd = 443,
+            Protocol = "tcp",
+            State = "active",
+            ShowInRequest = true
+        },
+        new ServiceObjectResponse
+        {
+            Id = 3002,
+            Name = "icmp",
+            PortStart = null,
+            PortEnd = null,
+            Protocol = "icmp",
+            State = "active",
+            ShowInRequest = true
+        }
     };
 }
 

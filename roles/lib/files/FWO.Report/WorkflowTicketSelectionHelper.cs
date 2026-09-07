@@ -275,24 +275,24 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Builds the comma-separated distinct workflow label values for one ticket.
+        /// Builds the comma-separated distinct workflow additional info values for one ticket.
         /// </summary>
-        public static string GetLabelValue(WfTicket ticket, string labelName)
+        public static string GetAddInfoValue(WfTicket ticket, string addInfoName)
         {
-            if (string.IsNullOrWhiteSpace(labelName))
+            if (string.IsNullOrWhiteSpace(addInfoName))
             {
                 return "";
             }
 
-            List<string> labelValues =
+            List<string> addInfoValues =
             [
                 .. ticket.Tasks
-                    .Select(task => task.GetAddInfoValue(labelName))
+                    .Select(task => task.GetAddInfoValue(addInfoName))
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct()
             ];
 
-            return string.Join(", ", labelValues);
+            return string.Join(", ", addInfoValues);
         }
 
         /// <summary>

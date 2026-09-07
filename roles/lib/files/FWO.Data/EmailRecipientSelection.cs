@@ -111,6 +111,8 @@ namespace FWO.Data
                     .ToList()
             };
 
+            // Null means the caller could not load active-type metadata.
+            // An empty list means there are currently no active responsible types.
             if (activeOwnerResponsibleTypeIds != null)
             {
                 HashSet<int> activeTypeIds = activeOwnerResponsibleTypeIds.ToHashSet();

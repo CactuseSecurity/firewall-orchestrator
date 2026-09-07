@@ -72,32 +72,33 @@
       (internalca_retained_chain_verification.stderr
         | default(internalca_retained_chain_verification.stdout, true))
       | split('\n') | map('trim') | reject('equalto', '') | join('; ') }}"
-    # Three outcomes need three answers, and openssl only says which one it is in prose,
-    # so the wording is what this keys on - not the numeric code, which is not printed on
-    # every openssl generation.
+    # Three outcomes need three answers, and openssl only says which one it is in prose.
     #
-    # The phrases were measured on openssl 3.0.13, the generation the supported
-    # distributions ship. An anchor file that is missing, unreadable or holds no
-    # certificate is always "Error loading file <path>"; a certificate file that is
-    # missing is "Could not open file or uri for loading certs of untrusted certificates
-    # from <path>" and one that holds no certificate is "Could not read any untrusted
-    # certificates from <path>". "Cannot open" and "unable to load" are the openssl 1.x
-    # phrasings of the same conditions and are kept for RedHat 8, which still ships it.
-    # Getting this list wrong is not a cosmetic matter: an unmatched read failure falls
-    # through to the no-anchor branch and answers a missing file with advice about the
-    # issuing CA.
+    # Whether it got as far as verifying anything is decided structurally, on the depth
+    # line every verification verdict carries ("error 20 at 0 depth lookup: ..."), because
+    # a file openssl cannot read never produces one - nothing was compared. The wording of
+    # a read failure is deliberately *not* used: it differs per openssl generation, and
+    # keying on it is what let this branch fall through once. Measured, all for the same
+    # unparseable certificate file - 3.0.13: "Could not read any untrusted certificates
+    # from <path>"; 3.5: "Could not find untrusted certificates from <path>"; 1.x: "unable
+    # to load certificate". An unmatched read failure lands in the no-anchor branch and
+    # blames a missing or garbage file on the issuing CA, which is what the integration
+    # test caught on a newer openssl than the one it was written against.
+    #
+    # The two validity-period phrases are the X509_verify_cert_error_string texts of
+    # errors 9 and 10 and have been stable across those same generations, so they stay
+    # phrase based - and they are only consulted once openssl has actually verified.
+    internalca_retained_chain_verified: >-
+      {{ internalca_retained_chain_report is search('error [0-9]+ at [0-9]+ depth') }}
     internalca_retained_chain_input_error: >-
-      {{
-        internalca_retained_chain_report is search('Error loading file')
-        or internalca_retained_chain_report is search('Could not open file or uri')
-        or internalca_retained_chain_report is search('Could not read any')
-        or internalca_retained_chain_report is search('Cannot open')
-        or internalca_retained_chain_report is search('unable to load')
-      }}
+      {{ not (internalca_retained_chain_verified | bool) }}
     internalca_retained_chain_invalid_period: >-
       {{
-        internalca_retained_chain_report is search('has expired')
-        or internalca_retained_chain_report is search('is not yet valid')
+        internalca_retained_chain_verified | bool
+        and (
+          internalca_retained_chain_report is search('has expired')
+          or internalca_retained_chain_report is search('is not yet valid')
+        )
       }}
     # Only the last of the three can be blamed on the trust configuration. A certificate
     # outside its validity period would be refused whatever the anchors are, and an input

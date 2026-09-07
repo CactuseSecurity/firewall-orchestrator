@@ -289,6 +289,48 @@
       issued, so an installation naming the wrong root would pass the gate and then fail
       at every LDAP call.
 
+# The other half of the validity window, and it is not covered by the expired case: a
+# mutation that drops the not-yet-valid phrase survived until this case existed.
+- name: Create a not yet valid leaf for retained chain preflight tests
+  community.crypto.x509_certificate:
+    path: "{{ test_retained_chain_directory.path }}/future-leaf.crt"
+    csr_path: "{{ test_retained_chain_directory.path }}/direct-leaf.csr"
+    provider: ownca
+    ownca_path: "{{ test_retained_chain_directory.path }}/root.crt"
+    ownca_privatekey_path: "{{ test_retained_chain_directory.path }}/root.key"
+    ownca_not_before: "+1d"
+    ownca_not_after: "+3d"
+  changed_when: false
+
+- name: Verify the preflight rejects a not yet valid retained certificate
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/future-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_future_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_future_rejected: true
+        test_retained_chain_future_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert a not yet valid certificate was rejected with the replacement remedy
+  assert:
+    that:
+      - test_retained_chain_future_rejected | bool
+      - "'cannot be used at all' in test_retained_chain_future_message"
+      - "'is not yet valid' in test_retained_chain_future_message"
+      - "'Have the certificate reissued.' in test_retained_chain_future_message"
+      - "'Configure the root that issued it.' not in test_retained_chain_future_message"
+    fail_msg: >-
+      The retained chain preflight did not reject a not yet valid certificate with the
+      replacement remedy:
+      {{ test_retained_chain_future_message | default('it did not fail at all') }}
+
 # openssl refuses an expired certificate before it looks for an anchor, so the advice has
 # to change with it: telling the operator to configure the issuing root would send them
 # after a setting that cannot help. community.crypto rather than openssl here, because

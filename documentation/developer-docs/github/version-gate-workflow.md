@@ -117,11 +117,14 @@ Ansible's loose comparison places at `9.4.7` - is refused rather than interprete
 it unjudged is what lets it slip past both rules above. Only files the pull request touches are
 held to that, so the padded names carried over from the 5.1 releases stay as they are.
 
-The second rule reads the files the pull request touches rather than the names it adds, because
-appending statements to an older script strands them exactly as adding one does, and comparing
-name listings cannot see that. Scripts the pull request leaves alone are not judged, so an old
-script keeps its name; scripts it deletes are not judged either, as they are not in the merge
-result. Names that do not carry a version are left to the upgrade play.
+The rules differ in what they look at. The above-`V` rule judges every upgrade file in the merge
+result, because any of them being unreachable is a fact about the merge result rather than about
+this pull request. The below-`P` and naming rules judge only the files the pull request adds or
+modifies: appending statements to an older script strands them exactly as adding one does, which
+comparing name listings cannot see, while a script the pull request leaves alone must keep its
+name rather than be renamed by whoever touches the directory next. Scripts the pull request
+deletes are judged by neither, as they are not in the merge result, and names that do not carry a
+version at all are left to the upgrade play.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for

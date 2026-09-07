@@ -21,7 +21,7 @@ import re
 import subprocess
 import sys
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # Same product_version extraction as the Sonar workflows use, see .github/workflows/sonarcloud.yml.
@@ -41,6 +41,24 @@ VERSION_LIKE_UPGRADE_FILE_PATTERN = re.compile(r"^[0-9][0-9.]*\.sql$")
 MAX_DESCRIPTION_LENGTH = 140
 # major, minor and patch, the patch level being optional in a few old upgrade file names.
 VERSION_PART_COUNT = 3
+
+
+@dataclass(frozen=True)
+class GateFiles:
+    """
+    The file inputs one gate evaluation reads.
+
+    They travel together and all describe the same pull request: the revision history as the
+    merge result carries it, its diff against the base branch, the upgrade file names in the
+    merge result, and the upgrade file names the pull request adds or modifies. Each stays
+    empty when a caller does not supply it, which keeps the rules that need it out of the way
+    of callers that only test versions.
+    """
+
+    merged_revision_history: str = ""
+    revision_history_diff: str = ""
+    merged_upgrade_files: list[str] = field(default_factory=list[str])
+    changed_upgrade_files: list[str] = field(default_factory=list[str])
 
 
 @dataclass(frozen=True)
@@ -424,20 +442,14 @@ def evaluate_gate(
     merged_version: str,
     base_version: str,
     sealed: set[str],
-    merged_revision_history: str,
-    revision_history_diff: str,
+    files: GateFiles,
     revision_history_required: bool = True,
-    merged_upgrade_files: list[str] | None = None,
-    changed_upgrade_files: list[str] | None = None,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
 
     merged_version is read from refs/pull/<n>/merge so that a pull request which does not
-    touch all.yml automatically inherits the base version instead of being blocked. The
-    upgrade file names are read from the merge result and from the diff against the base, and
-    stay empty when the caller does not supply them, which keeps that rule out of the way of
-    callers that only test versions.
+    touch all.yml automatically inherits the base version instead of being blocked.
     """
     try:
         version_verdict = evaluate_version_lifecycle(merged_version, base_version, sealed)
@@ -449,8 +461,8 @@ def evaluate_gate(
     upgrade_file_verdict = evaluate_upgrade_files(
         merged_version,
         base_version,
-        merged_upgrade_files or [],
-        changed_upgrade_files or [],
+        files.merged_upgrade_files,
+        files.changed_upgrade_files,
     )
     if not upgrade_file_verdict.ok:
         return upgrade_file_verdict
@@ -463,8 +475,8 @@ def evaluate_gate(
 
     revision_history_verdict = evaluate_revision_history(
         merged_version,
-        merged_revision_history,
-        revision_history_diff,
+        files.merged_revision_history,
+        files.revision_history_diff,
     )
     if not revision_history_verdict.ok:
         return revision_history_verdict
@@ -601,11 +613,13 @@ def run_command(arguments: argparse.Namespace) -> Verdict:
             read_version(arguments.merged_version, arguments.merged_file),
             read_version(arguments.base_version, arguments.base_file),
             sealed_versions(read_tags(arguments.tags_file)),
-            merged_revision_history,
-            Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
+            GateFiles(
+                merged_revision_history=merged_revision_history,
+                revision_history_diff=Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
+                merged_upgrade_files=read_names(arguments.upgrade_files),
+                changed_upgrade_files=read_names(arguments.changed_upgrade_files),
+            ),
             not arguments.skip_revision_history,
-            read_names(arguments.upgrade_files),
-            read_names(arguments.changed_upgrade_files),
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

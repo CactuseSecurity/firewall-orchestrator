@@ -5,12 +5,14 @@ from __future__ import annotations
 import difflib
 import io
 import json
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 import pytest
 
 from scripts.ci.version_gate import (
     MAX_DESCRIPTION_LENGTH,
+    GateFiles,
     Verdict,
     build_parser,
     count_headings,
@@ -70,9 +72,12 @@ def diff_between(base_markdown: str, merged_markdown: str) -> str:
     )
 
 
-def gate_inputs(merged_markdown: str, base_markdown: str = REVISION_HISTORY) -> tuple[str, str]:
-    """Return the merged revision history and its diff, as the gate receives both."""
-    return (merged_markdown, diff_between(base_markdown, merged_markdown))
+def gate_inputs(merged_markdown: str, base_markdown: str = REVISION_HISTORY) -> GateFiles:
+    """Return the file inputs of a pull request that only touches the revision history."""
+    return GateFiles(
+        merged_revision_history=merged_markdown,
+        revision_history_diff=diff_between(base_markdown, merged_markdown),
+    )
 
 
 def has_addition(base_markdown: str, merged_markdown: str) -> bool:
@@ -257,10 +262,12 @@ class TestRevisionHistory:
         assert not has_addition(REVISION_HISTORY, merged_revision_history)
 
     def test_revision_history_verdict_requires_text_below_matching_final_heading(self) -> None:
-        assert evaluate_revision_history("9.4.5", *gate_inputs(REVISION_HISTORY_WITH_ADDITION)).ok
+        files = gate_inputs(REVISION_HISTORY_WITH_ADDITION)
+        assert evaluate_revision_history("9.4.5", files.merged_revision_history, files.revision_history_diff).ok
 
     def test_revision_history_verdict_rejects_heading_without_text(self) -> None:
-        verdict = evaluate_revision_history("9.4.6", *gate_inputs(f"{REVISION_HISTORY}\n## 9.4.6\n"))
+        files = gate_inputs(f"{REVISION_HISTORY}\n## 9.4.6\n")
+        verdict = evaluate_revision_history("9.4.6", files.merged_revision_history, files.revision_history_diff)
         assert not verdict.ok
         assert "add revision-history text" in verdict.reason
 
@@ -385,18 +392,18 @@ class TestGateWithoutVersionBump:
             "9.4.5",
             "9.4.5",
             {"9.4.4"},
-            *gate_inputs(REVISION_HISTORY_WITH_ADDITION),
+            gate_inputs(REVISION_HISTORY_WITH_ADDITION),
         )
         assert verdict.ok
         assert "still open" in verdict.reason
 
     def test_sealed_version_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4.5", "9.4.5", {"9.4.5"}, *gate_inputs(REVISION_HISTORY))
+        verdict = evaluate_gate("9.4.5", "9.4.5", {"9.4.5"}, gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "already sealed" in verdict.reason
 
     def test_zero_padded_version_is_rejected(self) -> None:
-        verdict = evaluate_gate("9.04.5", "9.04.5", {"9.4.5"}, *gate_inputs(REVISION_HISTORY))
+        verdict = evaluate_gate("9.04.5", "9.04.5", {"9.4.5"}, gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "valid product version" in verdict.reason
 
@@ -405,12 +412,12 @@ class TestGateWithoutVersionBump:
             "9.4.5",
             "9.4.5",
             sealed_versions(["v9.4.5-rc1"]),
-            *gate_inputs(REVISION_HISTORY_WITH_ADDITION),
+            gate_inputs(REVISION_HISTORY_WITH_ADDITION),
         )
         assert verdict.ok
 
     def test_revision_history_addition_is_required_without_a_bump(self) -> None:
-        verdict = evaluate_gate("9.4.5", "9.4.5", set(), *gate_inputs(REVISION_HISTORY))
+        verdict = evaluate_gate("9.4.5", "9.4.5", set(), gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "add revision-history text" in verdict.reason
 
@@ -419,7 +426,7 @@ class TestGateWithoutVersionBump:
             "9.4.5",
             "9.4.5",
             set(),
-            *gate_inputs(REVISION_HISTORY),
+            gate_inputs(REVISION_HISTORY),
             revision_history_required=False,
         )
         assert verdict.ok
@@ -430,7 +437,7 @@ class TestGateWithoutVersionBump:
             "9.4.5",
             "9.4.5",
             {"9.4.5"},
-            *gate_inputs(REVISION_HISTORY),
+            gate_inputs(REVISION_HISTORY),
             revision_history_required=False,
         )
         assert not verdict.ok
@@ -439,22 +446,22 @@ class TestGateWithoutVersionBump:
 
 class TestGateWithVersionBump:
     def test_bump_after_sealing_passes(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("9.4.6")))
         assert verdict.ok
         assert "opening version 9.4.6" in verdict.reason
 
     def test_bump_from_zero_padded_base_version_is_rejected(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.04.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.4.6", "9.04.5", {"9.4.5"}, gate_inputs(revision_history_for("9.4.6")))
         assert not verdict.ok
         assert "valid product version" in verdict.reason
 
     def test_zero_padded_bump_is_rejected(self) -> None:
-        verdict = evaluate_gate("9.04.6", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.04.6", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("9.4.6")))
         assert not verdict.ok
         assert "valid product version" in verdict.reason
 
     def test_bump_before_sealing_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.4"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.4"}, gate_inputs(revision_history_for("9.4.6")))
         assert not verdict.ok
         assert "v9.4.5-dev or v9.4.5" in verdict.reason
 
@@ -463,42 +470,42 @@ class TestGateWithVersionBump:
             "9.4.6",
             "9.4.5",
             sealed_versions(["v9.4.5-dev"]),
-            *gate_inputs(revision_history_for("9.4.6")),
+            gate_inputs(revision_history_for("9.4.6")),
         )
         assert verdict.ok
 
     def test_bump_onto_an_already_sealed_version_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5", "9.4.6"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5", "9.4.6"}, gate_inputs(revision_history_for("9.4.6")))
         assert not verdict.ok
         assert "choose a higher version" in verdict.reason
 
     def test_backwards_bump_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4.4", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.4")))
+        verdict = evaluate_gate("9.4.4", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("9.4.4")))
         assert not verdict.ok
         assert "must not go backwards" in verdict.reason
 
     def test_minor_and_major_jumps_are_allowed(self) -> None:
-        assert evaluate_gate("9.5.0", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.5.0"))).ok
-        assert evaluate_gate("10.0.0", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("10.0.0"))).ok
+        assert evaluate_gate("9.5.0", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("9.5.0"))).ok
+        assert evaluate_gate("10.0.0", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("10.0.0"))).ok
 
     def test_missing_revision_history_section_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(REVISION_HISTORY))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "must end with a '## 9.4.6' heading" in verdict.reason
 
     def test_matching_revision_history_heading_must_be_last(self) -> None:
         revision_history = f"{revision_history_for('9.4.6')}\n## 9.3 - 31.07.2026\n- legacy heading\n"
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, gate_inputs(revision_history))
         assert not verdict.ok
         assert "last level-two heading is '## 9.3 - 31.07.2026'" in verdict.reason
 
     def test_empty_revision_history_is_reported_as_missing(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(""))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, gate_inputs(""))
         assert not verdict.ok
         assert "last level-two heading is missing" in verdict.reason
 
     def test_malformed_merged_version_is_blocked(self) -> None:
-        verdict = evaluate_gate("9.4", "9.4.5", {"9.4.5"}, *gate_inputs(REVISION_HISTORY))
+        verdict = evaluate_gate("9.4", "9.4.5", {"9.4.5"}, gate_inputs(REVISION_HISTORY))
         assert not verdict.ok
         assert "valid product version" in verdict.reason
 
@@ -588,9 +595,11 @@ class TestGateWithUpgradeFiles:
             "9.5.1",
             "9.5.0",
             {"9.5.0"},
-            *gate_inputs(revision_history_for("9.5.1")),
-            merged_upgrade_files=["9.5.0.sql", "9.4.7.sql"],
-            changed_upgrade_files=["9.4.7.sql"],
+            replace(
+                gate_inputs(revision_history_for("9.5.1")),
+                merged_upgrade_files=["9.5.0.sql", "9.4.7.sql"],
+                changed_upgrade_files=["9.4.7.sql"],
+            ),
         )
         assert not verdict.ok
         assert "would skip the change" in verdict.reason
@@ -600,14 +609,16 @@ class TestGateWithUpgradeFiles:
             "9.5.1",
             "9.5.0",
             {"9.5.0"},
-            *gate_inputs(revision_history_for("9.5.1")),
-            merged_upgrade_files=["9.5.0.sql", "9.5.1.sql"],
-            changed_upgrade_files=["9.5.1.sql"],
+            replace(
+                gate_inputs(revision_history_for("9.5.1")),
+                merged_upgrade_files=["9.5.0.sql", "9.5.1.sql"],
+                changed_upgrade_files=["9.5.1.sql"],
+            ),
         )
         assert verdict.ok
 
     def test_gate_without_upgrade_file_names_is_unchanged(self) -> None:
-        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, *gate_inputs(revision_history_for("9.4.6")))
+        verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.5"}, gate_inputs(revision_history_for("9.4.6")))
         assert verdict.ok
 
 

@@ -671,6 +671,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task FlowGeneralPage_SetZoneGroupMatchType_IgnoresValueOutsideTheEnum()
+        {
+            await using BunitContext context = CreateNetworkObjectsContext(out _);
+
+            IRenderedComponent<SettingsFlowGeneral> component = RenderPage<SettingsFlowGeneral>(context);
+            component.WaitForAssertion(() => Assert.That(GetZoneGroupPatterns(component.Instance), Is.Empty));
+            List<(string Title, string Message, bool IsError)> uiMessages = CaptureUiMessages(component.Instance);
+
+            await InvokeZoneGroupMethod(component, "AddZoneGroupPattern");
+            GetZoneGroupPatterns(component.Instance)[0].Value = "_zone";
+            GetZoneGroupPatterns(component.Instance)[0].MatchType = FlowZoneNameMatchType.Contains;
+            component.Render();
+
+            FindZoneGroupRowControls(component)[0].Change("7");
+
+            Assert.That(GetZoneGroupPatterns(component.Instance)[0].MatchType, Is.EqualTo(FlowZoneNameMatchType.Contains));
+
+            await InvokeZoneGroupMethod(component, "SaveZoneGroupPatterns");
+
+            ConfigData configData = (ConfigData)GetMember(component.Instance, "configData")!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetZoneGroupPatterns(component.Instance), Has.Count.EqualTo(1));
+                Assert.That(configData.FlowZoneGroupNamePatterns, Does.Contain("\"value\":\"_zone\""));
+                Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Has.Count.EqualTo(1));
+                Assert.That(uiMessages, Has.Count.EqualTo(1));
+                Assert.That(uiMessages[0].IsError, Is.False);
+            });
+        }
+
+        [Test]
         public async Task FlowGeneralPage_ZoneGroupPatternRowControls_FollowWorkInProgress()
         {
             await using BunitContext context = CreateNetworkObjectsContext(out _);

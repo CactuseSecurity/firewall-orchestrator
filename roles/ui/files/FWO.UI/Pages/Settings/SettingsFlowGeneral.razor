@@ -362,7 +362,7 @@
 
     private static void SetZoneGroupMatchType(FlowZoneGroupPattern pattern, string? selectedMatchType)
     {
-        if (Enum.TryParse(selectedMatchType, out FlowZoneNameMatchType matchType))
+        if (Enum.TryParse(selectedMatchType, out FlowZoneNameMatchType matchType) && Enum.IsDefined(matchType))
         {
             pattern.MatchType = matchType;
         }

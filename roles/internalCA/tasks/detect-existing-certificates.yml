@@ -323,10 +323,14 @@
 # verifies the slapd certificate against the trust bundle, which holds CA certificates
 # only. So the retained leaf has to reach one of them through whatever the certificate
 # file itself carries, and the guard above established only that a peer CA is configured,
-# not that it is this certificate's issuer or that the chain closes. Asked here, at the
-# gate, because the alternative is an upgrade that migrates the database, switches the
-# maintenance site over and then dies on a bare transport error from the first ldapmodify
-# of the middleware role.
+# not that it is this certificate's issuer or that the chain closes.
+#
+# Asked in this play because it is the first one that has the assembled trust bundle to
+# ask against, and this play is any_errors_fatal: a refusal aborts the run for every host
+# before the database play, which on a distributed installation would otherwise migrate
+# the schema on its own host while the middleware host was already failing here. The
+# switch to the maintenance site has happened by now - roles/common does it - so the
+# endpoints stay on it until the certificate is corrected and the upgrade re-run.
 - name: Require a retained LDAP certificate to chain to the trust bundle
   include_tasks: validate-retained-chain.yml
   vars:
@@ -340,6 +344,14 @@
       {{ internalca_ldap_certificate }}, which is the chain slapd presents. Moving the
       identity out of {{ internalca_ldap_cert_dir }} instead makes {{ product_name }} issue
       the slapd identity from its internal CA again.
+    # An expired, not yet valid or unreadable certificate is refused whatever the trust
+    # configuration holds, so the remedy above - which is all about the issuer - would
+    # only misdirect. Same wording as the endpoint name check, which has the same answer.
+    retained_chain_replacement_remedy: >-
+      Have the certificate reissued for {{ openldap_server }}, or move it out of
+      {{ internalca_ldap_cert_dir }} so {{ product_name }} issues the slapd identity from
+      its internal CA again. No trust configuration can make this certificate usable as
+      it stands.
   when:
     - "'middlewareserver' in group_names"
     - internalca_preserve_ldap_certificate | default(false) | bool

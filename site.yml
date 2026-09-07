@@ -61,7 +61,15 @@
 
 # Certificates are created after the common role has created the FWO user and
 # configuration directories, but before any service consumes them.
+#
+# any_errors_fatal because this play is preflight plus certificate issuance, where one
+# host failing makes the rest worthless: the retained-certificate checks run on the
+# middleware host alone, and without this Ansible would merely drop that host and let the
+# database play migrate the schema on another one - so an upgrade the installer had just
+# refused would still have changed the installation. It also stops a host from being left
+# without an identity while the services that need it are installed on the others.
 - hosts: all
+  any_errors_fatal: true
   roles:
     - { role: internalCA, when: "not installation_mode == 'uninstall'" }
   tags:

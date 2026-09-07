@@ -12,17 +12,29 @@
 #
 # Checked here rather than at the first handshake: without it the run continues into the
 # service roles and dies on a bare "Can't contact LDAP server" from the first ldapmodify,
-# after the database migration and the maintenance switch-over, with nothing naming the
-# certificate.
+# with nothing naming the certificate. The internalCA play is any_errors_fatal, so a
+# refusal here aborts the run for every host before the database is migrated - on a
+# distributed installation as well, where only the middleware host reaches this check.
+# What it cannot undo is the switch to the maintenance site, which roles/common performs
+# earlier in the run; the endpoints stay on it until an upgrade completes.
 #
 # community.crypto cannot answer this - x509_certificate_info reads one certificate and
 # does not build chains - so openssl verify is used, as in validate-apache-intermediates.yml.
 #
-# Inputs, all required except the bundle:
+# openssl refuses for more reasons than a broken chain, and the advice differs, so the
+# caller passes both: retained_chain_remedy is used when no anchor could be reached, and
+# retained_chain_replacement_remedy when the certificate itself is unusable whatever the
+# trust configuration says - expired, not yet valid, or unreadable. Handing one remedy to
+# every verdict is what made the first version of this check tell the operator of an
+# expired certificate to configure its issuing root.
+#
+# Inputs, all required except the last two:
 #   retained_chain_subject      - what is being checked, e.g. "OpenLDAP" (for the message)
 #   retained_chain_certificate  - path to the certificate file the endpoint serves
-#   retained_chain_remedy       - the caller's advice, appended to the message
+#   retained_chain_remedy       - the caller's advice for a chain that reaches no anchor
 # Optional:
+#   retained_chain_replacement_remedy - the caller's advice for a certificate that cannot
+#                                 be used at all; falls back to retained_chain_remedy
 #   retained_chain_trust_bundle - anchors to build against; the installed trust bundle by
 #                                 default, overridable so roles/tests-integration can
 #                                 drive this file against generated certificates
@@ -59,12 +71,46 @@
       (internalca_retained_chain_verification.stderr
         | default(internalca_retained_chain_verification.stdout, true))
       | split('\n') | map('trim') | reject('equalto', '') | join('; ') }}"
+    # Keyed on the wording openssl uses for verify errors 9 and 10 and for an input it
+    # cannot read, rather than on the numeric code: the code is not printed on every
+    # openssl generation, the text is. Anything else is a chain that reached no anchor,
+    # which is what this check was written for and the case the caller's chain remedy
+    # addresses.
+    internalca_retained_chain_unusable: >-
+      {{
+        internalca_retained_chain_report is search('has expired')
+        or internalca_retained_chain_report is search('is not yet valid')
+        or internalca_retained_chain_report is search('Cannot open')
+        or internalca_retained_chain_report is search('unable to load')
+      }}
+    # Only the chain case can be blamed on the trust configuration. An expired or
+    # unreadable certificate would be refused whatever the anchors are, and saying it
+    # "reaches no anchor" would send the operator to the peer CA setting for nothing.
+    #
+    # Two folded scalars and a ternary rather than one expression: adjacent string
+    # literals are not concatenated in Jinja, and a folded scalar keeps a backslash
+    # verbatim, so an apostrophe inside a Jinja string literal here is a trap.
+    internalca_retained_chain_unusable_verdict: >-
+      cannot be used at all - openssl refused it before any anchor was reached
+    internalca_retained_chain_anchor_verdict: >-
+      cannot be built to any anchor in
+      {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }}, so the
+      {{ product_name }} components that read that bundle - the ldapsearch and ldapmodify
+      calls of the installer among them - would reject it. The middleware additionally
+      accepts whatever the host itself trusts, so logins may still be working; that does
+      not let this upgrade continue
+    internalca_retained_chain_verdict: >-
+      {{
+        internalca_retained_chain_unusable_verdict
+        if internalca_retained_chain_unusable | bool
+        else internalca_retained_chain_anchor_verdict
+      }}
   fail:
     msg: >-
       The customer managed {{ retained_chain_subject }} certificate kept on
-      {{ inventory_hostname }} ({{ retained_chain_certificate }}) cannot be built to any
-      anchor in {{ retained_chain_trust_bundle | default(internalca_trust_bundle, true) }},
-      so every {{ product_name }} client that validates this endpoint would reject it.
+      {{ inventory_hostname }} ({{ retained_chain_certificate }})
+      {{ internalca_retained_chain_verdict }}.
       OpenSSL reported: {{ internalca_retained_chain_report }}.
-      {{ retained_chain_remedy }}
+      {{ retained_chain_replacement_remedy | default(retained_chain_remedy, true)
+         if internalca_retained_chain_unusable | bool else retained_chain_remedy }}
   when: internalca_retained_chain_verification.rc != 0

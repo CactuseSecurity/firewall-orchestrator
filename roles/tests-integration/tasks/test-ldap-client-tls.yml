@@ -225,6 +225,10 @@
         retained_chain_certificate: "{{ test_retained_chain_directory.path }}/deep-leaf.crt"
         retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
         retained_chain_remedy: Append the issuing intermediate to the certificate file.
+        # Passed so the assertions below can prove which of the two remedies was chosen.
+        # Without it both branches would print the same text and a selection that always
+        # picked the replacement would look correct here.
+        retained_chain_replacement_remedy: Have this certificate replaced instead.
     - set_fact:
         test_retained_chain_gap_rejected: false
   rescue:
@@ -245,6 +249,14 @@
       # would mean the report was joined out of existence.
       - "'OpenSSL reported: .' not in test_retained_chain_gap_message"
       - "'Append the issuing intermediate to the certificate file.' in test_retained_chain_gap_message"
+      # The claim has to stay inside what was established. A retained certificate whose
+      # CA the middleware host trusts is still accepted by the middleware on its platform
+      # route, so the message must not tell the operator that logins are down.
+      - "'logins may still be working' in test_retained_chain_gap_message"
+      # The two verdicts are mutually exclusive: this one is about anchors, so the
+      # unusable-certificate wording and its remedy must not appear.
+      - "'cannot be used at all' not in test_retained_chain_gap_message"
+      - "'Have this certificate replaced instead.' not in test_retained_chain_gap_message"
       # openssl writes its verdict over several lines; a fail message assembled from
       # folded scalars must not carry any of those line breaks into the operator's log.
       - "'\n' not in test_retained_chain_gap_message"
@@ -276,6 +288,83 @@
       The retained chain preflight accepted a certificate none of the configured anchors
       issued, so an installation naming the wrong root would pass the gate and then fail
       at every LDAP call.
+
+# openssl refuses an expired certificate before it looks for an anchor, so the advice has
+# to change with it: telling the operator to configure the issuing root would send them
+# after a setting that cannot help. community.crypto rather than openssl here, because
+# openssl x509 -req cannot backdate a certificate on the versions this installer supports.
+- name: Create an expired leaf for retained chain preflight tests
+  community.crypto.x509_certificate:
+    path: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+    csr_path: "{{ test_retained_chain_directory.path }}/direct-leaf.csr"
+    provider: ownca
+    ownca_path: "{{ test_retained_chain_directory.path }}/root.crt"
+    ownca_privatekey_path: "{{ test_retained_chain_directory.path }}/root.key"
+    ownca_not_before: "-3d"
+    ownca_not_after: "-1d"
+  changed_when: false
+
+- name: Verify the preflight rejects an expired retained certificate
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_expiry_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_expiry_rejected: true
+        test_retained_chain_expiry_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert an expired certificate was rejected with the replacement remedy
+  assert:
+    that:
+      - test_retained_chain_expiry_rejected | bool
+      - "'cannot be used at all' in test_retained_chain_expiry_message"
+      # openssl's own verdict has to survive into the message, since it is what tells the
+      # operator that the dates are the problem.
+      - "'has expired' in test_retained_chain_expiry_message"
+      - "'Have the certificate reissued.' in test_retained_chain_expiry_message"
+      # The misdirection this case exists for: the chain remedy must not be offered for a
+      # certificate that no trust configuration can rescue.
+      - "'Configure the root that issued it.' not in test_retained_chain_expiry_message"
+      - "'cannot be built to any anchor' not in test_retained_chain_expiry_message"
+      - "'\n' not in test_retained_chain_expiry_message"
+    fail_msg: >-
+      The retained chain preflight did not reject an expired certificate with the
+      replacement remedy:
+      {{ test_retained_chain_expiry_message | default('it did not fail at all') }}
+
+# A caller that passes no replacement remedy has to keep working: the fallback is the
+# chain remedy, so the message stays useful rather than trailing off into nothing.
+- name: Verify the preflight falls back to the chain remedy when no replacement is given
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: The only remedy this caller offers.
+    - set_fact:
+        test_retained_chain_fallback_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_fallback_rejected: true
+        test_retained_chain_fallback_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the remedy fallback is used when no replacement remedy is given
+  assert:
+    that:
+      - test_retained_chain_fallback_rejected | bool
+      - "'The only remedy this caller offers.' in test_retained_chain_fallback_message"
+    fail_msg: >-
+      The retained chain preflight dropped the caller's remedy when no replacement remedy
+      was given:
+      {{ test_retained_chain_fallback_message | default('it did not fail at all') }}
 
 - name: Remove the retained chain preflight test directory
   file:

@@ -432,22 +432,18 @@ openldap_server_user: "{{ 'ldap' if ansible_facts['os_family'] == 'RedHat' else 
 # should an upgrade file ever set a fact of that name again.
 fwo_ldap_tls_opts: >-
   {% if openldap_server_enable_ssl | default(false) -%}
-  {%- if not (internalca_preserve_ldap_certificate | default(false) | bool) -%}
-  -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_ca_certificate_local }}
-  {%- else -%}
-  -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
-  {%- endif -%}
+  -o TLS_REQCERT=demand -o TLS_CACERT={{ internalca_trust_bundle }}
   {%- endif %}
 
 # The same decision for the Ansible ldap_* modules, which take it as parameters
 # rather than command line options. These carry the Manager bind password, so an
 # unverified channel here hands it to anything that can answer on the LDAP port.
-# ldap_verify_certs is false only where verification cannot work: TLS is off or
-# an upgrade retained a customer-managed certificate whose issuer is not known.
+# TLS-enabled installations always verify against the assembled trust bundle. A
+# retained customer-managed certificate requires its issuing root during the
+# internalCA preflight, so that issuer is available here alongside the internal CA.
 ldap_verify_certs: >-
-  {{ openldap_server_enable_ssl | default(false) | bool
-     and not (internalca_preserve_ldap_certificate | default(false) | bool) }}
-ldap_module_ca_path: "{{ internalca_ca_certificate_local if ldap_verify_certs | bool else omit }}"
+  {{ openldap_server_enable_ssl | default(false) | bool }}
+ldap_module_ca_path: "{{ internalca_trust_bundle if ldap_verify_certs | bool else omit }}"
 
 # middleware web server
 middleware_web_listener_port: 8888

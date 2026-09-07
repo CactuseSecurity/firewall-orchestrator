@@ -32,7 +32,7 @@ namespace FWO.Api.Client
                 HttpMessageHandler = handler,
                 UseWebSocketForQueriesAndMutations = false, // TODO: Use websockets for performance reasons
                 // Subscriptions run over websockets, which need the same client identity as
-                // the http requests. Certificate validation is left at the platform default.
+                // the HTTP requests and validate the server against the configured trust bundle.
                 ConfigureWebsocketOptions = webSocketOptions =>
                 {
                     if (useTls)

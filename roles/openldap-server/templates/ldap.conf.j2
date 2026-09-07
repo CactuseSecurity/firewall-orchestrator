@@ -10,19 +10,10 @@ BASE    {{ openldap_path }}
 {% if openldap_server_enable_ssl %}
 URI     ldaps://{{ openldap_server }}:{{ openldap_port }}
 
-{% if internalca_preserve_ldap_certificate | default(false) | bool %}
-# A customer managed certificate is in place. Its issuer is unknown to this
-# installation, so the certificate itself is the only anchor available and
-# verification stays off; set internalca_peer_ca_certificate and pin the real
-# issuing CA here to turn it on.
-TLS_REQCERT never
-TLS_CACERT {{ openldap_server_cert }}
-{% else %}
-# slapd presents a certificate issued by the internal CA, so a client can verify
-# the chain and the host name like any other TLS connection.
+# The trust bundle contains the internal CA and, when a customer-managed slapd
+# certificate is retained, the issuing root required by the upgrade preflight.
 TLS_REQCERT demand
-TLS_CACERT {{ internalca_ca_certificate_local }}
-{% endif %}
+TLS_CACERT {{ internalca_trust_bundle }}
 {% else %}
 {# openldap_port defaults to the TLS port, so fall back to 389 when TLS is off,
    matching the ldap_cmd_url built by the middleware and sample-auth-data roles. #}

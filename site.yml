@@ -197,6 +197,25 @@
       import_tasks: scripts/show-fworch-listeners.yml
       become: true
 
+    - name: read the internal CA certificate for browser trust setup
+      ansible.builtin.slurp:
+        src: "{{ internalca_ca_certificate_local }}"
+      register: fwo_internal_ca_certificate
+      delegate_to: "{{ internalca_ca_host }}"
+      run_once: true
+      when: installation_mode in ['new', 'upgrade']
+
+    - name: display the internal CA certificate for browser trust setup
+      ansible.builtin.debug:
+        msg:
+          - "Trust this FWO internal CA certificate on the browser host to accept {{ product_name }} Apache certificates:"
+          - (unless you already have a peer certificate configured, in which case the peer CA certificate is the one to trust)
+          - "{{ fwo_internal_ca_certificate.content | b64decode }}"
+      run_once: true
+      when:
+        - installation_mode in ['new', 'upgrade']
+        - fwo_internal_ca_certificate is not skipped
+
     - name: display secrets for this installation
       debug:
         msg:

@@ -66,8 +66,8 @@ public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
     /// <summary>
     /// Returns the configured zone name patterns, parsing the config value only when it changed.
     /// The parse reports unusable entries to the log, so it must not run once per request.
-    /// The cache is shared by every caller of this singleton and is replaced rather than modified,
-    /// so it is handed out read-only and callers keep a stable snapshot.
+    /// The cache is shared by every caller of this singleton and the list is replaced rather than modified.
+    /// The list is handed out read-only, but callers must treat its mutable pattern elements as immutable.
     /// </summary>
     /// <returns>The configured zone name patterns.</returns>
     private IReadOnlyList<FlowZoneGroupPattern> GetZonePatterns()

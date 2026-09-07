@@ -18,6 +18,7 @@ from scripts.ci.version_gate import (
     evaluate_revision_history,
     evaluate_tag,
     evaluate_upgrade_files,
+    evaluate_version_lifecycle,
     last_revision_history_heading,
     main,
     parse_product_version,
@@ -307,6 +308,30 @@ class TestUnifiedDiffParsing:
 
     def test_empty_diff_has_no_changed_lines(self) -> None:
         assert parse_unified_diff("") == ([], [])
+
+
+class TestVersionLifecycle:
+    def test_open_version_passes_with_its_reason(self) -> None:
+        verdict = evaluate_version_lifecycle("9.4.5", "9.4.5", {"9.4.4"})
+
+        assert verdict.ok
+        assert verdict.reason == "version 9.4.5 is still open"
+
+    def test_bump_onto_a_sealed_base_passes_with_its_reason(self) -> None:
+        verdict = evaluate_version_lifecycle("9.4.6", "9.4.5", {"9.4.5"})
+
+        assert verdict.ok
+        assert verdict.reason == "version 9.4.5 is sealed, opening version 9.4.6"
+
+    def test_sealed_merged_version_is_rejected(self) -> None:
+        verdict = evaluate_version_lifecycle("9.4.5", "9.4.5", {"9.4.5"})
+
+        assert not verdict.ok
+        assert "already sealed" in verdict.reason
+
+    def test_malformed_version_raises(self) -> None:
+        with pytest.raises(ValueError, match="valid product version"):
+            evaluate_version_lifecycle("9.4", "9.4.5", set())
 
 
 class TestGateWithoutVersionBump:

@@ -321,6 +321,51 @@ def evaluate_upgrade_files(
     return Verdict(ok=True, reason="every upgrade file can be selected")
 
 
+def evaluate_version_lifecycle(merged_version: str, base_version: str, sealed: set[str]) -> Verdict:
+    """
+    Decide whether the merge result's product version is a legal successor of the base version.
+
+    A passing verdict carries the reason the remaining gate rules append their own outcome to.
+    Raises ValueError when either version is not a canonical major.minor.patch.
+    """
+    merged = parse_version(merged_version)
+    base = parse_version(base_version)
+
+    if merged == base:
+        if merged_version in sealed:
+            return Verdict(
+                ok=False,
+                reason=(
+                    f"version {merged_version} is already sealed by a release tag. "
+                    f"Raise product_version in inventory/group_vars/all.yml to the next version."
+                ),
+            )
+        return Verdict(ok=True, reason=f"version {merged_version} is still open")
+
+    if merged < base:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"product_version must not go backwards: {merged_version} is lower than "
+                f"{base_version} on the base branch"
+            ),
+        )
+    if base_version not in sealed:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"version {base_version} has not been sealed yet. "
+                f"Create tag v{base_version}-dev or v{base_version} before opening version {merged_version}."
+            ),
+        )
+    if merged_version in sealed:
+        return Verdict(
+            ok=False,
+            reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
+        )
+    return Verdict(ok=True, reason=f"version {base_version} is sealed, opening version {merged_version}")
+
+
 def evaluate_gate(
     merged_version: str,
     base_version: str,
@@ -340,44 +385,11 @@ def evaluate_gate(
     not supply them, which keeps that rule out of the way of callers that only test versions.
     """
     try:
-        merged = parse_version(merged_version)
-        base = parse_version(base_version)
+        version_verdict = evaluate_version_lifecycle(merged_version, base_version, sealed)
     except ValueError as error:
         return Verdict(ok=False, reason=str(error))
-
-    if merged == base:
-        if merged_version in sealed:
-            return Verdict(
-                ok=False,
-                reason=(
-                    f"version {merged_version} is already sealed by a release tag. "
-                    f"Raise product_version in inventory/group_vars/all.yml to the next version."
-                ),
-            )
-        version_reason = f"version {merged_version} is still open"
-    else:
-        if merged < base:
-            return Verdict(
-                ok=False,
-                reason=(
-                    f"product_version must not go backwards: {merged_version} is lower than "
-                    f"{base_version} on the base branch"
-                ),
-            )
-        if base_version not in sealed:
-            return Verdict(
-                ok=False,
-                reason=(
-                    f"version {base_version} has not been sealed yet. "
-                    f"Create tag v{base_version}-dev or v{base_version} before opening version {merged_version}."
-                ),
-            )
-        if merged_version in sealed:
-            return Verdict(
-                ok=False,
-                reason=f"version {merged_version} is already sealed by a release tag, choose a higher version",
-            )
-        version_reason = f"version {base_version} is sealed, opening version {merged_version}"
+    if not version_verdict.ok:
+        return version_verdict
 
     upgrade_file_verdict = evaluate_upgrade_files(
         merged_version,
@@ -389,7 +401,10 @@ def evaluate_gate(
         return upgrade_file_verdict
 
     if not revision_history_required:
-        return Verdict(ok=True, reason=f"{version_reason}; revision history is exempt for this automated pull request")
+        return Verdict(
+            ok=True,
+            reason=f"{version_verdict.reason}; revision history is exempt for this automated pull request",
+        )
 
     revision_history_verdict = evaluate_revision_history(
         merged_version,
@@ -398,7 +413,7 @@ def evaluate_gate(
     )
     if not revision_history_verdict.ok:
         return revision_history_verdict
-    return Verdict(ok=True, reason=f"{version_reason}; {revision_history_verdict.reason}")
+    return Verdict(ok=True, reason=f"{version_verdict.reason}; {revision_history_verdict.reason}")
 
 
 def evaluate_open_version(version: str, sealed: set[str]) -> Verdict:

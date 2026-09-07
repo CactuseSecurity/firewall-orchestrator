@@ -210,6 +210,18 @@ def test_warns_when_open_pull_request_limit_is_reached(
     assert (warning in completed.stdout) is warning_expected
 
 
+def test_stale_open_pull_request_total_falls_back_to_the_cap_warning(tmp_path: Path) -> None:
+    """A pull request closed between the two queries must not produce a negative count."""
+    completed = refresh_output_at_pr_count(tmp_path, PULL_REQUEST_LIMIT, open_pull_request_total=PULL_REQUEST_LIMIT - 1)
+
+    assert completed.returncode == 0
+    assert "were not refreshed and keep their previous gate result." not in completed.stdout
+    assert (
+        f"::warning::Open pull request query reached its limit of {PULL_REQUEST_LIMIT}; "
+        "additional pull requests may exist and were not refreshed." in completed.stdout
+    )
+
+
 def test_unknown_open_pull_request_total_still_warns_about_the_cap(tmp_path: Path) -> None:
     """A failing count query must not hide the cap, and must not fail the job either."""
     completed = refresh_output_at_pr_count(tmp_path, PULL_REQUEST_LIMIT)

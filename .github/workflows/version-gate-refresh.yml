@@ -100,7 +100,9 @@ jobs:
                 --jq '.data.repository.pullRequests.totalCount')"; then
                 open_pull_request_count=""
               fi
-              if [[ -n "$open_pull_request_count" ]]; then
+              # The list and the count are two round trips, so a pull request closed in between
+              # can make the total the smaller number. Fall back rather than print a negative.
+              if [[ -n "$open_pull_request_count" && "$open_pull_request_count" -gt "$pull_request_count" ]]; then
                 echo "::warning::Refreshed ${pull_request_count} of ${open_pull_request_count} open pull requests; $((open_pull_request_count - pull_request_count)) were not refreshed and keep their previous gate result."
               else
                 echo "::warning::Open pull request query reached its limit of ${PULL_REQUEST_LIMIT}; additional pull requests may exist and were not refreshed."

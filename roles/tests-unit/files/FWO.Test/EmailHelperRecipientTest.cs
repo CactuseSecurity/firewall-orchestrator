@@ -103,7 +103,8 @@ namespace FWO.Test
                 RecipientBcc = EmailRecipientOption.OtherAddresses,
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = "Subject",
-                EmailBody = "Body"
+                EmailBody = "Body",
+                Deadline = NotificationDeadline.RequestDate
             };
 
             bool sent = await helper.SendEmailToNotificationRecipients(notification, owner, "Rendered subject", "Rendered body");
@@ -187,7 +188,8 @@ namespace FWO.Test
                 RecipientBcc = EmailRecipientOption.OtherAddresses,
                 EmailAddressBcc = "bcc@example.test",
                 EmailSubject = "Subject",
-                EmailBody = "Body"
+                EmailBody = "Body",
+                Deadline = NotificationDeadline.RequestDate
             };
 
             bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Rendered subject", "Rendered body");
@@ -203,6 +205,8 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertCalls[0].Cc, Is.EqualTo("cc@example.test"));
                 Assert.That(apiConnection.InsertCalls[0].Bcc, Is.EqualTo("bcc@example.test"));
                 Assert.That(apiConnection.InsertCalls[0].Subject, Is.EqualTo("Rendered subject"));
+                Assert.That(apiConnection.InsertCalls[0].DeadlineType, Is.EqualTo(NotificationDeadline.RequestDate));
+                Assert.That(apiConnection.InsertCalls[0].Deadline, Is.Null);
                 Assert.That(apiConnection.InsertCalls[0].Timestamp, Is.GreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)));
             });
         }

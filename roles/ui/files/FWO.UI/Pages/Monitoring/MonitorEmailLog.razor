@@ -19,6 +19,8 @@
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.NotificationId)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="true" Filterable="true"/>

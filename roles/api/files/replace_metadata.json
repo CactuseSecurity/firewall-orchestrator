@@ -13537,7 +13537,9 @@
                       "to",
                       "cc",
                       "bcc",
-                      "subject"
+                      "subject",
+                      "deadline_type",
+                      "deadline"
                     ]
                   },
                   "comment": ""
@@ -13553,7 +13555,9 @@
                       "to",
                       "cc",
                       "bcc",
-                      "subject"
+                      "subject",
+                      "deadline_type",
+                      "deadline"
                     ]
                   },
                   "comment": ""
@@ -13569,7 +13573,9 @@
                       "to",
                       "cc",
                       "bcc",
-                      "subject"
+                      "subject",
+                      "deadline_type",
+                      "deadline"
                     ]
                   },
                   "comment": ""
@@ -13586,7 +13592,9 @@
                       "to",
                       "cc",
                       "bcc",
-                      "subject"
+                      "subject",
+                      "deadline_type",
+                      "deadline"
                     ],
                     "filter": {}
                   },
@@ -13602,7 +13610,9 @@
                       "to",
                       "cc",
                       "bcc",
-                      "subject"
+                      "subject",
+                      "deadline_type",
+                      "deadline"
                     ],
                     "filter": {}
                   },

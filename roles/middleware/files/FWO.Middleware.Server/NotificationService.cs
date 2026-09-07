@@ -117,11 +117,13 @@ namespace FWO.Middleware.Server
         /// <param name="content">Text for notification (e.g. email body).</param>
         /// <param name="report">Optional report to be sent as attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null,
+            string timeIntervalText = "", DateTime? resolvedDeadline = null)
         {
             // Later: Handle other channels here when implemented
-            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText);
+            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline);
             if (!sent)
             {
                 return 0;
@@ -185,7 +187,7 @@ namespace FWO.Middleware.Server
         {
             if (IsNotificationDue(owner, extDeadline, notification))
             {
-                return await SendNotification(notification, owner, content, report, timeIntervalText);
+                return await SendNotification(notification, owner, content, report, timeIntervalText, extDeadline);
             }
             return 0;
         }
@@ -297,8 +299,10 @@ namespace FWO.Middleware.Server
         /// <param name="owner">Owner context used for placeholder replacement.</param>
         /// <param name="report">Optional report attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
+        /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
         /// <returns>True when an email was sent; otherwise false.</returns>
-        private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
+            string timeIntervalText = "", DateTime? resolvedDeadline = null)
         {
             MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
@@ -310,7 +314,8 @@ namespace FWO.Middleware.Server
 
             if (NotificationLoggingMode.ShouldLog(notification.Logging))
             {
-                await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject);
+                DateTimeOffset? deadline = resolvedDeadline.HasValue ? new DateTimeOffset(resolvedDeadline.Value) : null;
+                await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject, deadline);
             }
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))

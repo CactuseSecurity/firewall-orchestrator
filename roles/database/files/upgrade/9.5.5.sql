@@ -126,7 +126,9 @@ CREATE TABLE IF NOT EXISTS notification_log
     "to" Varchar NOT NULL DEFAULT '',
     cc Varchar NOT NULL DEFAULT '',
     bcc Varchar NOT NULL DEFAULT '',
-    subject Varchar NOT NULL DEFAULT ''
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE
 );
 
 WITH decomm_config AS

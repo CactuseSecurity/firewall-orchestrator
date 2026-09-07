@@ -18,8 +18,10 @@ namespace FWO.Services
         /// <param name="ccs">Resolved Cc recipients.</param>
         /// <param name="bccs">Resolved Bcc recipients.</param>
         /// <param name="subject">Rendered subject.</param>
+        /// <param name="deadline">Resolved deadline timestamp.</param>
         public static async Task InsertAsync(ApiConnection apiConnection, FwoNotification notification,
-            IEnumerable<string> tos, IEnumerable<string>? ccs, IEnumerable<string>? bccs, string subject)
+            IEnumerable<string> tos, IEnumerable<string>? ccs, IEnumerable<string>? bccs, string subject,
+            DateTimeOffset? deadline = null)
         {
             NotificationLogEntry entry = new()
             {
@@ -29,7 +31,9 @@ namespace FWO.Services
                 To = string.Join(", ", tos),
                 Cc = string.Join(", ", ccs ?? []),
                 Bcc = string.Join(", ", bccs ?? []),
-                Subject = subject
+                Subject = subject,
+                DeadlineType = notification.Deadline,
+                Deadline = deadline
             };
 
             await apiConnection.SendQueryAsync<object>(NotificationQueries.insertNotificationLog,

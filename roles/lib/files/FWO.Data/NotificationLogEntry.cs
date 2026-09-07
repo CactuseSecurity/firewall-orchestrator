@@ -28,5 +28,11 @@ namespace FWO.Data
 
         [JsonProperty("subject"), JsonPropertyName("subject")]
         public string Subject { get; set; } = "";
+
+        [JsonProperty("deadline_type"), JsonPropertyName("deadline_type")]
+        public NotificationDeadline DeadlineType { get; set; } = NotificationDeadline.None;
+
+        [JsonProperty("deadline"), JsonPropertyName("deadline")]
+        public DateTimeOffset? Deadline { get; set; }
     }
 }

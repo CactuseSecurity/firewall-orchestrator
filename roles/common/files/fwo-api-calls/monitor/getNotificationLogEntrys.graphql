@@ -7,5 +7,7 @@ query getNotificationLogEntrys {
     cc
     bcc
     subject
+    deadline_type
+    deadline
   }
 }

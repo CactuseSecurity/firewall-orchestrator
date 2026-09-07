@@ -135,7 +135,7 @@ namespace FWO.Services.Workflow
                 ? FlowHashGenerator.GenerateNwObjectHash(ipStart, ipEnd)
                 : FlowHashGenerator.GenerateRandomHash();
             FlowNwObject? existingObject = isTechnical
-                ? FindNetworkObjectByHash(hash, context)
+                ? FindNetworkObjectByHash(hash, context) ?? FindNetworkObjectByRange(ipStart, ipEnd, context)
                 : FindReusableNetworkObject(name, context);
             if (existingObject != null)
             {
@@ -200,6 +200,26 @@ namespace FWO.Services.Workflow
         private static FlowNwObject? FindNetworkObjectByHash(string hash, FlowSyncFlowData context)
         {
             return context.NwObjects.TryGetValue(hash, out FlowNwObject? existingObject) ? existingObject : null;
+        }
+
+        /// <summary>
+        /// Finds the Flow network object covering exactly this range, for the case where its stored hash is not
+        /// the one its endpoints produce today. That happens between an upgrade which rewrote the endpoints of an
+        /// object and the flow sync which repairs its hash afterwards. Without this fallback the range would be
+        /// inserted a second time, and the repair would then find two objects recalculating to one hash and refuse
+        /// to resolve them. The state of the object is deliberately not considered, so that the fallback selects
+        /// exactly what the hash lookup it stands in for would have selected.
+        /// </summary>
+        /// <param name="ipStart">The address opening the range, in the notation it is stored in.</param>
+        /// <param name="ipEnd">The address closing the range, in the notation it is stored in.</param>
+        /// <param name="context">Flow data of the management the object belongs to.</param>
+        private static FlowNwObject? FindNetworkObjectByRange(string? ipStart, string? ipEnd, FlowSyncFlowData context)
+        {
+            return context.NwObjects.Values
+                .Where(flowObject => string.Equals(flowObject.IpStart, ipStart, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(flowObject.IpEnd, ipEnd, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(flowObject => flowObject.Id)
+                .FirstOrDefault();
         }
 
         /// <summary>

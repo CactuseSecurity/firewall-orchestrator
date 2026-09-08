@@ -15,6 +15,12 @@ public sealed class GetAddressGroupsRequest : IVisibleInRequestFilterRequest
     public VisibleInRequestFilter? Filter { get; set; }
 
     /// <summary>
+    /// Gets the Option value.
+    /// </summary>
+    [JsonPropertyName("option")]
+    public AddressGroupsOption? Option { get; set; }
+
+    /// <summary>
     /// Gets the AdditionalData value.
     /// </summary>
     [JsonExtensionData]

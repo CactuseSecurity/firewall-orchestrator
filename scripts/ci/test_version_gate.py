@@ -564,8 +564,23 @@ class TestUpgradeFileSelection:
         verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.4.7.sql"], [])
         assert verdict.ok
 
-    def test_deleted_file_is_not_reported_as_unreachable(self) -> None:
+    def test_deleted_file_fails(self) -> None:
+        # An installation older than 9.4.6 can no longer run those operations, and the upgrade
+        # play reports nothing, see F27.
         verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], ["9.4.6.sql"])
+        assert not verdict.ok
+        assert "9.4.6.sql is deleted" in verdict.reason
+        assert "put any correction in 9.4.7.sql" in verdict.reason
+
+    def test_moved_file_fails_as_a_deletion(self) -> None:
+        # The shell takes the diff without rename detection, so a moved script arrives as its
+        # old name plus its new one.
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], ["9.4.6.sql", "9.4.7.sql"])
+        assert not verdict.ok
+        assert "9.4.6.sql is deleted" in verdict.reason
+
+    def test_non_sql_file_removed_from_the_directory_is_left_alone(self) -> None:
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], ["README.md"])
         assert verdict.ok
 
     def test_zero_padded_name_the_pull_request_adds_fails(self) -> None:

@@ -77,7 +77,9 @@ git diff --unified=0 refs/fwo/base refs/fwo/pr-merge -- documentation/revision-h
 upgrade_dir="roles/database/files/upgrade"
 git ls-tree --name-only refs/fwo/pr-merge -- "${upgrade_dir}/" \
     | sed "s#^${upgrade_dir}/##" >"${work_dir}/merged-upgrade-files.txt"
-git diff --name-only refs/fwo/base refs/fwo/pr-merge -- "${upgrade_dir}" \
+# --no-renames on purpose: moving a released upgrade script is a deletion for the rules below,
+# and rename detection would report only the new name.
+git diff --no-renames --name-only refs/fwo/base refs/fwo/pr-merge -- "${upgrade_dir}" \
     | sed "s#^${upgrade_dir}/##" >"${work_dir}/changed-upgrade-files.txt"
 
 changed_paths="$(git diff --name-only refs/fwo/base refs/fwo/pr-merge)"

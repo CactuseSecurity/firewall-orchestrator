@@ -301,6 +301,14 @@ def non_canonical_upgrade_files(file_names: list[str]) -> list[str]:
     )
 
 
+def deleted_upgrade_files(changed_upgrade_files: list[str], merged_upgrade_files: list[str]) -> list[str]:
+    """Return the upgrade scripts the pull request removes from the merge result."""
+    remaining = set(merged_upgrade_files)
+    return sorted(
+        file_name for file_name in changed_upgrade_files if file_name.endswith(".sql") and file_name not in remaining
+    )
+
+
 def upgrade_files_above_version(file_names: list[str], version: tuple[int, int, int]) -> list[str]:
     """Return the upgrade files named above a version, which the upgrade play never selects."""
     return sorted(
@@ -341,6 +349,10 @@ def evaluate_upgrade_files(
     which is why versioning.md forbids modifying the upgrade script of an older version. Files
     the pull request deletes drop out, as they are not in the merge result.
 
+    An upgrade script the pull request removes is refused as well: an installation older than
+    its version can no longer run those operations, and the upgrade play reports nothing. The
+    diff is taken without rename detection, so moving a released script counts as removing it.
+
     A name the play reads as a version but this gate does not, such as the zero-padded
     9.4.07.sql, is refused outright rather than interpreted: the play compares it loosely and
     would place it at 9.4.7, so leaving it unjudged hides exactly the two silent cases above.
@@ -365,6 +377,17 @@ def evaluate_upgrade_files(
                 f"upgrade file {', '.join(above_product_version)} is above product_version "
                 f"{merged_version} and would never run. Raise product_version in "
                 f"inventory/group_vars/all.yml or rename the file."
+            ),
+        )
+
+    deleted = deleted_upgrade_files(changed_upgrade_files, merged_upgrade_files)
+    if deleted:
+        return Verdict(
+            ok=False,
+            reason=(
+                f"upgrade file {', '.join(deleted)} is deleted, so an installation older than that "
+                f"version can no longer run it. Upgrade scripts stay as they were released; put "
+                f"any correction in {merged_version}.sql."
             ),
         )
 

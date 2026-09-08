@@ -110,8 +110,10 @@ components - `9.4.07.sql` is refused, because the upgrade play would read it as
 roles/database/files/upgrade/9.3.0.sql
 ```
 
-Do not modify upgrade scripts belonging to older versions - the version gate refuses a pull
-request that adds or modifies a script named below the version the base branch carries. Every
+Do not modify or delete upgrade scripts belonging to older versions - the version gate refuses a
+pull request that adds or modifies a script named below the version the base branch carries, and
+refuses one that removes an upgrade script at all, because every installation older than that
+script would lose its operations. Every
 new upgrade operation must be safe to execute repeatedly. Use guards such as
 `IF NOT EXISTS` or `ON CONFLICT DO NOTHING` where appropriate.
 

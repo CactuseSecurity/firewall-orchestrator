@@ -16,6 +16,9 @@ VERSION_GATE_PATH = Path(__file__).with_name("version_gate.py")
 BASE_CONFIGURATION = 'product_version: "9.4.5"\n'
 MERGED_CONFIGURATION = 'product_version: "9.4.6"\n'
 MOCKED_COMMAND_FAILURE_EXIT = 23
+UPGRADE_DIRECTORY = "roles/database/files/upgrade"
+# Present on the base branch of every fixture, so a test can delete it the way a pull request would.
+RELEASED_UPGRADE_FILE = "9.4.3.sql"
 REVISION_HISTORY = """# Revision history
 
 ## 9.4.5 - 01.09.2026
@@ -85,6 +88,9 @@ def create_repository(
     implementation.mkdir(parents=True)
     (inventory / "all.yml").write_text(BASE_CONFIGURATION, encoding="utf-8")
     (documentation / "revision-history.md").write_text(REVISION_HISTORY, encoding="utf-8")
+    released_upgrade_file = repository / UPGRADE_DIRECTORY / RELEASED_UPGRADE_FILE
+    released_upgrade_file.parent.mkdir(parents=True)
+    released_upgrade_file.write_text("-- released upgrade\n", encoding="utf-8")
     shutil.copy2(VERSION_GATE_PATH, implementation / "version_gate.py")
     if agents_pointer_change:
         (repository / ".agents").write_text("old pointer\n", encoding="utf-8")
@@ -100,9 +106,7 @@ def create_repository(
         (inventory / "all.yml").write_text(MERGED_CONFIGURATION, encoding="utf-8")
         (documentation / "revision-history.md").write_text(merged_revision_history, encoding="utf-8")
         if added_upgrade_file is not None:
-            upgrade_directory = repository / "roles" / "database" / "files" / "upgrade"
-            upgrade_directory.mkdir(parents=True, exist_ok=True)
-            (upgrade_directory / added_upgrade_file).write_text("-- test upgrade\n", encoding="utf-8")
+            (repository / UPGRADE_DIRECTORY / added_upgrade_file).write_text("-- test upgrade\n", encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
     if agents_pointer_change:
@@ -249,6 +253,20 @@ def test_failing_upgrade_listing_fails_the_gate(tmp_path: Path, monkeypatch: pyt
 
     assert completed.returncode != 0
     assert "Version gate passed" not in completed.stdout
+
+
+def test_deleting_a_released_upgrade_file_fails(tmp_path: Path) -> None:
+    """A released upgrade script must stay: without it an older installation loses those steps."""
+    repository = create_repository(tmp_path)
+    (repository / UPGRADE_DIRECTORY / RELEASED_UPGRADE_FILE).unlink()
+    run_git(repository, ["add", "-A"])
+    run_git(repository, ["commit", "-m", "drop a released upgrade file"])
+    run_git(repository, ["push", "--force", "origin", "HEAD:refs/pull/42/merge"])
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert f"{RELEASED_UPGRADE_FILE} is deleted" in completed.stderr
 
 
 def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:

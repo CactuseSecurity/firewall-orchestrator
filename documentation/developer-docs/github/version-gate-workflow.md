@@ -67,6 +67,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
 | any | every upgrade file the pull request adds or modifies carries a plain `major.minor.patch` name | fails otherwise: name it `V.sql` |
+| any | the pull request deletes no upgrade file | fails otherwise: correct it in `V.sql` instead |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
 | non-automated, section opened | that new final section is not empty | fails otherwise |
@@ -117,14 +118,19 @@ Ansible's loose comparison places at `9.4.7` - is refused rather than interprete
 it unjudged is what lets it slip past both rules above. Only files the pull request touches are
 held to that, so the padded names carried over from the 5.1 releases stay as they are.
 
+An upgrade script the pull request removes is refused too: every installation older than that
+script's version loses those operations, and the upgrade play says nothing about it. The diff is
+taken with `--no-renames`, so moving a released script is a deletion here rather than a rename
+that shows only its new name.
+
 The rules differ in what they look at. The above-`V` rule judges every upgrade file in the merge
 result, because any of them being unreachable is a fact about the merge result rather than about
 this pull request. The below-`P` and naming rules judge only the files the pull request adds or
 modifies: appending statements to an older script strands them exactly as adding one does, which
 comparing name listings cannot see, while a script the pull request leaves alone must keep its
-name rather than be renamed by whoever touches the directory next. Scripts the pull request
-deletes are judged by neither, as they are not in the merge result, and names that do not carry a
-version at all are left to the upgrade play.
+name rather than be renamed by whoever touches the directory next. Names that do not carry a
+version at all are left to the upgrade play, and a non-`.sql` file removed from the directory is
+not treated as a deleted upgrade script.
 
 The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
 author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for

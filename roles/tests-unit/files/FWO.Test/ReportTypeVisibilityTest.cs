@@ -139,6 +139,7 @@ namespace FWO.Test
         public void CanUseReportType_InheritedMatchesStandardCategoryRules()
         {
             UserConfig userConfig = BuildUserConfig(Roles.Modeller);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType> { ReportType.Rules, ReportType.Connections });
             userConfig.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(new()
             {
                 [Roles.Modeller] = new() { [ReportType.Rules] = ReportTypeVisibilityOption.Inherited }
@@ -146,6 +147,41 @@ namespace FWO.Test
 
             Assert.That(userConfig.CanUseReportType(ReportType.Rules), Is.False);
             Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.True);
+        }
+
+        [Test]
+        public void CanUseReportType_InheritedIsHiddenWhenNotGloballyAvailable()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Modeller);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType>());
+
+            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.False);
+        }
+
+        [Test]
+        public void CanUseReportType_ExplicitVisibleOverridesGloballyDisabledReportType()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Modeller);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType>());
+            userConfig.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(new()
+            {
+                [Roles.Modeller] = new() { [ReportType.Connections] = ReportTypeVisibilityOption.Visible }
+            });
+
+            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.True);
+        }
+
+        [Test]
+        public void CanUseReportType_ExplicitNotVisibleOverridesGloballyEnabledReportType()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Modeller);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType> { ReportType.Connections });
+            userConfig.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(new()
+            {
+                [Roles.Modeller] = new() { [ReportType.Connections] = ReportTypeVisibilityOption.NotVisible }
+            });
+
+            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.False);
         }
 
         [Test]

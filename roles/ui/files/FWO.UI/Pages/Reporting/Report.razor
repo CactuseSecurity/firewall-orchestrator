@@ -8,7 +8,6 @@
 @using FWO.Ui.Pages.Reporting.Reports
 @using FWO.Services.RuleTreeBuilder
 @using System.Diagnostics
-@using System.Text.Json
 
 @page "/report/generation/{appId?}"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
@@ -392,9 +391,11 @@
         try
         {
 
+            // Build the chooser from the complete report-type set and let CanUseReportType (which combines
+            // global availability with the per-role tri-state) decide what is selectable - a report type
+            // removed from the global list must still be reachable via an explicit per-role "Visible" override.
             availableReportTypes = ReportTypeGroups.CustomSortReportType(
-                [.. (JsonSerializer.Deserialize<List<ReportType>>(string.IsNullOrEmpty(userConfig.AvailableReportTypes) ? "[]" : userConfig.AvailableReportTypes)
-                ?? throw new JsonException("Config data could not be parsed.")).Where(IsSelectableReportType)],
+                [.. ReportTypeGroups.AllReportTypes().Where(IsSelectableReportType)],
                 reportVisibility, filterByVisibility: false);
             int? parsedAppId = int.TryParse(AppId, out int appId) ? appId : null;
             if(parsedAppId != null)

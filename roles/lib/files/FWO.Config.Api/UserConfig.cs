@@ -208,9 +208,12 @@ namespace FWO.Config.Api
         }
 
         /// <summary>
-        /// Determines whether the current user may see/use the given report type, honouring any
-        /// per-role "Visible"/"Not Visible" override configured in <see cref="ConfigData.ReportTypeVisibilityByRole"/>
-        /// before falling back to the standard role-category visibility rules.
+        /// Central visibility decision for report types: combines the global on/off switch
+        /// (<see cref="ConfigData.AvailableReportTypes"/>) with any per-role "Visible"/"Not Visible" override
+        /// configured in <see cref="ConfigData.ReportTypeVisibilityByRole"/>. An explicit per-role override
+        /// always wins - it can reinstate a report type that was disabled globally, or hide one that wasn't.
+        /// Only when the role's setting is "Inherited" does the global switch act as the fallback, alongside
+        /// the standard role-category visibility rules.
         /// </summary>
         public bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed = true)
         {
@@ -226,7 +229,8 @@ namespace FWO.Config.Api
             }
 
             Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
-            return applicableRoles.Any(role => IsReportTypeVisibleForRole(reportType, role, overrides, modellingOwnerAllowed));
+            bool globallyAvailable = ParseAvailableReportTypes().Contains(reportType);
+            return applicableRoles.Any(role => IsReportTypeVisibleForRole(reportType, role, overrides, modellingOwnerAllowed, globallyAvailable));
         }
 
         /// <summary>
@@ -271,18 +275,53 @@ namespace FWO.Config.Api
         }
 
         private static bool IsReportTypeVisibleForRole(ReportType reportType, string role,
-            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides, bool modellingOwnerAllowed)
+            Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides, bool modellingOwnerAllowed,
+            bool globallyAvailable)
         {
             ReportTypeVisibilityOption option = ReportTypeRoleVisibilityConfig.GetOption(overrides, role, reportType);
             return option switch
             {
-                // An explicit "Visible" override only overrides the coarse-grained role-category
-                // visibility rules; it must not bypass the per-instance modelling-owner scoping check.
+                // An explicit "Visible" override wins over both the global switch and the coarse-grained
+                // role-category visibility rules; it must not bypass the per-instance modelling-owner scoping check.
                 ReportTypeVisibilityOption.Visible =>
                     modellingOwnerAllowed || !reportType.IsModellingReport() || reportType.IsOwnerReport(),
                 ReportTypeVisibilityOption.NotVisible => false,
-                _ => reportType.IsVisibleTemplateType(ReportVisibilityRoleSets.ForRole(role), modellingOwnerAllowed)
+                _ => globallyAvailable && reportType.IsVisibleTemplateType(ReportVisibilityRoleSets.ForRole(role), modellingOwnerAllowed)
             };
+        }
+
+        private string? cachedAvailableReportTypesRaw;
+        private HashSet<ReportType> cachedAvailableReportTypes = [];
+
+        /// <summary>
+        /// Parses <see cref="ConfigData.AvailableReportTypes"/>, memoizing the result against the raw config
+        /// string the same way <see cref="ParseReportTypeVisibilityByRole"/> does. Malformed config data is
+        /// treated as "nothing globally available" rather than throwing, since this now runs on every
+        /// <see cref="CanUseReportType"/> call.
+        /// </summary>
+        private HashSet<ReportType> ParseAvailableReportTypes()
+        {
+            if (cachedAvailableReportTypesRaw != AvailableReportTypes)
+            {
+                cachedAvailableReportTypesRaw = AvailableReportTypes;
+                cachedAvailableReportTypes = [];
+                if (!string.IsNullOrWhiteSpace(AvailableReportTypes))
+                {
+                    try
+                    {
+                        List<ReportType>? parsed = System.Text.Json.JsonSerializer.Deserialize<List<ReportType>>(AvailableReportTypes);
+                        if (parsed != null)
+                        {
+                            cachedAvailableReportTypes = [.. parsed];
+                        }
+                    }
+                    catch (System.Text.Json.JsonException)
+                    {
+                        // Keep the empty set computed above.
+                    }
+                }
+            }
+            return cachedAvailableReportTypes;
         }
 
         public override string GetText(string key)

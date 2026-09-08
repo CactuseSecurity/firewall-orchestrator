@@ -10,6 +10,8 @@ namespace FWO.Test
     internal class ApiConnectionRoleScopeExtensionsTest
     {
         private static readonly List<string> AppRulesRoles = [Roles.Admin, Roles.Modeller, Roles.Recertifier, Roles.Auditor];
+        private static readonly List<string> DeniedAdminAndFwAdminRoles = [Roles.Admin, Roles.FwAdmin];
+        private static readonly List<string> DeniedModellerRole = [Roles.Modeller];
 
         [Test]
         public async Task RunWithNamedRoleScopeUsesExpectedRoles()
@@ -74,7 +76,7 @@ namespace FWO.Test
             TrackingApiConnection connection = new();
             ClaimsPrincipal user = CreateUser(Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter, Roles.Recertifier, Roles.Auditor);
 
-            connection.SetBestRoleForReport(user, ReportType.Rules, [Roles.Admin, Roles.FwAdmin]);
+            connection.SetBestRoleForReport(user, ReportType.Rules, DeniedAdminAndFwAdminRoles);
 
             Assert.That(connection.LastTargetRoles, Is.EqualTo(new List<string>
             {
@@ -93,7 +95,7 @@ namespace FWO.Test
                 Assert.That(connection.ActiveRole, Is.EqualTo(Roles.Recertifier));
                 await Task.CompletedTask;
                 return true;
-            }, [Roles.Modeller]);
+            }, DeniedModellerRole);
 
             Assert.That(connection.LastTargetRoles, Is.EqualTo(new List<string> { Roles.Admin, Roles.Recertifier, Roles.Auditor }));
             Assert.That(connection.ActiveRole, Is.Empty);

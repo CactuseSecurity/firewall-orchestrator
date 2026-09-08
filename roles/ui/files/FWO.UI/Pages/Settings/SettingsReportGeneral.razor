@@ -91,7 +91,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(new[] { ReportType.Undefined }))
+                @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
@@ -120,7 +120,7 @@
                     </div>
                     @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))
                     {
-                        @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(new[] { ReportType.Undefined }))
+                        @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                         {
                             <div class="form-group row col-sm-12 mt-1">
                                 <label class="col-form-label col-sm-4">@(userConfig.GetText(type.ToString()))</label>
@@ -197,6 +197,8 @@ else
     /// transient LDAP failure would wipe out all previously saved overrides on the next unrelated Save.
     /// </summary>
     private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> savedReportTypeVisibilityByRole = [];
+
+    private static readonly ReportType[] ExcludedReportTypesForSelection = [ReportType.Undefined];
 
     protected override async Task OnInitializedAsync()
     {

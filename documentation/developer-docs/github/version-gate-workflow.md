@@ -178,8 +178,14 @@ gh api ".../workflows/version-gate.yml/runs?event=pull_request_target&head_sha=$
 ```
 
 Filtering server-side keeps refresh cost bounded by the number of open pull requests rather than
-the workflow's complete historical run count. Runs that are not yet `completed` are left alone,
-because they will report a fresh result on their own.
+the workflow's complete historical run count.
+
+A run that is still `queued` or `in_progress` is not left alone. Nothing orders a gate run against
+the push or tag that starts this refresh, so such a run may already have fetched the old base ref
+or read the tag list before the seal, and no later event would re-run it. The refresh waits for it
+(`RUN_WAIT_ATTEMPTS` polls, `RUN_WAIT_SECONDS` apart) and then re-runs it like any completed run.
+If it has not finished by then, that pull request is counted as unrefreshed and the job fails,
+rather than its result being taken as fresh.
 
 The open pull request query is capped at 200 entries, which bounds the cost of the refresh loop.
 Reaching that cap is accepted rather than treated as a failure: the job stays green and warns with

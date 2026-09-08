@@ -16,6 +16,7 @@ FAST_FORWARD_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "fast-forward-main-to-release-
 TRIGGER_STEP_NAME = "Decide whether open pull request gates need refresh"
 RERUN_STEP_NAME = "Re-run the version gate for every open pull request"
 PULL_REQUEST_LIMIT = 200
+RUN_WAIT_ATTEMPTS = 3
 SCRIPT_INDENT = " " * 10
 
 
@@ -52,6 +53,7 @@ def execute_refresh_loop(
     workflow_runs: tuple[tuple[str, int, str], ...] = (),
     failed_run_ids: tuple[int, ...] = (),
     failed_run_lookup_shas: tuple[str, ...] = (),
+    run_status_sequence: tuple[str, ...] = ("completed",),
     pull_request_count: int | None = None,
     open_pull_request_total: int | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
@@ -71,6 +73,11 @@ elif [ "$1" = "api" ] && [ "$2" = "graphql" ]; then
         exit 1
     fi
     printf '%s\n' "$MOCK_OPEN_PR_TOTAL"
+elif [ "$1" = "api" ] && [ "${2#*/actions/runs/}" != "$2" ]; then
+    attempt="$(cat "$MOCK_STATUS_CALLS" 2>/dev/null || echo 0)"
+    printf '%s\n' "$((attempt + 1))" > "$MOCK_STATUS_CALLS"
+    printf '%s\n' "$MOCK_RUN_STATUS_SEQUENCE" | cut -d ' ' -f "$((attempt + 1))" | grep . ||
+        printf '%s\n' "$MOCK_RUN_STATUS_SEQUENCE" | awk '{print $NF}'
 elif [ "$1" = "api" ]; then
     request="$2"
     printf '%s\n' "$request" >> "$MOCK_API_LOG"
@@ -118,6 +125,10 @@ exit 0
             "MOCK_API_LOG": str(api_log),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
+            "MOCK_RUN_STATUS_SEQUENCE": " ".join(run_status_sequence),
+            "MOCK_STATUS_CALLS": str(tmp_path / "status-calls"),
+            "RUN_WAIT_ATTEMPTS": str(RUN_WAIT_ATTEMPTS),
+            "RUN_WAIT_SECONDS": "0",
             "MOCK_OPEN_PR_TOTAL": "" if open_pull_request_total is None else str(open_pull_request_total),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
             "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
@@ -266,17 +277,34 @@ def test_completed_run_for_matching_head_sha_is_rerun(tmp_path: Path) -> None:
     assert "event=pull_request_target&head_sha=head-a&per_page=1" in api_request
 
 
-def test_in_progress_run_is_left_to_finish(tmp_path: Path) -> None:
-    """Do not restart a matching run that is already producing a fresh result."""
+def test_in_progress_run_is_awaited_and_then_rerun(tmp_path: Path) -> None:
+    """A run started before this refresh may carry a stale verdict, so re-run it as well."""
     completed, rerun_ids = execute_refresh_loop(
         tmp_path,
         pull_requests=((43, "head-b"),),
         workflow_runs=(("head-b", 901, "in_progress"),),
+        run_status_sequence=("in_progress", "completed"),
     )
 
     assert completed.returncode == 0
+    assert rerun_ids == ["901"]
+    assert "run 901 is in_progress, waiting for it to finish" in completed.stdout
+    assert "PR #43: re-running version gate run 901." in completed.stdout
+
+
+def test_run_that_never_finishes_counts_as_unrefreshed(tmp_path: Path) -> None:
+    """Give up loudly rather than declare a still-running gate result fresh."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((43, "head-b"),),
+        workflow_runs=(("head-b", 901, "queued"),),
+        run_status_sequence=("queued",),
+    )
+
+    assert completed.returncode == 1
     assert rerun_ids == []
-    assert "run 901 is in_progress, it will report a fresh result on its own" in completed.stdout
+    assert "run 901 is still queued, its result may predate this refresh." in completed.stderr
+    assert "Could not refresh the version gate for 1 pull request(s)." in completed.stderr
 
 
 def test_unmatched_pull_requests_are_accumulated_and_fail(tmp_path: Path) -> None:

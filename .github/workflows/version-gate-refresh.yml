@@ -30,6 +30,9 @@ env:
   BASE_BRANCH: develop
   GATE_WORKFLOW: version-gate.yml
   PULL_REQUEST_LIMIT: 200
+  # Bounded wait for a gate run that is still running when the refresh starts, see below.
+  RUN_WAIT_SECONDS: 15
+  RUN_WAIT_ATTEMPTS: 20
 
 jobs:
   refresh-open-prs:
@@ -130,8 +133,23 @@ jobs:
 
             run_id="$(cut -f1 <<<"$run_line")"
             run_status="$(cut -f2 <<<"$run_line")"
+
+            # A run that is still going may have read the base ref or the tag list before the
+            # push or tag that started this refresh, and nothing would re-run it afterwards.
+            # Wait for it and re-run it like any other, rather than trust it to be fresh.
+            attempt=0
+            while [[ "$run_status" != "completed" && "$attempt" -lt "$RUN_WAIT_ATTEMPTS" ]]; do
+              echo "PR #${number}: run ${run_id} is ${run_status}, waiting for it to finish."
+              sleep "$RUN_WAIT_SECONDS"
+              attempt=$((attempt + 1))
+              if ! run_status="$(gh api "repos/${GH_REPO}/actions/runs/${run_id}" --jq '.status')"; then
+                echo "PR #${number}: could not read the status of run ${run_id}." >&2
+                break
+              fi
+            done
             if [[ "$run_status" != "completed" ]]; then
-              echo "PR #${number}: run ${run_id} is ${run_status}, it will report a fresh result on its own."
+              echo "PR #${number}: run ${run_id} is still ${run_status}, its result may predate this refresh." >&2
+              unrefreshed=$((unrefreshed + 1))
               continue
             fi
 

@@ -647,6 +647,7 @@ Not supported any longer are:
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
+- general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 
 ## 9.4.7 - 04.09.2026
 - centralize modelling and workflow change history in the public schema. The modelling change history table moves from modelling.change_history to public.change_history, so the GraphQL root field is renamed from modelling_change_history to change_history. Scripts and external integrations querying the old field name have to be adapted. Existing entries are migrated, the modelling history views are unaffected and continue to show modelling changes only.

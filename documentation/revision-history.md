@@ -648,6 +648,16 @@ Not supported any longer are:
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
+
+## 9.4.7 - 07.09.2026
+- enforce host-address masks for flow network-object range endpoints
+- require both endpoints of a flow network-object range to be of the same address family
+- store the range endpoints of flow network objects created from a request in CIDR notation
+- widen a requested network endpoint to the first and the last host address of that network
+- name the refused addresses in the message of a failed flow creation
+- normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- warn during the upgrade about flow network objects sharing a range, they have to be merged manually
+- stop the upgrade and name the affected flow network objects when their endpoints mix address families
 - Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
 - The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version
 - The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named below the version the base branch already carries is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, and existing scripts must not be modified or deleted

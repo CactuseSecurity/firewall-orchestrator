@@ -28,6 +28,7 @@ from scripts.ci.version_gate import (
     parse_product_version,
     parse_unified_diff,
     parse_version,
+    read_names,
     read_tags,
     read_version,
     revision_history_has_final_section_addition,
@@ -717,6 +718,17 @@ class TestVerdict:
 
 
 class TestInputHandling:
+    def test_read_names_splits_on_nul_and_keeps_awkward_names(self, tmp_path: Path) -> None:
+        # Git is asked for NUL separated listings so that a non-ASCII byte, a tab or a space
+        # reaches the rules as itself instead of a C-quoted path, see F38.
+        listing = tmp_path / "upgrade-files.txt"
+        listing.write_text("9.4.6.sql\x009.4.5ä.sql\x00tab\tx.sql\x00 spaced .sql\x00", encoding="utf-8")
+
+        assert read_names(str(listing)) == ["9.4.6.sql", "9.4.5ä.sql", "tab\tx.sql", " spaced .sql"]
+
+    def test_read_names_without_a_file_is_empty(self) -> None:
+        assert read_names(None) == []
+
     def test_read_version_prefers_the_literal(self) -> None:
         assert read_version(" 9.4.6 ", None) == "9.4.6"
 

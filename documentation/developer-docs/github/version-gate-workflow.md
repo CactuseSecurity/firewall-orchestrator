@@ -120,7 +120,9 @@ not a label this gate could ignore: a padded `9.4.07.sql` lands at `9.4.7` for t
 this gate reads no version at all, a patchless `9.0.sql` is read differently by each,
 `readme.sql` makes Ansible's comparison fail outright, and a script in a subdirectory is never
 globbed. Both upgrade inputs are read recursively so that such a script is judged on its name
-rather than mistaken for one the pull request deleted. Only touched files are held to this, so
+rather than mistaken for one the pull request deleted, and NUL separated so that a name git
+would C-quote - anything holding a non-ASCII byte or a control character - reaches the rules as
+itself rather than as a quoted path that matches none of them. Only touched files are held to this, so
 the thirteen patchless and padded names this repository carries from its 5.1 to 9.3 releases
 stay as they are.
 

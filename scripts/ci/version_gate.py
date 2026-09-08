@@ -566,11 +566,18 @@ def read_tags(file_path: str | None) -> list[str]:
 
 
 def read_names(file_path: str | None) -> list[str]:
-    """Read newline separated file names, or none when no file is given."""
+    """
+    Read NUL separated file names, or none when no file is given.
+
+    The listings are asked of git NUL separated because it otherwise C-quotes any path
+    holding a non-ASCII byte or a control character, and a quoted path carries neither the
+    trailing '.sql' nor the version the upgrade rules judge it by. Names are taken verbatim,
+    so a leading or trailing space in one stays part of it.
+    """
     if file_path is None:
         return []
     text = Path(file_path).read_text(encoding="utf-8")
-    return [line.strip() for line in text.splitlines() if line.strip()]
+    return [name for name in text.split("\0") if name]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -597,11 +604,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     gate.add_argument(
         "--upgrade-files",
-        help="newline separated names of roles/database/files/upgrade on refs/pull/<n>/merge",
+        help="NUL separated names of roles/database/files/upgrade on refs/pull/<n>/merge",
     )
     gate.add_argument(
         "--changed-upgrade-files",
-        help="newline separated names in roles/database/files/upgrade the pull request adds or modifies",
+        help="NUL separated names in roles/database/files/upgrade the pull request adds or modifies",
     )
     gate.add_argument("--tags-file", help=tags_help)
 

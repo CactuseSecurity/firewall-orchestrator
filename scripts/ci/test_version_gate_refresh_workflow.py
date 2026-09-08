@@ -16,7 +16,10 @@ FAST_FORWARD_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "fast-forward-main-to-release-
 TRIGGER_STEP_NAME = "Decide whether open pull request gates need refresh"
 RERUN_STEP_NAME = "Re-run the version gate for every open pull request"
 PULL_REQUEST_LIMIT = 200
-RUN_WAIT_ATTEMPTS = 3
+# The fake clock advances by this much per call, so the loop's deadline is reached after one
+# wait rather than after real seconds.
+CLOCK_STEP_SECONDS = 5
+RUN_WAIT_BUDGET_SECONDS = 10
 SCRIPT_INDENT = " " * 10
 
 
@@ -102,6 +105,14 @@ exit 0
 """,
     )
     write_executable(
+        fake_bin / "date",
+        """#!/bin/sh
+now="$(cat "$MOCK_CLOCK" 2>/dev/null || echo 1000)"
+printf '%s\n' "$((now + MOCK_CLOCK_STEP))" > "$MOCK_CLOCK"
+printf '%s\n' "$now"
+""",
+    )
+    write_executable(
         fake_bin / "jq",
         """#!/bin/sh
 if [ "$1" = "length" ]; then
@@ -127,7 +138,9 @@ exit 0
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
             "MOCK_RUN_STATUS_SEQUENCE": " ".join(run_status_sequence),
             "MOCK_STATUS_CALLS": str(tmp_path / "status-calls"),
-            "RUN_WAIT_ATTEMPTS": str(RUN_WAIT_ATTEMPTS),
+            "MOCK_CLOCK": str(tmp_path / "clock"),
+            "MOCK_CLOCK_STEP": str(CLOCK_STEP_SECONDS),
+            "RUN_WAIT_BUDGET_SECONDS": str(RUN_WAIT_BUDGET_SECONDS),
             "RUN_WAIT_SECONDS": "0",
             "MOCK_OPEN_PR_TOTAL": "" if open_pull_request_total is None else str(open_pull_request_total),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
@@ -283,7 +296,7 @@ def test_in_progress_run_is_awaited_and_then_rerun(tmp_path: Path) -> None:
         tmp_path,
         pull_requests=((43, "head-b"),),
         workflow_runs=(("head-b", 901, "in_progress"),),
-        run_status_sequence=("in_progress", "completed"),
+        run_status_sequence=("completed",),
     )
 
     assert completed.returncode == 0
@@ -305,6 +318,25 @@ def test_run_that_never_finishes_counts_as_unrefreshed(tmp_path: Path) -> None:
     assert rerun_ids == []
     assert "run 901 is still queued, its result may predate this refresh." in completed.stderr
     assert "Could not refresh the version gate for 1 pull request(s)." in completed.stderr
+
+
+def test_wait_budget_is_shared_by_the_whole_loop(tmp_path: Path) -> None:
+    """One pull request waiting must not buy the next one its own wait, see F37."""
+    completed, rerun_ids = execute_refresh_loop(
+        tmp_path,
+        pull_requests=((43, "head-b"), (44, "head-c"), (45, "head-d")),
+        workflow_runs=(("head-b", 901, "queued"), ("head-c", 902, "queued"), ("head-d", 903, "completed")),
+        run_status_sequence=("queued",),
+    )
+
+    # The budget covers one wait, so only the first pull request is waited for; the second is
+    # counted at once and the third, whose run is complete, is still re-run.
+    assert completed.stdout.count("waiting for it to finish") == 1
+    assert rerun_ids == ["903"]
+    assert "run 901 is still queued" in completed.stderr
+    assert "run 902 is still queued" in completed.stderr
+    assert "Could not refresh the version gate for 2 pull request(s)." in completed.stderr
+    assert completed.returncode == 1
 
 
 def test_unmatched_pull_requests_are_accumulated_and_fail(tmp_path: Path) -> None:

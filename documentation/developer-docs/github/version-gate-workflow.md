@@ -185,10 +185,17 @@ the workflow's complete historical run count.
 
 A run that is still `queued` or `in_progress` is not left alone. Nothing orders a gate run against
 the push or tag that starts this refresh, so such a run may already have fetched the old base ref
-or read the tag list before the seal, and no later event would re-run it. The refresh waits for it
-(`RUN_WAIT_ATTEMPTS` polls, `RUN_WAIT_SECONDS` apart) and then re-runs it like any completed run.
-If it has not finished by then, that pull request is counted as unrefreshed and the job fails,
-rather than its result being taken as fresh.
+or read the tag list before the seal, and no later event would re-run it. The refresh polls it
+every `RUN_WAIT_SECONDS` and then re-runs it like any completed run. If it has not finished in
+time, that pull request is counted as unrefreshed and the job fails, rather than its result being
+taken as fresh.
+
+`RUN_WAIT_BUDGET_SECONDS` bounds that waiting for the **whole loop**, not per pull request: the
+loop is serial, so a per-pull-request budget would multiply by the number of open pull requests
+and could outlast the job limit - and a cancelled job is the one outcome this loop is built to
+avoid, because the pull requests it never reached would be neither refreshed nor named. Once the
+deadline passes, the remaining unfinished runs are counted and named in one pass, and pull
+requests whose run is already complete are still re-run.
 
 The open pull request query is capped at 200 entries, which bounds the cost of the refresh loop.
 Reaching that cap is accepted rather than treated as a failure: the job stays green and warns with

@@ -30,9 +30,10 @@ env:
   BASE_BRANCH: develop
   GATE_WORKFLOW: version-gate.yml
   PULL_REQUEST_LIMIT: 200
-  # Bounded wait for a gate run that is still running when the refresh starts, see below.
+  # Bounded wait for gate runs that are still running when the refresh starts, see below.
+  # The budget is for the whole loop, not per pull request.
   RUN_WAIT_SECONDS: 15
-  RUN_WAIT_ATTEMPTS: 20
+  RUN_WAIT_BUDGET_SECONDS: 300
 
 jobs:
   refresh-open-prs:
@@ -114,6 +115,11 @@ jobs:
           fi
 
           unrefreshed=0
+          # One deadline for the whole loop. The wait below is serial, so a per-pull-request
+          # budget would multiply by the number of open pull requests and could outlast the job
+          # limit, which is the one outcome this loop avoids: pull requests it never reached
+          # would be neither refreshed nor named. Past the deadline the rest is counted at once.
+          wait_deadline=$(($(date +%s) + RUN_WAIT_BUDGET_SECONDS))
           while read -r number head_sha; do
             # GitHub returns runs newest first. Filter server-side so refresh cost is
             # bounded by the open pull request count instead of all historical runs.
@@ -137,11 +143,9 @@ jobs:
             # A run that is still going may have read the base ref or the tag list before the
             # push or tag that started this refresh, and nothing would re-run it afterwards.
             # Wait for it and re-run it like any other, rather than trust it to be fresh.
-            attempt=0
-            while [[ "$run_status" != "completed" && "$attempt" -lt "$RUN_WAIT_ATTEMPTS" ]]; do
+            while [[ "$run_status" != "completed" && "$(date +%s)" -lt "$wait_deadline" ]]; do
               echo "PR #${number}: run ${run_id} is ${run_status}, waiting for it to finish."
               sleep "$RUN_WAIT_SECONDS"
-              attempt=$((attempt + 1))
               if ! run_status="$(gh api "repos/${GH_REPO}/actions/runs/${run_id}" --jq '.status')"; then
                 echo "PR #${number}: could not read the status of run ${run_id}." >&2
                 break

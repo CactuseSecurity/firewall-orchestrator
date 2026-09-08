@@ -569,13 +569,23 @@ class TestUpgradeFileSelection:
         verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.4.7.sql"], [])
         assert verdict.ok
 
-    def test_deleted_file_fails(self) -> None:
+    def test_deleted_released_file_fails_and_points_at_the_current_script(self) -> None:
         # An installation older than 9.4.6 can no longer run those operations, and the upgrade
-        # play reports nothing, see F27.
+        # play reports nothing, see F27. A released script cannot be emptied either, so the
+        # correction belongs in the current version's script, see F44.
         verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], ["9.4.6.sql"])
         assert not verdict.ok
         assert "9.4.6.sql is deleted" in verdict.reason
-        assert "put any correction in 9.4.7.sql" in verdict.reason
+        assert "Leave it in place and put the correction in 9.4.7.sql." in verdict.reason
+
+    def test_deleted_open_version_file_is_told_to_empty_it_instead(self) -> None:
+        # The remedy must not name the deleted file as the place to put the correction, which
+        # is what it did when the deleted script was the current version's own, see F44.
+        verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["9.4.5.sql"], ["9.4.6.sql"])
+        assert not verdict.ok
+        assert "9.4.6.sql is deleted" in verdict.reason
+        assert "Keep the file and empty its body instead of removing it." in verdict.reason
+        assert "put the correction in 9.4.6.sql" not in verdict.reason
 
     def test_moved_file_fails_as_a_deletion(self) -> None:
         # The shell takes the diff without rename detection, so a moved script arrives as its

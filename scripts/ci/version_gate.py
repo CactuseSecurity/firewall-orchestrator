@@ -301,6 +301,30 @@ def deleted_upgrade_files(changed_upgrade_files: list[str], merged_upgrade_files
     )
 
 
+def deleted_upgrade_reason(deleted_files: list[str], merged_version: str, base: tuple[int, int, int]) -> str:
+    """
+    Explain a refused deletion, with the remedy the deleted script's own version allows.
+
+    A script of the open version can still be emptied, because only scripts below the base
+    version are immutable; an older one has to stay as it is, so its correction belongs in the
+    current version's script instead. Naming the deleted file as that place would be circular.
+    """
+    open_version_only = all(
+        (file_version := upgrade_file_version(file_name)) is not None and file_version >= base
+        for file_name in deleted_files
+    )
+    remedy = (
+        "Keep the file and empty its body instead of removing it."
+        if open_version_only
+        else f"Leave it in place and put the correction in {merged_version}.sql."
+    )
+    return (
+        f"upgrade file {', '.join(deleted_files)} is deleted. Upgrade scripts are kept once "
+        f"merged, because an installation that has already taken their version would otherwise "
+        f"never run them. {remedy}"
+    )
+
+
 def upgrade_files_above_version(file_names: list[str], version: tuple[int, int, int]) -> list[str]:
     """Return the upgrade files named above a version, which the upgrade play never selects."""
     return sorted(
@@ -341,8 +365,10 @@ def evaluate_upgrade_files(
     which is why versioning.md forbids modifying the upgrade script of an older version.
 
     A script the pull request removes is refused as well: every installation older than its
-    version loses those operations, and the upgrade play reports nothing. The diff is taken
-    without rename detection, so moving a released script counts as removing it.
+    version loses those operations, and the upgrade play reports nothing. That holds for a
+    script of the still open version too, which a colleague's installation may already have
+    run, but such a script can still be emptied, so the two cases get different remedies. The
+    diff is taken without rename detection, so moving a released script counts as removing it.
 
     A script the pull request adds or modifies must be named after a full major.minor.patch
     version and sit directly in the upgrade directory. The play globs that one directory and
@@ -373,14 +399,7 @@ def evaluate_upgrade_files(
 
     deleted = deleted_upgrade_files(changed_upgrade_files, merged_upgrade_files)
     if deleted:
-        return Verdict(
-            ok=False,
-            reason=(
-                f"upgrade file {', '.join(deleted)} is deleted, so an installation older than that "
-                f"version can no longer run it. Upgrade scripts stay as they were released; put "
-                f"any correction in {merged_version}.sql."
-            ),
-        )
+        return Verdict(ok=False, reason=deleted_upgrade_reason(deleted, merged_version, base))
 
     non_canonical = non_canonical_upgrade_files(changed_in_merge_result)
     if non_canonical:

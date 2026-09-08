@@ -127,9 +127,12 @@ the thirteen patchless and padded names this repository carries from its 5.1 to 
 stay as they are.
 
 An upgrade script the pull request removes is refused too: every installation older than that
-script's version loses those operations, and the upgrade play says nothing about it. The diff is
-taken with `--no-renames`, so moving a released script is a deletion here rather than a rename
-that shows only its new name.
+script's version loses those operations, and the upgrade play says nothing about it. That covers
+the still open version's own script, which a colleague's installation may already have run, so
+the verdict names the remedy the deleted script's version allows - empty the current version's
+script rather than remove it, or leave an older one in place and correct it from the current
+one. The diff is taken with `--no-renames`, so moving a released script is a deletion here
+rather than a rename that shows only its new name.
 
 The rules differ in what they look at. The above-`V` rule judges every upgrade file in the merge
 result, because any of them being unreachable is a fact about the merge result rather than about

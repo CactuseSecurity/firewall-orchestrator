@@ -39,8 +39,6 @@ UPGRADE_FILE_PATTERN = re.compile(r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1
 # directory and compares its stem with the installed version, so a name that is not a full
 # version breaks that comparison instead of being ignored.
 CANONICAL_UPGRADE_FILE_PATTERN = re.compile(r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.sql$")
-# GitHub truncates commit status descriptions, so keep them short enough to stay readable.
-MAX_DESCRIPTION_LENGTH = 140
 # major, minor and patch, the patch level being optional in a few old upgrade file names.
 VERSION_PART_COUNT = 3
 
@@ -72,10 +70,7 @@ class Verdict:
 
     def to_dict(self) -> dict[str, object]:
         """Return the verdict as a JSON serializable dictionary."""
-        description = self.reason
-        if len(description) > MAX_DESCRIPTION_LENGTH:
-            description = description[: MAX_DESCRIPTION_LENGTH - 1] + "…"
-        return {"ok": self.ok, "reason": self.reason, "description": description}
+        return {"ok": self.ok, "reason": self.reason}
 
 
 def parse_product_version(yaml_text: str) -> str:

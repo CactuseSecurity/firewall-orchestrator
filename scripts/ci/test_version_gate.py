@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING
 import pytest
 
 from scripts.ci.version_gate import (
-    MAX_DESCRIPTION_LENGTH,
     GateFiles,
     Verdict,
     build_parser,
@@ -707,15 +706,14 @@ class TestTagValidation:
 
 
 class TestVerdict:
-    def test_long_reasons_are_truncated_for_the_commit_status(self) -> None:
+    def test_payload_carries_the_outcome_and_the_full_reason(self) -> None:
+        # The check run is the gate result and the shell reads only 'reason', so the payload
+        # holds nothing else and the reason is never shortened, see F36.
         payload = Verdict(ok=False, reason="x" * 300).to_dict()
-        assert payload["reason"] == "x" * 300
-        assert isinstance(payload["description"], str)
-        assert len(payload["description"]) == MAX_DESCRIPTION_LENGTH
+        assert payload == {"ok": False, "reason": "x" * 300}
 
-    def test_short_reasons_are_kept_verbatim(self) -> None:
-        payload = Verdict(ok=True, reason="all good").to_dict()
-        assert payload["description"] == "all good"
+    def test_passing_payload_keeps_its_reason(self) -> None:
+        assert Verdict(ok=True, reason="all good").to_dict() == {"ok": True, "reason": "all good"}
 
 
 class TestInputHandling:

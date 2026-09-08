@@ -110,6 +110,7 @@ namespace FWO.Test
             {"flow_general_settings","General Settings"},
             {"flow_naming","Flow naming source ranking"},
             {"H5601","On this page the general modelling settings are administrated. This includes predefined services, display options, naming conventions and the remaining modelling settings. The extracted notifications are available on the adjacent notifications page."},
+            {"predef_services", "Predefined Services"},
             {"H5839","Matrix violation"},
             {"H5840","Restricted Service"},
             {"H5841","Not assessable"},

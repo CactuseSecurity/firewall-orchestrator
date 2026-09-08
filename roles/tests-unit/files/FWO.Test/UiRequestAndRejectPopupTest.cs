@@ -6,6 +6,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Modelling;
@@ -379,14 +380,16 @@ namespace FWO.Test
             {
                 Id = 21,
                 Name = "iface21",
-                App = new FwoOwner { Name = "Requesting App", ExtAppId = "REQ-APP" },
                 CreationDate = new DateTime(2025, 1, 2),
                 IsInterface = true
             };
             ModellingConnectionHandler handler = CreateConnectionHandler(new RejectInterfacePopupTestApiConn(), userConfig, actConn);
             handler.Application.ExtAppId = "OWNER-APP";
             IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(
-                context, handler, allowAdminReject: true);
+                context,
+                handler,
+                allowAdminReject: true,
+                requestingApp: new FwoOwner { Id = 12, Name = "Requesting App", ExtAppId = "REQ-APP" });
 
             component.Find("textarea").Change("not approved");
             MethodInfo method = typeof(RejectInterfacePopup).GetMethod("BuildNotificationPlaceholderData", BindingFlags.Instance | BindingFlags.NonPublic)!;
@@ -434,6 +437,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RejectInterfacePopup_DoesNotUseConnectionOwnerAsRequestingApp()
+        {
+            using BunitContext context = CreateContext(Roles.Modeller);
+            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
+            ModellingConnectionHandler handler = CreateConnectionHandler(
+                new RejectInterfacePopupTestApiConn(),
+                userConfig,
+                new ModellingConnection
+                {
+                    Id = 21,
+                    IsInterface = true,
+                    App = new FwoOwner { Id = 77, Name = "Requested App", ExtAppId = "REQUESTED-APP" }
+                });
+            IRenderedComponent<RejectInterfacePopup> component = RenderRejectInterfacePopup(context, handler);
+
+            MethodInfo method = typeof(RejectInterfacePopup).GetMethod("BuildNotificationPlaceholderData", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildNotificationPlaceholderData method not found.");
+            NotificationPlaceholderData data = (NotificationPlaceholderData)(method.Invoke(component.Instance, null)
+                ?? throw new InvalidOperationException("BuildNotificationPlaceholderData returned null."));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(data.RequestingAppName, Is.Empty);
+                Assert.That(data.RequestingAppId, Is.Empty);
+            });
+        }
+
+        [Test]
         public async Task RejectInterfacePopup_RejectInTicket_SkipsWhenTicketIdIsMissing()
         {
             using BunitContext context = CreateContext(Roles.Modeller);
@@ -449,7 +480,7 @@ namespace FWO.Test
 
             MethodInfo method = typeof(RejectInterfacePopup).GetMethod("RejectInTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("RejectInTicket method not found.");
-            Task task = (Task)(method.Invoke(component.Instance, new object?[] { null })
+            Task task = (Task)(method.Invoke(component.Instance, new object?[] { null, null })
                 ?? throw new InvalidOperationException("RejectInTicket returned null task."));
             await task;
 
@@ -478,7 +509,7 @@ namespace FWO.Test
 
             MethodInfo method = typeof(RejectInterfacePopup).GetMethod("RejectInTicket", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("RejectInTicket method not found.");
-            Task task = (Task)(method.Invoke(component.Instance, new object?[] { 123L })
+            Task task = (Task)(method.Invoke(component.Instance, new object?[] { 123L, null })
                 ?? throw new InvalidOperationException("RejectInTicket returned null task."));
 
             Assert.DoesNotThrowAsync(async () => await task);
@@ -610,6 +641,7 @@ namespace FWO.Test
             BunitContext context,
             ModellingConnectionHandler handler,
             bool allowAdminReject = false,
+            FwoOwner? requestingApp = null,
             Action<bool>? displayChanged = null,
             Func<Task>? refreshParent = null,
             Action<Exception?, string, string, bool>? messageSink = null)
@@ -630,6 +662,7 @@ namespace FWO.Test
                         popupBuilder.AddAttribute(3, "ConnHandler", handler);
                         popupBuilder.AddAttribute(4, "RefreshParent", refreshParent ?? (() => Task.CompletedTask));
                         popupBuilder.AddAttribute(5, "AllowAdminReject", allowAdminReject);
+                        popupBuilder.AddAttribute(6, "RequestingApp", requestingApp);
                         popupBuilder.CloseComponent();
                     }));
                     childBuilder.CloseComponent();
@@ -815,7 +848,6 @@ namespace FWO.Test
         {
             public int UpdateConnectionPropertiesCalls { get; private set; }
             public int RemoveSelectedConnectionCalls { get; private set; }
-
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == ModellingQueries.updateConnectionProperties)

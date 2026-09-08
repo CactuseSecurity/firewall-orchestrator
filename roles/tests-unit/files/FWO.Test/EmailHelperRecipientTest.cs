@@ -292,8 +292,8 @@ namespace FWO.Test
                 RecipientCc = EmailRecipientOption.AssignedGroup,
                 RecipientBcc = EmailRecipientOption.OtherAddresses,
                 EmailAddressBcc = "bcc@example.test",
-                EmailSubject = $"{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}",
-                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}"
+                EmailSubject = $"{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
+                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}"
             };
             WorkflowEmailContent workflowContent = new()
             {
@@ -309,7 +309,12 @@ namespace FWO.Test
                 owner,
                 "cn=workflow-group,dc=test",
                 workflowContent,
-                placeholderTicket);
+                placeholderTicket,
+                new NotificationPlaceholderData
+                {
+                    RequestingAppName = "Requesting App",
+                    RequestingAppId = "REQ-APP"
+                });
 
             Assert.Multiple(() =>
             {
@@ -317,8 +322,8 @@ namespace FWO.Test
                 Assert.That(helper.CapturedTo, Is.EqualTo(new List<string> { "requester@example.test" }));
                 Assert.That(helper.CapturedCc, Is.EqualTo(new List<string> { "group@example.test" }));
                 Assert.That(helper.CapturedBcc, Is.EqualTo(new List<string> { "bcc@example.test" }));
-                Assert.That(helper.CapturedSubject, Is.EqualTo("Requester A|Owner A|APP-42"));
-                Assert.That(helper.CapturedBody, Is.EqualTo("Body:Requester A|Owner A|APP-42"));
+                Assert.That(helper.CapturedSubject, Is.EqualTo("Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
+                Assert.That(helper.CapturedBody, Is.EqualTo("Body:Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
                 Assert.That(helper.CapturedMailFormatHtml, Is.False);
                 Assert.That(helper.CapturedAttachment, Is.Not.Null);
                 Assert.That(helper.CapturedAttachment!.ContentType, Is.EqualTo("application/html"));

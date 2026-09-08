@@ -24,14 +24,29 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqInterfaceName" />
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqTicketTitle" />
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5626"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqTaskTitle" />
         </div>
+        <div class="mt-4 mb-3">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
+        </div>
+        <hr />
         <div class="mt-4">
             <EditNotifications Client="NotificationClient.InterfaceRequest"
                                DeadlineFilter="NotificationDeadline.None" />
@@ -51,19 +66,6 @@
                                DeadlineFilter="NotificationDeadline.None" />
         </div>
     </form>
-    <hr />
-    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
-        </NotAuthorized>
-    </ExecutionModeAuthorizeView>
 }
 else
 {

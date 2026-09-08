@@ -726,6 +726,17 @@ class TestInputHandling:
 
         assert read_names(str(listing)) == ["9.4.6.sql", "9.4.5ä.sql", "tab\tx.sql", " spaced .sql"]
 
+    def test_read_names_keeps_a_name_whose_bytes_are_not_utf8(self, tmp_path: Path) -> None:
+        # -z leaves raw path bytes, which POSIX does not require to be UTF-8. Such a name must
+        # reach the naming rule rather than abort the evaluation with a decode error, see F41.
+        listing = tmp_path / "upgrade-files.txt"
+        listing.write_bytes(b"9.4.6.sql\x009.4.5\xe4.sql\x00")
+
+        names = read_names(str(listing))
+
+        assert names == ["9.4.6.sql", "9.4.5\udce4.sql"]
+        assert non_canonical_upgrade_files(names) == ["9.4.5\udce4.sql"]
+
     def test_read_names_without_a_file_is_empty(self) -> None:
         assert read_names(None) == []
 

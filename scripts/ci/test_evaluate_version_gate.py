@@ -271,6 +271,22 @@ def test_deleting_a_released_upgrade_file_fails(tmp_path: Path) -> None:
     assert f"{RELEASED_UPGRADE_FILE} is deleted" in completed.stderr
 
 
+def test_upgrade_file_with_undecodable_name_fails_on_its_name(tmp_path: Path) -> None:
+    """A path byte that is not valid UTF-8 must not turn into a decode error, see F41."""
+    repository = create_repository(
+        tmp_path,
+        version_is_bumped=True,
+        added_upgrade_file=os.fsdecode(b"9.4.5\xe4.sql"),
+        tags=("v9.4.5",),
+    )
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert "could not be evaluated" not in completed.stderr
+    assert "9.4.5\\udce4.sql is not a major.minor.patch.sql script" in completed.stderr
+
+
 def test_upgrade_file_with_a_quoted_name_fails_on_its_name(tmp_path: Path) -> None:
     """Git C-quotes a non-ASCII path, which must not carry it past the naming rule, see F38."""
     repository = create_repository(

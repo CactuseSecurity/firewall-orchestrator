@@ -561,7 +561,7 @@ def read_tags(file_path: str | None) -> list[str]:
     elif file_path == "-":
         text = sys.stdin.read()
     else:
-        text = Path(file_path).read_text(encoding="utf-8")
+        text = Path(file_path).read_text(encoding="utf-8", errors="surrogateescape")
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
@@ -571,12 +571,15 @@ def read_names(file_path: str | None) -> list[str]:
 
     The listings are asked of git NUL separated because it otherwise C-quotes any path
     holding a non-ASCII byte or a control character, and a quoted path carries neither the
-    trailing '.sql' nor the version the upgrade rules judge it by. Names are taken verbatim,
-    so a leading or trailing space in one stays part of it.
+    trailing '.sql' nor the version the upgrade rules judge it by. That leaves raw path bytes,
+    which POSIX does not require to be UTF-8, so they are decoded the way the file system
+    itself is read: an undecodable byte survives as a surrogate and reaches the naming rule
+    instead of aborting the whole evaluation with a decode error. Names are taken verbatim, so
+    a leading or trailing space in one stays part of it.
     """
     if file_path is None:
         return []
-    text = Path(file_path).read_text(encoding="utf-8")
+    text = Path(file_path).read_text(encoding="utf-8", errors="surrogateescape")
     return [name for name in text.split("\0") if name]
 
 

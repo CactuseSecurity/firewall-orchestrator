@@ -117,7 +117,12 @@ python3 scripts/ci/version_gate.py gate \
     --tags-file "${work_dir}/tags.txt" \
     "${revision_history_arguments[@]}" >"$verdict_file" || gate_exit=$?
 
-reason="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["reason"])' "$verdict_file")"
+# The reason can carry a file name whose bytes are not valid UTF-8. Render those as escapes
+# rather than letting the encode fail and take the job's diagnosis with it, and rather than
+# writing raw bytes into a log that is read as text.
+reason="$(python3 -c 'import json,sys
+sys.stdout.reconfigure(errors="backslashreplace")
+print(json.load(open(sys.argv[1]))["reason"])' "$verdict_file")"
 
 if [[ "$gate_exit" -eq 0 ]]; then
     echo "Version gate passed: ${reason}"

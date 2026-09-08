@@ -1946,6 +1946,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CreateFlow_WithConfirmation_NamesWhatWasRefused()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            List<(string Title, string Message, bool Error)> uiMessages = [];
+            WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig { ReqUseFlowDb = true },
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfReqTask task = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 2,
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Id = 111,
+                        TaskId = 11,
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.0.0.1",
+                        IpEnd = "2001:db8::1",
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                ]
+            };
+            WfStateAction action = new()
+            {
+                Name = "Create flow",
+                ExternalParams = JsonSerializer.Serialize(new ActionResultStateParams { ConfirmUiMessage = true })
+            };
+
+            await handler.CreateFlow(action, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(uiMessages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(uiMessages[0].Message, Does.Contain("Address range starts and ends in different address families: 10.0.0.1/32 - 2001:db8::1/128"));
+                Assert.That(uiMessages[0].Error, Is.True);
+            });
+        }
+
+        [Test]
         public async Task BundleTasks_SkipsWhenNoTicketCanBeResolved()
         {
             ActionHandlerTestApiConn apiConn = new();

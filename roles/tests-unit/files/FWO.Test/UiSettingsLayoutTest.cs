@@ -4,6 +4,7 @@ using FWO.Config.Api;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
@@ -106,6 +107,31 @@ namespace FWO.Test
             {
                 Assert.That(layout.FindAll("a[href='settings/password']"), Is.Empty);
                 Assert.That(layout.FindAll("a[href='settings/personal']"), Has.Count.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task SettingsLayout_SearchInput_FiltersRenderedNavigation()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
+            SimulatedUserConfig userConfig = context.Services.GetRequiredService<UserConfig>() as SimulatedUserConfig
+                ?? throw new InvalidOperationException("Test user config missing.");
+            userConfig.SetExecutionMode(Roles.Admin);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderLayout(context);
+            IRenderedComponent<SettingsLayout> layout = wrapper.FindComponent<SettingsLayout>();
+            DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
+
+            layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "manage" });
+
+            JSRuntimeInvocation invocation = context.JSInterop.Invocations["filterSettingsSidebar"].Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(invocation.Arguments[0], Is.EqualTo("settingsNavigation"));
+                Assert.That(invocation.Arguments[1], Is.EqualTo("manage"));
             });
         }
 

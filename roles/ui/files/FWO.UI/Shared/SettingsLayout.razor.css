@@ -1,0 +1,6 @@
+.settings-search {
+    background-image: linear-gradient(var(--bg-color, #054B8C), var(--bg-color-2, #03335E));
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}

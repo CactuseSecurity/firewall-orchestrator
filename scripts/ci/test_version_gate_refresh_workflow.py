@@ -16,10 +16,11 @@ FAST_FORWARD_WORKFLOW_PATH = WORKFLOW_DIRECTORY / "fast-forward-main-to-release-
 TRIGGER_STEP_NAME = "Decide whether open pull request gates need refresh"
 RERUN_STEP_NAME = "Re-run the version gate for every open pull request"
 PULL_REQUEST_LIMIT = 200
-# The fake clock advances by this much per call, so the loop's deadline is reached after one
-# wait rather than after real seconds.
-CLOCK_STEP_SECONDS = 5
+# The loop counts the seconds it means to sleep, so a stubbed sleep still spends the budget:
+# two polls fit, whether they go to one pull request or to two.
+RUN_WAIT_SECONDS = 5
 RUN_WAIT_BUDGET_SECONDS = 10
+BUDGETED_POLLS = RUN_WAIT_BUDGET_SECONDS // RUN_WAIT_SECONDS
 SCRIPT_INDENT = " " * 10
 
 
@@ -104,14 +105,8 @@ fi
 exit 0
 """,
     )
-    write_executable(
-        fake_bin / "date",
-        """#!/bin/sh
-now="$(cat "$MOCK_CLOCK" 2>/dev/null || echo 1000)"
-printf '%s\n' "$((now + MOCK_CLOCK_STEP))" > "$MOCK_CLOCK"
-printf '%s\n' "$now"
-""",
-    )
+    # The loop counts the seconds it asks for, so the wait can return at once.
+    write_executable(fake_bin / "sleep", "#!/bin/sh\nexit 0\n")
     write_executable(
         fake_bin / "jq",
         """#!/bin/sh
@@ -138,10 +133,8 @@ exit 0
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
             "MOCK_RUN_STATUS_SEQUENCE": " ".join(run_status_sequence),
             "MOCK_STATUS_CALLS": str(tmp_path / "status-calls"),
-            "MOCK_CLOCK": str(tmp_path / "clock"),
-            "MOCK_CLOCK_STEP": str(CLOCK_STEP_SECONDS),
             "RUN_WAIT_BUDGET_SECONDS": str(RUN_WAIT_BUDGET_SECONDS),
-            "RUN_WAIT_SECONDS": "0",
+            "RUN_WAIT_SECONDS": str(RUN_WAIT_SECONDS),
             "MOCK_OPEN_PR_TOTAL": "" if open_pull_request_total is None else str(open_pull_request_total),
             "MOCK_PR_COUNT": str(effective_pull_request_count),
             "MOCK_PR_LINES": "\n".join(f"{number} {head_sha}" for number, head_sha in pull_requests),
@@ -296,12 +289,12 @@ def test_in_progress_run_is_awaited_and_then_rerun(tmp_path: Path) -> None:
         tmp_path,
         pull_requests=((43, "head-b"),),
         workflow_runs=(("head-b", 901, "in_progress"),),
-        run_status_sequence=("completed",),
+        run_status_sequence=("in_progress", "completed"),
     )
 
     assert completed.returncode == 0
     assert rerun_ids == ["901"]
-    assert "run 901 is in_progress, waiting for it to finish" in completed.stdout
+    assert completed.stdout.count("waiting for it to finish") == BUDGETED_POLLS
     assert "PR #43: re-running version gate run 901." in completed.stdout
 
 
@@ -329,9 +322,10 @@ def test_wait_budget_is_shared_by_the_whole_loop(tmp_path: Path) -> None:
         run_status_sequence=("queued",),
     )
 
-    # The budget covers one wait, so only the first pull request is waited for; the second is
-    # counted at once and the third, whose run is complete, is still re-run.
-    assert completed.stdout.count("waiting for it to finish") == 1
+    # The budget covers two polls, both spent on the first pull request; the second is counted
+    # at once and the third, whose run is complete, is still re-run.
+    assert completed.stdout.count("waiting for it to finish") == BUDGETED_POLLS
+    assert "PR #44: run 902 is queued, waiting for it to finish" not in completed.stdout
     assert rerun_ids == ["903"]
     assert "run 901 is still queued" in completed.stderr
     assert "run 902 is still queued" in completed.stderr

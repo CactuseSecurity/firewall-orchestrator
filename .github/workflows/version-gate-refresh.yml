@@ -115,11 +115,13 @@ jobs:
           fi
 
           unrefreshed=0
-          # One deadline for the whole loop. The wait below is serial, so a per-pull-request
-          # budget would multiply by the number of open pull requests and could outlast the job
-          # limit, which is the one outcome this loop avoids: pull requests it never reached
-          # would be neither refreshed nor named. Past the deadline the rest is counted at once.
-          wait_deadline=$(($(date +%s) + RUN_WAIT_BUDGET_SECONDS))
+          # One wait budget for the whole loop, counted as time actually slept rather than as a
+          # wall-clock deadline, so the loop's own API traffic does not spend it. The wait below
+          # is serial, so a per-pull-request budget would multiply by the number of open pull
+          # requests and could outlast the job limit, which is the one outcome this loop avoids:
+          # pull requests it never reached would be neither refreshed nor named. Once the budget
+          # is used up the remaining unfinished runs are counted at once.
+          waited=0
           while read -r number head_sha; do
             # GitHub returns runs newest first. Filter server-side so refresh cost is
             # bounded by the open pull request count instead of all historical runs.
@@ -143,9 +145,10 @@ jobs:
             # A run that is still going may have read the base ref or the tag list before the
             # push or tag that started this refresh, and nothing would re-run it afterwards.
             # Wait for it and re-run it like any other, rather than trust it to be fresh.
-            while [[ "$run_status" != "completed" && "$(date +%s)" -lt "$wait_deadline" ]]; do
+            while [[ "$run_status" != "completed" && "$waited" -lt "$RUN_WAIT_BUDGET_SECONDS" ]]; do
               echo "PR #${number}: run ${run_id} is ${run_status}, waiting for it to finish."
               sleep "$RUN_WAIT_SECONDS"
+              waited=$((waited + RUN_WAIT_SECONDS))
               if ! run_status="$(gh api "repos/${GH_REPO}/actions/runs/${run_id}" --jq '.status')"; then
                 echo "PR #${number}: could not read the status of run ${run_id}." >&2
                 break

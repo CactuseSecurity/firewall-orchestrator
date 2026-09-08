@@ -283,6 +283,21 @@ def test_completed_run_for_matching_head_sha_is_rerun(tmp_path: Path) -> None:
     assert "event=pull_request_target&head_sha=head-a&per_page=1" in api_request
 
 
+def test_zero_wait_interval_is_refused_before_the_loop(tmp_path: Path) -> None:
+    """The budget accumulates the interval, so a zero interval would never reach it, see F42."""
+    completed = subprocess.run(  # noqa: S603
+        ["/bin/bash", "-c", workflow_step_script(WORKFLOW_PATH, RERUN_STEP_NAME)],
+        check=False,
+        capture_output=True,
+        cwd=tmp_path,
+        env={"PATH": os.environ["PATH"], "RUN_WAIT_SECONDS": "0"},
+        text=True,
+    )
+
+    assert completed.returncode != 0
+    assert "RUN_WAIT_SECONDS must be at least 1, got '0'." in completed.stderr
+
+
 def test_in_progress_run_is_awaited_and_then_rerun(tmp_path: Path) -> None:
     """A run started before this refresh may carry a stale verdict, so re-run it as well."""
     completed, rerun_ids = execute_refresh_loop(

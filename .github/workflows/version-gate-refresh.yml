@@ -84,6 +84,13 @@ jobs:
         run: |
           set -euo pipefail
 
+          # The wait below is bounded by the seconds it accumulates, so a zero interval would
+          # never reach the budget and the loop would spin until the job limit cancels it.
+          if [[ "$RUN_WAIT_SECONDS" -lt 1 ]]; then
+            echo "RUN_WAIT_SECONDS must be at least 1, got '${RUN_WAIT_SECONDS}'." >&2
+            exit 1
+          fi
+
           if [[ -n "${SINGLE_PR:-}" ]]; then
             pull_requests="[$(gh pr view "$SINGLE_PR" --json number,headRefOid)]"
           else

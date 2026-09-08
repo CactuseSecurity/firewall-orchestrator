@@ -197,7 +197,9 @@ loop is serial, so a per-pull-request budget would multiply by the number of ope
 and could outlast the job limit - and a cancelled job is the one outcome this loop is built to
 avoid, because the pull requests it never reached would be neither refreshed nor named. The
 budget counts the seconds the loop actually sleeps, not wall-clock time, so its own API traffic
-does not spend it and the room to wait does not shrink as more pull requests are open. Once the
+does not spend it and the room to wait does not shrink as more pull requests are open. That is
+also why the step refuses a `RUN_WAIT_SECONDS` below one second before it starts: nothing else
+would advance the budget, and the wait would run until the job limit cancels it. Once the
 budget is used up, the remaining unfinished runs are counted and named in one pass, and pull
 requests whose run is already complete are still re-run.
 

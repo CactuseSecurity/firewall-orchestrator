@@ -66,7 +66,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
-| any | every upgrade file the pull request adds or modifies carries a plain `major.minor.patch` name | fails otherwise: name it `V.sql` |
+| any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: name it `V.sql` |
 | any | the pull request deletes no upgrade file | fails otherwise: correct it in `V.sql` instead |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
@@ -113,10 +113,13 @@ Both upgrade-file inputs are read with a path-limited `git ls-tree` / `git diff`
 directory yields an empty listing while a real git failure stops the job. The rule is never
 silently switched off by an unreadable listing.
 
-A name the upgrade play reads as a version but this gate does not - `9.4.07.sql`, whose padding
-Ansible's loose comparison places at `9.4.7` - is refused rather than interpreted, because leaving
-it unjudged is what lets it slip past both rules above. Only files the pull request touches are
-held to that, so the padded names carried over from the 5.1 releases stay as they are.
+Every `.sql` file the pull request adds or modifies must be named after a full
+`major.minor.patch` version. The play globs *every* `*.sql` in the directory and compares its
+stem with the installed version, so the name is not a label this gate could ignore: a padded
+`9.4.07.sql` lands at `9.4.7` for the play while this gate reads no version at all, a patchless
+`9.0.sql` is read differently by each, and `readme.sql` makes Ansible's comparison fail outright.
+Only touched files are held to this, so the thirteen patchless and padded names this repository
+carries from its 3.4 to 9.3 releases stay as they are.
 
 An upgrade script the pull request removes is refused too: every installation older than that
 script's version loses those operations, and the upgrade play says nothing about it. The diff is

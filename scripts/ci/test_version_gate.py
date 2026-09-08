@@ -22,9 +22,9 @@ from scripts.ci.version_gate import (
     evaluate_tag,
     evaluate_upgrade_files,
     evaluate_version_lifecycle,
-    is_version_like_upgrade_file,
     last_revision_history_heading,
     main,
+    non_canonical_upgrade_files,
     opens_final_section,
     parse_product_version,
     parse_unified_diff,
@@ -521,11 +521,16 @@ class TestUpgradeFileNames:
     def test_zero_padded_name_is_not_a_canonical_version(self) -> None:
         assert upgrade_file_version("9.4.07.sql") is None
 
-    def test_the_play_reads_digit_and_dot_names_as_versions(self) -> None:
-        assert is_version_like_upgrade_file("9.4.07.sql")
-        assert is_version_like_upgrade_file("9.4.7.sql")
-        assert not is_version_like_upgrade_file("cleanup.sql")
-        assert not is_version_like_upgrade_file("9.4.7.sql.bak")
+    def test_only_a_full_version_name_is_canonical(self) -> None:
+        assert non_canonical_upgrade_files(["9.4.7.sql"]) == []
+        assert non_canonical_upgrade_files(["9.4.07.sql", "9.0.sql", "readme.sql"]) == [
+            "9.0.sql",
+            "9.4.07.sql",
+            "readme.sql",
+        ]
+
+    def test_a_name_that_is_no_sql_script_is_not_judged(self) -> None:
+        assert non_canonical_upgrade_files(["9.4.7.sql.bak", "README.md"]) == []
 
 
 class TestUpgradeFileSelection:
@@ -588,16 +593,22 @@ class TestUpgradeFileSelection:
         # escapes both rules. Refuse the name instead of interpreting it, see F28.
         verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["9.4.6.sql", "9.4.07.sql"], ["9.4.07.sql"])
         assert not verdict.ok
-        assert "9.4.07.sql is not named after a plain major.minor.patch version" in verdict.reason
-        assert "Name it 9.4.6.sql" in verdict.reason
+        assert "9.4.07.sql is not named after a full major.minor.patch version" in verdict.reason
+        assert "name it 9.4.6.sql" in verdict.reason
 
     def test_zero_padded_name_the_pull_request_leaves_alone_passes(self) -> None:
         # roles/database/files/upgrade/ carries 5.1.01.sql through 5.1.09.sql from old releases.
         verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["5.1.01.sql", "9.4.6.sql"], ["9.4.6.sql"])
         assert verdict.ok
 
-    def test_names_without_a_version_are_left_alone(self) -> None:
-        assert evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql"], ["readme.sql"]).ok
+    def test_patchless_or_wordy_name_the_pull_request_adds_fails(self) -> None:
+        # The upgrade play compares every *.sql stem with the installed version, so 'readme'
+        # breaks that comparison and '10.0' is read differently by the play and the gate, F32.
+        assert not evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql"], ["readme.sql"]).ok
+        assert not evaluate_upgrade_files("9.4.7", "9.4.6", ["10.0.sql"], ["10.0.sql"]).ok
+
+    def test_names_of_untouched_scripts_are_left_alone(self) -> None:
+        assert evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql", "9.0.sql"], []).ok
         assert evaluate_upgrade_files("9.4.7", "9.4.6", ["9.4.7.sql.bak"], ["9.4.7.sql.bak"]).ok
 
     def test_malformed_version_fails(self) -> None:

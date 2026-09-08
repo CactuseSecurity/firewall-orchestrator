@@ -35,8 +35,10 @@ REVISION_HISTORY_VERSION_PATTERN = re.compile(
 )
 DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 UPGRADE_FILE_PATTERN = re.compile(r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)\.sql$")
-# What upgrade-database.yml reads as a version: the name without its extension, digits and dots.
-VERSION_LIKE_UPGRADE_FILE_PATTERN = re.compile(r"^[0-9][0-9.]*\.sql$")
+# What a new upgrade script must be named. upgrade-database.yml globs every *.sql in the
+# directory and compares its stem with the installed version, so a name that is not a full
+# version breaks that comparison instead of being ignored.
+CANONICAL_UPGRADE_FILE_PATTERN = re.compile(r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.sql$")
 # GitHub truncates commit status descriptions, so keep them short enough to stay readable.
 MAX_DESCRIPTION_LENGTH = 140
 # major, minor and patch, the patch level being optional in a few old upgrade file names.
@@ -287,17 +289,12 @@ def evaluate_revision_history(
     return Verdict(ok=True, reason=f"revision history adds text for version {merged_version}")
 
 
-def is_version_like_upgrade_file(file_name: str) -> bool:
-    """Return whether the upgrade play reads the file name as a version."""
-    return VERSION_LIKE_UPGRADE_FILE_PATTERN.fullmatch(file_name) is not None
-
-
 def non_canonical_upgrade_files(file_names: list[str]) -> list[str]:
-    """Return the upgrade files the play reads as a version but the gate refuses to interpret."""
+    """Return the upgrade scripts that are not named after a full major.minor.patch version."""
     return sorted(
         file_name
         for file_name in file_names
-        if is_version_like_upgrade_file(file_name) and upgrade_file_version(file_name) is None
+        if file_name.endswith(".sql") and CANONICAL_UPGRADE_FILE_PATTERN.fullmatch(file_name) is None
     )
 
 
@@ -336,30 +333,28 @@ def evaluate_upgrade_files(
     """
     Decide whether the upgrade files of the merge result can still reach an installation.
 
-    roles/database/tasks/upgrade-database.yml selects an upgrade file when its version is
-    at least the version installed on the system and at most product_version. A file above
-    product_version is therefore never selected, and a file below the version the base
-    branch already carries is skipped by every installation which has taken that version.
-    Both cases are silent: the upgrade play succeeds and the changes simply never arrive.
+    roles/database/tasks/upgrade-database.yml selects an upgrade file when its version is at
+    least the version installed on the system and at most product_version. A file above
+    product_version is therefore never selected, and a file below the version the base branch
+    already carries is skipped by every installation which has taken that version. Both cases
+    are silent: the upgrade play succeeds and the changes simply never arrive.
 
     The second case is the merge-order hazard between two pull requests: whichever opens the
     lower version and merges second keeps an upgrade file that no upgraded installation runs.
     It is judged over the upgrade files the pull request touches, not over the names it adds,
     because appending statements to an older file strands them exactly as adding one does -
-    which is why versioning.md forbids modifying the upgrade script of an older version. Files
-    the pull request deletes drop out, as they are not in the merge result.
+    which is why versioning.md forbids modifying the upgrade script of an older version.
 
-    An upgrade script the pull request removes is refused as well: an installation older than
-    its version can no longer run those operations, and the upgrade play reports nothing. The
-    diff is taken without rename detection, so moving a released script counts as removing it.
+    A script the pull request removes is refused as well: every installation older than its
+    version loses those operations, and the upgrade play reports nothing. The diff is taken
+    without rename detection, so moving a released script counts as removing it.
 
-    A name the play reads as a version but this gate does not, such as the zero-padded
-    9.4.07.sql, is refused outright rather than interpreted: the play compares it loosely and
-    would place it at 9.4.7, so leaving it unjudged hides exactly the two silent cases above.
-    Only the files the pull request touches are held to that, which leaves the padded names
-    this repository carries from its 5.1 releases alone.
-
-    File names which do not carry a version at all are left to the upgrade play itself.
+    A script the pull request adds or modifies must be named after a full major.minor.patch
+    version. The play globs every *.sql in the directory and compares its stem with the
+    installed version, so a padded 9.4.07.sql lands at 9.4.7 where this gate reads no version
+    at all, a patchless 9.0.sql is read differently by each, and a readme.sql makes that
+    comparison fail outright. Only touched files are held to this, which leaves the patchless
+    and padded names this repository carries from earlier releases alone.
     """
     try:
         merged = parse_version(merged_version)
@@ -396,9 +391,9 @@ def evaluate_upgrade_files(
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(non_canonical)} is not named after a plain "
-                f"major.minor.patch version, so the upgrade play and this gate would read it "
-                f"differently. Name it {merged_version}.sql, without zero-padded components."
+                f"upgrade file {', '.join(non_canonical)} is not named after a full "
+                f"major.minor.patch version. The upgrade play compares every *.sql name in the "
+                f"directory with the installed version, so name it {merged_version}.sql."
             ),
         )
 

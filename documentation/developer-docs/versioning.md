@@ -103,8 +103,11 @@ point to another commit.
 Add a new database upgrade script under `roles/database/files/upgrade/` when a
 release changes the database or its stored data. Use the full product version
 as the file name, including the patch component and without zero-padded
-components - `9.4.07.sql` is refused, because the upgrade play would read it as
-`9.4.7` while the version gate reads it as no version at all:
+components. The version gate refuses any other name for a script a pull request
+adds or modifies, because the upgrade play compares every `*.sql` name in that
+directory with the installed version: `9.4.07.sql` is read as `9.4.7` there and
+as no version at all by the gate, and a name such as `readme.sql` makes the
+comparison fail:
 
 ```text
 roles/database/files/upgrade/9.3.0.sql

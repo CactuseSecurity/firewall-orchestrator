@@ -276,7 +276,7 @@ def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "9.4.06.sql is not named after a plain major.minor.patch version" in completed.stderr
+    assert "9.4.06.sql is not named after a full major.minor.patch version" in completed.stderr
 
 
 def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:

@@ -114,12 +114,15 @@ directory yields an empty listing while a real git failure stops the job. The ru
 silently switched off by an unreadable listing.
 
 Every `.sql` file the pull request adds or modifies must be named after a full
-`major.minor.patch` version. The play globs *every* `*.sql` in the directory and compares its
-stem with the installed version, so the name is not a label this gate could ignore: a padded
-`9.4.07.sql` lands at `9.4.7` for the play while this gate reads no version at all, a patchless
-`9.0.sql` is read differently by each, and `readme.sql` makes Ansible's comparison fail outright.
-Only touched files are held to this, so the thirteen patchless and padded names this repository
-carries from its 3.4 to 9.3 releases stay as they are.
+`major.minor.patch` version and sit directly in the upgrade directory. The play globs *every*
+`*.sql` in that one directory and compares its stem with the installed version, so the name is
+not a label this gate could ignore: a padded `9.4.07.sql` lands at `9.4.7` for the play while
+this gate reads no version at all, a patchless `9.0.sql` is read differently by each,
+`readme.sql` makes Ansible's comparison fail outright, and a script in a subdirectory is never
+globbed. Both upgrade inputs are read recursively so that such a script is judged on its name
+rather than mistaken for one the pull request deleted. Only touched files are held to this, so
+the thirteen patchless and padded names this repository carries from its 5.1 to 9.3 releases
+stay as they are.
 
 An upgrade script the pull request removes is refused too: every installation older than that
 script's version loses those operations, and the upgrade play says nothing about it. The diff is

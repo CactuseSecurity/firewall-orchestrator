@@ -593,8 +593,8 @@ class TestUpgradeFileSelection:
         # escapes both rules. Refuse the name instead of interpreting it, see F28.
         verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["9.4.6.sql", "9.4.07.sql"], ["9.4.07.sql"])
         assert not verdict.ok
-        assert "9.4.07.sql is not named after a full major.minor.patch version" in verdict.reason
-        assert "name it 9.4.6.sql" in verdict.reason
+        assert "9.4.07.sql is not a major.minor.patch.sql script" in verdict.reason
+        assert "name it 9.4.6.sql there" in verdict.reason
 
     def test_zero_padded_name_the_pull_request_leaves_alone_passes(self) -> None:
         # roles/database/files/upgrade/ carries 5.1.01.sql through 5.1.09.sql from old releases.
@@ -606,6 +606,19 @@ class TestUpgradeFileSelection:
         # breaks that comparison and '10.0' is read differently by the play and the gate, F32.
         assert not evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql"], ["readme.sql"]).ok
         assert not evaluate_upgrade_files("9.4.7", "9.4.6", ["10.0.sql"], ["10.0.sql"]).ok
+
+    def test_script_added_in_a_subdirectory_fails_on_its_name_not_as_a_deletion(self) -> None:
+        # Both inputs are read recursively, so the added path is in the merge result and reaches
+        # the naming rule instead of looking like a deleted file, see F35.
+        verdict = evaluate_upgrade_files(
+            "9.4.7",
+            "9.4.6",
+            ["9.4.6.sql", "9.4.7.sql", "archive/9.4.5.sql"],
+            ["archive/9.4.5.sql"],
+        )
+        assert not verdict.ok
+        assert "archive/9.4.5.sql is not a major.minor.patch.sql script" in verdict.reason
+        assert "is deleted" not in verdict.reason
 
     def test_names_of_untouched_scripts_are_left_alone(self) -> None:
         assert evaluate_upgrade_files("9.4.7", "9.4.6", ["readme.sql", "9.0.sql"], []).ok

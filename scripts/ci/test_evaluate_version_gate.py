@@ -106,7 +106,9 @@ def create_repository(
         (inventory / "all.yml").write_text(MERGED_CONFIGURATION, encoding="utf-8")
         (documentation / "revision-history.md").write_text(merged_revision_history, encoding="utf-8")
         if added_upgrade_file is not None:
-            (repository / UPGRADE_DIRECTORY / added_upgrade_file).write_text("-- test upgrade\n", encoding="utf-8")
+            added_path = repository / UPGRADE_DIRECTORY / added_upgrade_file
+            added_path.parent.mkdir(parents=True, exist_ok=True)
+            added_path.write_text("-- test upgrade\n", encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
     if agents_pointer_change:
@@ -269,6 +271,22 @@ def test_deleting_a_released_upgrade_file_fails(tmp_path: Path) -> None:
     assert f"{RELEASED_UPGRADE_FILE} is deleted" in completed.stderr
 
 
+def test_upgrade_file_in_a_subdirectory_fails_on_its_name(tmp_path: Path) -> None:
+    """The listing is recursive, so a subdirectory script is judged, not read as a deletion."""
+    repository = create_repository(
+        tmp_path,
+        version_is_bumped=True,
+        added_upgrade_file="archive/9.4.6.sql",
+        tags=("v9.4.5",),
+    )
+
+    completed = run_gate(tmp_path, repository)
+
+    assert completed.returncode != 0
+    assert "archive/9.4.6.sql is not a major.minor.patch.sql script" in completed.stderr
+    assert "is deleted" not in completed.stderr
+
+
 def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:
     """A padded name is read as a version by the upgrade play but by no rule of this gate."""
     repository = create_repository(tmp_path, version_is_bumped=True, added_upgrade_file="9.4.06.sql", tags=("v9.4.5",))
@@ -276,7 +294,7 @@ def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "9.4.06.sql is not named after a full major.minor.patch version" in completed.stderr
+    assert "9.4.06.sql is not a major.minor.patch.sql script" in completed.stderr
 
 
 def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:

@@ -350,11 +350,12 @@ def evaluate_upgrade_files(
     without rename detection, so moving a released script counts as removing it.
 
     A script the pull request adds or modifies must be named after a full major.minor.patch
-    version. The play globs every *.sql in the directory and compares its stem with the
-    installed version, so a padded 9.4.07.sql lands at 9.4.7 where this gate reads no version
-    at all, a patchless 9.0.sql is read differently by each, and a readme.sql makes that
-    comparison fail outright. Only touched files are held to this, which leaves the patchless
-    and padded names this repository carries from earlier releases alone.
+    version and sit directly in the upgrade directory. The play globs that one directory and
+    compares each stem with the installed version, so a padded 9.4.07.sql lands at 9.4.7 where
+    this gate reads no version at all, a patchless 9.0.sql is read differently by each, a
+    readme.sql makes that comparison fail outright, and a script in a subdirectory is never
+    globbed at all. Only touched files are held to this, which leaves the patchless and padded
+    names this repository carries from earlier releases alone.
     """
     try:
         merged = parse_version(merged_version)
@@ -391,9 +392,10 @@ def evaluate_upgrade_files(
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(non_canonical)} is not named after a full "
-                f"major.minor.patch version. The upgrade play compares every *.sql name in the "
-                f"directory with the installed version, so name it {merged_version}.sql."
+                f"upgrade file {', '.join(non_canonical)} is not a major.minor.patch.sql script "
+                f"directly in roles/database/files/upgrade/. The upgrade play globs that one "
+                f"directory and compares each name with the installed version, so name it "
+                f"{merged_version}.sql there."
             ),
         )
 

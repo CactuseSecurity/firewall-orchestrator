@@ -71,11 +71,13 @@ git diff --unified=0 refs/fwo/base refs/fwo/pr-merge -- documentation/revision-h
 # The merge result's upgrade files are listed rather than diffed, because the first rule asks
 # which versions it carries. A branch without the directory yields an empty listing. The second
 # rule needs the files this pull request touches, added and modified alike, which is a diff.
+# Both are read recursively, so a script placed in a subdirectory reaches the naming rule
+# instead of looking like a file the pull request deleted.
 # Both listings are path-limited rather than addressed as <ref>:<dir>: that form exits 128 when
 # the directory is absent, and the '|| true' it needs would swallow a real failure as well,
 # leaving the rule silently vacuous. Path-limited, an absent directory is simply empty output.
 upgrade_dir="roles/database/files/upgrade"
-git ls-tree --name-only refs/fwo/pr-merge -- "${upgrade_dir}/" \
+git ls-tree --name-only -r refs/fwo/pr-merge -- "${upgrade_dir}/" \
     | sed "s#^${upgrade_dir}/##" >"${work_dir}/merged-upgrade-files.txt"
 # --no-renames on purpose: moving a released upgrade script is a deletion for the rules below,
 # and rename detection would report only the new name.

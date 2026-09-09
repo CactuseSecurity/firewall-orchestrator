@@ -4,9 +4,12 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using NUnit.Framework;
+using System.Net;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text;
 
 namespace FWO.Test
 {
@@ -72,6 +75,102 @@ namespace FWO.Test
             Assert.That(handler.AddTicketMode, Is.False);
             Assert.That(handler.DisplayPromoteTicketMode, Is.False);
             Assert.That(handler.DisplaySaveTicketMode, Is.False);
+        }
+
+        [Test]
+        public async Task PromoteTicketAndTasks_ReportsEmailFailureButStillSucceeds()
+        {
+            List<string> displayedMessages = [];
+            MonitoringStateChangeApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            middlewareClient.UseHandler(new SingleResponseHandler(HttpStatusCode.InternalServerError, "\"flush failed\""));
+            WfHandler handler = BuildBundleFlushHandler(displayedMessages, apiConn, middlewareClient);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { MinTicketCompleted = 99 });
+            handler.ActTicket = new WfTicket
+            {
+                Id = 42,
+                StateId = 0,
+                Tasks = [new WfReqTask { Id = 7, TicketId = 42, StateId = 0, TaskType = WfTaskType.access.ToString() }]
+            };
+            handler.TicketList.Add(handler.ActTicket);
+            SetDbAccess(handler, apiConn);
+
+            bool ok = await handler.PromoteTicketAndTasks(new WfStatefulObject { StateId = 2 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ok, Is.True, "a failed email flush must not turn a completed state change into a failure");
+                Assert.That(displayedMessages, Has.Some.Contains("bundled emails could not be sent"));
+                Assert.That(handler.WorkflowEmailBundleId, Is.Null, "the bundle must be cleared afterwards");
+            });
+        }
+
+        [Test]
+        public async Task PromoteTicketAndTasks_FlushesCapturedEmailsWhenTaskLoopThrows()
+        {
+            List<string> displayedMessages = [];
+            MonitoringStateChangeApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            RecordingFlushHandler flushHandler = new();
+            middlewareClient.UseHandler(flushHandler);
+            WfHandler handler = BuildBundleFlushHandler(displayedMessages, apiConn, middlewareClient);
+            // No state matrix for the task type, so the request task loop throws mid promote.
+            handler.ActTicket = new WfTicket
+            {
+                Id = 42,
+                StateId = 0,
+                Tasks = [new WfReqTask { Id = 7, TicketId = 42, StateId = 0, TaskType = WfTaskType.access.ToString() }]
+            };
+            handler.TicketList.Add(handler.ActTicket);
+            SetDbAccess(handler, apiConn);
+
+            bool ok = await handler.PromoteTicketAndTasks(new WfStatefulObject { StateId = 2 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ok, Is.False, "the promote itself failed");
+                Assert.That(flushHandler.FlushOnlyRequestCount, Is.EqualTo(1),
+                    "captured emails were suppressed at their action, so an aborted promote must still flush them");
+                Assert.That(handler.WorkflowEmailBundleId, Is.Null);
+            });
+        }
+
+        private static WfHandler BuildBundleFlushHandler(List<string> displayedMessages, ApiConnection apiConnection,
+            TestMiddlewareClient middlewareClient)
+        {
+            WfHandler handler = new((_, _, message, _) => displayedMessages.Add(message),
+                new SimulatedUserConfig(), new ClaimsPrincipal(), apiConnection, middlewareClient, WorkflowPhases.request)
+            {
+                MasterStateMatrix = new StateMatrix
+                {
+                    MinTicketCompleted = 99,
+                    LowestEndState = 10,
+                    PhaseActive = new() { { WorkflowPhases.planning, false } }
+                }
+            };
+            handler.ActionHandler = new ActionHandler(apiConnection, handler);
+            handler.ActionHandler.Init([]).GetAwaiter().GetResult();
+            return handler;
+        }
+
+        private sealed class RecordingFlushHandler : HttpMessageHandler
+        {
+            public int FlushOnlyRequestCount { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                string body = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : "";
+                if (body.Contains("\"EmailBundleFlushOnly\":true", StringComparison.OrdinalIgnoreCase)
+                    || body.Contains("\"emailBundleFlushOnly\":true", StringComparison.OrdinalIgnoreCase))
+                {
+                    ++FlushOnlyRequestCount;
+                }
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", Encoding.UTF8, "application/json")
+                };
+            }
         }
 
         [Test]

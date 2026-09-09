@@ -115,10 +115,17 @@ namespace FWO.Services.Workflow
         /// <returns>true if the bundle was flushed without error</returns>
         private async Task<bool> FlushWorkflowEmailBundle()
         {
+            if (ActionHandler == null)
+            {
+                // Without an action handler no state action ran, so nothing was captured. Reporting an
+                // email problem here would be misleading.
+                return true;
+            }
+
             try
             {
                 EndWorkflowEmailBundle();
-                await ActionHandler!.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
+                await ActionHandler.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
                 return true;
             }
             catch (Exception exception)

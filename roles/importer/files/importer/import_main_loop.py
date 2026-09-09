@@ -165,16 +165,18 @@ def main_loop(
         return
 
     jwt: str
+    refresh_token: str | None
 
     try:
         json_data = json.loads(json_raw)
         jwt = json_data["AccessToken"]
+        refresh_token = json_data.get("RefreshToken")
     except Exception:
         FWOLogger.error("JWT could not be parsed")
         wait_with_shutdown_check(sleep_timer)
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt)
+    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]

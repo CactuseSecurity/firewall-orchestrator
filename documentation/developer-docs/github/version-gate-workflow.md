@@ -67,7 +67,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
 | any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: name it `V.sql` |
-| any | the pull request deletes no upgrade file | fails otherwise: correct it in `V.sql` instead |
+| any | the pull request deletes no upgrade file | fails otherwise: restore it, then empty or correct `V.sql` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
 | non-automated, section opened | that new final section is not empty | fails otherwise |
@@ -122,17 +122,18 @@ this gate reads no version at all, a patchless `9.0.sql` is read differently by 
 globbed. Both upgrade inputs are read recursively so that such a script is judged on its name
 rather than mistaken for one the pull request deleted, and NUL separated so that a name git
 would C-quote - anything holding a non-ASCII byte or a control character - reaches the rules as
-itself rather than as a quoted path that matches none of them. Only touched files are held to this, so
-the thirteen patchless and padded names this repository carries from its 5.1 to 9.3 releases
-stay as they are.
+itself rather than as a quoted path that matches none of them. Only touched files are held to
+this, so the thirteen patchless and padded names this repository carries from its 5.1 to 9.3
+releases stay as they are.
 
 An upgrade script the pull request removes is refused too: every installation older than that
 script's version loses those operations, and the upgrade play says nothing about it. That covers
 the still open version's own script, which a colleague's installation may already have run. The
 verdict asks for the scripts back first and then names both ways forward - empty the current
 version's script rather than remove it, or correct an older one from the current version's
-script - because one deletion can hold scripts of both kinds. The diff is taken with `--no-renames`, so moving a released script is a deletion here
-rather than a rename that shows only its new name.
+script - because one deletion can hold scripts of both kinds. The diff is taken with
+`--no-renames`, so moving a released script is a deletion here rather than a rename that shows
+only its new name.
 
 The rules differ in what they look at. The above-`V` rule judges every upgrade file in the merge
 result, because any of them being unreachable is a fact about the merge result rather than about
@@ -244,8 +245,11 @@ rather than from the tagged commit, so tags on older commits are still checked. 
   seal the wrong version and break the invariant for every later pull request;
 - a sealing tag points at a commit that is contained in neither `develop` nor `main`.
 
-Remediation is to delete the tag and recreate it on the correct commit. Note that this is only
-possible while the tag ruleset permits it, and that a published release tag must never be moved.
+Remediation is to leave the tag where it is and move on to the next version: the version it
+sealed cannot be reopened, so raise `product_version` and seal that one on the right commit. The
+`Disallow Tag Update or Delete` ruleset covers `refs/tags/*` with no bypass actors, so deleting
+or moving the tag is not a path anyone has - not even an organisation admin - without editing or
+disabling that ruleset first, and a published release tag must never be moved in any case.
 
 **`audit-develop`** runs on every push to `develop` and fails when `develop`'s `product_version`
 is already sealed. It catches the narrow race where a merge lands in the same moment a sealing

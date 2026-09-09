@@ -546,7 +546,7 @@ class TestUpgradeFileSelection:
         verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.5.0.sql", "9.4.7.sql"], ["9.4.7.sql"])
         assert not verdict.ok
         assert "9.4.7.sql is below version 9.5.0" in verdict.reason
-        assert "Put it in 9.5.1.sql instead" in verdict.reason
+        assert "Put the change in 9.5.1.sql instead" in verdict.reason
 
     def test_modified_file_below_the_base_version_fails_like_an_added_one(self) -> None:
         # The same SQL appended to an older file is stranded exactly as a new file would be,
@@ -585,6 +585,23 @@ class TestUpgradeFileSelection:
         assert "upgrade file 9.4.6.sql is deleted" in verdict.reason
         assert "Restore it, then empty the body of 9.4.6.sql" in verdict.reason
 
+    def test_every_upgrade_verdict_agrees_in_number_with_its_file_list(self) -> None:
+        # Only the deletion message was pluralised when the set case was found, see F47.
+        above = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.5.0.sql", "9.6.0.sql"], [])
+        naming = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.07.sql", "readme.sql"], ["9.4.07.sql", "readme.sql"])
+        behind = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.5.sql", "9.4.6.sql"], ["9.4.5.sql", "9.4.6.sql"])
+
+        assert "upgrade files 9.5.0.sql, 9.6.0.sql are above product_version" in above.reason
+        assert "or rename them." in above.reason
+        assert "upgrade files 9.4.07.sql, readme.sql are not named" in naming.reason
+        assert "upgrade files 9.4.5.sql, 9.4.6.sql are below version" in behind.reason
+
+    def test_single_file_upgrade_verdicts_stay_singular(self) -> None:
+        above = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.5.0.sql"], [])
+
+        assert "upgrade file 9.5.0.sql is above product_version" in above.reason
+        assert "or rename it." in above.reason
+
     def test_deleting_a_released_and_the_open_version_script_reads_as_a_set(self) -> None:
         # A revert spanning two versions deletes both, and the remedy must not depend on which
         # of them is in the set, see F45.
@@ -610,8 +627,8 @@ class TestUpgradeFileSelection:
         # escapes both rules. Refuse the name instead of interpreting it, see F28.
         verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["9.4.6.sql", "9.4.07.sql"], ["9.4.07.sql"])
         assert not verdict.ok
-        assert "9.4.07.sql is not a major.minor.patch.sql script" in verdict.reason
-        assert "name it 9.4.6.sql there" in verdict.reason
+        assert "9.4.07.sql is not named major.minor.patch.sql" in verdict.reason
+        assert "put the change in 9.4.6.sql there" in verdict.reason
 
     def test_zero_padded_name_the_pull_request_leaves_alone_passes(self) -> None:
         # roles/database/files/upgrade/ carries 5.1.01.sql through 5.1.09.sql from old releases.
@@ -634,7 +651,7 @@ class TestUpgradeFileSelection:
             ["archive/9.4.5.sql"],
         )
         assert not verdict.ok
-        assert "archive/9.4.5.sql is not a major.minor.patch.sql script" in verdict.reason
+        assert "archive/9.4.5.sql is not named major.minor.patch.sql" in verdict.reason
         assert "is deleted" not in verdict.reason
 
     def test_names_of_untouched_scripts_are_left_alone(self) -> None:

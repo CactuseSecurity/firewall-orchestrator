@@ -301,6 +301,13 @@ def deleted_upgrade_files(changed_upgrade_files: list[str], merged_upgrade_files
     )
 
 
+def describe_upgrade_files(file_names: list[str]) -> tuple[str, str, str]:
+    """Return the subject, verb and pronoun a verdict needs to name one or several scripts."""
+    if len(file_names) > 1:
+        return (f"upgrade files {', '.join(file_names)}", "are", "them")
+    return (f"upgrade file {file_names[0]}", "is", "it")
+
+
 def deleted_upgrade_reason(deleted_files: list[str], merged_version: str) -> str:
     """
     Explain a refused deletion without naming a deleted script as the place to correct it.
@@ -310,14 +317,9 @@ def deleted_upgrade_reason(deleted_files: list[str], merged_version: str) -> str
     undo, restoring comes first, which is what keeps the current version's script from being
     named as the remedy while it is itself being removed.
     """
-    if len(deleted_files) > 1:
-        subject = f"upgrade files {', '.join(deleted_files)} are"
-        pronoun = "them"
-    else:
-        subject = f"upgrade file {deleted_files[0]} is"
-        pronoun = "it"
+    subject, verb, pronoun = describe_upgrade_files(deleted_files)
     return (
-        f"{subject} deleted. Upgrade scripts are kept once merged, because an installation that "
+        f"{subject} {verb} deleted. Upgrade scripts are kept once merged, because an installation that "
         f"has already taken their version would otherwise never run them. Restore {pronoun}, then "
         f"empty the body of {merged_version}.sql to undo the current version's change, or put a "
         f"correction to an older script there."
@@ -387,12 +389,12 @@ def evaluate_upgrade_files(
 
     above_product_version = upgrade_files_above_version(merged_upgrade_files, merged)
     if above_product_version:
+        subject, verb, pronoun = describe_upgrade_files(above_product_version)
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(above_product_version)} is above product_version "
-                f"{merged_version} and would never run. Raise product_version in "
-                f"inventory/group_vars/all.yml or rename the file."
+                f"{subject} {verb} above product_version {merged_version} and would never run. "
+                f"Raise product_version in inventory/group_vars/all.yml or rename {pronoun}."
             ),
         )
 
@@ -402,24 +404,26 @@ def evaluate_upgrade_files(
 
     non_canonical = non_canonical_upgrade_files(changed_in_merge_result)
     if non_canonical:
+        subject, verb, _ = describe_upgrade_files(non_canonical)
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(non_canonical)} is not a major.minor.patch.sql script "
-                f"directly in roles/database/files/upgrade/. The upgrade play globs that one "
-                f"directory and compares each name with the installed version, so name it "
+                f"{subject} {verb} not named major.minor.patch.sql directly in "
+                f"roles/database/files/upgrade/. The upgrade play globs that one directory and "
+                f"compares each name with the installed version, so put the change in "
                 f"{merged_version}.sql there."
             ),
         )
 
     behind_base_version = upgrade_files_below_version(changed_in_merge_result, base)
     if behind_base_version:
+        subject, verb, _ = describe_upgrade_files(behind_base_version)
         return Verdict(
             ok=False,
             reason=(
-                f"upgrade file {', '.join(behind_base_version)} is below version {base_version} of the "
-                f"base branch, so installations already on {base_version} would skip the change. "
-                f"Put it in {merged_version}.sql instead."
+                f"{subject} {verb} below version {base_version} of the base branch, so "
+                f"installations already on {base_version} would skip the change. Put the change "
+                f"in {merged_version}.sql instead."
             ),
         )
 

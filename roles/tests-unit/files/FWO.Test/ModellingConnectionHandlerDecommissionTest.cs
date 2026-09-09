@@ -48,7 +48,7 @@ namespace FWO.Test
 
             FwoNotification notification = new()
             {
-                NotificationClient = NotificationClient.AppDecomm,
+                NotificationClient = NotificationClient.InterfaceDecomm,
                 Deadline = NotificationDeadline.None,
                 Layout = NotificationLayout.HtmlInBody,
                 RecipientTo = EmailRecipientOption.OwnerMainResponsible,

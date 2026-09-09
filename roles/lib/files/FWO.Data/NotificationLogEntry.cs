@@ -30,6 +30,7 @@ namespace FWO.Data
         public string Subject { get; set; } = "";
 
         [JsonProperty("deadline_type"), JsonPropertyName("deadline_type")]
+        [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
         public NotificationDeadline DeadlineType { get; set; } = NotificationDeadline.None;
 
         [JsonProperty("deadline"), JsonPropertyName("deadline")]

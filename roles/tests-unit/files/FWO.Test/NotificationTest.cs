@@ -790,6 +790,12 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OfferedDeadlineOptions_ReturnsOnlyNone_ForInterfaceDecomm()
+        {
+            CollectionAssert.AreEqual(kNoneDeadline, FwoNotification.OfferedDeadlineOptions(NotificationClient.InterfaceDecomm));
+        }
+
+        [Test]
         public void NotificationClientGroups_ClassifiesWfActionAsWorkflowRecipientClient()
         {
             ClassicAssert.IsTrue(NotificationClient.WfAction.IsWorkflowRecipientClient());

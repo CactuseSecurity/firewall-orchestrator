@@ -274,7 +274,13 @@ namespace FWO.Middleware.Server.Jobs
                         continue;
                     }
 
-                    int sentForTicket = await notificationService.SendNotification(notification, owner, await PrepareBody(notification, ticket, owner));
+                    NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
+                        await BuildRequestPlaceholderValues(ticket, owner);
+                    int sentForTicket = await notificationService.SendNotification(
+                        notification,
+                        owner,
+                        resolvedDeadline: ticket.CreationDate,
+                        placeholderValues: placeholderValues);
                     emailsSent += sentForTicket;
                     if (sentForTicket == 0)
                     {
@@ -322,12 +328,18 @@ namespace FWO.Middleware.Server.Jobs
 
         private async Task<string> PrepareBody(FwoNotification notification, WfTicket ticket, FwoOwner owner)
         {
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = await BuildRequestPlaceholderValues(ticket, owner);
+            return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(notification.EmailBody, values, renderHtmlLinks: true);
+        }
+
+        private async Task<NotificationPlaceholderResolver.NotificationPlaceholderValues> BuildRequestPlaceholderValues(WfTicket ticket, FwoOwner owner)
+        {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
             FwoOwner? requestingOwner = await GetRequestingOwner(reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
             FwoOwner effectiveRequestingOwner = requestingOwner ?? new FwoOwner();
             string interfaceName = reqTask?.Title ?? globalConfig.GetText("interface");
             string interfaceUrl = ConstructLink(owner, reqTask);
-            NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues = new()
+            return new NotificationPlaceholderResolver.NotificationPlaceholderValues
             {
                 Application = owner,
                 RequestingOwner = effectiveRequestingOwner,
@@ -337,12 +349,11 @@ namespace FWO.Middleware.Server.Jobs
                 NewInterfaceName = interfaceName,
                 NewInterfaceLinkText = globalConfig.GetText("request_interface"),
                 NewInterfaceLinkUrl = interfaceUrl,
-                Reason = "",
+                Reason = reqTask?.Reason ?? ticket.Reason ?? "",
                 UserName = ticket.Requester?.Name ?? "",
                 RequesterName = ticket.Requester?.Name ?? ticket.RequesterDn ?? "",
                 RequestDate = ticket.CreationDate.ToString("dd.MM.yyyy")
             };
-            return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(notification.EmailBody, requestPlaceholderValues, renderHtmlLinks: true);
         }
 
         private async Task<FwoOwner?> GetRequestingOwner(int? ownerId)

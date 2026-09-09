@@ -151,7 +151,7 @@ namespace FWO.Services.Modelling
         private async Task<List<FwoNotification>> LoadImmediateDecommissionNotifications()
         {
             List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
-                new { client = NotificationClient.AppDecomm.ToString() });
+                new { client = NotificationClient.InterfaceDecomm.ToString() });
             return notifications.Where(notification => notification.Deadline == NotificationDeadline.None).ToList();
         }
 
@@ -613,6 +613,11 @@ namespace FWO.Services.Modelling
             {
                 if (requestedInterface != null)
                 {
+                    if (PreselectedInterfaces.Any(selected => selected.Id == requestedInterface.Id))
+                    {
+                        return;
+                    }
+
                     var Variables = new
                     {
                         appId = requestedInterface.AppId,

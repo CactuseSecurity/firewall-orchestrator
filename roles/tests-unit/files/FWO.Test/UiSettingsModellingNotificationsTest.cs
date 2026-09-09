@@ -44,7 +44,7 @@ namespace FWO.Test
                 Assert.That(editors[0].Instance.DeadlineFilter, Is.EqualTo(NotificationDeadline.None));
                 Assert.That(editors[1].Instance.Client, Is.EqualTo(NotificationClient.InterfaceRequest));
                 Assert.That(editors[1].Instance.DeadlineFilter, Is.EqualTo(NotificationDeadline.RequestDate));
-                Assert.That(editors[2].Instance.Client, Is.EqualTo(NotificationClient.AppDecomm));
+                Assert.That(editors[2].Instance.Client, Is.EqualTo(NotificationClient.InterfaceDecomm));
                 Assert.That(editors[2].Instance.DeadlineFilter, Is.EqualTo(NotificationDeadline.None));
             });
         }

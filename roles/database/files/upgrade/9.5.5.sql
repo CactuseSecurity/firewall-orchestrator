@@ -146,7 +146,7 @@ decomm_notification_seed AS
 (
     SELECT COUNT(*) AS notification_count
     FROM notification
-    WHERE notification_client = 'AppDecomm'
+    WHERE notification_client = 'InterfaceDecomm'
       AND COALESCE(deadline, 'None') = 'None'
 ),
 insert_decomm_notification AS
@@ -174,7 +174,7 @@ insert_decomm_notification AS
         repetitions_after_deadline
     )
     SELECT
-        'AppDecomm',
+        'InterfaceDecomm',
         'Interface decommissioned',
         'Email',
         CASE
@@ -225,7 +225,7 @@ update_decomm_subject_bodies AS
         END
     FROM decomm_config
     CROSS JOIN decomm_notification_seed
-    WHERE n.notification_client = 'AppDecomm'
+    WHERE n.notification_client = 'InterfaceDecomm'
       AND COALESCE(n.deadline, 'None') = 'None'
       AND decomm_notification_seed.notification_count > 0
     RETURNING 1

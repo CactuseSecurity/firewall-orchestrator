@@ -329,7 +329,7 @@
         ToRecipientSelection = CreateDefaultToSelection();
         CcRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientCc);
         BccRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientBcc);
-        if(Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
+        if (OfferedLayoutOptions().Contains(NotificationLayout.HtmlInBody))
         {
             actNotification.Layout = NotificationLayout.HtmlInBody;
         }
@@ -622,7 +622,7 @@
 
     private List<NotificationLayout> OfferedLayoutOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm || Client == NotificationClient.InterfaceDecomm)
         {
             return NotificationLayoutGroups.WithoutAttachments().ToList();
         }

@@ -118,12 +118,14 @@ namespace FWO.Middleware.Server
         /// <param name="report">Optional report to be sent as attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
         /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
+        /// <param name="placeholderValues">Optional caller-provided values for notification placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
         public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null,
-            string timeIntervalText = "", DateTime? resolvedDeadline = null)
+            string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             // Later: Handle other channels here when implemented
-            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline);
+            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline, placeholderValues);
             if (!sent)
             {
                 return 0;
@@ -300,11 +302,13 @@ namespace FWO.Middleware.Server
         /// <param name="report">Optional report attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
         /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
+        /// <param name="placeholderValues">Optional caller-provided values for notification placeholder replacement.</param>
         /// <returns>True when an email was sent; otherwise false.</returns>
         private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
-            string timeIntervalText = "", DateTime? resolvedDeadline = null)
+            string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
-            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
+            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText, placeholderValues);
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 Log.WriteWarning("Notifications",
@@ -359,10 +363,16 @@ namespace FWO.Middleware.Server
             return true;
         }
 
-        private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
+            string timeIntervalText = "", NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
             string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
+            if (placeholderValues != null)
+            {
+                subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
+                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues, renderHtmlLinks: true);
+            }
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)

@@ -13,7 +13,8 @@ namespace FWO.Data
         RuleTimer = 5,
         AppDecomm = 6,
         Report = 7,
-        WfAction = 8
+        WfAction = 8,
+        InterfaceDecomm = 9
     }
 
     public static class NotificationClientGroups
@@ -28,7 +29,8 @@ namespace FWO.Data
             return client is NotificationClient.Recertification
                 or NotificationClient.InterfaceRequest
                 or NotificationClient.RuleTimer
-                or NotificationClient.AppDecomm;
+                or NotificationClient.AppDecomm
+                or NotificationClient.InterfaceDecomm;
         }
 
         /// <summary>
@@ -234,6 +236,7 @@ namespace FWO.Data
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.None, NotificationDeadline.RequestDate],
                 NotificationClient.AppDecomm => [NotificationDeadline.None, NotificationDeadline.DecommissionDate],
+                NotificationClient.InterfaceDecomm => [NotificationDeadline.None],
                 NotificationClient.WfAction => [NotificationDeadline.None],
                 _ => Enum.GetValues(typeof(NotificationDeadline)).Cast<NotificationDeadline>().ToList()
             };

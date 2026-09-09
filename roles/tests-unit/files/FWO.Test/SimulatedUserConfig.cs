@@ -639,6 +639,8 @@ namespace FWO.Test
             {"CreateFlow","Create flow"},
             {"flow_creation_succeeded","Flow DB entries were created."},
             {"flow_creation_failed","Flow DB entries could not be created. Check the workflow log for unresolved objects or services."},
+            {"flow_creation_mixed_address_families","Address range starts and ends in different address families"},
+            {"flow_creation_unreadable_address","Address could not be read"},
             {"T0100","Translated template comment"},
             {"PreferredCollapseState","Default state of the collapsible elements"},
             {"PreferredCollapseState_Collapsed","Collapsed"},

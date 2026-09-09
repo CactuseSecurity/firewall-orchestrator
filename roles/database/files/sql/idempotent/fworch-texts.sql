@@ -543,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Alle &Auml;nderungen an erstellten Workflow-Tickets werden f&uuml;r die Audit-Auswertung aufgezeichnet; auditkritische Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden gesondert markiert.</li>
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
+    <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -560,6 +561,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>All changes to created workflow tickets are recorded for audit evaluation; audit-critical content changes by users other than the requester are marked separately.</li>
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
+    <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3286,6 +3288,10 @@ INSERT INTO txt VALUES ('flow_creation_succeeded',  'German',   'Flow-DB-Eintr&a
 INSERT INTO txt VALUES ('flow_creation_succeeded',  'English',  'Flow DB entries were created.');
 INSERT INTO txt VALUES ('flow_creation_failed',     'German',   'Flow-DB-Eintr&auml;ge konnten nicht erzeugt werden. Pr&uuml;fen Sie das Workflow-Log auf nicht aufl&ouml;sbare Objekte oder Dienste.');
 INSERT INTO txt VALUES ('flow_creation_failed',     'English',  'Flow DB entries could not be created. Check the workflow log for unresolved objects or services.');
+INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'German',   'Adressbereich beginnt und endet in unterschiedlichen Adressfamilien');
+INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'English',  'Address range starts and ends in different address families');
+INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse konnte nicht gelesen werden');
+INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');

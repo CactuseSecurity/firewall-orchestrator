@@ -649,7 +649,18 @@ Not supported any longer are:
 - prepare network zone tree algorithm in database
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 
-## 9.4.7 - 04.09.2026
+## 9.4.7 - 07.09.2026
+- enforce host-address masks for flow network-object range endpoints
+- require both endpoints of a flow network-object range to be of the same address family
+- store the range endpoints of flow network objects created from a request in CIDR notation
+- widen a requested network endpoint to the first and the last host address of that network
+- name the refused addresses in the message of a failed flow creation
+- normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- warn during the upgrade about flow network objects sharing a range, they have to be merged manually
+- stop the upgrade and name the affected flow network objects when their endpoints mix address families
+
+
+## 9.4.8 - 09.09.2026
 - centralize modelling and workflow change history in the public schema. The modelling change history table moves from modelling.change_history to public.change_history, so the GraphQL root field is renamed from modelling_change_history to change_history. Scripts and external integrations querying the old field name have to be adapted. Existing entries are migrated, the modelling history views are unaffected and continue to show modelling changes only.
 - changes to workflow tickets are recorded in the same table after ticket creation, with the workflow phase and the previous and new values. Content changes made in the user interface by a user other than the requester are marked as audit proof critical. The recording is available to auditors via the API and is not shown in the user interface.
 - change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.

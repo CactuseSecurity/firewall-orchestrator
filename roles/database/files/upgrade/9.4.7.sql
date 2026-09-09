@@ -1,117 +1,83 @@
--- Centralize modelling and workflow history without losing existing entries.
+-- Flow network-object ranges store individual endpoints. Keep the existing
+-- paired-null rule for FQDN objects, but require any populated endpoint to be
+-- an IPv4 /32 or IPv6 /128 address, with both endpoints in the same address family.
+
+-- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range which starts in
+-- one address family and ends in the other. Such a range describes nothing and cannot be repaired without
+-- guessing which of the two endpoints was meant, so the upgrade names the rows and stops instead. This runs
+-- before the normalization below, so an upgrade which stops here has not changed any data yet.
 DO $$
+DECLARE
+    mixed_family_objects TEXT;
 BEGIN
-    IF to_regclass('public.change_history') IS NULL
-       AND to_regclass('modelling.change_history') IS NOT NULL THEN
-        ALTER TABLE modelling.change_history SET SCHEMA public;
+    SELECT string_agg(nwobj_id::text, ', ' ORDER BY nwobj_id) INTO mixed_family_objects
+        FROM flow.nwobject
+        WHERE ip_start IS NOT NULL
+          AND ip_end IS NOT NULL
+          AND family(ip_start) <> family(ip_end);
+
+    IF mixed_family_objects IS NOT NULL THEN
+        RAISE EXCEPTION 'flow.nwobject holds range endpoints of different address families in nwobj_id(s) %. Correct or remove these flow network objects, then run the upgrade again.', mixed_family_objects;
     END IF;
-END
-$$;
+END $$;
 
-CREATE TABLE IF NOT EXISTS public.change_history (
-    id BIGSERIAL PRIMARY KEY,
-    app_id INTEGER,
-    ticket_id BIGINT,
-    -- Names the subsystem that wrote the row. It is the discriminator for object_type
-    -- and the basis of the read permissions of the modelling roles, so it is set by the
-    -- API and never derived from imported data.
-    module VARCHAR NOT NULL DEFAULT 'modelling',
-    change_type INTEGER,
-    -- Holds two disjoint enums, selected by module:
-    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
-    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
-    object_type INTEGER,
-    object_id BIGINT,
-    change_text TEXT,
-    -- Free text supplied by the client. changer_id is set by the API from the
-    -- authenticated session and is the trustworthy identity of the two. It stays null for rows
-    -- written outside a user session, because the middleware-server role carries no user id; in
-    -- that case changer names the automation, see FWO.Basics.Roles.MiddlewareServer.
-    changer VARCHAR,
-    changer_id INTEGER,
-    change_time TIMESTAMP DEFAULT NOW(),
-    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
-    -- name configured by the customer. Never used to tell modules apart, see module.
-    change_source VARCHAR NOT NULL DEFAULT 'manual',
-    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
-    workflow_phase INTEGER,
-    old_data JSONB,
-    new_data JSONB,
-    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE
-);
+-- Installations upgraded from an earlier version can already hold network masks here:
+-- FlowDbCreatorObjectResolution.InsertNetworkObject writes request.reqelement.ip through
+-- unchanged, and that column carries no host constraint of its own. A plain ADD CONSTRAINT
+-- validates every existing row, so a single such row would abort the whole upgrade play.
+-- The endpoints are therefore normalized to the first and the last host address of their
+-- network first - the same treatment upgrade/7.2.2.sql gave object, owner_network and
+-- tenant_network. host() and broadcast() leave an already-host value and a NULL endpoint
+-- unchanged, so this is a no-op on a clean database.
+-- nwobj_hash is derived from both endpoints and goes stale for every row changed here. It is
+-- deliberately not rewritten: FlowSync.GetConsistentFlowDataAsync detects the mismatch and
+-- repairs it through FlowHashRecalculator on the next flow sync. Should two flow network
+-- objects end up on the same range here, that recalculation reports the collision instead of
+-- writing it, and the two entries have to be merged manually.
+DO $$
+DECLARE
+    normalized_rows INTEGER;
+    colliding_objects TEXT;
+BEGIN
+    UPDATE flow.nwobject
+        SET ip_start = host(ip_start)::cidr,
+            ip_end = host(broadcast(ip_end))::cidr
+        WHERE (ip_start IS NOT NULL AND NOT is_single_ip(ip_start))
+           OR (ip_end IS NOT NULL AND NOT is_single_ip(ip_end));
 
--- Every entry that exists before this upgrade is modelling history, so the column default
--- migrates them without a separate backfill.
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS module VARCHAR NOT NULL DEFAULT 'modelling';
+    GET DIAGNOSTICS normalized_rows = ROW_COUNT;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS ticket_id BIGINT;
+    -- objects sharing a range recalculate to one hash, which is the case the repair refuses to
+    -- resolve, so it is named here instead of being promised away by the notice below
+    SELECT string_agg(shared_range_objects, '; ' ORDER BY shared_range_objects) INTO colliding_objects
+        FROM (
+            SELECT string_agg(nwobj_id::text, ', ' ORDER BY nwobj_id) AS shared_range_objects
+                FROM flow.nwobject
+                WHERE ip_start IS NOT NULL
+                  AND ip_end IS NOT NULL
+                GROUP BY ip_start, ip_end
+                HAVING count(*) > 1
+        ) AS ranges_held_more_than_once;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS changer_id INTEGER;
+    IF normalized_rows > 0 AND colliding_objects IS NULL THEN
+        RAISE NOTICE 'flow.nwobject: normalized % row(s) with network endpoints to their first/last host address, their nwobj_hash is recalculated by the next flow sync', normalized_rows;
+    ELSIF normalized_rows > 0 THEN
+        RAISE NOTICE 'flow.nwobject: normalized % row(s) with network endpoints to their first/last host address', normalized_rows;
+    END IF;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS workflow_phase INTEGER;
+    IF colliding_objects IS NOT NULL THEN
+        RAISE WARNING 'flow.nwobject holds more than one object on the same range: nwobj_id(s) %. The next flow sync reports these and recalculates no hash for their management until they are merged manually, so the flow database and the request module keep working with stale hashes.', colliding_objects;
+    END IF;
+END $$;
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS old_data JSONB;
+-- is_single_ip() is the /32-or-/128 predicate above, and is what the host constraints of nw_object and
+-- owner_network use. A fresh install adds the same three constraints in fworch-create-constraints.sql,
+-- so both ways of arriving at 9.4.7 define them identically.
+ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_start_is_host;
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS new_data JSONB;
+ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_end_is_host;
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_single_ip(ip_end));
 
-ALTER TABLE public.change_history
-ADD COLUMN IF NOT EXISTS audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_module_check;
-
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'));
-
-UPDATE public.change_history SET change_source = 'manual' WHERE change_source IS NULL;
-
-ALTER TABLE public.change_history
-ALTER COLUMN change_source SET DEFAULT 'manual';
-
-ALTER TABLE public.change_history
-ALTER COLUMN change_source SET NOT NULL;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS modelling_change_history_owner_foreign_key;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_owner_foreign_key;
-
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES public.owner (id) ON UPDATE RESTRICT ON DELETE SET NULL;
-
-ALTER TABLE public.change_history
-DROP CONSTRAINT IF EXISTS change_history_ticket_foreign_key;
-
-ALTER TABLE public.change_history
-ADD CONSTRAINT change_history_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket (id) ON UPDATE RESTRICT ON DELETE SET NULL;
-
--- The table is insert heavy and read rarely, so the index set is kept minimal and the two
--- per-object indices are partial: a workflow row has no app_id and a modelling row has no
--- ticket_id, so each row maintains only the indices that apply to it. id is part of the sort
--- key because change_time is not unique and paging by it alone is unstable.
-DROP INDEX IF EXISTS public.idx_change_history_app_id;
-
-DROP INDEX IF EXISTS public.idx_change_history_ticket_id;
-
-DROP INDEX IF EXISTS public.idx_change_history_change_time;
-
-DROP INDEX IF EXISTS public.idx_modelling_change_history01;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON public.change_history (module, change_time DESC, id DESC);
-
-CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON public.change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON public.change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
-
-CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON public.change_history (change_time DESC) WHERE audit_proof_critical;
-
-GRANT SELECT ON public.change_history TO fwo_ro;
-
-GRANT SELECT ON SEQUENCE public.change_history_id_seq TO fwo_ro;
+ALTER TABLE flow.nwobject DROP CONSTRAINT IF EXISTS flow_nwobject_ip_same_family;
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));

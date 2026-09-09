@@ -17,7 +17,8 @@ internalca_ca_private_key: "{{ internalca_ca_dir }}/ca.key"
 internalca_ca_csr: "{{ internalca_ca_dir }}/ca.csr"
 internalca_ca_certificate: "{{ internalca_ca_dir }}/ca.crt"
 internalca_ca_issued_dir: "{{ internalca_ca_dir }}/issued"
-internalca_ca_common_name: "{{ product_name }} Internal CA"
+internalca_ca_common_name_prefix: "{{ product_name }} Internal CA"
+internalca_ca_common_name: "{{ internalca_ca_common_name_prefix }}"
 internalca_ca_validity_days: 3650
 internalca_certificate_validity_days: 825
 # An installer run this close to expiry re-signs the issued certificates.

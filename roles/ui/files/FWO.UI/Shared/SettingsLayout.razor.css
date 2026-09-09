@@ -1,6 +1,10 @@
 .settings-search {
-    background-image: linear-gradient(var(--bg-color, #054B8C), var(--bg-color-2, #03335E));
     position: sticky;
     top: 0;
-    z-index: 1;
+}
+
+/* A separator belongs to the heading below it. Drop it when role visibility or the
+   search filter left it as the first element of the navigation. */
+.settings-sidebar li:first-child hr {
+    display: none;
 }

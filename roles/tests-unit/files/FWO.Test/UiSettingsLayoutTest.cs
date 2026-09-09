@@ -19,6 +19,10 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiSettingsLayoutTest
     {
+        // Sidebar renders its child content only once a navbar height arrived, so every test has to
+        // publish one before the settings navigation exists in the rendered markup.
+        private const int kNavbarHeight = 50;
+
         private static readonly FieldInfo NavbarHeightSubscribersField = typeof(DomEventService).GetField("_navbarHeightSubscribers", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingFieldException(typeof(DomEventService).FullName, "_navbarHeightSubscribers");
 
@@ -32,6 +36,57 @@ namespace FWO.Test
             Roles.Reporter,
             Roles.ReporterViewAll,
             Roles.WorkflowRolesList
+        };
+
+        private static readonly List<string> ManagementsOnly = new() { "settings/managements" };
+        private static readonly List<string> DevicesHeadingOnly = new() { "Devices" };
+        private static readonly List<string> PersonalNavigation = new() { "settings/password", "settings/personal" };
+
+        // Every settings page an admin can reach, in navigation order. Adding a settings page
+        // is expected to extend this list.
+        private static readonly List<string> AdminNavigation = new()
+        {
+            "settings/credentials",
+            "settings/managements",
+            "settings/gateways",
+            "/settings/matrix",
+            "/settings/internet",
+            "settings/ldap",
+            "settings/tenants",
+            "settings/users",
+            "settings/groups",
+            "settings/roles",
+            "settings/owners",
+            "settings/owners/responsibles",
+            "settings/owners/lifecycles",
+            "settings/owners/appdataimport",
+            "settings/reportgeneral",
+            "settings/recertificationgeneral",
+            "settings/compliance",
+            "settings/modelling",
+            "settings/modellingnotifications",
+            "settings/logging",
+            "settings/stateactions",
+            "settings/statedefinitions",
+            "settings/statematrix",
+            "settings/workflowcustomizing",
+            "settings/flows/general",
+            "settings/flows/networkobjects",
+            "settings/flows/networkgroups",
+            "settings/flows/serviceobjects",
+            "settings/flows/servicegroups",
+            "settings/flows/timeobjects",
+            "settings/defaults",
+            "settings/email",
+            "settings/importer",
+            "settings/changetrigger",
+            "settings/notifications",
+            "settings/passwordpolicy",
+            "settings/customtexts",
+            "settings/fwconfigchangegeneral",
+            "settings/exttickettemplates",
+            "settings/password",
+            "settings/personal"
         };
 
         private static readonly List<string> WorkflowOnlyRoles = new()
@@ -52,7 +107,7 @@ namespace FWO.Test
             DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
 
             layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
-            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
 
             layout.WaitForAssertion(() =>
             {
@@ -76,7 +131,7 @@ namespace FWO.Test
             DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
 
             layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
-            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
 
             layout.WaitForAssertion(() =>
             {
@@ -101,7 +156,7 @@ namespace FWO.Test
             DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
 
             layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
-            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
 
             layout.WaitForAssertion(() =>
             {
@@ -114,25 +169,120 @@ namespace FWO.Test
         public async Task SettingsLayout_SearchInput_FiltersRenderedNavigation()
         {
             await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
-            SimulatedUserConfig userConfig = context.Services.GetRequiredService<UserConfig>() as SimulatedUserConfig
-                ?? throw new InvalidOperationException("Test user config missing.");
-            userConfig.SetExecutionMode(Roles.Admin);
-
-            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderLayout(context);
-            IRenderedComponent<SettingsLayout> layout = wrapper.FindComponent<SettingsLayout>();
-            DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
-
-            layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
-            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
 
             await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "manage" });
 
-            JSRuntimeInvocation invocation = context.JSInterop.Invocations["filterSettingsSidebar"].Single();
             Assert.Multiple(() =>
             {
-                Assert.That(invocation.Arguments[0], Is.EqualTo("settingsNavigation"));
-                Assert.That(invocation.Arguments[1], Is.EqualTo("manage"));
+                Assert.That(NavigationHrefs(layout), Is.EqualTo(ManagementsOnly));
+                Assert.That(layout.FindAll("h5").Select(heading => heading.TextContent.Trim()),
+                    Is.EqualTo(DevicesHeadingOnly));
             });
+        }
+
+        [Test]
+        public async Task SettingsLayout_SearchInput_ClearingTheTermRestoresTheFullNavigation()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
+            int fullCount = NavigationHrefs(layout).Count;
+
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "manage" });
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "" });
+
+            Assert.That(NavigationHrefs(layout), Has.Count.EqualTo(fullCount));
+        }
+
+        [Test]
+        public async Task SettingsLayout_SearchInput_ReportsWhenNothingMatches()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
+
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "qqzzxx" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(NavigationHrefs(layout), Is.Empty);
+                Assert.That(layout.Find("[role='status']").TextContent.Trim(), Is.EqualTo("no_search_results"));
+            });
+        }
+
+        [Test]
+        public async Task SettingsLayout_SearchInput_SurvivesAConfigTriggeredRerender()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
+            SimulatedUserConfig userConfig = TestUserConfig(context);
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
+
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "manage" });
+            await layout.InvokeAsync(() => userConfig.SetExecutionMode(Roles.Admin));
+
+            // The filter is part of the render tree, so a re-render may not bring unfiltered entries back.
+            layout.WaitForAssertion(() =>
+                Assert.That(NavigationHrefs(layout), Is.EqualTo(ManagementsOnly)));
+        }
+
+        [Test]
+        public async Task SettingsLayout_RendersTheDocumentedNavigation_ForAdmin()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
+
+            Assert.That(NavigationHrefs(layout), Is.EqualTo(AdminNavigation));
+        }
+
+        [Test]
+        public async Task SettingsLayout_HidesFlowSection_ForAuditor()
+        {
+            await using BunitContext context = CreateContext(SingleRole(Roles.Auditor), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Auditor);
+            List<string> hrefs = NavigationHrefs(layout);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(hrefs.Where(href => href.StartsWith("settings/flows/")), Is.Empty);
+                Assert.That(hrefs, Contains.Item("settings/users"));
+                Assert.That(hrefs, Contains.Item("settings/customtexts"));
+            });
+        }
+
+        [Test]
+        public async Task SettingsLayout_HidesUserAdministration_ForFwAdmin()
+        {
+            await using BunitContext context = CreateContext(SingleRole(Roles.FwAdmin), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.FwAdmin);
+            List<string> hrefs = NavigationHrefs(layout);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(hrefs, Contains.Item("settings/tenants"));
+                Assert.That(hrefs, Does.Not.Contain("settings/users"));
+                Assert.That(hrefs, Does.Not.Contain("settings/ldap"));
+                Assert.That(hrefs, Does.Not.Contain("settings/defaults"));
+                Assert.That(hrefs, Contains.Item("settings/managements"));
+            });
+        }
+
+        [Test]
+        public async Task SettingsLayout_RendersOnlyPersonalSection_ForImporter()
+        {
+            await using BunitContext context = CreateContext(SingleRole(Roles.Importer), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Importer);
+
+            Assert.That(NavigationHrefs(layout),
+                Is.EqualTo(PersonalNavigation));
+        }
+
+        [Test]
+        public async Task SettingsLayout_RendersNoEmptyListItem_ForExternalUser()
+        {
+            await using BunitContext context = CreateContext(PrivilegedRoles, "uid=tester,ou=people,dc=example,dc=org");
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Admin);
+
+            Assert.That(layout.FindAll("ul.navbar-nav > li").Where(item => item.TextContent.Trim().Length == 0
+                && item.QuerySelector("hr") == null), Is.Empty);
         }
 
         [Test]
@@ -147,12 +297,43 @@ namespace FWO.Test
             DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
 
             layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
-            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(50));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
             layout.WaitForAssertion(() => Assert.That(layout.FindAll("a[href='settings/personal']"), Has.Count.EqualTo(1)));
 
             layout.Instance.Dispose();
 
             Assert.DoesNotThrow(() => userConfig.SetExecutionMode(Roles.Admin));
+        }
+
+        private static List<string> SingleRole(string role)
+        {
+            return new() { role };
+        }
+
+        private static SimulatedUserConfig TestUserConfig(BunitContext context)
+        {
+            return context.Services.GetRequiredService<UserConfig>() as SimulatedUserConfig
+                ?? throw new InvalidOperationException("Test user config missing.");
+        }
+
+        private static async Task<IRenderedComponent<SettingsLayout>> RenderNavigation(BunitContext context, string executionMode)
+        {
+            TestUserConfig(context).SetExecutionMode(executionMode);
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderLayout(context);
+            IRenderedComponent<SettingsLayout> layout = wrapper.FindComponent<SettingsLayout>();
+            DomEventService eventService = context.Services.GetRequiredService<DomEventService>();
+
+            layout.WaitForAssertion(() => Assert.That(GetNavbarHeightSubscriberCount(eventService), Is.EqualTo(1)));
+            await layout.InvokeAsync(() => eventService.InvokeNavbarHeightChanged(kNavbarHeight));
+            return layout;
+        }
+
+        private static List<string> NavigationHrefs(IRenderedComponent<SettingsLayout> layout)
+        {
+            return layout.FindAll("ul.navbar-nav a")
+                .Select(anchor => anchor.GetAttribute("href") ?? "")
+                .ToList();
         }
 
         private static BunitContext CreateContext(IEnumerable<string> roles, string userDn)

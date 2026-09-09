@@ -540,6 +540,9 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
     <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
     <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
+    <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
+    <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
+    <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -554,6 +557,9 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Rule reports can be filtered by source and destination object types.</li>
     <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
     <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
+    <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
+    <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
+    <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2072,8 +2078,8 @@ INSERT INTO txt VALUES ('compliance',			'German', 	'Compliance');
 INSERT INTO txt VALUES ('compliance',			'English', 	'Compliance');
 INSERT INTO txt VALUES ('network_zones',		'German', 	'Netzwerkzonen');
 INSERT INTO txt VALUES ('network_zones',		'English', 	'Network zones');
-INSERT INTO txt VALUES ('matrix',				'German', 	'Zonen-Matrix');
-INSERT INTO txt VALUES ('matrix',				'English', 	'Zones Matrix');
+INSERT INTO txt VALUES ('matrix',				'German', 	'Netzwerk-Matrix');
+INSERT INTO txt VALUES ('matrix',				'English', 	'Network Matrix');
 INSERT INTO txt VALUES ('checks',				'German', 	'&Uuml;berpr&uuml;fung');
 INSERT INTO txt VALUES ('checks',				'English', 	'Checks');
 INSERT INTO txt VALUES ('check',				'German', 	'&Uuml;berpr&uuml;fen');
@@ -2238,6 +2244,20 @@ INSERT INTO txt VALUES ('recalculate_flow_names',	'German', 	'Flow-Namen neu ber
 INSERT INTO txt VALUES ('recalculate_flow_names',	'English', 	'Recalculate flow names');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'German', 	'Diese Aktion schreibt die Flow-Namen anhand der gew&auml;hlten Namensquelle neu. Wirklich fortfahren?');
 INSERT INTO txt VALUES ('recalculate_flow_names_confirm',	'English', 	'This will rewrite flow names using the selected naming source. Continue?');
+INSERT INTO txt VALUES ('flow_zone_groups',		'German', 	'Zonen-Gruppen-Erkennung');
+INSERT INTO txt VALUES ('flow_zone_groups',		'English', 	'Zone group detection');
+INSERT INTO txt VALUES ('flow_zone_groups_hint',	'German', 	'Flow-Netzwerkgruppen, deren Name auf ein Muster passt, werden in der REST-API als Zonen behandelt. Ohne Muster gilt keine Gruppe als Zone.');
+INSERT INTO txt VALUES ('flow_zone_groups_hint',	'English', 	'Flow network groups whose name matches a pattern are treated as zones in the REST API. Without any pattern no group is treated as a zone.');
+INSERT INTO txt VALUES ('match_type',			'German', 	'Vergleichsart');
+INSERT INTO txt VALUES ('match_type',			'English', 	'Match type');
+INSERT INTO txt VALUES ('match_type_suffix',	'German', 	'Endet mit');
+INSERT INTO txt VALUES ('match_type_suffix',	'English', 	'Suffix');
+INSERT INTO txt VALUES ('match_type_prefix',	'German', 	'Beginnt mit');
+INSERT INTO txt VALUES ('match_type_prefix',	'English', 	'Prefix');
+INSERT INTO txt VALUES ('match_type_contains',	'German', 	'Enth&auml;lt');
+INSERT INTO txt VALUES ('match_type_contains',	'English', 	'Contains');
+INSERT INTO txt VALUES ('match_type_exact',		'German', 	'Exakt');
+INSERT INTO txt VALUES ('match_type_exact',		'English', 	'Exact');
 INSERT INTO txt VALUES ('reset_flow_db',		'German', 	'Flow-Datenbank zur&uuml;cksetzen');
 INSERT INTO txt VALUES ('reset_flow_db',		'English', 	'Reset flow database');
 INSERT INTO txt VALUES ('reset_flow_db_hint',	'German', 	'L&ouml;scht alle Flow-Objekte, Gruppen und Regeln und markiert Importe f&uuml;r eine vollst&auml;ndige Neu-Synchronisation.');
@@ -2264,6 +2284,8 @@ INSERT INTO txt VALUES ('H5019',				'German', 	'Die Seite enth&auml;lt au&szlig;
 INSERT INTO txt VALUES ('H5019',				'English', 	'The page also includes a dangerous reset for the complete flow database, which should only be used before a full re-synchronization.');
 INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden im Katalog und im Auswahldialog die technischen Details des Flow-Objekts angezeigt. In der Katalogansicht wird die Liste bei vielen Eintr&auml;gen gek&uuml;rzt und mit einem Hinweis auf weitere Objekte erg&auml;nzt.');
 INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
+INSERT INTO txt VALUES ('H5026',				'German', 	'Die Zonen-Gruppen-Erkennung legt fest, welche Flow-Netzwerkgruppen als Zonen gelten. Es k&ouml;nnen mehrere Muster kombiniert werden, jeweils mit Vergleichsart (Endet mit, Beginnt mit, Enth&auml;lt, Exakt) und optionaler Beachtung der Gro&szlig;- und Kleinschreibung. Eine Gruppe gilt als Zone, sobald ihr Name auf mindestens ein Muster passt. Die Muster werden vom REST-Endpunkt <code>flow/getAddressGroups</code> mit <code>option.separateZoneGroups=true</code> ausgewertet. Muster ohne Wert und doppelte Muster werden beim Speichern abgelehnt.');
+INSERT INTO txt VALUES ('H5026',				'English', 	'Zone group detection defines which flow network groups count as zones. Multiple patterns can be combined, each with a match type (suffix, prefix, contains, exact) and optional case sensitivity. A group is a zone as soon as its name matches at least one pattern. The patterns are evaluated by the REST endpoint <code>flow/getAddressGroups</code> with <code>option.separateZoneGroups=true</code>. Patterns without a value and duplicate patterns are rejected when saving.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
 INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts k&ouml;nnen Management-Zuordnungen wieder abgew&auml;hlt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');
@@ -2274,6 +2296,10 @@ INSERT INTO txt VALUES ('H5024',				'German', 	'Diese Seite verwaltet Flow-Zeito
 INSERT INTO txt VALUES ('H5024',				'English', 	'This page manages flow time objects and shows duplicate mappings for the underlying time objects.');
 INSERT INTO txt VALUES ('gateways',		    	'German', 	'Gateways');
 INSERT INTO txt VALUES ('gateways',		    	'English', 	'Gateways');
+INSERT INTO txt VALUES ('network_topology',	    'German', 	'Netzwerk Topologie');
+INSERT INTO txt VALUES ('network_topology',     'English', 	'Network Topology');
+INSERT INTO txt VALUES ('internet',	            'German', 	'Internet');
+INSERT INTO txt VALUES ('internet',             'English', 	'Internet');
 INSERT INTO txt VALUES ('authorization',		'German', 	'Berechtigungen');
 INSERT INTO txt VALUES ('authorization',		'English', 	'Authorization');
 INSERT INTO txt VALUES ('ldap_conns',	        'German', 	'LDAP-Verbindungen');
@@ -2936,6 +2962,8 @@ INSERT INTO txt VALUES ('external_state_name_required', 'German', 'Externer Stat
 INSERT INTO txt VALUES ('external_state_name_required', 'English', 'External state name is required.');
 INSERT INTO txt VALUES ('duplicate_external_state_name', 'German', 'Ein externer Status mit diesem Namen existiert bereits.');
 INSERT INTO txt VALUES ('duplicate_external_state_name', 'English', 'An external state with this name already exists.');
+INSERT INTO txt VALUES ('duplicate_state_id', 'German', 'Ein Workflow-Status mit dieser ID existiert bereits.');
+INSERT INTO txt VALUES ('duplicate_state_id', 'English', 'A workflow state with this id already exists.');
 INSERT INTO txt VALUES ('save_ext_states',      'German',   'Externe Status speichern');
 INSERT INTO txt VALUES ('save_ext_states',      'English',  'Save external states');
 INSERT INTO txt VALUES ('internal_state_name',  'German', 	'Interner Status-Name');
@@ -3172,6 +3200,10 @@ INSERT INTO txt VALUES ('modRecertText',        'German',   'Rezertifizierungste
 INSERT INTO txt VALUES ('modRecertText',        'English',  'Recertification Text');
 INSERT INTO txt VALUES ('fixedPartLength',      'German',   'L&auml;nge fixer Teil');
 INSERT INTO txt VALUES ('fixedPartLength',      'English',  'Fixed Part Length');
+INSERT INTO txt VALUES ('E5601',                'German',   'Die L&auml;nge des fixen Teils muss gr&ouml;sser als die L&auml;nge des Netzwerkarea-Musters sein.');
+INSERT INTO txt VALUES ('E5601',                'English',  'The fixed part length must be greater than the length of the network area pattern.');
+INSERT INTO txt VALUES ('E5602',                'German',   'Das Muster App Rolle muss genauso lang wie das Muster Netzwerkarea sein.');
+INSERT INTO txt VALUES ('E5602',                'English',  'The app role pattern must have the same length as the network area pattern.');
 INSERT INTO txt VALUES ('freePartLength',       'German',   'L&auml;nge freier Teil');
 INSERT INTO txt VALUES ('freePartLength',       'English',  'Free Part Length');
 INSERT INTO txt VALUES ('useAppPart',           'German',   'Eigent&uuml;mernamen verwenden');
@@ -3254,6 +3286,10 @@ INSERT INTO txt VALUES ('flow_creation_succeeded',  'German',   'Flow-DB-Eintr&a
 INSERT INTO txt VALUES ('flow_creation_succeeded',  'English',  'Flow DB entries were created.');
 INSERT INTO txt VALUES ('flow_creation_failed',     'German',   'Flow-DB-Eintr&auml;ge konnten nicht erzeugt werden. Pr&uuml;fen Sie das Workflow-Log auf nicht aufl&ouml;sbare Objekte oder Dienste.');
 INSERT INTO txt VALUES ('flow_creation_failed',     'English',  'Flow DB entries could not be created. Check the workflow log for unresolved objects or services.');
+INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'German',   'Adressbereich beginnt und endet in unterschiedlichen Adressfamilien');
+INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'English',  'Address range starts and ends in different address families');
+INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse konnte nicht gelesen werden');
+INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -3286,8 +3322,8 @@ INSERT INTO txt VALUES ('complianceCheckMailSubject','German','Titel der Benachr
 INSERT INTO txt VALUES ('complianceCheckMailSubject','English','Subject of notification emails');
 INSERT INTO txt VALUES ('complianceCheckMailBody','German', 'Text der Benachrichtigung');
 INSERT INTO txt VALUES ('complianceCheckMailBody','English','Body of notification emails');
-INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','German', 'Netzwerkzonenverschachtelung erlauben');
-INSERT INTO txt VALUES ('complianceMatrixAllowNetworkZones','English','Nested Network Zones allowed');
+INSERT INTO txt VALUES ('matrixAllowNestedZones','German', 'Netzwerkzonenverschachtelung erlauben');
+INSERT INTO txt VALUES ('matrixAllowNestedZones','English','Nested Network Zones allowed');
 INSERT INTO txt VALUES ('designated_zone_matrix','German', 'Designierte Zonenmatrix');
 INSERT INTO txt VALUES ('designated_zone_matrix','English','Designated zone matrix');
 INSERT INTO txt VALUES ('compliance_matrix_evaluation', 'German', 'Auswertung der Netzwerkzonenmatrix');
@@ -3296,36 +3332,44 @@ INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','German', 'Internetz
 INSERT INTO txt VALUES ('complianceCheckInternetZoneObject','English','Internet zone');
 INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','German', 'Maximale Anzahl gedruckter Verst&ouml;&szlig;e pro Regel');
 INSERT INTO txt VALUES ('complianceCheckMaxPrintedViolations','English','Maximum number of printed violations per rule');
-INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'German', 'Matrixsortierung nach Zonen-ID');
-INSERT INTO txt VALUES ('complianceCheckSortMatrixByID', 'English', 'Matrix sorting by zone ID');
+INSERT INTO txt VALUES ('sortMatrixByID', 'German', 'Matrixsortierung nach Zonen-ID');
+INSERT INTO txt VALUES ('sortMatrixByID', 'English', 'Matrix sorting by zone ID');
+INSERT INTO txt VALUES ('complianceDiffFilterExistingViolations', 'German', 'Nur neu nicht konforme Regeln anzeigen');
+INSERT INTO txt VALUES ('complianceDiffFilterExistingViolations', 'English', 'Only show newly non-compliant rules');
+INSERT INTO txt VALUES ('existing_violations_filter_failed', 'German', 'Warnung: Der Filter f&uuml;r bereits bestehende Verst&ouml;&szlig;e konnte nicht angewendet werden; dieser Bericht enth&auml;lt alle im ausgew&auml;hlten Zeitraum gefundenen Verst&ouml;&szlig;e.');
+INSERT INTO txt VALUES ('existing_violations_filter_failed', 'English', 'Warning: Existing-violation filter could not be applied; this report includes all violations found in the selected interval.');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'German', 'Weiterhin nicht konform (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter', 'English', 'Still non-compliant (existing violation hidden by filter setting)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'German', 'Nicht bewertbar (bereits bestehender Versto&szlig; durch Filtereinstellung ausgeblendet)');
+INSERT INTO txt VALUES ('existing_violation_hidden_by_filter_not_assessable', 'English', 'Not assessable (existing violation hidden by filter setting)');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','German', 'Relevante Managements');
 INSERT INTO txt VALUES ('complianceCheckRelevantManagements','English','Relevant managements');
-INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','German', 'Internetzone automatisch berechnen');
-INSERT INTO txt VALUES ('complianceCheckAutoCalcInternetZone','English','Auto-calculate internet zone');
+INSERT INTO txt VALUES ('autoCalcInternetZone','German', 'Internetzone automatisch berechnen');
+INSERT INTO txt VALUES ('autoCalcInternetZone','English','Auto-calculate internet zone');
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'German', 'Auto-berechnete Internetzone hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_auto_calculated_internet_zone', 'English', 'Add auto-calculated internet zone');
 INSERT INTO txt VALUES ('auto_calculated_zone_communications_warning', 'German', 'Nach dieser &Auml;nderung werden die automatisch berechneten Zonen neu berechnet. Konfigurierte Kommunikationen mit diesen Zonen werden entfernt und m&uuml;ssen erneut &uuml;berpr&uuml;ft werden.');
 INSERT INTO txt VALUES ('auto_calculated_zone_communications_warning', 'English', 'This change recalculates the auto-calculated zones. Configured communications involving these zones are removed and must be reviewed again.');
 INSERT INTO txt VALUES ('auto_calculated_zone_recalculation_failed', 'German', 'Die Zone wurde gespeichert, aber die Neuberechnung der automatischen Zonen ist fehlgeschlagen. Der angezeigte Matrixzustand wurde neu geladen und muss &uuml;berpr&uuml;ft werden.');
 INSERT INTO txt VALUES ('auto_calculated_zone_recalculation_failed', 'English', 'The zone was saved, but recalculation of the auto-calculated zones failed. The matrix state was reloaded and must be reviewed.');
-INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
-INSERT INTO txt VALUES ('complianceCheckAutoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
-INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','German', 'Von Internetzonenberechnung ausschlie&szlig;en');
-INSERT INTO txt VALUES ('complianceCheckExcludeFromInternetZone','English','Exclude from internet zone calculation');
-INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','German', 'Privater Adressbereich');
-INSERT INTO txt VALUES ('complianceCheckPrivateAdressSpace','English','Private address space');
-INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','German', 'Loopback / local');
-INSERT INTO txt VALUES ('complianceCheckLoopbackLocal','English','Loopback / lokal');
-INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','German', 'Multicast / Broadcast');
-INSERT INTO txt VALUES ('complianceCheckMulticastBroadcast','English','Multicast / broadcast');
-INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','German', 'Dokumentation / Beispiele');
-INSERT INTO txt VALUES ('complianceCheckDocumentationSamples','English','Documentation / samples');
-INSERT INTO txt VALUES ('complianceCheckDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
-INSERT INTO txt VALUES ('complianceCheckDiv','English','Div (benchmarking, special purpose, etc)');
-INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen');
-INSERT INTO txt VALUES ('complianceCheckAutoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones');
-INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet');
-INSERT INTO txt VALUES ('complianceCheckTreatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
+INSERT INTO txt VALUES ('autoCalcUndefinedInternalZone','German', 'Undefiniert-intern Zone automatisch berechnen');
+INSERT INTO txt VALUES ('autoCalcUndefinedInternalZone','English','Auto-calculate undefined-internal zone');
+INSERT INTO txt VALUES ('excludeFromInternetZone','German', 'Von Internetzonenberechnung ausschlie&szlig;en');
+INSERT INTO txt VALUES ('excludeFromInternetZone','English','Exclude from internet zone calculation');
+INSERT INTO txt VALUES ('privateAdressSpace','German', 'Privater Adressbereich');
+INSERT INTO txt VALUES ('privateAdressSpace','English','Private address space');
+INSERT INTO txt VALUES ('loopbackLocal','German', 'Loopback / local');
+INSERT INTO txt VALUES ('loopbackLocal','English','Loopback / lokal');
+INSERT INTO txt VALUES ('multicastBroadcast','German', 'Multicast / Broadcast');
+INSERT INTO txt VALUES ('multicastBroadcast','English','Multicast / broadcast');
+INSERT INTO txt VALUES ('documentationSamples','German', 'Dokumentation / Beispiele');
+INSERT INTO txt VALUES ('documentationSamples','English','Documentation / samples');
+INSERT INTO txt VALUES ('internetSettingsDiv','German', 'Div (Benchmarking, Spezialzweck usw.)');
+INSERT INTO txt VALUES ('internetSettingsDiv','English','Div (benchmarking, special purpose, etc)');
+INSERT INTO txt VALUES ('autoCalculatedZonesAtTheEnd','German', 'Auto-kalkulierte Zonen nach anderen Zonen anordnen');
+INSERT INTO txt VALUES ('autoCalculatedZonesAtTheEnd','English','Arrange auto-calculated zones according to other zones');
+INSERT INTO txt VALUES ('treatDynamicAndDomainObjectsAsInternet','German', 'Behandel dynamische und Domain-Objekte als Internet');
+INSERT INTO txt VALUES ('treatDynamicAndDomainObjectsAsInternet','English','Treat dynamic and domain objects as internet');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','German', 'Spalten mit Kurzform f&uuml;r Sources, Destinations und Services anzeigen');
 INSERT INTO txt VALUES ('complianceCheckShowShortColumsInComplianceReports','English','Show columns with short forms for sources, destinations and services');
 INSERT INTO txt VALUES ('importedMatrixReadOnly','German', 'Importierte Matrizen schreibgesch&uuml;tzt');
@@ -3333,40 +3377,42 @@ INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices re
 INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
 INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
 
-INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
-INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
-INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
-INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
-INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
-INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
-INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
-INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
-INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
-INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
-INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
-INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
-INSERT INTO txt VALUES ('color_scheme',         'German', 	'Farbschema');
-INSERT INTO txt VALUES ('color_scheme',         'English', 	'Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_blue',    'German', 	'Blaues Farbschema');
-INSERT INTO txt VALUES ('color_scheme_blue',    'English', 	'Blue Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_green',   'German', 	'Gr&uuml;nes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_green',   'English', 	'Green Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_red',     'German', 	'Rotes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_red',     'English', 	'Red Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_purple',  'German', 	'Violettes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_purple',  'English', 	'Purple Color Scheme');
-INSERT INTO txt VALUES ('last_sent',   		    'German', 	'Zuletzt gesendet');
-INSERT INTO txt VALUES ('last_sent',   		    'English', 	'Last sent');
-INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
-INSERT INTO txt VALUES ('reset_notification',   'English', 	'Reset');
-INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
-INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
-INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
-INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
+INSERT INTO txt VALUES ('availableModules',         'German', 	'Verf&uuml;gbare Module');
+INSERT INTO txt VALUES ('availableModules',         'English', 	'Available Modules');
+INSERT INTO txt VALUES ('notification',   		    'German', 	'Benachrichtigung');
+INSERT INTO txt VALUES ('notification',   		    'English', 	'Notification');
+INSERT INTO txt VALUES ('notifications',   		    'German', 	'Benachrichtigungen');
+INSERT INTO txt VALUES ('notifications',   		    'English', 	'Notifications');
+INSERT INTO txt VALUES ('reminders',                'German', 	'Erinnerungsbenachrichtigungen');
+INSERT INTO txt VALUES ('reminders',                'English',  'Reminders');
+INSERT INTO txt VALUES ('edit_notification',        'German', 	'Benachrichtigung bearbeiten');
+INSERT INTO txt VALUES ('edit_notification',        'English', 	'Edit Notification');
+INSERT INTO txt VALUES ('delete_notification',      'German', 	'Benachrichtigung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_notification',      'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('color_scheme',             'German', 	'Farbschema');
+INSERT INTO txt VALUES ('color_scheme',             'English', 	'Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_blue',        'German', 	'Blaues Farbschema');
+INSERT INTO txt VALUES ('color_scheme_blue',        'English', 	'Blue Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_green',       'German', 	'Gr&uuml;nes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_green',       'English', 	'Green Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_red',         'German', 	'Rotes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_red',         'English', 	'Red Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_purple',      'German', 	'Violettes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_purple',      'English', 	'Purple Color Scheme');
+INSERT INTO txt VALUES ('last_sent',   		        'German', 	'Zuletzt gesendet');
+INSERT INTO txt VALUES ('last_sent',   		        'English', 	'Last sent');
+INSERT INTO txt VALUES ('reset_notification',       'German', 	'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_notification',       'English', 	'Reset');
+INSERT INTO txt VALUES ('set_roles_with_import',    'German', 	'Beim Import zu setzende Rollen');
+INSERT INTO txt VALUES ('set_roles_with_import',    'English', 	'Set Roles with import');
+INSERT INTO txt VALUES ('no_owners',			    'German', 	'Keine Eigent&uuml;mer zur Auswahl');
+INSERT INTO txt VALUES ('no_owners',			    'English', 	'No owners to be selected');
+INSERT INTO txt VALUES ('accesstoken_lifetime',     'German', 	'Access Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('accesstoken_lifetime',     'English',  'Access Token Lifetime');
+INSERT INTO txt VALUES ('refreshtoken_lifetime',    'German',   'Refresh Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('refreshtoken_lifetime',    'English',  'Refresh Token Lifetime');
+INSERT INTO txt VALUES ('path_analysis_algorithm',  'German',   'Pfadanalyse Algorithmus');
+INSERT INTO txt VALUES ('path_analysis_algorithm',  'English',  'Path Analysis Algorithm');
 
 -- monitoring
 INSERT INTO txt VALUES ('system',               'German', 	'System');
@@ -4071,8 +4117,14 @@ INSERT INTO txt VALUES ('U5326', 'German',  'Verwaltung aller durch FW-&Auml;nde
 INSERT INTO txt VALUES ('U5326', 'English', 'Set the settings for all events triggerd by FW changes');
 INSERT INTO txt VALUES ('U5327', 'German',  'Verwaltung der Benachrichtigungs-Einstellungen f&uuml;r Regelablauf und aktive Regeln.');
 INSERT INTO txt VALUES ('U5327', 'English', 'Administration of notification settings for rule expiry and active rules.');
+INSERT INTO txt VALUES ('U5328', 'German',  'Verwaltung der Netzwerk-Matrix Einstellungen f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5328', 'English', 'Administration of network matrix settings for all users');
+INSERT INTO txt VALUES ('U5329', 'German',  'Verwaltung der Netzwerk-Topologie Einstellungen f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5329', 'English', 'Administration of network topology settings for all users');
 INSERT INTO txt VALUES ('U5330', 'German',  'Flow-Datenbank zur&uuml;ckgesetzt.');
 INSERT INTO txt VALUES ('U5330', 'English', 'Flow database reset.');
+INSERT INTO txt VALUES ('U5331', 'German',  'Verwaltung der Internet Einstellungen f&uuml;r alle Nutzer');
+INSERT INTO txt VALUES ('U5331', 'English', 'Administration of internet settings for all users');
 
 INSERT INTO txt VALUES ('U5401', 'German',  'Passwort ge&auml;ndert.');
 INSERT INTO txt VALUES ('U5401', 'English', 'Password changed.');
@@ -4450,6 +4502,10 @@ INSERT INTO txt VALUES ('E5295', 'German',  'Authentifizierungsfehler');
 INSERT INTO txt VALUES ('E5295', 'English', 'Authentication Error');
 INSERT INTO txt VALUES ('E5296', 'German',  'Zus&auml;tzliche Informationen m&uuml;ssen ein g&uuml;ltiges JSON Objekt sein');
 INSERT INTO txt VALUES ('E5296', 'English', 'Additional information must be a valid JSON object');
+INSERT INTO txt VALUES ('E5297', 'German',  'Zonen-Muster ohne Wert k&ouml;nnen nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5297', 'English', 'Zone patterns without a value cannot be saved');
+INSERT INTO txt VALUES ('E5298', 'German',  'Doppelte Zonen-Muster k&ouml;nnen nicht gespeichert werden');
+INSERT INTO txt VALUES ('E5298', 'English', 'Duplicate zone patterns cannot be saved');
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
@@ -6681,11 +6737,13 @@ INSERT INTO txt VALUES ('H5530', 'English', 'Confirm sent email via UI message: 
 INSERT INTO txt VALUES ('H5531', 'German',  'Es k&ouml;nnen beliebig viele neue Status angelegt bzw. vorhandene Status umbenannt, ggf. auch gel&ouml;scht werden. Die Namen und Nummern der Status sind weitgehend frei w&auml;hlbar.
     Zu beachten ist dabei, dass die Nummern zu den in den <a href="/help/settings/statematrix">Status-Matrizen</a> definierten Bereichen (Eingang, Bearbeitung, Ausgang) der jeweiligen Phasen passen.
     Da intern ausschliesslich die Nummern verarbeitet werden, sind auch doppelt vergebene Status-Namen (technisch) m&ouml;glich.
+    Beim Anlegen neuer Status sollte jede ID eindeutig sein. Beim Hinzuf&uuml;gen von Aktionen zu einem Status darf jede Aktion nur einmal ausgew&auml;hlt werden.
     Es werden nur Status zum L&ouml;schen angeboten, die in keiner Status-Matrix verwendet werden (auch nicht in deaktivierten Phasen oder Aktionen).
 ');
 INSERT INTO txt VALUES ('H5531', 'English', 'An arbitrary number of states can be created, renamed or deleted where appropriate. Names and numbers of the states can be selected freely.
     But it has to be considered, that the numbers fit into the ranges (Input, Started, Exit) of the phases defined in the <a href="/help/settings/statematrix">state matrices</a>.
     As internally solely the numbers are processed, duplicates in state names are (technically) possible.
+    When creating new states, each id should be unique. When adding actions to a state, each action may only be selected once.
     Only states are offered for deletion, who are not used in any state matrix (even in deactivated phases or in actions).
 ');
 INSERT INTO txt VALUES ('H5532', 'German',  'Externe Status: Um interne Status &uuml;ber Aktionen ansprechen zu k&ouml;nnen, m&uuml;ssen sie vordefinierten, nach aussen sichtbaren Status zugeordnet werden.');
@@ -6941,19 +6999,19 @@ INSERT INTO txt VALUES ('H5606', 'English', 'Network Area Required: If this flag
     When defining an App Role, only the App Servers belonging to the selected area are displayed in the library.
     Naming of the App Role is then restricted to the naming convention defined in the following settings.
 ');
-INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle (ohne den ggf. vorhandenen Eigent&uuml;merteil variabler L&auml;nge).');
-INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role (without the owner part of variable length if activated).');
+INSERT INTO txt VALUES ('H5607', 'German',  'L&auml;nge fixer Teil: L&auml;nge des vorgebenen Teils des Namensmusters einer App Rolle (ohne den ggf. vorhandenen Eigent&uuml;merteil variabler L&auml;nge). Bei Verwendung von Netzwerkareas muss sie gr&ouml;sser als die L&auml;nge des Netzwerkarea-Musters sein, damit der areaspezifische Teil des Namens erhalten bleibt.');
+INSERT INTO txt VALUES ('H5607', 'English', 'Fixed Part Length: Length of the predefined part of the name pattern of an App Role (without the owner part of variable length if activated). If network areas are used, it must be greater than the length of the network area pattern, so that the area specific part of the name is preserved.');
 INSERT INTO txt VALUES ('H5608', 'German',  'L&auml;nge freier Teil: L&auml;nge des frei zu vergebenden Teils des Namens einer App Rolle (nur f&uuml;r den Namensvorschlag beim Neuanlegen relevant).');
 INSERT INTO txt VALUES ('H5608', 'English', 'Free Part Length: Length of the free part of the name pattern of an App Role (only relevant for name proposal during creation).');
 INSERT INTO txt VALUES ('H5609', 'German',  'Muster Netzwerkarea: Definiert, wie der Name einer Netzwerkarea beginnt (z.B "NA").');
 INSERT INTO txt VALUES ('H5609', 'English', 'Network Area Pattern: Defines the beginning of a network area name (e.g. "NA").');
 INSERT INTO txt VALUES ('H5610', 'German',  'Muster App Rolle: Definiert, wie der Name einer App Rolle beginnt (z.B. "AR").
     Zu einer Netzwerkarea (z.B. "NAxx") wird dann ein Name der App Rolle (z.B. "ARxx") mit der oben definierten L&auml;nge des fixen Teils vorgegeben.
-    Ist die L&auml;nge des Musters gr&ouml;sser als die L&auml;nge des fixen Teils, wird der &uuml;bersch&uuml;ssige Teil nicht ber&uuml;cksichtigt.
+    Bei Verwendung von Netzwerkareas muss es genauso lang wie das Muster Netzwerkarea sein, da sonst der areaspezifische Teil des Namens verschoben oder abgeschnitten w&uuml;rde.
 ');
 INSERT INTO txt VALUES ('H5610', 'English', 'App Role Pattern: Defines the beginning of an App Role name (e.g. "AR").
     According to an network area name (e.g. "NAxx"), an App Role name (e.g. "ARxx") is preset in the length of the fixed part defined above.
-    If the length of the pattern is greater than the fixed part length, the surplus part is ignored.
+    If network areas are used, it must have the same length as the network area pattern, otherwise the area specific part of the name would be shifted or cut off.
 ');
 INSERT INTO txt VALUES ('H5611', 'German',  'Pfad und Name von Appdaten-Import (ohne Endung): Hier werden Importskripte und -dateien unterhalb von scripts/customizing oder etc im konfigurierten Produkt-Verzeichnis eingetragen.
     Der gespeicherte Wert enth&auml;lt keine Dateiendung. Beim Speichern wird gepr&uuml;ft, dass der Eintrag unterhalb eines dieser erlaubten Verzeichnisse liegt und keine unzul&auml;ssige Dateiendung verwendet. Der Importprozess pr&uuml;ft f&uuml;r jede eingetragene Datenquelle zun&auml;chst, ob ein Skript dieses Namens mit der Endung .py vorhanden und zul&auml;ssig ist, und f&uuml;hrt dieses ggf. aus.
@@ -7287,12 +7345,16 @@ INSERT INTO txt VALUES ('H5802', 'German',  'Compliance-Check-Start: legt eine B
 INSERT INTO txt VALUES ('H5802', 'English', 'Compliance Check start at: defines a referential time from which the Compliance Check intervals are calculated.');
 INSERT INTO txt VALUES ('H5803', 'German',  'Hier werden alle Einstellungen rund um den Compliance-Check verwaltet.');
 INSERT INTO txt VALUES ('H5803', 'English', 'Here all settings around the Compliance Check are administrated.');
+INSERT INTO txt VALUES ('H5804', 'German',  'Hier werden alle Einstellungen zur Netzwerk Matrix verwaltet.');
+INSERT INTO txt VALUES ('H5804', 'English', 'All settings for network matrix are administrated here.');
+INSERT INTO txt VALUES ('H5805', 'German',  'Hier werden alle Einstellungen zum Internet verwaltet.');
+INSERT INTO txt VALUES ('H5805', 'English', 'All settings for Internet are administrated here.');
 INSERT INTO txt VALUES ('H5807', 'German',  'Wenn aktiviert, werden die durch die Compliance-Pr&uuml;fung erzeugten Daten in der Datenbank gespeichert.');
 INSERT INTO txt VALUES ('H5807', 'English', 'If checked, the data that is generated by the compliance check will be persisted in the database.');
 INSERT INTO txt VALUES ('H5808', 'German',  'Hier werden die Dienste definiert, die bei der Compliance-Pr&uuml;fung ber&uuml;cksichtigt werden sollen. Wenn dieses Feld leer ist, werden keine Dienste eingeschr&auml;nkt.');
 INSERT INTO txt VALUES ('H5808', 'English', 'Sets up services that should be checked for during compliance check. If this field is empty, no service will be restricted.');
-INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen der Compliance-Matrix eine Schachtelung der Netzwerk-Zonen erm&ouml;glicht.');
-INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for compliance matrices is enabled.');
+INSERT INTO txt VALUES ('H5809', 'German',  'Wenn aktiviert, wird beim Erstellen der Matrix eine Schachtelung der Netzwerk-Zonen erm&ouml;glicht.');
+INSERT INTO txt VALUES ('H5809', 'English', 'If checked, the use of nested network zones for matrices is enabled.');
 INSERT INTO txt VALUES ('H5810', 'German',  'Die Policy, die f&uuml;r den termingesteuerten Compliance Check genutzt wird.');
 INSERT INTO txt VALUES ('H5810', 'English', 'Policy used for the scheduled compliance check.');
 INSERT INTO txt VALUES ('H5812', 'German',  'Importieren einer Matrix via JSON Datei. ');
@@ -7305,14 +7367,14 @@ INSERT INTO txt VALUES ('H5815', 'German',  'Wenn aktiviert, werden Netzwerkzone
 INSERT INTO txt VALUES ('H5815', 'English', 'When enabled, network zone matrices are sorted by zone ID (default: sorted by name).');
 INSERT INTO txt VALUES ('H5816', 'German',  'Durch Komma getrennte Liste von relevanten Management IDs.');
 INSERT INTO txt VALUES ('H5816', 'English', 'Comma-separated list of relevant management IDs.');
-INSERT INTO txt VALUES ('H5817', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Internetzone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind.');
-INSERT INTO txt VALUES ('H5817', 'English', 'If enabled, changes to compliance matrices will automatically add an "Internetzone" that includes all address ranges not defined in other zones.');
+INSERT INTO txt VALUES ('H5817', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Netzwerk Matrizen automatisch eine "Internetzone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind.');
+INSERT INTO txt VALUES ('H5817', 'English', 'If enabled, changes to network matrices will automatically add an "Internetzone" that includes all address ranges not defined in other zones.');
 INSERT INTO txt VALUES ('H5817a', 'German', 'F&uuml;gt die automatisch berechnete Internetzone zur aktuellen, manuell angelegten Matrix hinzu. Die Zone enth&auml;lt alle IPv4-Adressbereiche, die nicht durch eine konfigurierte Zone oder einen ausgeschlossenen Bereich abgedeckt sind.');
 INSERT INTO txt VALUES ('H5817a', 'English', 'Adds the auto-calculated Internet zone to the current manually created matrix. The zone contains all IPv4 address ranges not covered by a configured zone or an excluded range.');
 INSERT INTO txt VALUES ('H5818', 'German',  'Adressbereiche, die aus der Berechnung der Internetzone ausgeschlossen werden sollen.');
 INSERT INTO txt VALUES ('H5818', 'English', 'Address ranges that should be excluded from the Internet zone calculation.');
-INSERT INTO txt VALUES ('H5819', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Compliance-Matrizen automatisch eine "Undefiniert-Intern-Zone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind und von der Internetzone ausgeschlossen wurden.');
-INSERT INTO txt VALUES ('H5819', 'English', 'When enabled, changes to compliance matrices automatically add an "Undefined Internal Zone" that includes all address ranges not defined in other zones and excluded from the Internet zone.');
+INSERT INTO txt VALUES ('H5819', 'German',  'Wenn aktiviert, wird bei &Auml;nderungen in Netzwerk-Matrizen automatisch eine "Undefiniert-Intern-Zone" hinzugef&uuml;gt, die alle Adressbereiche beinhaltet, die nicht in anderen Zonen definiert sind und von der Internetzone ausgeschlossen wurden.');
+INSERT INTO txt VALUES ('H5819', 'English', 'When enabled, changes to network matrices automatically add an "Undefined Internal Zone" that includes all address ranges not defined in other zones and excluded from the Internet zone.');
 INSERT INTO txt VALUES ('H5820', 'German',  'Teilbereich des privaten Adressbereichs gem&auml;&szlig; RFC 1918');
 INSERT INTO txt VALUES ('H5820', 'English', 'Part of the private address range according to RFC 1918');
 INSERT INTO txt VALUES ('H5821', 'German',  'Spezialbereich f&uuml;r „diese“ Netzwerke, Quelle unbekannt (unspezifische Adresse).');
@@ -7343,8 +7405,8 @@ INSERT INTO txt VALUES ('H5833', 'German',  'Ehemaliger IPv6-&Uuml;bergangsberei
 INSERT INTO txt VALUES ('H5833', 'English', 'Former IPv6 transition range (6to4 relay), now obsolete.');
 INSERT INTO txt VALUES ('H5834', 'German',  'Wenn aktiviert, werden die auto-kalkulierten Zonen am Ende der Matrix-Achsen eingeordnet. Default: am Anfang.');
 INSERT INTO txt VALUES ('H5834', 'English', 'When activated, the auto-calculated zones are placed at the end of the matrix axes. Default: at the beginning.');
-INSERT INTO txt VALUES ('H5835', 'German',  'Wenn aktiviert, werden dynamische und Domain-Objekte, einschlie&szlig;lich Access-Roles, in der Compliance-Auswertung als Teil der Internetzone angenommen. Default: Objekte werden gleich behandelt wie andere Netzwerkobjekte.');
-INSERT INTO txt VALUES ('H5835', 'English', 'When enabled, dynamic and domain objects, including access roles, are considered part of the Internet zone in the compliance evaluation. Default: Objects are treated the same as other network objects.');
+INSERT INTO txt VALUES ('H5835', 'German',  'Wenn aktiviert, werden dynamische und Domain-Objekte, einschlie&szlig;lich Access-Roles, als Teil der Internetzone angenommen. Default: Objekte werden gleich behandelt wie andere Netzwerkobjekte.');
+INSERT INTO txt VALUES ('H5835', 'English', 'When enabled, dynamic and domain objects, including access roles, are considered part of the Internet zone. Default: Objects are treated the same as other network objects.');
 INSERT INTO txt VALUES ('H5836', 'German',  'Wenn aktiviert, werden in compliance reports zus&auml;tzlich zu den aufgel&ouml;sten Spalten f&uuml;r Sources, Destinations und Services Spalten mit der Kurzform angezeigt.');
 INSERT INTO txt VALUES ('H5836', 'English', 'When enabled, compliance reports will display columns with the short form in addition to the resolved columns for sources, destinations and services.');
 INSERT INTO txt VALUES ('H5837', 'German',  'Editieren der Compliance-Matrix. Rot: Erlaubte Kommunikation. Gr&uuml;n: Verbotene Kommunikation.');
@@ -7371,8 +7433,8 @@ INSERT INTO txt VALUES ('H5848', 'German',  'Initiert einen vollst&auml;ndigen C
 INSERT INTO txt VALUES ('H5848', 'English', 'Initializes a complete compliance check, marking found violations as "initial".');
 INSERT INTO txt VALUES ('H5890', 'German',  'Feste Kriterien k&ouml;nnen als Bausteine f&uuml;r Policies definiert werden. Unterst&uuml;tzt werden derzeit Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination und ForbidBidirectionalDuplicate. F&uuml;r ForbiddenService kann entweder eine Liste von Service-UIDs oder eine Liste von Port/Protokoll-Kombinationen gepflegt werden. F&uuml;r MinimumCIDRLength muss im Inhaltsfeld eine Ganzzahl von 0 bis 32 hinterlegt werden. F&uuml;r ForbidZonesAsSource und ForbidZonesAsDestination muss im Inhaltsfeld ein Textbaustein gepflegt werden; Regeln mit Quell- bzw. Zielobjekten, deren Name diesen Text enth&auml;lt, werden dann verletzt.');
 INSERT INTO txt VALUES ('H5890', 'English', 'Fixed criteria can be defined as building blocks for policies. The currently supported types are Assessability, ForbiddenService, MinimumCIDRLength, ForbidZonesAsSource, ForbidZonesAsDestination, and ForbidBidirectionalDuplicate. ForbiddenService can now be maintained either as a list of service UIDs or as a list of port/protocol combinations. MinimumCIDRLength requires an integer from 0 to 32 in the content field. For ForbidZonesAsSource and ForbidZonesAsDestination, the content field stores a text fragment; rules using source or destination objects whose name contains that text will violate the criterion.');
-INSERT INTO txt VALUES ('H5891', 'German',  'Die ausgew&auml;hlte Zonematrix wird als Referenz f&uuml;r weitere Compliance-Funktionen verwendet.');
-INSERT INTO txt VALUES ('H5891', 'English', 'The selected zone matrix is used as the reference for further compliance features.');
+INSERT INTO txt VALUES ('H5891', 'German',  'Die ausgew&auml;hlte Zonematrix wird als Referenz f&uuml;r weitere Funktionen verwendet.');
+INSERT INTO txt VALUES ('H5891', 'English', 'The selected zone matrix is used as the reference for further features.');
 INSERT INTO txt VALUES ('H5892', 'German', '<p>Eine Matrixpr&uuml;fung wird nur f&uuml;r Accept-Regeln ausgef&uuml;hrt. Die ausgew&auml;hlte Compliance-Policy muss ein Matrix-Kriterium enthalten, das auf die gew&uuml;nschte Netzwerkzonenmatrix verweist.</p><ol><li>Quell- und Zielobjekte einer Regel werden aufgel&ouml;st und jeder Zone zugeordnet, deren Adressbereich sich mit dem Objekt &uuml;berschneidet. Bei &uuml;berlappenden Zonen werden alle zutreffenden Zonen ber&uuml;cksichtigt.</li><li>Jede resultierende Quell-Ziel-Zonenkombination wird gerichtet gegen die Matrix gepr&uuml;ft. Fehlt die erlaubte Kommunikation von der Quellzone zur Zielzone, entsteht eine Matrixverletzung. Eine Regel kann daher mehrere Matrixverletzungen und zus&auml;tzlich Verletzungen anderer Policy-Kriterien haben.</li></ol><p>Bei aktivierter automatischer Internetzone umfasst die gespeicherte Internetzone alle IPv4-Adressen, die nicht durch konfigurierte Zonen oder ausgeschlossene interne und reservierte Bereiche abgedeckt sind. Die undefiniert-interne Zone enth&auml;lt die nicht zugeordneten ausgeschlossenen Bereiche, damit diese nicht als Internet gelten. Die automatische Internetzone muss in jeder verwendeten Matrix existieren; bei manuell angelegten Matrizen kann sie neben dem Hinzuf&uuml;gen normaler Netzwerkzonen erstellt werden. Das Speichern oder L&ouml;schen einer normalen Zone berechnet die automatischen Zonen neu und entfernt deren konfigurierte Kommunikationen. Diese Kommunikationen m&uuml;ssen nach jeder solchen &Auml;nderung &uuml;berpr&uuml;ft werden.</p><p>Sind sowohl automatische Internetzone als auch die Behandlung von dynamischen und Domain-Objekten als Internet aktiviert, werden Objekte dieser Typen der gespeicherten automatischen Internetzone zugeordnet. Existiert keine solche Zone, entsteht aus diesen Objekten keine Zonenkombination und die Matrixpr&uuml;fung erzeugt keine Matrixverletzung. Ist eine der beiden Einstellungen deaktiviert, werden die Objekte wie andere Netzwerkobjekte behandelt. K&ouml;nnen keine IP-Bereiche aufgel&ouml;st werden, werden sie ebenfalls keiner Zone zugeordnet. Ist die automatische Internetzone deaktiviert, werden nicht zugeordnete IP-Bereiche stattdessen einer tempor&auml;ren Internet-Lokal-Zone ohne erlaubte Kommunikation zugeordnet; Verbindungen mit dieser Zone verletzen die Matrix.</p><p>Die Policy kann weitere Kriterien enthalten. Assessability-Verletzungen betreffen nicht auswertbare Objekte; die &uuml;brigen Kriterientypen und ihre Verletzungen sind im Abschnitt zu festen Kriterien beschrieben.</p>');
 INSERT INTO txt VALUES ('H5892', 'English', '<p>A matrix check is performed only for accept rules. The selected compliance policy must contain a Matrix criterion that references the intended network-zone matrix.</p><ol><li>The source and destination objects of a rule are resolved and assigned to every zone whose address range overlaps the object. When zones overlap, every matching zone is considered.</li><li>Every resulting source-to-destination zone pair is checked directionally against the matrix. If communication from the source zone to the destination zone is not allowed, a matrix violation is created. A rule can therefore have multiple matrix violations as well as violations from other policy criteria.</li></ol><p>When auto-calculated Internet zones are enabled, the persisted Internet zone contains IPv4 addresses not covered by configured zones or excluded internal and reserved ranges. The Undefined-internal zone contains the remaining excluded ranges so that they are not treated as Internet. The auto-calculated Internet zone must exist in every matrix used by a policy; for manually created matrices it can be added beside the normal network-zone Add button. Saving or deleting a normal zone recalculates the auto-calculated zones and removes their configured communications. Review these communications after every such change.</p><p>When both auto-calculated Internet zones and Treat dynamic and domain objects as Internet are enabled, objects of those types are assigned to the persisted auto-calculated Internet zone. If that zone does not exist, the objects produce no zone pair and the matrix check creates no matrix violation. If either setting is disabled, the objects are handled like other network objects. If no IP ranges can be resolved, they are likewise not assigned to a zone. When auto-calculated Internet zones are disabled, unmapped IP ranges are instead assigned to a temporary Internet/Local zone with no allowed communication; connections involving that zone violate the matrix.</p><p>The policy may contain further criteria. Assessability violations cover objects that cannot be assessed; the remaining criterion types and their violations are described in the fixed-criteria section.</p>');
 INSERT INTO txt VALUES ('H5849', 'German',  'Initialen Check durchf&uuml;hren');
@@ -7516,7 +7578,7 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Wichtige Request-Felder</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Liefert sichtbare Adressobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Liefert sichtbare Adressgruppen.</td><td>Optional <code>filter.visibleInRequest</code> und <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Liefert sichtbare Dienstobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceGroups</code></td><td>Liefert sichtbare Dienstgruppen.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Liefert sichtbare Zeitobjekte.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
@@ -7526,6 +7588,9 @@ INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> st
     </table>
     Die Filterstruktur ist f&uuml;r diese Endpunkte bewusst klein gehalten und dient vor allem dazu, nur Objekte zur&uuml;ckzugeben, die im Request-Kontext sichtbar sein sollen.
     F&uuml;r <code>getAddressObjectId</code> d&uuml;rfen <code>ipStart</code> und <code>ipEnd</code> als IPv4-Adresse ohne Maske oder mit <code>/32</code> &uuml;bergeben werden; jede andere Maske wird abgelehnt.
+    F&uuml;r <code>getAddressGroups</code> liefert <code>option.separateZoneGroups=false</code> (Standard) weiterhin ein flaches JSON-Array aller Gruppen.
+    Mit <code>option.separateZoneGroups=true</code> wird stattdessen ein Objekt mit den Listen <code>standardGroups</code> und <code>zoneGroups</code> zur&uuml;ckgegeben.
+    Welche Gruppen als Zonen gelten, wird &uuml;ber die Namensmuster in den allgemeinen Flow-Einstellungen konfiguriert; ohne konfiguriertes Muster bleibt <code>zoneGroups</code> leer.
 ');
 INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> exposes read-only catalog lookups below <code>/api/flow</code>.
     All endpoints use <code>POST</code>.
@@ -7533,7 +7598,7 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Important request fields</th></tr></thead>
         <tbody>
             <tr><td><code>getAddressObjects</code></td><td>Returns visible address objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
-            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
+            <tr><td><code>getAddressGroups</code></td><td>Returns visible address groups.</td><td>Optional <code>filter.visibleInRequest</code> and <code>option.separateZoneGroups</code>.</td></tr>
             <tr><td><code>getServiceObjects</code></td><td>Returns visible service objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getServiceGroups</code></td><td>Returns visible service groups.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
             <tr><td><code>getTimeObjects</code></td><td>Returns visible time objects.</td><td>Optional <code>filter.visibleInRequest</code>.</td></tr>
@@ -7543,6 +7608,9 @@ INSERT INTO txt VALUES ('H6941', 'English', 'The <b>FlowCatalogController</b> ex
     </table>
     The filter structure is intentionally small for these endpoints and is mainly used to restrict results to objects that should be visible in the request context.
     For <code>getAddressObjectId</code>, <code>ipStart</code> and <code>ipEnd</code> may be submitted as IPv4 addresses without a mask or with <code>/32</code>; every other mask is rejected.
+    For <code>getAddressGroups</code>, <code>option.separateZoneGroups=false</code> (default) still returns a flat JSON array of all groups.
+    With <code>option.separateZoneGroups=true</code> an object holding the lists <code>standardGroups</code> and <code>zoneGroups</code> is returned instead.
+    Which groups count as zones is configured through the zone name patterns in the general flow settings; without a configured pattern <code>zoneGroups</code> stays empty.
 ');
 INSERT INTO txt VALUES ('H6942', 'German',  'Der <b>FlowComplianceController</b> stellt Policy- und Compliance-Funktionen unter <code>/api/flow</code> bereit.
     Alle Endpunkte verwenden <code>POST</code>.
@@ -8998,3 +9066,5 @@ INSERT INTO txt VALUES ('H5912', 'German',  'Custom-Field-Schl&uuml;ssel: Nur er
 INSERT INTO txt VALUES ('H5912', 'English', 'Custom field key: Required only when source is "Custom Field". Configuration cannot be saved without this key.');
 INSERT INTO txt VALUES ('H5913', 'German',  'Neu berechnen: Startet die Aktualisierung der Eigent&uuml;merzuordnung f&uuml;r bestehende Regeln auf Basis der aktuellen Konfiguration.');
 INSERT INTO txt VALUES ('H5913', 'English', 'Recalculate: Starts updating owner mappings for existing rules based on the current configuration.');
+INSERT INTO txt VALUES ('H5914', 'German', 'Standardm&auml;&szlig;ig zeigt der Compliance-Diff-Bericht alle Verst&ouml;&szlig;e, die im ausgew&auml;hlten Zeitraum gefunden wurden. Dies schlie&szlig;t Verst&ouml;&szlig;e f&uuml;r Regeln ein, die schon zu Beginn des Zeitraums nicht konform waren, sowie inzwischen behobene Verst&ouml;&szlig;e. Wenn aktiviert, zeigt der Bericht nur Regeln, die zu Beginn des ausgew&auml;hlten Zeitraums konform waren und danach nicht konform wurden. Behobene Verst&ouml;&szlig;e werden weiterhin angezeigt.');
+INSERT INTO txt VALUES ('H5914', 'English', 'By default, the compliance diff report shows all violations found in the selected interval, including violations for rules that were already non-compliant at the start of the interval and violations that have since been resolved. When enabled, it shows only rules that were compliant at the start of the interval and subsequently became non-compliant. Resolved violations continue to be shown.');

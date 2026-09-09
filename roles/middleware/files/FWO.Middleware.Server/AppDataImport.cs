@@ -76,7 +76,7 @@ namespace FWO.Middleware.Server
         public async Task<List<string>> Run()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            NamingConvention = JsonSerializer.Deserialize<ModellingNamingConvention>(globalConfig.ModNamingConvention) ?? new();
+            NamingConvention = ModellingNamingConvention.FromJson(globalConfig.ModNamingConvention);
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             userConfig.Dispose();
             userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);

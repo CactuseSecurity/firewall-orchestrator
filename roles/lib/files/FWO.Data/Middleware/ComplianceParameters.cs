@@ -5,7 +5,7 @@ namespace FWO.Data.Middleware
         public List<int> ManagementIds { get; set; } = [];
     }
 
-    public class ComplianceImportMatrixParameters
+    public class ImportMatrixParameters
     {
         public string FileName { get; set; } = "";
         public string Data { get; set; } = "";

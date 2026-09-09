@@ -45,7 +45,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newApproval;
         public static readonly string updateApproval;
         public static readonly string getStates;
-        public static readonly string upsertState;
+        public static readonly string createState;
+        public static readonly string updateState;
         public static readonly string deleteState;
         public static readonly string getExtStates;
         public static readonly string replaceExtStates;
@@ -130,7 +131,8 @@ namespace FWO.Api.Client.Queries
                 newApproval = GetQueryText("request/newApproval.graphql");
                 updateApproval = GetQueryText("request/updateApproval.graphql");
                 getStates = GetQueryText("request/getStates.graphql");
-                upsertState = GetQueryText("request/upsertState.graphql");
+                createState = GetQueryText("request/createState.graphql");
+                updateState = GetQueryText("request/updateState.graphql");
                 deleteState = GetQueryText("request/deleteState.graphql");
                 getExtStates = GetQueryText("request/getExtStates.graphql");
                 replaceExtStates = GetQueryText("request/replaceExtStates.graphql");

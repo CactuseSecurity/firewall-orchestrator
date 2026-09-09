@@ -5,11 +5,13 @@ from typing import Any
 
 from fwo_base import sort_and_join
 from fwo_const import ANY_IP_PROTOCOL_ID, LIST_DELIMITER
+from fwo_log import FWOLogger
 
 FORTI_PROTOCOL_ANY = 0
-FORTI_PROTOCOL_IP = 1
-FORTI_PROTOCOL_GENERIC = 2
+FORTI_PROTOCOL_ICMP = 1
+FORTI_PROTOCOL_IP = 2
 FORTI_PROTOCOL_ICMP6 = 6
+FORTI_IP_PROTOCOL_NUMBER_ANY = 0
 
 
 def normalize_service_objects(
@@ -64,12 +66,12 @@ def normalize_service_object(obj_orig: dict[str, Any], svc_objects: list[dict[st
 
     if svc_type == "simple" and obj_orig.get("protocol") == FORTI_PROTOCOL_ANY:
         add_object(svc_objects, svc_type, name, color, ANY_IP_PROTOCOL_ID, None, None, session_timeout)
+    elif svc_type == "group":
+        add_object(svc_objects, svc_type, name, color, None, None, member_names, session_timeout)
     elif "protocol" in obj_orig:
         handle_svc_protocol(obj_orig, svc_objects, svc_type, name, color, session_timeout)
-    elif svc_type == "group":
-        add_object(svc_objects, svc_type, name, color, 0, None, member_names, session_timeout)
     else:
-        add_object(svc_objects, svc_type, name, color, 0, None, None, session_timeout)
+        add_object(svc_objects, svc_type, name, color, None, None, None, session_timeout)
 
 
 def handle_svc_protocol(
@@ -80,27 +82,26 @@ def handle_svc_protocol(
     color: str,
     session_timeout: Any,
 ) -> None:
-    proto = 0
-    range_names = ""
-    added_svc_obj = 0
-
-    # forti uses strange protocol numbers, so we need to map them
+    # FortiManager's `protocol` is a service-type selector, not always an IP
+    # protocol number. Selector 0 directly represents ANY; selector 2 is IP and uses
+    # `protocol-number`. Its default is 0, so an omitted or zero value for an
+    # IP service is a second FortiManager encoding of ANY and maps to
+    # FWO's -1 sentinel.
 
     protocol = obj_orig["protocol"]
-    if protocol == FORTI_PROTOCOL_IP:
+    if protocol == FORTI_PROTOCOL_ICMP:
         add_object(svc_objects, svc_type, name, color, 1, None, None, session_timeout)
-        added_svc_obj += 1
-    elif protocol == FORTI_PROTOCOL_GENERIC:
-        if "protocol-number" in obj_orig:
-            proto = obj_orig["protocol-number"]
+    elif protocol == FORTI_PROTOCOL_IP:
+        proto = obj_orig.get("protocol-number", FORTI_IP_PROTOCOL_NUMBER_ANY)
+        if proto == FORTI_IP_PROTOCOL_NUMBER_ANY:
+            proto = ANY_IP_PROTOCOL_ID
         add_object(svc_objects, svc_type, name, color, proto, None, None, session_timeout)
-        added_svc_obj += 1
     elif protocol in {5, 11, 15}:  # magic numbers from FortiNet: 5 = TCP/UDP, 11 = TCP/UDP/SCTP, 15 = TCP/UDP/SCTP/ICMP
-        parse_standard_protocols_with_ports(
-            obj_orig, svc_objects, svc_type, name, color, session_timeout, range_names, added_svc_obj
-        )
+        parse_standard_protocols_with_ports(obj_orig, svc_objects, svc_type, name, color, session_timeout)
     elif protocol == FORTI_PROTOCOL_ICMP6:
         add_object(svc_objects, svc_type, name, color, 58, None, None, session_timeout)
+    else:
+        FWOLogger.warning(f"dropping service object '{name}' with unsupported Forti protocol selector {protocol!r}")
 
 
 def parse_standard_protocols_with_ports(
@@ -110,9 +111,10 @@ def parse_standard_protocols_with_ports(
     name: str,
     color: str,
     session_timeout: Any,
-    range_names: str,
-    added_svc_obj: int,
 ) -> None:
+    added_svc_obj = 0
+    range_names = ""
+
     split = check_split(obj_orig)
     if "tcp-portrange" in obj_orig and len(obj_orig["tcp-portrange"]) > 0:
         tcpname = name
@@ -137,11 +139,10 @@ def parse_standard_protocols_with_ports(
         added_svc_obj += 1
     if split:
         range_names = range_names[:-1]
-        add_object(svc_objects, "group", name, color, 0, None, range_names, session_timeout)
+        add_object(svc_objects, "group", name, color, None, None, range_names, session_timeout)
         added_svc_obj += 1
     if added_svc_obj == 0:  # assuming RPC service which here has no properties at all
-        add_object(svc_objects, "rpc", name, color, 0, None, None, None)
-        added_svc_obj += 1
+        add_object(svc_objects, "rpc", name, color, None, None, None, None)
 
 
 def check_split(obj_orig: dict[str, Any]) -> bool:
@@ -203,7 +204,7 @@ def add_object(
     typ: str,
     name: str,
     color: str,
-    proto: int,
+    proto: int | None,
     port_ranges: list[str] | None,
     member_names: str | None,
     session_timeout: Any,
@@ -269,7 +270,7 @@ def add_object(
                         "svc_color": color,
                         "svc_uid": name,  # ?
                         "svc_comment": None,  # ?
-                        "ip_proto": proto,
+                        "ip_proto": None,
                         "svc_port": None,
                         "svc_port_end": None,
                         "svc_member_refs": range_names,  # ?

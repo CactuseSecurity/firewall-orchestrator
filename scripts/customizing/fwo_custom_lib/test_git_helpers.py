@@ -429,8 +429,8 @@ def test_rebase_onto_remote_reports_the_rebase_error_when_there_is_nothing_to_ab
     repo_mock: Mock = Mock()
     repo_mock.active_branch.name = "main"
     repo_mock.git.diff.return_value = ""
-    rebase_error = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
-    abort_error = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
+    rebase_error: git.GitCommandError = git.GitCommandError("git rebase FETCH_HEAD", 1, b"could not apply the deletion")
+    abort_error: git.GitCommandError = git.GitCommandError("git rebase --abort", 128, b"fatal: No rebase in progress?")
 
     def fail_rebase(*args: str, **_: object) -> None:
         raise abort_error if "--abort" in args else rebase_error

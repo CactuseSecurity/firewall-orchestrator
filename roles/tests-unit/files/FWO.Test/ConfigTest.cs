@@ -8,6 +8,7 @@ using FWO.Data.Enums;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
+using FWO.Data.Flow;
 using NUnit.Framework;
 using System.Text.RegularExpressions;
 
@@ -343,6 +344,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task WriteToDatabase_PersistsComplianceDiffExistingViolationFilter()
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ComplianceDiffFilterExistingViolations = false,
+                RawConfigItems =
+                [
+                    new() { Key = "complianceDiffFilterExistingViolations", Value = "false", User = 0 }
+                ]
+            };
+            ConfigData editableConfig = await globalConfig.GetEditableConfig();
+            editableConfig.ComplianceDiffFilterExistingViolations = true;
+
+            using UserConfigApiConnection apiConnection = new([]);
+            await globalConfig.WriteToDatabase(editableConfig, apiConnection);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("complianceDiffFilterExistingViolations"));
+                Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo("True"));
+                Assert.That(globalConfig.ComplianceDiffFilterExistingViolations, Is.True);
+            });
+        }
+
+        [Test]
         public async Task WriteToDatabase_NotifiesUserConfigSubscribersAfterPersistingChanges()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -380,6 +408,12 @@ namespace FWO.Test
         {
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowSyncSleepTime"));
             Assert.That(ConfigQueries.subscribeFlowSyncConfigChanges, Does.Contain("flowNamingSourceManagementRanking"));
+        }
+
+        [Test]
+        public void FlowCatalogSubscription_ContainsZoneGroupNamePatterns()
+        {
+            Assert.That(ConfigQueries.subscribeFlowCatalogConfigChanges, Does.Contain("flowZoneGroupNamePatterns"));
         }
 
         [Test]
@@ -504,6 +538,14 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ConfigData_DefaultsComplianceDiffExistingViolationFilterToFalse()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.ComplianceDiffFilterExistingViolations, Is.False);
+        }
+
+        [Test]
         public void ConfigData_DefaultsChangeIdCustomFieldKeys()
         {
             ConfigData configData = new();
@@ -555,6 +597,15 @@ namespace FWO.Test
             ConfigData configData = new();
 
             Assert.That(configData.FlowNamingSourceManagementRanking, Is.EqualTo("[]"));
+        }
+
+        [Test]
+        public void ConfigData_DefaultsFlowZoneGroupNamePatternsToAnEmptyList()
+        {
+            ConfigData configData = new();
+
+            Assert.That(configData.FlowZoneGroupNamePatterns, Is.EqualTo("[]"));
+            Assert.That(FlowZoneGroupMatcher.ParsePatterns(configData.FlowZoneGroupNamePatterns), Is.Empty);
         }
 
         [Test]

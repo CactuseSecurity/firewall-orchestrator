@@ -409,6 +409,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
         public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
+        [JsonProperty("flowZoneGroupNamePatterns"), JsonPropertyName("flowZoneGroupNamePatterns")]
+        public string FlowZoneGroupNamePatterns { get; set; } = "[]";
+
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
@@ -550,8 +553,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
         public string ComplianceCheckMailBody { get; set; } = "";
 
-        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
-        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
+        [JsonProperty("matrixAllowNestedZones"), JsonPropertyName("matrixAllowNestedZones")]
+        public bool MatrixAllowNestedZones { get; set; } = false;
 
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
@@ -562,8 +565,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
 
-        [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
-        public bool ComplianceCheckSortMatrixByID { get; set; } = false;
+        [JsonProperty("sortMatrixByID"), JsonPropertyName("sortMatrixByID")]
+        public bool SortMatrixByID { get; set; } = false;
 
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
@@ -653,6 +656,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("refreshTokenLifetimeUnit"), JsonPropertyName("refreshTokenLifetimeUnit")]
         public TokenLifetimeUnit RefreshTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Days;
 
+        [JsonProperty("pathAnalysisAlgorithm"), JsonPropertyName("pathAnalysisAlgorithm")]
+        public long PathAnalysisAlgorithm { get; set; } = GlobalConst.kPathAnalysisAlgorithmNone;
+
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 
@@ -661,6 +667,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
+
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
 
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;

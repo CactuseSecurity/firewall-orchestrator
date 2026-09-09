@@ -325,3 +325,20 @@
       environment: "{{ proxy_env }}"
 
   when: chrome_metadata_available
+
+# the chrome for testing archive of some versions (seen with 152) unpacks with root only
+# permissions, which leaves the fworch user unable to read the browser and its resource files
+- name: check chrome installation root
+  stat:
+    path: "{{ fworch_home }}/bin/Chrome"
+  register: chrome_root_stat
+  become: true
+
+- name: allow all users to traverse and run the installed chrome versions
+  file:
+    path: "{{ fworch_home }}/bin/Chrome"
+    state: directory
+    recurse: true
+    mode: "u=rwX,g=rX,o=rX"
+  become: true
+  when: chrome_root_stat.stat.exists

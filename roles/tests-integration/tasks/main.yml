@@ -88,6 +88,9 @@
   import_tasks: test-auth.yml
   when: "'middlewareserver' in group_names"
 
+- name: internal CA name testing
+  import_tasks: test-internal-ca-name.yml
+
 - name: api testing
   import_tasks: test-api.yml
   when: "'apiserver' in group_names"

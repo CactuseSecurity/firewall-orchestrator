@@ -23,12 +23,25 @@
   run_once: true
   become: true
 
-- name: Store internal CA certificate for all hosts
+- name: Read internal CA identity from issuer
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate }}"
+  delegate_to: "{{ internalca_ca_host }}"
+  register: internalca_ca_certificate_info
+  run_once: true
+  become: true
+
+- name: Store internal CA identity for all hosts
   set_fact:
     internalca_ca_certificate_pem: "{{ internalca_ca_certificate_content.content }}"
+    internalca_effective_ca_common_name: "{{ internalca_ca_certificate_info.subject.commonName }}"
   delegate_to: "{{ internalca_ca_host }}"
   delegate_facts: true
   run_once: true
+
+- name: Use the installed internal CA common name
+  set_fact:
+    internalca_ca_common_name: "{{ hostvars[internalca_ca_host].internalca_effective_ca_common_name }}"
 
 - name: Install internal CA trust anchor
   include_tasks: install-trust.yml

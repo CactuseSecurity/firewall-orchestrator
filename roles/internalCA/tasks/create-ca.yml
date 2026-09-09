@@ -11,6 +11,22 @@
     - "{{ internalca_ca_issued_dir }}"
   become: true
 
+# An existing CA is an installation's trust anchor. Its subject must remain unchanged
+# on upgrade, including for installations created before CA names gained a unique
+# suffix, because changing it would replace the certificate trusted by external clients.
+- name: Check for an existing internal CA certificate
+  stat:
+    path: "{{ internalca_ca_certificate }}"
+  register: internalca_existing_ca_certificate
+  become: true
+
+- name: Read the existing internal CA identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate }}"
+  register: internalca_existing_ca_certificate_info
+  become: true
+  when: internalca_existing_ca_certificate.stat.exists
+
 - name: Generate internal CA private key
   community.crypto.openssl_privatekey:
     path: "{{ internalca_ca_private_key }}"
@@ -20,6 +36,26 @@
     mode: "0600"
   become: true
   no_log: true
+
+- name: Read the internal CA public key fingerprint
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_ca_private_key }}"
+  register: internalca_ca_private_key_info
+  become: true
+  no_log: true
+
+# The key is generated from cryptographically secure randomness. Its fingerprint makes
+# the name unique without separate mutable state, and stays stable on repeated runs.
+- name: Select the internal CA common name
+  set_fact:
+    internalca_ca_common_name: >-
+      {{
+        internalca_existing_ca_certificate_info.subject.commonName
+        if internalca_existing_ca_certificate.stat.exists
+        else internalca_ca_common_name_prefix ~ ' '
+          ~ (internalca_ca_private_key_info.public_key_fingerprints.sha256
+             | replace(':', '') | lower)[:16]
+      }}
 
 # RFC 5280 4.2.1.9 requires a conforming CA to mark basicConstraints critical in
 # a CA certificate whose key signs other certificates, and 4.2.1.3 says the same

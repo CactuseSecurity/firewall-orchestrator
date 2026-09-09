@@ -1,0 +1,17 @@
+---
+- name: Read the internal CA certificate name
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate_local }}"
+  register: test_internal_ca_certificate_info
+
+- name: Verify a new internal CA has a unique name suffix
+  assert:
+    that:
+      - >-
+        test_internal_ca_certificate_info.subject.commonName
+        is match('^' ~ product_name ~ ' Internal CA [0-9a-f]{16}$')
+    fail_msg: >-
+      A newly generated internal CA must append a stable random value to
+      "{{ product_name }} Internal CA", but its common name is
+      "{{ test_internal_ca_certificate_info.subject.commonName }}".
+  when: installation_mode == 'new'

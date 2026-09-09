@@ -646,7 +646,17 @@ Not supported any longer are:
 - prepare network zone tree algorithm in database
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 
-## 9.5.0 - 03.09.2026
+## 9.4.7 - 07.09.2026
+- enforce host-address masks for flow network-object range endpoints
+- require both endpoints of a flow network-object range to be of the same address family
+- store the range endpoints of flow network objects created from a request in CIDR notation
+- widen a requested network endpoint to the first and the last host address of that network
+- name the refused addresses in the message of a failed flow creation
+- normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- warn during the upgrade about flow network objects sharing a range, they have to be merged manually
+- stop the upgrade and name the affected flow network objects when their endpoints mix address families
+
+## 9.5.0 - 09.09.2026
 - introducing
   - an internal CA and certificate checks for all internal communication
   - client certificates for graphql API access to prevent unauthorized access

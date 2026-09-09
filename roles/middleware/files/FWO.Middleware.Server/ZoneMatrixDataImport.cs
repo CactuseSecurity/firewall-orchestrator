@@ -149,7 +149,6 @@ namespace FWO.Middleware.Server
             {
                 CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot);
                 CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet);
-
             }
             if (unknown.Count > 0)
             {
@@ -180,9 +179,8 @@ namespace FWO.Middleware.Server
                 string deviceText = DeviceNameResolver.Describe(device.MgmtName, device.DeviceName);
                 if (!unique.Add(deviceText))
                 {
-                    duplicate.Add($"{deviceText} in subnet with start Ip {subnet.Ip}");
+                    duplicate.Add($"Duplicate device {deviceText} in subnet {subnet.Ip}");
                 }
-
             }
         }
 

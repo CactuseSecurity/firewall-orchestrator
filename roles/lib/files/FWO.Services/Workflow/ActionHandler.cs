@@ -17,7 +17,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
-        private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
+        private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
@@ -370,6 +370,24 @@ namespace FWO.Services.Workflow
             };
         }
 
+        /// <summary>
+        /// Builds the message shown after a flow creation. A creation refused for data the requester wrote names
+        /// that data, so that the reason does not stay in the workflow log alone.
+        /// </summary>
+        /// <param name="success">Whether all prepared flow payloads were persisted.</param>
+        /// <param name="refusals">What the flow creation refused, empty when it failed for another reason.</param>
+        private string BuildFlowCreationMessage(bool success, IReadOnlyList<FlowCreationRefusal> refusals)
+        {
+            string message = wfHandler.userConfig.GetText(success ? "flow_creation_succeeded" : "flow_creation_failed");
+            List<string> reasons =
+            [
+                .. refusals
+                    .Select(refusal => $"{wfHandler.userConfig.GetText(refusal.ReasonTextKey)}: {refusal.RefusedValue}")
+                    .Distinct()
+            ];
+            return reasons.Count == 0 ? message : $"{message} {string.Join(" ", reasons)}";
+        }
+
         public async Task CreateFlow(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
             if (!wfHandler.userConfig.ReqUseFlowDb)
@@ -392,7 +410,7 @@ namespace FWO.Services.Workflow
                 if (resultStateParams?.ConfirmUiMessage == true)
                 {
                     wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
-                        wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
+                        BuildFlowCreationMessage((bool)success, flowDbCreator.Refusals), !(bool)success);
                 }
                 await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
             }

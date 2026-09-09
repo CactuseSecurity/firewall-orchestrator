@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data.Middleware;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
@@ -18,7 +19,12 @@ public class FlowCatalogController : ControllerBase
 {
     private static readonly RequestRootValidationSchema AddressObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
     private static readonly RequestFilterValidationSchema AddressObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjects));
-    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
+    private static readonly RequestRootValidationSchema AddressGroupsRootSchema = new(
+        nameof(GetAddressGroups),
+        [
+            new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
+            new RequestKeyDefinition("option", "Optional option container controlling the response shape.")
+        ]);
     private static readonly RequestFilterValidationSchema AddressGroupsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressGroups));
     private static readonly RequestRootValidationSchema ServiceObjectsRootSchema = RequestRootValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
     private static readonly RequestFilterValidationSchema ServiceObjectsFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjects));
@@ -55,6 +61,14 @@ public class FlowCatalogController : ControllerBase
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
     private static readonly RequestFilterValidationSchema AddressObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetAddressObjectId));
+    private static readonly RequestRootValidationSchema ResolveFlowGroupsRootSchema = new(
+        nameof(ResolveGroupMembers),
+        [
+            new RequestKeyDefinition("networkGroupIds", "Network Flow group IDs to resolve."),
+            new RequestKeyDefinition("networkGroupNames", "Network Flow group names to resolve."),
+            new RequestKeyDefinition("serviceGroupIds", "Service Flow group IDs to resolve."),
+            new RequestKeyDefinition("serviceGroupNames", "Service Flow group names to resolve.")
+        ]);
 
     private readonly FlowCatalogService flowCatalogService;
 
@@ -86,14 +100,32 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Returns address groups for the requested visibility filter from the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
+    /// With 'option.separateZoneGroups' set to true the result is a
+    /// <see cref="SeparatedAddressGroupsResponse"/> holding the zone groups separately;
+    /// otherwise a flat JSON array of all groups is returned.
+    /// Zone groups are recognized by the zone name patterns configured in the general flow settings.
+    /// The documented response schema and the request example show the default flat array;
+    /// the separated shape is not part of the generated schema.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressGroups")]
-    public async Task<ActionResult<List<AddressGroupResponse>>> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
+    [ProducesResponseType(typeof(List<AddressGroupResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> GetAddressGroups([FromBody] GetAddressGroupsRequest request)
     {
         if (!TryValidateVisibleInRequestRequest(request, AddressGroupsRootSchema, AddressGroupsFilterSchema, out ActionResult? errorResult))
         {
             return errorResult!;
+        }
+
+        if (!AddressGroupsOptionValidator.TryValidate(request.Option, out ActionResult? optionErrorResult))
+        {
+            return optionErrorResult!;
+        }
+
+        if (request.Option?.SeparateZoneGroups == true)
+        {
+            return Ok(await flowCatalogService.GetSeparatedAddressGroupsAsync(request.Filter?.VisibleInRequest));
         }
 
         return Ok(await flowCatalogService.GetAddressGroupsAsync(request.Filter?.VisibleInRequest));
@@ -129,6 +161,44 @@ public class FlowCatalogController : ControllerBase
         }
 
         return Ok(await flowCatalogService.GetServiceGroupsAsync(request.Filter?.VisibleInRequest));
+    }
+
+    /// <summary>
+    /// Resolves the supplied request-visible Flow groups and returns their active members.
+    /// Only explicitly requested IDs or names are resolved.
+    /// </summary>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}")]
+    [HttpPost("resolveGroupMembers")]
+    public async Task<ActionResult<FlowGroupResolutionResult>> ResolveGroupMembers([FromBody] ResolveFlowGroupsRequest? request)
+    {
+        request ??= new ResolveFlowGroupsRequest();
+        if (!RequestRootValidator.TryValidate(request, ResolveFlowGroupsRootSchema, out ActionResult? errorResult))
+        {
+            return errorResult!;
+        }
+        request.NetworkGroupIds ??= [];
+        request.NetworkGroupNames ??= [];
+        request.ServiceGroupIds ??= [];
+        request.ServiceGroupNames ??= [];
+        if (request.NetworkGroupIds.Count + request.NetworkGroupNames.Count
+            + request.ServiceGroupIds.Count + request.ServiceGroupNames.Count > FlowGroupResolutionParameters.MaxSelectors)
+        {
+            return BadRequest($"At most {FlowGroupResolutionParameters.MaxSelectors} group selectors are allowed.");
+        }
+
+        if (request.NetworkGroupNames.Any(string.IsNullOrWhiteSpace)
+            || request.ServiceGroupNames.Any(string.IsNullOrWhiteSpace))
+        {
+            return BadRequest("Group names must not be empty.");
+        }
+
+        return Ok(await flowCatalogService.ResolveFlowGroupMembersAsync(new FlowGroupResolutionParameters
+        {
+            NetworkGroupIds = request.NetworkGroupIds,
+            NetworkGroupNames = request.NetworkGroupNames,
+            ServiceGroupIds = request.ServiceGroupIds,
+            ServiceGroupNames = request.ServiceGroupNames
+        }));
     }
 
     /// <summary>

@@ -109,15 +109,6 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: start importer service
-  systemd:
-    name: "{{ product_name }}-importer-api"
-    state: started
-    daemon_reload: true
-    enabled: true
-  become: true
-  when: "'importers' in group_names"
-
 - name: remove maint website dir
   file:
     path: "{{ fworch_home }}/maint-website"
@@ -163,3 +154,7 @@
     state: restarted
   become: true
   when: "'frontends' in group_names and (ui_deploy_changed | default(false))"
+
+# the importer is deliberately not started here: it has to come up after every task which restarts
+# one of its dependencies, and the plays which follow this role still restart the middleware and
+# apache. it is started by the last play in site.yml instead.

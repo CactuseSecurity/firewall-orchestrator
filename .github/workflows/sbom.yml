@@ -1,0 +1,37 @@
+name: SBOM
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  source-sbom:
+    name: Generate Source SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Generate source SBOMs
+        run: |
+          python scripts/sbom/generate_sbom.py \
+            --mode source \
+            --output-dir sbom \
+            --reference-platform debian-testing \
+            --merge
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: fwo-source-sbom
+          path: sbom/**/*.cdx.json

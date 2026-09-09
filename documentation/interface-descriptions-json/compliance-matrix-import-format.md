@@ -50,7 +50,15 @@ communications.
   "subnets": [
     {
       "name": "Office network",
-      "ip": "10.10.0.0/16"
+      "ip": "10.10.0.0/16",
+      "path_to_root": [
+          { "mgmt_name": "cp-mgm-1", "device_name": "fw-access-01" },
+          { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" }
+        ],
+        "path_to_internet": [
+          { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" },
+          { "mgmt_name": "router-mgm", "device_name": "border-router-01" }
+        ]
     }
   ],
   "communication_to": [
@@ -68,11 +76,13 @@ resulting matrix. Communications not listed for a source zone are restricted.
 
 A subnet entry supports a single address, CIDR notation, or an inclusive range.
 
-| Field    | Type   | Required | Description |
-|----------|--------|----------|-------------|
-| `name`   | string | no       | Optional descriptive name for the address or range. |
-| `ip`     | string | yes      | Single IP address, CIDR network, explicit `start-end` range, or the first address when `ip_end` is used. IPv4 and IPv6 are supported. |
-| `ip_end` | string | no       | Last address of an inclusive range. Omit it when `ip` contains a single address, CIDR network, or explicit range. |
+| Field              | Type     | Required | Description |
+|--------------------|----------|----------|-------------|
+| `name`             | string   | no       | Optional descriptive name for the address or range. |
+| `ip`               | string   | yes      | Single IP address, CIDR network, explicit `start-end` range, or the first address when `ip_end` is used. IPv4 and IPv6 are supported. |
+| `ip_end`           | string   | no       | Last address of an inclusive range. Omit it when `ip` contains a single address, CIDR network, or explicit range. |
+| `path_to_root`     | object[] | no       | Gateways on path from subnet to predefined root network. Used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm expects no gateways on path |
+| `path_to_internet` | object[] | no       | Gateways on path from subnet to internet as defined in settings. Used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm expects no gateways on path |
 
 Valid examples are:
 
@@ -85,6 +95,15 @@ Valid examples are:
 
 The start and end of a range must use the same IP address family, and the start
 must not be greater than the end.
+
+## Path Objects
+
+Both path_to_root and path_to_internet store lists of dicts with management and device name. They are ordered with list position, management and device name combination has to be known and unique in database. Duplicat devices per path result in an error.
+
+| Field         | Type     | Required | Description |
+|---------------|----------|----------|-------------|
+| `mgmt_name`   | string   | yes      | Name of management of device |
+| `device_name` | string   | yes      | Name of device |
 
 ## Synchronization Behavior
 

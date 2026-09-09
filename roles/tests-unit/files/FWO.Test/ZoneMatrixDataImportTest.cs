@@ -483,8 +483,13 @@ namespace FWO.Test
                 MatrixByNameResponse = [],
                 Managements = CreateDeviceInventory()
             };
-            apiConnection.MatrixZoneResponses.Add([CreateExistingZone(101, "zone-a", "Zone A")]);
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneA());
             return apiConnection;
+        }
+
+        private static List<ComplianceNetworkZone> CreateReloadedZoneA()
+        {
+            return [CreateExistingZone(101, "zone-a", "Zone A")];
         }
 
         private static List<Management> CreateDeviceInventory()

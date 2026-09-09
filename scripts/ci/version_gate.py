@@ -301,27 +301,26 @@ def deleted_upgrade_files(changed_upgrade_files: list[str], merged_upgrade_files
     )
 
 
-def deleted_upgrade_reason(deleted_files: list[str], merged_version: str, base: tuple[int, int, int]) -> str:
+def deleted_upgrade_reason(deleted_files: list[str], merged_version: str) -> str:
     """
-    Explain a refused deletion, with the remedy the deleted script's own version allows.
+    Explain a refused deletion without naming a deleted script as the place to correct it.
 
-    A script of the open version can still be emptied, because only scripts below the base
-    version are immutable; an older one has to stay as it is, so its correction belongs in the
-    current version's script instead. Naming the deleted file as that place would be circular.
+    One deletion can hold both a released script and the open version's own, so the remedy is
+    stated for both cases rather than chosen for the set: whichever script the author meant to
+    undo, restoring comes first, which is what keeps the current version's script from being
+    named as the remedy while it is itself being removed.
     """
-    open_version_only = all(
-        (file_version := upgrade_file_version(file_name)) is not None and file_version >= base
-        for file_name in deleted_files
-    )
-    remedy = (
-        "Keep the file and empty its body instead of removing it."
-        if open_version_only
-        else f"Leave it in place and put the correction in {merged_version}.sql."
-    )
+    if len(deleted_files) > 1:
+        subject = f"upgrade files {', '.join(deleted_files)} are"
+        pronoun = "them"
+    else:
+        subject = f"upgrade file {deleted_files[0]} is"
+        pronoun = "it"
     return (
-        f"upgrade file {', '.join(deleted_files)} is deleted. Upgrade scripts are kept once "
-        f"merged, because an installation that has already taken their version would otherwise "
-        f"never run them. {remedy}"
+        f"{subject} deleted. Upgrade scripts are kept once merged, because an installation that "
+        f"has already taken their version would otherwise never run them. Restore {pronoun}, then "
+        f"empty the body of {merged_version}.sql to undo the current version's change, or put a "
+        f"correction to an older script there."
     )
 
 
@@ -367,8 +366,8 @@ def evaluate_upgrade_files(
     A script the pull request removes is refused as well: every installation older than its
     version loses those operations, and the upgrade play reports nothing. That holds for a
     script of the still open version too, which a colleague's installation may already have
-    run, but such a script can still be emptied, so the two cases get different remedies. The
-    diff is taken without rename detection, so moving a released script counts as removing it.
+    run, though such a script can still be emptied. The diff is taken without rename detection,
+    so moving a released script counts as removing it.
 
     A script the pull request adds or modifies must be named after a full major.minor.patch
     version and sit directly in the upgrade directory. The play globs that one directory and
@@ -399,7 +398,7 @@ def evaluate_upgrade_files(
 
     deleted = deleted_upgrade_files(changed_upgrade_files, merged_upgrade_files)
     if deleted:
-        return Verdict(ok=False, reason=deleted_upgrade_reason(deleted, merged_version, base))
+        return Verdict(ok=False, reason=deleted_upgrade_reason(deleted, merged_version))
 
     non_canonical = non_canonical_upgrade_files(changed_in_merge_result)
     if non_canonical:

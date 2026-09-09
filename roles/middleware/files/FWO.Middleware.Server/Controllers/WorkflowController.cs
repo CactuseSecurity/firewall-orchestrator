@@ -266,7 +266,7 @@ namespace FWO.Middleware.Server.Controllers
                 : EmailBundleStore.Get(lockTicketId, parameters.EmailBundleId, callerDn);
         }
 
-        private async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
+        private static async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
         {
             WorkflowEmailBundleSweepResult sweepResult = EmailBundleStore.Sweep();
             if (!sweepResult.LostEmails)

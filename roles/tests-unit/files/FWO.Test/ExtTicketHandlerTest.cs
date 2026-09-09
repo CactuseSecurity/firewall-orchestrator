@@ -778,7 +778,7 @@ namespace FWO.Test
         public async Task RunInternalWorkStateChangeActionsSafe_ClearsCollectorWhenFallbackCannotRun()
         {
             WorkflowEmailBundleCollector collector = new();
-            collector.Add(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
+            collector.TryAdd(new WfStateAction { Id = 7, ExternalParams = "params" }, new WfReqTask { Id = 11, TicketId = 123, TaskType = WfTaskType.access.ToString() }, null, null);
             using ExternalRequestHandler handler = new(userConfig, new FailingWorkflowInitApiConn(), null);
 
             await InvokeRunInternalWorkStateChangeActionsSafe(handler, 123, collector);
@@ -799,7 +799,7 @@ namespace FWO.Test
                     Body = "done"
                 })
             };
-            collector.Add(action, new WfReqTask
+            collector.TryAdd(action, new WfReqTask
             {
                 Id = 2,
                 TicketId = 123,

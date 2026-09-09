@@ -8,6 +8,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,8 +30,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
-        private static readonly ConcurrentDictionary<string, WorkflowEmailBundleCollector> WorkflowEmailBundles = new();
-        private static readonly TimeSpan kWorkflowEmailBundleMaxAge = TimeSpan.FromMinutes(30);
+        private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
 
         /// <summary>
@@ -176,9 +176,11 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            await ReportExpiredEmailBundles(actionApiConnection, userConfig);
+
             if (parameters.EmailBundleFlushOnly)
             {
-                return await FlushEmailBundleOnly(wfHandler, parameters, result);
+                return await FlushEmailBundleOnly(wfHandler, parameters, lockTicketId, result);
             }
 
             (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
@@ -199,7 +201,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters);
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
             wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
             try
             {
@@ -213,7 +215,7 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if (parameters.EmailBundleEnd && emailBundleCollector != null)
                 {
-                    WorkflowEmailBundles.TryRemove(WorkflowEmailBundleKey(parameters), out _);
+                    EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
                 }
             }
             if (result.Success)
@@ -223,11 +225,17 @@ namespace FWO.Middleware.Server.Controllers
             return result;
         }
 
-        private static async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters, WorkflowActionResult result)
+        private async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters,
+            long lockTicketId, WorkflowActionResult result)
         {
-            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, false);
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId, false);
             if (emailBundleCollector == null)
             {
+                // A bundle that captured nothing leaves no collector, which is the ordinary case for a
+                // promote without bundled actions. Report it instead of staying silent, but do not fail
+                // the operation - the emails, if any, were already reported by the expiry sweep.
+                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}.");
+                AddWorkflowMessage(result, null, "Workflow Actions", $"No email bundle was pending for ticket {lockTicketId}.", false);
                 result.Success = true;
                 return result;
             }
@@ -240,46 +248,37 @@ namespace FWO.Middleware.Server.Controllers
             }
             finally
             {
-                WorkflowEmailBundles.TryRemove(WorkflowEmailBundleKey(parameters), out _);
+                EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
             }
             return result;
         }
 
-        private static WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, bool createWhenMissing = true)
+        private WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, long lockTicketId, bool createWhenMissing = true)
         {
             if (!Guid.TryParseExact(parameters.EmailBundleId, "N", out _))
             {
                 return null;
             }
 
-            CleanupExpiredWorkflowEmailBundles();
-
-            string key = WorkflowEmailBundleKey(parameters);
-            if (!createWhenMissing)
-            {
-                return WorkflowEmailBundles.TryGetValue(key, out WorkflowEmailBundleCollector? collector) ? collector : null;
-            }
-
-            WorkflowEmailBundleCollector result = WorkflowEmailBundles.GetOrAdd(key, _ => new WorkflowEmailBundleCollector());
-            result.Touch();
-            return result;
+            string callerDn = User.FindFirstValue("x-hasura-uuid") ?? "";
+            return createWhenMissing
+                ? EmailBundleStore.GetOrCreate(lockTicketId, parameters.EmailBundleId, callerDn)
+                : EmailBundleStore.Get(lockTicketId, parameters.EmailBundleId, callerDn);
         }
 
-        private static string WorkflowEmailBundleKey(WorkflowActionParameters parameters)
+        private async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
         {
-            return $"{parameters.TicketId}:{parameters.EmailBundleId}";
-        }
-
-        private static void CleanupExpiredWorkflowEmailBundles()
-        {
-            DateTime threshold = DateTime.UtcNow.Subtract(kWorkflowEmailBundleMaxAge);
-            foreach (KeyValuePair<string, WorkflowEmailBundleCollector> bundle in WorkflowEmailBundles)
+            WorkflowEmailBundleSweepResult sweepResult = EmailBundleStore.Sweep();
+            if (!sweepResult.LostEmails)
             {
-                if (bundle.Value.LastTouchedAt < threshold)
-                {
-                    WorkflowEmailBundles.TryRemove(bundle.Key, out _);
-                }
+                return;
             }
+
+            string description = $"{sweepResult.DiscardedItems} bundled workflow email(s) in {sweepResult.DiscardedBundles} " +
+                $"abandoned bundle(s) expired before they were sent.";
+            Log.WriteError("Workflow Actions", description);
+            await AlertHelper.SetAlert(actionApiConnection, userConfig.GetText("send_email"), description,
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
         }
 
         private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,

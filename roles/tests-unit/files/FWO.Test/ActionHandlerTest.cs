@@ -299,17 +299,12 @@ namespace FWO.Test
         }
 
         private static Task<WorkflowEmailContent?> InvokeCreateWorkflowEmailContent(ActionHandler handler,
-            EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope,
-            WfStateAction? action = null, FwoOwner? owner = null, string? userGrpDn = null)
+            EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
-            action ??= new WfStateAction { ExternalParams = JsonSerializer.Serialize(emailActionParams) };
-            object?[] arguments = new object?[6];
-            arguments[0] = action;
-            arguments[1] = emailActionParams;
-            arguments[2] = statefulObject;
-            arguments[3] = scope;
-            arguments[4] = owner;
-            arguments[5] = userGrpDn;
+            object?[] arguments = new object?[3];
+            arguments[0] = emailActionParams;
+            arguments[1] = statefulObject;
+            arguments[2] = scope;
 
             return (Task<WorkflowEmailContent?>)GetPrivateMethod("CreateWorkflowEmailContent").Invoke(handler, arguments)!;
         }
@@ -714,6 +709,76 @@ namespace FWO.Test
             {
                 Assert.That(content?.PlainText, Does.Contain("1 | First group task |"));
                 Assert.That(content?.PlainText, Does.Not.Contain("Second group task"));
+            });
+        }
+
+        [Test]
+        public async Task CreateWorkflowEmailContent_DoesNotBundleRequestTasksOfDifferentOwners()
+        {
+            WfReqTask firstTask = CreateEligibleRequestTask(12, title: "Owner A task");
+            firstTask.Id = 11;
+            firstTask.TicketId = 7;
+            firstTask.TaskNumber = 1;
+            firstTask.StateId = 60;
+            firstTask.TaskType = WfTaskType.access.ToString();
+            firstTask.Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 101 } }];
+            firstTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            WfReqTask secondTask = CreateEligibleRequestTask(13, title: "Owner B task");
+            secondTask.Id = 12;
+            secondTask.TicketId = 7;
+            secondTask.TaskNumber = 2;
+            secondTask.StateId = 60;
+            secondTask.TaskType = WfTaskType.access.ToString();
+            secondTask.Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 202 } }];
+            secondTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(firstTask, secondTask)
+            };
+            apiConn.FullTicket.Id = 7;
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            EmailActionParams actionParams = new()
+            {
+                AttachedContent = EmailAttachedContent.RequestedConnections,
+                RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+            };
+
+            WorkflowEmailContent? content = await InvokeCreateWorkflowEmailContent(handler, actionParams, firstTask, WfObjectScopes.RequestTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content?.PlainText, Does.Contain("1 | Owner A task |"));
+                Assert.That(content?.PlainText, Does.Not.Contain("Owner B task"));
+            });
+        }
+
+        [Test]
+        public void BuildTaskBundleKey_DiffersForDifferentOwners()
+        {
+            WfReqTask ownerATask = CreateEligibleRequestTask(12, title: "Owner A task");
+            ownerATask.TicketId = 7;
+            ownerATask.StateId = 60;
+            ownerATask.TaskType = WfTaskType.access.ToString();
+            ownerATask.Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 101 } }];
+            WfReqTask ownerBTask = new(ownerATask)
+            {
+                Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 202 } }]
+            };
+            WfReqTask sameOwnerReorderedTask = new(ownerATask)
+            {
+                Owners =
+                [
+                    new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 101 } },
+                    new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 101 } }
+                ]
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(WorkflowEmailBundleItem.BuildTaskBundleKey(ownerATask),
+                    Is.Not.EqualTo(WorkflowEmailBundleItem.BuildTaskBundleKey(ownerBTask)));
+                Assert.That(WorkflowEmailBundleItem.BuildTaskBundleKey(sameOwnerReorderedTask),
+                    Is.EqualTo(WorkflowEmailBundleItem.BuildTaskBundleKey(ownerATask)));
             });
         }
 
@@ -1775,8 +1840,8 @@ namespace FWO.Test
             };
             WfReqTask firstTask = new() { Id = 11, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = 1, StateId = 60 };
             WfReqTask secondTask = new() { Id = 12, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = 2, StateId = 60 };
-            collector.Add(action, firstTask, null, null);
-            collector.Add(action, secondTask, null, null);
+            collector.TryAdd(action, firstTask, null, null);
+            collector.TryAdd(action, secondTask, null, null);
             WfHandler wfHandler = new()
             {
                 userConfig = new SimulatedUserConfig(),
@@ -1806,9 +1871,9 @@ namespace FWO.Test
             WfReqTask firstTask = new() { Id = 11, TaskNumber = 1 };
             WfReqTask duplicateTask = new() { Id = 11, TaskNumber = 1 };
             WfReqTask secondTask = new() { Id = 12, TaskNumber = 2 };
-            collector.Add(action, firstTask, null, null);
-            collector.Add(action, duplicateTask, null, null);
-            collector.Add(action, secondTask, null, null);
+            collector.TryAdd(action, firstTask, null, null);
+            collector.TryAdd(action, duplicateTask, null, null);
+            collector.TryAdd(action, secondTask, null, null);
 
             object?[] arguments = new List<object?> { collector.PendingItems }.ToArray();
             List<WfReqTask> bundledTasks = (List<WfReqTask>)GetPrivateStaticMethod("BuildRequestTaskEmailBundle").Invoke(null, arguments)!;
@@ -1839,7 +1904,7 @@ namespace FWO.Test
             };
             requestTask.SetAddInfo(AdditionalInfoKeys.FwConfigChangeTarget, ManagementFwConfigChangeTargets.InternalWork);
 
-            collector.Add(action, requestTask, new FwoOwner { Id = 3 }, "cn=group");
+            collector.TryAdd(action, requestTask, new FwoOwner { Id = 3 }, "cn=group");
             string originalBundleKey = collector.PendingItems[0].BundleKey;
             action.ExternalParams = "changed";
             requestTask.TaskType = WfTaskType.rule_delete.ToString();
@@ -1904,8 +1969,8 @@ namespace FWO.Test
                     RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
                 })
             };
-            collector.Add(action, new WfReqTask { Id = 11, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = 1, StateId = 60 }, null, null);
-            collector.Add(action, new WfReqTask { Id = 12, TicketId = 7, TaskType = WfTaskType.rule_delete.ToString(), TaskNumber = 2, StateId = 60 }, null, null);
+            collector.TryAdd(action, new WfReqTask { Id = 11, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = 1, StateId = 60 }, null, null);
+            collector.TryAdd(action, new WfReqTask { Id = 12, TicketId = 7, TaskType = WfTaskType.rule_delete.ToString(), TaskNumber = 2, StateId = 60 }, null, null);
             WfHandler wfHandler = new()
             {
                 userConfig = new SimulatedUserConfig(),

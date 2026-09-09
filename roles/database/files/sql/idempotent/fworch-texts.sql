@@ -543,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
     <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
+    <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -560,6 +561,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
     <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
+    <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -4676,6 +4678,8 @@ INSERT INTO txt VALUES ('E9103', 'German',  'Fehler beim Schliessen des Tickets.
 INSERT INTO txt VALUES ('E9103', 'English', 'Error closing ticket.');
 INSERT INTO txt VALUES ('E9104', 'German',  'Sie haben nicht die ben&ouml;tigte Rolle.');
 INSERT INTO txt VALUES ('E9104', 'English', 'You do not have the necessary role.');
+INSERT INTO txt VALUES ('E9105', 'German',  'Die Status&auml;nderung wurde durchgef&uuml;hrt, aber die geb&uuml;ndelten Emails konnten nicht versendet werden.');
+INSERT INTO txt VALUES ('E9105', 'English', 'The state change was applied, but the bundled emails could not be sent.');
 
 INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');

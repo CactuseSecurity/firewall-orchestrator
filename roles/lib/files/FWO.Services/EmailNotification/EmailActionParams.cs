@@ -10,9 +10,19 @@ namespace FWO.Services
         RequestedConnections = 1
     }
 
+    /// <summary>
+    /// Controls whether one email covers several request tasks of a ticket.
+    /// </summary>
     public enum EmailRequestTaskBundleMode
     {
+        /// <summary>
+        /// One email per request task.
+        /// </summary>
         None = 0,
+
+        /// <summary>
+        /// One email for all matching request tasks of the same task type.
+        /// </summary>
         SameTaskType = 1
     }
 
@@ -39,6 +49,10 @@ namespace FWO.Services
         [JsonProperty("body"), JsonPropertyName("body")]
         public string Body { get; set; } = "";
 
+        /// <summary>
+        /// Whether matching request tasks of one ticket share a single email. Only effective together with
+        /// <see cref="EmailAttachedContent.RequestedConnections"/>, which renders the task list.
+        /// </summary>
         [JsonProperty("request_task_bundle_mode"), JsonPropertyName("request_task_bundle_mode")]
         public EmailRequestTaskBundleMode RequestTaskBundleMode { get; set; } = EmailRequestTaskBundleMode.None;
 

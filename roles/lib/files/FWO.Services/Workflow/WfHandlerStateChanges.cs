@@ -68,6 +68,7 @@ namespace FWO.Services.Workflow
         public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
         {
             bool emailBundleStarted = false;
+            bool emailBundleFlushed = false;
             try
             {
                 if (!await PromoteTicket(ticket))
@@ -84,8 +85,7 @@ namespace FWO.Services.Workflow
                     await UpdateActTicketStateFromReqTasks();
                 }
 
-                EndWorkflowEmailBundle();
-                await ActionHandler!.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
+                emailBundleFlushed = await FlushWorkflowEmailBundle();
                 return true;
             }
             catch (Exception exception)
@@ -96,10 +96,38 @@ namespace FWO.Services.Workflow
             {
                 if (emailBundleStarted)
                 {
+                    // Captured emails were suppressed at their state action, so an aborted promote must
+                    // still flush what was collected - those request tasks did change state.
+                    if (!emailBundleFlushed)
+                    {
+                        await FlushWorkflowEmailBundle();
+                    }
                     ClearWorkflowEmailBundle();
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Ends the active workflow email bundle and asks the middleware to send it. Delivery problems are
+        /// reported separately and never turn a completed state change into a failed one.
+        /// </summary>
+        /// <returns>true if the bundle was flushed without error</returns>
+        private async Task<bool> FlushWorkflowEmailBundle()
+        {
+            try
+            {
+                EndWorkflowEmailBundle();
+                await ActionHandler!.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("send_email"),
+                    $"Could not send bundled workflow emails for ticket {ActTicket.Id}.", exception);
+                DisplayMessageInUi(exception, userConfig.GetText("send_email"), userConfig.GetText("E9105"), true);
+                return false;
+            }
         }
 
         public async Task PromoteReqTask(WfStatefulObject reqTask, bool setStartedHandler = true)

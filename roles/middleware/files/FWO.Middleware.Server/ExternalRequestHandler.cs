@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
@@ -38,8 +39,7 @@ namespace FWO.Middleware.Server
         {
             Continue,
             ReturnTrue,
-            ReturnHandledTask,
-            ReturnFalse
+            ReturnHandledTask
         }
 
         private sealed class CreateNextRequestState
@@ -269,8 +269,7 @@ namespace FWO.Middleware.Server
                     return result switch
                     {
                         CreateNextRequestResult.ReturnHandledTask => state.HandledTask,
-                        CreateNextRequestResult.ReturnTrue => true,
-                        _ => false
+                        _ => true
                     };
                 }
             }
@@ -279,23 +278,15 @@ namespace FWO.Middleware.Server
                 Log.WriteError("CreateNextRequest",
                     $"Create next request failed for ticket {state.Ticket.Id}. Trying to flush pending internal work emails before rethrowing.",
                     exception);
-
-                bool flushed = false;
                 try
                 {
-                    flushed = await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector);
+                    await RunInternalWorkStateChangeActionsSafe(state.Ticket.Id, emailBundleCollector);
                 }
                 catch (Exception flushException)
                 {
                     Log.WriteError("CreateNextRequest",
                         $"Flush of pending internal work emails also failed for ticket {state.Ticket.Id}.",
                         flushException);
-                }
-
-                if (!flushed)
-                {
-                    Log.WriteError("CreateNextRequest",
-                        $"Pending internal work emails could not be flushed for ticket {state.Ticket.Id}. Original exception will be rethrown.");
                 }
 
                 throw;
@@ -307,16 +298,16 @@ namespace FWO.Middleware.Server
             WfReqTask? nextTask = state.Ticket.Tasks.FirstOrDefault(ta => ta.TaskNumber == state.LastTaskNumber + 1);
             if (nextTask is null)
             {
-                return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
-                    ? CreateNextRequestResult.ReturnHandledTask
-                    : CreateNextRequestResult.ReturnFalse;
+                Log.WriteDebug("CreateNextRequest", "No more task found.");
+                await RunInternalWorkStateChangeActionsSafe(state.Ticket.Id, emailBundleCollector);
+                return CreateNextRequestResult.ReturnHandledTask;
             }
 
             if (state.HandledInternalWork && !IsInternalWorkConfiguredForTask(nextTask))
             {
-                return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
-                    ? CreateNextRequestResult.ReturnTrue
-                    : CreateNextRequestResult.ReturnFalse;
+                Log.WriteInfo("CreateNextRequest", $"Internal work batch for ticket {state.Ticket.Id} created. Waiting for completion before task {nextTask.TaskNumber}.");
+                await RunInternalWorkStateChangeActionsSafe(state.Ticket.Id, emailBundleCollector);
+                return CreateNextRequestResult.ReturnTrue;
             }
 
             List<ManagementFwConfigChangeState> managementSettings = JsonSerializer.Deserialize<List<ManagementFwConfigChangeState>>(UserConfig.FwConfigChangeMgmSettings) ?? new();
@@ -349,14 +340,8 @@ namespace FWO.Middleware.Server
             }
 
             Log.WriteInfo("CreateNextRequest", $"Created Request for ticket {state.Ticket.Id}.");
-            return await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector)
-                ? CreateNextRequestResult.ReturnTrue
-                : CreateNextRequestResult.ReturnFalse;
-        }
-
-        private async Task<bool> FlushInternalWorkEmailBundle(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
-        {
-            return await RunInternalWorkStateChangeActionsSafe(ticketId, emailBundleCollector);
+            await RunInternalWorkStateChangeActionsSafe(state.Ticket.Id, emailBundleCollector);
+            return CreateNextRequestResult.ReturnTrue;
         }
 
         private bool IsInternalWorkConfiguredForTask(WfReqTask task)
@@ -535,10 +520,31 @@ namespace FWO.Middleware.Server
                     return true;
                 }
 
-                Log.WriteError("RunInternalWorkStateChangeActions",
-                    $"Could not send {emailBundleCollector.PendingItems.Count} pending internal work approval email bundle item(s) for ticket {ticketId}. No automatic retry is available.");
+                await AlertUndeliveredInternalWorkEmails(ticketId, emailBundleCollector.PendingItems.Count);
                 emailBundleCollector.PendingItems.Clear();
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Raises an alert for bundled internal work emails that could not be delivered by either path.
+        /// The state changes themselves are committed, so this must be visible instead of log-only.
+        /// </summary>
+        /// <param name="ticketId">Ticket the emails belonged to</param>
+        /// <param name="pendingItemCount">Number of emails that are discarded unsent</param>
+        private async Task AlertUndeliveredInternalWorkEmails(long ticketId, int pendingItemCount)
+        {
+            string description = $"{pendingItemCount} bundled internal work approval email(s) for ticket {ticketId} " +
+                $"could not be sent by either the bundled or the individual path. No automatic retry is available.";
+            Log.WriteError("RunInternalWorkStateChangeActions", description);
+            try
+            {
+                await AlertHelper.SetAlert(ApiConnection, UserConfig.GetText("send_email"), description,
+                    GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
+            }
+            catch (Exception alertException)
+            {
+                Log.WriteError("RunInternalWorkStateChangeActions", $"Could not write alert for ticket {ticketId}.", alertException);
             }
         }
 
@@ -728,7 +734,7 @@ namespace FWO.Middleware.Server
 
             await planningHandler.PromoteReqTask(planningTask);
 
-            await LogRequestTasks(new List<WfReqTask> { planningTask }, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+            await LogRequestTasks([planningTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
         }
 
         private async Task<WorkflowPhases> PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)

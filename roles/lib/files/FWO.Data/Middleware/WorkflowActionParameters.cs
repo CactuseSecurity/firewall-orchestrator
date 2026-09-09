@@ -13,8 +13,19 @@ namespace FWO.Data.Middleware
         public bool StateChangedByCreation { get; set; }
         public string Phase { get; set; } = WorkflowPhases.request.ToString();
         public string ExecutionMode { get; set; } = "";
+        /// <summary>
+        /// Id of the workflow email bundle this action belongs to, empty when the action is not bundled.
+        /// </summary>
         public string EmailBundleId { get; set; } = "";
+
+        /// <summary>
+        /// True on the last action of a bundle, which sends the captured emails and drops the bundle.
+        /// </summary>
         public bool EmailBundleEnd { get; set; }
+
+        /// <summary>
+        /// True when the request only sends the captured emails of a bundle and executes no action.
+        /// </summary>
         public bool EmailBundleFlushOnly { get; set; }
     }
 

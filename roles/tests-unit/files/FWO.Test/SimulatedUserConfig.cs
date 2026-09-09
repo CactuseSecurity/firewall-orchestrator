@@ -677,6 +677,7 @@ namespace FWO.Test
             {"E4002","No rules found"},
             {"E4001","Comment required"},
             {"E9104","You are not allowed to execute selected rules."},
+            {"E9105","The state change was applied, but the bundled emails could not be sent."},
             {"recerts_executed","Recerts executed "},
             {"decerts_executed","Decerts executed "},
             {"load_rules","Load rules"},

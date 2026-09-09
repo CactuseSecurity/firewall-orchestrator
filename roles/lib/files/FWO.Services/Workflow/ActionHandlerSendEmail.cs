@@ -28,7 +28,7 @@ namespace FWO.Services.Workflow
                 foreach (FwoNotification actionNotification in actionNotifications)
                 {
                     await SetScope(statefulObject, scope, actionNotification);
-                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(action, emailActionParams, statefulObject, scope, owner, userGrpDn);
+                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
                     EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
                     await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
                     WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
@@ -61,12 +61,18 @@ namespace FWO.Services.Workflow
             if (EmailBundleCollector == null || EmailBundleCollector.IsFlushing
                 || emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections
                 || emailActionParams.RequestTaskBundleMode != EmailRequestTaskBundleMode.SameTaskType
-                || scope != WfObjectScopes.RequestTask || statefulObject is not WfReqTask reqTask)
+                || scope != WfObjectScopes.RequestTask || statefulObject is not WfReqTask reqTask
+                || reqTask.TicketId <= 0)
             {
                 return false;
             }
 
-            EmailBundleCollector.Add(action, reqTask, owner, userGrpDn);
+            if (!EmailBundleCollector.TryAdd(action, reqTask, owner, userGrpDn))
+            {
+                Log.WriteWarning("SendEmail", $"Workflow email bundle for ticket {reqTask.TicketId} is full. " +
+                    $"Sending the email of request task {reqTask.TaskNumber} immediately instead of bundling it.");
+                return false;
+            }
             return true;
         }
 
@@ -120,8 +126,7 @@ namespace FWO.Services.Workflow
             return [emailActionParams.ToNotification()];
         }
 
-        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(WfStateAction action, EmailActionParams emailActionParams, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+        private async Task<WorkflowEmailContent?> CreateWorkflowEmailContent(EmailActionParams emailActionParams, WfStatefulObject statefulObject, WfObjectScopes scope)
         {
             if (emailActionParams.AttachedContent != EmailAttachedContent.RequestedConnections)
             {
@@ -133,15 +138,14 @@ namespace FWO.Services.Workflow
             {
                 WfObjectScopes.Ticket when statefulObject is WfTicket ticket => WorkflowEmailContent.FromRequestTasks((await GetTicketForEmailContent(ticket)).Tasks, wfHandler.userConfig, protocolNamesById),
                 WfObjectScopes.RequestTask when statefulObject is WfReqTask reqTask =>
-                    WorkflowEmailContent.FromRequestTasks(await GetRequestTasksForEmailContent(action, emailActionParams, reqTask, owner, userGrpDn), wfHandler.userConfig, protocolNamesById),
+                    WorkflowEmailContent.FromRequestTasks(await GetRequestTasksForEmailContent(emailActionParams, reqTask), wfHandler.userConfig, protocolNamesById),
                 WfObjectScopes.ImplementationTask when statefulObject is WfImplTask implTask => WorkflowEmailContent.FromImplementationTasks([implTask], wfHandler.userConfig, protocolNamesById),
                 WfObjectScopes.Approval when wfHandler.ActReqTask.Id > 0 => WorkflowEmailContent.FromRequestTasks([wfHandler.ActReqTask], wfHandler.userConfig, protocolNamesById),
                 _ => null
             };
         }
 
-        private async Task<List<WfReqTask>> GetRequestTasksForEmailContent(WfStateAction action, EmailActionParams emailActionParams, WfReqTask reqTask,
-            FwoOwner? owner, string? userGrpDn)
+        private async Task<List<WfReqTask>> GetRequestTasksForEmailContent(EmailActionParams emailActionParams, WfReqTask reqTask)
         {
             if (emailActionParams.RequestTaskBundleMode != EmailRequestTaskBundleMode.SameTaskType || reqTask.TicketId <= 0)
             {
@@ -154,16 +158,24 @@ namespace FWO.Services.Workflow
 
             WfTicket fullTicket = await GetTicketForEmailContent(new WfTicket { Id = reqTask.TicketId });
             List<WfReqTask> bundledTasks = [.. fullTicket.Tasks
-                .Where(task => IsSameRequestTaskEmailBundle(action, task, reqTask, owner, userGrpDn))
+                .Where(task => IsSameRequestTaskEmailBundle(task, reqTask))
                 .OrderBy(task => task.TaskNumber)];
 
             return bundledTasks.Count > 0 ? bundledTasks : [reqTask];
         }
 
-        private static bool IsSameRequestTaskEmailBundle(WfStateAction action, WfReqTask candidate, WfReqTask reqTask, FwoOwner? owner, string? userGrpDn)
+        /// <summary>
+        /// Decides whether a candidate request task of the same ticket belongs into the email of the
+        /// captured request task. Only task-derived properties are compared: the action, owner and
+        /// user group are identical for every candidate by construction and cannot discriminate.
+        /// </summary>
+        /// <param name="candidate">Request task from the ticket to test</param>
+        /// <param name="reqTask">Request task the email is being built for</param>
+        /// <returns>true if both tasks belong into the same email</returns>
+        private static bool IsSameRequestTaskEmailBundle(WfReqTask candidate, WfReqTask reqTask)
         {
-            return WorkflowEmailBundleItem.BuildBundleKey(action, candidate, owner, userGrpDn)
-                == WorkflowEmailBundleItem.BuildBundleKey(action, reqTask, owner, userGrpDn);
+            return WorkflowEmailBundleItem.BuildTaskBundleKey(candidate)
+                == WorkflowEmailBundleItem.BuildTaskBundleKey(reqTask);
         }
 
         private async Task<Dictionary<int, string>> GetProtocolNamesByIdForEmailContent()

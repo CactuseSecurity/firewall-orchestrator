@@ -30,7 +30,12 @@ namespace FWO.Services.Workflow
         private static readonly object MiddlewareDelegationLock = new();
         private static readonly Dictionary<string, DateTime> MiddlewareDelegations = [];
         private static readonly TimeSpan MiddlewareDelegationDeduplicationWindow = TimeSpan.FromSeconds(5);
+        /// <summary>
+        /// Collector of the active workflow email bundle. While set, matching request task emails are
+        /// captured instead of sent, until the bundle is flushed.
+        /// </summary>
         public WorkflowEmailBundleCollector? EmailBundleCollector { get; set; }
+
         private List<WfReqTask>? RequestTaskEmailBundle { get; set; }
 
 
@@ -107,6 +112,10 @@ namespace FWO.Services.Workflow
             await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
         }
 
+        /// <summary>
+        /// Sends the captured emails of the active bundle, one email per bundle key group. Emails in the
+        /// collector were suppressed at their state action, so this is their only delivery.
+        /// </summary>
         public async Task FlushEmailBundleCollector()
         {
             if (EmailBundleCollector == null || EmailBundleCollector.PendingItems.Count == 0)

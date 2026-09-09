@@ -1,5 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
@@ -1416,6 +1417,41 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task CreateRequest_LogsTheAuthenticatedCallerAsChanger()
+    {
+        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
+        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(CreateAccessRequest("Caller attributed request"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            Assert.That(apiConnection.AddHistoryEntryCallCount, Is.GreaterThan(0));
+            Assert.That(GetVariable(apiConnection.LastHistoryVariables, "changer"), Is.EqualTo("trusted-caller"));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_LogsTheMiddlewareServerAsChangerWhenTheCallerIsUnknown()
+    {
+        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        await service.CreateRequestAsync(CreateAccessRequest("Unattributed request"), 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.AddHistoryEntryCallCount, Is.GreaterThan(0));
+            Assert.That(GetVariable(apiConnection.LastHistoryVariables, "changer"), Is.EqualTo(Roles.MiddlewareServer));
+        });
+    }
+
+    [Test]
     public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
     {
         FlowRequestServiceApiConn apiConnection = new()
@@ -2264,6 +2300,102 @@ internal class FlowRequestServiceTest
         });
     }
 
+    /// <summary>
+    /// Builds a simulated api connection whose initial ticket state promotes the created request task,
+    /// because only the follow-up state update writes a change history entry.
+    /// </summary>
+    private static FlowRequestServiceApiConn CreatePromotingApiConn()
+    {
+        return new FlowRequestServiceApiConn
+        {
+            States =
+            [
+                CreateAutoPromotingState(17, 18),
+                new WfState { Id = 18, Name = "approved" }
+            ],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            WorkflowConfigurations =
+            [
+                CreateWorkflowConfiguration("request-active",
+                    CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
+            ]
+        };
+    }
+
+    /// <summary>
+    /// Creates a state that promotes an access request task to the given target state when it is set.
+    /// </summary>
+    private static WfState CreateAutoPromotingState(int stateId, int targetStateId)
+    {
+        return new WfState
+        {
+            Id = stateId,
+            Name = "requested",
+            Actions =
+            [
+                new WfStateActionDataHelper
+                {
+                    SortOrder = 1,
+                    Action = new WfStateAction
+                    {
+                        Name = "promote created task",
+                        ActionType = StateActionTypes.AutoPromote.ToString(),
+                        Scope = WfObjectScopes.RequestTask.ToString(),
+                        TaskType = WfTaskType.access.ToString(),
+                        Event = StateActionEvents.OnSet.ToString(),
+                        ExternalParams = targetStateId.ToString()
+                    }
+                }
+            ]
+        };
+    }
+
+    /// <summary>
+    /// Builds the smallest valid access request payload.
+    /// </summary>
+    private static CreateRequestRequest CreateAccessRequest(string title)
+    {
+        return new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = title,
+            AddressObjects =
+            [
+                new CreateRequestRequest.CreateAddressObjectRequest
+                {
+                    Id = "-1",
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateRequestRequest.CreateServiceObjectRequest
+                {
+                    Id = "-2",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [-1],
+                    DestinationObjects = [-1],
+                    ServiceObjects = [-2]
+                }
+            ]
+        };
+    }
+
     private static object? GetVariable(object? variables, string propertyName)
     {
         if (variables is IDictionary<string, object?> dictionary && dictionary.TryGetValue(propertyName, out object? value))
@@ -2280,6 +2412,7 @@ internal class FlowRequestServiceTest
             new List<Claim>
             {
                 new("x-hasura-user-id", "77"),
+                new("unique_name", "trusted-caller"),
                 new(ClaimTypes.Name, "Trusted Requester"),
                 new("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
             },
@@ -2420,6 +2553,8 @@ internal class FlowRequestServiceTest
         ];
         public string[]? ExtStateErrors { get; set; }
         public WfTicketWriter? LastTicketWriter { get; private set; }
+        public int AddHistoryEntryCallCount { get; private set; }
+        public object? LastHistoryVariables { get; private set; }
         public object? NewTicketVariables { get; private set; }
         public WfTicket? CreatedTicket { get; private set; }
         public string? ConfigSubscriptionQuery { get; private set; }
@@ -2449,9 +2584,18 @@ internal class FlowRequestServiceTest
                 return Task.FromResult((QueryResponseType)(object)new List<UiText>());
             }
 
+            if (query == ModellingQueries.addHistoryEntry)
+            {
+                AddHistoryEntryCallCount++;
+                LastHistoryVariables = variables;
+                return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper());
+            }
+
             if (responseType == typeof(WfTicket))
             {
-                WfTicket? ticket = CreatedTicket ?? Ticket;
+                // A database read hands out a fresh object graph. Rebuilding it keeps in-memory state
+                // promotions from also changing the stored state the change history compares against.
+                WfTicket? ticket = CreatedTicket != null ? BuildCreatedTicket(NewTicketVariables, CreatedTicket.Id) : Ticket;
                 return Task.FromResult((QueryResponseType)(object?)ticket!);
             }
 

@@ -342,6 +342,7 @@ create table notification
 
 create table notification_log
 (
+    id SERIAL PRIMARY KEY,
     "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     notification_id INTEGER NOT NULL,
     notification_type Varchar NOT NULL,
@@ -350,7 +351,9 @@ create table notification_log
     bcc Varchar NOT NULL DEFAULT '',
     subject Varchar NOT NULL DEFAULT '',
     deadline_type Varchar NOT NULL DEFAULT 'None',
-    deadline TIMESTAMP WITH TIME ZONE
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
 );
 
 -- configuration

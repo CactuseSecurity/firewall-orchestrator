@@ -91,14 +91,26 @@ namespace FWO.Services
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
                 : await GetNotificationRecipients(notification.RecipientBcc, notification.EmailAddressBcc, owner);
-            await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
+            int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
                 return true;
             }
 
-            return await SendEmail(tos, subject, body, ccs, bccs, notification.Layout == NotificationLayout.HtmlInBody);
+            try
+            {
+                bool sent = await SendEmail(tos, subject, body, ccs, bccs, notification.Layout == NotificationLayout.HtmlInBody);
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed or no To recipients resolved.");
+                return sent;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
         }
 
         /// <summary>
@@ -120,13 +132,25 @@ namespace FWO.Services
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
                 placeholderData, renderHtmlLinks: true);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
-            await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
+            int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
                 return true;
             }
-            return await SendEmail(tos, subject, body, ccs, bccs,
-                notification.Layout == NotificationLayout.HtmlInBody, attachment);
+            try
+            {
+                bool sent = await SendEmail(tos, subject, body, ccs, bccs,
+                    notification.Layout == NotificationLayout.HtmlInBody, attachment);
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed or no To recipients resolved.");
+                return sent;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
         }
 
         private static string BuildWorkflowActionBody(FwoNotification notification, WorkflowEmailContent? workflowContent,
@@ -140,19 +164,29 @@ namespace FWO.Services
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
         }
 
-        private async Task LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
+        private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
             List<string>? bccs, string subject)
         {
             if (!NotificationLoggingMode.ShouldLog(notification.Logging))
             {
-                return;
+                return 0;
             }
 
             List<string> loggedTos = [.. tos];
             List<string>? loggedCcs = ccs == null ? null : [.. ccs];
             List<string>? loggedBccs = bccs == null ? null : [.. bccs];
             ApplyDummyRecipientOverride(ref loggedTos, ref loggedCcs, ref loggedBccs);
-            await NotificationLogHelper.InsertAsync(apiConnection, notification, loggedTos, loggedCcs, loggedBccs, subject);
+            return await NotificationLogHelper.InsertAsync(apiConnection, notification, loggedTos, loggedCcs, loggedBccs, subject);
+        }
+
+        private async Task CompleteNotificationLog(int logId, NotificationLogStatus status, string error = "")
+        {
+            if (logId == 0)
+            {
+                return;
+            }
+
+            await NotificationLogHelper.UpdateAsync(apiConnection, logId, status, error);
         }
 
         private async Task<List<string>> GetWorkflowActionRecipients(

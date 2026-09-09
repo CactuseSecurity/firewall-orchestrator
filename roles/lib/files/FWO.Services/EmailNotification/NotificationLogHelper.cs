@@ -19,11 +19,11 @@ namespace FWO.Services
         /// <param name="bccs">Resolved Bcc recipients.</param>
         /// <param name="subject">Rendered subject.</param>
         /// <param name="deadline">Resolved deadline timestamp.</param>
-        public static async Task InsertAsync(ApiConnection apiConnection, FwoNotification notification,
+        public static async Task<int> InsertAsync(ApiConnection apiConnection, FwoNotification notification,
             IEnumerable<string> tos, IEnumerable<string>? ccs, IEnumerable<string>? bccs, string subject,
             DateTimeOffset? deadline = null)
         {
-            NotificationLogEntry entry = new()
+            NotificationLogInsertEntry entry = new()
             {
                 Timestamp = DateTimeOffset.UtcNow,
                 NotificationId = notification.Id,
@@ -36,8 +36,15 @@ namespace FWO.Services
                 Deadline = deadline
             };
 
-            await apiConnection.SendQueryAsync<object>(NotificationQueries.insertNotificationLog,
-                new { entries = new List<NotificationLogEntry> { entry } });
+            ReturnIdWrapper result = await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.insertNotificationLog,
+                new { entries = new List<NotificationLogInsertEntry> { entry } });
+            return result.ReturnIds?.FirstOrDefault()?.Id is long id ? (int)id : 0;
+        }
+
+        public static async Task UpdateAsync(ApiConnection apiConnection, int logId, NotificationLogStatus status, string error = "")
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationLog,
+                new { id = logId, status = status.ToString(), error });
         }
     }
 }

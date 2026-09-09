@@ -208,6 +208,10 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertCalls[0].DeadlineType, Is.EqualTo(NotificationDeadline.RequestDate));
                 Assert.That(apiConnection.InsertCalls[0].Deadline, Is.Null);
                 Assert.That(apiConnection.InsertCalls[0].Timestamp, Is.GreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Sent.ToString(), "")
+                }));
             });
         }
 
@@ -241,6 +245,90 @@ namespace FWO.Test
                 Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.InsertCalls[0].NotificationId, Is.EqualTo(42));
                 Assert.That(apiConnection.InsertCalls[0].Subject, Is.EqualTo("Rendered subject"));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Suppressed.ToString(), "")
+                }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_MarksLogFailed_WhenMailerReturnsFalse()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection) { SendResult = false };
+            FwoNotification notification = new()
+            {
+                Id = 43,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test"
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.False);
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Failed.ToString(), "SMTP delivery failed or no To recipients resolved.")
+                }));
+            });
+        }
+
+        [Test]
+        public void SendEmailToNotificationRecipients_MarksLogFailed_WhenMailerThrows()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection)
+            {
+                SendException = new InvalidOperationException("SMTP unavailable")
+            };
+            FwoNotification notification = new()
+            {
+                Id = 44,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test"
+            };
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body"));
+
+            Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+            {
+                (1, NotificationLogStatus.Failed.ToString(), "SMTP unavailable")
+            }));
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_MarksLogFailed_WhenNoRecipientsResolve()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection);
+            FwoNotification notification = new()
+            {
+                Id = 45,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.None
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.False);
+                Assert.That(helper.SendEmailCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Failed.ToString(), "SMTP delivery failed or no To recipients resolved.")
+                }));
             });
         }
 
@@ -1276,6 +1364,8 @@ namespace FWO.Test
 
         private sealed class CapturingEmailHelper : EmailHelper
         {
+            public bool SendResult { get; set; } = true;
+            public Exception? SendException { get; set; }
             public int SendEmailCallCount { get; private set; }
             public List<string> CapturedTo { get; private set; } = [];
             public List<string>? CapturedCc { get; private set; }
@@ -1300,28 +1390,62 @@ namespace FWO.Test
                 CapturedBody = body;
                 CapturedMailFormatHtml = mailFormatHtml;
                 CapturedAttachment = attachment;
-                return Task.FromResult(true);
+                if (SendException != null)
+                {
+                    throw SendException;
+                }
+                return Task.FromResult(SendResult && tos.Any(recipient => recipient != ""));
             }
         }
 
         private sealed class RecordingNotificationLogApiConnection : SimulatedApiConnection
         {
             public List<NotificationLogEntry> InsertCalls { get; } = [];
+            public List<(int Id, string Status, string Error)> UpdateCalls { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(object))
+                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
                     if (variables != null)
                     {
                         PropertyInfo? entriesProperty = variables.GetType().GetProperty("entries");
-                        if (entriesProperty?.GetValue(variables) is IEnumerable<NotificationLogEntry> entries)
+                        if (entriesProperty?.GetValue(variables) is IEnumerable<NotificationLogInsertEntry> entries)
                         {
-                            InsertCalls.AddRange(entries);
+                            InsertCalls.AddRange(entries.Select(entry => new NotificationLogEntry
+                            {
+                                Timestamp = entry.Timestamp,
+                                NotificationId = entry.NotificationId,
+                                NotificationType = entry.NotificationType,
+                                To = entry.To,
+                                Cc = entry.Cc,
+                                Bcc = entry.Bcc,
+                                Subject = entry.Subject,
+                                DeadlineType = entry.DeadlineType,
+                                Deadline = entry.Deadline,
+                                Status = entry.Status,
+                                Error = entry.Error
+                            }));
                         }
                     }
 
-                    return Task.FromResult((QueryResponseType)(object)new object());
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    if (variables != null)
+                    {
+                        int id = (int)(variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                        string status = (string)(variables.GetType().GetProperty("status")?.GetValue(variables) ?? "");
+                        string error = (string)(variables.GetType().GetProperty("error")?.GetValue(variables) ?? "");
+                        UpdateCalls.Add((id, status, error));
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
 
                 throw new NotImplementedException();

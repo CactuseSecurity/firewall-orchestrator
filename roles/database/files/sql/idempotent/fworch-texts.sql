@@ -1,4 +1,4 @@
--- text codes (roughly) categorized:
+﻿-- text codes (roughly) categorized:
 -- U: user texts (explanation or confirmation texts)
 -- E: error texts
 -- A: Api errors
@@ -3743,6 +3743,8 @@ INSERT INTO txt VALUES ('network_area',         'German',   'Netzwerk-Area');
 INSERT INTO txt VALUES ('network_area',         'English',  'Network Area');
 INSERT INTO txt VALUES ('network_areas',        'German',   'Netzwerk-Areas');
 INSERT INTO txt VALUES ('network_areas',        'English',  'Network Areas');
+INSERT INTO txt VALUES ('error',                'German',   'Fehler');
+INSERT INTO txt VALUES ('error',                'English',  'Error');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');

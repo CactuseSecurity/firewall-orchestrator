@@ -1,5 +1,6 @@
 query getNotificationLogEntrys {
   notification_log(order_by: { timestamp: desc }) {
+    id
     timestamp
     notification_id
     notification_type
@@ -9,5 +10,7 @@ query getNotificationLogEntrys {
     subject
     deadline_type
     deadline
+    status
+    error
   }
 }

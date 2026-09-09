@@ -128,7 +128,14 @@ namespace FWO.Test
                 }
                 if (query == NotificationQueries.insertNotificationLog)
                 {
-                    return Task.FromResult((T)(object)new object());
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+                if (query == NotificationQueries.updateNotificationLog)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
                 }
                 if (query == OwnerQueries.getOwnerResponsibleTypes)
                 {

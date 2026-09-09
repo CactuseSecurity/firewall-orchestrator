@@ -13539,7 +13539,9 @@
                       "bcc",
                       "subject",
                       "deadline_type",
-                      "deadline"
+                      "deadline",
+                      "status",
+                      "error"
                     ]
                   },
                   "comment": ""
@@ -13557,7 +13559,9 @@
                       "bcc",
                       "subject",
                       "deadline_type",
-                      "deadline"
+                      "deadline",
+                      "status",
+                      "error"
                     ]
                   },
                   "comment": ""
@@ -13575,8 +13579,39 @@
                       "bcc",
                       "subject",
                       "deadline_type",
-                      "deadline"
+                      "deadline",
+                      "status",
+                      "error"
                     ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["status", "error"],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": ["status", "error"],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": ["status", "error"],
+                    "filter": {},
+                    "check": {}
                   },
                   "comment": ""
                 }
@@ -13586,6 +13621,7 @@
                   "role": "auditor",
                   "permission": {
                     "columns": [
+                      "id",
                       "timestamp",
                       "notification_id",
                       "notification_type",
@@ -13594,7 +13630,9 @@
                       "bcc",
                       "subject",
                       "deadline_type",
-                      "deadline"
+                      "deadline",
+                      "status",
+                      "error"
                     ],
                     "filter": {}
                   },
@@ -13604,6 +13642,7 @@
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
+                      "id",
                       "timestamp",
                       "notification_id",
                       "notification_type",
@@ -13612,7 +13651,29 @@
                       "bcc",
                       "subject",
                       "deadline_type",
-                      "deadline"
+                      "deadline",
+                      "status",
+                      "error"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id"
                     ],
                     "filter": {}
                   },

@@ -21,10 +21,12 @@
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("email_subject"))" Field="@(x => x.Subject)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("error"))" Field="@(x => x.Error)" Sortable="true" Filterable="true"/>
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>

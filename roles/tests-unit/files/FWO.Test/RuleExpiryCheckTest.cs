@@ -422,6 +422,7 @@ namespace FWO.Test
                 Id = id,
                 OwnerId = ownerId,
                 Deadline = NotificationDeadline.RuleExpiry,
+                Logging = NotificationLoggingMode.LogOnly,
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = "x@y.de",
                 EmailSubject = "rule expiry",
@@ -477,6 +478,19 @@ namespace FWO.Test
                 {
                     LastUpdatedNotificationIdCount = CountIds(variables);
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = LastUpdatedNotificationIdCount });
+                }
+
+                if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (responseType == typeof(ReturnId) && query == NotificationQueries.updateNotificationLog)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
 
                 if (query == RuleQueries.getTimeBasedRulesByOwner && responseType.IsGenericType && responseType.GetGenericTypeDefinition() == typeof(List<>))

@@ -120,6 +120,7 @@ WHERE COALESCE(logging, '') = '';
 
 CREATE TABLE IF NOT EXISTS notification_log
 (
+    id SERIAL PRIMARY KEY,
     "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     notification_id INTEGER NOT NULL,
     notification_type Varchar NOT NULL,
@@ -128,7 +129,9 @@ CREATE TABLE IF NOT EXISTS notification_log
     bcc Varchar NOT NULL DEFAULT '',
     subject Varchar NOT NULL DEFAULT '',
     deadline_type Varchar NOT NULL DEFAULT 'None',
-    deadline TIMESTAMP WITH TIME ZONE
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
 );
 
 WITH decomm_config AS

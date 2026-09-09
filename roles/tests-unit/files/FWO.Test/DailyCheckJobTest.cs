@@ -778,6 +778,7 @@ namespace FWO.Test
             {
                 Id = id,
                 NotificationClient = NotificationClient.InterfaceRequest,
+                Logging = NotificationLoggingMode.LogOnly,
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = "notify@example.test",
                 EmailSubject = "subject",
@@ -923,6 +924,19 @@ namespace FWO.Test
                 {
                     OpenTicketQueryCount++;
                     return Task.FromResult((QueryResponseType)(object)OpenTickets);
+                }
+
+                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
 
                 if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))

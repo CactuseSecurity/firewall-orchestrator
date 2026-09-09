@@ -309,30 +309,51 @@ namespace FWO.Middleware.Server
             NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText, placeholderValues);
+            int logId = 0;
+            if (NotificationLoggingMode.ShouldLog(notification.Logging))
+            {
+                DateTimeOffset? deadline = resolvedDeadline.HasValue ? new DateTimeOffset(resolvedDeadline.Value) : null;
+                logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject, deadline);
+            }
+
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
                 return false;
-            }
-
-            if (NotificationLoggingMode.ShouldLog(notification.Logging))
-            {
-                DateTimeOffset? deadline = resolvedDeadline.HasValue ? new DateTimeOffset(resolvedDeadline.Value) : null;
-                await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject, deadline);
             }
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
                 return true;
             }
 
-            string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+            try
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
 
-            await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
-            return true;
+                bool sent = await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed.");
+                return sent;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
+        }
+
+        private async Task CompleteNotificationLog(int logId, NotificationLogStatus status, string error = "")
+        {
+            if (logId > 0)
+            {
+                await NotificationLogHelper.UpdateAsync(ApiConnection, logId, status, error);
+            }
         }
 
         /// <summary>

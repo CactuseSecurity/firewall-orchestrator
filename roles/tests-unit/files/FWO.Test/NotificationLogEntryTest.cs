@@ -31,5 +31,16 @@ namespace FWO.Test
 
             Assert.That(json, Does.Contain("\"deadline_type\":\"RequestDate\""));
         }
+
+        [Test]
+        public void SerializeStatus_WritesEnumName()
+        {
+            string json = JsonConvert.SerializeObject(new NotificationLogEntry
+            {
+                Status = NotificationLogStatus.Failed
+            });
+
+            Assert.That(json, Does.Contain("\"status\":\"Failed\""));
+        }
     }
 }

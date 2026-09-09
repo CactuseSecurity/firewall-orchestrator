@@ -106,6 +106,14 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
+            if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
+            {
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new ReturnIdWrapper { ReturnIds = [new ReturnId { Id = 1 }] }
+                };
+                return response.Data;
+            }
             if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<UiUser>() };
@@ -149,7 +157,8 @@ namespace FWO.Test
                 InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
                 RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
                 RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
-                LastSent = notification.LastSent
+                LastSent = notification.LastSent,
+                Logging = NotificationLoggingMode.LogOnly
             };
         }
     }

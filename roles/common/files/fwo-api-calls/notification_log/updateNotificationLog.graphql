@@ -1,0 +1,8 @@
+mutation updateNotificationLog($id: Int!, $status: String!, $error: String!) {
+  update_notification_log_by_pk(
+    pk_columns: { id: $id }
+    _set: { status: $status, error: $error }
+  ) {
+    affected_rows
+  }
+}

@@ -28,7 +28,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Returns the id of the named device, or null if it is unknown or ambiguous.
+        /// Returns the id of the named device, or null if it is unknown.
         /// </summary>
         public int? Resolve(string mgmtName, string deviceName)
         {

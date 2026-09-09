@@ -22,7 +22,6 @@ namespace FWO.Middleware.Server
         List<ComplianceNetworkZone> ExistingZones = [];
         readonly Dictionary<string, int> ZoneIds = [];
         int MatrixId = 0;
-        DeviceNameResolver? deviceLookup;
         private const string LogMessageTitle = "Import Network Zone Matrix Data";
         private const string LevelFile = "Import File";
         private const string LevelZone = "Zone";
@@ -90,8 +89,8 @@ namespace FWO.Middleware.Server
             try
             {
                 ImportNwZoneMatrixData importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
-                CheckData(importedZoneMatrixData);
+                DeviceNameResolver deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
+                CheckData(importedZoneMatrixData, deviceLookup);
                 (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
                 responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
             }
@@ -105,41 +104,85 @@ namespace FWO.Middleware.Server
             return responsMessage;
         }
 
-        private void CheckData(ImportNwZoneMatrixData importedZoneMatrixData)
+        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData, DeviceNameResolver deviceLookup)
         {
+            List<string> errorList = [];
             if (string.IsNullOrEmpty(importedZoneMatrixData.Name))
             {
-                throw new ArgumentException("No Matrix Name");
+                errorList.Add("No Matrix Name");
             }
             if (importedZoneMatrixData.NetworkZones.Select(z => z.Name).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
-                throw new ArgumentException("Duplicate Zone Names");
+                errorList.Add("Duplicate Zone Names");
             }
             if (importedZoneMatrixData.NetworkZones.Select(z => z.IdString).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
-                throw new ArgumentException("Duplicate Zone IdStrings");
+                errorList.Add("Duplicate Zone IdStrings");
             }
-            CheckDeviceData(importedZoneMatrixData);
+            CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
+            if (errorList.Count > 0)
+            {
+                throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
+            }
         }
 
-        private void CheckDeviceData(ImportNwZoneMatrixData importedZoneMatrixData)
+        private static void CheckDeviceData(ImportNwZoneMatrixData importedZoneMatrixData,
+            DeviceNameResolver deviceLookup, List<string> errorList)
         {
-            foreach (NetworkZoneData networkZone in importedZoneMatrixData.NetworkZones)
+            HashSet<string> ambiguous = [];
+            HashSet<string> unknown = [];
+            HashSet<string> duplicateRoot = [];
+            HashSet<string> duplicateInternet = [];
+
+            foreach (DeviceRefData device in ReferencedDevices(importedZoneMatrixData))
             {
-                foreach (ZoneIpRangeData subnet in networkZone.IpData)
+                if (deviceLookup.IsAmbiguous(device.MgmtName, device.DeviceName))
                 {
-                    foreach (DeviceRefData device in subnet.PathToRoot.Concat(subnet.PathToInternet))
-                    {
-                        if (deviceLookup.IsAmbiguous(device.MgmtName, device.DeviceName))
-                        {
-                            throw new ArgumentException($"Device name {device.DeviceName} in manager {device.MgmtName} is ambiguous");
-                        }
-                        else if (deviceLookup.Resolve(device.MgmtName, device.DeviceName) is null)
-                        {
-                            throw new ArgumentException($"Could not resolve device {device.DeviceName} in manager {device.MgmtName}");
-                        }
-                    }
+                    ambiguous.Add(DeviceNameResolver.Describe(device.MgmtName, device.DeviceName));
                 }
+                if (deviceLookup.Resolve(device.MgmtName, device.DeviceName) is null)
+                {
+                    unknown.Add(DeviceNameResolver.Describe(device.MgmtName, device.DeviceName));
+                }
+            }
+            foreach (ZoneIpRangeData subnet in importedZoneMatrixData.NetworkZones.SelectMany(zone => zone.IpData))
+            {
+                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot);
+                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet);
+
+            }
+            if (unknown.Count > 0)
+            {
+                errorList.Add($"Could not resolve devices {string.Join(", ", unknown)}");
+            }
+            if (ambiguous.Count > 0)
+            {
+                errorList.Add($"Devices {string.Join(", ", ambiguous)} are ambiguous");
+            }
+            errorList.AddRange(duplicateRoot);
+            errorList.AddRange(duplicateInternet);
+        }
+
+        private static IEnumerable<DeviceRefData> ReferencedDevices(ImportNwZoneMatrixData matrixData)
+        {
+            return matrixData.NetworkZones
+                .SelectMany(zone => zone.IpData)
+                .SelectMany(subnet => subnet.PathToRoot.Concat(subnet.PathToInternet));
+        }
+
+        private static void CheckPathDuplicates(ZoneIpRangeData subnet,
+            List<DeviceRefData> path, HashSet<string> duplicate)
+        {
+            HashSet<string> unique = [];
+
+            foreach (DeviceRefData device in path)
+            {
+                string deviceText = DeviceNameResolver.Describe(device.MgmtName, device.DeviceName);
+                if (!unique.Add(deviceText))
+                {
+                    duplicate.Add($"{deviceText} in subnet with start Ip {subnet.Ip}");
+                }
+
             }
         }
 

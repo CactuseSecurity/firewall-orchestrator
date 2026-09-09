@@ -12,29 +12,39 @@
 @inject UserConfig userConfig
 
 <div class="p-2">
-    <h3>@(userConfig.GetText("notifications"))</h3>
-    <h4>@(Html.Raw(userConfig.GetText("initial_request")))</h4>
+    <h3>@(Html.Raw(userConfig.GetText("notifications")))</h3>
+    <h4>@(Html.Raw(userConfig.GetText("interface_ticket")))</h4>
     <ul>
         <li>@(Html.Raw(userConfig.GetText("H5622")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5625")))</li>
         <li>@(Html.Raw(userConfig.GetText("H5626")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H4111")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5630")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5624")))</li>
     </ul>
-    <h4>@(Html.Raw(userConfig.GetText("reminder")))</h4>
+
+    <h4>@(Html.Raw(userConfig.GetText("request_interface")))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5640")))</p>
     <ul>
-        <li>@(Html.Raw(userConfig.GetText("H5629")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5624a")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H5630")))</li>
+    </ul>
+
+    <h4>@(Html.Raw(userConfig.GetText("reminder")))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5641")))</p>
+
+    <h4>@(Html.Raw(userConfig.GetText("decomm_interface")))</h4>
+    <p>@(Html.Raw(userConfig.GetText("H5642")))</p>
+
+    <h4>@(Html.Raw(userConfig.GetText("common_notification_settings")))</h4>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H4109")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4101")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4102")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4103")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4104")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4105")))</li>
         <li>@(Html.Raw(userConfig.GetText("H4106")))</li>
         <li>@(Html.Raw(userConfig.GetText("H4107")))</li>
         <li>@(Html.Raw(userConfig.GetText("H4108")))</li>
         <li>@(Html.Raw(userConfig.GetText("H4108a")))</li>
-    </ul>
-    <h4>@(Html.Raw(userConfig.GetText("decommission")))</h4>
-    <ul>
-        <li>@(Html.Raw(userConfig.GetText("H5660")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5661")))</li>
-        <li>@(Html.Raw(userConfig.GetText("H5662")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4110")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H4111")))</li>
     </ul>
 </div>

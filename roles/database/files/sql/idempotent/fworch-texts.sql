@@ -1,4 +1,4 @@
--- text codes (roughly) categorized:
+﻿-- text codes (roughly) categorized:
 -- U: user texts (explanation or confirmation texts)
 -- E: error texts
 -- A: Api errors
@@ -3929,6 +3929,10 @@ INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich z
 INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 INSERT INTO txt VALUES ('empty_response',       'German', 	'Leere Antwort');
 INSERT INTO txt VALUES ('empty_response',       'English',  'Empty Response');
+INSERT INTO txt VALUES ('interface_ticket',     'German',   'Schnittstellenticket');
+INSERT INTO txt VALUES ('interface_ticket',     'English',  'Interface ticket');
+INSERT INTO txt VALUES ('common_notification_settings', 'German', 'Gemeinsame Einstellungen f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('common_notification_settings', 'English', 'Common notification settings');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -7184,6 +7188,12 @@ INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
+INSERT INTO txt VALUES ('H5640', 'German',  'Antragsbenachrichtigung: Benachrichtigt die konfigurierten Empf&auml;nger sofort, wenn ein neues Schnittstellenticket angelegt wurde. Sie verwendet die Frist &quot;None&quot;; deshalb werden keine Vor- oder Nachfrist-Offsets ausgewertet.');
+INSERT INTO txt VALUES ('H5640', 'English', 'Initial request: Notifies the configured recipients immediately when a new interface request ticket is created. It uses deadline &quot;None&quot;, so no before- or after-deadline offsets are evaluated.');
+INSERT INTO txt VALUES ('H5641', 'German',  'Erinnerung: Benachrichtigt &uuml;ber offene Schnittstellenanfragen. Sie verwendet die Frist &quot;RequestDate&quot;; die Vorfrist, Nachfrist und Wiederholungen bestimmen, wann Erinnerungen gesendet werden.');
+INSERT INTO txt VALUES ('H5641', 'English', 'Reminder: Notifies about open interface requests. It uses deadline &quot;RequestDate&quot;; the before-deadline, after-deadline and repetition settings determine when reminders are sent.');
+INSERT INTO txt VALUES ('H5642', 'German',  'Schnittstellenstilllegung: Benachrichtigt die Verantwortlichen der Anwendungen, die eine stillgelegte Schnittstelle verwenden. Sie wird sofort mit der Frist &quot;None&quot; gesendet. Falls eine Ersatzschnittstelle angegeben ist, werden deren Name und Link eingesetzt, gefolgt von den betroffenen Verbindungen.');
+INSERT INTO txt VALUES ('H5642', 'English', 'Interface decommission: Notifies the responsible users of applications using a decommissioned interface. It is sent immediately with deadline &quot;None&quot;. If a replacement interface is provided, its name and link are inserted, followed by the affected connections.');
 INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App-Server-Namen aus dem DNS erg&auml;nzt und sind nicht manuell editierbar. Falls kein Name aufgel&ouml;st werden kann, wird er aus Pr&auml;fix und IP-Adresse konstruiert.');
 INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
 INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');

@@ -1,6 +1,7 @@
 using FWO.Config.Api;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Basics;
 using FWO.Data;
 using FWO.Ui.Shared;
 using NUnit.Framework;
@@ -622,6 +623,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckConsistencyWithDeadline_ReturnsFalseWhenAfterOffsetHasNoInterval()
+        {
+            EditNotifications component = new();
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateField(component, "actNotification", new FwoNotification { RepeatOffsetAfterDeadline = 1 });
+
+            bool result = (bool)GetPrivateMethod("CheckConsistencyWithDeadline").Invoke(component, null)!;
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void CheckConsistencyWithDeadline_ReturnsFalseWhenRepetitionsAreWithoutAfterOffset()
+        {
+            EditNotifications component = new();
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateField(component, "actNotification", new FwoNotification { RepetitionsAfterDeadline = 2 });
+
+            bool result = (bool)GetPrivateMethod("CheckConsistencyWithDeadline").Invoke(component, null)!;
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void CheckConsistencyWithDeadline_ReturnsTrueForCompleteAfterDeadlineConfiguration()
+        {
+            EditNotifications component = new();
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateField(component, "actNotification", new FwoNotification
+            {
+                RepeatOffsetAfterDeadline = 1,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                RepetitionsAfterDeadline = 2
+            });
+
+            bool result = (bool)GetPrivateMethod("CheckConsistencyWithDeadline").Invoke(component, null)!;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
         public async Task SetDirectAddresses_WritesToCcAndBccFields()
         {
             EditNotifications component = new();
@@ -674,6 +716,116 @@ namespace FWO.Test
                 Assert.That(result.OtherAddresses, Is.True);
                 Assert.That(result.OtherAddressList, Is.EqualTo(new List<string> { "legacy@example.org" }));
             });
+        }
+
+        [Test]
+        public void DisplayedInterval_UsesBeforeDeadlineIntervalWhenConfigured()
+        {
+            EditNotifications component = new();
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RecertDate,
+                OffsetBeforeDeadline = 3,
+                IntervalBeforeDeadline = SchedulerInterval.Days
+            };
+
+            string result = (string)GetPrivateMethod("DisplayedInterval").Invoke(component, new object?[] { notification })!;
+
+            Assert.That(result, Is.EqualTo($"3 {new SimulatedUserConfig().GetText(SchedulerInterval.Days.ToString())}"));
+        }
+
+        [Test]
+        public void DisplayedInterval_UsesRepeatIntervalWhenNoBeforeDeadlineIntervalExists()
+        {
+            EditNotifications component = new();
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RuleExpiry,
+                RepeatOffsetAfterDeadline = 2,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Weeks
+            };
+
+            string result = (string)GetPrivateMethod("DisplayedInterval").Invoke(component, new object?[] { notification })!;
+
+            Assert.That(result, Does.StartWith("2 "));
+        }
+
+        [Test]
+        public void DisplayedInterval_IsEmptyForImmediateNotification()
+        {
+            EditNotifications component = new();
+            string result = (string)GetPrivateMethod("DisplayedInterval").Invoke(component,
+                new object?[] { new FwoNotification { Deadline = NotificationDeadline.None } })!;
+
+            Assert.That(result, Is.Empty);
+        }
+
+        [Test]
+        public void EditNotification_UsesConfiguredSelectionForAllOwnerResponsibles()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.InterfaceRequest);
+            SetPrivateField(component, "activeOwnerResponsibleTypes", new List<OwnerResponsibleType>
+            {
+                new() { Id = GlobalConst.kOwnerResponsibleTypeMain, Active = true, SortOrder = 1 },
+                new() { Id = GlobalConst.kOwnerResponsibleTypeSupporting, Active = true, SortOrder = 2 }
+            });
+            FwoNotification notification = new() { RecipientTo = EmailRecipientOption.AllOwnerResponsibles };
+
+            GetPrivateMethod("EditNotification").Invoke(component, new object?[] { notification });
+
+            EmailRecipientSelection selection = GetPrivateField<EmailRecipientSelection>(component, "ToRecipientSelection");
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new List<int>
+            {
+                GlobalConst.kOwnerResponsibleTypeMain,
+                GlobalConst.kOwnerResponsibleTypeSupporting
+            }));
+        }
+
+        [Test]
+        public void SyncAddresses_RemovesRequesterWhenClientDoesNotOfferRequester()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.Recertification);
+            FwoNotification notification = new();
+            SetPrivateField(component, "actNotification", notification);
+            SetPrivateField(component, "ToRecipientSelection", new EmailRecipientSelection
+            {
+                None = false,
+                Requester = true,
+                OtherAddresses = true,
+                OtherAddressList = new List<string> { "to@example.org" }
+            });
+
+            GetPrivateMethod("SyncAddresses").Invoke(component, null);
+
+            EmailRecipientSelection selection = EmailRecipientSelection.Parse(notification.EmailAddressTo);
+            Assert.That(selection.Requester, Is.False);
+        }
+
+        [Test]
+        public async Task AddAndRemoveNotificationId_IgnoreNullIds()
+        {
+            EditNotifications component = new();
+
+            await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
+            await (Task)GetPrivateMethod("RemoveNotificationId").Invoke(component, new object?[] { 7 })!;
+
+            Assert.That(component.NotificationIds, Is.Null);
+        }
+
+        [Test]
+        public async Task AddNotificationId_DoesNotAddDuplicateId()
+        {
+            EditNotifications component = new();
+            List<int> notificationIds = new() { 7 };
+            SetPrivateMember(component, nameof(EditNotifications.NotificationIds), notificationIds);
+
+            await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
+
+            Assert.That(notificationIds, Is.EqualTo(new List<int> { 7 }));
         }
 
         [Test]
@@ -737,6 +889,30 @@ namespace FWO.Test
                 Assert.That(component.NotificationIds, Is.EqualTo(new List<int> { 100 }));
                 Assert.That(GetPrivateField<bool>(component, "EditNotifMode"), Is.False);
             });
+        }
+
+        [Test]
+        public async Task Save_UpdatesExistingNotificationWhenConfigurationIsValid()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.Report);
+            SetInjectedUserConfig(component, new SimulatedUserConfig());
+            SetPrivateMember(component, "apiConnection", new EditNotificationsApiConnection());
+            FwoNotification notification = new()
+            {
+                Id = 9,
+                Name = "Updated",
+                Channel = NotificationChannel.Email,
+                EmailSubject = "Subject",
+                EmailAddressTo = "to@example.org"
+            };
+            SetPrivateField(component, "Notifications", new List<FwoNotification> { notification });
+            SetPrivateField(component, "actNotification", notification);
+            SetPrivateField(component, "EditNotifMode", true);
+
+            await (Task)GetPrivateMethod("Save").Invoke(component, null)!;
+
+            Assert.That(GetPrivateField<List<FwoNotification>>(component, "Notifications").Single().Name, Is.EqualTo("Updated"));
         }
 
         [Test]

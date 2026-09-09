@@ -93,7 +93,7 @@ namespace FWO.Services.Modelling
 
             List<FwoOwner> appsToNotify = UsingConnections
                 .Where(c => c.AppId != null && c.AppId != ActConn.AppId)
-                .Select(c => c.App)
+                .Select(c => AllApps.FirstOrDefault(app => app.Id == c.AppId) ?? c.App)
                 .Distinct()
                 .ToList();
             if (appsToNotify.Count > 0)
@@ -218,12 +218,13 @@ namespace FWO.Services.Modelling
             string reason,
             ModellingConnection? proposedInterface)
         {
+            FwoOwner interfaceOwner = AllApps.FirstOrDefault(owner => owner.Id == ActConn.AppId) ?? ActConn.App;
             string proposedInterfaceUrl = proposedInterface == null
                 ? ""
                 : $"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}";
             return new NotificationPlaceholderResolver.NotificationPlaceholderValues
             {
-                Application = app,
+                Application = interfaceOwner,
                 InterfaceName = ActConn.Name ?? "",
                 NewInterfaceName = proposedInterface?.Name ?? "",
                 InterfaceLinkText = userConfig.GetText("interface"),

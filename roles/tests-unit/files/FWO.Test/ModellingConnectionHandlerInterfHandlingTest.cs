@@ -343,7 +343,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(values.Application, Is.SameAs(Application));
+                Assert.That(values.Application, Is.SameAs(handler.ActConn.App));
+                Assert.That(values.Application, Is.Not.SameAs(Application));
                 Assert.That(values.InterfaceName, Is.EqualTo("OldInterface"));
                 Assert.That(values.NewInterfaceName, Is.EqualTo("NewInterface"));
                 Assert.That(values.Reason, Is.EqualTo("Reason"));

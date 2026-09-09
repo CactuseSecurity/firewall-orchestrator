@@ -128,6 +128,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void NetworkObject_NullAddressFields_AreDeserialized()
+        {
+            const string serializedNetworkObject = """
+                {
+                    "obj_id": 4001,
+                    "obj_ip": null,
+                    "obj_ip_end": null
+                }
+                """;
+
+            NetworkObject? networkObject = JsonConvert.DeserializeObject<NetworkObject>(serializedNetworkObject);
+
+            Assert.That(networkObject, Is.Not.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(networkObject!.IP, Is.Null);
+                Assert.That(networkObject.IpEnd, Is.Null);
+            });
+        }
+
+        [Test]
         public void WorkflowRequestFlowLinkFields_AreDeserialized()
         {
             const string serialized = """

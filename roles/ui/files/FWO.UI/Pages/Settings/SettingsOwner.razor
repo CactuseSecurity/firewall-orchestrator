@@ -17,58 +17,65 @@
 @inject MiddlewareClient middlewareClient
 
 
-@if(InitComplete)
+@if (InitComplete)
 {
     <div class="input-group">
         <h3>@(userConfig.GetText("owners"))</h3>
-        <HelpLink Page="settings/owners"/>
+        <HelpLink Page="settings/owners" />
     </div>
     @(userConfig.GetText("U5216"))
     <hr />
     <div class="btn-group m-1">
-        @if(userConfig.AllowManualOwnerAdmin)
+        @if (userConfig.AllowManualOwnerAdmin)
         {
-            <button type="button" class="btn btn-sm btn-success" @onclick="AddOwner">@(DisplayService.DisplayButton(userConfig, "add_owner", Icons.Add))</button>
+            <button type="button" class="btn btn-sm btn-success py-2" @onclick="AddOwner">@(DisplayService.DisplayButton(userConfig, "add_owner", Icons.Add))</button>
         }
-        <button type="button" class="btn btn-sm btn-warning" @onclick="OpenOwnerMapping">
+        <button type="button" class="btn btn-sm btn-warning py-2" @onclick="OpenOwnerMapping">
             @(DisplayService.DisplayButton(userConfig, "owner_mapping", Icons.Edit, "", Icons.Matrix))
         </button>
         @if (ShowCleanupButton)
         {
-            <button type="button" class="btn btn-sm btn-danger" @onclick="RequestRemoveSampleData">@(DisplayService.DisplayButton(userConfig, "remove_sample_data", Icons.Cleanup))</button>
+            <button type="button" class="btn btn-sm btn-danger py-2" @onclick="RequestRemoveSampleData">@(DisplayService.DisplayButton(userConfig, "remove_sample_data", Icons.Cleanup))</button>
         }
-        <br><br>
+    </div>
+    <div class="d-inline-flex">
+        <div class="input-group">
+            <button class="btn btn-outline-secondary" type="button" disabled>
+                <span class="@Icons.Search"></span>
+            </button>
+            <input id="searchOwner" type="text" class="form-control me-1" @bind="OwnerSearchTerm" @bind:event="oninput" placeholder="@userConfig.GetText("search")" aria-label="@userConfig.GetText("search")" />
+        </div>
     </div>
 
     <div class="m-2 vheight75">
-        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="Owners" PageSize="0" ColumnReorder="true">
+        <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="FwoOwner" Items="FilteredOwners" PageSize="0" ColumnReorder="true">
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owners"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                 <Template>
                     <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await DisplayOwner(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
-                    @if(userConfig.AllowManualOwnerAdmin)
-                    {
-                        <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
-                        @if(!context.IsDefault)
+                        <button type="button" class="btn btn-sm btn-primary" @onclick="async () => await DisplayOwner(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
+                        @if (userConfig.AllowManualOwnerAdmin)
                         {
-                            <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
-                                <Authorized Context="authState">
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                </Authorized>
-                                <NotAuthorized Context="authState">
-                                    <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
-                                </NotAuthorized>
-                            </ExecutionModeAuthorizeView>
+                            <button type="button" class="btn btn-sm btn-warning" @onclick="async () => await EditOwner(context)">@(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))</button>
+                            @if (!context.IsDefault)
+                            {
+                                <ExecutionModeAuthorizeView Roles="@Roles.Admin" Context="ctx">
+                                    <Authorized Context="authState">
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteOwner(context)">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </Authorized>
+                                    <NotAuthorized Context="authState">
+                                        <button type="button" disabled class="btn btn-sm btn-danger">@(DisplayService.DisplayButton(userConfig, "delete", Icons.Delete))</button>
+                                    </NotAuthorized>
+                                </ExecutionModeAuthorizeView>
+                            }
                         }
-                    }
                     </div>
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("name"))" Field="@(x => x.Name)" Sortable="true" Filterable="true" />
-            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owner_lc_state"))" Field="@(x => x.OwnerLifeCycleStateId)" Sortable="true" Filterable="true" >
+            <Column TableItem="FwoOwner" Title="@(userConfig.GetText("owner_lc_state"))" Field="@(x => x.OwnerLifeCycleStateId)" Sortable="true" Filterable="true">
                 <Template>
-                    @(OwnerLifeCycleStates.FirstOrDefault(x => x.Id == context.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "")
+                    @GetOwnerLifeCycleStateDisplay(context)
                 </Template>
             </Column>
             @foreach (OwnerResponsibleType type in OwnerResponsibleTypes)
@@ -81,7 +88,7 @@
             }
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("tenant"))" Field="@(x => x.TenantId)" Sortable="true">
                 <Template>
-                    @(context.TenantId != null ? Tenants.FirstOrDefault(x => x.Id == context.TenantId)?.Name ?? "" : "" )
+                    @GetTenantName(context)
                 </Template>
             </Column>
             <Column TableItem="FwoOwner" Title="@(userConfig.GetText("recert_interval"))" Field="@(x => x.RecertInterval)" Sortable="true" Filterable="true" />
@@ -91,14 +98,14 @@
     </div>
 
     <EditOwner @bind-Display="EditOwnerMode" Readonly="Readonly" ActOwner="ActOwner" OwnerResponsibleTypes="OwnerResponsibleTypes" Tenants="Tenants"
-        OwnerLifeCycleStates="OwnerLifeCycleStates" ExistingOwners="Owners" OnSaved="HandleOwnerSaved" OnCancel="CancelOwnerEdit" />
+               OwnerLifeCycleStates="OwnerLifeCycleStates" ExistingOwners="Owners" OnSaved="HandleOwnerSaved" OnCancel="CancelOwnerEdit" />
     <OwnerMapping @bind-Display="OwnerMappingMode" />
-    <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + ActOwner.Name + "?")"/>
-    <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@CleanupMessage"/>
+    <ConfirmDelete @bind-Display="DeleteOwnerMode" PerformAction="DeleteOwner" Title="@userConfig.GetText("delete_owner")" DeleteMessage="@(userConfig.GetText("U5217") + ActOwner.Name + "?")" />
+    <ConfirmDelete @bind-Display="CleanupMode" PerformAction="RemoveSampleData" Title="@userConfig.GetText("remove_sample_data")" DeleteMessage="@CleanupMessage" />
 }
 else
 {
-    <Loading/>
+    <Loading />
 }
 
 @code
@@ -121,6 +128,12 @@ else
     private bool DeleteOwnerMode = false;
     private bool OwnerMappingMode = false;
     private bool InitComplete = false;
+    private string OwnerSearchTerm = "";
+
+    private IEnumerable<FwoOwner> FilteredOwners => string.IsNullOrWhiteSpace(OwnerSearchTerm)
+        ? Owners
+        : Owners.Where(MatchesOwnerSearch);
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -184,6 +197,7 @@ else
     private Task HandleOwnerSaved()
     {
         AnalyseSampleOwners();
+        OwnerSearchTerm = "";
         EditOwnerMode = false;
         Readonly = false;
         return Task.CompletedTask;
@@ -251,6 +265,34 @@ else
             formatted.Add(string.IsNullOrWhiteSpace(display) ? dn : display);
         }
         return string.Join(", ", formatted);
+    }
+
+    private string GetOwnerLifeCycleStateDisplay(FwoOwner owner)
+    {
+        return OwnerLifeCycleStates.FirstOrDefault(x => x.Id == owner.OwnerLifeCycleStateId)?.Display(userConfig.GetText("inactive")) ?? "";
+    }
+
+    private string GetTenantName(FwoOwner owner)
+    {
+        return owner.TenantId != null ? Tenants.FirstOrDefault(x => x.Id == owner.TenantId)?.Name ?? "" : "";
+    }
+
+    private bool MatchesOwnerSearch(FwoOwner owner)
+    {
+        string searchTerm = OwnerSearchTerm.Trim();
+        IEnumerable<string> searchableValues =
+        [
+            owner.Id.ToString(),
+            owner.Name,
+            GetOwnerLifeCycleStateDisplay(owner),
+            GetTenantName(owner),
+            owner.ExtAppId ?? "",
+            FormatOwnerResponsibles(OwnerResponsibleTypes.SelectMany(type => owner.GetOwnerResponsiblesByType(type.Id))),
+            owner.RecertInterval.ToString() ?? "",
+            owner.ImportSource ?? "",
+        ];
+
+        return searchableValues.Any(value => !string.IsNullOrWhiteSpace(value) && value.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
     }
 
     private List<OwnerResponsibleType> OrderActiveResponsibleTypes(IEnumerable<OwnerResponsibleType> ownerResponsibleTypes)

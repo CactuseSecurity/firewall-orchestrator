@@ -69,11 +69,11 @@ There may be multiple configs per manager in the future but at the moment the on
 |-------------------|--------|-------------|
 | `svc_uid`         | string | Unique ID (map key). |
 | `svc_name`        | string | Display name. |
-| `svc_port`        | integer|null | Start port. |
-| `svc_port_end`    | integer|null | End port (equals start for single ports). |
+| `svc_port`        | integer|null | Start port. Must be `null` together with `svc_port_end` for protocol-agnostic ANY services. |
+| `svc_port_end`    | integer|null | End port (equals start for single ports). Must be `null` together with `svc_port` for protocol-agnostic ANY services. |
 | `svc_color`       | string | UI color metadata. |
 | `svc_typ`         | string | Service type (`simple`, `group`, ...). |
-| `ip_proto`        | integer | L4 protocol number. |
+| `ip_proto`        | integer | L4 protocol number. The reserved value `-1` represents protocol-agnostic ANY and requires both port fields to be `null` (distinct from `0`/HOPOPT). |
 | `svc_member_refs` | array/string|null | Child object references. |
 | `svc_member_names`| array/string|null | Child names. |
 | `svc_comment`     | string|null | Optional comment. |

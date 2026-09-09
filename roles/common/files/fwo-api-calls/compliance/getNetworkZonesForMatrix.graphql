@@ -1,5 +1,5 @@
 query getNetworkZonesForMatrix ($criterionId: Int!){
-  compliance_network_zone (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} } order_by: {name: asc}) {
+  network_zone_zone (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} } order_by: {name: asc}) {
     id
     name
     description

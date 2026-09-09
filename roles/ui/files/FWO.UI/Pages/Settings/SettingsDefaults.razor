@@ -175,6 +175,13 @@
             </div>
         </div>
         <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5853"))">
+            <label for="cbx_allow_full_rollback" class="col-form-label col-sm-4">@(userConfig.GetText("allowFullRollback")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_allow_full_rollback" type="checkbox" class="w-100" @bind="configData!.AllowFullRollback">
+            </div>
+        </div>
+        <hr />
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5565"))">
             <label for="cbx_allow_manual_owner_admin" class="col-form-label col-sm-4">@(userConfig.GetText("reqAllowManualOwnerAdmin")):</label>
             <div class="col-sm-1">
@@ -240,6 +247,22 @@
         </div>
     }
     <hr />
+    <div class="form-group row">
+        <label for="pathAnalysisAlgorithm" class="col-form-label col-sm-4">
+            @(userConfig.GetText("path_analysis_algorithm")):
+        </label>
+        <div class="col-sm-4">
+            <select id="pathAnalysisAlgorithm"
+                    class="form-select"
+                    @bind="configData!.PathAnalysisAlgorithm">
+                @foreach (PathAnalysisAlgorithm algorithm in pathAnalysisAlgorithms)
+                {
+                    <option value="@algorithm.Id">@algorithm.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+    <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
         <Authorized>
             <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>@(userConfig.GetText("save"))</button>
@@ -280,6 +303,7 @@ else
     private bool InitComplete = false;
     private int DynamicAccessTokenLifetimeMinValue = 1;
     private int DynamicRefreshTokenLifetimeMinValue = 1;
+    private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -313,6 +337,9 @@ else
             refreshTokenLifetimeValue = configData.RefreshTokenLifetime;
             refreshTokenLifetimeUnit = configData.RefreshTokenLifetimeUnit;
             DynamicRefreshTokenLifetimeMinValue = GetTokenLifetimeMinValue(refreshTokenLifetimeUnit);
+
+            pathAnalysisAlgorithms = await apiConnection.SendQueryAsync<List<PathAnalysisAlgorithm>>(
+                PathAnalysisAlgorithmQueries.getPathAnalysisAlgorithms);
 
             InitComplete = true;
         }

@@ -132,6 +132,8 @@ namespace FWO.Data
                 Description = Description,
                 IPRanges = ipRangesClone,
                 CriterionId = CriterionId,
+                IsAutoCalculatedInternetZone = IsAutoCalculatedInternetZone,
+                IsAutoCalculatedUndefinedInternalZone = IsAutoCalculatedUndefinedInternalZone,
                 Subzones = CloneArray(Subzones),
                 AllowedCommunicationSources = CloneArray(AllowedCommunicationSources),
                 AllowedCommunicationDestinations = CloneArray(AllowedCommunicationDestinations)

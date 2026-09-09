@@ -20,6 +20,13 @@ if TYPE_CHECKING:
     from fw_modules.ciscoasa9.asa_models import AccessListEntry, AsaServiceObject, AsaServiceObjectGroup
 
 
+ASA_ANY_PROTOCOL_SERVICE_UID = "ANY"
+
+
+def _get_ip_protocol_id(protocol: str) -> int:
+    return fwo_const.ANY_IP_PROTOCOL_ID if protocol == "ip" else protocol_map.get(protocol, 0)
+
+
 def create_service_object(
     name: str, port: int, port_end: int, protocol: str, comment: str | None = None
 ) -> ServiceObject:
@@ -40,11 +47,11 @@ def create_service_object(
     return ServiceObject(
         svc_uid=name,
         svc_name=name,
-        svc_port=port,
-        svc_port_end=port_end,
+        svc_port=None if protocol == "ip" else port,
+        svc_port_end=None if protocol == "ip" else port_end,
         svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
-        ip_proto=protocol_map.get(protocol, 0),
+        ip_proto=_get_ip_protocol_id(protocol),
         svc_comment=comment,
     )
 
@@ -67,7 +74,7 @@ def create_protocol_service_object(name: str, protocol: str, comment: str | None
         svc_name=name,
         svc_color=fwo_const.DEFAULT_COLOR,
         svc_typ="simple",
-        ip_proto=protocol_map.get(protocol, 0),
+        ip_proto=_get_ip_protocol_id(protocol),
         svc_comment=comment,
     )
 
@@ -137,29 +144,130 @@ def normalize_service_objects(service_objects: list[AsaServiceObject]) -> dict[s
     return normalized
 
 
-def create_protocol_any_service_objects() -> dict[str, ServiceObject]:
+def _canonical_any_protocol(obj: ServiceObject) -> str | None:
+    """
+    Identify the protocol of a synthetic protocol-agnostic 'any-<proto>' service object, as
+    opposed to a same-named object/group taken from the actual ASA configuration.
+
+    Returns:
+        The protocol name if obj is a canonical any-protocol service, else None
+
+    """
+    if obj.svc_typ != "simple" or not obj.svc_name.startswith("any-"):
+        return None
+    proto = obj.svc_name.removeprefix("any-")
+    if (proto != "ip" and proto not in protocol_map) or obj.ip_proto != _get_ip_protocol_id(proto):
+        return None
+    expected_port, expected_port_end = (0, 65535) if proto in ("tcp", "udp") else (None, None)
+    if obj.svc_port != expected_port or obj.svc_port_end != expected_port_end:
+        return None
+    return proto
+
+
+def _preferred_any_protocol_uid(proto: str) -> str:
+    return ASA_ANY_PROTOCOL_SERVICE_UID if proto == "ip" else f"any-{proto}"
+
+
+def _find_canonical_any_protocol_service_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str | None:
+    """Return the UID currently holding the canonical any-<proto> object, wherever it lives."""
+    for uid, obj in service_objects.items():
+        if _canonical_any_protocol(obj) == proto:
+            return uid
+    return None
+
+
+def _unused_any_protocol_conflict_uid(
+    proto: str, service_objects: dict[str, ServiceObject], reserved_names: frozenset[str] = frozenset()
+) -> str:
+    """Probe for a free conflict-safe UID, reusing a slot that already holds the canonical object."""
+    prefix = f"_FWO_ANY_{proto.upper()}_PROTOCOL_"
+    uid = prefix
+    suffix = 1
+    while (uid in service_objects and _canonical_any_protocol(service_objects[uid]) != proto) or uid in reserved_names:
+        suffix += 1
+        uid = f"{prefix}{suffix}"
+    return uid
+
+
+def _unused_any_protocol_uid(proto: str, service_objects: dict[str, ServiceObject]) -> str:
+    """
+    Resolve the UID for the synthetic 'any-<proto>' service object.
+
+    Reuses the canonical object wherever it currently lives (it may have been relocated away
+    from its preferred UID due to a name conflict), otherwise prefers the legacy/natural UID for
+    backward compatibility with existing imports, falling back to a conflict-safe UID if an
+    ASA-configured object/group already uses that exact name.
+
+    Args:
+        proto: Protocol name
+        service_objects: Existing service objects dictionary
+
+    Returns:
+        A UID that either already holds the canonical object or is free to use
+
+    """
+    existing_uid = _find_canonical_any_protocol_service_uid(proto, service_objects)
+    if existing_uid is not None:
+        return existing_uid
+    preferred_uid = _preferred_any_protocol_uid(proto)
+    if preferred_uid not in service_objects:
+        return preferred_uid
+    return _unused_any_protocol_conflict_uid(proto, service_objects)
+
+
+def _make_room_for_named_object(
+    name: str, service_objects: dict[str, ServiceObject], reserved_names: frozenset[str] = frozenset()
+) -> None:
+    """
+    Relocate a synthetic 'any-<proto>' service object out of the way before an ASA-configured
+    object/group claims its name, so neither one silently overwrites the other.
+
+    Args:
+        name: The name an ASA-configured object/group is about to be stored under
+        service_objects: Service objects dictionary to update in place
+        reserved_names: Names about to be claimed by other configured objects/groups, so the
+            relocation target never lands on one of them either
+
+    """
+    existing = service_objects.get(name)
+    if existing is None:
+        return
+    proto = _canonical_any_protocol(existing)
+    if proto is None:
+        return
+    del service_objects[name]
+    relocated_uid = _unused_any_protocol_conflict_uid(proto, service_objects, reserved_names)
+    existing.svc_uid = relocated_uid
+    service_objects[relocated_uid] = existing
+
+
+def create_protocol_any_service_objects(service_objects: dict[str, ServiceObject]) -> dict[str, ServiceObject]:
     """
     Create default 'any' service objects for common protocols.
 
+    Args:
+        service_objects: Existing service objects dictionary to update
+
     Returns:
-        Dictionary of protocol-any service objects
+        Updated service objects dictionary including the protocol-any service objects
 
     """
-    service_objects: dict[str, ServiceObject] = {}
-
     for proto in ("tcp", "udp", "icmp", "ip"):
-        obj_name = f"any-{proto}"
+        is_any_ip_protocol = proto == "ip"
+        obj_uid = _unused_any_protocol_uid(proto, service_objects)
+        if obj_uid in service_objects:
+            continue
         obj = ServiceObject(
-            svc_uid=obj_name,
-            svc_name=obj_name,
-            svc_port=0,
-            svc_port_end=65535,
+            svc_uid=obj_uid,
+            svc_name=f"any-{proto}",
+            svc_port=None if is_any_ip_protocol else 0,
+            svc_port_end=None if is_any_ip_protocol else 65535,
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
-            ip_proto=protocol_map.get(proto, 0),
+            ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
-        service_objects[obj_name] = obj
+        service_objects[obj_uid] = obj
 
     return service_objects
 
@@ -240,20 +348,21 @@ def create_any_protocol_service(proto: str, service_objects: dict[str, ServiceOb
 
     """
     obj_name = f"any-{proto}"
-    if obj_name not in service_objects:
+    obj_uid = _unused_any_protocol_uid(proto, service_objects)
+    if obj_uid not in service_objects:
         port_range = (0, 65535) if proto in ("tcp", "udp") else (None, None)
         obj = ServiceObject(
-            svc_uid=obj_name,
+            svc_uid=obj_uid,
             svc_name=obj_name,
             svc_port=port_range[0],
             svc_port_end=port_range[1],
             svc_color=fwo_const.DEFAULT_COLOR,
             svc_typ="simple",
-            ip_proto=protocol_map.get(proto, 0),
+            ip_proto=_get_ip_protocol_id(proto),
             svc_comment=f"any {proto}",
         )
-        service_objects[obj_name] = obj
-    return obj_name
+        service_objects[obj_uid] = obj
+    return obj_uid
 
 
 def create_service_for_protocol_entry_with_single_protocol(
@@ -304,19 +413,7 @@ def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: d
         return create_service_for_protocol_entry_with_single_protocol(entry, service_objects)
 
     if entry.protocol.value == "ip":
-        svc_refs = [create_any_protocol_service(proto, service_objects) for proto in protocol_map]
-
-        reference_string = fwo_base.sort_and_join(svc_refs)
-        # create a service group for all protocols
-        service_objects["ANY"] = ServiceObject(
-            svc_uid="ANY",
-            svc_name="ANY",
-            svc_color=fwo_const.DEFAULT_COLOR,
-            svc_typ="group",
-            svc_member_names=reference_string,
-            svc_member_refs=reference_string,
-        )
-        return "ANY"
+        return create_any_protocol_service("ip", service_objects)
     # Unknown protocol, default to any for the protocol
     return create_any_protocol_service(entry.protocol.value, service_objects)
 
@@ -467,6 +564,15 @@ def normalize_service_object_groups(
         Updated service objects dictionary including groups
 
     """
+    # Relocate every colliding synthetic any-<proto> object up front, before any group's
+    # members are resolved. Otherwise a group processed earlier than the colliding one would
+    # capture the canonical object's pre-relocation UID as a member reference and go stale.
+    # The relocation target must also avoid every group's own name, so it never lands on a
+    # group that has not been written yet (e.g. one literally named after the conflict UID).
+    reserved_names = frozenset(group.name for group in service_groups)
+    for group in service_groups:
+        _make_room_for_named_object(group.name, service_objects, reserved_names)
+
     # Process each service group
     for group in service_groups:
         if group.proto_mode:

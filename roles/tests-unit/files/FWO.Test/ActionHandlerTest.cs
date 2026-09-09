@@ -9,14 +9,20 @@ using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services;
 using FWO.Services.Workflow;
+using FWO.Test.Mocks;
 using NetTools;
 using NUnit.Framework;
+using Microsoft.Extensions.DependencyInjection;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 
 namespace FWO.Test
 {
     [TestFixture]
+    [NonParallelizable]
     internal class ActionHandlerTest
     {
         private sealed class ActionHandlerTestApiConn : SimulatedApiConnection
@@ -86,6 +92,15 @@ namespace FWO.Test
             {
                 Queries.Add(query);
                 Variables.Add(variables);
+                return HandleRequestQueries<T>(query, variables)
+                    ?? HandleModellingQueries<T>(query, variables)
+                    ?? HandleReferenceQueries<T>(query, variables)
+                    ?? HandleStmQueries<T>(query, variables)
+                    ?? throw new AssertionException($"Unexpected query: {query}");
+            }
+
+            private Task<T>? HandleRequestQueries<T>(string query, object? variables)
+            {
                 if (query == RequestQueries.getStates)
                 {
                     return Task.FromResult((T)(object)States);
@@ -111,6 +126,11 @@ namespace FWO.Test
                     UpdatedNotificationLastSentIds = GetVariable<List<int>>(variables, "ids");
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = UpdateNotificationsLastSentAffectedRows });
                 }
+                if (query == RequestQueries.updateTicketState || query == RequestQueries.updateRequestTaskState)
+                {
+                    long id = GetVariable<long>(variables, "id");
+                    return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = id });
+                }
                 if (query == RequestQueries.getTicketById)
                 {
                     if (ThrowOnGetTicketById)
@@ -119,6 +139,11 @@ namespace FWO.Test
                     }
                     return Task.FromResult((T)(object)FullTicket);
                 }
+                return null;
+            }
+
+            private Task<T>? HandleModellingQueries<T>(string query, object? variables)
+            {
                 if (query == ModellingQueries.getConnectionsByTicketId
                     || query == ModellingQueries.getWorkflowConnectionsByTicketId)
                 {
@@ -154,6 +179,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new ReturnIdWrapper());
                 }
+                return null;
+            }
+
+            private Task<T>? HandleReferenceQueries<T>(string query, object? variables)
+            {
                 if (query == DeviceQueries.getManagementNames)
                 {
                     return Task.FromResult((T)(object)managements);
@@ -205,6 +235,11 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<FlowAccess>());
                 }
+                return null;
+            }
+
+            private static Task<T>? HandleStmQueries<T>(string query, object? variables)
+            {
                 if (query == StmQueries.getIpProtocols)
                 {
                     return Task.FromResult((T)(object)new List<IpProtocol> { new() { Id = 6, Name = "tcp" }, new() { Id = 17, Name = "udp" } });
@@ -213,13 +248,32 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)new List<RuleAction> { new() { Id = 1, Name = "accept", Allowed = true } });
                 }
-                throw new AssertionException($"Unexpected query: {query}");
+                return null;
             }
 
             private static TValue GetVariable<TValue>(object? variables, string propertyName)
             {
                 PropertyInfo? property = variables?.GetType().GetProperty(propertyName);
                 return property != null ? (TValue)property.GetValue(variables)! : default!;
+            }
+        }
+
+        private sealed class RecordingMiddlewareActionsHandler : HttpMessageHandler
+        {
+            public int RequestCount { get; private set; }
+            public string? LastPath { get; private set; }
+            public string? LastBody { get; private set; }
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                RequestCount++;
+                LastPath = request.RequestUri?.AbsolutePath;
+                LastBody = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : null;
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"success\":true,\"messages\":[],\"errorMessage\":\"\"}", Encoding.UTF8, "application/json")
+                };
             }
         }
 
@@ -270,6 +324,18 @@ namespace FWO.Test
                 PolicyIds = policyIds.ToList();
                 RequestTaskIds = requestTasks.Select(task => task.Id).ToList();
                 return Task.FromResult(Result);
+            }
+        }
+
+        private sealed class ActionHandlerTestPolicyCheckerFactory : IRequestedRulePolicyCheckerFactory
+        {
+            public ActionHandlerTestPolicyChecker Checker { get; } = new() { Result = true };
+            public int CreateCount { get; private set; }
+
+            public IRequestedRulePolicyChecker Create(UserConfig userConfig, ApiConnection apiConnection, MiddlewareClient? middlewareClient = null)
+            {
+                CreateCount++;
+                return Checker;
             }
         }
 
@@ -952,6 +1018,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DoStateChangeActions_DelegatesToMiddlewareWhenMiddlewareClientIsConfigured()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            using TestMiddlewareClient middlewareClient = new();
+            RecordingMiddlewareActionsHandler middlewareHandler = new();
+            middlewareClient.UseHandler(middlewareHandler);
+            WfHandler wfHandler = new((_, _, _, _) => { }, new SimulatedUserConfig(), new System.Security.Claims.ClaimsPrincipal(), apiConn, middlewareClient, WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(middlewareHandler.RequestCount, Is.EqualTo(1));
+                Assert.That(middlewareHandler.LastPath, Does.EndWith("/Workflow/Actions"));
+                Assert.That(middlewareHandler.LastBody, Is.Not.Null);
+                Assert.That(ticket.StateChanged(), Is.False);
+                Assert.That(apiConn.Queries, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task DoStateChangeActions_SetsTicketEnvironmentForTicketScope()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new();
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfTicket ticket = new() { Id = 42 };
+            ticket.MarkCreatedStateChanged(1);
+
+            await handler.DoStateChangeActions(ticket, WfObjectScopes.Ticket);
+
+            Assert.That(wfHandler.ActTicket, Is.SameAs(ticket));
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_IncludesCreationStateChangeFlag()
         {
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
@@ -1344,6 +1448,73 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ExecutePolicyCheck_ReturnsFalseWhenCallingTicketHasNoEligibleTasks()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true,
+                new ActionHandlerTestPolicyChecker { Result = true });
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 23,
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    IpString = "10.0.0.1/32"
+                }]
+            });
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+            bool result = await task;
+
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task ExecutePolicyCheck_ReturnsTrueForDeleteOnlyTicket()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 24,
+                RequestAction = nameof(RequestAction.delete),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.rule.ToString(),
+                    RequestAction = nameof(RequestAction.delete),
+                    RuleUid = "rule-24"
+                }]
+            });
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
+        public async Task ExecutePolicyCheck_ReturnsTrueForGroupOnlyTicket()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler(), null, true);
+            WfTicket ticket = CreateTicket(new WfReqTask
+            {
+                Id = 25,
+                TaskType = WfTaskType.group_create.ToString(),
+                Elements = [new WfReqElement
+                {
+                    Field = ElemFieldType.source.ToString(),
+                    IpString = "10.0.0.1/32"
+                }]
+            });
+
+            Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+            bool result = await task;
+
+            Assert.That(result, Is.True);
+        }
+
+        [Test]
         public async Task ExecutePolicyCheck_ReturnsFalseWhenPolicyCheckerThrows()
         {
             ActionHandlerTestPolicyChecker policyChecker = new()
@@ -1360,31 +1531,129 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetCallingTicket_UsesActiveTicketBeforeScopedFallbacks()
+        public async Task ExecutePolicyCheck_InitializesPolicyCheckerFromRegisteredFactory()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            SimulatedGlobalConfig globalConfig = new() { ComplianceCheckRelevantManagements = "1" };
+            WfHandler wfHandler = new((_, _, _, _) => { }, UserConfig.ForTextOnly(globalConfig, false),
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            ActionHandlerTestPolicyCheckerFactory factory = new();
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection()
+                .AddSingleton<IRequestedRulePolicyCheckerFactory>(factory)
+                .BuildServiceProvider();
+
+            try
+            {
+                WfTicket ticket = CreateTicket(CreateEligibleRequestTask(21));
+                Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                    [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+                bool result = await task;
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.True);
+                    Assert.That(factory.CreateCount, Is.EqualTo(1));
+                    Assert.That(factory.Checker.PolicyIds, Is.EqualTo(new List<int> { 5 }));
+                    Assert.That(factory.Checker.RequestTaskIds, Is.EqualTo(new List<long> { 21 }));
+                });
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
+        }
+
+        [Test]
+        public async Task ExecutePolicyCheck_ReturnsFalseWhenNoPolicyCheckerFactoryIsRegistered()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WfHandler wfHandler = new(UserConfig.ForTextOnly(new SimulatedGlobalConfig(), false), apiConn,
+                WorkflowPhases.request, null);
+            ActionHandler handler = new(apiConn, wfHandler, null, true);
+            IServiceProvider? originalServices = FWO.Services.ServiceProvider.Services;
+            FWO.Services.ServiceProvider.Services = new ServiceCollection().BuildServiceProvider();
+
+            try
+            {
+                WfTicket ticket = CreateTicket(CreateEligibleRequestTask(22));
+                Task<bool> task = (Task<bool>)GetPrivateMethod("ExecutePolicyCheck").Invoke(handler,
+                    [new List<int> { 5 }, "policy_check", ticket, WfObjectScopes.Ticket])!;
+                bool result = await task;
+
+                Assert.That(result, Is.False);
+            }
+            finally
+            {
+                FWO.Services.ServiceProvider.Services = originalServices;
+            }
+        }
+
+        [Test]
+        public async Task GetCallingTicket_UsesActiveTicketBeforeScopedFallbacks()
         {
             WfTicket activeTicket = CreateTicket(CreateEligibleRequestTask(18));
             WfReqTask scopedTask = CreateEligibleRequestTask(19);
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { ActTicket = activeTicket });
 
-            WfTicket? ticket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask]);
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
 
             Assert.That(ticket, Is.SameAs(activeTicket));
         }
 
         [Test]
-        public void GetCallingTicket_UsesActiveRequestTaskForImplementationAndApprovalScopes()
+        public async Task GetCallingTicket_UsesActiveRequestTaskForImplementationAndApprovalScopes()
         {
             WfReqTask activeRequestTask = CreateEligibleRequestTask(20);
             ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler { ActReqTask = activeRequestTask });
 
-            WfTicket? implementationTicket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfImplTask { Id = 1 }, WfObjectScopes.ImplementationTask]);
-            WfTicket? approvalTicket = (WfTicket?)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfApproval { Id = 1 }, WfObjectScopes.Approval]);
+            Task<WfTicket?> implementationTicketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfImplTask { Id = 1 }, WfObjectScopes.ImplementationTask])!;
+            Task<WfTicket?> approvalTicketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [new WfApproval { Id = 1 }, WfObjectScopes.Approval])!;
+            WfTicket? implementationTicket = await implementationTicketTask;
+            WfTicket? approvalTicket = await approvalTicketTask;
 
             Assert.Multiple(() =>
             {
                 Assert.That(implementationTicket?.Tasks.Single(), Is.SameAs(activeRequestTask));
                 Assert.That(approvalTicket?.Tasks.Single(), Is.SameAs(activeRequestTask));
             });
+        }
+
+        [Test]
+        public async Task GetCallingTicket_LoadsFullTicketForScopedRequestTask()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(CreateEligibleRequestTask(30), new WfReqTask { Id = 31, TaskType = WfTaskType.group_modify.ToString() })
+            };
+            apiConn.FullTicket.Id = 42;
+            WfReqTask scopedTask = CreateEligibleRequestTask(30);
+            scopedTask.TicketId = 42;
+            ActionHandler handler = new(apiConn, new WfHandler());
+
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
+
+            Assert.That(ticket, Is.SameAs(apiConn.FullTicket));
+            Assert.That(ticket!.Tasks, Has.Count.EqualTo(2));
+            Assert.That(apiConn.Queries, Has.Member(RequestQueries.getTicketById));
+        }
+
+        [Test]
+        public async Task GetCallingTicket_FallsBackToScopedTaskWhenFullTicketCannotBeLoaded()
+        {
+            ActionHandlerTestApiConn apiConn = new() { ThrowOnGetTicketById = true };
+            WfReqTask scopedTask = CreateEligibleRequestTask(32);
+            scopedTask.TicketId = 42;
+            ActionHandler handler = new(apiConn, new WfHandler());
+
+            Task<WfTicket?> ticketTask = (Task<WfTicket?>)GetPrivateMethod("GetCallingTicket").Invoke(handler, [scopedTask, WfObjectScopes.RequestTask])!;
+            WfTicket? ticket = await ticketTask;
+
+            Assert.That(ticket?.Tasks, Has.Count.EqualTo(1));
+            Assert.That(ticket?.Tasks.Single(), Is.SameAs(scopedTask));
         }
 
         [Test]
@@ -1510,7 +1779,22 @@ namespace FWO.Test
                     new WfReqElement { Field = ElemFieldType.rule.ToString(), RuleUid = "rule-incomplete" }
                 ]
             };
-            WfTicket ticket = CreateTicket(eligibleTask, ineligibleTask);
+            WfReqTask modifiedGroupTask = new()
+            {
+                Id = 17,
+                TaskType = WfTaskType.group_modify.ToString(),
+                AdditionalInfo = "{\"GrpName\":\"app-servers\"}",
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "192.0.2.10/32",
+                        Name = "app-server-1"
+                    }
+                ]
+            };
+            WfTicket ticket = CreateTicket(eligibleTask, ineligibleTask, modifiedGroupTask);
             WfStateAction action = new()
             {
                 ActionType = StateActionTypes.AutoPromote.ToString(),
@@ -1519,9 +1803,10 @@ namespace FWO.Test
 
             await handler.PerformAction(action, ticket, WfObjectScopes.Ticket);
 
-            Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new List<long> { 15 }));
+            Assert.That(policyChecker.RequestTaskIds, Is.EqualTo(new List<long> { 15, 17 }));
             Assert.That(eligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo("true"));
             Assert.That(ineligibleTask.GetAddInfoValue("policy_check"), Is.EqualTo(""));
+            Assert.That(modifiedGroupTask.GetAddInfoValue("policy_check"), Is.EqualTo(""));
         }
 
         [Test]
@@ -1658,6 +1943,50 @@ namespace FWO.Test
             Assert.That(uiMessages[0].Title, Is.EqualTo("Create flow"));
             Assert.That(uiMessages[0].Message, Is.EqualTo("Flow DB entries could not be created. Check the workflow log for unresolved objects or services."));
             Assert.That(uiMessages[0].Error, Is.True);
+        }
+
+        [Test]
+        public async Task CreateFlow_WithConfirmation_NamesWhatWasRefused()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            List<(string Title, string Message, bool Error)> uiMessages = [];
+            WfHandler wfHandler = new((_, title, message, error) => uiMessages.Add((title, message, error)), new SimulatedUserConfig { ReqUseFlowDb = true },
+                new System.Security.Claims.ClaimsPrincipal(), apiConn, new MiddlewareClient("http://localhost/"), WorkflowPhases.request);
+            ActionHandler handler = new(apiConn, wfHandler);
+            WfReqTask task = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.access.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                ManagementId = 2,
+                Elements =
+                [
+                    new WfReqElement
+                    {
+                        Id = 111,
+                        TaskId = 11,
+                        Field = ElemFieldType.source.ToString(),
+                        IpString = "10.0.0.1",
+                        IpEnd = "2001:db8::1",
+                        RequestAction = RequestAction.create.ToString()
+                    }
+                ]
+            };
+            WfStateAction action = new()
+            {
+                Name = "Create flow",
+                ExternalParams = JsonSerializer.Serialize(new ActionResultStateParams { ConfirmUiMessage = true })
+            };
+
+            await handler.CreateFlow(action, task, WfObjectScopes.RequestTask, null, task.TicketId);
+
+            Assert.That(uiMessages, Has.Count.EqualTo(1));
+            Assert.Multiple(() =>
+            {
+                Assert.That(uiMessages[0].Message, Does.Contain("Address range starts and ends in different address families: 10.0.0.1/32 - 2001:db8::1/128"));
+                Assert.That(uiMessages[0].Error, Is.True);
+            });
         }
 
         [Test]

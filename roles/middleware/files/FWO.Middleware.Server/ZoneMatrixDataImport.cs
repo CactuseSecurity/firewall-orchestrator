@@ -298,7 +298,7 @@ namespace FWO.Middleware.Server
 
                 if (globalConfig.AutoCalculateInternetZone
                     && globalConfig.AutoCalculateUndefinedInternalZone
-                    && incomingZoneData.CommData.Any(communication => communication.IdString == "AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL"))
+                    && incomingZoneData.CommData.Any(communication => communication.IdString == NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString))
                 {
                     throw new ArgumentException("Matrix contains allowed communication data for readonly auto-calculated undefined-internal zone.");
                 }

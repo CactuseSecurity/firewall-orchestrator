@@ -449,6 +449,88 @@ namespace FWO.Test
             ClassicAssert.AreEqual(2, handler.DstAppRolesToAdd[0].Id);
         }
 
+        /// <summary>
+        /// Verifies that an existing app role cannot open without a recoverable network area.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(2, false)]
+        [TestCase(4, true)]
+        public void EditAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.EditAppRole(new ModellingAppRole { Id = 1, IdString = "AR12-001", Name = "Role1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AppRoleHandler, Is.Not.Null);
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that the read only dialog of an existing app role stays closed without a recoverable network area,
+        /// as it would otherwise show an empty area and an empty app server library.
+        /// </summary>
+        [TestCase(1, false)]
+        [TestCase(4, true)]
+        public void DisplayAppRole_OnlyOpensWhenAreaCanBeDerived(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.DisplayAppRole(new ModellingAppRole { Id = 1, IdString = "AR12-001", Name = "Role1" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.DisplayAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a new app role cannot be created without a usable naming convention, as neither the
+        /// area specific identifier could be proposed nor could the created app role be opened again afterwards.
+        /// </summary>
+        [TestCase(2, false)]
+        [TestCase(4, true)]
+        public void CreateAppRole_OnlyOpensWhenAreaCanBeConverted(int fixedPartLength, bool expectedDialogState)
+        {
+            int messageCount = 0;
+            ModellingConnectionHandler handler = CreateHandlerForConvention(fixedPartLength, () => messageCount++);
+
+            handler.CreateAppRole();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.EditAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.AddAppRoleMode, Is.EqualTo(expectedDialogState));
+                Assert.That(handler.DisplayAppRoleMode, Is.False);
+                Assert.That(messageCount, Is.EqualTo(expectedDialogState ? 0 : 1));
+            });
+        }
+
+        /// <summary>
+        /// Builds a connection handler using a network area naming convention with the given fixed part length.
+        /// </summary>
+        /// <param name="fixedPartLength">fixed part length of the naming convention</param>
+        /// <param name="countMessage">called for every message the handler reports</param>
+        /// <returns>the connection handler to test the app role dialogs with</returns>
+        private static ModellingConnectionHandler CreateHandlerForConvention(int fixedPartLength, Action countMessage)
+        {
+            SimulatedUserConfig config = new()
+            {
+                ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
+            };
+            ModellingConnection connection = new() { Id = 21 };
+            List<ModellingConnection> connections = new() { connection };
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,
+                false, (_, _, _, _) => countMessage(), DefaultInit.DoNothing, true);
+        }
+
         private static ModellingConnectionHandler CreateHandler(ModellingConnection connection)
         {
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), userConfig, Application, [connection], connection, false, false, DisplayMessageInUi, DefaultInit.DoNothing, true);

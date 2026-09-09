@@ -17,7 +17,7 @@ namespace FWO.Services.Workflow
         private readonly ApiConnection apiConnection;
         private readonly WfHandler wfHandler;
         private readonly bool useInMwServer = false;
-        private readonly IRequestedRulePolicyChecker? requestedRulePolicyChecker;
+        private IRequestedRulePolicyChecker? requestedRulePolicyChecker;
         private readonly IWorkflowRecipientResolver? workflowRecipientResolver;
         private string? ScopedUserTo { get; set; } = "";
         private string? ScopedUserCc { get; set; } = "";
@@ -92,6 +92,11 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            if (scope == WfObjectScopes.Ticket)
+            {
+                await SetScope(statefulObject, scope);
+            }
+
             List<WfStateAction> onSetActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnSet, true);
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
@@ -112,7 +117,16 @@ namespace FWO.Services.Workflow
             {
                 string stateText = actionEvent == StateActionEvents.OnLeave ? statefulObject.ChangedFrom().ToString() : statefulObject.StateId.ToString();
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
-                await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                try
+                {
+                    await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                }
+                catch (Exception exc)
+                {
+                    Log.WriteError("DoStateChangeActions",
+                        $"Failed to execute {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText} in phase {wfHandler.Phase}.", exc);
+                    throw;
+                }
             }
         }
 
@@ -356,6 +370,24 @@ namespace FWO.Services.Workflow
             };
         }
 
+        /// <summary>
+        /// Builds the message shown after a flow creation. A creation refused for data the requester wrote names
+        /// that data, so that the reason does not stay in the workflow log alone.
+        /// </summary>
+        /// <param name="success">Whether all prepared flow payloads were persisted.</param>
+        /// <param name="refusals">What the flow creation refused, empty when it failed for another reason.</param>
+        private string BuildFlowCreationMessage(bool success, IReadOnlyList<FlowCreationRefusal> refusals)
+        {
+            string message = wfHandler.userConfig.GetText(success ? "flow_creation_succeeded" : "flow_creation_failed");
+            List<string> reasons =
+            [
+                .. refusals
+                    .Select(refusal => $"{wfHandler.userConfig.GetText(refusal.ReasonTextKey)}: {refusal.RefusedValue}")
+                    .Distinct()
+            ];
+            return reasons.Count == 0 ? message : $"{message} {string.Join(" ", reasons)}";
+        }
+
         public async Task CreateFlow(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, long? ticketId)
         {
             if (!wfHandler.userConfig.ReqUseFlowDb)
@@ -378,7 +410,7 @@ namespace FWO.Services.Workflow
                 if (resultStateParams?.ConfirmUiMessage == true)
                 {
                     wfHandler.DisplayMessage(null, wfHandler.userConfig.GetText("CreateFlow"),
-                        wfHandler.userConfig.GetText((bool)success ? "flow_creation_succeeded" : "flow_creation_failed"), !(bool)success);
+                        BuildFlowCreationMessage((bool)success, flowDbCreator.Refusals), !(bool)success);
                 }
                 await PromoteAfterActionResult(action.ExternalParams, (bool)success, statefulObject, scope);
             }
@@ -548,9 +580,9 @@ namespace FWO.Services.Workflow
         private List<WfStateAction> GetRelevantActions(WfStatefulObject statefulObject, WfObjectScopes scope, bool toState = true)
         {
             List<WfStateAction> stateActions = [];
+            int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
             try
             {
-                int searchedStateId = toState ? statefulObject.StateId : statefulObject.ChangedFrom();
                 foreach (var action in states.FirstOrDefault(x => x.Id == searchedStateId)?.Actions.Select(a => a.Action) ?? throw new KeyNotFoundException("Unknown stateId:" + searchedStateId))
                 {
                     if (action.Scope == scope.ToString()
@@ -563,8 +595,8 @@ namespace FWO.Services.Workflow
             }
             catch (Exception exc)
             {
-                // unknown stateId probably by misconfiguration
-                Log.WriteError("Get relevant actions", $"Exception thrown and ignored: ", exc);
+                Log.WriteError("Get relevant actions",
+                    $"Failed to resolve actions for scope {scope}, state {searchedStateId}, phase {wfHandler.Phase}.", exc);
             }
             return stateActions;
         }

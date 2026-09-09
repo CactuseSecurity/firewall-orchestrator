@@ -20,7 +20,9 @@
                 <Template>
                     <div class="btn-group">
                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => Details(context)">@(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
-                        <button type="button" class="btn btn-sm btn-danger" @onclick:preventDefault @onclick="() => RequestRollback(context)">@(DisplayService.DisplayButton(userConfig, "rollback", Icons.Undo))</button>
+                        <button type="button" class="btn btn-sm btn-danger" 
+                                disabled="@IsRollbackDisabled(context)"
+                        @onclick:preventDefault @onclick="() => RequestRollback(context)">@(DisplayService.DisplayButton(userConfig, "rollback", Icons.Undo))</button>
                     </div>
                 </Template>
             </Column>
@@ -176,4 +178,8 @@ else
     {
         PageSize = pageSize;
     }
+
+    private bool IsRollbackDisabled(ImportStatus context) =>
+    ((context.LastIncompleteImport == null || context.LastIncompleteImport.Length == 0)
+    && !userConfig.FullRollbackAllowed);
 }

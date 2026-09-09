@@ -86,11 +86,32 @@ namespace FWO.Config.Api
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems);
-                OnChange?.Invoke(this, configItems);
-                Initialized = true;
+                ApplySubscriptionUpdate(configItems);
             }
             finally { semaphoreSlim.Release(); }
+        }
+
+        /// <summary>
+        /// Merges a partial subscription update into the raw snapshot before applying it.
+        /// </summary>
+        public void MergeSubscriptionUpdateHandler(ConfigItem[] configItems)
+        {
+            if (_isDisposed) return;
+            semaphoreSlim.Wait();
+            try
+            {
+                Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
+                MergeRawConfigItems(configItems);
+                ApplySubscriptionUpdate(configItems);
+            }
+            finally { semaphoreSlim.Release(); }
+        }
+
+        private void ApplySubscriptionUpdate(ConfigItem[] configItems)
+        {
+            Update(configItems);
+            OnChange?.Invoke(this, configItems);
+            Initialized = true;
         }
 
         protected void Update(ConfigItem[] configItems)

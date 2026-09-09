@@ -1,0 +1,28 @@
+query getComplianceDiffViolationsByChunk(
+  $limit: Int!
+  $offset: Int!
+  $where: compliance_violation_bool_exp!
+) {
+  compliance_violation(
+    limit: $limit
+    offset: $offset
+    order_by: { id: asc }
+    where: $where
+  ) {
+    id
+    rule_id
+    rule_uid
+    mgmt_uid
+    found_date
+    removed_date
+    details
+    risk_score
+    policy_id
+    criterion_id
+    criterion {
+      id
+      name
+      criterion_type
+    }
+  }
+}

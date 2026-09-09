@@ -26,7 +26,6 @@ namespace FWO.Report
         public List<ComplianceViolation> Violations { get; set; } = [];
         public bool ShowNonImpactRules { get; set; }
         public List<Management> Managements { get; set; } = [];
-        protected virtual string InternalQuery => RuleQueries.getRulesWithCurrentViolationsByChunk;
         protected DebugConfig DebugConfig;
         protected readonly GlobalConfig GlobalConfig;
 
@@ -115,22 +114,12 @@ namespace FWO.Report
 
             await GetManagementAndDevices(apiConnection);
 
-            List<int> managementIds = Managements.Select(mgmt => mgmt.Id).ToList();
-            // Get amount of rules to fetch.
-
-            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
-                RuleQueries.countRules,
-                new { mgm_ids = managementIds }
-            );
-            int rulesCount = result?.Aggregate?.Count ?? 0;
-
-            // Get data parallelized.
-            List<Rule>[]? chunks = await GetDataParallelized<Rule>(rulesCount, elementsPerFetch, apiConnection, ct, InternalQuery);
+            List<Rule>[]? chunks = await FetchRuleChunks(elementsPerFetch, apiConnection, ct);
 
             if (chunks != null)
             {
                 RuleViewData.Clear();
-                Rules = await ProcessChunksParallelized(chunks, ct, apiConnection);
+                Rules = await ProcessChunksParallelized(chunks, ct);
                 Log.TryWriteLog(LogType.Debug, "Compliance Report", $"Fetched {Rules.Count} rules for compliance report.", DebugConfig.ExtendedLogReportGeneration);
             }
             else
@@ -214,43 +203,42 @@ namespace FWO.Report
 
         public async Task<List<T>[]?> GetDataParallelized<T>(int rulesCount, int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct, string query)
         {
-            List<Task<List<T>>> tasks = new();
-            List<Dictionary<string, object>> queryVariablesList = new();
+            return await GetDataParallelized<T>(
+                rulesCount,
+                elementsPerFetch,
+                apiConnection,
+                query,
+                (offset, limit) => CreateQueryVariables(offset, limit, query),
+                ct);
+        }
 
-            // Create query variables for fetching rules
+        /// <summary>
+        /// Fetches a known number of records in parallel pages. The variable factory lets specialized reports page a
+        /// different source table without coupling their query-specific filters to <see cref="CreateQueryVariables"/>.
+        /// </summary>
+        protected async Task<List<T>[]> GetDataParallelized<T>(
+            int elementCount,
+            int elementsPerFetch,
+            ApiConnection apiConnection,
+            string query,
+            Func<int, int, Dictionary<string, object>> createVariables,
+            CancellationToken ct)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(elementsPerFetch);
 
-            for (int offset = 0; offset < rulesCount; offset += elementsPerFetch)
+            List<Task<List<T>>> tasks = [];
+
+            // Task.WhenAll preserves this page order, although the requests themselves run concurrently.
+            for (int offset = 0; offset < elementCount; offset += elementsPerFetch)
             {
-                queryVariablesList.Add(CreateQueryVariables(offset, elementsPerFetch, query));
+                Dictionary<string, object> variables = createVariables(offset, elementsPerFetch);
+                tasks.Add(FetchDataChunk<T>(query, variables, apiConnection, ct));
             }
-
-            // Start fetching tasks
-
-            foreach (Dictionary<string, object> queryVariables in queryVariablesList)
-            {
-                await _semaphore.WaitAsync(ct);
-
-                var task = Task.Run(async () =>
-                {
-                    try
-                    {
-                        return await apiConnection.SendQueryAsync<List<T>>(query, queryVariables);
-                    }
-                    finally
-                    {
-                        _semaphore.Release();
-                    }
-                }, ct);
-
-                tasks.Add(task);
-            }
-
-            // Wait for all tasks to complete and return fetched rules in chunks
 
             return await Task.WhenAll(tasks);
         }
 
-        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct, ApiConnection apiConnection)
+        public async Task<List<Rule>> ProcessChunksParallelized(List<Rule>[] chunks, CancellationToken ct)
         {
             List<Task<(List<Rule> processed, List<RuleViewData> viewData)>> tasks = new();
 
@@ -264,9 +252,9 @@ namespace FWO.Report
 
                     try
                     {
-                        foreach (var rule in chunk)
+                        foreach (Rule rule in chunk)
                         {
-                            SetComplianceDataForRule(rule, apiConnection);
+                            SetComplianceDataForRule(rule);
 
                             // Resolve network locations TODO: Move resolving completely to ComplianceCheck or RuleViewData
 
@@ -366,6 +354,43 @@ namespace FWO.Report
         #endregion
 
         #region Methods - Private
+
+        /// <summary>
+        /// Fetches the rule chunks used by a standard compliance report. Specialized reports can override this data
+        /// acquisition step while sharing the same rendering and export pipeline.
+        /// </summary>
+        protected virtual async Task<List<Rule>[]?> FetchRuleChunks(int elementsPerFetch, ApiConnection apiConnection, CancellationToken ct)
+        {
+            List<int> managementIds = Managements.Select(management => management.Id).ToList();
+            AggregateCount? result = await apiConnection.SendQueryAsync<AggregateCount>(
+                RuleQueries.countActiveRules,
+                new { mgm_ids = managementIds });
+            int rulesCount = result?.Aggregate?.Count ?? 0;
+
+            // The standard report needs every active rule, including compliant rules when the display setting requests them.
+            return await GetDataParallelized<Rule>(
+                rulesCount,
+                elementsPerFetch,
+                apiConnection,
+                ct,
+                RuleQueries.getRulesWithCurrentViolationsByChunk);
+        }
+
+        /// <summary>
+        /// Executes one API page while enforcing the report-wide request concurrency limit.
+        /// </summary>
+        private async Task<List<T>> FetchDataChunk<T>(string query, Dictionary<string, object> variables, ApiConnection apiConnection, CancellationToken ct)
+        {
+            await _semaphore.WaitAsync(ct);
+            try
+            {
+                return await apiConnection.SendQueryAsync<List<T>>(query, variables);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
 
         private void SetUpCsvExport()
         {
@@ -482,26 +507,19 @@ namespace FWO.Report
             return queryVariables;
         }
 
-        protected virtual void SetComplianceDataForRule(Rule rule, ApiConnection apiConnection, Func<ComplianceViolation, string>? formatter = null)
+        protected virtual void SetComplianceDataForRule(Rule rule, Func<ComplianceViolation, string>? formatter = null)
         {
             try
             {
                 rule.ViolationDetails = "";
                 rule.Compliance = ComplianceViolationType.None;
                 int addedViolationDetails = 0;
-                List<ComplianceViolation> violations;
 
                 // If rule is not assessable only display assessability issues in details.
 
-                if (rule.Violations.Any(violation => violation.Type == ComplianceViolationType.NotAssessable))
-                {
-                    rule.Compliance = ComplianceViolationType.NotAssessable;
-                    violations = rule.Violations.Where(violation => violation.Type == ComplianceViolationType.NotAssessable).ToList();
-                }
-                else
-                {
-                    violations = rule.Violations.ToList();
-                }
+                List<ComplianceViolation> violations = SelectDecisiveViolations(rule.Violations);
+
+                rule.Compliance = DetermineCompliance(violations);
 
                 foreach (ComplianceViolation violation in violations)
                 {
@@ -518,17 +536,6 @@ namespace FWO.Report
                     if (rule.ViolationDetails != "")
                     {
                         rule.ViolationDetails += "<br>";
-                    }
-
-                    // Set rule compliance.
-
-                    if (rule.Compliance != ComplianceViolationType.NotAssessable && addedViolationDetails > 0)
-                    {
-                        rule.Compliance = ComplianceViolationType.MultipleViolations;
-                    }
-                    else
-                    {
-                        rule.Compliance = violation.Type;
                     }
 
                     // Add to violation details.
@@ -549,6 +556,57 @@ namespace FWO.Report
                 Log.TryWriteLog(LogType.Error, "Compliance Report", $"Error while setting compliance data for rule {rule.Id}: {e.Message}", DebugConfig.ExtendedLogReportGeneration);
                 return;
             }
+        }
+
+        /// <summary>
+        /// Determines compliance using the same precedence and violation-detail limit as the report formatter.
+        /// Accepts either a rule's full violation list or the decisive subset; both yield the same state.
+        /// </summary>
+        /// <param name="violations">Violations to judge.</param>
+        /// <returns>The single state that represents the given violations.</returns>
+        protected ComplianceViolationType DetermineCompliance(List<ComplianceViolation> violations)
+        {
+            // Assessability outranks every other type: several assessability issues still read as not assessable
+            // rather than as multiple violations, so this cannot be folded into the count below.
+
+            if (violations.Any(IsNotAssessable))
+            {
+                return ComplianceViolationType.NotAssessable;
+            }
+
+            int processedViolationCount = _maxPrintedViolations > 0
+                ? Math.Min(violations.Count, _maxPrintedViolations)
+                : violations.Count;
+
+            return processedViolationCount switch
+            {
+                0 => ComplianceViolationType.None,
+                1 => violations[0].Type,
+                _ => ComplianceViolationType.MultipleViolations
+            };
+        }
+
+        /// <summary>
+        /// Selects the violations a rule is judged and rendered by. An unassessable rule is represented by its
+        /// assessability issues alone, because no other criterion can be evaluated for it.
+        /// </summary>
+        /// <param name="violations">All violations attached to the rule.</param>
+        /// <returns>The decisive subset, or all violations when the rule is assessable.</returns>
+        private static List<ComplianceViolation> SelectDecisiveViolations(List<ComplianceViolation> violations)
+        {
+            return violations.Any(IsNotAssessable)
+                ? violations.Where(IsNotAssessable).ToList()
+                : violations.ToList();
+        }
+
+        /// <summary>
+        /// Single definition of what marks a violation as an assessability issue.
+        /// </summary>
+        /// <param name="violation">Violation to classify.</param>
+        /// <returns>True when the violation reports that the rule cannot be assessed.</returns>
+        private static bool IsNotAssessable(ComplianceViolation violation)
+        {
+            return violation.Type == ComplianceViolationType.NotAssessable;
         }
 
         protected virtual bool ShowRule(Rule rule)

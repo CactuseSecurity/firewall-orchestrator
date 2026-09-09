@@ -128,7 +128,9 @@ namespace FWO.Test
             BunitContext context = new();
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddSingleton<ApiConnection>(apiConn);
-            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            // full rollback is gated behind the "allowFullRollback" setting; enable it so the
+            // rollback paths under test actually execute instead of being blocked by the guard
+            context.Services.AddSingleton<UserConfig>(UserConfig.ForTextOnly(new SimulatedGlobalConfig { AllowFullRollback = true }));
             displayMessageInUi = (exception, title, message, isError) => messages.Add((exception, title, message, isError));
             return context;
         }

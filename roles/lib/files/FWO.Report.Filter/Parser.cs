@@ -156,7 +156,7 @@ namespace FWO.Report.Filter
                 TokenKind.DestinationPort or TokenKind.RecertDisplay or TokenKind.Unused
                 => new AstNodeFilterInt() { Name = Name, Operator = Operator, Value = Value },
 
-                TokenKind.Source or TokenKind.Destination
+                TokenKind.Source or TokenKind.Destination or TokenKind.SourceType or TokenKind.DestinationType
                 => new AstNodeFilterNetwork() { Name = Name, Operator = Operator, Value = Value },
 
                 _ => throw new NotSupportedException($"No type found for filter with token kind: {Name.Kind}"),
@@ -171,7 +171,7 @@ namespace FWO.Report.Filter
         private Token ParseFilterName()
         {
             return CheckToken(
-                TokenKind.LastHit, TokenKind.Destination, TokenKind.Source, TokenKind.Service, TokenKind.Protocol,
+                TokenKind.LastHit, TokenKind.Destination, TokenKind.Source, TokenKind.DestinationType, TokenKind.SourceType, TokenKind.Service, TokenKind.Protocol,
                 TokenKind.DestinationPort, TokenKind.Action, TokenKind.FullText, TokenKind.Gateway,
                 TokenKind.Management, TokenKind.Remove, TokenKind.RecertDisplay, TokenKind.Disabled, TokenKind.Unused,
                 TokenKind.ReportType, TokenKind.TaskType, TokenKind.Phase, TokenKind.States, TokenKind.OwnerState,

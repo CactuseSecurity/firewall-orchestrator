@@ -298,7 +298,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = s.Name,
                         Type = s.Type.Name,
-                        Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
+                        Ip = DisplayBase.DisplayIp(s.IP ?? "", s.IpEnd ?? "")
                     })
                     .ToList(),
                 SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
@@ -307,7 +307,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = d.Name,
                         Type = d.Type.Name,
-                        Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
+                        Ip = DisplayBase.DisplayIp(d.IP ?? "", d.IpEnd ?? "")
                     })
                     .ToList(),
                 DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),

@@ -1,6 +1,8 @@
 using FWO.Api.Client;
 using GraphQL.Client.Http;
+using GraphQL.Client.Serializer.SystemTextJson;
 using NUnit.Framework;
+using System.Net;
 
 namespace FWO.Test
 {
@@ -54,11 +56,62 @@ namespace FWO.Test
 
             await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
 
-            Assert.That(active.RecreateCount, Is.EqualTo(1));
-            Assert.That(active.DisposeCount, Is.EqualTo(1));
-            Assert.That(disposed.RecreateCount, Is.EqualTo(0));
+            Assert.That(active.RebindCount, Is.EqualTo(1));
+            Assert.That(active.DisposeCount, Is.EqualTo(0));
+            Assert.That(disposed.RebindCount, Is.EqualTo(0));
             Assert.That(disposed.DisposeCount, Is.EqualTo(1));
             Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ReconnectSubscriptionsAsyncRebindsRebindableSubscriptionsInPlace()
+        {
+            TestGraphQlApiConnection connection = new();
+            RebindableSubscription active = new();
+            connection.AddSubscription(active);
+
+            await connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(active.RebindCount, Is.EqualTo(1));
+                Assert.That(active.DisposeCount, Is.EqualTo(0));
+                Assert.That(connection.SubscriptionCount, Is.EqualTo(1));
+                Assert.That(connection.FirstSubscription, Is.SameAs(active));
+            });
+
+            active.Dispose();
+
+            Assert.That(active.DisposeCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task ReconnectAndDisposeDoNotPublishAClientAfterDisposal()
+        {
+            RaceTestGraphQlApiConnection connection = new();
+            TrackingSubscription subscription = new();
+            connection.AddSubscription(subscription);
+            connection.BlockReplacementClient();
+
+            Task reconnect = Task.Run(() => connection.ReconnectSubscriptionsAsync("jwt", CancellationToken.None));
+            await connection.ReplacementCreationStarted.Task;
+
+            Task dispose = Task.Run(connection.Dispose);
+            connection.AllowReplacementCreation();
+
+            await Task.WhenAll(reconnect, dispose);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(connection.SubscriptionCount, Is.EqualTo(0));
+                Assert.That(subscription.DisposeCount, Is.EqualTo(1));
+                Assert.That(connection.ReplacementClientHandler?.WasDisposed, Is.True);
+                Assert.That(connection.HasApiClient, Is.False);
+                Assert.That(connection.HasSubscriptionClient, Is.False);
+            });
+
+            Assert.Throws<ObjectDisposedException>(() => connection.GetSubscription<object>(
+                _ => { }, _ => { }, "subscription"));
         }
 
         private sealed class TestGraphQlApiConnection : GraphQlApiConnection
@@ -67,6 +120,7 @@ namespace FWO.Test
             { }
 
             public int SubscriptionCount => subscriptions.Count;
+            public ApiSubscription? FirstSubscription => subscriptions.Count > 0 ? subscriptions[0] : null;
 
             public void AddSubscription(ApiSubscription subscription)
             {
@@ -74,19 +128,98 @@ namespace FWO.Test
             }
         }
 
+        private sealed class RaceTestGraphQlApiConnection : GraphQlApiConnection
+        {
+            private bool blockReplacementClient;
+            private readonly TaskCompletionSource<bool> allowReplacementCreation = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public RaceTestGraphQlApiConnection() : base("http://localhost")
+            { }
+
+            public TaskCompletionSource<bool> ReplacementCreationStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            public TrackingHandler? ReplacementClientHandler { get; private set; }
+            public int SubscriptionCount => subscriptions.Count;
+            public bool HasApiClient => GetPrivateClient("graphQlClient") != null;
+            public bool HasSubscriptionClient => GetPrivateSubscriptionClient() != null;
+
+            public void AddSubscription(ApiSubscription subscription)
+            {
+                subscriptions.Add(subscription);
+            }
+
+            public void BlockReplacementClient()
+            {
+                blockReplacementClient = true;
+            }
+
+            public void AllowReplacementCreation()
+            {
+                allowReplacementCreation.SetResult(true);
+            }
+
+            protected override GraphQLHttpClient CreateSubscriptionClient(string apiServerUri)
+            {
+                if (blockReplacementClient)
+                {
+                    blockReplacementClient = false;
+                    ReplacementCreationStarted.SetResult(true);
+                    allowReplacementCreation.Task.GetAwaiter().GetResult();
+                }
+
+                ReplacementClientHandler = new TrackingHandler();
+                return new GraphQLHttpClient(
+                    new GraphQLHttpClientOptions
+                    {
+                        EndPoint = new Uri(apiServerUri),
+                        HttpMessageHandler = ReplacementClientHandler
+                    },
+                    new SystemTextJsonSerializer());
+            }
+
+            private GraphQLHttpClient? GetPrivateSubscriptionClient()
+            {
+                return GetPrivateClient("graphQlSubscriptionClient");
+            }
+
+            private GraphQLHttpClient? GetPrivateClient(string fieldName)
+            {
+                return typeof(GraphQlApiConnection)
+                    .GetField(fieldName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?.GetValue(this) as GraphQLHttpClient;
+            }
+        }
+
+        private sealed class TrackingHandler : HttpMessageHandler
+        {
+            public bool WasDisposed { get; private set; }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                WasDisposed = true;
+                base.Dispose(disposing);
+            }
+        }
+
         private class FirstSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new FirstSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class DerivedFirstSubscription : FirstSubscription
@@ -96,9 +229,27 @@ namespace FWO.Test
         {
             public int DisposeCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new SecondSubscription();
+                RebindCount++;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                DisposeCount++;
+            }
+
+            public int RebindCount { get; private set; }
+        }
+
+        private sealed class TrackingSubscription : ApiSubscription
+        {
+            public int DisposeCount { get; private set; }
+            public int RebindCount { get; private set; }
+
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
+            {
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -107,15 +258,14 @@ namespace FWO.Test
             }
         }
 
-        private sealed class TrackingSubscription : ApiSubscription
+        private sealed class RebindableSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
-            public int RecreateCount { get; private set; }
+            public int RebindCount { get; private set; }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                RecreateCount++;
-                return new TrackingSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)

@@ -839,8 +839,11 @@
         {
             return;
         }
-        NotificationIds.Add(notificationId);
-        await NotificationIdsChanged.InvokeAsync(NotificationIds);
+
+        List<int> updatedIds = NotificationIds.ToList();
+        updatedIds.Add(notificationId);
+        NotificationIds = updatedIds;
+        await NotificationIdsChanged.InvokeAsync(updatedIds);
     }
 
     private async Task RemoveNotificationId(int notificationId)
@@ -849,7 +852,9 @@
         {
             return;
         }
-        NotificationIds.Remove(notificationId);
-        await NotificationIdsChanged.InvokeAsync(NotificationIds);
+
+        List<int> updatedIds = [.. NotificationIds.Where(id => id != notificationId)];
+        NotificationIds = updatedIds;
+        await NotificationIdsChanged.InvokeAsync(updatedIds);
     }
 }

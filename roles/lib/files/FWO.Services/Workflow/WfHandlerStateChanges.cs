@@ -67,21 +67,25 @@ namespace FWO.Services.Workflow
 
         public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
         {
+            bool emailBundleStarted = false;
             try
             {
-                if (await PromoteTicket(ticket))
+                if (!await PromoteTicket(ticket))
                 {
-                    BeginWorkflowEmailBundle();
-                    if (await UpdateRequestTasksFromTicket(false))
-                    {
-                        EndWorkflowEmailBundle();
-                        await UpdateActTicketStateFromReqTasks();
-                    }
-                    else
-                    {
-                        ClearWorkflowEmailBundle();
-                    }
+                    return false;
                 }
+
+                BeginWorkflowEmailBundle();
+                emailBundleStarted = true;
+
+                bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket(false);
+                if (requestTaskActionsChangedState)
+                {
+                    await UpdateActTicketStateFromReqTasks();
+                }
+
+                EndWorkflowEmailBundle();
+                await ActionHandler!.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
                 return true;
             }
             catch (Exception exception)
@@ -90,7 +94,10 @@ namespace FWO.Services.Workflow
             }
             finally
             {
-                ClearWorkflowEmailBundle();
+                if (emailBundleStarted)
+                {
+                    ClearWorkflowEmailBundle();
+                }
             }
             return false;
         }

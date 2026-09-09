@@ -30,6 +30,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
         private static readonly ConcurrentDictionary<string, WorkflowEmailBundleCollector> WorkflowEmailBundles = new();
+        private static readonly TimeSpan kWorkflowEmailBundleMaxAge = TimeSpan.FromMinutes(30);
         private static readonly List<string> kNoGroups = [];
 
         /// <summary>
@@ -175,6 +176,11 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            if (parameters.EmailBundleFlushOnly)
+            {
+                return await FlushEmailBundleOnly(wfHandler, parameters, result);
+            }
+
             (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
             if (statefulObject == null)
             {
@@ -207,7 +213,7 @@ namespace FWO.Middleware.Server.Controllers
             {
                 if (parameters.EmailBundleEnd && emailBundleCollector != null)
                 {
-                    WorkflowEmailBundles.TryRemove(parameters.EmailBundleId, out _);
+                    WorkflowEmailBundles.TryRemove(WorkflowEmailBundleKey(parameters), out _);
                 }
             }
             if (result.Success)
@@ -217,14 +223,63 @@ namespace FWO.Middleware.Server.Controllers
             return result;
         }
 
-        private static WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters)
+        private static async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters, WorkflowActionResult result)
         {
-            if (string.IsNullOrWhiteSpace(parameters.EmailBundleId))
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, false);
+            if (emailBundleCollector == null)
+            {
+                result.Success = true;
+                return result;
+            }
+
+            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+            try
+            {
+                await wfHandler.ActionHandler.FlushEmailBundleCollector();
+                result.Success = true;
+            }
+            finally
+            {
+                WorkflowEmailBundles.TryRemove(WorkflowEmailBundleKey(parameters), out _);
+            }
+            return result;
+        }
+
+        private static WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, bool createWhenMissing = true)
+        {
+            if (!Guid.TryParseExact(parameters.EmailBundleId, "N", out _))
             {
                 return null;
             }
 
-            return WorkflowEmailBundles.GetOrAdd(parameters.EmailBundleId, _ => new WorkflowEmailBundleCollector());
+            CleanupExpiredWorkflowEmailBundles();
+
+            string key = WorkflowEmailBundleKey(parameters);
+            if (!createWhenMissing)
+            {
+                return WorkflowEmailBundles.TryGetValue(key, out WorkflowEmailBundleCollector? collector) ? collector : null;
+            }
+
+            WorkflowEmailBundleCollector result = WorkflowEmailBundles.GetOrAdd(key, _ => new WorkflowEmailBundleCollector());
+            result.Touch();
+            return result;
+        }
+
+        private static string WorkflowEmailBundleKey(WorkflowActionParameters parameters)
+        {
+            return $"{parameters.TicketId}:{parameters.EmailBundleId}";
+        }
+
+        private static void CleanupExpiredWorkflowEmailBundles()
+        {
+            DateTime threshold = DateTime.UtcNow.Subtract(kWorkflowEmailBundleMaxAge);
+            foreach (KeyValuePair<string, WorkflowEmailBundleCollector> bundle in WorkflowEmailBundles)
+            {
+                if (bundle.Value.LastTouchedAt < threshold)
+                {
+                    WorkflowEmailBundles.TryRemove(bundle.Key, out _);
+                }
+            }
         }
 
         private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,

@@ -6,11 +6,21 @@ namespace FWO.Services.Workflow
     public sealed class WorkflowEmailBundleCollector
     {
         public bool IsFlushing { get; set; }
+        public DateTime LastTouchedAt { get; private set; } = DateTime.UtcNow;
         public List<WorkflowEmailBundleItem> PendingItems { get; } = [];
 
         public void Add(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
         {
+            Touch();
             PendingItems.Add(new WorkflowEmailBundleItem(action, requestTask, owner, userGrpDn));
+        }
+
+        /// <summary>
+        /// Updates the collector activity timestamp for expiry cleanup.
+        /// </summary>
+        public void Touch()
+        {
+            LastTouchedAt = DateTime.UtcNow;
         }
     }
 

@@ -127,8 +127,14 @@
 
     private async Task SetActionNotificationIds(List<int> notificationIds)
     {
+        List<int> distinctNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+        if (distinctNotificationIds.Count == 0 && CanPersistNotificationIdsImmediately())
+        {
+            throw new InvalidOperationException(userConfig.GetText("E4011"));
+        }
+
         List<int> previousNotificationIds = [.. actActionNotificationIds];
-        actActionNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
+        actActionNotificationIds = distinctNotificationIds;
 
         temporaryNotificationIds.AddRange(
             actActionNotificationIds

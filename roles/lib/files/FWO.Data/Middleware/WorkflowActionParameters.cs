@@ -15,6 +15,7 @@ namespace FWO.Data.Middleware
         public string ExecutionMode { get; set; } = "";
         public string EmailBundleId { get; set; } = "";
         public bool EmailBundleEnd { get; set; }
+        public bool EmailBundleFlushOnly { get; set; }
     }
 
     public class WorkflowActionResult

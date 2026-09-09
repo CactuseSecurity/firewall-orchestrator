@@ -330,6 +330,37 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Requests a middleware-side flush for the active workflow email bundle.
+        /// </summary>
+        public async Task FlushWorkflowEmailBundleInMiddleware(long ticketId)
+        {
+            if (wfHandler.MiddlewareClient == null || string.IsNullOrWhiteSpace(wfHandler.WorkflowEmailBundleId))
+            {
+                return;
+            }
+
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = ticketId,
+                TicketId = ticketId,
+                Phase = wfHandler.Phase.ToString(),
+                ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                EmailBundleId = wfHandler.WorkflowEmailBundleId,
+                EmailBundleEnd = true,
+                EmailBundleFlushOnly = true
+            };
+
+            RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient.ExecuteWorkflowActions(parameters);
+            DisplayWorkflowActionMessages(response.Data?.Messages);
+            if (!response.IsSuccessful || response.Data?.Success != true)
+            {
+                string details = response.Data?.ErrorMessage ?? response.ErrorMessage ?? response.Content ?? "";
+                throw new InvalidOperationException($"Middleware email bundle flush failed. {details}");
+            }
+        }
+
         private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
         {
             foreach (WorkflowActionMessage message in messages ?? [])

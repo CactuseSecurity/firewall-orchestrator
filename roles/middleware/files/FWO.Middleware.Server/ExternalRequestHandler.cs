@@ -274,12 +274,30 @@ namespace FWO.Middleware.Server
                     };
                 }
             }
-            catch
+            catch (Exception exception)
             {
-                if (!await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector))
+                Log.WriteError("CreateNextRequest",
+                    $"Create next request failed for ticket {state.Ticket.Id}. Trying to flush pending internal work emails before rethrowing.",
+                    exception);
+
+                bool flushed = false;
+                try
                 {
-                    return false;
+                    flushed = await FlushInternalWorkEmailBundle(state.Ticket.Id, emailBundleCollector);
                 }
+                catch (Exception flushException)
+                {
+                    Log.WriteError("CreateNextRequest",
+                        $"Flush of pending internal work emails also failed for ticket {state.Ticket.Id}.",
+                        flushException);
+                }
+
+                if (!flushed)
+                {
+                    Log.WriteError("CreateNextRequest",
+                        $"Pending internal work emails could not be flushed for ticket {state.Ticket.Id}. Original exception will be rethrown.");
+                }
+
                 throw;
             }
         }

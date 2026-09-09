@@ -84,29 +84,15 @@
 # over it rather than reporting nothing to do. That is the state every upgrade that was
 # interrupted before these services were installed is left in, so the re-run that was meant to
 # finish the upgrade aborted here instead - as does the first upgrade of a host that joins the
-# middlewareserver or frontends group only now. Both unit directories are searched because
-# units written before release 11.0 still live in the vendor directory until the finalize role
-# relocates them. The Hasura service below is not covered by this: it tolerates a missing unit
-# already, and its name is only settled by the detection above.
-- name: collect the installed middleware and UI service units
-  stat:
-    path: "{{ item.1 }}/{{ item.0 }}.service"
-  loop: "{{ [product_name ~ '-middleware', product_name ~ '-ui'] | product(fworch_systemd_unit_search_dirs) | list }}"
-  register: api_csharp_service_units
-  when: installation_mode == "upgrade"
-
-# item is a [service name, unit directory] pair produced by the product() loop above
-- name: derive which middleware and UI services are installed
-  set_fact:
-    api_installed_csharp_services: >-
-      {{
-        api_csharp_service_units.results
-        | selectattr('stat.exists')
-        | map(attribute='item')
-        | map('first')
-        | unique
-        | list
-      }}
+# middlewareserver or frontends group only now. A masked unit is the same problem from the other
+# side: its unit file exists, so looking for the file would say "installed", while stopping it
+# fails. Asking systemd what it has loaded answers both, and fworch_installed_services applies
+# the same rule here, in roles/common and in roles/internalCA. The Hasura service below is not
+# covered by this: it tolerates a missing unit already, and its name is only settled by the
+# detection above.
+- name: look up the services installed on this host
+  service_facts:
+  become: true
   when: installation_mode == "upgrade"
 
 - name: stop MW for upgrading
@@ -117,7 +103,7 @@
   when:
     - "'middlewareserver' in group_names"
     - installation_mode == 'upgrade'
-    - product_name ~ '-middleware' in api_installed_csharp_services
+    - (middleware_service_name ~ '.service') in fworch_installed_services
 
 - name: stop API service for upgrading
   ansible.builtin.systemd:
@@ -173,7 +159,7 @@
   when:
     - "'frontends' in group_names"
     - installation_mode == 'upgrade'
-    - product_name ~ '-ui' in api_installed_csharp_services
+    - (product_name ~ '-ui.service') in fworch_installed_services
 
 - name: check for api dir
   stat:

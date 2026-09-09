@@ -123,6 +123,36 @@ fworch_systemd_unit_names: >-
 # restart delay for all fworch services - long enough to keep a service that waits for a
 # dependency from running into the default systemd start rate limit
 fworch_systemd_restart_sec: 10
+
+# The unit states in which systemd knows a unit name but cannot stop or restart it. A unit name is
+# not a unit: systemd lists every name a loaded unit merely references - the ui and importer units
+# name the middleware in After=, all three name apache and slapd - and service_facts reports those
+# names with status "not-found" like any other service, so testing for the bare name finds services
+# that do not exist on this host. A masked unit does exist but refuses both stop and restart. Either
+# one fails the whole run ("Could not find the requested service" / "Unit is masked"), which is not
+# a corner case: on a distributed installation the middleware is exactly such a name on the ui host.
+# ansible-core's own service_facts module keeps the same two states in its BAD_STATES constant.
+# "failed" is deliberately absent - a failed unit is installed and restarting it is the point.
+fworch_unusable_unit_states:
+  - not-found
+  - masked
+# The services really installed on this host, as ".service" names. Read by roles/api and
+# roles/common to decide which services an upgrade can stop, and by roles/internalCA to decide
+# which certificate consumers it can restart. Global rather than a role fact, so those three
+# answer the question the same way instead of each carrying its own approximation of it.
+#
+# Evaluated where it is referenced, so every caller has to have run service_facts first - the
+# indirection through fworch_service_facts is what lets roles/tests-integration drive the
+# expression against a fixture instead of the live host.
+fworch_service_facts: "{{ ansible_facts['services'] | default({}) }}"
+fworch_installed_services: >-
+  {{
+    fworch_service_facts.values()
+    | selectattr('status', 'defined')
+    | rejectattr('status', 'in', fworch_unusable_unit_states)
+    | map(attribute='name')
+    | list
+  }}
 # start rate limit for all fworch services. the window is wide and the burst is high on purpose:
 # a service that only waits for a dependency has to survive the whole startup phase, while a
 # service that keeps crashing - out of memory, bad configuration - has to end up in a visible
@@ -448,6 +478,23 @@ fwo_ldap_tls_opts: >-
 ldap_verify_certs: >-
   {{ openldap_server_enable_ssl | default(false) | bool }}
 ldap_module_ca_path: "{{ internalca_trust_bundle if ldap_verify_certs | bool else omit }}"
+
+# The libldap client configuration every ldap tool on this host reads, and the copy of it that
+# predates FWO. Global rather than a roles/openldap-server var: that role renders the file, but
+# roles/common has to put the original back on uninstall, and a role var is out of scope there -
+# which is also why the directory is re-derived here instead of reusing openldap_server_app_path.
+#
+# The uninstall has to undo this file. It points TLS_CACERT at the trust bundle inside
+# {{ fworch_home }}, which the uninstall deletes, and libldap treats a CA file it cannot read as
+# fatal - so leaving the file behind breaks every LDAP TLS client on the host, FWO's own or not,
+# with a bare "No such file or directory". No FWO release re-renders it either, so installing an
+# older one afterwards does not repair it.
+openldap_client_config_dir: "{{ '/etc/openldap' if ansible_facts['os_family'] == 'RedHat' else '/etc/ldap' }}"
+openldap_client_config: "{{ openldap_client_config_dir }}/ldap.conf"
+openldap_client_config_backup: "{{ openldap_client_config }}.{{ product_name }}-orig"
+# Present in the rendered file only, so the installer can tell its own output from a file it must
+# not adopt as the original. Must stay in step with templates/ldap.conf.j2.
+openldap_client_config_marker: "Managed by the {{ product_name }} installer"
 
 # middleware web server
 middleware_web_listener_port: 8888

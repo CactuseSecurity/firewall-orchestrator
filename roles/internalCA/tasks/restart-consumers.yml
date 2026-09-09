@@ -21,24 +21,10 @@
   service_facts:
   become: true
 
-# A unit name is not a unit. systemd knows every name a loaded unit references - the ui and
-# importer units name the middleware in After=, all three name apache and slapd - and lists
-# those names with LoadState=not-found, which service_facts reports like any other service.
-# Testing for the key alone therefore finds services that do not exist on this host - on a
-# stock Ubuntu box, 84 of the 442 services reported are such names - and the restart then
-# fails the whole run with "Could not find the requested service". That is not a corner
-# case: on a distributed installation the middleware is exactly such a name on the ui host.
-# The module's own documentation tests status for this reason.
-- name: Keep the services that are really installed on this host
-  set_fact:
-    internalca_installed_services: >-
-      {{
-        ansible_facts.services.values()
-        | selectattr('status', 'defined')
-        | rejectattr('status', 'equalto', 'not-found')
-        | map(attribute='name')
-        | list
-      }}
+# Which of the names service_facts returned are really installed here is decided by
+# fworch_installed_services in inventory/group_vars/all.yml - a name systemd only knows from
+# another unit's After=, and a masked unit, are both excluded there. The same expression decides
+# which services an upgrade may stop in roles/api and roles/common.
 
 - name: Reload Apache after its server identity was renewed
   systemd:
@@ -47,7 +33,7 @@
   become: true
   when:
     - internalca_apache_identity_changed | default(false) | bool
-    - (webserver_package_name ~ '.service') in internalca_installed_services
+    - (webserver_package_name ~ '.service') in fworch_installed_services
 
 - name: Restart slapd after its server identity was renewed
   systemd:
@@ -56,7 +42,7 @@
   become: true
   when:
     - internalca_ldap_identity_changed | default(false) | bool
-    - "'slapd.service' in internalca_installed_services"
+    - "'slapd.service' in fworch_installed_services"
 
 - name: Restart the middleware after its client identity was renewed
   systemd:
@@ -65,7 +51,7 @@
   become: true
   when:
     - internalca_client_identity_changed | default(false) | bool
-    - (middleware_service_name ~ '.service') in internalca_installed_services
+    - (middleware_service_name ~ '.service') in fworch_installed_services
 
 - name: Restart the UI after its client identity was renewed
   systemd:
@@ -75,4 +61,4 @@
   when:
     - internalca_client_identity_changed | default(false) | bool
     - ui_service_name is defined
-    - (ui_service_name ~ '.service') in internalca_installed_services
+    - (ui_service_name ~ '.service') in fworch_installed_services

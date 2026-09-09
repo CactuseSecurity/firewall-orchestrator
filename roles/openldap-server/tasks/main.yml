@@ -30,10 +30,46 @@
 # file - and the trust anchor documentation/certificates.md says it carries -
 # without effect. Written in both installation modes: an upgrade changes the
 # anchor from the old self-signed leaf to the internal CA.
+- name: Check the ldap client defaults currently on this host
+  stat:
+      path: "{{ openldap_client_config }}"
+  register: openldap_client_config_present
+  become: true
+  tags: ["test", "integrationtests"]
+
+- name: Read the ldap client defaults currently on this host
+  slurp:
+      src: "{{ openldap_client_config }}"
+  register: openldap_client_config_content
+  become: true
+  when: openldap_client_config_present.stat.exists
+  tags: ["test", "integrationtests"]
+
+# Saved before the file below replaces it, so the uninstall can put it back instead of leaving
+# TLS_CACERT pointing into the deleted {{ fworch_home }} - see openldap_client_config in
+# inventory/group_vars/all.yml for why that matters. force=false keeps the first copy taken, so a
+# later run cannot overwrite the original with FWO's own output; the marker test is what stops an
+# installation upgrading from a release that already rendered the file from adopting that output
+# as its original in the first place. Such a host simply has no pristine copy, and the uninstall
+# removes the rendered file rather than restoring one.
+- name: Preserve the ldap client defaults that predate {{ product_name }}
+  copy:
+      content: "{{ openldap_client_config_content.content | b64decode }}"
+      dest: "{{ openldap_client_config_backup }}"
+      force: false
+      owner: root
+      group: root
+      mode: "0644"
+  become: true
+  when:
+      - openldap_client_config_present.stat.exists
+      - openldap_client_config_marker not in (openldap_client_config_content.content | b64decode)
+  tags: ["test", "integrationtests"]
+
 - name: Configure system wide ldap client defaults
   template:
       src: ldap.conf.j2
-      dest: "{{ openldap_server_app_path }}/ldap.conf"
+      dest: "{{ openldap_client_config }}"
       owner: root
       group: root
       mode: "0644"

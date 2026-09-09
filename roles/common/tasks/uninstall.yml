@@ -134,14 +134,17 @@
   become: true
   when: ansible_facts['os_family'] == 'Debian'
 
+# --fresh, and unconditional. Deciding this on whether *this* run removed an anchor loses the
+# refresh for good as soon as one is removed without it: the extracted copy in /etc/ssl/certs and
+# its hash link outlive the anchor they were derived from, the next uninstall finds the source
+# already gone and reports no change, and the host is left with a dangling FWO anchor in its trust
+# store forever. --fresh is what reconciles the extracted store with the sources rather than only
+# adding to it, and on an uninstall there is nothing left to preserve by being incremental.
 - name: Refresh Debian CA trust store after removing FWO CA certificates
-  command: update-ca-certificates
+  command: update-ca-certificates --fresh
+  changed_when: false
   become: true
-  when:
-    - ansible_facts['os_family'] == 'Debian'
-    - >-
-      internalca_debian_ca_anchor_removed.changed
-      or internalca_debian_peer_ca_anchor_removed.changed | default(false)
+  when: ansible_facts['os_family'] == 'Debian'
 
 - name: Remove internal CA from RedHat trust store
   file:
@@ -159,14 +162,61 @@
   become: true
   when: ansible_facts['os_family'] == 'RedHat'
 
+# Unconditional for the same reason as the Debian refresh above; "extract" already rebuilds the
+# whole extracted store from the configured sources, so it needs no equivalent of --fresh.
 - name: Refresh RedHat CA trust store after removing FWO CA certificates
   command: update-ca-trust extract
+  changed_when: false
+  become: true
+  when: ansible_facts['os_family'] == 'RedHat'
+
+- name: Look for the preserved ldap client defaults
+  stat:
+    path: "{{ openldap_client_config_backup }}"
+  register: openldap_client_config_saved
+  become: true
+
+- name: Read the ldap client defaults before removing {{ product_name }}
+  slurp:
+    src: "{{ openldap_client_config }}"
+  register: openldap_client_config_removal_content
+  failed_when: false
+  become: true
+
+# The rendered file points TLS_CACERT at the trust bundle below {{ fworch_home }}, which this
+# uninstall deletes, and libldap treats a CA file it cannot read as fatal - so leaving it behind
+# breaks every LDAP TLS client on the host with a bare "No such file or directory", FWO's own or
+# not, and no FWO release re-renders the file to repair it. Where the installer preserved the
+# distribution's copy it goes back; where it could not, the rendered file is removed and libldap
+# falls back to its built-in defaults until the package manager restores the conffile. A file
+# without the marker was never FWO's and is left untouched.
+- name: Restore the ldap client defaults that predate {{ product_name }}
+  copy:
+    src: "{{ openldap_client_config_backup }}"
+    dest: "{{ openldap_client_config }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: openldap_client_config_saved.stat.exists
+
+- name: Remove the preserved ldap client defaults once they are restored
+  file:
+    path: "{{ openldap_client_config_backup }}"
+    state: absent
+  become: true
+  when: openldap_client_config_saved.stat.exists
+
+- name: Remove the ldap client defaults {{ product_name }} rendered
+  file:
+    path: "{{ openldap_client_config }}"
+    state: absent
   become: true
   when:
-    - ansible_facts['os_family'] == 'RedHat'
-    - >-
-      internalca_redhat_ca_anchor_removed.changed
-      or internalca_redhat_peer_ca_anchor_removed.changed | default(false)
+    - not openldap_client_config_saved.stat.exists
+    - openldap_client_config_removal_content.content is defined
+    - openldap_client_config_marker in (openldap_client_config_removal_content.content | b64decode)
 
 - name: include uninstall package tasks for current OS family
   include_tasks: "os/uninstall-packages.{{ ansible_facts['os_family'] }}.yml"

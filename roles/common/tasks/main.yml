@@ -355,14 +355,14 @@
     # run over it rather than reporting nothing to do. That is the state every upgrade that
     # was interrupted before the importer role ran is left in, so the re-run that was meant
     # to finish the upgrade aborted here instead - as does the first upgrade of a host that
-    # joins the importers group only now. Both unit directories are searched because units
-    # written before release 11.0 still live in the vendor directory until the finalize role
-    # relocates them.
-    - name: collect the installed importer service unit
-      stat:
-        path: "{{ item }}/{{ product_name }}-importer-api.service"
-      loop: "{{ fworch_systemd_unit_search_dirs }}"
-      register: importer_api_service_units
+    # joins the importers group only now. A masked unit is the same problem from the other
+    # side: its unit file exists, so looking for the file would say "installed", while
+    # stopping it fails. Asking systemd what it has loaded answers both, and
+    # fworch_installed_services applies the same rule here, in roles/api and in
+    # roles/internalCA.
+    - name: look up the services installed on this host
+      service_facts:
+      become: true
       when: "inventory_hostname in groups['importers'] and installation_mode == 'upgrade'"
 
     - name: stop fw importer service before making any changes
@@ -373,7 +373,7 @@
       when:
         - inventory_hostname in groups['importers']
         - installation_mode == 'upgrade'
-        - importer_api_service_units.results | selectattr('stat.exists') | list | length > 0
+        - (product_name ~ '-importer-api.service') in fworch_installed_services
             
     - name: stop importer service before making any changes
       systemd:

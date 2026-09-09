@@ -471,7 +471,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Duplicate Zone Names"));
                 Assert.That(result, Does.Contain("Could not resolve devices"));
-                Assert.That(result, Does.Contain("in subnet with start Ip 198.51.100.0/24"));
+                Assert.That(result, Does.Contain("in subnet 198.51.100.0/24"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
             });
         }

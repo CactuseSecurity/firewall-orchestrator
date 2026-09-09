@@ -543,6 +543,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
     <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
     <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
+    <li>F&uuml;r einzelne Rollen kann die Sichtbarkeit jedes Reporttyps auf sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten) gesetzt werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -560,6 +561,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
     <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
     <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
+    <li>For individual roles, the visibility of each report type can be set to visible, not visible, or inherited (from the default behaviour).</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3302,6 +3304,16 @@ INSERT INTO txt VALUES ('select_file',          'German',   'Datei ausw&auml;hle
 INSERT INTO txt VALUES ('select_file',          'English',  'Select file');
 INSERT INTO txt VALUES ('availableReportTypes', 'German', 	'Verf&uuml;gbare Reporttypen');
 INSERT INTO txt VALUES ('availableReportTypes', 'English', 	'Available Report Types');
+INSERT INTO txt VALUES ('reportTypeVisibilityByRole', 'German', 	'Reporttyp-Sichtbarkeit je Rolle');
+INSERT INTO txt VALUES ('reportTypeVisibilityByRole', 'English', 	'Report Type Visibility by Role');
+INSERT INTO txt VALUES ('role', 'German', 	'Rolle');
+INSERT INTO txt VALUES ('role', 'English', 	'Role');
+INSERT INTO txt VALUES ('inherited', 'German', 	'Geerbt');
+INSERT INTO txt VALUES ('inherited', 'English', 	'Inherited');
+INSERT INTO txt VALUES ('visible', 'German', 	'Sichtbar');
+INSERT INTO txt VALUES ('visible', 'English', 	'Visible');
+INSERT INTO txt VALUES ('not_visible', 'German', 	'Nicht sichtbar');
+INSERT INTO txt VALUES ('not_visible', 'English', 	'Not Visible');
 INSERT INTO txt VALUES ('varianceAnalysisSync', 'German',   'Synchroner Soll-Ist-Abgleich');
 INSERT INTO txt VALUES ('varianceAnalysisSync', 'English',  'Synchroneous Variance Analysis');
 INSERT INTO txt VALUES ('varianceAnalysisRefresh','German', 'Soll-Ist-Abgleich auf Schaltfl&auml;che');
@@ -6535,6 +6547,8 @@ INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
 INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt fest, wer in welchem Zeitintervall vor dem Rezert-Termin benachrichtigt wird.');
 INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines who will be notified in which time interval before the recert deadline.');
+INSERT INTO txt VALUES ('H5460', 'German',  'Reporttyp-Sichtbarkeit je Rolle: F&uuml;r eine ausgew&auml;hlte Rolle kann je Reporttyp festgelegt werden, ob dieser sichtbar, nicht sichtbar oder geerbt (vom Standardverhalten der verf&uuml;gbaren Reporttypen) sein soll. Diese Einstellung schr&auml;nkt die Liste der verf&uuml;gbaren Reporttypen zus&auml;tzlich f&uuml;r Nutzer der jeweiligen Rolle ein bzw. erweitert sie.');
+INSERT INTO txt VALUES ('H5460', 'English', 'Report Type Visibility by Role: For a selected role, each report type can be set to visible, not visible or inherited (from the default behaviour of the available report types). This setting additionally restricts or extends the list of available report types for users of the respective role.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>

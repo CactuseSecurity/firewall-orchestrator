@@ -3,6 +3,7 @@
 @using System.Text.Json.Serialization
 @using FWO.Api.Client.Queries
 @using FWO.Data.Report
+@using FWO.Middleware.Client
 @using FWO.Ui.Services
 @using FWO.Basics
 
@@ -12,6 +13,7 @@
 @inject ApiConnection apiConnection
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
+@inject MiddlewareClient middlewareClient
 
 <div class="input-group">
     <h3>@(userConfig.GetText("report_settings"))</h3>
@@ -89,12 +91,64 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5455"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("availableReportTypes")):</label>
             <div class="form-group row col-sm-9">
-                @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(new[] { ReportType.Undefined }))
+                @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
                 {
                     <div class="form-group col-sm-3">
                         <input id="cbx_@type.ToString()" type="checkbox" @bind="reportTypesActiveDict[type]" />
                         <label for="cbx_@type.ToString()" class="col-form-label">@(userConfig.GetText(type.ToString()))</label>
                     </div>
+                }
+            </div>
+        </div>
+        <hr />
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5460"))">
+            <label class="col-form-label col-sm-3">@(userConfig.GetText("reportTypeVisibilityByRole")):</label>
+            <div class="col-sm-9">
+                @if (availableRoles.Count > 0)
+                {
+                    <div class="form-group row mb-2">
+                        <label class="col-form-label col-sm-2">@(userConfig.GetText("role")):</label>
+                        <div class="col-sm-4">
+                            <select class="form-select form-select-sm" @bind="selectedRole">
+                                <option value=""></option>
+                                @foreach (string role in availableRoles)
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(selectedRole) && reportTypeVisibilityByRole.TryGetValue(selectedRole, out Dictionary<ReportType, ReportTypeVisibilityOption>? visibilityForRole))
+                    {
+                        @foreach (ReportType type in ReportTypeGroups.ReportTypeSelection().Except(ExcludedReportTypesForSelection))
+                        {
+                            <div class="form-group row col-sm-12 mt-1">
+                                <label class="col-form-label col-sm-4">@(userConfig.GetText(type.ToString()))</label>
+                                <div class="col-sm-4">
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="ReportTypeVisibility_@(type)">
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_inherited" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Inherited)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Inherited">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_inherited">@(userConfig.GetText("inherited"))</label>
+
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_visible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.Visible)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.Visible">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_visible">@(userConfig.GetText("visible"))</label>
+
+                                        <input type="radio" class="btn-check" name="reportTypeVisibility_@(type)" autocomplete="off"
+                                               id="rtv_@(type)_notvisible" checked="@(visibilityForRole[type] == ReportTypeVisibilityOption.NotVisible)"
+                                               @oninput="() => visibilityForRole[type] = ReportTypeVisibilityOption.NotVisible">
+                                        <label class="btn btn-outline-primary three-state-button" for="rtv_@(type)_notvisible">@(userConfig.GetText("not_visible"))</label>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                }
+                else
+                {
+                    <Loading />
                 }
             </div>
         </div>
@@ -131,6 +185,20 @@ else
     private Dictionary<ReportType, bool> reportTypesActiveDict = [];
     private List<LegacyReportSchedulerConfig> legacyReportSchedulerConfigs = [];
     private bool ShowMigrateSchedulerConfigDialog;
+    private List<string> availableRoles = [];
+    private string selectedRole = "";
+    private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> reportTypeVisibilityByRole = [];
+
+    /// <summary>
+    /// The visibility overrides as last read from the database, keyed by every role that had an
+    /// override saved - not just the roles currently returned by LDAP. <see cref="reportTypeVisibilityByRole"/>
+    /// only covers <see cref="availableRoles"/> (which is empty if the LDAP lookup failed), so <see cref="Save"/>
+    /// merges into this instead of serializing <see cref="reportTypeVisibilityByRole"/> directly - otherwise a
+    /// transient LDAP failure would wipe out all previously saved overrides on the next unrelated Save.
+    /// </summary>
+    private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> savedReportTypeVisibilityByRole = [];
+
+    private static readonly ReportType[] ExcludedReportTypesForSelection = [ReportType.Undefined];
 
     protected override async Task OnInitializedAsync()
     {
@@ -146,11 +214,35 @@ else
             {
                 reportTypesActiveDict.Add(type, availableReportTypes.Contains(type));
             }
+
+            availableRoles = (await RoleAccess.GetRolesFromInternalLdap(middlewareClient)).Select(r => r.Name)
+                .Where(n => !RoleGroups.IsTechnicalOrAnonymous(n)).OrderBy(s => s).ToList();
+            selectedRole = "";
+            savedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(configData.ReportTypeVisibilityByRole);
+            reportTypeVisibilityByRole = BuildReportTypeVisibilityByRole(availableRoles, savedReportTypeVisibilityByRole);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    private static Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> BuildReportTypeVisibilityByRole(
+        List<string> roles, Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> saved)
+    {
+        Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> byRole = [];
+        foreach (string role in roles)
+        {
+            Dictionary<ReportType, ReportTypeVisibilityOption> byType = [];
+            saved.TryGetValue(role, out Dictionary<ReportType, ReportTypeVisibilityOption>? savedByType);
+            foreach (ReportType type in ReportTypeGroups.AllReportTypes())
+            {
+                byType[type] = savedByType != null && savedByType.TryGetValue(type, out ReportTypeVisibilityOption option)
+                    ? option : ReportTypeVisibilityOption.Inherited;
+            }
+            byRole[role] = byType;
+        }
+        return byRole;
     }
 
     private async Task Save()
@@ -168,6 +260,11 @@ else
                     }
                 }
                 configData.AvailableReportTypes = JsonSerializer.Serialize(availableReportTypes);
+                foreach (KeyValuePair<string, Dictionary<ReportType, ReportTypeVisibilityOption>> entry in reportTypeVisibilityByRole)
+                {
+                    savedReportTypeVisibilityByRole[entry.Key] = entry.Value;
+                }
+                configData.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(savedReportTypeVisibilityByRole);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
                 DisplayMessageInUi(null, userConfig.GetText("change_default"), userConfig.GetText("U5301"), false);

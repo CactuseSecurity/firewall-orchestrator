@@ -95,7 +95,7 @@ namespace FWO.Middleware.Server.Services
             var jobKey = new JobKey(JobKeyName);
             var triggerKey = new TriggerKey(TriggerKeyName);
 
-            if (await scheduler.CheckExists(jobKey))
+            if (await scheduler.Exists(jobKey))
             {
                 await scheduler.DeleteJob(jobKey);
                 Log.WriteInfo(SchedulerName, "Removed existing job");

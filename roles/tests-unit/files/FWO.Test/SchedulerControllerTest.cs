@@ -7,13 +7,33 @@ using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using NUnit.Framework;
 using Quartz;
-using Quartz.Impl.Matchers;
+using FWO.Middleware.Server.Jobs;
 
 namespace FWO.Test
 {
     [TestFixture]
     internal class SchedulerControllerTest
     {
+        /// <summary>
+        /// Verifies that Quartz interface callbacks update the execution result.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task JobListenerCallback_RecordsExecutionResult(bool failed)
+        {
+            JobExecutionTracker tracker = new();
+            IJobListener listener = tracker;
+            JobKey jobKey = new("tracked-job");
+            JobExecutionException? exception = failed ? new JobExecutionException("failure") : null;
+
+            await listener.JobWasExecuted(CreateExecutionContext(jobKey), exception);
+
+            JobExecutionResult? result = tracker.GetLastResult(jobKey.Name);
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.Success, Is.EqualTo(!failed));
+            Assert.That(result.ErrorMessage, Is.EqualTo(failed ? "failure" : ""));
+        }
+
         [Test]
         public async Task GetJobs_ReturnsSortedJobsWithExecutionDetails()
         {
@@ -26,15 +46,12 @@ namespace FWO.Test
 
             JobExecutionTracker tracker = new();
             await tracker.JobWasExecuted(CreateExecutionContext(alphaJob), null);
-            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom"), refireImmediately: false));
+            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom")) { RefireImmediately = false });
 
-            IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup(), CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<JobKey>>(new List<JobKey> { betaJob, alphaJob }));
-            scheduler.GetTriggersOfJob(alphaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateSimpleTrigger() }));
-            scheduler.GetTriggersOfJob(betaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateCronTrigger() }));
+            await using StandaloneSchedulerFactory schedulerFactory = QuartzSchedulerBuilder.Create().Build();
+            IScheduler scheduler = await schedulerFactory.GetScheduler();
+            await scheduler.ScheduleJob(JobBuilder.Create<ComplianceJob>().WithIdentity(alphaJob).Build(), CreateSimpleTrigger());
+            await scheduler.ScheduleJob(JobBuilder.Create<ComplianceJob>().WithIdentity(betaJob).Build(), CreateCronTrigger());
 
             SchedulerController controller = CreateController(scheduler, tracker);
 
@@ -70,8 +87,8 @@ namespace FWO.Test
         public async Task Run_ReturnsNotFoundWhenJobDoesNotExist()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("missing-job"), CancellationToken.None)
-                .Returns(Task.FromResult(false));
+            scheduler.Exists(new JobKey("missing-job"), CancellationToken.None)
+                .Returns(ValueTask.FromResult(false));
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
@@ -85,23 +102,23 @@ namespace FWO.Test
         public async Task Run_TriggersExistingJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.FromResult(true));
-            scheduler.TriggerJob(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.CompletedTask);
+            scheduler.Exists(new JobKey("trigger-job"), CancellationToken.None)
+                .Returns(ValueTask.FromResult(true));
+            scheduler.TriggerJob(new JobKey("trigger-job"), cancellationToken: CancellationToken.None)
+                .Returns(ValueTask.CompletedTask);
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
             ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters { JobName = "trigger-job" });
 
             Assert.That(result.Value, Is.True);
-            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), CancellationToken.None);
+            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), cancellationToken: CancellationToken.None);
         }
 
         private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)
         {
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(Task.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
             return new SchedulerController(schedulerFactory, tracker);
         }
 

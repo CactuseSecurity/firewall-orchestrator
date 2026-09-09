@@ -11,6 +11,7 @@ using NSubstitute;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using Quartz;
+using QuartzSchedulerOptions = FWO.Middleware.Server.Services.QuartzSchedulerOptions;
 using System.Globalization;
 
 namespace FWO.Test
@@ -21,7 +22,7 @@ namespace FWO.Test
     {
         private sealed class TestJob : IJob
         {
-            public Task Execute(IJobExecutionContext context) => Task.CompletedTask;
+            public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
         }
 
         private sealed class TestSchedulerService : QuartzSchedulerServiceBase<TestJob>
@@ -114,7 +115,7 @@ namespace FWO.Test
             IScheduler scheduler = Substitute.For<IScheduler>();
             await ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(Task.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -140,7 +141,7 @@ namespace FWO.Test
             IScheduler scheduler = Substitute.For<IScheduler>();
             await ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(Task.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -162,12 +163,12 @@ namespace FWO.Test
 
         private static Task ConfigureQuartzScheduler(IScheduler scheduler)
         {
-            scheduler.CheckExists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(false));
-            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
-            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(false));
-            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(true));
-            scheduler.ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(DateTimeOffset.Now));
-            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult(DateTimeOffset.Now));
+            scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(false));
+            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<AddJobOptions>(), Arg.Any<CancellationToken>()).Returns(ValueTask.CompletedTask);
+            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(false));
+            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(true));
+            scheduler.ScheduleJob(Arg.Any<ITrigger>(), cancellationToken: Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(DateTimeOffset.Now));
+            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), cancellationToken: Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(DateTimeOffset.Now));
             return Task.CompletedTask;
         }
 
@@ -175,7 +176,7 @@ namespace FWO.Test
         {
             try
             {
-                await scheduler.Received().ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<CancellationToken>());
+                await scheduler.Received().ScheduleJob(Arg.Any<ITrigger>(), cancellationToken: Arg.Any<CancellationToken>());
                 return scheduler.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob)
                     && call.GetArguments().Length > 0
                     && call.GetArguments()[0] is ITrigger);
@@ -190,7 +191,7 @@ namespace FWO.Test
         {
             try
             {
-                await scheduler.Received().ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<CancellationToken>());
+                await scheduler.Received().ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), cancellationToken: Arg.Any<CancellationToken>());
                 return scheduler.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob)
                     && call.GetArguments().Length > 1
                     && call.GetArguments()[0] is IJobDetail

@@ -6,7 +6,6 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Quartz;
-using Quartz.Impl.Matchers;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -46,14 +45,14 @@ namespace FWO.Middleware.Server.Controllers
             {
                 IReadOnlyCollection<ITrigger> triggers = await scheduler.GetTriggersOfJob(jobKey);
                 DateTimeOffset? nextFire = triggers
-                    .Select(trigger => trigger.GetNextFireTimeUtc())
+                    .Select(trigger => trigger.NextFireTimeUtc)
                     .Where(fireTime => fireTime.HasValue)
                     .Select(fireTime => (DateTimeOffset?)fireTime!.Value)
                     .OrderBy(fireTime => fireTime)
                     .FirstOrDefault();
 
                 DateTimeOffset? lastFire = triggers
-                    .Select(trigger => trigger.GetPreviousFireTimeUtc())
+                    .Select(trigger => trigger.PreviousFireTimeUtc)
                     .Where(fireTime => fireTime.HasValue)
                     .Select(fireTime => (DateTimeOffset?)fireTime!.Value)
                     .OrderByDescending(fireTime => fireTime)
@@ -106,7 +105,7 @@ namespace FWO.Middleware.Server.Controllers
             IScheduler scheduler = await schedulerFactory.GetScheduler();
             JobKey jobKey = new(parameters.JobName);
 
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 return NotFound("Job not found.");
             }

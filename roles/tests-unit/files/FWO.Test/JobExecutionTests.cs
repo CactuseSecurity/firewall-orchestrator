@@ -19,7 +19,7 @@ namespace FWO.Test
             EmptyListJobApiConnection apiConnection = new();
             AutoDiscoverJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getManagementsDetails));
@@ -31,7 +31,7 @@ namespace FWO.Test
             ThrowingJobApiConnection apiConnection = new();
             AutoDiscoverJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(DeviceQueries.getManagementsDetails));
@@ -49,7 +49,7 @@ namespace FWO.Test
             ThrowingJobApiConnection apiConnection = new();
             ComplianceJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(ConfigQueries.getConfigItemsByUser));
@@ -73,7 +73,7 @@ namespace FWO.Test
             };
             ImportAppDataJob job = new(apiConnection, globalConfig);
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(4));
             Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
@@ -94,7 +94,7 @@ namespace FWO.Test
             };
             ImportAppDataJob job = new(apiConnection, globalConfig);
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(1));
             Assert.That(apiConnection.Queries, Does.Contain(MonitorQueries.addLogEntry));
@@ -110,7 +110,7 @@ namespace FWO.Test
             ExternalRequestNoOpApiConnection apiConnection = new();
             ExternalRequestJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(ConfigQueries.getConfigItemsByUser));
@@ -124,7 +124,7 @@ namespace FWO.Test
             ThrowingJobApiConnection apiConnection = new();
             ExternalRequestJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            JobExecutionException? exception = Assert.ThrowsAsync<JobExecutionException>(async () => await job.Execute(null!));
+            JobExecutionException? exception = Assert.ThrowsAsync<JobExecutionException>(async () => await job.Execute(null!, CancellationToken.None));
             Assert.That(exception, Is.Not.Null);
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(1));
         }
@@ -143,7 +143,7 @@ namespace FWO.Test
             };
             ImportChangeNotifyJob job = new(apiConnection, globalConfig);
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(3));
             Assert.That(apiConnection.Queries, Does.Contain(ConfigQueries.getConfigItemsByUser));
@@ -156,7 +156,7 @@ namespace FWO.Test
             ThrowingJobApiConnection apiConnection = new();
             ImportChangeNotifyJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(3));
             Assert.That(apiConnection.Queries, Does.Contain(MonitorQueries.addLogEntry));
@@ -176,7 +176,7 @@ namespace FWO.Test
                 ImportSubnetDataPath = "[]"
             });
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(MonitorQueries.addDataImportLogEntry));
@@ -191,7 +191,7 @@ namespace FWO.Test
                 ImportSubnetDataPath = "{"
             });
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.GreaterThanOrEqualTo(1));
             Assert.That(apiConnection.Queries, Does.Contain(MonitorQueries.addLogEntry));
@@ -208,7 +208,7 @@ namespace FWO.Test
             EmptyListJobApiConnection apiConnection = new();
             VarianceAnalysisJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.getOwners));
         }
@@ -223,7 +223,7 @@ namespace FWO.Test
             EmptyListJobApiConnection apiConnection = new();
             UpdateRuleOwnerMappingJob job = new(apiConnection, new SimulatedGlobalConfig());
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Is.Empty);
         }
@@ -237,7 +237,7 @@ namespace FWO.Test
                 OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField
             });
 
-            await job.Execute(null!);
+            await job.Execute(null!, CancellationToken.None);
 
             Assert.That(apiConnection.Queries, Has.Count.EqualTo(3));
             Assert.That(apiConnection.Queries[0], Is.EqualTo(ImportQueries.getPendingRuleOwnerImports));

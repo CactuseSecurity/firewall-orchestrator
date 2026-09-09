@@ -150,13 +150,13 @@ namespace FWO.Middleware.Server.Services
             var triggerKey = new TriggerKey(options.TriggerKeyName);
 
             // Ensure durable job exists for manual triggering
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 IJobDetail durableJob = JobBuilder.Create<TJob>()
                     .WithIdentity(jobKey)
                     .StoreDurably()
                     .Build();
-                await scheduler.AddJob(durableJob, replace: true);
+                await scheduler.AddJob(durableJob, AddJobOptions.Replacing);
                 Log.WriteInfo(options.SchedulerName, "Added durable job for manual triggering");
             }
 

@@ -56,14 +56,14 @@ namespace FWO.Middleware.Server.Services
             var triggerKey = new TriggerKey(TriggerKeyName);
 
             // Ensure the job exists as a durable job (so it can be manually triggered)
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 IJobDetail durableJob = JobBuilder.Create<ReportJob>()
                     .WithIdentity(jobKey)
                     .StoreDurably()
                     .Build();
 
-                await scheduler.AddJob(durableJob, replace: true);
+                await scheduler.AddJob(durableJob, AddJobOptions.Replacing);
 
                 Log.WriteInfo(SchedulerName, "Added durable job for manual triggering");
             }
@@ -81,7 +81,7 @@ namespace FWO.Middleware.Server.Services
                 .ForJob(jobKey)
                 .StartNow()
                 .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(DefaultIntervalSeconds)
+                    .WithInterval(TimeSpan.FromSeconds(DefaultIntervalSeconds))
                     .RepeatForever())
                 .Build();
 

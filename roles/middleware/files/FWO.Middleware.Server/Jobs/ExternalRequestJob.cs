@@ -31,7 +31,7 @@ namespace FWO.Middleware.Server.Jobs
         /// <summary>
         /// Execute the job
         /// </summary>
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug(LogMessageTitle, "Job started");
 
@@ -55,7 +55,7 @@ namespace FWO.Middleware.Server.Jobs
                 await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, "External Request", GlobalConst.kExternalRequest, AlertCode.ExternalRequest, exc);
 
                 // Mark job as failed but don't refire immediately
-                throw new JobExecutionException(exc, refireImmediately: false);
+                throw new JobExecutionException(exc) { RefireImmediately = false };
             }
         }
 

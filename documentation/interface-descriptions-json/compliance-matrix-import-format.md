@@ -1,7 +1,7 @@
 # Compliance Matrix Import Interface
 
 The compliance matrix import creates or synchronizes a network-zone matrix from
-a JSON file. Upload the file under **Settings > Compliance > Matrix Import**.
+a JSON file. Upload the file under **Settings > Network Topology > Matrix**.
 See the complete
 [sample compliance matrix import](sample-compliance-matrix-import.json).
 
@@ -52,13 +52,13 @@ communications.
       "name": "Office network",
       "ip": "10.10.0.0/16",
       "path_to_root": [
-          { "mgmt_name": "cp-mgm-1", "device_name": "fw-access-01" },
-          { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" }
-        ],
-        "path_to_internet": [
-          { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" },
-          { "mgmt_name": "router-mgm", "device_name": "border-router-01" }
-        ]
+        { "mgmt_name": "cp-mgm-1", "device_name": "fw-access-01" },
+        { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" }
+      ],
+      "path_to_internet": [
+        { "mgmt_name": "cp-mgm-1", "device_name": "fw-core-01" },
+        { "mgmt_name": "router-mgm", "device_name": "border-router-01" }
+      ]
     }
   ],
   "communication_to": [
@@ -81,8 +81,8 @@ A subnet entry supports a single address, CIDR notation, or an inclusive range.
 | `name`             | string   | no       | Optional descriptive name for the address or range. |
 | `ip`               | string   | yes      | Single IP address, CIDR network, explicit `start-end` range, or the first address when `ip_end` is used. IPv4 and IPv6 are supported. |
 | `ip_end`           | string   | no       | Last address of an inclusive range. Omit it when `ip` contains a single address, CIDR network, or explicit range. |
-| `path_to_root`     | object[] | no       | Gateways on path from subnet to predefined root network. Used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm expects no gateways on path |
-| `path_to_internet` | object[] | no       | Gateways on path from subnet to internet as defined in settings. Used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm expects no gateways on path |
+| `path_to_root`     | object[] | no       | Gateways on path from subnet to predefined root network. Will be used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm will expect no gateways on path |
+| `path_to_internet` | object[] | no       | Gateways on path from subnet to internet as defined in settings. Will be used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm will expect no gateways on path |
 
 Valid examples are:
 
@@ -98,12 +98,14 @@ must not be greater than the end.
 
 ## Path Objects
 
-Both path_to_root and path_to_internet store lists of dicts with management and device name. They are ordered with list position, management and device name combination has to be known and unique in database. Duplicat devices per path result in an error.
+Both path_to_root and path_to_internet store lists of dicts with management and device name. They are ordered with list position, case sensitive management and device name combination has to be known and unique in database. Duplicate devices per path result in an error.
 
 | Field         | Type     | Required | Description |
 |---------------|----------|----------|-------------|
 | `mgmt_name`   | string   | yes      | Name of management of device |
 | `device_name` | string   | yes      | Name of device |
+
+In this release these values are not yet stored in database
 
 ## Synchronization Behavior
 
@@ -123,7 +125,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or
 connections have been saved, those earlier changes can remain in the matrix.
-Validate the complete document before importing it into a production system.
+Validation isdone before import and any issue stops import  before changes are written to database.
 
 ## Validation Checklist
 
@@ -137,3 +139,6 @@ Validate the complete document before importing it into a production system.
   `AUTO_CALCULATED_ZONE_INTERNET` or
   `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; these zones are managed by FWO
   when automatic zone calculation is enabled.
+- In subnet paths every referenced management/device pair must exist case sensitive in database.
+- The name pair must be unique.
+- No device is twice in one path.

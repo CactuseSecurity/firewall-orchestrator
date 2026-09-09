@@ -115,7 +115,7 @@ namespace FWO.Test
         [Test]
         public async Task Resolve_HandlesEmptyInventory()
         {
-            DeviceNameResolver resolver = await CreateResolver([]);
+            DeviceNameResolver resolver = await CreateResolver(CreateEmptyInventory());
 
             Assert.Multiple(() =>
             {
@@ -150,6 +150,11 @@ namespace FWO.Test
         {
             DeviceResolverApiConnection apiConnection = new() { Managements = managements };
             return await DeviceNameResolver.ConstructAsync(apiConnection);
+        }
+
+        private static List<Management> CreateEmptyInventory()
+        {
+            return [];
         }
 
         private static List<Management> CreateInventory()

@@ -11,7 +11,7 @@ cryptography==50.0.1
 # HTTP / GraphQL stack
 requests==2.34.2
 urllib3==2.7.0
-graphql-core==3.2.11
+graphql-core==3.2.12
 
 # SSH
 scrapli==2026.2.20

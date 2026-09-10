@@ -296,11 +296,26 @@ def non_canonical_upgrade_files(file_names: list[str]) -> list[str]:
     )
 
 
-def deleted_upgrade_files(changed_upgrade_files: list[str], merged_upgrade_files: list[str]) -> list[str]:
-    """Return the upgrade scripts the pull request removes from the merge result."""
+def deleted_upgrade_files(
+    changed_upgrade_files: list[str],
+    merged_upgrade_files: list[str],
+    merged: tuple[int, int, int],
+) -> list[str]:
+    """
+    Return the upgrade scripts the pull request removes that an installation may have run.
+
+    A script named above product_version has never been selected by the upgrade play, so no
+    installation can have run it and nothing is lost by removing it. Leaving it out here is
+    what lets a pull request clear such a script from the base branch - which the rule that
+    refuses every merge result carrying one would otherwise block forever.
+    """
     remaining = set(merged_upgrade_files)
     return sorted(
-        file_name for file_name in changed_upgrade_files if file_name.endswith(".sql") and file_name not in remaining
+        file_name
+        for file_name in changed_upgrade_files
+        if file_name.endswith(".sql")
+        and file_name not in remaining
+        and not ((file_version := upgrade_file_version(file_name)) is not None and file_version > merged)
     )
 
 
@@ -371,8 +386,11 @@ def evaluate_upgrade_files(
     A script the pull request removes is refused as well: every installation older than its
     version loses those operations, and the upgrade play reports nothing. That holds for a
     script of the still open version too, which a colleague's installation may already have
-    run, though such a script can still be emptied. The diff is taken without rename detection,
-    so moving a released script counts as removing it.
+    run, though such a script can still be emptied. The one exception is a script named above
+    product_version: never selectable, so never run, so free to remove - and the only way to
+    clear one that reached the base branch, since the first rule refuses every merge result
+    still carrying it. The diff is taken without rename detection, so moving a released script
+    counts as removing it.
 
     A script the pull request adds or modifies must be named after a full major.minor.patch
     version and sit directly in the upgrade directory. The play globs that one directory and
@@ -401,7 +419,7 @@ def evaluate_upgrade_files(
             ),
         )
 
-    deleted = deleted_upgrade_files(changed_upgrade_files, merged_upgrade_files)
+    deleted = deleted_upgrade_files(changed_upgrade_files, merged_upgrade_files, merged)
     if deleted:
         return Verdict(ok=False, reason=deleted_upgrade_reason(deleted, merged_version))
 

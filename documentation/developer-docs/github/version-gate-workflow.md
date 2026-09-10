@@ -67,7 +67,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
 | any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: put the change in `V.sql` |
-| any | the pull request deletes no upgrade file | fails otherwise: restore it, then empty or correct `V.sql` |
+| any | the pull request deletes no upgrade file named at or below `V` | fails otherwise: restore it, then empty or correct `V.sql` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
 | non-automated, section opened | that new final section is not empty | fails otherwise |
@@ -129,6 +129,9 @@ releases stay as they are.
 An upgrade script the pull request removes is refused too: every installation older than that
 script's version loses those operations, and the upgrade play says nothing about it. That covers
 the still open version's own script, which a colleague's installation may already have run. The
+one exception is a script named above `product_version`: the play has never selected it, so no
+installation can have run it, and removing it is the only way to clear one that reached the base
+branch around the gate - the above-`V` rule refuses every merge result still carrying it. The
 verdict asks for the scripts back first and then names both ways forward - empty the current
 version's script rather than remove it, or correct an older one from the current version's
 script - because one deletion can hold scripts of both kinds. The diff is taken with
@@ -308,10 +311,15 @@ Activate the gate in this order:
 7. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
    every open pull request successfully, with no `no version gate run found` errors. Investigate
    the 200-pull-request limit warning before continuing if it appears.
-8. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
+8. Confirm that `develop` itself satisfies the upgrade-file rules, which the gate never checks
+   for the base branch: no script in `roles/database/files/upgrade/` may be named above its
+   `product_version`. Such a script fails every pull request, and the only in-repository exit is
+   a pull request that deletes it.
+9. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
    ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
-9. Verify the required check with a pull request targeting `develop`: it must fail without a valid
-   revision-history addition and pass after the pull request satisfies the documented rules.
+10. Verify the required check with a pull request targeting `develop`: it must fail without a
+    valid revision-history addition and pass after the pull request satisfies the documented
+    rules.
 
 The same limitation applies after GitHub deletes an old workflow run under the repository's
 Actions retention policy. If an open pull request has no retained gate run for its current head

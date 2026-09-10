@@ -257,6 +257,35 @@ def test_failing_upgrade_listing_fails_the_gate(tmp_path: Path, monkeypatch: pyt
     assert "Version gate passed" not in completed.stdout
 
 
+def test_stray_upgrade_file_above_the_version_blocks_until_deleted(tmp_path: Path) -> None:
+    """A script above product_version on the base wedges every pull request until deleted, see F54."""
+    repository = create_repository(tmp_path)
+    stray = repository / UPGRADE_DIRECTORY / "9.4.6.sql"
+    stray.write_text("-- pushed around the gate\n", encoding="utf-8")
+    run_git(repository, ["add", "-A"])
+    run_git(repository, ["commit", "-m", "stray upgrade file"])
+    run_git(repository, ["push", "--force", "origin", "HEAD:refs/heads/develop"])
+    run_git(repository, ["push", "--force", "origin", "HEAD:refs/pull/42/merge"])
+
+    wedged = run_gate(tmp_path, repository)
+
+    assert wedged.returncode != 0
+    assert "9.4.6.sql is above product_version 9.4.5" in wedged.stderr
+
+    stray.unlink()
+    run_git(repository, ["add", "-A"])
+    run_git(repository, ["commit", "-m", "remove the stray upgrade file"])
+    run_git(repository, ["push", "--force", "origin", "HEAD:refs/pull/42/merge"])
+
+    second_run = tmp_path / "second-run"
+    second_run.mkdir()
+    cleared = run_gate(second_run, repository)
+
+    assert cleared.returncode != 0, "the deletion must no longer be the reason"
+    assert "is deleted" not in cleared.stderr
+    assert "add revision-history text" in cleared.stderr
+
+
 def test_deleting_a_released_upgrade_file_fails(tmp_path: Path) -> None:
     """A released upgrade script must stay: without it an older installation loses those steps."""
     repository = create_repository(tmp_path)

@@ -146,9 +146,11 @@ roles/database/files/upgrade/9.3.0.sql
 
 Do not modify or delete upgrade scripts belonging to older versions - the version gate refuses a
 pull request that adds or modifies a script named below the version the base branch carries, and
-refuses one that removes an upgrade script at all, because every installation older than that
-script would lose its operations - a script of the still open version included, which a
-colleague's installation may already have run. Restore what was removed, then undo the current
+refuses one that removes an upgrade script, because every installation older than that script
+would lose its operations - a script of the still open version included, which a colleague's
+installation may already have run. The single exception is a script named above the current
+`product_version`, which no installation can ever have run and which would otherwise block every
+pull request until removed. Restore what was removed, then undo the current
 version's change by emptying the body of its script, or correct an older script from the current
 version's one. Every
 new upgrade operation must be safe to execute repeatedly. Use guards such as

@@ -567,8 +567,21 @@ class TestUpgradeFileSelection:
         assert not verdict.ok
         assert "above product_version 9.4.7" in verdict.reason
 
-    def test_file_the_pull_request_does_not_touch_is_not_judged_again(self) -> None:
+    def test_file_the_pull_request_does_not_touch_is_not_judged_against_the_base_version(self) -> None:
         verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.4.7.sql"], [])
+        assert verdict.ok
+
+    def test_untouched_file_above_the_product_version_fails_every_pull_request(self) -> None:
+        # The above-V rule reads the whole merge result on purpose: such a script is dead
+        # wherever it came from. That is what makes the exemption below necessary, see F54.
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql", "9.4.8.sql"], [])
+        assert not verdict.ok
+        assert "9.4.8.sql is above product_version 9.4.7" in verdict.reason
+
+    def test_deleting_a_file_above_the_product_version_passes(self) -> None:
+        # Never selectable, so never run, so nothing is lost - and the only in-repository way
+        # to clear a stray script from the base branch, see F54.
+        verdict = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.4.7.sql"], ["9.4.8.sql"])
         assert verdict.ok
 
     def test_deleted_released_file_fails_and_names_both_remedies(self) -> None:

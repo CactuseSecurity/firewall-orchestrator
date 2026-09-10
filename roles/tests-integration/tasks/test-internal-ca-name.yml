@@ -4,6 +4,9 @@
     path: "{{ internalca_ca_certificate_local }}"
   register: test_internal_ca_certificate_info
 
+# The prefix is spelled out rather than taken from internalca_ca_common_name_prefix:
+# that variable is a roles/internalCA default and therefore out of scope in this play,
+# so referencing it here would fail with an undefined variable. Keep the two in step.
 - name: Verify a new internal CA has a unique name suffix
   assert:
     that:
@@ -15,3 +18,30 @@
       "{{ product_name }} Internal CA", but its common name is
       "{{ test_internal_ca_certificate_info.subject.commonName }}".
   when: installation_mode == 'new'
+
+# Runs in every installation mode, and this is the direction that covers an upgrade:
+# roles/internalCA reads the subject of an existing CA back off disk and reuses it,
+# precisely so that the certificates it has already issued keep chaining. Comparing an
+# issued certificate against the installed CA is what catches a CA whose subject moved
+# out from under its leaves - the failure a changed name would cause. The client
+# identity is the one every host holds and the only one that is never customer-managed;
+# the Apache and OpenLDAP certificates may legitimately be issued by someone else.
+- name: Read the client certificate issued to this host
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_client_certificate }}"
+  register: test_internal_ca_client_certificate_info
+  become: true
+
+- name: Verify the issued client certificate names the installed CA as its issuer
+  assert:
+    that:
+      - test_internal_ca_certificate_info.subject.get('commonName', '') | length > 0
+      - >-
+        test_internal_ca_client_certificate_info.issuer.get('commonName', '')
+        == test_internal_ca_certificate_info.subject.get('commonName', '')
+    fail_msg: >-
+      The client certificate {{ internalca_client_certificate }} names
+      "{{ test_internal_ca_client_certificate_info.issuer.get('commonName', 'an unnamed CA') }}"
+      as its issuer, but the internal CA installed on this host is
+      "{{ test_internal_ca_certificate_info.subject.get('commonName', 'unnamed') }}".
+      A CA certificate whose subject changed no longer matches the certificates it issued.

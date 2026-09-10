@@ -20,12 +20,36 @@
   register: internalca_existing_ca_certificate
   become: true
 
+# failed_when, so that an unreadable certificate is answered by the message below rather
+# than by the module's bare parse error. Before the subject was read back, this state
+# repaired itself: x509_certificate regenerated an unparseable ca.crt from the retained
+# key under the fixed name, and because subject and key were unchanged every certificate
+# already issued still chained to it. That repair is gone - a regenerated CA would now
+# carry a new unique name and orphan every leaf - so the run stops here instead, the way
+# every other unreadable certificate in this role does: naming the file, not guessing.
+# Keyed on the returned subject rather than on the task result: failed_when overrides the
+# module's own failure, so an unreadable certificate still reports failed = false.
 - name: Read the existing internal CA identity
   community.crypto.x509_certificate_info:
     path: "{{ internalca_ca_certificate }}"
   register: internalca_existing_ca_certificate_info
+  failed_when: false
   become: true
   when: internalca_existing_ca_certificate.stat.exists
+
+- name: Stop when the existing internal CA certificate cannot be read
+  fail:
+    msg: >-
+      The internal CA certificate {{ internalca_ca_certificate }} exists on
+      {{ inventory_hostname }} but cannot be read
+      ({{ internalca_existing_ca_certificate_info.msg | default('no reason reported') }}).
+      Its subject is the issuer of every certificate this installation has issued, so the
+      installer cannot replace it without invalidating all of them. Restore the file from a
+      backup, or - when no issued certificate has to survive - remove {{ internalca_ca_dir }}
+      to have the CA and every identity reissued.
+  when:
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_existing_ca_certificate_info.subject is not defined
 
 - name: Generate internal CA private key
   community.crypto.openssl_privatekey:

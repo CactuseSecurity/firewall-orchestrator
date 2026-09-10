@@ -159,7 +159,7 @@
   when:
     - "'frontends' in group_names"
     - installation_mode == 'upgrade'
-    - (product_name ~ '-ui.service') in fworch_installed_services
+    - (ui_service_name ~ '.service') in fworch_installed_services
 
 - name: check for api dir
   stat:

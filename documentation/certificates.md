@@ -5,6 +5,16 @@ Its private key is retained only on the middleware server at
 `/usr/local/fworch/etc/secrets/ca/`; do not copy or back it up outside
 the protected installation secrets.
 
+Each installation names its CA `fworch Internal CA <16 hexadecimal characters>`,
+derived from the CA's own public key, so that two installations never issue
+certificates under the same subject. An installation created before 9.5.0 keeps the
+plain `fworch Internal CA` it was created with: the subject of an existing CA is read
+back and reused on every run, because changing it would invalidate every certificate
+the installation has already issued. See *Trusting the internal CA in a browser* below
+for what a shared name means for a browser. If the CA certificate is present but
+cannot be parsed, the installer stops and names the file rather than replacing the
+anchor its issued certificates depend on.
+
 The `internalCA` role issues a separate client certificate on every FWO host,
 an Apache server certificate on API, middleware, and UI hosts, and a separate
 OpenLDAP server certificate on the middleware host. All FWO hosts trust only
@@ -349,6 +359,34 @@ curl --request POST \
 
 The client private key is readable only by the FWO service account, so run such
 commands as that user or as root.
+
+## Trusting the internal CA in a browser
+
+A browser opening the FWO UI has to trust the internal CA, unless that host serves an
+administrator-managed certificate whose issuer the browser already trusts. Import the
+public CA certificate every host carries at `/etc/fworch/fworch-internal-ca.crt`
+(`internalca_ca_certificate_local`) - never the issuer copy under
+`/usr/local/fworch/etc/secrets/ca/`, which sits beside the private key. In Firefox:
+**Settings → Privacy & Security → Certificates → View Certificates → Authorities →
+Import**, then tick *Trust this CA to identify websites*. Where an endpoint serves an
+administrator-managed certificate, trusting the internal CA is necessary but not
+sufficient: that certificate's own issuing CA has to be trusted in addition.
+
+**A stale anchor from an earlier installation cannot be clicked through.** Every FWO
+installation created before 9.5.0 issued its CA under the same subject,
+`CN=fworch Internal CA`. A browser still holding such an anchor - from a test system,
+or from an installation that has since been rebuilt - selects it by issuer name for the
+new server certificate, finds the signature does not verify, and reports
+
+```
+SEC_ERROR_BAD_SIGNATURE - Peer's certificate has an invalid signature
+```
+
+Firefox offers no *accept the risk* bypass for a bad signature, so the page stays
+unreachable until the old authority is removed: **View Certificates → Authorities**,
+delete every `fworch Internal CA` entry, then import the current one. The
+per-installation suffix keeps new installations apart from each other, but it cannot
+repair an anchor that a browser has already imported.
 
 ## Importing the client certificate into Firefox
 

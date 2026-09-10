@@ -662,6 +662,10 @@ Not supported any longer are:
   - client certificates for graphql API access to prevent unauthorized access
   - validated Apache intermediate certificate-chain references for administrator-managed certificates
   - the Settings Defaults page displays the public internal CA certificate and allows copying or downloading it
+  - a per-installation internal CA name, so that a browser or trust store can hold the anchors of
+    several FWO installations at once; existing installations keep the name their CA was created with,
+    and a browser still holding an anchor of the same name from another installation has to have it
+    deleted before the new one is imported
 - application roles may now only be changed by an owner holding the modeller role
 - the ldap connection passwords are no longer readable via the API, not even for auditors
 - **the middleware now verifies LDAP server certificates instead of accepting any of them.**

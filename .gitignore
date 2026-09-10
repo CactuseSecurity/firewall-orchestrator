@@ -81,4 +81,8 @@ FWO.local.runsettings
 scripts/customizing/log_data_import/import_log_data_from_git.json
 **/.fwo-log-import-manifest.json
 
-collections
+# ansible collections installed by scripts/install_toplevel.sh and the CI install job
+# (ansible-galaxy collection install -r collections/requirements.yml -p collections).
+# Anchored and narrowed on purpose: a bare "collections" also matches the pinned
+# collections/requirements.yml, which has to stay in the repository.
+/collections/ansible_collections/

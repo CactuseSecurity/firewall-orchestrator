@@ -25,6 +25,8 @@ namespace FWO.Middleware.Server
         private const string LogMessageTitle = "Import Network Zone Matrix Data";
         private const string LevelFile = "Import File";
         private const string LevelZone = "Zone";
+        private const string PathFieldNameRoot = "path_to_root";
+        private const string PathFieldNameInternet = "path_to_internet";
         private struct Counters
         {
             /// <summary>
@@ -147,8 +149,8 @@ namespace FWO.Middleware.Server
             }
             foreach (ZoneIpRangeData subnet in importedZoneMatrixData.NetworkZones.SelectMany(zone => zone.IpData))
             {
-                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot, "path_to_root");
-                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet, "path_to_internet");
+                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot, PathFieldNameRoot);
+                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet, PathFieldNameInternet);
             }
             if (unknown.Count > 0)
             {
@@ -170,7 +172,7 @@ namespace FWO.Middleware.Server
         }
 
         private static void CheckPathDuplicates(ZoneIpRangeData subnet,
-            List<DeviceRefData> path, HashSet<string> duplicate, string magicPathString)
+            List<DeviceRefData> path, HashSet<string> duplicate, string pathFieldName)
         {
             HashSet<string> unique = [];
 
@@ -179,7 +181,7 @@ namespace FWO.Middleware.Server
                 string deviceText = DeviceNameResolver.Describe(device.MgmtName, device.DeviceName);
                 if (!unique.Add(deviceText))
                 {
-                    duplicate.Add($"Duplicate device {deviceText} in {magicPathString} in subnet {subnet.Ip}");
+                    duplicate.Add($"Duplicate device {deviceText} in {pathFieldName} in subnet {subnet.Ip}");
                 }
             }
         }

@@ -34,6 +34,9 @@ REVISION_HISTORY_VERSION_PATTERN = re.compile(
     r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:[ \t]+.*)?$",
 )
 DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+# Sealing is the one step of the lifecycle no workflow performs, so the verdict that waits for
+# it names the procedure a human has to follow.
+SEALING_DOCUMENTATION = "documentation/developer-docs/versioning.md#sealing-a-version"
 UPGRADE_FILE_PATTERN = re.compile(r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)\.sql$")
 # What a new upgrade script must be named. upgrade-database.yml globs every *.sql in the
 # directory and compares its stem with the installed version, so a name that is not a full
@@ -464,7 +467,9 @@ def evaluate_version_lifecycle(merged_version: str, base_version: str, sealed: s
             ok=False,
             reason=(
                 f"version {base_version} has not been sealed yet. "
-                f"Create tag v{base_version}-dev or v{base_version} before opening version {merged_version}."
+                f"Create tag v{base_version}-dev or v{base_version} before opening version "
+                f"{merged_version}. Sealing is a manual step: {SEALING_DOCUMENTATION} "
+                f"gives the tag, release label and title to use."
             ),
         )
     if merged_version in sealed:

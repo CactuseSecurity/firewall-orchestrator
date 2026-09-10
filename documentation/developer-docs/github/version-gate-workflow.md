@@ -62,7 +62,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | `V` is a valid `major.minor.patch` | fails otherwise |
 | `V == P` | no sealing tag for `V` exists | fails otherwise: bump `product_version` |
 | `V != P` | `V > P` | fails otherwise: version must not go backwards |
-| `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first |
+| `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first, see [Sealing a version](../versioning.md#sealing-a-version) |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |

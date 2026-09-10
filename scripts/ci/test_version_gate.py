@@ -464,6 +464,8 @@ class TestGateWithVersionBump:
         verdict = evaluate_gate("9.4.6", "9.4.5", {"9.4.4"}, gate_inputs(revision_history_for("9.4.6")))
         assert not verdict.ok
         assert "v9.4.5-dev or v9.4.5" in verdict.reason
+        # Sealing needs a person, so the verdict names where that procedure is written down.
+        assert "documentation/developer-docs/versioning.md#sealing-a-version" in verdict.reason
 
     def test_dev_tag_alone_unblocks_the_bump(self) -> None:
         verdict = evaluate_gate(

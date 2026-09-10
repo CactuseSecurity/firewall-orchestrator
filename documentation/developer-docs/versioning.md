@@ -59,8 +59,8 @@ This lifecycle is enforced by the **Version gate** workflow, see
 2. A small change merges: `all.yml` stays `1.2.4`, the revision history is extended.
    Optionally tag `v1.2.4-rc1` to mark a release candidate; `1.2.4` stays open.
 3. Seal `1.2.4` by creating `v1.2.4-dev`, or `v1.2.4` when the version is released to a
-   customer. Every open pull request still on `1.2.4` is now blocked and must raise the
-   version.
+   customer, as described in [Sealing a version](#sealing-a-version). Every open pull request
+   still on `1.2.4` is now blocked and must raise the version.
 4. The next change raises `all.yml` to `1.2.5` (or `1.3.0`, or `2.0.0`) and adds the
    matching revision history section. That bump is only accepted because `1.2.4` is
    sealed.
@@ -97,6 +97,36 @@ Before creating the release tag:
 
 Never reuse a released version number or modify an existing release tag to
 point to another commit.
+
+## Sealing a version
+
+Sealing is the one step of this lifecycle that no workflow performs. A human decides that a
+version is finished and creates its tag, normally by publishing a GitHub Release. The **Version
+gate** points here when it blocks a pull request because the previous version is still open.
+
+First decide what the version is:
+
+- **Finished on `develop`, not released to anyone** - seal it as a `-dev` version.
+- **Released to customers** - seal it as a stable version. This also fast-forwards `main`, so
+  follow [Creating a stable release](#creating-a-stable-release) rather than this section alone.
+- **Not finished** - do not seal it. Mark the state with a release candidate instead; the version
+  stays open and work keeps merging into it.
+
+Then create the release on the release commit, with the tag, label and title of its row:
+
+| Intent | Tag | Release label | Release title |
+| --- | --- | --- | --- |
+| finished on `develop`, unreleased | `vX.Y.Z-dev` | none | `vX.Y.Z-dev` |
+| released to customers | `vX.Y.Z` | latest | `Hotfix Release`, `Feature Release - <new feature>`, or `Stabilizing Release` |
+| snapshot, version stays open | `vX.Y.Z-rc<N>` | pre-release | `vX.Y.Z-rc<N>` |
+
+Always let GitHub auto-generate the release notes.
+
+The tag must sit on a commit whose `product_version` is `X.Y.Z`; the **Version tag guard**
+workflow rejects a tag that seals a different version than the commit carries. Only the stable
+form advances `main`, and only the two sealing forms close the version - after either of them,
+every open pull request on `X.Y.Z` must raise `product_version`, see
+[Version lifecycle](#version-lifecycle).
 
 ## Upgrade scripts
 
@@ -309,7 +339,8 @@ the environment.
    version and is rejected by the **Version tag guard** workflow.
 5. Create the stable tag on the release commit using the repository convention,
    for example `v9.3.0`.
-6. Push the tag, or publish a GitHub Release that creates the tag.
+6. Push the tag, or publish a GitHub Release that creates the tag - with the label and
+   title [Sealing a version](#sealing-a-version) gives for a stable release.
 7. Monitor the **Fast-forward main to release tag** Actions workflow.
 8. Confirm that `main` and the stable release tag resolve to the same commit.
 9. Confirm that the **Version gate** workflow re-evaluated the open pull requests.

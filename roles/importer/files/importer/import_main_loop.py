@@ -21,6 +21,7 @@ from fwo_exceptions import (
     FwLoginFailedError,
     FwoApiFailedLockImportError,
     FwoApiLoginFailedError,
+    FwoApiServiceUnavailableError,
     ShutdownRequestedError,
 )
 from fwo_log import FWOLogger
@@ -130,6 +131,13 @@ def import_single_management(
     except (FwoApiFailedLockImportError, FwLoginFailedError):
         FWOLogger.info(f"import_main_loop - minor error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}")
         return  # minor errors for a single mgm, go to next one
+    except FwoApiServiceUnavailableError:
+        FWOLogger.warning(
+            f"import_main_loop - middleware unavailable while importing mgm_id={mgm_id}; "
+            f"backing off {sleep_timer}s before continuing with the next management"
+        )
+        wait_with_shutdown_check(sleep_timer)
+        return
     except Exception:  # all other exceptions are logged here
         FWOLogger.error(
             f"import_main_loop - unspecific error while importing mgm_id={mgm_id}, {traceback.format_exc()!s}"

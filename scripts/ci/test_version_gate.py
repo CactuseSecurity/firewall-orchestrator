@@ -595,7 +595,7 @@ class TestUpgradeFileSelection:
 
         assert "upgrade files 9.5.0.sql, 9.6.0.sql are above product_version" in above.reason
         assert "or rename them." in above.reason
-        assert "upgrade files 9.4.07.sql, readme.sql are not named" in naming.reason
+        assert "upgrade files 9.4.07.sql, readme.sql are not major.minor.patch.sql scripts" in naming.reason
         assert "upgrade files 9.4.5.sql, 9.4.6.sql are below version" in behind.reason
 
     def test_single_file_upgrade_verdicts_stay_singular(self) -> None:
@@ -629,7 +629,7 @@ class TestUpgradeFileSelection:
         # escapes both rules. Refuse the name instead of interpreting it, see F28.
         verdict = evaluate_upgrade_files("9.4.6", "9.4.6", ["9.4.6.sql", "9.4.07.sql"], ["9.4.07.sql"])
         assert not verdict.ok
-        assert "9.4.07.sql is not named major.minor.patch.sql" in verdict.reason
+        assert "9.4.07.sql is not a major.minor.patch.sql script" in verdict.reason
         assert "put the change in 9.4.6.sql there" in verdict.reason
 
     def test_zero_padded_name_the_pull_request_leaves_alone_passes(self) -> None:
@@ -653,7 +653,7 @@ class TestUpgradeFileSelection:
             ["archive/9.4.5.sql"],
         )
         assert not verdict.ok
-        assert "archive/9.4.5.sql is not named major.minor.patch.sql" in verdict.reason
+        assert "archive/9.4.5.sql is not a major.minor.patch.sql script" in verdict.reason
         assert "is deleted" not in verdict.reason
 
     def test_names_of_untouched_scripts_are_left_alone(self) -> None:

@@ -66,7 +66,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
-| any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: name it `V.sql` |
+| any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: put the change in `V.sql` |
 | any | the pull request deletes no upgrade file | fails otherwise: restore it, then empty or correct `V.sql` |
 | non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
 | non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
@@ -246,10 +246,12 @@ rather than from the tagged commit, so tags on older commits are still checked. 
 - a sealing tag points at a commit that is contained in neither `develop` nor `main`.
 
 Remediation is to leave the tag where it is and move on to the next version: the version it
-sealed cannot be reopened, so raise `product_version` and seal that one on the right commit. The
-`Disallow Tag Update or Delete` ruleset covers `refs/tags/*` with no bypass actors, so deleting
-or moving the tag is not a path anyone has - not even an organisation admin - without editing or
-disabling that ruleset first, and a published release tag must never be moved in any case.
+sealed cannot be reopened, so raise `product_version` and seal that one on the right commit.
+Deleting or moving the tag is not a path anyone has - not even an organisation admin - because
+the required tag ruleset blocks `deletion`, `update` and `non_fast_forward` with no bypass
+actors, see [Required repository configuration](#required-repository-configuration). In this
+repository that ruleset is `Disallow Tag Update or Delete`. A published release tag must never
+be moved in any case.
 
 **`audit-develop`** runs on every push to `develop` and fails when `develop`'s `product_version`
 is already sealed. It catches the narrow race where a merge lands in the same moment a sealing
@@ -264,6 +266,10 @@ tag is pushed, and any direct push that bypassed the required check.
   release maintainers to bypass it. This both gives sealing tags their authority and protects
   the tag-triggered refresh workflow's `actions: write` token. Without it, anyone who can push
   a tag can seal a version or execute a modified refresh workflow from a tagged commit.
+- An active tag ruleset targeting `*` must also block `deletion`, `update` and
+  `non_fast_forward`, with no bypass actors. A sealing tag is the record that a version is
+  closed, so it has to be immutable, and the recovery advice above rests on it: it is why a tag
+  on the wrong commit is answered by moving to the next version rather than by re-tagging.
 
 No new secrets, apps or environments are required.
 

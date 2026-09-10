@@ -408,13 +408,15 @@ def evaluate_upgrade_files(
     non_canonical = non_canonical_upgrade_files(changed_in_merge_result)
     if non_canonical:
         subject, verb, _ = describe_upgrade_files(non_canonical)
+        # The rule catches a wrong name and a wrong place, and a subdirectory script can carry a
+        # correct name, so the diagnosis blames the pair rather than the name alone.
+        scripts = "major.minor.patch.sql scripts" if len(non_canonical) > 1 else "a major.minor.patch.sql script"
         return Verdict(
             ok=False,
             reason=(
-                f"{subject} {verb} not named major.minor.patch.sql directly in "
-                f"roles/database/files/upgrade/. The upgrade play globs that one directory and "
-                f"compares each name with the installed version, so put the change in "
-                f"{merged_version}.sql there."
+                f"{subject} {verb} not {scripts} directly in roles/database/files/upgrade/. The "
+                f"upgrade play globs that one directory and compares each name with the installed "
+                f"version, so put the change in {merged_version}.sql there."
             ),
         )
 

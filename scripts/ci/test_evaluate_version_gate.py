@@ -284,7 +284,7 @@ def test_upgrade_file_with_undecodable_name_fails_on_its_name(tmp_path: Path) ->
 
     assert completed.returncode != 0
     assert "could not be evaluated" not in completed.stderr
-    assert "9.4.5\\udce4.sql is not named major.minor.patch.sql" in completed.stderr
+    assert "9.4.5\\udce4.sql is not a major.minor.patch.sql script" in completed.stderr
 
 
 def test_upgrade_file_with_a_quoted_name_fails_on_its_name(tmp_path: Path) -> None:
@@ -299,7 +299,7 @@ def test_upgrade_file_with_a_quoted_name_fails_on_its_name(tmp_path: Path) -> No
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "9.4.5ä.sql is not named major.minor.patch.sql" in completed.stderr
+    assert "9.4.5ä.sql is not a major.minor.patch.sql script" in completed.stderr
 
 
 def test_upgrade_file_in_a_subdirectory_fails_on_its_name(tmp_path: Path) -> None:
@@ -314,7 +314,7 @@ def test_upgrade_file_in_a_subdirectory_fails_on_its_name(tmp_path: Path) -> Non
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "archive/9.4.6.sql is not named major.minor.patch.sql" in completed.stderr
+    assert "archive/9.4.6.sql is not a major.minor.patch.sql script" in completed.stderr
     assert "is deleted" not in completed.stderr
 
 
@@ -325,7 +325,7 @@ def test_zero_padded_upgrade_file_fails(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "9.4.06.sql is not named major.minor.patch.sql" in completed.stderr
+    assert "9.4.06.sql is not a major.minor.patch.sql script" in completed.stderr
 
 
 def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:

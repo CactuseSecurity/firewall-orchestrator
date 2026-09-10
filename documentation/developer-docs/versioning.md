@@ -301,8 +301,8 @@ cover every tag (`*`), not only version-shaped tags: otherwise a repository writ
 commit containing a modified refresh workflow and execute it with that permission before the
 workflow's tag-name check takes effect.
 
-Restricting tag updates and deletions is also recommended so that published
-release tags remain immutable.
+The same ruleset must also block tag deletion, update and non-fast-forward, with no bypass
+actors, so that a sealing tag stays the immutable record that a version is closed.
 
 ### Required status check
 

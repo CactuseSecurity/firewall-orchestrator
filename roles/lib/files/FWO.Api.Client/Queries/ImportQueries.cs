@@ -6,8 +6,7 @@ namespace FWO.Api.Client.Queries
     {
 
         public static readonly string deleteImport;
-        public static readonly string rollbackImportData;
-        public static readonly string deleteImportControl;
+        public static readonly string rollbackImport;
         public static readonly string deleteLatestConfigOfManagement;
         public static readonly string getLastImport;
         public static readonly string getImportIdsByManagement;
@@ -25,8 +24,9 @@ namespace FWO.Api.Client.Queries
             try
             {
                 deleteImport = GetQueryText("import/deleteImport.graphql");
-                rollbackImportData = GetQueryText("import/rollbackImportData.graphql");
-                deleteImportControl = GetQueryText("import/deleteImportControl.graphql");
+                // one document, so hasura rolls back the data and deletes the import_control rows in a single transaction
+                rollbackImport = GetQueryText("import/rollbackImport.graphql")
+                                        + GetQueryText("import/fragments/rollbackImportDataFields.graphql");
                 deleteLatestConfigOfManagement = GetQueryText("import/deleteLatestConfigOfManagement.graphql");
                 getLastImport = GetQueryText("import/getLastImport.graphql");
                 getImportIdsByManagement = GetQueryText("import/getImportIdsByManagement.graphql");

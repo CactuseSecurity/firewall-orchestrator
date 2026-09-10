@@ -82,11 +82,11 @@
     }
 
     /// <summary>
-    /// Rolls back the given imports. Both the data-only rollback and the import_control
-    /// deletion must succeed for the rollback to be considered successful.
+    /// Rolls back the given imports. The imported data and the import_control rows are removed by a
+    /// single mutation document, so the database cannot be left half rolled back.
     /// </summary>
     /// <param name="importIds">The import control ids to roll back.</param>
-    /// <returns><c>true</c> if both mutations completed successfully; otherwise <c>false</c>.</returns>
+    /// <returns><c>true</c> if the rollback completed successfully; otherwise <c>false</c>.</returns>
     private async Task<bool> RollbackImports(List<long> importIds)
     {
         try
@@ -94,8 +94,7 @@
             RollbackMode = true;
             workInProgress = true;
             var variablesRollback = new { importIds = importIds };
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImportData, variablesRollback);
-            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.deleteImportControl, variablesRollback);
+            await apiConnection.SendQueryAsync<ReturnId>(FWO.Api.Client.Queries.ImportQueries.rollbackImport, variablesRollback);
 
             Log.WriteDebug("Delete Import", $"rolled back {importIds.Count} import(s) of management with ID {ManagementId}");
             workInProgress = false;

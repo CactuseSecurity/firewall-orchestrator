@@ -18,35 +18,21 @@ namespace FWO.Test
         private const int kManagementId = 7;
 
         [Test]
-        public async Task Rollback_WhenDeleteImportControlFails_ReportsErrorAndNoSuccess()
+        public async Task Rollback_WhenRollbackFails_ReportsErrorAndNoSuccess()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            await using BunitContext context = CreateContext(new ImportRollbackTestApiConn { FailOnDeleteImportControl = true }, messages);
+            await using BunitContext context = CreateContext(new ImportRollbackTestApiConn { FailOnRollback = true }, messages);
 
             IRenderedComponent<ImportRollback> cut = RenderComponent(context);
             await InvokePrivateTask(cut, "Rollback");
 
-            // the data-only rollback succeeded but the import_control deletion failed:
-            // the failure must be surfaced and no success message must be shown
+            // a failing rollback must be surfaced and must not show a success message
             Assert.That(messages.Exists(m => m.IsError), Is.True);
             Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.False);
         }
 
         [Test]
-        public async Task Rollback_WhenRollbackDataFails_ReportsErrorAndNoSuccess()
-        {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            await using BunitContext context = CreateContext(new ImportRollbackTestApiConn { FailOnRollbackData = true }, messages);
-
-            IRenderedComponent<ImportRollback> cut = RenderComponent(context);
-            await InvokePrivateTask(cut, "Rollback");
-
-            Assert.That(messages.Exists(m => m.IsError), Is.True);
-            Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.False);
-        }
-
-        [Test]
-        public async Task Rollback_WhenBothMutationsSucceed_ReportsSuccess()
+        public async Task Rollback_WhenRollbackSucceeds_ReportsSuccess()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
             ImportRollbackTestApiConn apiConn = new();
@@ -55,38 +41,23 @@ namespace FWO.Test
             IRenderedComponent<ImportRollback> cut = RenderComponent(context);
             await InvokePrivateTask(cut, "Rollback");
 
-            Assert.That(apiConn.RollbackDataCalls, Is.EqualTo(1));
-            Assert.That(apiConn.DeleteImportControlCalls, Is.EqualTo(1));
+            // data rollback and import_control deletion travel in one mutation document
+            Assert.That(apiConn.RollbackCalls, Is.EqualTo(1));
             Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.True);
             Assert.That(messages.Exists(m => m.IsError), Is.False);
         }
 
         [Test]
-        public async Task FullMgmRollback_WhenDeleteImportControlFails_DoesNotDeleteLatestConfigOrReportSuccess()
+        public async Task FullMgmRollback_WhenRollbackFails_DoesNotDeleteLatestConfigOrReportSuccess()
         {
             List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            ImportRollbackTestApiConn apiConn = new() { FailOnDeleteImportControl = true };
+            ImportRollbackTestApiConn apiConn = new() { FailOnRollback = true };
             await using BunitContext context = CreateContext(apiConn, messages);
 
             IRenderedComponent<ImportRollback> cut = RenderComponent(context);
             await InvokePrivateTask(cut, "FullMgmRollback");
 
             // a failing rollback must not delete the latest config and must not claim success
-            Assert.That(apiConn.DeleteLatestConfigCalls, Is.EqualTo(0));
-            Assert.That(messages.Exists(m => m.IsError), Is.True);
-            Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.False);
-        }
-
-        [Test]
-        public async Task FullMgmRollback_WhenRollbackDataFails_DoesNotDeleteLatestConfigOrReportSuccess()
-        {
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            ImportRollbackTestApiConn apiConn = new() { FailOnRollbackData = true };
-            await using BunitContext context = CreateContext(apiConn, messages);
-
-            IRenderedComponent<ImportRollback> cut = RenderComponent(context);
-            await InvokePrivateTask(cut, "FullMgmRollback");
-
             Assert.That(apiConn.DeleteLatestConfigCalls, Is.EqualTo(0));
             Assert.That(messages.Exists(m => m.IsError), Is.True);
             Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.False);
@@ -102,8 +73,7 @@ namespace FWO.Test
             IRenderedComponent<ImportRollback> cut = RenderComponent(context);
             await InvokePrivateTask(cut, "FullMgmRollback");
 
-            Assert.That(apiConn.RollbackDataCalls, Is.EqualTo(1));
-            Assert.That(apiConn.DeleteImportControlCalls, Is.EqualTo(1));
+            Assert.That(apiConn.RollbackCalls, Is.EqualTo(1));
             Assert.That(apiConn.DeleteLatestConfigCalls, Is.EqualTo(1));
             Assert.That(messages.Exists(m => !m.IsError && m.Message == "Rollback done"), Is.True);
             Assert.That(messages.Exists(m => m.IsError), Is.False);
@@ -151,11 +121,9 @@ namespace FWO.Test
 
     internal sealed class ImportRollbackTestApiConn : SimulatedApiConnection
     {
-        public bool FailOnRollbackData { get; init; }
-        public bool FailOnDeleteImportControl { get; init; }
+        public bool FailOnRollback { get; init; }
 
-        public int RollbackDataCalls { get; private set; }
-        public int DeleteImportControlCalls { get; private set; }
+        public int RollbackCalls { get; private set; }
         public int DeleteLatestConfigCalls { get; private set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -170,22 +138,12 @@ namespace FWO.Test
                 return Task.FromResult((QueryResponseType)(object)new List<ImportControl> { new() { ControlId = 42, MgmId = 7 } });
             }
 
-            if (query == ImportQueries.rollbackImportData)
+            if (query == ImportQueries.rollbackImport)
             {
-                RollbackDataCalls++;
-                if (FailOnRollbackData)
+                RollbackCalls++;
+                if (FailOnRollback)
                 {
-                    throw new InvalidOperationException("rollbackImportData failed");
-                }
-                return Task.FromResult((QueryResponseType)(object)new ReturnId());
-            }
-
-            if (query == ImportQueries.deleteImportControl)
-            {
-                DeleteImportControlCalls++;
-                if (FailOnDeleteImportControl)
-                {
-                    throw new InvalidOperationException("deleteImportControl failed");
+                    throw new InvalidOperationException("rollbackImport failed");
                 }
                 return Task.FromResult((QueryResponseType)(object)new ReturnId());
             }

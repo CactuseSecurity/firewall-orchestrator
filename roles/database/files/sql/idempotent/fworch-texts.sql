@@ -538,6 +538,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
+    <li>Ein Import, der nach dem Schreiben von Daten fehlschl&auml;gt, bleibt nun mit seiner Fehlermeldung in der Import-&Uuml;bersicht sichtbar, statt vollst&auml;ndig entfernt zu werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -550,6 +551,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The public internal CA certificate can now be viewed, copied and downloaded in the settings under Defaults.</li>
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
+    <li>An import that fails after it has already written data now stays visible with its error message in the import monitoring view instead of being removed completely.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder

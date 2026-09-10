@@ -7,21 +7,48 @@ namespace FWO.Test
     internal class ImportRollbackQueriesTest
     {
         [Test]
-        public void RollbackImportData_IsListBased_AndKeepsImportControl()
+        public void RollbackImport_IsListBased_AndDeletesImportControl()
         {
-            // data-only rollback is list-based and must not touch the import_control row
-            Assert.That(ImportQueries.rollbackImportData, Does.Contain("$importIds: [bigint!]!"));
-            Assert.That(ImportQueries.rollbackImportData, Does.Contain("_in: $importIds"));
-            Assert.That(ImportQueries.rollbackImportData, Does.Not.Contain("delete_import_control"));
+            // the ui rollback is list based so multiple imports are rolled back in one call
+            Assert.That(ImportQueries.rollbackImport, Does.Contain("$importIds: [bigint!]!"));
+            Assert.That(ImportQueries.rollbackImport, Does.Contain("_in: $importIds"));
+            Assert.That(ImportQueries.rollbackImport, Does.Contain("delete_import_control"));
         }
 
         [Test]
-        public void DeleteImportControl_IsListBased_AndDeletesImportControl()
+        public void RollbackImport_IsASingleDocument_SoTheRollbackStaysAtomic()
         {
-            // deleting the import_control rows is split into its own list-based mutation
-            Assert.That(ImportQueries.deleteImportControl, Does.Contain("$importIds: [bigint!]!"));
-            Assert.That(ImportQueries.deleteImportControl, Does.Contain("delete_import_control"));
-            Assert.That(ImportQueries.deleteImportControl, Does.Contain("_in: $importIds"));
+            // data rollback and import_control deletion have to travel in one mutation document,
+            // otherwise a failure in between leaves imported data deleted but the records behind
+            Assert.That(ImportQueries.rollbackImport, Does.Contain("...rollbackImportDataFields"));
+            Assert.That(ImportQueries.rollbackImport, Does.Contain("fragment rollbackImportDataFields on mutation_root"));
+            Assert.That(CountOccurrences(ImportQueries.rollbackImport, "mutation "), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RollbackImportDataFragment_CarriesTheDataStatements_WithoutDeletingImportControl()
+        {
+            // the importer reuses the same fragment but must keep the import_control row
+            string fragment = Queries.Compact(" " + File.ReadAllText(
+                Path.Combine(QueryBasePath, "import", "fragments", "rollbackImportDataFields.graphql")) + " ");
+
+            Assert.That(fragment, Does.Contain("fragment rollbackImportDataFields on mutation_root"));
+            Assert.That(fragment, Does.Not.Contain("delete_import_control"));
+            Assert.That(fragment, Does.Contain("_in: $importIds"));
+        }
+
+        private static string QueryBasePath =>
+            Path.Combine(Environment.GetEnvironmentVariable("FWO_BASE_DIR") ?? "", "fwo-api-calls");
+
+        private static int CountOccurrences(string text, string value)
+        {
+            int count = 0;
+            for (int index = text.IndexOf(value, StringComparison.Ordinal); index >= 0;
+                 index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+            {
+                count++;
+            }
+            return count;
         }
 
         [Test]

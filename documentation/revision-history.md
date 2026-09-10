@@ -655,7 +655,7 @@ Not supported any longer are:
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
 - warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
-- improve import rollback: keep import_control records of failed imports so the error is visible in the UI
+- improve import rollback: an import that fails after it has already written data keeps its import_control record, so the error stays visible in the UI. Imports that fail before any data was written - a failed login above all - are still removed completely and remain visible only as a failed import attempt of the management.
 - optimize full management rollback to roll back all imports in a single mutation call
 - report import rollback failures instead of silently showing success
 

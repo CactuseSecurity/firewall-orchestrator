@@ -127,7 +127,16 @@ def import_management(
     finally:
         try:
             if shutdown_exception is None:
-                api_call.complete_import(import_state.state, exception)
+                import_unlocked = api_call.complete_import(import_state.state, exception)
+                # a failed import keeps its import_control row; if stop_time could not be stamped
+                # that row holds the per management import lock and blocks all further imports,
+                # so drop it instead - the imported data has already been rolled back
+                if exception is not None and not import_unlocked:
+                    FWOLogger.warning(
+                        f"could not stamp failed import {import_state.state.import_id!s}, "
+                        "removing it to release the import lock"
+                    )
+                    import_state.delete_import()
             ServiceProvider().dispose_service(Services.UID2ID_MAPPER, import_state.state.import_id)
         except Exception as e:
             FWOLogger.error(f"Error during import completion: {e!s}")

@@ -261,13 +261,9 @@ namespace FWO.Test
                     List<ImportControl> result = ManagementImportIds.Select(id => new ImportControl { ControlId = id }).ToList();
                     return Task.FromResult((QueryResponseType)(object)result);
                 }
-                if (query == ImportQueries.rollbackImportData && typeof(QueryResponseType) == typeof(ReturnId))
+                if (query == ImportQueries.rollbackImport && typeof(QueryResponseType) == typeof(ReturnId))
                 {
                     RollbackImportCallCount++;
-                    return Task.FromResult((QueryResponseType)(object)new ReturnId());
-                }
-                if (query == ImportQueries.deleteImportControl && typeof(QueryResponseType) == typeof(ReturnId))
-                {
                     return Task.FromResult((QueryResponseType)(object)new ReturnId());
                 }
                 if (query == ImportQueries.deleteLatestConfigOfManagement && typeof(QueryResponseType) == typeof(ReturnId))

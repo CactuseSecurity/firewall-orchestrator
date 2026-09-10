@@ -2,6 +2,7 @@ from typing import Protocol, cast
 from unittest.mock import MagicMock
 
 import common
+import fwo_const
 import fwo_globals
 from fwo_api import FwoApi
 from fwo_api_call import FwoApiCall
@@ -79,6 +80,8 @@ class TestRollbackCurrentImport:
         # Assert
         requested_files = get_code.call_args.args[0]
         assert requested_files[0].endswith("import/rollbackImportData.graphql")
+        # the data statements live in a shared fragment, which has to travel with the operation
+        assert requested_files[1].endswith("import/fragments/rollbackImportDataFields.graphql")
         fwo_api_call.call.assert_called_once()
         assert fwo_api_call.call.call_args.kwargs["query_variables"] == {"importIds": [99]}
 
@@ -162,3 +165,84 @@ class TestCompleteImportForwardsErrors:
         unlock.assert_called_once()
         assert unlock.call_args.kwargs["success"] is False
         assert unlock.call_args.kwargs["import_errors"] == "boom"
+
+
+class TestUnlockImportReportsLockRelease:
+    """
+    A kept import_control row whose stop_time was never stamped holds the per management import
+    lock, so unlock_import has to report whether it really stamped the row.
+    """
+
+    @staticmethod
+    def _build_api_call(mocker: MockerFixture, call_result: object) -> FwoApiCall:
+        mocker.patch.object(FwoApi, "get_graphql_code", return_value="mutation")
+        api = MagicMock(spec=FwoApi)
+        if isinstance(call_result, Exception):
+            api.call = MagicMock(side_effect=call_result)
+        else:
+            api.call = MagicMock(return_value=call_result)
+        return FwoApiCall(api)
+
+    def test_returns_true_when_row_was_stamped(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        fwo_api_call = self._build_api_call(mocker, {"data": {"update_import_control": {"affected_rows": 1}}})
+
+        assert fwo_api_call.unlock_import(import_state_controller.state, success=False) is True
+
+    def test_returns_false_when_no_row_was_stamped(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        fwo_api_call = self._build_api_call(mocker, {"data": {"update_import_control": {"affected_rows": 0}}})
+
+        assert fwo_api_call.unlock_import(import_state_controller.state, success=False) is False
+
+    def test_returns_false_when_api_is_unreachable(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        fwo_api_call = self._build_api_call(mocker, ConnectionError("api unreachable"))
+
+        assert fwo_api_call.unlock_import(import_state_controller.state, success=False) is False
+
+    def test_complete_import_propagates_failed_unlock(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        # Arrange
+        api = MagicMock(spec=FwoApi)
+        fwo_api_call = FwoApiCall(api)
+        mocker.patch.object(fwo_api_call, "unlock_import", return_value=False)
+        mocker.patch.object(fwo_api_call, "log_import_attempt")
+        mocker.patch.object(fwo_api_call, "create_data_issue")
+        mocker.patch.object(fwo_api_call, "set_alert")
+
+        # Act / Assert - the caller needs this to drop the row and release the import lock
+        assert fwo_api_call.complete_import(import_state_controller.state, exception=Exception("boom")) is False
+
+    def test_complete_import_reports_success_when_unlocked(
+        self, mocker: MockerFixture, import_state_controller: ImportStateController
+    ) -> None:
+        # Arrange
+        api = MagicMock(spec=FwoApi)
+        fwo_api_call = FwoApiCall(api)
+        mocker.patch.object(fwo_api_call, "unlock_import", return_value=True)
+        mocker.patch.object(fwo_api_call, "log_import_attempt")
+
+        # Act / Assert
+        assert fwo_api_call.complete_import(import_state_controller.state, exception=None) is True
+
+
+class TestTruncateImportError:
+    def test_keeps_short_error_unchanged(self) -> None:
+        assert FwoApiCall.truncate_import_error("short") == "short"
+
+    def test_keeps_none(self) -> None:
+        assert FwoApiCall.truncate_import_error(None) is None
+
+    def test_truncates_long_traceback(self) -> None:
+        long_error = "x" * (fwo_const.MAX_IMPORT_ERROR_LENGTH + 500)
+
+        truncated = FwoApiCall.truncate_import_error(long_error)
+
+        assert truncated is not None
+        assert truncated.endswith(" [truncated]")
+        assert len(truncated) == fwo_const.MAX_IMPORT_ERROR_LENGTH + len(" [truncated]")

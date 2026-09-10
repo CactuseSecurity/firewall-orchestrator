@@ -43,6 +43,7 @@ namespace FWO.Test
             public List<CompliancePolicy> InitialPolicies { get; set; } = [];
             public List<string> Queries { get; } = [];
             public List<int> DeletedNotificationIds { get; } = [];
+            public List<string> UpdatedActionExternalParams { get; } = [];
             public bool ReturnNullNewActionIds { get; set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -64,6 +65,7 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.updateAction)
                 {
+                    UpdatedActionExternalParams.Add(GetVariable<string>(variables, "externalParameters") ?? "");
                     return Task.FromResult((T)(object)new ReturnId { UpdatedId = ForcedUpdatedId ?? GetVariable<int>(variables, "id") });
                 }
                 if (query == RequestQueries.newAction)
@@ -1531,6 +1533,66 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendEmail_AddNotificationIdThroughCallback_TracksTemporaryNotification()
+        {
+            SettingsActionsApiConn apiConn = new();
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(0, new List<int> { 5 }), null);
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification>());
+
+            await InvokeAsync(notificationEditor, "AddNotificationId", 11);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<List<int>>(sendEmailEditor, "actActionNotificationIds"), Is.EqualTo(new List<int> { 5, 11 }));
+                Assert.That(GetMember<List<int>>(sendEmailEditor, "temporaryNotificationIds"), Is.EqualTo(new List<int> { 11 }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmail_RemoveNotificationIdOfPersistedAction_PersistsShortenedIdList()
+        {
+            SettingsActionsApiConn apiConn = new();
+            WfStateAction persistedAction = CreateSendEmailAction(99, new List<int> { 5, 7 });
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, new List<int> { 5, 7 }), persistedAction);
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification>());
+
+            await InvokeAsync(notificationEditor, "RemoveNotificationId", 7);
+
+            EmailActionParams persistedParams = JsonSerializer.Deserialize<EmailActionParams>(persistedAction.ExternalParams)!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == RequestQueries.updateAction), Is.EqualTo(1));
+                Assert.That(persistedParams.NotificationIds, Is.EqualTo(new List<int> { 5 }));
+                Assert.That(GetMember<List<int>>(sendEmailEditor, "actActionNotificationIds"), Is.EqualTo(new List<int> { 5 }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmail_DeleteLastNotificationOfPersistedAction_IsRefusedAndRolledBack()
+        {
+            SettingsActionsApiConn apiConn = new();
+            WfStateAction persistedAction = CreateSendEmailAction(99, new List<int> { 5 });
+            EditActionSendEmail sendEmailEditor = await CreateInitializedSendEmailEditor(apiConn, CreateSendEmailAction(99, new List<int> { 5 }), persistedAction);
+            FwoNotification lastNotification = new() { Id = 5, Name = "Last notification" };
+            EditNotifications notificationEditor = CreateWiredNotificationEditor(sendEmailEditor, apiConn, new List<FwoNotification> { lastNotification });
+
+            await InvokeAsync(notificationEditor, "RequestDeleteNotification", lastNotification);
+            await InvokeAsync(notificationEditor, "Delete");
+
+            EmailActionParams persistedParams = JsonSerializer.Deserialize<EmailActionParams>(persistedAction.ExternalParams)!;
+            List<List<int>> persistedIdLists = [.. apiConn.UpdatedActionExternalParams
+                .Select(externalParams => JsonSerializer.Deserialize<EmailActionParams>(externalParams)!.NotificationIds)];
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.DeletedNotificationIds, Is.Empty);
+                Assert.That(persistedIdLists, Has.None.Empty);
+                Assert.That(persistedParams.NotificationIds, Is.EqualTo(new List<int> { 5 }));
+                Assert.That(GetMember<List<int>>(sendEmailEditor, "actActionNotificationIds"), Is.EqualTo(new List<int> { 5 }));
+                Assert.That(GetMember<List<FwoNotification>>(notificationEditor, "Notifications"), Has.Member(lastNotification));
+            });
+        }
+
+        [Test]
         public async Task EditActionPopup_OpenAddAsync_InitializesAddMode()
         {
             SettingsActionsApiConn apiConn = new();
@@ -2121,6 +2183,53 @@ namespace FWO.Test
             await component.CleanupOnCancelAsync();
 
             Assert.That(apiConn.DeletedNotificationIds, Is.EqualTo(new List<int> { 5, 7 }));
+        }
+
+        private static WfStateAction CreateSendEmailAction(int id, List<int> notificationIds)
+        {
+            return new WfStateAction
+            {
+                Id = id,
+                Name = "Workflow mail",
+                ActionType = StateActionTypes.SendEmail.ToString(),
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    NotificationIds = notificationIds,
+                    AttachedContent = EmailAttachedContent.RequestedConnections
+                })
+            };
+        }
+
+        private static async Task<EditActionSendEmail> CreateInitializedSendEmailEditor(SettingsActionsApiConn apiConn,
+            WfStateAction actAction, WfStateAction? persistedAction)
+        {
+            EditActionSendEmail sendEmailEditor = new();
+            SetMember(sendEmailEditor, "apiConnection", apiConn);
+            SetMember(sendEmailEditor, "userConfig", new SimulatedUserConfig());
+            SetMember(sendEmailEditor, "ActAction", actAction);
+            SetMember(sendEmailEditor, "PersistedAction", persistedAction);
+            await InvokeAsync(sendEmailEditor, "OnParametersSet");
+            return sendEmailEditor;
+        }
+
+        /// <summary>
+        /// Wires a notification editor to a send email editor the way the markup does: it hands over the
+        /// very id list instance the parent holds and routes changes through SetActionNotificationIds. The
+        /// notification id therefore has to travel the production path, which is what makes these tests
+        /// able to see a regression of the temporary-notification tracking.
+        /// </summary>
+        private static EditNotifications CreateWiredNotificationEditor(EditActionSendEmail sendEmailEditor,
+            SettingsActionsApiConn apiConn, List<FwoNotification> notifications)
+        {
+            EditNotifications notificationEditor = new();
+            SetMember(notificationEditor, "apiConnection", apiConn);
+            SetMember(notificationEditor, "userConfig", new SimulatedUserConfig());
+            SetMember(notificationEditor, "Notifications", notifications);
+            SetMember(notificationEditor, "NotificationIds", GetMember<List<int>>(sendEmailEditor, "actActionNotificationIds"));
+            SetMember(notificationEditor, "NotificationIdsChanged", EventCallback.Factory.Create<List<int>>(new object(),
+                async notificationIds => await InvokeAsync(sendEmailEditor, "SetActionNotificationIds", notificationIds)));
+            return notificationEditor;
         }
 
         private static async Task InvokeAsync(object instance, string methodName, params object?[] args)

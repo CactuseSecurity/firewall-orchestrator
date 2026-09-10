@@ -60,7 +60,9 @@ namespace FWO.Middleware.Server
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
             Task.Run(GetInternalGroups).Wait();
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, ownerGroups,
+                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
+            { SystemContext = true };
         }
 
         /// <summary>
@@ -71,7 +73,9 @@ namespace FWO.Middleware.Server
             ApiConnection = apiConnection;
             UserConfig = userConfig;
             extStateHandler = new(apiConnection);
-            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+            wfHandler = new(userConfig, apiConnection, WorkflowPhases.request, userGroups,
+                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
+            { SystemContext = true };
         }
 
         /// <summary>
@@ -429,7 +433,8 @@ namespace FWO.Middleware.Server
         private async Task<bool> InternalWorkBatchIsCompleted(List<WfReqTask> batch)
         {
             WfHandler implementationHandler = new(UserConfig, ApiConnection, WorkflowPhases.implementation, ownerGroups,
-                new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+                new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection))
+            { SystemContext = true };
 
             if (!await implementationHandler.Init())
             {
@@ -485,7 +490,9 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups,
+                new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection))
+            { SystemContext = true };
 
             if (!await approvalHandler.InitForActionExecution())
             {
@@ -499,30 +506,33 @@ namespace FWO.Middleware.Server
             await approvalHandler.ActionHandler.FlushEmailBundleCollector();
         }
 
-        private async Task<bool> RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
+        /// <summary>
+        /// Sends the captured internal work emails and never lets a delivery problem escape into the
+        /// external request chain. A failure of both delivery paths is reported through an alert, so
+        /// this method has no result for a caller to act on.
+        /// </summary>
+        /// <param name="ticketId">Ticket the captured emails belong to</param>
+        /// <param name="emailBundleCollector">Collector holding the captured emails</param>
+        private async Task RunInternalWorkStateChangeActionsSafe(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
         {
             if (emailBundleCollector.PendingItems.Count == 0)
             {
-                return true;
+                return;
             }
 
             try
             {
                 await RunInternalWorkStateChangeActions(ticketId, emailBundleCollector);
-                return true;
             }
             catch (Exception exception)
             {
                 Log.WriteError("RunInternalWorkStateChangeActions", $"Could not send bundled internal work emails for ticket {ticketId}.", exception);
-                if (await TrySendPendingInternalWorkEmailsIndividually(ticketId, emailBundleCollector))
+                if (!await TrySendPendingInternalWorkEmailsIndividually(ticketId, emailBundleCollector))
                 {
-                    emailBundleCollector.PendingItems.Clear();
-                    return true;
+                    await AlertUndeliveredInternalWorkEmails(ticketId, emailBundleCollector.PendingItems.Count);
                 }
 
-                await AlertUndeliveredInternalWorkEmails(ticketId, emailBundleCollector.PendingItems.Count);
                 emailBundleCollector.PendingItems.Clear();
-                return false;
             }
         }
 
@@ -707,7 +717,9 @@ namespace FWO.Middleware.Server
 
         private async Task PromoteInternalWorkTaskToPlanning(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
         {
-            WfHandler planningHandler = new(UserConfig, ApiConnection, WorkflowPhases.planning, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+            WfHandler planningHandler = new(UserConfig, ApiConnection, WorkflowPhases.planning, ownerGroups,
+                new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection))
+            { SystemContext = true };
 
             if (!await planningHandler.Init())
             {
@@ -739,7 +751,9 @@ namespace FWO.Middleware.Server
 
         private async Task<WorkflowPhases> PromoteInternalWorkTaskToApproval(WfTicket ticket, WfReqTask task, WorkflowEmailBundleCollector emailBundleCollector)
         {
-            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups, new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection));
+            WfHandler approvalHandler = new(UserConfig, ApiConnection, WorkflowPhases.approval, ownerGroups,
+                new ComplianceRequestedRulePolicyChecker(UserConfig, ApiConnection))
+            { SystemContext = true };
 
             if (!await approvalHandler.Init())
             {

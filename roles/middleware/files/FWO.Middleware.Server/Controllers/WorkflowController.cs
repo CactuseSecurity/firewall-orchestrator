@@ -232,10 +232,10 @@ namespace FWO.Middleware.Server.Controllers
             if (emailBundleCollector == null)
             {
                 // A bundle that captured nothing leaves no collector, which is the ordinary case for a
-                // promote without bundled actions. Report it instead of staying silent, but do not fail
-                // the operation - the emails, if any, were already reported by the expiry sweep.
-                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}.");
-                AddWorkflowMessage(result, null, "Workflow Actions", $"No email bundle was pending for ticket {lockTicketId}.", false);
+                // promote without bundled actions. It stays a debug note on purpose: it is not a problem,
+                // and a user facing message would appear on ordinary promotes. Emails that were captured
+                // but never sent are reported by the expiry sweep instead.
+                Log.WriteDebug("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}.");
                 result.Success = true;
                 return result;
             }

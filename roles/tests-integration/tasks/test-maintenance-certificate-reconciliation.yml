@@ -1,0 +1,49 @@
+---
+- name: Create a temporary maintenance certificate test directory
+  tempfile:
+    state: directory
+    prefix: fworch-maintenance-certificate-
+  register: test_maintenance_certificate_directory
+
+- name: Write a maintenance configuration with legacy certificate paths
+  copy:
+    content: |
+      <VirtualHost *:443>
+          SSLCertificateFile /etc/apache2/ssl/server.crt
+          SSLCertificateKeyFile /etc/apache2/ssl/server.key
+      </VirtualHost>
+    dest: "{{ test_maintenance_certificate_directory.path }}/test-maintenance.conf"
+    mode: "0600"
+
+- name: Reconcile the test maintenance certificate paths
+  include_tasks: "{{ role_path }}/../internalCA/tasks/reconcile-maintenance-certificate.yml"
+  vars:
+    http_conf_dir: "{{ test_maintenance_certificate_directory.path }}/"
+    product_name: test
+    internalca_apache_certificate: /customer/server.crt
+    internalca_apache_private_key: /customer/server.key
+
+- name: Read the reconciled maintenance configuration
+  slurp:
+    src: "{{ test_maintenance_certificate_directory.path }}/test-maintenance.conf"
+  register: test_maintenance_certificate_configuration
+
+- name: Verify only the maintenance identity paths were reconciled
+  assert:
+    that:
+      - "'SSLCertificateFile /customer/server.crt' in test_maintenance_configuration"
+      - "'SSLCertificateKeyFile /customer/server.key' in test_maintenance_configuration"
+      - "'/etc/apache2/ssl/server.crt' not in test_maintenance_configuration"
+      - "'/etc/apache2/ssl/server.key' not in test_maintenance_configuration"
+      - internalca_maintenance_identity_changed | bool
+    fail_msg: >-
+      The maintenance vhost certificate reconciliation did not replace both legacy
+      identity paths with the selected identity.
+  vars:
+    test_maintenance_configuration: >-
+      {{ test_maintenance_certificate_configuration.content | b64decode }}
+
+- name: Remove the temporary maintenance certificate test directory
+  file:
+    path: "{{ test_maintenance_certificate_directory.path }}"
+    state: absent

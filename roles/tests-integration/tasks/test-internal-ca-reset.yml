@@ -1,0 +1,68 @@
+---
+- name: Read the internal CA after reset
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate_local }}"
+  register: test_reset_ca_certificate_info
+
+- name: Verify the reset installed a new CA and every selected identity
+  assert:
+    that:
+      - >-
+        hostvars[internalca_ca_host].internalca_previous_ca_common_name | default('')
+        != test_reset_ca_certificate_info.subject.get('commonName', '')
+      - internalca_installed_certificates.results | rejectattr('changed') | list | length == 0
+    fail_msg: >-
+      The certificate reset did not replace the old internal CA and every FWO-managed
+      identity selected on {{ inventory_hostname }}.
+
+- name: Check retained customer-managed Apache identity after reset
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_existing_apache_certificate }}"
+    - "{{ internalca_existing_apache_private_key }}"
+  register: test_reset_retained_apache_files
+  become: true
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+- name: Verify the reset left the customer-managed Apache identity unchanged
+  assert:
+    that:
+      - >-
+        test_reset_retained_apache_files.results[0].stat.checksum
+        == internalca_existing_apache_files.results[0].stat.checksum
+      - >-
+        test_reset_retained_apache_files.results[1].stat.checksum
+        == internalca_existing_apache_files.results[1].stat.checksum
+    fail_msg: >-
+      The certificate reset changed the customer-managed Apache identity on
+      {{ inventory_hostname }}.
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+- name: Check retained customer-managed OpenLDAP identity after reset
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_ldap_certificate }}"
+    - "{{ internalca_ldap_private_key }}"
+  register: test_reset_retained_ldap_files
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool
+
+- name: Verify the reset left the customer-managed OpenLDAP identity unchanged
+  assert:
+    that:
+      - >-
+        test_reset_retained_ldap_files.results[0].stat.checksum
+        == internalca_existing_ldap_files.results[0].stat.checksum
+      - >-
+        test_reset_retained_ldap_files.results[1].stat.checksum
+        == internalca_existing_ldap_files.results[1].stat.checksum
+    fail_msg: >-
+      The certificate reset changed the customer-managed OpenLDAP identity on
+      {{ inventory_hostname }}.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool

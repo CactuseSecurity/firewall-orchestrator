@@ -1,4 +1,14 @@
 ---
+- name: Require certificate reset mode to be an upgrade
+  assert:
+    that:
+      - installation_mode == 'upgrade'
+    fail_msg: >-
+      internalca_reset_certificates is a one-shot rotation switch for an existing
+      installation. Run it with installation_mode=upgrade; a new installation already
+      creates a new CA and identities.
+  when: internalca_reset_certificates | bool
+
 # community.crypto needs the cryptography python library on the target, and this
 # role runs on every host - including importer- and database-only nodes, which no
 # other role installs it for. It also has to be present before the first
@@ -42,6 +52,16 @@
 - name: Use the installed internal CA common name
   set_fact:
     internalca_ca_common_name: "{{ hostvars[internalca_ca_host].internalca_effective_ca_common_name }}"
+    internalca_managed_ca_common_names: >-
+      {{
+        (
+          [hostvars[internalca_ca_host].internalca_effective_ca_common_name]
+          + ([hostvars[internalca_ca_host].internalca_previous_ca_common_name]
+             if hostvars[internalca_ca_host].internalca_previous_ca_common_name
+                | default('') | length > 0
+             else [])
+        ) | unique
+      }}
 
 - name: Install internal CA trust anchor
   include_tasks: install-trust.yml
@@ -200,6 +220,10 @@
 
 - name: Issue internal CA certificates for this host
   include_tasks: issue-certificates.yml
+
+- name: Point an installed maintenance site at the reconciled Apache identity
+  include_tasks: reconcile-maintenance-certificate.yml
+  when: "'frontends' in group_names"
 
 - name: Validate the configured Apache intermediate certificate chain
   include_tasks: validate-apache-intermediates.yml

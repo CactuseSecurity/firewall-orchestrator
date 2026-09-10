@@ -25,6 +25,9 @@
         name: "{{ item }}"
       loop: "{{ apache2_required_modules }}"
 
+    - name: Select the installed identity for the maintenance site
+      include_tasks: select-maintenance-certificate.yml
+
     - name: copy httpd maintenance config file to ui target
       template:
         src: "httpd-maintenance.conf"

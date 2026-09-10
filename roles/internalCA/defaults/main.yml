@@ -21,6 +21,10 @@ internalca_ca_common_name_prefix: "{{ product_name }} Internal CA"
 internalca_ca_common_name: "{{ internalca_ca_common_name_prefix }}"
 internalca_ca_validity_days: 3650
 internalca_certificate_validity_days: 825
+# One-shot rotation switch. Do not persist it in the host-wide settings file:
+# true deliberately creates new FWO-managed key material on every invocation.
+# Customer-managed server identities are classified and excluded from issuance.
+internalca_reset_certificates: false
 # An installer run this close to expiry re-signs the issued certificates.
 internalca_renewal_threshold_days: 30
 

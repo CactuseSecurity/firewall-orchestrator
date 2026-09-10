@@ -26,13 +26,15 @@
 # another unit's After=, and a masked unit, are both excluded there. The same expression decides
 # which services an upgrade may stop in roles/api and roles/common.
 
-- name: Reload Apache after its server identity was renewed
+- name: Reload Apache after its served identity was reconciled
   systemd:
     name: "{{ webserver_package_name }}"
     state: reloaded
   become: true
   when:
-    - internalca_apache_identity_changed | default(false) | bool
+    - >-
+      internalca_apache_identity_changed | default(false) | bool
+      or internalca_maintenance_identity_changed | default(false) | bool
     - (webserver_package_name ~ '.service') in fworch_installed_services
 
 - name: Restart slapd after its server identity was renewed

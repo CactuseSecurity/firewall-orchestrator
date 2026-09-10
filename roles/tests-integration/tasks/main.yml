@@ -91,6 +91,12 @@
 - name: internal CA name testing
   import_tasks: test-internal-ca-name.yml
 
+- name: internal CA reset testing
+  import_tasks: test-internal-ca-reset.yml
+  when:
+    - installation_mode == 'upgrade'
+    - internalca_reset_certificates | default(false) | bool
+
 - name: api testing
   import_tasks: test-api.yml
   when: "'apiserver' in group_names"
@@ -111,6 +117,10 @@
 - name: Apache TLS key preflight testing
   import_tasks: test-apache-tls-key-preflight.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"
+
+- name: Maintenance certificate reconciliation testing
+  import_tasks: test-maintenance-certificate-reconciliation.yml
+  when: "'frontends' in group_names"
 
 - name: Apache intermediate chain configuration testing
   import_tasks: test-apache-intermediate-chain.yml

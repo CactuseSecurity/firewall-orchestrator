@@ -697,6 +697,9 @@ Not supported any longer are:
   the installation addresses its endpoint under, not only when it approaches expiry, so
   renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
   leaves every FWO client failing on a TLS host name mismatch
+- installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
+  CA and every FWO-managed client and server identity, including the self-signed identities
+  from versions before 9.5.0, while preserving customer-managed certificate/key pairs
 - versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
   Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
   upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now

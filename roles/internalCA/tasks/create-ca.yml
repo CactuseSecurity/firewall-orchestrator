@@ -43,7 +43,7 @@
   become: true
   when: internalca_existing_ca_certificate.stat.exists
 
-- name: Stop when the existing internal CA certificate cannot be read
+- name: Stop when the retained internal CA certificate cannot be read
   fail:
     msg: >-
       The internal CA certificate {{ internalca_ca_certificate }} exists on
@@ -56,6 +56,19 @@
   when:
     - internalca_existing_ca_certificate.stat.exists
     - internalca_existing_ca_certificate_info.subject is not defined
+    - not (internalca_reset_certificates | bool)
+
+# This is needed only while an explicit reset is crossing from the old CA to the new
+# one. The upgrade classifier runs after creation and must still recognise leaves signed
+# by the CA that existed at the beginning of the run.
+- name: Remember the internal CA name before reset
+  set_fact:
+    internalca_previous_ca_common_name: >-
+      {{
+        internalca_existing_ca_certificate_info.subject.get('commonName', '')
+        if internalca_existing_ca_certificate_info.subject is defined
+        else ''
+      }}
 
 - name: Generate internal CA private key
   community.crypto.openssl_privatekey:
@@ -63,6 +76,7 @@
     size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
     type: "{{ internalca_key_type }}"
     curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    force: "{{ internalca_reset_certificates | bool }}"
     mode: "0600"
   become: true
   no_log: true
@@ -82,6 +96,7 @@
       {{
         internalca_existing_ca_certificate_info.subject.commonName
         if internalca_existing_ca_certificate.stat.exists
+           and not (internalca_reset_certificates | bool)
         else internalca_ca_common_name_prefix ~ ' '
           ~ (internalca_ca_private_key_info.public_key_fingerprints.sha256
              | replace(':', '') | lower)[:16]
@@ -115,5 +130,6 @@
     provider: selfsigned
     selfsigned_not_after: "+{{ internalca_ca_validity_days }}d"
     selfsigned_digest: sha256
+    force: "{{ internalca_reset_certificates | bool }}"
     mode: "0644"
   become: true

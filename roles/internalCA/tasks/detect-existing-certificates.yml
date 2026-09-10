@@ -106,6 +106,47 @@
       to keep FWO away from this identity entirely.
   when: internalca_unreadable_apache_files | default([]) | length > 0
 
+- name: Classify the existing Apache certificate
+  set_fact:
+    internalca_apache_certificate_is_fwo_managed: >-
+      {{
+        internalca_existing_apache_files.results[0].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_apache_certificate_info
+        and (
+          internalca_existing_apache_certificate_info.issuer.get('commonName', '')
+            in internalca_managed_ca_common_names
+          or (
+            internalca_existing_apache_certificate_info.subject.get('organizationName', '')
+              == 'Cactus eSecurity'
+            and internalca_existing_apache_certificate_info.issuer.get('organizationName', '')
+              == 'Cactus eSecurity'
+          )
+        )
+      }}
+  when: internalca_existing_apache_configuration is defined
+
+# A customer certificate is still customer-owned when its configured key has gone
+# missing or no longer belongs to it. Replacing the certificate in that broken state
+# would violate the ownership boundary and destroy the evidence needed to repair it.
+- name: Refuse to replace an incomplete customer-managed Apache identity
+  fail:
+    msg: >-
+      The Apache certificate {{ internalca_existing_apache_certificate }} on
+      {{ inventory_hostname }} was issued by
+      {{ internalca_existing_apache_certificate_info.issuer.get('commonName', 'an unnamed customer CA') }}
+      and is customer managed, but {{ internalca_existing_apache_private_key }} is missing
+      or does not belong to it. Restore the matching private key or correct the installed
+      Apache vhost before rerunning the installer. FWO will not replace this certificate.
+  when:
+    - internalca_existing_apache_configuration is defined
+    - internalca_existing_apache_files.results[0].stat.exists
+    - not (internalca_apache_certificate_is_fwo_managed | bool)
+    - >-
+      not internalca_existing_apache_files.results[1].stat.exists
+      or internalca_existing_apache_certificate_info.public_key_fingerprints.sha256
+         != (internalca_existing_apache_key_info.public_key_fingerprints
+             | default({})).get('sha256', '')
+
 - name: Preserve customer managed Apache certificates
   set_fact:
     internalca_preserve_apache_certificate: >-
@@ -116,11 +157,7 @@
         and 'public_key_fingerprints' in internalca_existing_apache_key_info
         and internalca_existing_apache_certificate_info.public_key_fingerprints.sha256
             == internalca_existing_apache_key_info.public_key_fingerprints.sha256
-        and internalca_existing_apache_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
-        and not (
-          internalca_existing_apache_certificate_info.subject.get('organizationName', '') == 'Cactus eSecurity'
-          and internalca_existing_apache_certificate_info.issuer.get('organizationName', '') == 'Cactus eSecurity'
-        )
+        and not (internalca_apache_certificate_is_fwo_managed | bool)
       }}
   when: internalca_existing_apache_configuration is defined
 
@@ -247,6 +284,43 @@
       {{ internalca_ldap_cert_dir }} if slapd should not use it.
   when: internalca_unreadable_ldap_files | default([]) | length > 0
 
+- name: Classify the existing LDAP certificate
+  set_fact:
+    internalca_ldap_certificate_is_fwo_managed: >-
+      {{
+        internalca_existing_ldap_files.results[0].stat.exists
+        and 'public_key_fingerprints' in internalca_existing_ldap_certificate_info
+        and (
+          internalca_existing_ldap_certificate_info.issuer.get('commonName', '')
+            in internalca_managed_ca_common_names
+          or (
+            internalca_existing_ldap_certificate_info.subject.get('organizationName', '') == 'IT'
+            and internalca_existing_ldap_certificate_info.issuer.get('organizationName', '') == 'IT'
+          )
+        )
+      }}
+  when: "'middlewareserver' in group_names"
+
+- name: Refuse to replace an incomplete customer-managed LDAP identity
+  fail:
+    msg: >-
+      The OpenLDAP certificate {{ internalca_ldap_certificate }} on
+      {{ inventory_hostname }} was issued by
+      {{ internalca_existing_ldap_certificate_info.issuer.get('commonName', 'an unnamed customer CA') }}
+      and is customer managed, but {{ internalca_ldap_private_key }} is missing or does
+      not belong to it. Restore the matching private key or move the certificate out of
+      {{ internalca_ldap_cert_dir }} before rerunning the installer. FWO will not replace
+      this certificate.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_existing_ldap_files.results[0].stat.exists
+    - not (internalca_ldap_certificate_is_fwo_managed | bool)
+    - >-
+      not internalca_existing_ldap_files.results[1].stat.exists
+      or internalca_existing_ldap_certificate_info.public_key_fingerprints.sha256
+         != (internalca_existing_ldap_key_info.public_key_fingerprints
+             | default({})).get('sha256', '')
+
 - name: Preserve customer managed LDAP certificates
   set_fact:
     internalca_preserve_ldap_certificate: >-
@@ -257,11 +331,7 @@
         and 'public_key_fingerprints' in internalca_existing_ldap_key_info
         and internalca_existing_ldap_certificate_info.public_key_fingerprints.sha256
             == internalca_existing_ldap_key_info.public_key_fingerprints.sha256
-        and internalca_existing_ldap_certificate_info.issuer.get('commonName', '') != internalca_ca_common_name
-        and not (
-          internalca_existing_ldap_certificate_info.subject.get('organizationName', '') == 'IT'
-          and internalca_existing_ldap_certificate_info.issuer.get('organizationName', '') == 'IT'
-        )
+        and not (internalca_ldap_certificate_is_fwo_managed | bool)
       }}
   when: "'middlewareserver' in group_names"
 

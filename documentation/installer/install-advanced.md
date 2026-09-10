@@ -141,6 +141,21 @@ e.g. if your hasura metadata file needs to be re-created from scratch, then use 
 ./scripts/run-playbook-with-sudo.sh site.yml -e "force_install=yes"
 ```
 
+### Parameter "internalca_reset_certificates" to rotate FWO-managed certificates
+
+Use this one-shot switch only with `installation_mode=upgrade` to generate a new
+internal CA and new FWO-managed client, Apache, and OpenLDAP identities:
+
+```console
+./scripts/run-playbook-with-sudo.sh site.yml -e "installation_mode=upgrade internalca_reset_certificates=true"
+```
+
+Customer-managed Apache and OpenLDAP certificate/key pairs are retained unchanged,
+while the self-signed identities installed by FWO before 9.5.0 are replaced. Run the
+full playbook against every host, and remove the switch after the run so a later
+upgrade does not rotate the CA again. See `documentation/certificates.md` for the
+trust-store follow-up and detailed ownership rules.
+
 ### Parameter "allowRepoChangesForRedhat" to allow RedHat repository changes
 
 By default, the installer does not add or enable RedHat repositories. If required packages are not available from the already enabled repositories, prepare the OS repositories outside the installer.

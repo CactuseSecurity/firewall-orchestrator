@@ -1,0 +1,26 @@
+---
+# On the first upgrade from a pre-9.5.0 installation the maintenance template already
+# points at the new FWO identity, but roles/internalCA has not created it yet. Keep the
+# currently running Apache process in place; internalCA issues the pair and reloads it
+# later in the same installer run.
+- name: Check whether the maintenance Apache identity is ready
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ maintenance_apache_certificate }}"
+    - "{{ maintenance_apache_private_key }}"
+  register: maintenance_apache_identity
+
+- name: Restart Apache with the maintenance site
+  service:
+    name: "{{ webserver_package_name }}"
+    state: restarted
+  when: maintenance_apache_identity.results | map(attribute='stat.exists') | min
+
+- name: Defer the maintenance Apache restart until certificate reconciliation
+  debug:
+    msg: >-
+      The maintenance site is configured, but its FWO-managed TLS identity does not
+      exist yet. Apache keeps serving its current configuration until roles/internalCA
+      creates the identity and reloads the maintenance site.
+  when: not (maintenance_apache_identity.results | map(attribute='stat.exists') | min)

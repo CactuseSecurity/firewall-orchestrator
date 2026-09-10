@@ -1,0 +1,35 @@
+---
+# A certificate-only recovery run does not execute roles/common, so an enabled
+# maintenance vhost may still name the pre-9.5.0 /etc/apache*/ssl identity. Repoint
+# only its two identity directives after ownership detection and issuance have selected
+# either the newly generated FWO pair or the untouched customer pair.
+- name: Check for an installed maintenance Apache configuration
+  stat:
+    path: "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
+  register: internalca_maintenance_configuration
+  become: true
+
+- name: Reconcile maintenance Apache certificate paths
+  lineinfile:
+    path: "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
+    regexp: "^\\s*{{ item.directive }}\\s+"
+    line: "\t{{ item.directive }} {{ item.path }}"
+  loop:
+    - directive: SSLCertificateFile
+      path: "{{ internalca_apache_certificate }}"
+    - directive: SSLCertificateKeyFile
+      path: "{{ internalca_apache_private_key }}"
+  register: internalca_maintenance_identity_reconciliation
+  become: true
+  when: internalca_maintenance_configuration.stat.exists
+
+- name: Record maintenance Apache identity reconciliation
+  set_fact:
+    internalca_maintenance_identity_changed: >-
+      {{
+        internalca_maintenance_identity_reconciliation.results
+        | rejectattr('skipped', 'defined')
+        | selectattr('changed')
+        | list
+        | length > 0
+      }}

@@ -26,8 +26,6 @@
         owner: root
         group: root
 
-    - name: restart apache with maintenance site
-      service:
-        name: "{{ webserver_package_name }}"
-        state: restarted
+    - name: Restart Apache with maintenance site before certificate reconciliation
+      include_tasks: restart-before-certificate-reconciliation.yml
   become: true

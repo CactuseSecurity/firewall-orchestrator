@@ -5,12 +5,14 @@ from __future__ import annotations
 import difflib
 import io
 import json
+import re
 from dataclasses import replace
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import pytest
 
 from scripts.ci.version_gate import (
+    SEALING_DOCUMENTATION,
     GateFiles,
     Verdict,
     build_parser,
@@ -39,9 +41,6 @@ from scripts.ci.version_gate import (
     tag_version,
     upgrade_file_version,
 )
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 REVISION_HISTORY = """# Revision history
 
@@ -764,6 +763,19 @@ class TestVerdict:
 
     def test_passing_payload_keeps_its_reason(self) -> None:
         assert Verdict(ok=True, reason="all good").to_dict() == {"ok": True, "reason": "all good"}
+
+
+class TestDocumentationPointers:
+    def test_sealing_pointer_names_a_heading_that_exists(self) -> None:
+        # The verdict hard-codes the anchor; this is the only thing that fails when the heading
+        # is renamed, see F56.
+        path, anchor = SEALING_DOCUMENTATION.split("#")
+        document = Path(__file__).parents[2] / path
+        assert document.is_file(), f"{path} is not a file"
+
+        headings = re.findall(r"^#{2,3} (.+?)\s*$", document.read_text(encoding="utf-8"), re.MULTILINE)
+        slugs = {re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-") for heading in headings}
+        assert anchor in slugs, f"#{anchor} does not match a heading of {path}"
 
 
 class TestInputHandling:

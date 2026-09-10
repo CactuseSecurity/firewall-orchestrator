@@ -251,10 +251,10 @@ rather than from the tagged commit, so tags on older commits are still checked. 
 Remediation is to leave the tag where it is and move on to the next version: the version it
 sealed cannot be reopened, so raise `product_version` and seal that one on the right commit.
 Deleting or moving the tag is not a path anyone has - not even an organisation admin - because
-the required tag ruleset blocks `deletion`, `update` and `non_fast_forward` with no bypass
-actors, see [Required repository configuration](#required-repository-configuration). In this
-repository that ruleset is `Disallow Tag Update or Delete`. A published release tag must never
-be moved in any case.
+the required tag-immutability ruleset blocks `deletion`, `update` and `non_fast_forward` with
+no bypass actors, see [Required repository configuration](#required-repository-configuration).
+In this repository that ruleset is `Disallow Tag Update or Delete`. A published release tag must
+never be moved in any case.
 
 **`audit-develop`** runs on every push to `develop` and fails when `develop`'s `product_version`
 is already sealed. It catches the narrow race where a merge lands in the same moment a sealing
@@ -269,10 +269,12 @@ tag is pushed, and any direct push that bypassed the required check.
   release maintainers to bypass it. This both gives sealing tags their authority and protects
   the tag-triggered refresh workflow's `actions: write` token. Without it, anyone who can push
   a tag can seal a version or execute a modified refresh workflow from a tagged commit.
-- An active tag ruleset targeting `*` must also block `deletion`, `update` and
-  `non_fast_forward`, with no bypass actors. A sealing tag is the record that a version is
-  closed, so it has to be immutable, and the recovery advice above rests on it: it is why a tag
-  on the wrong commit is answered by moving to the next version rather than by re-tagging.
+- A **second** active tag ruleset targeting `*` must block `deletion`, `update` and
+  `non_fast_forward`, with no bypass actors. It has to be separate from the creation ruleset
+  because bypass actors are granted per ruleset, not per rule. A sealing tag is the record that a
+  version is closed, so it has to be immutable, and the recovery advice above rests on it: it is
+  why a tag on the wrong commit is answered by moving to the next version rather than by
+  re-tagging.
 
 No new secrets, apps or environments are required.
 
@@ -290,9 +292,11 @@ existing run for a pull request's current head SHA; it cannot create that first 
 
 Activate the gate in this order:
 
-1. **Before merging the workflow**, create the mandatory tag ruleset described above. It must
-   target `*`, restrict tag creation, and grant bypass only to trusted release maintainers. This
-   protects the tag-triggered refresh workflow's `actions: write` permission from its first run.
+1. **Before merging the workflow**, create the two mandatory tag rulesets described above: one
+   targeting `*` that restricts tag creation and grants bypass only to trusted release
+   maintainers, which protects the tag-triggered refresh workflow's `actions: write` permission
+   from its first run, and a second one targeting `*` that blocks deletion, update and
+   non-fast-forward with no bypass actors.
 2. Merge the workflow into `develop`, but do not add the required status check yet. The refresh
    workflow may run for this `develop` push, but it cannot initialize pull request gates and may
    fail during this rollout phase. Re-triggering pull requests now does not help because the

@@ -101,8 +101,10 @@ point to another commit.
 ## Sealing a version
 
 Sealing is the one step of this lifecycle that no workflow performs. A human decides that a
-version is finished and creates its tag, normally by publishing a GitHub Release. The **Version
-gate** points here when it blocks a pull request because the previous version is still open.
+version is finished and creates its tag, normally by publishing a GitHub Release. Only the
+release maintainers who may bypass the tag-creation ruleset can do that - if you are not one of
+them and your pull request is blocked because the previous version is still open, ask one of them
+to seal it. The **Version gate** points here in that case.
 
 First decide what the version is:
 
@@ -150,10 +152,9 @@ refuses one that removes an upgrade script, because every installation older tha
 would lose its operations - a script of the still open version included, which a colleague's
 installation may already have run. The single exception is a script named above the current
 `product_version`, which no installation can ever have run and which would otherwise block every
-pull request until removed. Restore what was removed, then undo the current
-version's change by emptying the body of its script, or correct an older script from the current
-version's one. Every
-new upgrade operation must be safe to execute repeatedly. Use guards such as
+pull request until removed. Restore what was removed, then undo the current version's change by
+emptying the body of its script, or correct an older script from the current version's one.
+Every new upgrade operation must be safe to execute repeatedly. Use guards such as
 `IF NOT EXISTS` or `ON CONFLICT DO NOTHING` where appropriate.
 
 The file name decides whether the script ever runs.
@@ -303,8 +304,11 @@ cover every tag (`*`), not only version-shaped tags: otherwise a repository writ
 commit containing a modified refresh workflow and execute it with that permission before the
 workflow's tag-name check takes effect.
 
-The same ruleset must also block tag deletion, update and non-fast-forward, with no bypass
-actors, so that a sealing tag stays the immutable record that a version is closed.
+A **second** tag ruleset, also targeting `*`, must block tag deletion, update and
+non-fast-forward, with no bypass actors, so that a sealing tag stays the immutable record that a
+version is closed. It has to be a separate ruleset because GitHub grants bypass actors per
+ruleset, not per rule: adding these rules to the creation ruleset would hand its bypass actors
+the authority to delete tags as well.
 
 ### Required status check
 

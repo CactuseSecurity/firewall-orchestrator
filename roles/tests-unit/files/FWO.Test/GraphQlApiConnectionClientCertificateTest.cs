@@ -1,0 +1,447 @@
+using FWO.Api.Client;
+using FWO.Basics.Exceptions;
+using FWO.Config.File;
+using NUnit.Framework;
+using System.Net.Http;
+using System.Net.Security;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using Assert = NUnit.Framework.Assert;
+
+namespace FWO.Test
+{
+    /// <summary>
+    /// The API vhost requires a client certificate. These tests cover how that identity
+    /// is loaded: once per process, only for https, and with a diagnosable error when the
+    /// configured files are missing.
+    /// </summary>
+    [TestFixture]
+    [NonParallelizable] // mutates the static ConfigFile paths that ConfigFileTest also writes
+    internal class GraphQlApiConnectionClientCertificateTest
+    {
+        private const string kClientCertificateSubject = "CN=fwo-client-certificate-test";
+        private static readonly string kCertificatePath = Path.Combine(Path.GetTempPath(), "fwo_client_cert_test.crt");
+        private static readonly string kPrivateKeyPath = Path.Combine(Path.GetTempPath(), "fwo_client_cert_test.key");
+        private static readonly string kApiCaCertificatePath = Path.Combine(Path.GetTempPath(), "fwo_api_ca_test.crt");
+        private static X509Certificate2? apiServerCertificate;
+        private static string apiCaCertificatePem = "";
+
+        [OneTimeSetUp]
+        public void WriteClientIdentity()
+        {
+            using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest request = new(kClientCertificateSubject, key, HashAlgorithmName.SHA256);
+            using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+
+            File.WriteAllText(kCertificatePath, certificate.ExportCertificatePem());
+            File.WriteAllText(kPrivateKeyPath, key.ExportPkcs8PrivateKeyPem());
+            CreateApiServerCertificate();
+            SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
+        }
+
+        [OneTimeTearDown]
+        public void RemoveClientIdentity()
+        {
+            File.Delete(kCertificatePath);
+            File.Delete(kPrivateKeyPath);
+            File.Delete(kApiCaCertificatePath);
+            apiServerCertificate?.Dispose();
+        }
+
+        [SetUp]
+        public void ResetCache()
+        {
+            File.WriteAllText(kApiCaCertificatePath, apiCaCertificatePem);
+            SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
+            ClearCachedCertificate();
+        }
+
+        /// <summary>
+        /// ConfigFile state is process wide, so it must not be left pointing at the
+        /// missing or unset paths some of these tests configure.
+        /// </summary>
+        [TearDown]
+        public void RestoreConfiguredPaths()
+        {
+            SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
+            ClearCachedCertificate();
+        }
+
+        /// <summary>
+        /// The certificate holds unmanaged key material, so it must be loaded once and
+        /// shared rather than re-read for every connection.
+        /// </summary>
+        [Test]
+        public void ClientCertificate_IsLoadedOncePerProcess()
+        {
+            using HttpClientHandler firstHandler = CreateHttpClientHandler(useTls: true);
+            using HttpClientHandler secondHandler = CreateHttpClientHandler(useTls: true);
+
+            Assert.That(firstHandler.ClientCertificates, Has.Count.EqualTo(1));
+            Assert.That(secondHandler.ClientCertificates, Has.Count.EqualTo(1));
+            Assert.That(ReferenceEquals(firstHandler.ClientCertificates[0], secondHandler.ClientCertificates[0]), Is.True,
+                "every connection must reuse the same client certificate instance");
+        }
+
+        [Test]
+        public void ClientCertificate_IsNotPresentedOverPlainHttp()
+        {
+            using HttpClientHandler handler = CreateHttpClientHandler(useTls: false);
+
+            Assert.That(handler.ClientCertificates, Is.Empty);
+        }
+
+        [Test]
+        public void ClientCertificate_HttpConnectionNeedsNoCertificate()
+        {
+            // guards the plain-http path end to end: constructing must not touch the identity
+            Assert.DoesNotThrow(() =>
+            {
+                using GraphQlApiConnection connection = new("http://localhost");
+            });
+        }
+
+        /// <summary>
+        /// The plain-http path must not fail - it is a documented debugging step - but an
+        /// installation left in that state reaches the API without a client certificate and
+        /// without validating the server, so it has to be able to say so.
+        /// </summary>
+        [Test]
+        public void UsesTls_WarnsOnceAboutAPlainHttpEndpoint()
+        {
+            const string endpoint = "http://api.warn-once.test:8080/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                bool firstResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+                bool secondResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(firstResult, Is.False);
+                    Assert.That(secondResult, Is.False);
+                    // Counted rather than merely present: a connection creates a query and a
+                    // subscription client per user session, so warning per client would fill
+                    // the log with this one line.
+                    Assert.That(CountOccurrences(logOutput.ToString(), endpoint), Is.EqualTo(1),
+                        "the unsecured endpoint must be reported exactly once per process");
+                    Assert.That(logOutput.ToString(), Does.Contain("Warning"));
+                    Assert.That(logOutput.ToString(), Does.Contain("api_uri"),
+                        "the warning has to name the setting that has to be changed");
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        [Test]
+        public void UsesTls_ReportsEachUnsecuredEndpointSeparately()
+        {
+            const string firstEndpoint = "http://api.first-endpoint.test:8080/v1/graphql";
+            const string secondEndpoint = "http://api.second-endpoint.test:8080/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                GraphQlTlsCertificateSupport.UsesTls(firstEndpoint);
+                GraphQlTlsCertificateSupport.UsesTls(secondEndpoint);
+
+                // A single "already warned" flag would hide the second endpoint entirely.
+                Assert.Multiple(() =>
+                {
+                    Assert.That(CountOccurrences(logOutput.ToString(), firstEndpoint), Is.EqualTo(1));
+                    Assert.That(CountOccurrences(logOutput.ToString(), secondEndpoint), Is.EqualTo(1));
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        [Test]
+        public void UsesTls_SaysNothingAboutAnHttpsEndpoint()
+        {
+            const string endpoint = "https://api.secured-endpoint.test:9443/api/v1/graphql";
+            using StringWriter logOutput = new();
+            TextWriter originalConsoleOut = Console.Out;
+
+            try
+            {
+                Console.SetOut(logOutput);
+
+                bool result = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(result, Is.True);
+                    // Asserted on the endpoint rather than on empty output: another fixture
+                    // may log to the same redirected console.
+                    Assert.That(logOutput.ToString(), Does.Not.Contain(endpoint));
+                });
+            }
+            finally
+            {
+                Console.SetOut(originalConsoleOut);
+            }
+        }
+
+        /// <summary>
+        /// A raw CryptographicException gives no hint which setting is wrong, so the
+        /// loader names both config keys and their configured values.
+        /// </summary>
+        [Test]
+        public void LoadClientCertificate_ReportsWhichConfigValuesAreWrong()
+        {
+            string missingCertificate = Path.Combine(Path.GetTempPath(), "fwo_absent_client.crt");
+            string missingKey = Path.Combine(Path.GetTempPath(), "fwo_absent_client.key");
+            SetConfiguredPaths(missingCertificate, missingKey);
+
+            try
+            {
+                ConfigException thrown = Assert.Throws<ConfigException>(
+                    () => GraphQlTlsCertificateSupport.LoadClientCertificate())!;
+
+                Assert.That(thrown.Message, Does.Contain("tls_client_certificate"));
+                Assert.That(thrown.Message, Does.Contain("tls_client_private_key"));
+                Assert.That(thrown.Message, Does.Contain(missingCertificate));
+                Assert.That(thrown.InnerException, Is.Not.Null, "the original failure must be preserved");
+            }
+            finally
+            {
+                SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
+            }
+        }
+
+        [Test]
+        public void LoadClientCertificate_ReadsConfiguredPemPair()
+        {
+            X509Certificate2 certificate = GraphQlTlsCertificateSupport.LoadClientCertificate();
+
+            Assert.That(certificate.Subject, Is.EqualTo(kClientCertificateSubject));
+            Assert.That(certificate.HasPrivateKey, Is.True, "the client identity must carry its private key");
+        }
+
+        /// <summary>
+        /// The paths themselves throw when the keys are absent from the config file, which is
+        /// the likeliest failure on an upgraded installation. Reporting that must not run the
+        /// same lookup again, or the ConfigException is replaced by the lookup's own exception.
+        /// </summary>
+        [Test]
+        public void LoadClientCertificate_ReportsUnconfiguredPathsAsConfigError()
+        {
+            SetConfiguredPaths(null, null);
+
+            ConfigException thrown = Assert.Throws<ConfigException>(
+                () => GraphQlTlsCertificateSupport.LoadClientCertificate())!;
+
+            Assert.That(thrown.Message, Does.Contain("tls_client_certificate"),
+                "an unset config value must still surface as a ConfigException naming the keys");
+            Assert.That(thrown.Message, Does.Contain("tls_client_private_key"));
+            Assert.That(thrown.InnerException, Is.Not.Null, "the original failure must be preserved");
+        }
+
+        /// <summary>
+        /// A failed load must not be remembered: a service that starts before the installer
+        /// has finished writing the certificate would otherwise stay broken until restarted.
+        /// </summary>
+        [Test]
+        public void ClientCertificate_RecoversAfterAnEarlierFailure()
+        {
+            SetConfiguredPaths(Path.Combine(Path.GetTempPath(), "fwo_absent.crt"), Path.Combine(Path.GetTempPath(), "fwo_absent.key"));
+            Assert.Throws<ConfigException>(() => CreateHttpClientHandler(useTls: true));
+
+            SetConfiguredPaths(kCertificatePath, kPrivateKeyPath);
+            ExpireBackOffWindow();
+
+            using HttpClientHandler handler = CreateHttpClientHandler(useTls: true);
+            Assert.That(handler.ClientCertificates, Has.Count.EqualTo(1));
+            Assert.That(handler.ClientCertificates[0].Subject, Is.EqualTo(kClientCertificateSubject));
+        }
+
+        /// <summary>
+        /// Every failed attempt writes a stack trace, and connections are created per user
+        /// session, so a permanently broken config must not re-run the load on every call.
+        /// </summary>
+        [Test]
+        public void ClientCertificate_DoesNotRetryWithinBackOffWindow()
+        {
+            SetConfiguredPaths(null, null);
+
+            ConfigException first = CaptureLoadFailure();
+            ConfigException second = CaptureLoadFailure();
+
+            Assert.That(ReferenceEquals(first, second), Is.True,
+                "within the back-off window the remembered failure must be rethrown, not reloaded");
+            // rethrowing the stored instance directly would overwrite the trace with the
+            // rethrow site, hiding where the load actually failed
+            Assert.That(second.StackTrace, Does.Contain("LoadClientCertificate"),
+                "the rethrown failure must keep the stack trace of the original load");
+        }
+
+        [Test]
+        public void ApiCertificate_OnlyAcceptsTheConfiguredCertificateAuthority()
+        {
+            bool accepted = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateChainErrors);
+            bool rejectedForWrongName = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateNameMismatch);
+
+            using ECDsa otherKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest otherRequest = new("CN=untrusted-api", otherKey, HashAlgorithmName.SHA256);
+            using X509Certificate2 untrustedCertificate = otherRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            bool rejectedForWrongAuthority = ValidateApiServerCertificate(untrustedCertificate, SslPolicyErrors.RemoteCertificateChainErrors);
+
+            // re-validating the good certificate last proves the rejections above came from
+            // the certificates, not from the trust anchor having become unusable
+            bool stillAcceptedAfterRejections = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateChainErrors);
+
+            Assert.That(accepted, Is.True);
+            Assert.That(rejectedForWrongName, Is.False);
+            Assert.That(rejectedForWrongAuthority, Is.False);
+            Assert.That(stillAcceptedAfterRejections, Is.True,
+                "the cached trust anchor must survive repeated chain builds");
+        }
+
+        /// <summary>
+        /// A customer managed certificate is normally issued by an intermediate rather than
+        /// directly by the root, so the intermediates the peer supplies have to be used.
+        /// </summary>
+        [Test]
+        public void ApiCertificate_AcceptsAChainWithAnIntermediateAuthority()
+        {
+            using ECDsa rootKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest rootRequest = new("CN=fwo-api-root-test", rootKey, HashAlgorithmName.SHA256);
+            rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+            using X509Certificate2 root = rootRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+
+            using ECDsa intermediateKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest intermediateRequest = new("CN=fwo-api-intermediate-test", intermediateKey, HashAlgorithmName.SHA256);
+            intermediateRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            intermediateRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+            using X509Certificate2 intermediate = intermediateRequest.Create(root, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            using X509Certificate2 signingIntermediate = intermediate.CopyWithPrivateKey(intermediateKey);
+
+            using ECDsa leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest leafRequest = new("CN=fwo-api-leaf-test", leafKey, HashAlgorithmName.SHA256);
+            leafRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+            using X509Certificate2 leaf = leafRequest.Create(signingIntermediate, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+
+            File.WriteAllText(kApiCaCertificatePath, root.ExportCertificatePem());
+            ClearCachedCertificate();
+
+            // the TLS stack hands the peer chain to the callback; it holds the intermediate
+            using X509Chain peerChain = new();
+            peerChain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+            peerChain.ChainPolicy.CustomTrustStore.Add(root);
+            peerChain.ChainPolicy.ExtraStore.Add(intermediate);
+            peerChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+            peerChain.Build(leaf);
+
+            bool accepted = GraphQlTlsCertificateSupport.ValidateApiServerCertificate(
+                leaf, peerChain, SslPolicyErrors.RemoteCertificateChainErrors);
+
+            Assert.That(accepted, Is.True,
+                "a server certificate issued by an intermediate of the configured root must be accepted");
+        }
+
+        private static ConfigException CaptureLoadFailure()
+        {
+            ConfigException thrown = Assert.Throws<ConfigException>(
+                () => CreateHttpClientHandler(useTls: true))!;
+            return thrown;
+        }
+
+        /// <summary>
+        /// Drops the cached identity so each test starts from an unloaded state.
+        /// </summary>
+        private static void ClearCachedCertificate()
+        {
+            SetStaticField("clientCertificate", null);
+            SetStaticField("clientCertificateFailure", null);
+            SetStaticField("clientCertificateFailedAt", DateTime.MinValue);
+            // The trust anchor moved to the shared cache, which the LDAP client uses too.
+            InternalCaCertificateTest.ClearCache();
+        }
+
+        /// <summary>
+        /// Pretends the retry back-off has elapsed, so recovery can be tested without waiting.
+        /// </summary>
+        private static void ExpireBackOffWindow()
+        {
+            SetStaticField("clientCertificateFailedAt", DateTime.MinValue);
+        }
+
+        private static void SetStaticField(string name, object? value)
+        {
+            FieldInfo field = typeof(GraphQlTlsCertificateSupport).GetField(name, BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException($"GraphQlTlsCertificateSupport.{name} could not be found.");
+            field.SetValue(null, value);
+        }
+
+        private static int CountOccurrences(string text, string value)
+        {
+            return (text.Length - text.Replace(value, "").Length) / value.Length;
+        }
+
+        private static HttpClientHandler CreateHttpClientHandler(bool useTls)
+        {
+            return GraphQlTlsCertificateSupport.CreateHttpClientHandler(useTls);
+        }
+
+        private static bool ValidateApiServerCertificate(X509Certificate2 certificate, SslPolicyErrors errors)
+        {
+            return GraphQlTlsCertificateSupport.ValidateApiServerCertificate(certificate, null, errors);
+        }
+
+        private static void CreateApiServerCertificate()
+        {
+            using ECDsa certificateAuthorityKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest certificateAuthorityRequest = new("CN=fwo-api-ca-test", certificateAuthorityKey, HashAlgorithmName.SHA256);
+            certificateAuthorityRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+            certificateAuthorityRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
+            using X509Certificate2 certificateAuthority = certificateAuthorityRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            apiCaCertificatePem = certificateAuthority.ExportCertificatePem();
+            File.WriteAllText(kApiCaCertificatePath, apiCaCertificatePem);
+
+            using ECDsa serverKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            CertificateRequest serverRequest = new("CN=fwo-api-server-test", serverKey, HashAlgorithmName.SHA256);
+            serverRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+            serverRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+            apiServerCertificate = serverRequest.Create(certificateAuthority, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+        }
+
+        /// <summary>
+        /// Points ConfigFile at the given client identity without loading a whole config file.
+        /// </summary>
+        private static void SetConfiguredPaths(string? certificatePath, string? privateKeyPath)
+        {
+            PropertyInfo dataProperty = typeof(ConfigFile).GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("ConfigFile.Data could not be found.");
+            object data = dataProperty.GetValue(null) ?? throw new InvalidOperationException("ConfigFile.Data is null.");
+
+            // Names resolved reflectively, so a rename here fails at run time rather than
+            // at compile time - hence the explicit throw instead of a null-forgiving "!".
+            SetDataProperty(data, "TlsClientCertificatePath", certificatePath);
+            SetDataProperty(data, "TlsClientPrivateKeyPath", privateKeyPath);
+            SetDataProperty(data, "TlsCaCertificatePath", kApiCaCertificatePath);
+            dataProperty.SetValue(null, data);
+        }
+
+        private static void SetDataProperty(object data, string propertyName, string? value)
+        {
+            PropertyInfo property = data.GetType().GetProperty(propertyName)
+                ?? throw new InvalidOperationException($"ConfigFileData.{propertyName} could not be found.");
+            property.SetValue(data, value);
+        }
+    }
+}

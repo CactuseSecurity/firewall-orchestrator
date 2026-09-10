@@ -38,6 +38,13 @@ namespace FWO.Services.Workflow
 
         private List<WfReqTask>? RequestTaskEmailBundle { get; set; }
 
+        /// <summary>
+        /// Number of actions delegated to the middleware while the current bundle was active. Only the
+        /// middleware knows whether an action captured an email, so this counter is what tells the client
+        /// that a flush can have something to send at all.
+        /// </summary>
+        private int BundledDelegations { get; set; }
+
 
         public ActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<UserGroup>? userGroups = null, bool useInMwServer = false,
             IRequestedRulePolicyChecker? requestedRulePolicyChecker = null, IWorkflowRecipientResolver? workflowRecipientResolver = null)
@@ -323,6 +330,13 @@ namespace FWO.Services.Workflow
             Log.WriteDebug("Workflow Actions", $"Delegating action execution to middleware. Scope: {parameters.Scope}, ActionId: {parameters.ActionId}, ObjectId: {parameters.ObjectId}, TicketId: {parameters.TicketId}, State: {parameters.OldStateId}->{parameters.NewStateId}, Phase: {parameters.Phase}.");
             try
             {
+                // Counted on attempt, not on success: a failing response can still have captured emails
+                // middleware side, so the bundle must stay flushable.
+                if (!string.IsNullOrWhiteSpace(parameters.EmailBundleId))
+                {
+                    ++BundledDelegations;
+                }
+
                 RestResponse<WorkflowActionResult> response = await wfHandler.MiddlewareClient!.ExecuteWorkflowActions(parameters);
                 DisplayWorkflowActionMessages(response.Data?.Messages);
                 if (!response.IsSuccessful || response.Data?.Success != true)
@@ -340,11 +354,23 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Requests a middleware-side flush for the active workflow email bundle.
+        /// Starts counting the delegations of a new bundle. Called when a bundle is opened, so a flush of
+        /// the previous one cannot make this one look populated.
+        /// </summary>
+        public void ResetBundledDelegations()
+        {
+            BundledDelegations = 0;
+        }
+
+        /// <summary>
+        /// Requests a middleware-side flush for the active workflow email bundle. Skipped when no action
+        /// carrying the bundle id reached the middleware, because then no collector can exist there and the
+        /// round trip could only produce a delivery error for emails that were never captured.
         /// </summary>
         public async Task FlushWorkflowEmailBundleInMiddleware(long ticketId)
         {
-            if (wfHandler.MiddlewareClient == null || string.IsNullOrWhiteSpace(wfHandler.WorkflowEmailBundleId))
+            if (wfHandler.MiddlewareClient == null || string.IsNullOrWhiteSpace(wfHandler.WorkflowEmailBundleId)
+                || BundledDelegations == 0)
             {
                 return;
             }

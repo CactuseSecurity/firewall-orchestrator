@@ -34,6 +34,7 @@ namespace FWO.Services.Workflow
         {
             WorkflowEmailBundleId = Guid.NewGuid().ToString("N");
             WorkflowEmailBundleEnd = false;
+            ActionHandler?.ResetBundledDelegations();
         }
 
         private void EndWorkflowEmailBundle()
@@ -68,7 +69,7 @@ namespace FWO.Services.Workflow
         public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
         {
             bool emailBundleStarted = false;
-            bool emailBundleFlushed = false;
+            bool emailBundleFlushAttempted = false;
             try
             {
                 if (!await PromoteTicket(ticket))
@@ -85,7 +86,10 @@ namespace FWO.Services.Workflow
                     await UpdateActTicketStateFromReqTasks();
                 }
 
-                emailBundleFlushed = await FlushWorkflowEmailBundle();
+                // Set before the call so a throw inside it still counts as attempted and the finally does
+                // not report the same delivery failure a second time.
+                emailBundleFlushAttempted = true;
+                await FlushWorkflowEmailBundle();
                 return true;
             }
             catch (Exception exception)
@@ -98,7 +102,7 @@ namespace FWO.Services.Workflow
                 {
                     // Captured emails were suppressed at their state action, so an aborted promote must
                     // still flush what was collected - those request tasks did change state.
-                    if (!emailBundleFlushed)
+                    if (!emailBundleFlushAttempted)
                     {
                         await FlushWorkflowEmailBundle();
                     }
@@ -110,30 +114,28 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Ends the active workflow email bundle and asks the middleware to send it. Delivery problems are
-        /// reported separately and never turn a completed state change into a failed one.
+        /// reported to the promoting user and never turn a completed state change into a failed one. The
+        /// flush itself decides whether a round trip is needed, so an empty bundle reports nothing.
         /// </summary>
-        /// <returns>true if the bundle was flushed without error</returns>
-        private async Task<bool> FlushWorkflowEmailBundle()
+        private async Task FlushWorkflowEmailBundle()
         {
             if (ActionHandler == null)
             {
                 // Without an action handler no state action ran, so nothing was captured. Reporting an
                 // email problem here would be misleading.
-                return true;
+                return;
             }
 
             try
             {
                 EndWorkflowEmailBundle();
                 await ActionHandler.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
-                return true;
             }
             catch (Exception exception)
             {
                 Log.WriteError(userConfig.GetText("send_email"),
                     $"Could not send bundled workflow emails for ticket {ActTicket.Id}.", exception);
                 DisplayMessageInUi(exception, userConfig.GetText("send_email"), userConfig.GetText("E9105"), true);
-                return false;
             }
         }
 

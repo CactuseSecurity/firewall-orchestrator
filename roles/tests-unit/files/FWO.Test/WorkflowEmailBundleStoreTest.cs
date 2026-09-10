@@ -182,16 +182,73 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BelongsTo_TreatsUnboundCollectorAsUsableByAnyCaller()
+        public void BelongsTo_RefusesEveryCallerForUnboundCollector()
         {
             WorkflowEmailBundleCollector unboundCollector = new();
 
             Assert.Multiple(() =>
             {
                 Assert.That(unboundCollector.CallerDn, Is.Empty);
-                Assert.That(unboundCollector.BelongsTo(kCallerDn), Is.True);
-                Assert.That(unboundCollector.BelongsTo(kOtherCallerDn), Is.True);
+                Assert.That(unboundCollector.BelongsTo(kCallerDn), Is.False);
+                Assert.That(unboundCollector.BelongsTo(kOtherCallerDn), Is.False);
+                Assert.That(unboundCollector.BelongsTo(""), Is.False);
             });
+        }
+
+        [Test]
+        public void GetOrCreate_RefusesUnidentifiedCaller()
+        {
+            WorkflowEmailBundleStore store = new();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.GetOrCreate(kTicketId, kBundleId, ""), Is.Null);
+                Assert.That(store.GetOrCreate(kTicketId, kBundleId, "   "), Is.Null);
+                Assert.That(store.Get(kTicketId, kBundleId, kCallerDn), Is.Null, "no bundle may have been stored");
+            });
+        }
+
+        [Test]
+        public void Get_RefusesUnidentifiedCaller()
+        {
+            WorkflowEmailBundleStore store = new();
+            store.GetOrCreate(kTicketId, kBundleId, kCallerDn);
+
+            Assert.That(store.Get(kTicketId, kBundleId, ""), Is.Null);
+        }
+
+        [Test]
+        public void GetOrCreate_KeepsEmptyInFlightBundleWhenStoreIsFull()
+        {
+            WorkflowEmailBundleStore store = new();
+            WorkflowEmailBundleCollector? inFlight = store.GetOrCreate(kTicketId, kBundleId, kCallerDn);
+            FillStoreToCapacity(store);
+
+            WorkflowEmailBundleCollector? sameBundle = store.GetOrCreate(kTicketId, kBundleId, kCallerDn);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(inFlight, Is.Not.Null);
+                Assert.That(inFlight!.PendingItems, Is.Empty, "the bundle under test must be empty");
+                Assert.That(sameBundle, Is.SameAs(inFlight), "an in-flight bundle must survive a full store");
+            });
+        }
+
+        [Test]
+        public void GetOrCreate_RefusesNewBundleWhenStoreIsFull()
+        {
+            WorkflowEmailBundleStore store = new();
+            FillStoreToCapacity(store);
+
+            Assert.That(store.GetOrCreate(kTicketId, kBundleId, kCallerDn), Is.Null);
+        }
+
+        private static void FillStoreToCapacity(WorkflowEmailBundleStore store)
+        {
+            for (int bundleNumber = 0; bundleNumber < WorkflowEmailBundleStore.kMaxBundles; ++bundleNumber)
+            {
+                store.GetOrCreate(kTicketId, $"filler{bundleNumber}", kCallerDn);
+            }
         }
 
         private static void ExpireCollector(WorkflowEmailBundleCollector collector)

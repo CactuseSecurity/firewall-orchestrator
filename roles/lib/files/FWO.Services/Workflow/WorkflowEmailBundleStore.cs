@@ -19,7 +19,7 @@ namespace FWO.Services.Workflow
     /// Keeps the workflow email bundle collectors of in-flight bundles. A bundle spans several action
     /// executions, so its collector has to outlive a single request; this store is the only place that
     /// holds that state and derives bundle keys, so key, ticket lock and authorization cannot drift apart.
-    /// Register as a singleton.
+    /// Needs exactly one instance per middleware process; WorkflowController holds it in a static field.
     /// </summary>
     public sealed class WorkflowEmailBundleStore
     {
@@ -44,19 +44,39 @@ namespace FWO.Services.Workflow
         /// <param name="resolvedTicketId">Ticket id the caller was authorized against, not the raw request value</param>
         /// <param name="bundleId">Client supplied bundle id, already format validated</param>
         /// <param name="callerDn">DN of the calling user, bound to the bundle on creation</param>
-        /// <returns>The collector, or null when the bundle belongs to another caller or the store is full</returns>
+        /// <returns>The collector, or null when the caller is unidentified, the bundle belongs to another
+        /// caller, or the store is full</returns>
         public WorkflowEmailBundleCollector? GetOrCreate(long resolvedTicketId, string bundleId, string callerDn)
         {
-            string key = BuildKey(resolvedTicketId, bundleId);
-            WorkflowEmailBundleCollector collector = bundles.GetOrAdd(key, _ => new WorkflowEmailBundleCollector(callerDn));
-            if (!collector.BelongsTo(callerDn))
+            if (string.IsNullOrWhiteSpace(callerDn))
             {
                 return null;
             }
 
-            if (bundles.Count > kMaxBundles && collector.PendingItems.Count == 0)
+            string key = BuildKey(resolvedTicketId, bundleId);
+            if (bundles.TryGetValue(key, out WorkflowEmailBundleCollector? existing))
             {
-                bundles.TryRemove(key, out _);
+                return TouchIfOwned(existing, callerDn);
+            }
+
+            // The cap must only refuse new bundles. An in-flight bundle can legitimately be empty - its
+            // first action may not have been a bundled email action - so emptiness cannot stand in for
+            // "just created" without evicting live bundles.
+            if (bundles.Count >= kMaxBundles)
+            {
+                return null;
+            }
+
+            WorkflowEmailBundleCollector created = new(callerDn);
+            return bundles.TryAdd(key, created)
+                ? TouchIfOwned(created, callerDn)
+                : Get(resolvedTicketId, bundleId, callerDn);
+        }
+
+        private static WorkflowEmailBundleCollector? TouchIfOwned(WorkflowEmailBundleCollector collector, string callerDn)
+        {
+            if (!collector.BelongsTo(callerDn))
+            {
                 return null;
             }
 
@@ -70,10 +90,12 @@ namespace FWO.Services.Workflow
         /// <param name="resolvedTicketId">Ticket id the caller was authorized against</param>
         /// <param name="bundleId">Client supplied bundle id, already format validated</param>
         /// <param name="callerDn">DN of the calling user</param>
-        /// <returns>The collector, or null when no bundle exists for this caller and key</returns>
+        /// <returns>The collector, or null when the caller is unidentified or no bundle exists for this
+        /// caller and key</returns>
         public WorkflowEmailBundleCollector? Get(long resolvedTicketId, string bundleId, string callerDn)
         {
-            return bundles.TryGetValue(BuildKey(resolvedTicketId, bundleId), out WorkflowEmailBundleCollector? collector)
+            return !string.IsNullOrWhiteSpace(callerDn)
+                && bundles.TryGetValue(BuildKey(resolvedTicketId, bundleId), out WorkflowEmailBundleCollector? collector)
                 && collector.BelongsTo(callerDn) ? collector : null;
         }
 

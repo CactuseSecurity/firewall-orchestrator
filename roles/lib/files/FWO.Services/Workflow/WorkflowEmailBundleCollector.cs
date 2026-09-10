@@ -47,13 +47,15 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Checks whether the bundle belongs to the given caller. A bundle spans several requests, so its
-        /// ownership is what keeps one user from flushing another user's captured emails.
+        /// ownership is what keeps one user from flushing another user's captured emails. An unbound
+        /// collector never matches: only store managed bundles are reached through this check, and a
+        /// collector without an owner would otherwise accept every caller.
         /// </summary>
         /// <param name="callerDn">DN of the calling user</param>
         /// <returns>true if the caller may use this bundle</returns>
         public bool BelongsTo(string callerDn)
         {
-            return CallerDn.Length == 0 || CallerDn == callerDn;
+            return CallerDn.Length > 0 && CallerDn == callerDn;
         }
 
         /// <summary>

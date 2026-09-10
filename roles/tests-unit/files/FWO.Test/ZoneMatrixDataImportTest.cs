@@ -73,6 +73,8 @@ namespace FWO.Test
         private const string kFwCore = "fw-core-01";
         private const string kBorderRouter = "border-router-01";
         private const string kUnknownDevice = "fw-does-not-exist";
+        private const string kPathToRootField = "path_to_root";
+        private const string kPathToInternetField = "path_to_internet";
 
         private static readonly DeviceRefData[] kRootPath =
         [
@@ -447,7 +449,31 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
-                Assert.That(result, Does.Contain("in subnet 192.0.2.0/24"));
+                Assert.That(result, Does.Contain($"in {kPathToRootField} in subnet 192.0.2.0/24"));
+                Assert.That(result, Does.Not.Contain(kPathToInternetField));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_NamesTheInternetPathWhenItContainsDuplicateDevice()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "duplicate-device-internet.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToInternet: kDuplicateDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
+                Assert.That(result, Does.Contain($"in {kPathToInternetField} in subnet 192.0.2.0/24"));
+                Assert.That(result, Does.Not.Contain(kPathToRootField));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
             });
         }

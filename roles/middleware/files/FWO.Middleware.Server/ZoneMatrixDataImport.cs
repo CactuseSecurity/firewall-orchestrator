@@ -147,8 +147,8 @@ namespace FWO.Middleware.Server
             }
             foreach (ZoneIpRangeData subnet in importedZoneMatrixData.NetworkZones.SelectMany(zone => zone.IpData))
             {
-                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot);
-                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet);
+                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot, "path_to_root");
+                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet, "path_to_internet");
             }
             if (unknown.Count > 0)
             {
@@ -170,7 +170,7 @@ namespace FWO.Middleware.Server
         }
 
         private static void CheckPathDuplicates(ZoneIpRangeData subnet,
-            List<DeviceRefData> path, HashSet<string> duplicate)
+            List<DeviceRefData> path, HashSet<string> duplicate, string magicPathString)
         {
             HashSet<string> unique = [];
 
@@ -179,7 +179,7 @@ namespace FWO.Middleware.Server
                 string deviceText = DeviceNameResolver.Describe(device.MgmtName, device.DeviceName);
                 if (!unique.Add(deviceText))
                 {
-                    duplicate.Add($"Duplicate device {deviceText} in subnet {subnet.Ip}");
+                    duplicate.Add($"Duplicate device {deviceText} in {magicPathString} in subnet {subnet.Ip}");
                 }
             }
         }

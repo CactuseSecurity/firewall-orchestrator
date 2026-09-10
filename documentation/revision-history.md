@@ -703,6 +703,8 @@ Not supported any longer are:
   stops an upgrade from an older version before it changes anything, naming the two-step path
   (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
   schema changes silently
+
+## 9.5.1 - 10.09.2026
 - Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
 - The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version
 - The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named below the version the base branch already carries is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, and existing scripts must not be modified or deleted

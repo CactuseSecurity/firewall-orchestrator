@@ -1,3 +1,4 @@
+using System.Net;
 using FWO.Api.Client;
 using FWO.Config.Api.Data;
 using FWO.Basics;
@@ -134,6 +135,58 @@ namespace FWO.Test
             Assert.That(publishedUserDn, Is.EqualTo(TestApiConnection.TestUserDn));
             Assert.That(await tokenService.GetTokenPair(), Is.Null);
             Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.False);
+        }
+
+        /// <summary>
+        /// The counterpart of the test above. A 503 says the middleware could not reach the
+        /// API, which is no verdict on the refresh token: revoking it here would turn a
+        /// momentary outage into a forced re-login for every session, so the stored pair has
+        /// to survive and no relogin may be announced.
+        /// </summary>
+        [Test]
+        public async Task RestoreAuthenticationState_WhenTheApiIsUnreachable_ShouldKeepStoredTokenPair()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            RsaSecurityKey publicKey = new(rsa.ExportParameters(false));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, publicKey);
+
+            MockMiddlewareClient mockMiddlewareClient = new()
+            {
+                ShouldRefreshSucceed = false,
+                RefreshFailureStatusCode = HttpStatusCode.ServiceUnavailable
+            };
+            MockProtectedSessionStorage mockSessionStorage = new();
+            EventMediator eventMediator = new();
+            TokenService tokenService = new(mockMiddlewareClient, mockSessionStorage);
+            NavigationManager navigationManager = default!;
+            AuthStateProvider authStateProvider = new(tokenService, eventMediator, navigationManager);
+
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(-5), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(-5),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+            SetAuthenticatedUser(authStateProvider, TestApiConnection.TestUserDn);
+
+            int publishCount = 0;
+            eventMediator.Subscribe<ReloginRequiredEvent>(nameof(ReloginRequiredEvent), _ => publishCount++);
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(new TestApiConnection(), mockMiddlewareClient, new UserConfig());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.False, "the session could not be restored this time");
+                Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.EqualTo(1));
+                Assert.That(mockMiddlewareClient.RevokeRefreshTokenCallCount, Is.EqualTo(0),
+                    "a refresh token that was never judged must not be revoked");
+                Assert.That(publishCount, Is.EqualTo(0), "no relogin may be announced for a retryable failure");
+                Assert.That(mockSessionStorage.ContainsKey("token_pair"), Is.True,
+                    "the stored pair has to survive so the next attempt can use it");
+            });
         }
 
         [Test]

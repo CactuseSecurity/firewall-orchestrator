@@ -28,6 +28,11 @@ namespace FWO.Test
         private const long kNetworkZoneTreeId = 2;
         private const string kNoneName = "None";
         private const string kNetworkZoneTreeName = "Network Zone Tree";
+        private const string kCertificatePem = """
+            -----BEGIN CERTIFICATE-----
+            test-certificate
+            -----END CERTIFICATE-----
+            """;
 
         /// <summary>
         /// Builds the lookup rows as the API would return them, ordered by name like the real query.
@@ -50,6 +55,48 @@ namespace FWO.Test
             wrapper.WaitForAssertion(() =>
             {
                 Assert.That(wrapper.Find("#cbx_default_iconify"), Is.Not.Null);
+            });
+        }
+
+        [Test]
+        public async Task SettingsDefaults_DisplaysInternalCaCertificate()
+        {
+            await using BunitContext context = CreateContext();
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+
+            wrapper.WaitForAssertion(() =>
+                Assert.That(wrapper.Find("pre").TextContent, Does.Contain(kCertificatePem)));
+        }
+
+        [Test]
+        public async Task SettingsDefaults_CopiesInternalCaCertificate()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindAll("button"), Is.Not.Empty));
+
+            wrapper.FindAll("button")[0].Click();
+
+            JSRuntimeInvocation invocation = context.JSInterop.VerifyInvoke("copyText");
+            Assert.That(invocation.Arguments[0], Is.EqualTo(kCertificatePem));
+        }
+
+        [Test]
+        public async Task SettingsDefaults_DownloadsInternalCaCertificate()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<CascadingAuthenticationState> wrapper = RenderComponent(context);
+            wrapper.WaitForAssertion(() => Assert.That(wrapper.FindAll("button"), Is.Not.Empty));
+
+            wrapper.FindAll("button")[1].Click();
+
+            JSRuntimeInvocation invocation = context.JSInterop.VerifyInvoke("DownloadFile");
+            Assert.Multiple(() =>
+            {
+                Assert.That(invocation.Arguments[0], Is.EqualTo("fworch-internal-ca.crt"));
+                Assert.That(invocation.Arguments[1], Is.EqualTo("application/x-pem-file"));
+                Assert.That(invocation.Arguments[2], Is.EqualTo(kCertificatePem));
             });
         }
 
@@ -221,6 +268,7 @@ namespace FWO.Test
             context.Services.AddSingleton<MiddlewareClient>(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<IInternalCaCertificateProvider>(new TestCertificateProvider());
             return context;
         }
 
@@ -255,6 +303,7 @@ namespace FWO.Test
             context.Services.AddSingleton<MiddlewareClient>(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<GlobalConfig>(globalConfig);
             context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton<IInternalCaCertificateProvider>(new TestCertificateProvider());
             return context;
         }
 
@@ -328,6 +377,15 @@ namespace FWO.Test
             public override Task<AuthenticationState> GetAuthenticationStateAsync()
             {
                 return Task.FromResult(authenticationState);
+            }
+        }
+
+        private sealed class TestCertificateProvider : IInternalCaCertificateProvider
+        {
+            /// <inheritdoc />
+            public Task<string> GetAsync()
+            {
+                return Task.FromResult(kCertificatePem);
             }
         }
     }

@@ -583,7 +583,8 @@ namespace FWO.Report
         /// Orders violations the way the report prints them: real violations first, assessability issues last.
         /// The printed-violation limit cuts the tail, so an assessability issue must never occupy a printed slot
         /// while a real violation of the same rule goes unreported. Ordering is stable, so violations of the same
-        /// kind keep the order they were fetched in.
+        /// kind keep the order they were fetched in. This report order takes precedence over any fetch order,
+        /// including the chronological order established by the compliance-diff pipeline.
         /// </summary>
         /// <param name="violations">Violations attached to the rule.</param>
         /// <returns>The violations in the order the report judges and prints them.</returns>

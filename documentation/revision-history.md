@@ -642,12 +642,6 @@ Not supported any longer are:
 - Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written. Creating a flow from a request while such a recalculation runs can fail or reuse a wrong entry, because flow entries are identified by their hash; repeat the action in that case. Hashes are only recalculated when the hash logic itself changes.
 - Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.
 
-## 9.4.6 - 02.09.2026
-- move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
-- add central setting for path analysis algorithm
-- move many compliance settings regarding matrix and internet to their own setting page in new section network topology
-- prepare network zone tree algorithm in database
-- general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 
 ## 9.4.7 - 07.09.2026
 - enforce host-address masks for flow network-object range endpoints
@@ -658,3 +652,13 @@ Not supported any longer are:
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
 - warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
+
+
+## 9.5.1 - 12.09.2026
+- move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
+- add central setting for path analysis algorithm
+- move many compliance settings regarding matrix and internet to their own setting page in new section network topology
+- prepare network zone tree algorithm in database
+- general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
+- extend the flow compliance REST endpoints to accept IPv4 and IPv6 ranges as well as CIDR networks
+- report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible

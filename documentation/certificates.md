@@ -9,8 +9,11 @@ Each installation names its CA `fworch Internal CA <16 hexadecimal characters>`,
 derived from the CA's own public key, so that two installations never issue
 certificates under the same subject. An installation created before 9.5.0 keeps the
 plain `fworch Internal CA` it was created with: the subject of an existing CA is read
-back and reused on every run, because changing it would invalidate every certificate
-the installation has already issued. See *Trusting the internal CA in a browser* below
+back and reused on every run. A changed subject would replace the anchor everything
+outside the installer already trusts - the installer reissues the certificates it
+signed itself, but nothing re-imports the new CA into a browser or trust store holding
+the old one, and a run that does not reach every host leaves the rest with a
+certificate the new CA never signed. See *Trusting the internal CA in a browser* below
 for what a shared name means for a browser. If the CA certificate is present but
 cannot be parsed, the installer stops and names the file rather than replacing the
 anchor its issued certificates depend on.

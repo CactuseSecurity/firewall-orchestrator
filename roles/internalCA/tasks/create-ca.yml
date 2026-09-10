@@ -22,11 +22,17 @@
 
 # failed_when, so that an unreadable certificate is answered by the message below rather
 # than by the module's bare parse error. Before the subject was read back, this state
-# repaired itself: x509_certificate regenerated an unparseable ca.crt from the retained
-# key under the fixed name, and because subject and key were unchanged every certificate
-# already issued still chained to it. That repair is gone - a regenerated CA would now
-# carry a new unique name and orphan every leaf - so the run stops here instead, the way
-# every other unreadable certificate in this role does: naming the file, not guessing.
+# repaired itself silently: x509_certificate regenerated an unparseable ca.crt from the
+# retained key under the fixed name, so subject and key were unchanged and every
+# certificate already issued still chained to it. A regenerated CA now carries a new
+# unique name instead. That does not orphan the leaves of the hosts in the run - an
+# issuer that no longer matches the ownca subject is a regeneration trigger, so
+# issue-certificates.yml reissues them - but it does replace the anchor everything
+# outside the installer's reach was given: a browser or trust store holding the old CA,
+# an exported client bundle, and any host this run does not touch, which keeps a leaf
+# the new CA did not sign. Replacing an installation's trust anchor is not something to
+# do silently, so the run stops here, the way every other unreadable certificate in this
+# role does: naming the file, not guessing.
 # Keyed on the returned subject rather than on the task result: failed_when overrides the
 # module's own failure, so an unreadable certificate still reports failed = false.
 - name: Read the existing internal CA identity

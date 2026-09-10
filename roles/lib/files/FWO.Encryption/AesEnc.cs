@@ -7,6 +7,8 @@ namespace FWO.Encryption
 {
     public static class AesEnc
     {
+        private const string mainKeyFileEnvVar = "FWO_MAIN_KEY_FILE";
+
         public static string TryEncrypt(string secret)
         {
             string mainKey = GetMainKey();
@@ -100,11 +102,26 @@ namespace FWO.Encryption
             }
         }
 
+        /// <summary>
+        /// Reads the installation's main key, the key every stored secret is encrypted with.
+        /// </summary>
+        /// <remarks>
+        /// The path may be overridden through the FWO_MAIN_KEY_FILE environment variable, the
+        /// same mechanism ConfigFile and Log already use for their host paths. This exists so
+        /// tests can exercise real encryption without an installed key at the fixed location,
+        /// which is otherwise readable by the FWO service account alone. A deployed service
+        /// never sets the variable and keeps using the installed key.
+        /// </remarks>
+        /// <returns>The main key, without trailing whitespace.</returns>
         public static string GetMainKey()
         {
             try
             {
-                string mainKey = File.ReadAllText(GlobalConst.kMainKeyFile);
+                string mainKeyFile = Environment.GetEnvironmentVariable(mainKeyFileEnvVar) is string configuredFile
+                    && !string.IsNullOrEmpty(configuredFile)
+                        ? configuredFile
+                        : GlobalConst.kMainKeyFile;
+                string mainKey = File.ReadAllText(mainKeyFile);
                 mainKey = mainKey.TrimEnd();    // remove trailing whitespace
                 return mainKey;
             }

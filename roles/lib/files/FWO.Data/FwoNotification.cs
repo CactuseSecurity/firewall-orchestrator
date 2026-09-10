@@ -136,6 +136,7 @@ namespace FWO.Data
             RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline;
             LastSent = notification.LastSent;
             Logging = notification.Logging;
+            Active = notification.Active;
         }
 
         [JsonProperty("id"), JsonPropertyName("id")]
@@ -225,6 +226,9 @@ namespace FWO.Data
 
         [JsonProperty("logging"), JsonPropertyName("logging")]
         public string Logging { get; set; } = NotificationLoggingMode.SendOnly;
+
+        [JsonProperty("active"), JsonPropertyName("active")]
+        public bool Active { get; set; } = true;
 
 
         public static List<NotificationDeadline> OfferedDeadlineOptions(NotificationClient client)

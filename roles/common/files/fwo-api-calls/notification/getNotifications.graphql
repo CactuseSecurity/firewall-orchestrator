@@ -28,5 +28,6 @@ query getNotifications ($client: String! ){
     repetitions_after_deadline
     last_sent
     logging
+    active
   }
 }

@@ -17,6 +17,11 @@ namespace FWO.Services
         /// <returns>True when the notification should be sent now.</returns>
         public static bool IsNotificationDue(FwoOwner? owner, DateTime? extDeadline, FwoNotification notification)
         {
+            if (!notification.Active)
+            {
+                return false;
+            }
+
             if (notification.Deadline == NotificationDeadline.None)
             {
                 return true;

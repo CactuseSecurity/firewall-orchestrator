@@ -19,6 +19,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void IsNotificationDue_ReturnsFalseForInactiveNotification()
+        {
+            FwoNotification notification = new()
+            {
+                Active = false,
+                Deadline = NotificationDeadline.None
+            };
+
+            Assert.That(NotificationScheduleHelper.IsNotificationDue(new FwoOwner(), null, notification), Is.False);
+        }
+
+        [Test]
         public void IsNotificationDue_ReturnsTrueForImmediateRequestDeadline()
         {
             FwoNotification notification = new()

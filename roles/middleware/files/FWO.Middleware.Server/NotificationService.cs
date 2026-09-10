@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
         {
             ApiConnection = apiConnection;
             GlobalConfig = globalConfig;
-            Notifications = notifications;
+            Notifications = notifications.Where(notification => notification.Active).ToList();
             OwnerGroups = ownerGroups;
             WorkflowRecipientResolver = workflowRecipientResolver;
         }
@@ -124,6 +124,11 @@ namespace FWO.Middleware.Server
             string timeIntervalText = "", DateTime? resolvedDeadline = null,
             NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
+            if (!notification.Active)
+            {
+                return 0;
+            }
+
             // Later: Handle other channels here when implemented
             bool sent = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline, placeholderValues);
             if (!sent)
@@ -149,7 +154,7 @@ namespace FWO.Middleware.Server
         public async Task<int> SendBundledNotifications(List<FwoNotification> notifications, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
         {
             int emailsSent = 0;
-            foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.GroupBy(GetBundleGroupKey))
+            foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.Where(notification => notification.Active).GroupBy(GetBundleGroupKey))
             {
                 List<FwoNotification> groupedNotifications = [.. notificationGroup];
                 if (groupedNotifications.Count == 1 || groupedNotifications[0].BundleType == null)

@@ -89,7 +89,7 @@ namespace FWO.Services.Workflow
             {
                 List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
                     new { client = NotificationClient.WfAction.ToString() });
-                List<FwoNotification> actionNotifications = [.. notifications.Where(n => notificationIds.Contains(n.Id))];
+                List<FwoNotification> actionNotifications = [.. notifications.Where(n => n.Active && notificationIds.Contains(n.Id))];
                 List<int> missingNotificationIds = [.. notificationIds.Except(actionNotifications.Select(n => n.Id))];
                 if (missingNotificationIds.Count > 0)
                 {

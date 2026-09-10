@@ -26,6 +26,11 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="false">
+            <Template>
+                @(context.Active.ShowAsHtml())
+            </Template>
+        </Column>
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("notification"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
@@ -53,8 +58,12 @@
         {
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4109"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("name")):</label>
-                <div class="col-sm-9">
+                <div class="col-sm-7">
                     <input type="text" class="form-control form-control-sm w-100" @bind="actNotification.Name" />
+                </div>
+                <div class="col-sm-2 form-check">
+                    <input id="notification-active" type="checkbox" class="form-check-input" @bind="actNotification.Active" />
+                    <label for="notification-active" class="form-check-label">@(userConfig.GetText("active"))</label>
                 </div>
             </div>
             @if(Enum.GetValues(typeof(NotificationChannel)).Length > 1)

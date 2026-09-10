@@ -97,7 +97,8 @@ namespace FWO.Ui.Services
                 RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
                 RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
                 LastSent = notification.LastSent,
-                Logging = notification.Logging
+                Logging = notification.Logging,
+                Active = notification.Active
             };
         }
 
@@ -152,6 +153,8 @@ namespace FWO.Ui.Services
 
             public string? logging { get; init; }
 
+            public bool active { get; init; }
+
             protected NotificationMutationVariables()
             {
             }
@@ -181,6 +184,7 @@ namespace FWO.Ui.Services
                 offsetAfterDeadline = variables.offsetAfterDeadline;
                 repetitionsAfterDeadline = variables.repetitionsAfterDeadline;
                 logging = variables.logging;
+                active = variables.active;
             }
 
             public static NotificationMutationVariables Create(FwoNotification notification)
@@ -209,7 +213,8 @@ namespace FWO.Ui.Services
                     initialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
                     offsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
                     repetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
-                    logging = notification.Logging
+                    logging = notification.Logging,
+                    active = notification.Active
                 };
             }
         }

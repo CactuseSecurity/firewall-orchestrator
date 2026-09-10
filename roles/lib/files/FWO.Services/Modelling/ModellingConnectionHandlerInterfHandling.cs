@@ -152,7 +152,7 @@ namespace FWO.Services.Modelling
         {
             List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
                 new { client = NotificationClient.InterfaceDecomm.ToString() });
-            return notifications.Where(notification => notification.Deadline == NotificationDeadline.None).ToList();
+            return notifications.Where(notification => notification.Active && notification.Deadline == NotificationDeadline.None).ToList();
         }
 
         private async Task<(int successCount, int failCount)> SendDecommissionNotificationsForApp(

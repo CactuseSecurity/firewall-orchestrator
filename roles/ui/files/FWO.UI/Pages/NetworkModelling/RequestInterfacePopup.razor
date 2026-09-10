@@ -196,7 +196,7 @@
             notifications = new List<FwoNotification>();
         }
 
-        return notifications.FirstOrDefault(notification => notification.Deadline == NotificationDeadline.None);
+        return notifications.FirstOrDefault(notification => notification.Active && notification.Deadline == NotificationDeadline.None);
     }
 
     private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValues(long connId)

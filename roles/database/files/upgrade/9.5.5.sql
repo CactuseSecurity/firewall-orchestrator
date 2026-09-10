@@ -114,6 +114,9 @@ SELECT 1;
 ALTER TABLE notification
     ADD COLUMN IF NOT EXISTS logging Varchar NOT NULL DEFAULT 'send_only';
 
+ALTER TABLE notification
+    ADD COLUMN IF NOT EXISTS active Boolean NOT NULL DEFAULT TRUE;
+
 UPDATE notification
 SET logging = 'send_only'
 WHERE COALESCE(logging, '') = '';

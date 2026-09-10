@@ -12273,7 +12273,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12309,7 +12310,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12345,7 +12347,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12381,7 +12384,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12417,7 +12421,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12453,7 +12458,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12490,7 +12496,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12530,7 +12537,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {}
                   },
@@ -12566,7 +12574,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12615,7 +12624,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12655,7 +12665,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {}
                   },
@@ -12691,7 +12702,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12740,7 +12752,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12780,7 +12793,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12829,7 +12843,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12878,7 +12893,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12927,7 +12943,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12967,7 +12984,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -13009,7 +13027,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_and": [
@@ -13090,7 +13109,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13128,7 +13148,8 @@
                   "permission": {
                     "columns": [
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {},
                     "check": {}
@@ -13165,7 +13186,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13228,7 +13250,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13291,7 +13314,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13354,7 +13378,8 @@
                       "schedule_id",
                       "user_id",
                       "last_sent",
-                      "logging"
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [

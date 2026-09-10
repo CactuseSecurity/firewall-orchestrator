@@ -811,6 +811,8 @@ def test_auth_validation_and_token_helpers(monkeypatch: MonkeyPatch):
     args.guardicore_user = "user"
     args.guardicore_password = "password"
 
+    seen_identities: list[tuple[str, str] | None] = []
+
     def fake_login_fwo(
         user: str,
         password: str,
@@ -818,8 +820,10 @@ def test_auth_validation_and_token_helpers(monkeypatch: MonkeyPatch):
         verify_ssl: bool | str,
         timeout: int,
         error_cls: type[Exception],
+        client_identity: tuple[str, str] | None = None,
     ) -> str:
         del user, password, middleware_url, verify_ssl, timeout, error_cls
+        seen_identities.append(client_identity)
         return "login-jwt"
 
     def fake_login_guardicore(
@@ -838,6 +842,8 @@ def test_auth_validation_and_token_helpers(monkeypatch: MonkeyPatch):
 
     assert module.get_fwo_jwt(args, False) == "login-jwt"
     assert module.get_guardicore_token(args, False) == "login-gc-token"
+    assert module.get_fwo_jwt(args, False, ("cert.pem", "key.pem")) == "login-jwt"
+    assert seen_identities == [None, ("cert.pem", "key.pem")]
 
 
 def test_fetch_connections_from_fwo_filters_invalid_payloads(monkeypatch: MonkeyPatch):

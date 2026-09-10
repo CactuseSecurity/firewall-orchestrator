@@ -42,12 +42,8 @@
   become: true
   become_user: postgres
 
-- name: build ldap tls options
+- name: build ldap command url
   set_fact:
-    ldap_tls_opts: >-
-      {% if openldap_server_enable_ssl | default(false) -%}
-      -o TLS_REQCERT=never{% if openldap_server_cert is defined %} -o TLS_CACERT={{ openldap_server_cert }}{% endif %}
-      {%- endif %}
     ldap_cmd_url: >-
       {% if openldap_server_enable_ssl | default(false) -%}
       ldaps://{{ openldap_server }}:{{ openldap_port | default(636) }}
@@ -57,7 +53,7 @@
   listen: "test importer handler"
 
 - name: delete ui ambient smoke role memberships from ldap
-  command: "ldapmodify {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
+  command: "ldapmodify {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x"
   args:
     stdin: |
       dn: cn={{ item }},ou=role,{{ openldap_path }}
@@ -75,12 +71,12 @@
   when: run_ui_ambient_role_smoke | default(false) | bool
 
 - name: delete integration test user from ldap
-  command: "ldapdelete {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
+  command: "ldapdelete {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x uid={{ integration_test_user_name }},ou=tenant0,ou=operator,ou=user,{{ openldap_path }}"
   listen: "test importer handler"
   become: true
 
 - name: find ldap entries with test_postfix
-  command: "ldapsearch {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
+  command: "ldapsearch {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ openldap_path }} -x '(|(cn=*{{ sample_postfix }}*)(ou=*{{ sample_postfix }}*)(uid=*{{ sample_postfix }}*))'"
   register: ldap_entries_to_delete
   listen: "test importer handler"
   become: true
@@ -94,7 +90,7 @@
   listen: "test importer handler"
 
 - name: delete ldap test data
-  command: "ldapdelete {{ ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
+  command: "ldapdelete {{ fwo_ldap_tls_opts }} -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x {{ item | regex_replace('\\s', '') | regex_replace('dc=internal.*', 'dc=internal') }}"
   listen: "test importer handler"
   loop: "{{ delete_list2 }}"
   become: true

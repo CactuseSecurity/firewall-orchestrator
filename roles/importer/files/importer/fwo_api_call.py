@@ -156,7 +156,8 @@ class FwoApiCall:
             changes_in_import = 0
         return changes_in_import
 
-    def unlock_import(self, import_state: ImportState, success: bool):
+    def unlock_import(self, import_state: ImportState, success: bool, import_errors: str | None = None) -> bool:
+        """Stamps stop_time on the import_control row. Returns whether the row was actually stamped."""
         import_id = import_state.import_id
         mgm_id = import_state.mgm_details.mgm_id
         import_stats = import_state.stats
@@ -169,6 +170,7 @@ class FwoApiCall:
                 "changesFound": import_stats.get_total_change_number() > 0,
                 "policyChangesFound": import_stats.get_rule_change_number() > 0,
                 "changeNumber": import_stats.get_rule_change_number(),
+                "importErrors": import_errors,
             }
 
             unlock_mutation = FwoApi.get_graphql_code(
@@ -178,9 +180,11 @@ class FwoApiCall:
             unlock_result = self.api.call(unlock_mutation, query_variables=query_variables)
             if "errors" in unlock_result:
                 raise FwoApiFailedLockImportError(unlock_result["errors"])
-            _ = unlock_result["data"]["update_import_control"]["affected_rows"]
+            affected_rows: int = unlock_result["data"]["update_import_control"]["affected_rows"]
         except Exception as e:
             FWOLogger.exception("failed to unlock import for management id " + str(mgm_id) + ": " + str(e))
+            return False
+        return affected_rows > 0
 
     #   currently temporarily only working with single chunk
     def import_json_config(
@@ -373,22 +377,31 @@ class FwoApiCall:
         if alert_code is not None:
             query_variables.update({"alertCode": alert_code})
 
-    def complete_import(self, import_state: ImportState, exception: BaseException | None = None):
+    @staticmethod
+    def truncate_import_error(import_error: str | None) -> str | None:
+        """Keeps persisted import errors short enough to stay readable in the monitoring table."""
+        if import_error is None or len(import_error) <= fwo_const.MAX_IMPORT_ERROR_LENGTH:
+            return import_error
+        return import_error[: fwo_const.MAX_IMPORT_ERROR_LENGTH] + " [truncated]"
+
+    def complete_import(self, import_state: ImportState, exception: BaseException | None = None) -> bool:
+        """Finishes the import. Returns whether the import_control row was stamped (lock released)."""
         if not import_state.responsible_for_importing:
-            return
+            return True
 
         try:
             self.log_import_attempt(import_state.mgm_details.mgm_id, successful=exception is None)
         except Exception:
             FWOLogger.error("error while trying to log import attempt")
 
-        self.unlock_import(import_state, success=exception is None)
-
         exception_message: str | None = None
-        if exception is not None and hasattr(exception, "message"):
-            exception_message = getattr(exception, "message", None)
-        else:
-            exception_message = str(exception)
+        if exception is not None:
+            # prefer a custom .message but always fall back to str(exception) so the failure reason is never lost
+            exception_message = getattr(exception, "message", None) or str(exception)
+
+        import_unlocked = self.unlock_import(
+            import_state, success=exception is None, import_errors=self.truncate_import_error(exception_message)
+        )
 
         import_result = (
             "import_management: import no. "
@@ -426,6 +439,8 @@ class FwoApiCall:
             )
 
         FWOLogger.info(import_result.encode().decode("unicode_escape"))
+
+        return import_unlocked
 
     def get_last_complete_import(self, query_vars: dict[str, Any]) -> tuple[int, str]:
         mgm_query = FwoApi.get_graphql_code([fwo_const.GRAPHQL_QUERY_PATH + "import/getLastCompleteImport.graphql"])

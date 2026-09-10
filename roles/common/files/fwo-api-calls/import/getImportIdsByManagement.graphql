@@ -1,0 +1,5 @@
+query getImportIdsByManagement($mgmId: Int!) {
+    import_control(where: {mgm_id: {_eq: $mgmId}}, order_by: {control_id: desc}) {
+        control_id
+    }
+}

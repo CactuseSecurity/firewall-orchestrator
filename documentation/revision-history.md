@@ -1,8 +1,5 @@
 # Firewall Orchestrator Revision History
 
-pre-5, a product called IT Security Organizer and was closed source. It was developed starting in 2005.
-In 2020 we decided to re-launch a new
-
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module
   - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
@@ -658,5 +655,53 @@ Not supported any longer are:
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
 - warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
+
+## 9.5.0 - 09.09.2026
+- introducing
+  - an internal CA and certificate checks for all internal communication
+  - client certificates for graphql API access to prevent unauthorized access
+  - validated Apache intermediate certificate-chain references for administrator-managed certificates
+  - the Settings Defaults page displays the public internal CA certificate and allows copying or downloading it
+  - a per-installation internal CA name, so that a browser or trust store can hold the anchors of
+    several FWO installations at once; existing installations keep the name their CA was created with,
+    and a browser still holding an anchor of the same name from another installation has to have it
+    deleted before the new one is imported
+- application roles may now only be changed by an owner holding the modeller role
+- the ldap connection passwords are no longer readable via the API, not even for auditors
+- **the middleware now verifies LDAP server certificates instead of accepting any of them.**
+  This applies to every LDAP connection using TLS, internal and external alike. A connection
+  whose certificate is issued by FWO's internal CA, or by a CA the middleware host already
+  trusts, keeps working untouched. A connection whose certificate is self-signed, issued by a
+  private CA that is not in the host trust store, or does not carry the address the connection
+  is configured with, was silently accepted before and is now rejected - which means those
+  users can no longer log in. Add the issuing CA to the middleware host's trust store, or have
+  the certificate reissued for the address FWO connects to. The middleware names the server and
+  the reason in its log (category LdapTls). The installer refuses the upgrade up front if a
+  retained administrator-managed OpenLDAP certificate does not cover the configured address,
+  if its issuing root CA is not configured as `internalca_peer_ca_certificate`, or if the
+  certificate cannot be built to one of the configured anchors at all - a leaf whose issuing
+  intermediate the certificate file does not carry, for instance
+- installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
+  so an installation that must be addressed under a specific DNS name - a name an
+  administrator-managed certificate was issued for, above all - is configured in one place
+- installer: new host-wide settings file /etc/fworch/fwo-install-settings.yml,
+  read by every installer run from any clone on the host, whichever way ansible was started,
+  and outside the git repository, so
+  local settings survive git pull and every administrator upgrades with the same endpoints;
+  fwo_endpoint_hostname there names all endpoints of a single-host installation at once,
+  and a commented fwo-install-settings.template.yml is installed beside it for reference
+- the middleware no longer waits for an unreachable API forever before starting its web server;
+  it now names the endpoint and what to check in the log and exits, instead of reporting itself
+  as running while its reverse proxy answers 503
+- installer: an internal CA certificate is now reissued as soon as it stops covering a name
+  the installation addresses its endpoint under, not only when it approaches expiry, so
+  renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
+  leaves every FWO client failing on a TLS host name mismatch
+- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
+  Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
+  upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now
+  stops an upgrade from an older version before it changes anything, naming the two-step path
+  (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
+  schema changes silently
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import

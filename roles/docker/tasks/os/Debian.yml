@@ -2,7 +2,7 @@
 - block:
     - set_fact:
         ansible_user: "{{ lookup('env','USER') }}"
-        os_codename: "{{ ansible_lsb.codename | lower }}"
+        os_codename: "{{ ansible_facts['lsb']['codename'] | lower }}"
 
     # Docker does not provide a Trixie repo yet, so reuse Bookworm.
     - set_fact:
@@ -31,7 +31,7 @@
         path: "/etc/apt/sources.list.d/docker.list"
         regexp: ".*https://download.docker.com/linux/.*"
         create: true
-        line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ os_codename }} stable"
+        line: "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }} {{ os_codename }} stable"
 
     - name: apt update
       apt: update_cache=true

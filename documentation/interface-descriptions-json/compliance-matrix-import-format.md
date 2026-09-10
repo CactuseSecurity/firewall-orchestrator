@@ -125,7 +125,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or
 connections have been saved, those earlier changes can remain in the matrix.
-Validation isdone before import and any issue stops import  before changes are written to database.
+Validation is done before import and any issue stops import  before changes are written to database.
 
 ## Validation Checklist
 

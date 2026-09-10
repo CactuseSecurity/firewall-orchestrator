@@ -648,8 +648,6 @@ Not supported any longer are:
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
-- new import matrix format with path_to_root and path_to_internet, while old format is still supported
-- validation checks for matrix import
 
 ## 9.4.7 - 07.09.2026
 - enforce host-address masks for flow network-object range endpoints
@@ -660,3 +658,5 @@ Not supported any longer are:
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
 - warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
+- new import matrix format with path_to_root and path_to_internet, while old format is still supported
+- validation checks for matrix import

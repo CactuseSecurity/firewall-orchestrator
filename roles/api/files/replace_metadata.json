@@ -8785,28 +8785,6 @@
                     ]
                   },
                   "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "create_date",
-                      "ext_query_variables",
-                      "ext_request_content",
-                      "ext_request_state",
-                      "ext_request_type",
-                      "ext_ticket_system",
-                      "finish_date",
-                      "id",
-                      "locked",
-                      "owner_id",
-                      "task_number",
-                      "ticket_id",
-                      "wait_cycles"
-                    ]
-                  },
-                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -8911,19 +8889,6 @@
                       "task_number",
                       "ticket_id",
                       "wait_cycles"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "ext_request_state",
-                      "finish_date",
-                      "locked"
                     ],
                     "filter": {},
                     "check": null
@@ -10542,7 +10507,6 @@
                       "ldap_pattern_length",
                       "ldap_port",
                       "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
@@ -10551,7 +10515,6 @@
                       "ldap_tls",
                       "ldap_type",
                       "ldap_write_user",
-                      "ldap_write_user_pwd",
                       "ldap_writepath_for_groups",
                       "tenant_id"
                     ],

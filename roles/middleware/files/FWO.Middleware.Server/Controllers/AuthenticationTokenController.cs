@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -27,6 +28,16 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+
+        private const string kRefreshLogCategory = "Token Refresh";
+        private const string kRevokeLogCategory = "Token Revoke";
+
+        private enum RefreshTokenConsumptionState
+        {
+            NotAttempted,
+            MayBeConsumed,
+            Consumed
+        }
 
         /// <summary>
         /// Constructor needing jwt writer, ldap list and connection
@@ -249,6 +260,15 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
+            // Track the consuming call separately from confirmed consumption because a
+            // connection failure during the mutation cannot reveal whether it committed.
+            RefreshTokenConsumptionState consumptionState = RefreshTokenConsumptionState.NotAttempted;
+
+            // Captured as soon as the user is known so that the audit trail can name whose
+            // session ended even when the failure happens later, outside the scope the user
+            // is declared in.
+            string auditIdentity = "";
+
             try
             {
                 if (string.IsNullOrEmpty(request.RefreshToken))
@@ -281,26 +301,60 @@ namespace FWO.Middleware.Server.Controllers
                     return Unauthorized("User could not be reconstructed for refresh");
                 }
 
+                auditIdentity = $"User \"{user.Name}\" with DN: \"{user.Dn}\"";
+
                 // Consume the old refresh token exactly once before minting a new pair.
+                consumptionState = RefreshTokenConsumptionState.MayBeConsumed;
                 int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
 
                 if (revokedTokens != 1)
                 {
-                    WriteAudit(nameof(RefreshToken), $"Refresh token for User \"{user.Name}\" with DN: \"{user.Dn}\" was already consumed or revoked.");
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was already consumed or revoked.");
 
                     return Unauthorized("Invalid or expired refresh token");
                 }
 
+                consumptionState = RefreshTokenConsumptionState.Consumed;
+
                 TokenPair newTokens = await authManager.CreateTokenPair(user);
 
-                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for User \"{user.Name}\" with DN: \"{user.Dn}\".");
+                WriteAudit(nameof(RefreshToken), $"Successfully rotated auth tokens for {auditIdentity}.");
 
                 return Ok(newTokens);
             }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                // The API could not be reached, which is not the caller's fault: answering
+                // 400 tells a client its request was malformed and must not be repeated,
+                // while the truthful answer is that this attempt could not be completed.
+                // Whether it may be repeated depends on how far it got, so say which.
+                Log.WriteError(kRefreshLogCategory, "Could not reach the API while refreshing a token", exception);
+
+                if (consumptionState == RefreshTokenConsumptionState.Consumed)
+                {
+                    // Audited like every other terminal outcome of this endpoint: a token
+                    // was spent and a session ended, which is exactly what the trail is for.
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} was consumed, but no new token pair could be issued because the API could not be reached.");
+
+                    // The token is spent, so it genuinely is invalid now, and 401 is both the
+                    // truthful answer and the one a client can act on: a 503 here reads as
+                    // retryable, so the client would hold on to a token that cannot work and
+                    // reach the login one refresh cycle later than it needs to.
+                    return Unauthorized("The refresh token was consumed, but the API could not be reached to issue a new token pair. Please log in again.");
+                }
+
+                if (consumptionState == RefreshTokenConsumptionState.MayBeConsumed)
+                {
+                    WriteAudit(nameof(RefreshToken), $"Refresh token for {auditIdentity} may have been consumed because the API became unreachable during the operation.");
+                }
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while refreshing the token. Please retry.");
+            }
             catch (Exception ex)
             {
-                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
-                return BadRequest(ex.Message);
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
+                return BadRequest("The refresh could not be completed.");
             }
         }
 
@@ -340,7 +394,19 @@ namespace FWO.Middleware.Server.Controllers
                     Dn = ""
                 };
 
-                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                int revokedTokens;
+                try
+                {
+                    revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                }
+                catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+                {
+                    Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+                    WriteAudit(nameof(RevokeToken), $"Refresh token for User \"{auditUser.Name}\" with DN: \"{auditUser.Dn}\" may have been revoked because the API became unreachable during the operation.");
+
+                    return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                        "The API could not be reached while revoking the token. Please retry.");
+                }
 
                 if (revokedTokens != 1)
                 {
@@ -353,10 +419,17 @@ namespace FWO.Middleware.Server.Controllers
 
                 return Ok();
             }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                Log.WriteError(kRevokeLogCategory, "Could not reach the API while revoking a refresh token", exception);
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "The API could not be reached while revoking the token. Please retry.");
+            }
             catch (Exception ex)
             {
-                Log.WriteError("Token Refresh", "Failed to refresh token", ex);
-                return BadRequest(ex.Message);
+                Log.WriteError(kRevokeLogCategory, "Failed to revoke token", ex);
+                return BadRequest("The revocation could not be completed.");
             }
         }
 
@@ -462,6 +535,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private readonly string UserAuthentication = "User Authentication";
+        private const string kValidationLogCategory = "Token Validation";
 
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
@@ -774,8 +848,14 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception ex)
             {
-                Log.WriteError("Token Validation", "Error validating refresh token", ex);
-                return null;
+                // Nothing is swallowed here, so null keeps a single meaning: the query
+                // succeeded and matched no live token. Returning null for a failed query
+                // instead made the caller answer "invalid or expired refresh token" - and a
+                // client that believes that discards a refresh token which is perfectly
+                // good, so any API fault, from an outage to a Hasura permission or schema
+                // error, would end every session. The caller decides the status.
+                Log.WriteError(kValidationLogCategory, "Error validating refresh token", ex);
+                throw;
             }
         }
 

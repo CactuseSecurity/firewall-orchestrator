@@ -53,8 +53,8 @@
 
           <VirtualHost *:{{ ui_web_port }}>
               SSLEngine on
-          {{ '\t' }}SSLCertificateFile /customer/server.crt
-          {{ '\t' }}SSLCertificateKeyFile /customer/server.key
+              SSLCertificateFile /customer/server.crt
+              SSLCertificateKeyFile /customer/server.key
           </VirtualHost>
         absent: []
       - name: missing-directives

@@ -1,13 +1,4 @@
 ---
-# internalca_ca_host is spelled out as the inventory group lookup it is defined from:
-# the variable itself is a roles/internalCA default and therefore out of scope in this
-# play, so referencing it here fails with an undefined variable - the same trap
-# test-internal-ca-name.yml and the closing play of site.yml already document. Keep the
-# two in step with roles/internalCA/defaults/main.yml.
-- name: Name the internal CA issuer host for this play
-  set_fact:
-    test_reset_ca_host: "{{ groups['middlewareserver'] | first }}"
-
 - name: Read the internal CA after reset
   community.crypto.x509_certificate_info:
     path: "{{ internalca_ca_certificate_local }}"

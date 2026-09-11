@@ -19,7 +19,10 @@
     path: "{{ internalca_maintenance_configuration_file }}"
     regexp: "^\\s*{{ item.directive }}\\s+"
     insertafter: "^\\s*<VirtualHost\\s[^>]*:{{ ui_web_port }}>"
-    line: "\t{{ item.directive }} {{ item.path }}"
+    # Four spaces, not a tab: the fixture in the integration test has to reproduce
+    # this line exactly, and a tab there is both awkward to express in a YAML block
+    # scalar and a space-before-tab whitespace error in the patch.
+    line: "    {{ item.directive }} {{ item.path }}"
   loop:
     - directive: SSLCertificateFile
       path: "{{ internalca_apache_certificate }}"

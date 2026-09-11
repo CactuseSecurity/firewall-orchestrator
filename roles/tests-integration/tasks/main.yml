@@ -93,6 +93,11 @@
 
 - name: internal CA reset testing
   import_tasks: test-internal-ca-reset.yml
+  vars:
+    # Role defaults from internalCA are not in scope in this role. Keep the issuer host
+    # available for every imported task, including delegated tasks whose arguments may be
+    # templated before a preceding set_fact has populated the current host.
+    test_reset_ca_host: "{{ groups['middlewareserver'] | first }}"
   when:
     - installation_mode == 'upgrade'
     - internalca_reset_certificates | default(false) | bool

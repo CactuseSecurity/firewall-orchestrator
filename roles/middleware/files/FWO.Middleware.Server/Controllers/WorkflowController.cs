@@ -8,6 +8,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +30,7 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
 
         /// <summary>
@@ -174,6 +176,13 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            await ReportExpiredEmailBundles(actionApiConnection, userConfig);
+
+            if (parameters.EmailBundleFlushOnly)
+            {
+                return await FlushEmailBundleOnly(wfHandler, parameters, lockTicketId, result);
+            }
+
             (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
             if (statefulObject == null)
             {
@@ -192,12 +201,75 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            // The bundle is neither flushed nor removed here: the dedicated flush-only request is the
+            // single flush entry point and removes the bundle itself. Removing it on an action request
+            // would discard captured emails whenever the action fails.
+            wfHandler.ActionHandler!.EmailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
             result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
             if (result.Success)
             {
                 await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);
             }
             return result;
+        }
+
+        private async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters,
+            long lockTicketId, WorkflowActionResult result)
+        {
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId, false);
+            if (emailBundleCollector == null)
+            {
+                // An action request carrying this bundle id creates the collector, so by the time a flush
+                // arrives one normally exists - empty when no bundled email action ran, which is the
+                // ordinary case. Absence therefore means the collector never got that far (the action was
+                // rejected before it) or it is gone: swept, or lost with a middleware restart, and in the
+                // restart case nothing in this process can account for what it held. That is worth a
+                // warning rather than a debug note, but not a user facing error on an ordinary promote.
+                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}. " +
+                    "Either no bundled email action reached the collector, or the bundle was discarded before it could be sent.");
+                result.Success = true;
+                return result;
+            }
+
+            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+            try
+            {
+                await wfHandler.ActionHandler.FlushEmailBundleCollector();
+                result.Success = true;
+            }
+            finally
+            {
+                EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
+            }
+            return result;
+        }
+
+        private WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, long lockTicketId, bool createWhenMissing = true)
+        {
+            if (!Guid.TryParseExact(parameters.EmailBundleId, "N", out _))
+            {
+                return null;
+            }
+
+            string callerDn = User.FindFirstValue("x-hasura-uuid") ?? "";
+            return createWhenMissing
+                ? EmailBundleStore.GetOrCreate(lockTicketId, parameters.EmailBundleId, callerDn)
+                : EmailBundleStore.Get(lockTicketId, parameters.EmailBundleId, callerDn);
+        }
+
+        private static async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
+        {
+            WorkflowEmailBundleSweepResult sweepResult = EmailBundleStore.Sweep();
+            if (!sweepResult.LostEmails)
+            {
+                return;
+            }
+
+            string description = $"{sweepResult.DiscardedItems} bundled workflow email(s) in {sweepResult.DiscardedBundles} " +
+                $"abandoned bundle(s) expired before they were sent.";
+            Log.WriteError("Workflow Actions", description);
+            await AlertHelper.SetAlert(actionApiConnection, userConfig.GetText("send_email"), description,
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
         }
 
         private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,

@@ -81,10 +81,7 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            foreach (WfReqTask requestTask in requestTasks)
-            {
-                await wfHandler.SetAddInfoInReqTask(requestTask, checkResultLabel.Trim(), isCompliant.ToString().ToLowerInvariant());
-            }
+            await wfHandler.SetAddInfoInReqTasks(requestTasks, checkResultLabel.Trim(), isCompliant.ToString().ToLowerInvariant());
         }
 
         private async Task<List<WfReqTask>> GetRequestedRuleTasksForCallingTicket(WfStatefulObject statefulObject, WfObjectScopes scope)

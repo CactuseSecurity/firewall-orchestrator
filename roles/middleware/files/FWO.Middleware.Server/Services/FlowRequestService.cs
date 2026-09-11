@@ -22,7 +22,6 @@ public sealed class FlowRequestService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
-    private readonly Lazy<UserConfig> workflowUserConfig;
     private readonly ApiSubscription? configSubscription;
 
     /// <summary>
@@ -32,7 +31,6 @@ public sealed class FlowRequestService : IDisposable
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
-        workflowUserConfig = new(() => UserConfig.ForGlobalSettings(this.globalConfig, this.apiConnection, this.globalConfig.DefaultLanguage));
         try
         {
             configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
@@ -57,7 +55,10 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates a new workflow ticket from the high-level request payload.
     /// </summary>
-    public async Task<CreateRequestResponse> CreateRequestAsync(CreateRequestRequest request, int requesterId)
+    /// <param name="request">The high-level request payload.</param>
+    /// <param name="requesterId">Database id of the authenticated caller.</param>
+    /// <param name="callerName">Login name of the authenticated caller, recorded as changer in the change history.</param>
+    public async Task<CreateRequestResponse> CreateRequestAsync(CreateRequestRequest request, int requesterId, string? callerName = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateCreateRequest(request);
@@ -71,7 +72,7 @@ public sealed class FlowRequestService : IDisposable
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds);
-        ticket = await SaveTicketAsync(ticket, ticketPhase);
+        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName);
         string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateRequestResponse
@@ -630,16 +631,16 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Persists the created ticket through the workflow save path so request actions are executed consistently.
     /// </summary>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
+    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName)
     {
-        UserConfig userConfig = workflowUserConfig.Value;
+        using UserConfig userConfig = CreateWorkflowUserConfig(callerName);
         WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true };
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {
             throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
         }
 
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true);
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false);
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
 
@@ -650,6 +651,20 @@ public sealed class FlowRequestService : IDisposable
         }
 
         return createdTicket;
+    }
+
+    /// <summary>
+    /// Builds the workflow config used to save a ticket. It carries the global settings like every other
+    /// middleware entry point, plus the login name of the authenticated caller so the change history names
+    /// that caller instead of the middleware server. It is created per request because the name differs
+    /// between concurrent callers.
+    /// </summary>
+    /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
+    private UserConfig CreateWorkflowUserConfig(string? callerName)
+    {
+        UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+        userConfig.User.Name = callerName ?? "";
+        return userConfig;
     }
 
     /// <summary>
@@ -876,9 +891,5 @@ public sealed class FlowRequestService : IDisposable
     public void Dispose()
     {
         configSubscription?.Dispose();
-        if (workflowUserConfig.IsValueCreated)
-        {
-            workflowUserConfig.Value.Dispose();
-        }
     }
 }

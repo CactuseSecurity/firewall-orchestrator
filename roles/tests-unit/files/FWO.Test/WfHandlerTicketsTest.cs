@@ -89,7 +89,7 @@ namespace FWO.Test
                 SystemContext = systemContext
             };
             ActionHandler actionHandler = new(apiConn, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);

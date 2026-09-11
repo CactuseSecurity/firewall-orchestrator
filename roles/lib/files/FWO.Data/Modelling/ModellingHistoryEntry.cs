@@ -12,6 +12,9 @@ namespace FWO.Data.Modelling
         [JsonProperty("app_id"), JsonPropertyName("app_id")]
         public int? AppId { get; set; }
 
+        [JsonProperty("module"), JsonPropertyName("module")]
+        public string Module { get; set; } = GlobalConst.kModuleModelling;
+
         [JsonProperty("change_type"), JsonPropertyName("change_type")]
         public int ChangeType { get; set; }
 
@@ -27,10 +30,28 @@ namespace FWO.Data.Modelling
         [JsonProperty("changer"), JsonPropertyName("changer")]
         public string Changer { get; set; } = "";
 
+        [JsonProperty("changer_id"), JsonPropertyName("changer_id")]
+        public int? ChangerId { get; set; }
+
         [JsonProperty("change_time"), JsonPropertyName("change_time")]
         public DateTime? ChangeTime { get; set; }
 
         [JsonProperty("change_source"), JsonPropertyName("change_source")]
         public string ChangeSource { get; set; } = GlobalConst.kManual;
+
+        [JsonProperty("ticket_id"), JsonPropertyName("ticket_id")]
+        public long? TicketId { get; set; }
+
+        [JsonProperty("workflow_phase"), JsonPropertyName("workflow_phase")]
+        public int? WorkflowPhase { get; set; }
+
+        [JsonProperty("old_data"), JsonPropertyName("old_data")]
+        public object? OldData { get; set; }
+
+        [JsonProperty("new_data"), JsonPropertyName("new_data")]
+        public object? NewData { get; set; }
+
+        [JsonProperty("audit_proof_critical"), JsonPropertyName("audit_proof_critical")]
+        public bool AuditProofCritical { get; set; }
     }
 }

@@ -124,6 +124,7 @@ namespace FWO.Services.Modelling
                 var Variables = new
                 {
                     appId = request.ApplicationId,
+                    module = GlobalConst.kModuleModelling,
                     changeType = (int)request.ChangeType,
                     objectType = (int)request.ObjectType,
                     objectId = request.ObjectId,

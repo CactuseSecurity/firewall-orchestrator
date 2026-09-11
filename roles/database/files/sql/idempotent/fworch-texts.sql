@@ -8101,6 +8101,8 @@ INSERT INTO txt VALUES ('H8014', 'German',  '<a href="/help/workflow/actions">Ak
 INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Actions</a>: To support processing of the requests, different kinds of actions can be defined.
     This includes automatic state forwarding or the request of further approvals. Also configuration of calls to external components is in preparation.
 ');
+INSERT INTO txt VALUES ('H8015', 'German',  'Nach Erstellung eines Tickets werden alle Inhalts- und Standard-Workflow-&Auml;nderungen wie Statuswechsel und Genehmigungen zentral mit Workflow-Phase und vorherigen sowie neuen Werten aufgezeichnet. In der Benutzeroberfl&auml;che vorgenommene Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden dabei als auditkritisch markiert. Die Aufzeichnung dient der Auswertung durch Auditoren und wird nicht in der Benutzeroberfl&auml;che angezeigt.');
+INSERT INTO txt VALUES ('H8015', 'English', 'After a ticket has been created, all content and standard workflow changes, including state transitions and approvals, are recorded centrally with the workflow phase and previous and new values. Content changes made in the user interface by users other than the requester are marked as audit-critical. The recording is meant for evaluation by auditors and is not displayed in the user interface.');
 INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
     Entsprechend der Objekthierarchie sind die Status voneinander abh&auml;ngig.
 ');

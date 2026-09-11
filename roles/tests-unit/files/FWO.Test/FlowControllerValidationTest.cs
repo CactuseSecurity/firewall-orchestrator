@@ -271,7 +271,7 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
-    public async Task FlowControllerValidation_GetAddressObjectId_RejectsNonCidr32MaskedIpRange()
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsBroaderMaskedIpRange()
     {
         using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
         FlowCatalogController controller = new(service);
@@ -284,6 +284,7 @@ internal class FlowControllerValidationTest
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("use 'ipNetwork'"));
     }
 
     [Test]

@@ -5,6 +5,7 @@ namespace FWO.Basics.Enums
         IPNull,
         AllIPs,
         HostAddress,
-        Broadcast
+        Broadcast,
+        NoMatchingZone
     }
 }

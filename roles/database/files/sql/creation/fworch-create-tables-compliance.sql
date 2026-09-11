@@ -51,7 +51,8 @@ create table compliance.violation
 	risk_score real,
 	policy_id INT NOT NULL,
 	criterion_id INT NOT NULL,
-	is_initial BOOLEAN NOT NULL
+	is_initial BOOLEAN NOT NULL,
+	violation_type TEXT
 );
 
 -- create table compliance.assessability_issue

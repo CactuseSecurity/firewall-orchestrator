@@ -397,6 +397,8 @@ INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
 INSERT INTO txt VALUES ('search', 			    'English',	'Search');
+INSERT INTO txt VALUES ('no_search_results', 	'German',	'Keine Treffer.');
+INSERT INTO txt VALUES ('no_search_results', 	'English',	'No matches.');
 INSERT INTO txt VALUES ('load', 				'German',	'Laden');
 INSERT INTO txt VALUES ('load', 			    'English',	'Load');
 INSERT INTO txt VALUES ('ok', 				    'German',	'Ok');
@@ -2272,6 +2274,8 @@ INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden
 INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
 INSERT INTO txt VALUES ('H5026',				'German', 	'Die Zonen-Gruppen-Erkennung legt fest, welche Flow-Netzwerkgruppen als Zonen gelten. Es k&ouml;nnen mehrere Muster kombiniert werden, jeweils mit Vergleichsart (Endet mit, Beginnt mit, Enth&auml;lt, Exakt) und optionaler Beachtung der Gro&szlig;- und Kleinschreibung. Eine Gruppe gilt als Zone, sobald ihr Name auf mindestens ein Muster passt. Die Muster werden vom REST-Endpunkt <code>flow/getAddressGroups</code> mit <code>option.separateZoneGroups=true</code> ausgewertet. Muster ohne Wert und doppelte Muster werden beim Speichern abgelehnt.');
 INSERT INTO txt VALUES ('H5026',				'English', 	'Zone group detection defines which flow network groups count as zones. Multiple patterns can be combined, each with a match type (suffix, prefix, contains, exact) and optional case sensitivity. A group is a zone as soon as its name matches at least one pattern. The patterns are evaluated by the REST endpoint <code>flow/getAddressGroups</code> with <code>option.separateZoneGroups=true</code>. Patterns without a value and duplicate patterns are rejected when saving.');
+INSERT INTO txt VALUES ('H5027',				'German', 	'&Uuml;ber das Suchfeld oberhalb der Navigation k&ouml;nnen die Einstellungsseiten gefiltert werden. Gesucht wird in den angezeigten Bezeichnungen der Kapitel und Seiten, Gro&szlig;- und Kleinschreibung sowie Umlaute werden dabei ignoriert. Passt ein Kapitelname, werden alle Seiten dieses Kapitels angezeigt. Seiten, f&uuml;r die die eigene Rolle keine Berechtigung hat, bleiben auch bei einem Treffer ausgeblendet.');
+INSERT INTO txt VALUES ('H5027',				'English', 	'The search field above the navigation filters the settings pages. It matches the displayed labels of the chapters and pages, ignoring case and diacritics. When a chapter name matches, all pages of that chapter are shown. Pages the own role is not permitted to see stay hidden even when they match.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
 INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts k&ouml;nnen Management-Zuordnungen wieder abgew&auml;hlt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');

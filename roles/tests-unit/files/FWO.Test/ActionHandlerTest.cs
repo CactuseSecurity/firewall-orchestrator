@@ -1892,6 +1892,95 @@ namespace FWO.Test
         }
 
         [Test]
+        public void AddSentNotificationId_RecordsAPersistedNotification()
+        {
+            List<int> sentNotificationIds = [];
+
+            InvokeAddSentNotificationId(sentNotificationIds, new FwoNotification { Id = 9 });
+
+            Assert.That(sentNotificationIds, Is.EqualTo(new List<int> { 9 }));
+        }
+
+        [Test]
+        public void AddSentNotificationId_IgnoresANotificationThatWasNeverPersisted()
+        {
+            // An action without notification ids falls back to a notification built from its own
+            // parameters. That one has no row to stamp last_sent on, so it must not be recorded.
+            List<int> sentNotificationIds = [];
+
+            InvokeAddSentNotificationId(sentNotificationIds, new FwoNotification { Id = 0 });
+
+            Assert.That(sentNotificationIds, Is.Empty);
+        }
+
+        private static void InvokeAddSentNotificationId(List<int> sentNotificationIds, FwoNotification notification)
+        {
+            MethodInfo method = typeof(ActionHandler).GetMethod("AddSentNotificationId",
+                BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new MissingMethodException(typeof(ActionHandler).FullName, "AddSentNotificationId");
+            List<object?> arguments = [sentNotificationIds, notification];
+            method.Invoke(null, arguments.ToArray());
+        }
+
+        [Test]
+        public async Task TrySendEmail_DoesNotGrowABundleBeyondItsCapacity()
+        {
+            // A bundle at capacity must not silently swallow a further email: capture declines, leaving
+            // the bundle untouched, and the action falls through to the ordinary immediate send. Only the
+            // declining is asserted here - the send path itself is covered by the tests above.
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                FullTicket = CreateTicket(new WfReqTask
+                {
+                    Id = 11,
+                    TicketId = 7,
+                    TaskType = WfTaskType.access.ToString(),
+                    TaskNumber = 1,
+                    StateId = 60,
+                    Title = "First access"
+                })
+            };
+            apiConn.FullTicket.Id = 7;
+            WorkflowEmailBundleCollector fullCollector = new();
+            WfStateAction bundlingAction = new()
+            {
+                Id = 5,
+                Event = StateActionEvents.OnSet.ToString(),
+                ActionType = StateActionTypes.SendEmail.ToString(),
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    AttachedContent = EmailAttachedContent.RequestedConnections,
+                    RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType,
+                    Subject = "bundled",
+                    Body = "body"
+                })
+            };
+            for (int itemCount = 0; itemCount < WorkflowEmailBundleStore.kMaxPendingItemsPerBundle; ++itemCount)
+            {
+                fullCollector.TryAdd(bundlingAction, new WfReqTask
+                {
+                    Id = itemCount + 1,
+                    TicketId = 7,
+                    TaskNumber = itemCount + 1,
+                    TaskType = WfTaskType.access.ToString()
+                }, null, null);
+            }
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() })
+            {
+                EmailBundleCollector = fullCollector
+            };
+            await handler.Init();
+
+            await handler.TrySendEmail(bundlingAction,
+                new WfReqTask { Id = 11, TicketId = 7, TaskNumber = 1, StateId = 60, TaskType = WfTaskType.access.ToString() },
+                WfObjectScopes.RequestTask, null, null);
+
+            Assert.That(fullCollector.PendingItems, Has.Count.EqualTo(WorkflowEmailBundleStore.kMaxPendingItemsPerBundle),
+                "the full bundle must not grow beyond its capacity");
+        }
+
+        [Test]
         public async Task FlushEmailBundleCollector_SendsOneEmailForBundledItems()
         {
             ActionHandlerTestApiConn apiConn = new()

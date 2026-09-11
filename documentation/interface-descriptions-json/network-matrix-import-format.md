@@ -139,6 +139,8 @@ The following is checked before anything is written: a non-empty matrix name; zo
   `AUTO_CALCULATED_ZONE_INTERNET` or
   `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; these zones are managed by FWO
   when automatic zone calculation is enabled.
+- Reference `AUTO_CALCULATED_ZONE_INTERNET` in `communication_to` only while auto-calculated Internet zones are enabled in the settings; it does not exist otherwise.
+- Never reference `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` in `communication_to`.
 - In subnet paths every referenced management/device pair must exist case sensitive in database.
 - The name pair must be unique.
 - No device is twice in one path.

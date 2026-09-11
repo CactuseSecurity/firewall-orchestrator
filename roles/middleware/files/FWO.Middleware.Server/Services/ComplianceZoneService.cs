@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
+using FWO.Basics.Exceptions;
 using FWO.Compliance;
 using FWO.Config.Api;
 using FWO.Data;
@@ -45,7 +46,14 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
             ranges,
             zones,
             globalConfig.AutoCalculateInternetZone,
-            globalConfig.GetText("internet_local_zone"));
+            globalConfig.GetText("internet_local_zone"),
+            out List<IPAddressRange> unassignableRanges);
+
+        if (unassignableRanges.Count > 0)
+        {
+            string rangesDescription = string.Join(", ", unassignableRanges.Select(range => $"{range.Begin}-{range.End}"));
+            throw new UnassignableIpRangesException($"The following IP ranges could not be assigned to a network zone: {rangesDescription}");
+        }
 
         return resolvedZones
             .Where(IsPersistedMatrixZone)

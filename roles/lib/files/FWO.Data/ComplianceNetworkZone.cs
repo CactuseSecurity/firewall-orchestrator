@@ -2,6 +2,8 @@ using FWO.Basics;
 using NetTools;
 using Newtonsoft.Json;
 using System.Net;
+using System.Net.Sockets;
+using System.Numerics;
 using System.Text.Json.Serialization;
 
 namespace FWO.Data
@@ -80,40 +82,68 @@ namespace FWO.Data
             return result;
         }
 
+        /// <summary>
+        /// Subtracts a range from a list of ranges. The arithmetic is done in 128-bit space so that
+        /// IPv4 and IPv6 zone ranges are handled identically.
+        /// </summary>
+        /// <param name="ranges">Ranges the overlap is removed from; modified in place.</param>
+        /// <param name="toRemove">Range to subtract.</param>
         private static void RemoveOverlap(List<IPAddressRange> ranges, IPAddressRange toRemove)
         {
-            for (int i = 0; i < ranges.Count; i++)
+            BigInteger removeBegin = IpOperations.ToBigInteger(toRemove.Begin);
+            BigInteger removeEnd = IpOperations.ToBigInteger(toRemove.End);
+
+            int index = 0;
+            while (index < ranges.Count)
             {
-                if (IpOperations.RangeOverlapExists(ranges[i], toRemove))
-                {
-                    if (IpOperations.IpToUint(toRemove.Begin) <= IpOperations.IpToUint(ranges[i].Begin) && IpOperations.IpToUint(toRemove.End) >= IpOperations.IpToUint(ranges[i].End))
-                    {
-                        // Complete overlap, remove the entire range
-                        ranges.RemoveAt(i);
-                        i--;
-                    }
-                    else if (IpOperations.IpToUint(toRemove.Begin) <= IpOperations.IpToUint(ranges[i].Begin))
-                    {
-                        // Overlap on the left side, update the start
-                        ranges[i].Begin = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.End) + 1);
-                    }
-                    else if (IpOperations.IpToUint(toRemove.End) >= IpOperations.IpToUint(ranges[i].End))
-                    {
-                        // Overlap on the right side, update the end
-                        ranges[i].End = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.Begin) - 1);
-                    }
-                    else
-                    {
-                        // Overlap in the middle, split the range
-                        // begin..remove.begin-1
-                        IPAddress end = ranges[i].End;
-                        ranges[i].End = IpOperations.UintToIp(IpOperations.IpToUint(toRemove.Begin) - 1);
-                        // remove.end+1..end
-                        ranges.Insert(i, new IPAddressRange(IpOperations.UintToIp(IpOperations.IpToUint(toRemove.End) + 1), end));
-                        i++;
-                    }
-                }
+                index += IpOperations.RangeOverlapExists(ranges[index], toRemove)
+                    ? SubtractOverlap(ranges, index, removeBegin, removeEnd)
+                    : 1;
             }
+        }
+
+        /// <summary>
+        /// Subtracts an overlapping range from the entry at the given index.
+        /// </summary>
+        /// <param name="ranges">Ranges being reduced; modified in place.</param>
+        /// <param name="index">Index of the overlapping entry.</param>
+        /// <param name="removeBegin">First address of the subtracted range.</param>
+        /// <param name="removeEnd">Last address of the subtracted range.</param>
+        /// <returns>Number of entries the caller has to advance past after the subtraction.</returns>
+        private static int SubtractOverlap(List<IPAddressRange> ranges, int index, BigInteger removeBegin, BigInteger removeEnd)
+        {
+            AddressFamily addressFamily = ranges[index].Begin.AddressFamily;
+            BigInteger rangeBegin = IpOperations.ToBigInteger(ranges[index].Begin);
+            BigInteger rangeEnd = IpOperations.ToBigInteger(ranges[index].End);
+
+            if (removeBegin <= rangeBegin && removeEnd >= rangeEnd)
+            {
+                // Complete overlap, remove the entire range; the next entry moves into this index
+                ranges.RemoveAt(index);
+                return 0;
+            }
+
+            if (removeBegin <= rangeBegin)
+            {
+                // Overlap on the left side, update the start
+                ranges[index].Begin = IpOperations.FromBigInteger(removeEnd + 1, addressFamily);
+                return 1;
+            }
+
+            if (removeEnd >= rangeEnd)
+            {
+                // Overlap on the right side, update the end
+                ranges[index].End = IpOperations.FromBigInteger(removeBegin - 1, addressFamily);
+                return 1;
+            }
+
+            // Overlap in the middle, split the range
+            // begin..remove.begin-1
+            IPAddress end = ranges[index].End;
+            ranges[index].End = IpOperations.FromBigInteger(removeBegin - 1, addressFamily);
+            // remove.end+1..end
+            ranges.Insert(index, new IPAddressRange(IpOperations.FromBigInteger(removeEnd + 1, addressFamily), end));
+            return 2;
         }
 
         public object Clone()

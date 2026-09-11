@@ -163,12 +163,129 @@ internal class FlowComplianceServiceTest
         });
     }
 
+    [Test]
+    public async Task GetFlowComplianceStateAsync_Ipv6FlowUnderIpv4OnlyCriterion_ReportsNotAssessable()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(
+            BuildMinimumCidrLengthRequest("2001:db8::", "2001:db8::"));
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Policy.Id, Is.EqualTo(9));
+            Assert.That(result[0].Violations, Has.Count.EqualTo(1));
+            Assert.That(result[0].Violations[0].Type, Is.EqualTo(nameof(ComplianceViolationType.NotAssessable)));
+        });
+    }
+
+    [Test]
+    public async Task GetFlowComplianceStateAsync_MultipleUnassignableObjectsReportEachObject()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+        GetFlowComplianceStateRequest request = BuildCompliantMatrixOnlyRequest();
+        request.Source =
+        [
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8::1", IpEnd = "2001:db8::1" },
+            new GetFlowComplianceStateRequest.IpRangeRequest { IpStart = "2001:db8:1::1", IpEnd = "2001:db8:1::1" }
+        ];
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Violations, Has.Count.EqualTo(2));
+            Assert.That(result[0].Violations.All(violation => violation.Type == nameof(ComplianceViolationType.NotAssessable)), Is.True);
+        });
+    }
+
+    [Test]
+    public async Task GetFlowComplianceStateAsync_BroadIpv4FlowUnderIpv4OnlyCriterion_ReportsCidrLengthViolation()
+    {
+        FlowComplianceServiceApiConn apiConnection = new();
+        ConfigureComplianceFixture(apiConnection);
+
+        FlowComplianceService service = new(apiConnection, new SimulatedGlobalConfig());
+
+        List<FlowComplianceStateResponse> result = await service.GetFlowComplianceStateAsync(
+            BuildMinimumCidrLengthRequest("10.0.0.0", "10.255.255.255"));
+
+        Assert.That(result, Has.Count.EqualTo(1));
+        Assert.Multiple(() =>
+        {
+            Assert.That(result[0].Violations, Has.Count.EqualTo(1));
+            Assert.That(result[0].Violations[0].Type, Is.EqualTo(nameof(CriterionType.MinimumCIDRLength)));
+        });
+    }
+
+    private static GetFlowComplianceStateRequest BuildMinimumCidrLengthRequest(string sourceIpStart, string sourceIpEnd)
+    {
+        return new GetFlowComplianceStateRequest
+        {
+            Source =
+            [
+                new GetFlowComplianceStateRequest.IpRangeRequest
+                {
+                    IpStart = sourceIpStart,
+                    IpEnd = sourceIpEnd
+                }
+            ],
+            Destination =
+            [
+                new GetFlowComplianceStateRequest.IpRangeRequest
+                {
+                    IpStart = "193.0.0.1",
+                    IpEnd = "193.0.0.1"
+                }
+            ],
+            Service =
+            [
+                new GetFlowComplianceStateRequest.ServiceRangeRequest
+                {
+                    PortStart = 443,
+                    PortEnd = 443,
+                    Protocol = "TCP"
+                }
+            ],
+            Policies = [9]
+        };
+    }
+
+    private static CompliancePolicy BuildMinimumCidrLengthPolicy()
+    {
+        return new CompliancePolicy
+        {
+            Id = 9,
+            Name = "Minimum CIDR Length Policy",
+            Criteria =
+            [
+                new ComplianceCriterionWrapper
+                {
+                    Content = new ComplianceCriterion
+                    {
+                        Id = 103,
+                        Name = "Minimum CIDR Length",
+                        CriterionType = nameof(CriterionType.MinimumCIDRLength),
+                        Content = "24"
+                    }
+                }
+            ]
+        };
+    }
+
     private static void ConfigureComplianceFixture(FlowComplianceServiceApiConn apiConnection)
     {
         apiConnection.Languages = [new Language { Name = "English", CultureInfo = "en-US" }];
         apiConnection.TextsByLanguage["English"] = BuildEnglishTexts();
         apiConnection.PoliciesById[7] = BuildPolicy();
         apiConnection.PoliciesById[8] = BuildMatrixOnlyPolicy();
+        apiConnection.PoliciesById[9] = BuildMinimumCidrLengthPolicy();
         apiConnection.Managements = [new Management { Id = 1, Uid = "mgmt-1" }];
         apiConnection.NetworkZones = BuildNetworkZones();
     }

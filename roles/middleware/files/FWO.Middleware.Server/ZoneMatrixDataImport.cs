@@ -123,6 +123,7 @@ namespace FWO.Middleware.Server
             }
             CheckCommunicationTargets(importedZoneMatrixData, errorList);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
+            CheckIpData(importedZoneMatrixData, errorList);
             if (errorList.Count > 0)
             {
                 throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
@@ -202,6 +203,20 @@ namespace FWO.Middleware.Server
                 if (!unique.Add(deviceText))
                 {
                     duplicate.Add($"Duplicate device {deviceText} in {pathFieldName} in subnet {subnet.Ip}");
+                }
+            }
+        }
+
+        private static void CheckIpData(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (ZoneIpRangeData subnet in zone.IpData)
+                {
+                    if (!TryConvertIpDataToAddressRange(subnet, out _))
+                    {
+                        errorList.Add($"Bad Ips for subnet {subnet.Ip} in zone {zone.Name}");
+                    }
                 }
             }
         }
@@ -406,13 +421,41 @@ namespace FWO.Middleware.Server
 
         private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)
         {
-            string Ip = importAreaIpData.Ip;
-            string? IpEnd = importAreaIpData.IpEnd;
-            if (string.IsNullOrEmpty(importAreaIpData.IpEnd))
+            return TryConvertIpDataToAddressRange(importAreaIpData, out IPAddressRange range)
+                ? range
+                : throw new ArgumentException($"Invalid ip data: {importAreaIpData.Ip}");
+        }
+
+        /// <summary>
+        /// Converts imported ip data into an address range. Returns false if the data cannot be parsed.
+        /// </summary>
+        private static bool TryConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData, out IPAddressRange range)
+        {
+            range = default!;
+            string ip = importAreaIpData.Ip;
+            string? ipEnd = importAreaIpData.IpEnd;
+            if (string.IsNullOrWhiteSpace(ipEnd))
             {
-                (Ip, IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
+                if (!ip.TryParseIPStringToRange(out (string start, string end) parsed))
+                {
+                    return false;
+                }
+                (ip, ipEnd) = parsed;
             }
-            return new(IPAddress.Parse(Ip), IPAddress.Parse(IpEnd ?? Ip));
+            if (!IPAddress.TryParse(ip, out IPAddress? start) || !IPAddress.TryParse(ipEnd ?? ip, out IPAddress? end))
+            {
+                return false;
+            }
+            if (IpOperations.CompareIpFamilies(start, end) != 0)
+            {
+                return false;
+            }
+            if (IpOperations.CompareIpValues(start, end) > 0)
+            {
+                return false;
+            }
+            range = new IPAddressRange(start, end);
+            return true;
         }
     }
 }

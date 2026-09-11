@@ -19,6 +19,7 @@ query getComplianceDiffViolationsByChunk(
     risk_score
     policy_id
     criterion_id
+    violation_type
     criterion {
       id
       name

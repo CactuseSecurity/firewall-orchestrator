@@ -14,6 +14,7 @@ namespace FWO.Services.Triviality
         public const string ForbidZonesAsDestinationReason = nameof(CriterionType.ForbidZonesAsDestination);
         public const string ForbidZonesAsSourceReason = nameof(CriterionType.ForbidZonesAsSource);
         public const string Ipv6NotSupportedReason = "IPv6NotSupported";
+        public const string AddressNotAssessableReason = "AddressNotAssessable";
 
         private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
 
@@ -30,21 +31,28 @@ namespace FWO.Services.Triviality
 
             List<NetworkObjectRangeAnalysis> analyses = _rangeAnalyzer.AnalyzeMany(ruleObjects);
 
-            if (analyses.Any(analysis => !analysis.IsSupported))
+            // The criterion is evaluated for every object it can assess, so that a prefix length violation is
+            // still reported when another object of the rule cannot be assessed at all.
+            List<NetworkObjectRangeAnalysis> notAssessableAnalyses = [.. analyses.Where(analysis => !analysis.IsSupported)];
+            string? notAssessableReason = notAssessableAnalyses.Count > 0 ? GetNotAssessableReason(notAssessableAnalyses) : null;
+
+            if (analyses.Any(analysis => analysis.IsSupported && analysis.PrefixLength < minPrefixLength))
             {
                 return new()
                 {
                     IsTrivial = false,
-                    Reason = Ipv6NotSupportedReason
+                    Reason = MinimumCIDRLengthReason,
+                    NotAssessableReason = notAssessableReason
                 };
             }
 
-            if (analyses.Any(analysis => analysis.PrefixLength < minPrefixLength))
+            if (notAssessableReason != null)
             {
                 return new()
                 {
                     IsTrivial = false,
-                    Reason = MinimumCIDRLengthReason
+                    Reason = notAssessableReason,
+                    NotAssessableReason = notAssessableReason
                 };
             }
 
@@ -52,6 +60,26 @@ namespace FWO.Services.Triviality
             {
                 IsTrivial = true
             };
+        }
+
+        /// <summary>
+        /// Reports whether a reason states that a criterion could not be evaluated instead of describing a violation.
+        /// </summary>
+        /// <param name="reason">Reason reported by an evaluation.</param>
+        public static bool IsNotAssessableReason(string reason)
+        {
+            return reason == Ipv6NotSupportedReason || reason == AddressNotAssessableReason;
+        }
+
+        /// <summary>
+        /// Distinguishes objects that carry an unsupported address family from objects without a usable address.
+        /// </summary>
+        /// <param name="notAssessableAnalyses">Analyses of the objects that could not be assessed.</param>
+        private static string GetNotAssessableReason(List<NetworkObjectRangeAnalysis> notAssessableAnalyses)
+        {
+            return notAssessableAnalyses.All(analysis => analysis.Start == null)
+                ? AddressNotAssessableReason
+                : Ipv6NotSupportedReason;
         }
 
         /// <summary>
@@ -137,5 +165,11 @@ namespace FWO.Services.Triviality
     {
         public bool IsTrivial { get; set; }
         public string Reason { get; set; } = "";
+
+        /// <summary>
+        /// Reason for the objects the criterion could not assess, or null when every object could be assessed.
+        /// It is reported in addition to <see cref="Reason"/> when the criterion found a violation as well.
+        /// </summary>
+        public string? NotAssessableReason { get; set; }
     }
 }

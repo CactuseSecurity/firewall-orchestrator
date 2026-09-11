@@ -12,6 +12,7 @@ namespace FWO.Data.Extensions
                 AssessabilityIssue.AllIPs => "assess_all_ips",
                 AssessabilityIssue.HostAddress => "assess_host_address",
                 AssessabilityIssue.Broadcast => "assess_broadcast",
+                AssessabilityIssue.NoMatchingZone => "assess_no_matching_zone",
                 _ => throw new NotImplementedException()
             };
         }

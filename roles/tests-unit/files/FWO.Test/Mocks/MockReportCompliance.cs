@@ -27,5 +27,13 @@ namespace FWO.Test.Mocks
         {
             return DetermineCompliance(violations);
         }
+
+        /// <summary>
+        /// Exposes report compliance rendering for unit tests.
+        /// </summary>
+        public void SetComplianceDataForRulePublic(Rule rule)
+        {
+            SetComplianceDataForRule(rule);
+        }
     }
 }

@@ -1,9 +1,9 @@
-# Compliance Matrix Import Interface
+# Network Matrix Import Interface
 
-The compliance matrix import creates or synchronizes a network-zone matrix from
+The matrix import creates or synchronizes a network-zone matrix from
 a JSON file. Upload the file under **Settings > Network Topology > Matrix**.
 See the complete
-[sample compliance matrix import](sample-compliance-matrix-import.json).
+[sample network matrix import](sample-network-matrix-import.json).
 
 ## Top-Level Object
 
@@ -19,7 +19,7 @@ See the complete
 
 | Field     | Type     | Required | Description |
 |-----------|----------|----------|-------------|
-| `name`    | string   | yes      | Name of the compliance matrix. The importer uses this value to find the matrix on later imports. |
+| `name`    | string   | yes      | Name of the matrix. The importer uses this value to find the matrix on later imports. |
 | `comment` | string   | no       | Description or source information displayed with the matrix. |
 | `areas`   | object[] | yes      | Complete list of network zones in the matrix. |
 
@@ -123,9 +123,9 @@ The JSON document represents the complete desired state of the imported matrix:
 Always export the full matrix. Do not use a partial document to update only one
 zone or connection.
 
-The import is not transactional. If processing fails after some zones or
-connections have been saved, those earlier changes can remain in the matrix.
-Validation is done before import and any issue stops import before changes are written to database.
+The import is not transactional. If processing fails after some zones or connections have been saved, those earlier changes can remain in the matrix. Validate the complete document before importing it into a production system.
+
+The following is checked before anything is written: a non-empty matrix name, zone names and `id_string` values unique within the document, and every device referenced in `path_to_root` or `path_to_internet` being resolvable and unambiguous, with no device listed twice in one path. Everything else — in particular IP values and `communication_to` targets — is only checked while  zones are being written, so a document that fails there can leave the matrix partially updated.
 
 ## Validation Checklist
 

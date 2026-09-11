@@ -99,7 +99,7 @@ The default key algorithm is P-256 EC (`internalca_key_type: ECC`,
 TLS-inspection appliances, or hardware that requires RSA, set
 `internalca_key_type: RSA`; it uses RSA-3072 (`internalca_key_size`) instead.
 Choose the algorithm before the first installation. Changing it later requires
-rotating the CA and all issued certificates.
+rotating the CA and all issued certificates with the reset procedure below.
 
 The Hasura GraphQL API proxy requires a client certificate issued by this CA by
 default (`graphql_api_requires_client_certificate: true`). UI, middleware,
@@ -204,6 +204,16 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
+To prevent FWO from issuing or replacing an administrator-managed OpenLDAP
+identity, set `internalca_issue_ldap_certificate: false` and place the certificate
+and private key at the configured OpenLDAP certificate paths. The installer then
+neither rejects an unreadable or incomplete pair nor changes its ownership or
+contents. Its normal trust, address, and certificate-chain checks still apply
+because FWO clients must validate the LDAP server. The administrator is responsible
+for keeping both files usable by slapd. As with a retained Apache identity, configure
+`internalca_peer_ca_certificate` on every FWO client host when the issuing root
+is not already trusted by the operating system.
+
 When the customer-managed leaf was issued by one or more intermediate CAs, set
 `internalca_peer_ca_intermediate_certificates` to a PEM bundle containing those
 certificates in leaf-to-root order, without the root itself. The file is needed
@@ -283,7 +293,9 @@ passphrase-protected private key, which FWO cannot read and therefore cannot
 recognise as customer-managed; without this check the endpoint would silently
 be repointed at an FWO-issued certificate. Remove the passphrase, or set
 `internalca_issue_apache_certificate: false` to keep the role away from that
-identity entirely.
+identity entirely. The equivalent OpenLDAP opt-out is
+`internalca_issue_ldap_certificate: false`; it prevents issuance and replacement,
+while the LDAP trust, address, and certificate-chain checks continue to apply.
 
 If the leaf, intermediate bundle, and configured root do not form one chain, the
 installer stops before changing the Apache vhost. An `unable to get local issuer
@@ -316,10 +328,51 @@ endpoints `fworch.json` and the inventory actually address.
 To rotate a certificate ahead of the renewal schedule without renaming anything,
 remove the affected certificate from
 `/usr/local/fworch/etc/secrets/ca/issued/<host>/` and rerun the installer.
-Rotating the CA is a deliberate manual operation: replace the CA on every FWO
-host before issuing replacement leaves, otherwise existing internal connections
-will stop trusting each other. A supported, non-disruptive rotation procedure is
-tracked in issue #5130.
+
+To replace the internal CA and every FWO-managed identity in one installer run, use
+the one-shot reset switch during an upgrade:
+
+```
+./scripts/run-playbook-with-sudo.sh site.yml \
+  -e installation_mode=upgrade \
+  -e internalca_reset_certificates=true
+```
+
+The switch creates a new CA key and certificate, new client identities on every FWO
+host, and new Apache and OpenLDAP server identities wherever FWO manages them. It
+also replaces the self-signed Apache and OpenLDAP certificates installed by FWO
+versions before 9.5.0. A matching certificate/key pair from any other issuer is
+customer-managed and is left unchanged; its configured root and intermediate bundle
+remain in use as well. An enabled maintenance vhost is repointed from the historical
+`/etc/apache2/ssl/server.*` paths to the reconciled identity before Apache reloads.
+
+Run the complete `site.yml` upgrade against the full installation rather than limiting
+the run by host or tag, because every participating host must receive the new trust
+anchor and identities together. Do not put `internalca_reset_certificates: true` in
+`/etc/fworch/fwo-install-settings.yml`: it is an imperative switch, and leaving it
+enabled rotates the CA again on every upgrade. The installer refuses a run that finds
+it in that file and names the `-e` form instead. Browsers and external trust stores do
+not learn the new anchor automatically; replace their previous
+`fworch Internal CA ...` certificate with the newly displayed public CA after the run.
+
+Plan the run as a maintenance window. The new trust anchor is installed on every host
+early in the run, while the endpoints still serve the leaves the old CA signed, and
+internal TLS between FWO components only settles again once the run has reissued those
+leaves and restarted their consumers. The maintenance web site covers this for browser
+traffic; scheduled importers and API clients see failing handshakes until the run
+finishes.
+
+If a reset run is interrupted - an unreachable host, an aborted preflight - rerun the
+same command **with the switch still set**. The installer records the subject of every
+CA it retires under `/usr/local/fworch/etc/secrets/ca/retired-ca-names`, so a host that
+missed the reset is still recognised as carrying an FWO-issued identity and is brought
+onto the new CA on its next run, with or without the switch. If the old CA certificate is
+unreadable, the installer recovers its subject from the FWO client certificate on the CA
+host. If neither certificate can be read, the installer stops before replacing the old CA
+key. Restore either certificate from backup and rerun the reset. If neither can be
+recovered, move every old FWO-issued Apache and OpenLDAP identity out of its configured
+path and remove the old CA directory before running a complete upgrade that issues a new
+CA.
 
 Every installer run checks how much validity the CA itself has left, because no
 issued certificate can outlive the CA that signed it. Once the CA has less time

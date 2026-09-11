@@ -30,9 +30,10 @@ namespace FWO.Test
         [OneTimeSetUp]
         public void WriteClientIdentity()
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest request = new(kClientCertificateSubject, key, HashAlgorithmName.SHA256);
-            using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 certificate = request.CreateSelfSigned(now.AddDays(-1), now.AddDays(1));
 
             File.WriteAllText(kCertificatePath, certificate.ExportCertificatePem());
             File.WriteAllText(kPrivateKeyPath, key.ExportPkcs8PrivateKeyPem());
@@ -295,9 +296,10 @@ namespace FWO.Test
             bool accepted = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateChainErrors);
             bool rejectedForWrongName = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateNameMismatch);
 
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa otherKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest otherRequest = new("CN=untrusted-api", otherKey, HashAlgorithmName.SHA256);
-            using X509Certificate2 untrustedCertificate = otherRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 untrustedCertificate = otherRequest.CreateSelfSigned(now.AddDays(-1), now.AddDays(1));
             bool rejectedForWrongAuthority = ValidateApiServerCertificate(untrustedCertificate, SslPolicyErrors.RemoteCertificateChainErrors);
 
             // re-validating the good certificate last proves the rejections above came from
@@ -318,23 +320,28 @@ namespace FWO.Test
         [Test]
         public void ApiCertificate_AcceptsAChainWithAnIntermediateAuthority()
         {
+            // one clock read for the whole chain, and every issuer outlives what it signs:
+            // three separate DateTimeOffset.UtcNow calls let the leaf's notAfter land after
+            // its issuer's by however long the requests took, which X509Chain reports as an
+            // invalid chain rather than as the trust decision under test
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa rootKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest rootRequest = new("CN=fwo-api-root-test", rootKey, HashAlgorithmName.SHA256);
             rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 root = rootRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+            using X509Certificate2 root = rootRequest.CreateSelfSigned(now.AddDays(-3), now.AddDays(3));
 
             using ECDsa intermediateKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest intermediateRequest = new("CN=fwo-api-intermediate-test", intermediateKey, HashAlgorithmName.SHA256);
             intermediateRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             intermediateRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 intermediate = intermediateRequest.Create(root, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            using X509Certificate2 intermediate = intermediateRequest.Create(root, now.AddDays(-2), now.AddDays(2), RandomNumberGenerator.GetBytes(16));
             using X509Certificate2 signingIntermediate = intermediate.CopyWithPrivateKey(intermediateKey);
 
             using ECDsa leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest leafRequest = new("CN=fwo-api-leaf-test", leafKey, HashAlgorithmName.SHA256);
             leafRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-            using X509Certificate2 leaf = leafRequest.Create(signingIntermediate, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            using X509Certificate2 leaf = leafRequest.Create(signingIntermediate, now.AddDays(-1), now.AddDays(1), RandomNumberGenerator.GetBytes(16));
 
             File.WriteAllText(kApiCaCertificatePath, root.ExportCertificatePem());
             ClearCachedCertificate();
@@ -405,11 +412,12 @@ namespace FWO.Test
 
         private static void CreateApiServerCertificate()
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa certificateAuthorityKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest certificateAuthorityRequest = new("CN=fwo-api-ca-test", certificateAuthorityKey, HashAlgorithmName.SHA256);
             certificateAuthorityRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             certificateAuthorityRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 certificateAuthority = certificateAuthorityRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 certificateAuthority = certificateAuthorityRequest.CreateSelfSigned(now.AddDays(-2), now.AddDays(2));
             apiCaCertificatePem = certificateAuthority.ExportCertificatePem();
             File.WriteAllText(kApiCaCertificatePath, apiCaCertificatePem);
 
@@ -417,7 +425,7 @@ namespace FWO.Test
             CertificateRequest serverRequest = new("CN=fwo-api-server-test", serverKey, HashAlgorithmName.SHA256);
             serverRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
             serverRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-            apiServerCertificate = serverRequest.Create(certificateAuthority, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            apiServerCertificate = serverRequest.Create(certificateAuthority, now.AddDays(-1), now.AddDays(1), RandomNumberGenerator.GetBytes(16));
         }
 
         /// <summary>

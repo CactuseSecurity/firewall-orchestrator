@@ -272,10 +272,22 @@ internalca_endpoint_host_names: >-
 internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
 internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"
 
+# Shared by roles/internalCA and roles/openldap-server. Disable this only when the
+# administrator supplies and maintains the slapd identity at the configured paths.
+internalca_issue_ldap_certificate: true
+
 # The issuer copy of the CA certificate exists only on the CA host and sits in a
 # root-only directory. Every host gets a world-readable copy at this path, and
 # that is the one all unprivileged consumers must reference. Read by roles/api,
 # roles/openldap-server, roles/common and roles/tests-integration.
+# The subjects of the internal CAs this installation has replaced, one per line. A leaf
+# signed by any of them is still an FWO-issued leaf, and the ownership classifier in
+# roles/internalCA has to keep saying so long after the run that rotated the CA: a host
+# that missed that run - unreachable, excluded by --limit, or left behind by an
+# interrupted reset - is upgraded later and must not have its own identity mistaken for a
+# customer certificate. Beside the CA, because that is the one host that knows; here
+# rather than in the role defaults, because roles/tests-integration reads it too.
+internalca_retired_ca_names: "{{ fworch_secrets_dir }}/ca/retired-ca-names"
 internalca_ca_trust_anchor: "{{ product_name }}-internal-ca.crt"
 internalca_ca_certificate_local: "{{ fworch_conf_dir }}/{{ internalca_ca_trust_anchor }}"
 # An additional issuer to trust besides the FWO internal CA. Leave it at the
@@ -548,6 +560,10 @@ fworch_api_importer_lockfile: "{{ fworch_log_lock_dir }}/importer_api_log.lock"
 ### apache: both package and dir name (needed both on ui and api hosts):
 webserver_package_name: "{{ 'httpd' if ansible_facts['os_family'] == 'RedHat' else 'apache2' }}"
 http_conf_dir: "{{ '/etc/httpd/conf.d/' if ansible_facts['os_family'] == 'RedHat' else '/etc/apache2/sites-available/' }}"
+# The maintenance vhost roles/common installs during an upgrade and roles/internalCA
+# repoints at the reconciled identity afterwards. Defined once because http_conf_dir
+# already carries its trailing separator, and the two roles had joined it differently.
+internalca_maintenance_configuration_file: "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
 # The FWO Apache vhost this host serves, empty on a host without one. Defined once
 # because roles/common validates the private key it references before Apache is
 # restarted and roles/internalCA reads its certificate paths; deriving it twice is how

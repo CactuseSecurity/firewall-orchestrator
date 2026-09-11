@@ -1,0 +1,100 @@
+---
+# The reconciliation is exercised against throwaway vhosts rather than the installed one,
+# so the facts roles/internalCA left behind for restart-consumers.yml are saved first and
+# put back afterwards: including the production task file overwrites them, and a test must
+# not leave the run believing the maintenance identity changed when only a temporary file
+# under /tmp did.
+# Saved as one dict with an empty-string stand-in rather than as omit values: a set_fact
+# whose every value is omit has no key/value pair left and fails outright, which is the
+# state of a host whose maintenance vhost the real run never reconciled.
+- name: Remember the maintenance reconciliation state before testing it
+  set_fact:
+    test_maintenance_state_before:
+      identity_changed: "{{ internalca_maintenance_identity_changed | default('') }}"
+
+- name: Create a temporary maintenance certificate test directory
+  tempfile:
+    state: directory
+    prefix: fworch-maintenance-certificate-
+  register: test_maintenance_certificate_directory
+
+# Three cases, because each one is a different way for the reconciliation to be wrong:
+# the legacy paths a pre-9.5.0 upgrade brings, a vhost that already names the selected
+# identity and must report no change, and a vhost missing the directives entirely - where
+# an unanchored lineinfile appends them past the last </VirtualHost> and quietly sets the
+# identity for the whole server instead of for the maintenance site.
+- name: Define the maintenance reconciliation cases
+  set_fact:
+    test_maintenance_reconciliation_cases:
+      # apache_ssl_dir rather than internalca_legacy_apache_certificate: the latter is a
+      # roles/internalCA default and is out of scope in this play. It carries the same
+      # value, and being OS-aware it exercises the RedHat layout on RedHat.
+      - name: legacy-paths
+        expect_changed: true
+        content: |
+          <VirtualHost *:80>
+              ServerName maintenance-test:80
+          </VirtualHost>
+
+          <VirtualHost *:{{ ui_web_port }}>
+              SSLEngine on
+              SSLCertificateFile {{ apache_ssl_dir }}/server.crt
+              SSLCertificateKeyFile {{ apache_ssl_dir }}/server.key
+          </VirtualHost>
+        absent:
+          - "{{ apache_ssl_dir }}/server.crt"
+          - "{{ apache_ssl_dir }}/server.key"
+      - name: already-reconciled
+        expect_changed: false
+        content: |
+          <VirtualHost *:80>
+              ServerName maintenance-test:80
+          </VirtualHost>
+
+          <VirtualHost *:{{ ui_web_port }}>
+              SSLEngine on
+              SSLCertificateFile /customer/server.crt
+              SSLCertificateKeyFile /customer/server.key
+          </VirtualHost>
+        absent: []
+      - name: missing-directives
+        expect_changed: true
+        content: |
+          <VirtualHost *:80>
+              ServerName maintenance-test:80
+          </VirtualHost>
+
+          <VirtualHost *:{{ ui_web_port }}>
+              SSLEngine on
+          </VirtualHost>
+        absent: []
+
+- name: Write a maintenance configuration for each reconciliation case
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ test_maintenance_certificate_directory.path }}/{{ item.name }}-maintenance.conf"
+    mode: "0600"
+  loop: "{{ test_maintenance_reconciliation_cases }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Reconcile each test maintenance configuration
+  include_tasks: assert-maintenance-certificate-reconciliation.yml
+  loop: "{{ test_maintenance_reconciliation_cases }}"
+  loop_control:
+    loop_var: test_maintenance_case
+    label: "{{ test_maintenance_case.name }}"
+  vars:
+    test_maintenance_expected_certificate: /customer/server.crt
+    test_maintenance_expected_private_key: /customer/server.key
+
+# An empty string restores the "not set" state as far as restart-consumers.yml is
+# concerned: it reads the fact through | default(false) | bool.
+- name: Restore the maintenance reconciliation state
+  set_fact:
+    internalca_maintenance_identity_changed: "{{ test_maintenance_state_before.identity_changed }}"
+
+- name: Remove the temporary maintenance certificate test directory
+  file:
+    path: "{{ test_maintenance_certificate_directory.path }}"
+    state: absent

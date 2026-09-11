@@ -1,0 +1,44 @@
+---
+# A certificate-only recovery run does not execute roles/common, so an enabled
+# maintenance vhost may still name the pre-9.5.0 /etc/apache*/ssl identity. Repoint
+# only its two identity directives after ownership detection and issuance have selected
+# either the newly generated FWO pair or the untouched customer pair.
+- name: Check for an installed maintenance Apache configuration
+  stat:
+    path: "{{ internalca_maintenance_configuration_file }}"
+  register: internalca_maintenance_configuration
+  become: true
+
+# insertafter anchors the replacement inside the TLS vhost. Without it lineinfile appends
+# a directive it cannot find to the end of the file, which lands outside <VirtualHost>
+# and silently sets the identity for the whole server instead of for this site. The
+# anchor is the https vhost line the maintenance template emits, and this file has a
+# plain :80 vhost above it that must not be the one that gets an identity.
+- name: Reconcile maintenance Apache certificate paths
+  lineinfile:
+    path: "{{ internalca_maintenance_configuration_file }}"
+    regexp: "^\\s*{{ item.directive }}\\s+"
+    insertafter: "^\\s*<VirtualHost\\s[^>]*:{{ ui_web_port }}>"
+    # Four spaces, not a tab: the fixture in the integration test has to reproduce
+    # this line exactly, and a tab there is both awkward to express in a YAML block
+    # scalar and a space-before-tab whitespace error in the patch.
+    line: "    {{ item.directive }} {{ item.path }}"
+  loop:
+    - directive: SSLCertificateFile
+      path: "{{ internalca_apache_certificate }}"
+    - directive: SSLCertificateKeyFile
+      path: "{{ internalca_apache_private_key }}"
+  register: internalca_maintenance_identity_reconciliation
+  become: true
+  when: internalca_maintenance_configuration.stat.exists
+
+- name: Record maintenance Apache identity reconciliation
+  set_fact:
+    internalca_maintenance_identity_changed: >-
+      {{
+        internalca_maintenance_identity_reconciliation.results
+        | rejectattr('skipped', 'defined')
+        | selectattr('changed')
+        | list
+        | length > 0
+      }}

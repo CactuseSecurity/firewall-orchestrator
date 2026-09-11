@@ -1,0 +1,18 @@
+---
+# The old signing key must remain intact until the installer can identify every leaf it
+# issued. Otherwise ownership detection after rotation treats the old leaves as customer
+# identities and aborts only after the sole recovery key has already been overwritten.
+- name: Refuse an unsafe reset when the retired CA name cannot be determined
+  fail:
+    msg: >-
+      The internal CA on {{ inventory_hostname }} could not be read and no client identity
+      names its issuer, so the subject it signed its leaves under is unknown and cannot be
+      recorded in {{ internalca_retired_ca_names }}. The reset has stopped before replacing
+      the existing CA key. Restore either the CA certificate or the client certificate from
+      backup so the issuer can be read, then rerun the reset. If neither can be recovered,
+      move every old FWO-issued Apache and OpenLDAP identity out of its configured path and
+      remove {{ internalca_ca_dir }} before running a complete upgrade that issues a new CA.
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_retired_ca_common_name | default('') | length == 0

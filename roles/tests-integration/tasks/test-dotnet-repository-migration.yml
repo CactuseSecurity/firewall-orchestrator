@@ -1,0 +1,57 @@
+---
+- name: Create a temporary directory for dotnet repository migration testing
+  tempfile:
+    state: directory
+    prefix: fworch-dotnet-repository-
+  register: test_dotnet_repository_directory
+
+- name: Write duplicate legacy Microsoft repository entries
+  copy:
+    dest: "{{ test_dotnet_repository_directory.path }}/microsoft-prod.list"
+    content: |
+      deb [arch=amd64] https://packages.microsoft.com/ubuntu/18.04/prod bionic main
+      deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/20.04/prod focal main
+    mode: "0600"
+
+- name: Migrate duplicate Microsoft repository entries
+  include_tasks: "{{ role_path }}/../lib/tasks/os/configure_dotnet_microsoft_repository.Debian.yml"
+  vars:
+    dotnet_ms_repository_file: "{{ test_dotnet_repository_directory.path }}/microsoft-prod.list"
+
+- name: Remember whether the first repository migration changed the file
+  set_fact:
+    test_dotnet_repository_first_migration_changed: "{{ dotnet_ms_repository_configuration.changed }}"
+
+- name: Repeat the Microsoft repository migration
+  include_tasks: "{{ role_path }}/../lib/tasks/os/configure_dotnet_microsoft_repository.Debian.yml"
+  vars:
+    dotnet_ms_repository_file: "{{ test_dotnet_repository_directory.path }}/microsoft-prod.list"
+
+- name: Read the migrated Microsoft repository
+  slurp:
+    src: "{{ test_dotnet_repository_directory.path }}/microsoft-prod.list"
+  register: test_dotnet_repository_content
+
+- name: Verify repository migration is complete and idempotent
+  assert:
+    that:
+      - test_dotnet_repository_first_migration_changed | bool
+      - not (dotnet_ms_repository_configuration.changed | bool)
+      - >-
+        (test_dotnet_repository_content.content | b64decode).splitlines() | length == 1
+      - >-
+        'https://packages.microsoft.com/ubuntu/' ~ distribution_version ~ '/prod'
+        in (test_dotnet_repository_content.content | b64decode)
+      - >-
+        (ansible_facts['distribution_release'] | lower)
+        in (test_dotnet_repository_content.content | b64decode)
+      - "'/18.04/prod' not in (test_dotnet_repository_content.content | b64decode)"
+      - "'/20.04/prod' not in (test_dotnet_repository_content.content | b64decode)"
+    fail_msg: >-
+      Microsoft repository migration retained a legacy Ubuntu feed, produced more than
+      one source line, or changed the canonical file on its second run.
+
+- name: Remove the temporary dotnet repository test directory
+  file:
+    path: "{{ test_dotnet_repository_directory.path }}"
+    state: absent

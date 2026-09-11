@@ -33,6 +33,30 @@
       when: fwo_install_settings_stat.stat.exists
       tags: always
 
+    # internalca_reset_certificates is imperative: it replaces the CA and every
+    # FWO-managed identity, and every browser and external trust store then has to be
+    # given the new anchor by hand. Left in the settings file it would do that again on
+    # every upgrade, silently. Refused here rather than documented only, because this is
+    # the one place that can still tell a persisted setting from an --extra-vars one.
+    - name: refuse a persisted certificate reset switch
+      assert:
+        that:
+          - "'internalca_reset_certificates' not in fwo_persisted_install_settings"
+        fail_msg: >-
+          internalca_reset_certificates is set in {{ fwo_effective_install_settings_file }}.
+          It is a one-shot rotation switch, not a setting: keeping it there rotates the
+          internal CA on every upgrade and invalidates every trust store that was given
+          the previous anchor. Remove it from the file and pass it on the command line for
+          the single run that should rotate, with
+          -e "installation_mode=upgrade internalca_reset_certificates=true".
+      vars:
+        fwo_persisted_install_settings: >-
+          {{ lookup('file', fwo_effective_install_settings_file) | from_yaml | default({}, true) }}
+      when: fwo_install_settings_stat.stat.exists
+      delegate_to: localhost
+      run_once: true
+      tags: always
+
     - name: report the endpoints the installer settings put in force
       debug:
         msg: >-

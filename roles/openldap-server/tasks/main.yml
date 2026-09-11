@@ -106,7 +106,9 @@
       owner: "{{ openldap_server_user }}"
       group: "{{ openldap_server_user }}"
   become: true
-  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+  when:
+    - internalca_issue_ldap_certificate | bool
+    - not (internalca_preserve_ldap_certificate | default(false) | bool)
 
 - name: Allow slapd to traverse the certificate parent directory
   file:
@@ -116,7 +118,9 @@
       group: root
       mode: "0755"
   become: true
-  when: not (internalca_preserve_ldap_certificate | default(false) | bool)
+  when:
+    - internalca_issue_ldap_certificate | bool
+    - not (internalca_preserve_ldap_certificate | default(false) | bool)
 
 # Older installations created a local slapd unit override on every OS. Debian's
 # packaged unit already consumes /etc/default/slapd and must not retain that legacy

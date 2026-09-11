@@ -1,0 +1,183 @@
+---
+- name: Read the internal CA after reset
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate_local }}"
+  register: test_reset_ca_certificate_info
+
+- name: Verify the reset installed a new CA and every selected identity
+  assert:
+    that:
+      - >-
+        test_reset_ca_certificate_info.subject.get('commonName', '')
+        not in hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true)
+      - internalca_installed_certificates.results | rejectattr('changed') | list | length == 0
+    fail_msg: >-
+      The certificate reset did not replace the old internal CA and every FWO-managed
+      identity selected on {{ inventory_hostname }}.
+
+# The record is what lets a host that missed this run keep being recognised as carrying
+# an FWO-issued identity on its next upgrade, so it is not optional bookkeeping.
+- name: Read the retired internal CA names after reset
+  slurp:
+    src: "{{ internalca_retired_ca_names }}"
+  register: test_reset_retired_ca_names
+  delegate_to: "{{ test_reset_ca_host }}"
+  run_once: true
+  become: true
+
+- name: Verify the reset recorded the internal CA it retired
+  assert:
+    that:
+      - hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true) | length > 0
+      - >-
+        hostvars[test_reset_ca_host].internalca_previous_ca_common_names
+        | difference((test_reset_retired_ca_names.content | b64decode).split('\n') | map('trim') | list)
+        | length == 0
+    fail_msg: >-
+      The certificate reset did not record the subject of the internal CA it replaced in
+      {{ internalca_retired_ca_names }}, so a host that missed this run would have its
+      FWO-issued identity taken for a customer certificate on its next upgrade.
+  run_once: true
+
+- name: Classify a leaf signed by a persisted retired CA
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_reset_retired_ca_leaf_is_fwo_managed
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: "{{ hostvars[test_reset_ca_host].internalca_previous_ca_common_names | first }}"
+      subject: {}
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: unused-test-organization
+
+- name: Verify a retired CA leaf remains FWO-managed on a later run
+  assert:
+    that:
+      - test_reset_retired_ca_leaf_is_fwo_managed | bool
+    fail_msg: >-
+      A leaf signed by a persisted retired CA was classified as customer-managed, so a host
+      that missed the reset would not have its FWO identity reissued on its next upgrade.
+
+- name: Classify a leaf signed by an unrelated customer CA
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_reset_customer_ca_leaf_is_fwo_managed
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: customer-ca
+        organizationName: Customer
+      subject:
+        organizationName: Customer
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: IT
+
+- name: Verify a customer CA leaf remains customer-managed
+  assert:
+    that:
+      - not (test_reset_customer_ca_leaf_is_fwo_managed | bool)
+    fail_msg: >-
+      A leaf signed by an unrelated customer CA was classified as FWO-managed and could
+      be overwritten during certificate reconciliation.
+
+# The loop is expanded before when is evaluated, so it has to stay defined on a host that
+# serves no Apache endpoint at all - a database- or importer-only node. Taking the paths
+# from roles/internalCA's own registered result gives both that and the guarantee of
+# comparing exactly the files it inspected.
+- name: Check retained customer-managed Apache identity after reset
+  stat:
+    path: "{{ item }}"
+  loop: "{{ internalca_existing_apache_files.results | default([], true) | map(attribute='item') | list }}"
+  register: test_reset_retained_apache_files
+  become: true
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+- name: Verify the reset left the customer-managed Apache identity unchanged
+  assert:
+    that:
+      - >-
+        test_reset_retained_apache_files.results[0].stat.checksum
+        == internalca_existing_apache_files.results[0].stat.checksum
+      - >-
+        test_reset_retained_apache_files.results[1].stat.checksum
+        == internalca_existing_apache_files.results[1].stat.checksum
+    fail_msg: >-
+      The certificate reset changed the customer-managed Apache identity on
+      {{ inventory_hostname }}.
+  when: internalca_preserve_apache_certificate | default(false) | bool
+
+# Same two reasons as the Apache check above, and internalca_ldap_certificate and
+# internalca_ldap_private_key are roles/internalCA defaults that are out of scope here.
+- name: Check retained customer-managed OpenLDAP identity after reset
+  stat:
+    path: "{{ item }}"
+  loop: "{{ internalca_existing_ldap_files.results | default([], true) | map(attribute='item') | list }}"
+  register: test_reset_retained_ldap_files
+  become: true
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool
+
+# Exercise the guard separately from the real CA files. An expected failure is rescued so
+# the integration run can prove that the production preflight refuses the destructive path
+# before create-ca.yml reaches either force-regeneration task.
+- name: Start the missing retired CA name guard test
+  set_fact:
+    test_reset_missing_retired_ca_name_rejected: false
+
+- name: Test rejection of a reset without recoverable ownership information
+  block:
+    - name: Run the certificate reset ownership preflight with no recoverable issuer
+      include_tasks: "{{ role_path }}/../internalCA/tasks/require-reset-retired-ca-name.yml"
+      vars:
+        internalca_existing_ca_certificate:
+          stat:
+            exists: true
+        internalca_retired_ca_common_name: ""
+
+  rescue:
+    - name: Record rejection of the unsafe certificate reset
+      set_fact:
+        test_reset_missing_retired_ca_name_rejected: true
+
+- name: Verify reset stops before losing the old CA key
+  assert:
+    that:
+      - test_reset_missing_retired_ca_name_rejected | bool
+    fail_msg: >-
+      Certificate reset continued without a recoverable retired CA name and could replace
+      the only old signing key before it can classify and reissue the old leaves.
+
+- name: Exercise the OpenLDAP certificate-management opt-out
+  include_tasks: "{{ role_path }}/../internalCA/tasks/validate-existing-ldap-identity.yml"
+  vars:
+    internalca_issue_ldap_certificate: false
+    internalca_unreadable_ldap_files:
+      - /test/unreadable-openldap.key
+    internalca_existing_ldap_files:
+      results:
+        - stat:
+            exists: true
+        - stat:
+            exists: false
+    internalca_ldap_certificate_is_fwo_managed: false
+
+# Successful completion of the include is the assertion: either production guard fails
+# the integration run if the opt-out regresses.
+
+- name: Verify the reset left the customer-managed OpenLDAP identity unchanged
+  assert:
+    that:
+      - >-
+        test_reset_retained_ldap_files.results[0].stat.checksum
+        == internalca_existing_ldap_files.results[0].stat.checksum
+      - >-
+        test_reset_retained_ldap_files.results[1].stat.checksum
+        == internalca_existing_ldap_files.results[1].stat.checksum
+    fail_msg: >-
+      The certificate reset changed the customer-managed OpenLDAP identity on
+      {{ inventory_hostname }}.
+  when:
+    - "'middlewareserver' in group_names"
+    - internalca_preserve_ldap_certificate | default(false) | bool

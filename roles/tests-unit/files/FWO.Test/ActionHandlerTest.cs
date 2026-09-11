@@ -1343,11 +1343,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleState()
+        public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleId()
         {
             WfHandler wfHandler = new();
             typeof(WfHandler).GetMethod("BeginWorkflowEmailBundle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(wfHandler, null);
-            typeof(WfHandler).GetMethod("EndWorkflowEmailBundle", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(wfHandler, null);
             ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
@@ -1356,7 +1355,8 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(parameters.EmailBundleId, Is.Not.Empty);
-                Assert.That(parameters.EmailBundleEnd, Is.True);
+                // An action request never ends a bundle: only the dedicated flush-only request does.
+                Assert.That(parameters.EmailBundleFlushOnly, Is.False);
             });
         }
 

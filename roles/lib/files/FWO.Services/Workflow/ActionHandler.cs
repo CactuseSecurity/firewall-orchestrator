@@ -313,8 +313,7 @@ namespace FWO.Services.Workflow
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
-                EmailBundleId = wfHandler.WorkflowEmailBundleId ?? "",
-                EmailBundleEnd = wfHandler.WorkflowEmailBundleEnd
+                EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
         }
 
@@ -383,7 +382,6 @@ namespace FWO.Services.Workflow
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
                 EmailBundleId = wfHandler.WorkflowEmailBundleId,
-                EmailBundleEnd = true,
                 EmailBundleFlushOnly = true
             };
 

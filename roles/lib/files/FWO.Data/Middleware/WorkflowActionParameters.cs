@@ -19,11 +19,6 @@ namespace FWO.Data.Middleware
         public string EmailBundleId { get; set; } = "";
 
         /// <summary>
-        /// True on the last action of a bundle, which sends the captured emails and drops the bundle.
-        /// </summary>
-        public bool EmailBundleEnd { get; set; }
-
-        /// <summary>
         /// True when the request only sends the captured emails of a bundle and executes no action.
         /// </summary>
         public bool EmailBundleFlushOnly { get; set; }

@@ -28,24 +28,16 @@ namespace FWO.Services.Workflow
     public partial class WfHandler
     {
         public string? WorkflowEmailBundleId { get; private set; }
-        public bool WorkflowEmailBundleEnd { get; private set; }
 
         private void BeginWorkflowEmailBundle()
         {
             WorkflowEmailBundleId = Guid.NewGuid().ToString("N");
-            WorkflowEmailBundleEnd = false;
             ActionHandler?.ResetBundledDelegations();
-        }
-
-        private void EndWorkflowEmailBundle()
-        {
-            WorkflowEmailBundleEnd = true;
         }
 
         private void ClearWorkflowEmailBundle()
         {
             WorkflowEmailBundleId = null;
-            WorkflowEmailBundleEnd = false;
         }
 
         // promote the different objects
@@ -128,7 +120,6 @@ namespace FWO.Services.Workflow
 
             try
             {
-                EndWorkflowEmailBundle();
                 await ActionHandler.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
             }
             catch (Exception exception)

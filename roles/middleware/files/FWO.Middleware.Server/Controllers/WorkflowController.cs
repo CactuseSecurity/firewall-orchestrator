@@ -201,23 +201,11 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
-            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
-            try
-            {
-                result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
-                if (result.Success && parameters.EmailBundleEnd && emailBundleCollector != null)
-                {
-                    await wfHandler.ActionHandler.FlushEmailBundleCollector();
-                }
-            }
-            finally
-            {
-                if (parameters.EmailBundleEnd && emailBundleCollector != null)
-                {
-                    EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
-                }
-            }
+            // The bundle is neither flushed nor removed here: the dedicated flush-only request is the
+            // single flush entry point and removes the bundle itself. Removing it on an action request
+            // would discard captured emails whenever the action fails.
+            wfHandler.ActionHandler!.EmailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
+            result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
             if (result.Success)
             {
                 await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);

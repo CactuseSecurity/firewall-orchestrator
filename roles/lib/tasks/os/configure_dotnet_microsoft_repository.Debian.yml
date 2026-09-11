@@ -1,19 +1,18 @@
 ---
-# packages-microsoft-prod writes this source file. Reconcile the existing line rather
-# than merely adding another one, because an Ubuntu release upgrade otherwise leaves
-# the fallback pointing at the previous release while the FWO preference still selects it.
+# packages-microsoft-prod writes this source file. FWO owns its complete contents after
+# enabling the fallback: replacing the file removes duplicate entries left by older
+# installer runs and prevents an Ubuntu release upgrade from retaining the old feed.
 - name: Check for Microsoft apt signing keyring
   stat:
     path: /usr/share/keyrings/microsoft-prod.gpg
   register: dotnet_ms_keyring
 
 - name: Configure Microsoft repository for the installed Ubuntu release
-  lineinfile:
-    path: /etc/apt/sources.list.d/microsoft-prod.list
-    regexp: "^deb(?: \\[[^]]+\\])? https://packages\\.microsoft\\.com/ubuntu/[^ ]+/prod [^ ]+ main$"
-    line: >-
+  copy:
+    dest: "{{ dotnet_ms_repository_file | default('/etc/apt/sources.list.d/microsoft-prod.list') }}"
+    content: >
       deb [arch={{ linux_architecture }}{{ ' signed-by=/usr/share/keyrings/microsoft-prod.gpg' if dotnet_ms_keyring.stat.exists else '' }}]
       https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod
       {{ ansible_facts['distribution_release'] | lower }} main
-    create: true
     mode: "0644"
+  register: dotnet_ms_repository_configuration

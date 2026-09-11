@@ -6,8 +6,9 @@
       {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
       cannot tell whether this identity is customer managed, and it must not
       decide on its own. A passphrase protected private key is the usual cause.
-      Remove the passphrase, or set internalca_issue_ldap_certificate to false
-      to keep FWO away from this identity entirely.
+      Remove the passphrase, or set internalca_issue_ldap_certificate to false so FWO
+      does not issue or replace this identity. The normal trust, address, and certificate
+      chain requirements still apply because FWO clients must validate the LDAP server.
   when:
     - internalca_unreadable_ldap_files | default([]) | length > 0
     - internalca_issue_ldap_certificate | bool
@@ -20,8 +21,9 @@
       {{ internalca_existing_ldap_certificate_info.issuer.get('commonName', 'an unnamed customer CA') }}
       and is customer managed, but {{ internalca_ldap_private_key }} is missing or does
       not belong to it. Restore the matching private key, or set
-      internalca_issue_ldap_certificate to false to keep FWO away from this identity
-      entirely, then rerun the installer. FWO will not replace this certificate.
+      internalca_issue_ldap_certificate to false so FWO does not issue or replace this
+      identity, then rerun the installer. The normal trust, address, and certificate chain
+      requirements still apply because FWO clients must validate the LDAP server.
   when:
     - internalca_existing_ldap_files.results[0].stat.exists
     - internalca_issue_ldap_certificate | bool

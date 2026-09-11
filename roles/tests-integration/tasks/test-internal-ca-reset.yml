@@ -59,6 +59,28 @@
       A leaf signed by a persisted retired CA was classified as customer-managed, so a host
       that missed the reset would not have its FWO identity reissued on its next upgrade.
 
+- name: Classify a leaf signed by an unrelated customer CA
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_reset_customer_ca_leaf_is_fwo_managed
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: customer-ca
+        organizationName: Customer
+      subject:
+        organizationName: Customer
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: IT
+
+- name: Verify a customer CA leaf remains customer-managed
+  assert:
+    that:
+      - not (test_reset_customer_ca_leaf_is_fwo_managed | bool)
+    fail_msg: >-
+      A leaf signed by an unrelated customer CA was classified as FWO-managed and could
+      be overwritten during certificate reconciliation.
+
 # The loop is expanded before when is evaluated, so it has to stay defined on a host that
 # serves no Apache endpoint at all - a database- or importer-only node. Taking the paths
 # from roles/internalCA's own registered result gives both that and the guarantee of
@@ -141,17 +163,8 @@
             exists: false
     internalca_ldap_certificate_is_fwo_managed: false
 
-- name: Record successful OpenLDAP identity guard opt-out
-  set_fact:
-    test_reset_ldap_optout_guards_completed: true
-
-- name: Verify the OpenLDAP opt-out bypasses identity guards
-  assert:
-    that:
-      - test_reset_ldap_optout_guards_completed | bool
-    fail_msg: >-
-      Disabling OpenLDAP certificate management did not bypass the unreadable and
-      incomplete customer-identity guards.
+# Successful completion of the include is the assertion: either production guard fails
+# the integration run if the opt-out regresses.
 
 - name: Verify the reset left the customer-managed OpenLDAP identity unchanged
   assert:

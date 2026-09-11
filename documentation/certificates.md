@@ -204,12 +204,13 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
-To keep an administrator-managed OpenLDAP identity entirely outside FWO
-management, set `internalca_issue_ldap_certificate: false` and place the
-certificate and private key at the configured OpenLDAP certificate paths. The
-installer then neither rejects an unreadable or incomplete pair nor changes its
-ownership or contents. The administrator is responsible for keeping both files
-usable by slapd. As with a retained Apache identity, configure
+To prevent FWO from issuing or replacing an administrator-managed OpenLDAP
+identity, set `internalca_issue_ldap_certificate: false` and place the certificate
+and private key at the configured OpenLDAP certificate paths. The installer then
+neither rejects an unreadable or incomplete pair nor changes its ownership or
+contents. Its normal trust, address, and certificate-chain checks still apply
+because FWO clients must validate the LDAP server. The administrator is responsible
+for keeping both files usable by slapd. As with a retained Apache identity, configure
 `internalca_peer_ca_certificate` on every FWO client host when the issuing root
 is not already trusted by the operating system.
 
@@ -293,7 +294,8 @@ recognise as customer-managed; without this check the endpoint would silently
 be repointed at an FWO-issued certificate. Remove the passphrase, or set
 `internalca_issue_apache_certificate: false` to keep the role away from that
 identity entirely. The equivalent OpenLDAP opt-out is
-`internalca_issue_ldap_certificate: false`.
+`internalca_issue_ldap_certificate: false`; it prevents issuance and replacement,
+while the LDAP trust, address, and certificate-chain checks continue to apply.
 
 If the leaf, intermediate bundle, and configured root do not form one chain, the
 installer stops before changing the Apache vhost. An `unable to get local issuer

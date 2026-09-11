@@ -131,6 +131,12 @@
   import_tasks: test-maintenance-certificate-reconciliation.yml
   when: "'frontends' in group_names"
 
+- name: Dotnet repository migration testing
+  import_tasks: test-dotnet-repository-migration.yml
+  when:
+    - ansible_facts['distribution'] | lower == 'ubuntu'
+    - ansible_facts['distribution_major_version'] is version('22', '>=')
+
 - name: Apache intermediate chain configuration testing
   import_tasks: test-apache-intermediate-chain.yml
   when: "['frontends', 'middlewareserver', 'apiserver'] | intersect(group_names) | length > 0"

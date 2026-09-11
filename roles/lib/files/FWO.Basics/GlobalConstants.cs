@@ -40,6 +40,7 @@ namespace FWO.Basics
 
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
+        public const string kWorkflow = "workflow";
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";

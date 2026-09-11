@@ -58,6 +58,15 @@ namespace FWO.Services.Workflow
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
         public System.Security.Claims.ClaimsPrincipal? AuthUser;
+
+        /// <summary>
+        /// True when the workflow engine acts on its own behalf - background jobs and the external request
+        /// chain - instead of on behalf of a signed-in user. Visibility groups restrict what a user is shown,
+        /// so they must not narrow what the engine itself loads, promotes and derives ticket states from.
+        /// Stays false for every user-facing caller, the UI and the workflow REST controller included, where
+        /// visibility is an authorization boundary rather than a display rule.
+        /// </summary>
+        public bool SystemContext { get; init; }
         private readonly ApiConnection? apiConnection;
         public readonly MiddlewareClient? MiddlewareClient;
         public readonly IRequestedRulePolicyChecker? RequestedRulePolicyChecker;

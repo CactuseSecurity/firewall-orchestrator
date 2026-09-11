@@ -92,7 +92,7 @@ namespace FWO.Middleware.Server
             {
                 ImportNwZoneMatrixData importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
                 DeviceNameResolver deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
-                CheckData(importedZoneMatrixData, deviceLookup);
+                CheckData(importedZoneMatrixData, deviceLookup, globalConfig);
                 (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
                 responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
             }
@@ -106,7 +106,7 @@ namespace FWO.Middleware.Server
             return responsMessage;
         }
 
-        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData, DeviceNameResolver deviceLookup)
+        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData, DeviceNameResolver deviceLookup, GlobalConfig globalConfig)
         {
             List<string> errorList = [];
             if (string.IsNullOrEmpty(importedZoneMatrixData.Name))
@@ -121,7 +121,7 @@ namespace FWO.Middleware.Server
             {
                 errorList.Add("Duplicate Zone IdStrings");
             }
-            CheckCommunicationTargets(importedZoneMatrixData, errorList);
+            CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
             CheckIpData(importedZoneMatrixData, errorList);
             if (errorList.Count > 0)
@@ -132,13 +132,15 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Checks that every allowed communication names a zone the document defines.
-        /// The auto-calculated zones are accepted because they are created by the import itself.
+        /// The auto-calculated internet zone is accepted while it is enabled, because the import creates it itself.
         /// </summary>
-        private static void CheckCommunicationTargets(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        private static void CheckCommunicationTargets(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList, GlobalConfig globalConfig)
         {
             HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
-            knownZones.Add(NetworkZoneService.kAutoCalculatedInternetZoneIdString);
-            knownZones.Add(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString);
+            if (globalConfig.AutoCalculateInternetZone)
+            {
+                knownZones.Add(NetworkZoneService.kAutoCalculatedInternetZoneIdString);
+            }
 
             foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
             {

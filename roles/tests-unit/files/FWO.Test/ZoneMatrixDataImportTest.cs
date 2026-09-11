@@ -70,6 +70,7 @@ namespace FWO.Test
         private static readonly string[] kMissingZoneDestination = ["zone-does-not-exist"];
         private static readonly string[] kOtherMissingZoneDestination = ["zone-also-missing"];
         private static readonly string[] kAutoInternetDestination = [NetworkZoneService.kAutoCalculatedInternetZoneIdString];
+        private static readonly string[] kAutoUndefinedInternalDestination = [NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString];
 
         private const string kMgmtA = "mgmt-a";
         private const string kMgmtB = "mgmt-b";
@@ -554,10 +555,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_AcceptsAutoCalculatedZoneAsCommunicationTarget()
+        public async Task Run_AcceptsAutoCalculatedInternetZoneAsCommunicationTargetWhenEnabled()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
-            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+            apiConnection.MatrixZoneResponses.Clear();
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZonesWithAutoInternet());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
 
             string result = await import.Run(
                 "auto-comm-target.json",
@@ -567,7 +570,53 @@ namespace FWO.Test
                 "tester",
                 "cn=tester");
 
-            Assert.That(result, Does.Not.Contain("Unknown communication target"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from auto-comm-target.json"));
+                Assert.That(result, Does.Not.Contain("Unknown communication target"));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsAutoCalculatedInternetZoneAsCommunicationTargetWhenDisabled()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-comm-target-disabled.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoInternetDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedInternetZoneIdString} in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsAutoCalculatedUndefinedInternalZoneAsCommunicationTarget()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-undefined-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoUndefinedInternalDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
         }
 
         [Test]
@@ -715,6 +764,15 @@ namespace FWO.Test
             };
             apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneA());
             return apiConnection;
+        }
+
+        private static List<ComplianceNetworkZone> CreateReloadedZonesWithAutoInternet()
+        {
+            return
+            [
+                CreateExistingZone(101, "zone-a", "Zone A"),
+                CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet")
+            ];
         }
 
         private static List<ComplianceNetworkZone> CreateReloadedZoneA()
@@ -884,7 +942,9 @@ namespace FWO.Test
                 {
                     int responseIndex = Math.Min(Count(ComplianceQueries.getNetworkZonesForMatrix) - 1, Math.Max(MatrixZoneResponses.Count - 1, 0));
                     List<ComplianceNetworkZone> response = MatrixZoneResponses.Count == 0 ? [] : MatrixZoneResponses[responseIndex];
-                    return Task.FromResult((QueryResponseType)(object)response);
+                    // hand out a fresh list per call: NetworkZoneService.UpdateSpecialZones removes
+                    // entries from the list it receives, which would corrupt later responses
+                    return Task.FromResult((QueryResponseType)(object)new List<ComplianceNetworkZone>(response));
                 }
 
                 if (typeof(QueryResponseType) == typeof(ReturnIdWrapper) && query == ComplianceQueries.addCriterion)

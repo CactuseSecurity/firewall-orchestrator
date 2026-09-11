@@ -125,7 +125,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or connections have been saved, those earlier changes can remain in the matrix. Validate the complete document before importing it into a production system.
 
-The following is checked before anything is written: a non-empty matrix name, zone names and `id_string` values unique within the document, and every device referenced in `path_to_root` or `path_to_internet` being resolvable and unambiguous, with no device listed twice in one path. Everything else — in particular IP values and `communication_to` targets — is only checked while  zones are being written, so a document that fails there can leave the matrix partially updated.
+The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
 
 ## Validation Checklist
 

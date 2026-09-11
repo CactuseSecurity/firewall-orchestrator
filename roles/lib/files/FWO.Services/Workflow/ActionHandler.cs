@@ -121,8 +121,12 @@ namespace FWO.Services.Workflow
 
         /// <summary>
         /// Sends the captured emails of the active bundle, one email per bundle key group. Emails in the
-        /// collector were suppressed at their state action, so this is their only delivery.
+        /// collector were suppressed at their state action, so this is their only delivery. Only the groups
+        /// that were actually delivered leave the collector: whatever remains is an email that was not sent,
+        /// which the caller can retry individually or report. A failed delivery is raised rather than
+        /// swallowed, because the state change it belongs to is already committed.
         /// </summary>
+        /// <exception cref="InvalidOperationException">At least one bundle group could not be delivered</exception>
         public async Task FlushEmailBundleCollector()
         {
             if (EmailBundleCollector == null || EmailBundleCollector.PendingItems.Count == 0)
@@ -132,21 +136,51 @@ namespace FWO.Services.Workflow
 
             WorkflowEmailBundleCollector collector = EmailBundleCollector;
             collector.IsFlushing = true;
+            List<WorkflowEmailBundleItem> deliveredItems = [];
+            int failedGroupCount = 0;
             try
             {
                 foreach (IGrouping<string, WorkflowEmailBundleItem> group in collector.PendingItems.GroupBy(item => item.BundleKey))
                 {
-                    WorkflowEmailBundleItem item = group.OrderBy(item => item.RequestTask.TaskNumber).First();
-                    RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
-                    await SendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
-                    RequestTaskEmailBundle = null;
+                    if (await SendBundledEmailGroup(group))
+                    {
+                        deliveredItems.AddRange(group);
+                    }
+                    else
+                    {
+                        ++failedGroupCount;
+                    }
                 }
             }
             finally
             {
                 RequestTaskEmailBundle = null;
-                collector.PendingItems.Clear();
+                collector.PendingItems.RemoveAll(deliveredItems.Contains);
                 collector.IsFlushing = false;
+            }
+
+            if (failedGroupCount > 0)
+            {
+                throw new InvalidOperationException($"{failedGroupCount} bundled workflow email(s) could not be delivered.");
+            }
+        }
+
+        /// <summary>
+        /// Sends the single email that covers one bundle key group.
+        /// </summary>
+        /// <param name="group">Captured emails sharing one bundle key</param>
+        /// <returns>true if the email was delivered</returns>
+        private async Task<bool> SendBundledEmailGroup(IGrouping<string, WorkflowEmailBundleItem> group)
+        {
+            WorkflowEmailBundleItem item = group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First();
+            RequestTaskEmailBundle = BuildRequestTaskEmailBundle(group);
+            try
+            {
+                return await TrySendEmail(item.Action, item.RequestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+            }
+            finally
+            {
+                RequestTaskEmailBundle = null;
             }
         }
 

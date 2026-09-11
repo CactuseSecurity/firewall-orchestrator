@@ -11,6 +11,22 @@ namespace FWO.Services.Workflow
     {
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
+            await TrySendEmail(action, statefulObject, scope, owner, userGrpDn);
+        }
+
+        /// <summary>
+        /// Performs a send email state action and reports whether it delivered. Callers that have to know
+        /// about a failed delivery - the bundle flush above all, whose captured emails have no other
+        /// delivery attempt - use this instead of <see cref="SendEmail"/>, which discards the outcome.
+        /// </summary>
+        /// <param name="action">State action to execute</param>
+        /// <param name="statefulObject">Object the action was triggered for</param>
+        /// <param name="scope">Scope the action was triggered in</param>
+        /// <param name="owner">Owner the recipients are resolved for, if any</param>
+        /// <param name="userGrpDn">User group DN the action was triggered for, if any</param>
+        /// <returns>false if a send was attempted and failed, or the action threw; true otherwise</returns>
+        public virtual async Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
+        {
             Log.WriteDebug("SendEmail", "Perform Action");
             EmailActionParams? emailActionParams = null;
             try
@@ -19,31 +35,10 @@ namespace FWO.Services.Workflow
                 if (CaptureBundledEmail(action, emailActionParams, statefulObject, scope, owner, userGrpDn))
                 {
                     Log.WriteDebug("SendEmail", "Captured workflow action email for bundled delivery.");
-                    return;
+                    return true;
                 }
 
-                List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
-                int sentEmailCount = 0;
-                List<int> sentNotificationIds = [];
-                foreach (FwoNotification actionNotification in actionNotifications)
-                {
-                    await SetScope(statefulObject, scope, actionNotification);
-                    WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
-                    EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
-                    await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
-                    WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
-                    if (await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject))
-                    {
-                        ++sentEmailCount;
-                        if (actionNotification.Id > 0)
-                        {
-                            sentNotificationIds.Add(actionNotification.Id);
-                        }
-                    }
-                }
-                await UpdateSentNotificationTimestamps(sentNotificationIds);
-                Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
-                DisplaySentEmailConfirmation(emailActionParams, sentEmailCount);
+                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn);
             }
             catch (Exception exc)
             {
@@ -52,6 +47,54 @@ namespace FWO.Services.Workflow
                 {
                     wfHandler.DisplayMessage(exc, wfHandler.userConfig.GetText("send_email"), "", true);
                 }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Sends the email of every notification the action resolves to.
+        /// </summary>
+        /// <returns>false if at least one send was attempted and failed</returns>
+        private async Task<bool> SendActionNotifications(EmailActionParams emailActionParams, WfStatefulObject statefulObject,
+            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+        {
+            List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
+            int sentEmailCount = 0;
+            int failedEmailCount = 0;
+            List<int> sentNotificationIds = [];
+            foreach (FwoNotification actionNotification in actionNotifications)
+            {
+                await SetScope(statefulObject, scope, actionNotification);
+                WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
+                EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
+                await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
+                WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
+                WorkflowEmailDeliveryResult deliveryResult = await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject);
+                if (deliveryResult == WorkflowEmailDeliveryResult.Failed)
+                {
+                    ++failedEmailCount;
+                }
+                else if (deliveryResult == WorkflowEmailDeliveryResult.Delivered)
+                {
+                    ++sentEmailCount;
+                    AddSentNotificationId(sentNotificationIds, actionNotification);
+                }
+            }
+            await UpdateSentNotificationTimestamps(sentNotificationIds);
+            Log.WriteInfo("SendEmail", $"Sent {sentEmailCount} workflow action email(s).");
+            DisplaySentEmailConfirmation(emailActionParams, sentEmailCount);
+            if (failedEmailCount > 0)
+            {
+                Log.WriteWarning("SendEmail", $"{failedEmailCount} of {actionNotifications.Count} workflow action email(s) could not be delivered.");
+            }
+            return failedEmailCount == 0;
+        }
+
+        private static void AddSentNotificationId(List<int> sentNotificationIds, FwoNotification actionNotification)
+        {
+            if (actionNotification.Id > 0)
+            {
+                sentNotificationIds.Add(actionNotification.Id);
             }
         }
 

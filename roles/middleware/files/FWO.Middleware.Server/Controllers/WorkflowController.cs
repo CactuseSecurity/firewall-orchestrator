@@ -219,11 +219,14 @@ namespace FWO.Middleware.Server.Controllers
             WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId, false);
             if (emailBundleCollector == null)
             {
-                // A bundle that captured nothing leaves no collector, which is the ordinary case for a
-                // promote without bundled actions. It stays a debug note on purpose: it is not a problem,
-                // and a user facing message would appear on ordinary promotes. Emails that were captured
-                // but never sent are reported by the expiry sweep instead.
-                Log.WriteDebug("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}.");
+                // An action request carrying this bundle id creates the collector, so by the time a flush
+                // arrives one normally exists - empty when no bundled email action ran, which is the
+                // ordinary case. Absence therefore means the collector never got that far (the action was
+                // rejected before it) or it is gone: swept, or lost with a middleware restart, and in the
+                // restart case nothing in this process can account for what it held. That is worth a
+                // warning rather than a debug note, but not a user facing error on an ordinary promote.
+                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}. " +
+                    "Either no bundled email action reached the collector, or the bundle was discarded before it could be sent.");
                 result.Success = true;
                 return result;
             }

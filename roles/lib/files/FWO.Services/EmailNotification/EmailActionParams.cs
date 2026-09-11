@@ -26,6 +26,29 @@ namespace FWO.Services
         SameTaskType = 1
     }
 
+    /// <summary>
+    /// Outcome of sending a single workflow action email. Distinguishes a delivery failure, which the
+    /// workflow has to report, from an action that resolved to no recipients at all, which is a
+    /// configuration property of the action rather than something that went wrong while sending.
+    /// </summary>
+    public enum WorkflowEmailDeliveryResult
+    {
+        /// <summary>
+        /// The email was handed over to the mail server.
+        /// </summary>
+        Delivered = 0,
+
+        /// <summary>
+        /// No To recipient could be resolved, so nothing was sent. Not treated as a delivery failure.
+        /// </summary>
+        NoRecipients = 1,
+
+        /// <summary>
+        /// Sending was attempted and did not succeed.
+        /// </summary>
+        Failed = 2
+    }
+
     public class EmailActionParams
     {
         [JsonProperty("notification_ids"), JsonPropertyName("notification_ids")]

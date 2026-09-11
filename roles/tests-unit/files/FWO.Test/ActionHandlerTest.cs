@@ -1788,6 +1788,110 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TrySendEmail_ReturnsFalseWhenTheActionCannotBeExecuted()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            ActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() });
+            await handler.Init();
+            WfStateAction brokenAction = new()
+            {
+                Id = 5,
+                Event = StateActionEvents.OnSet.ToString(),
+                ActionType = StateActionTypes.SendEmail.ToString(),
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ExternalParams = "not json"
+            };
+
+            bool delivered = await handler.TrySendEmail(brokenAction, new WfReqTask { Id = 11, TicketId = 7 }, WfObjectScopes.RequestTask, null, null);
+
+            Assert.That(delivered, Is.False);
+        }
+
+        /// <summary>
+        /// Action handler whose email delivery outcome is dictated per request task, so the bookkeeping of
+        /// the bundle flush can be tested without a mail server.
+        /// </summary>
+        private sealed class DeliveryControlledActionHandler(ApiConnection apiConnection, WfHandler wfHandler, List<long> undeliverableTaskIds)
+            : ActionHandler(apiConnection, wfHandler)
+        {
+            public List<long> AttemptedTaskIds { get; } = [];
+
+            public override Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
+                FwoOwner? owner, string? userGrpDn = null)
+            {
+                long taskId = statefulObject is WfReqTask reqTask ? reqTask.Id : 0;
+                AttemptedTaskIds.Add(taskId);
+                return Task.FromResult(!undeliverableTaskIds.Contains(taskId));
+            }
+        }
+
+        private static WorkflowEmailBundleCollector CollectorWithTwoTaskTypes()
+        {
+            WfStateAction action = new()
+            {
+                Id = 5,
+                Event = StateActionEvents.OnSet.ToString(),
+                ActionType = StateActionTypes.SendEmail.ToString(),
+                Scope = WfObjectScopes.RequestTask.ToString(),
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    NotificationIds = [7],
+                    AttachedContent = EmailAttachedContent.RequestedConnections,
+                    RequestTaskBundleMode = EmailRequestTaskBundleMode.SameTaskType
+                })
+            };
+            WorkflowEmailBundleCollector collector = new();
+            collector.TryAdd(action, new WfReqTask { Id = 11, TicketId = 7, TaskType = WfTaskType.access.ToString(), TaskNumber = 1, StateId = 60 }, null, null);
+            collector.TryAdd(action, new WfReqTask { Id = 12, TicketId = 7, TaskType = WfTaskType.rule_delete.ToString(), TaskNumber = 2, StateId = 60 }, null, null);
+            return collector;
+        }
+
+        [Test]
+        public async Task FlushEmailBundleCollector_ReportsFailureAndKeepsOnlyUndeliveredItems()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WorkflowEmailBundleCollector collector = CollectorWithTwoTaskTypes();
+            List<long> undeliverableTaskIds = [12];
+            DeliveryControlledActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() }, undeliverableTaskIds)
+            {
+                EmailBundleCollector = collector
+            };
+            await handler.Init();
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.FlushEmailBundleCollector());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AttemptedTaskIds, Is.EqualTo(new List<long> { 11, 12 }));
+                Assert.That(collector.PendingItems, Has.Count.EqualTo(1));
+                Assert.That(collector.PendingItems[0].RequestTask.Id, Is.EqualTo(12));
+                Assert.That(collector.IsFlushing, Is.False);
+            });
+        }
+
+        [Test]
+        public async Task FlushEmailBundleCollector_ClearsTheBundleWhenEveryEmailIsDelivered()
+        {
+            ActionHandlerTestApiConn apiConn = new();
+            WorkflowEmailBundleCollector collector = CollectorWithTwoTaskTypes();
+            List<long> undeliverableTaskIds = [];
+            DeliveryControlledActionHandler handler = new(apiConn, new WfHandler { userConfig = new SimulatedUserConfig() }, undeliverableTaskIds)
+            {
+                EmailBundleCollector = collector
+            };
+            await handler.Init();
+
+            await handler.FlushEmailBundleCollector();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.AttemptedTaskIds, Is.EqualTo(new List<long> { 11, 12 }));
+                Assert.That(collector.PendingItems, Is.Empty);
+                Assert.That(collector.IsFlushing, Is.False);
+            });
+        }
+
+        [Test]
         public async Task FlushEmailBundleCollector_SendsOneEmailForBundledItems()
         {
             ActionHandlerTestApiConn apiConn = new()
@@ -1850,12 +1954,14 @@ namespace FWO.Test
             ActionHandler handler = new(apiConn, wfHandler) { EmailBundleCollector = collector };
             await handler.Init();
 
-            await handler.FlushEmailBundleCollector();
+            // Both request tasks share one bundle key, so one email is composed for them. No mail server is
+            // reachable in the test environment, so that single email fails to deliver and is reported.
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.FlushEmailBundleCollector());
 
             Assert.Multiple(() =>
             {
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
-                Assert.That(collector.PendingItems, Is.Empty);
+                Assert.That(collector.PendingItems, Has.Count.EqualTo(2));
             });
         }
 
@@ -1979,12 +2085,14 @@ namespace FWO.Test
             ActionHandler handler = new(apiConn, wfHandler) { EmailBundleCollector = collector };
             await handler.Init();
 
-            await handler.FlushEmailBundleCollector();
+            // No mail server is reachable in the test environment, so both emails are composed but fail to
+            // deliver. The flush has to report that instead of discarding them.
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await handler.FlushEmailBundleCollector());
 
             Assert.Multiple(() =>
             {
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(2));
-                Assert.That(collector.PendingItems, Is.Empty);
+                Assert.That(collector.PendingItems, Has.Count.EqualTo(2));
             });
         }
 

@@ -225,6 +225,7 @@ namespace FWO.Middleware.Server
                 wfHandler.ActionHandler.EmailBundleCollector = null;
                 WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
 
+                bool allDelivered = true;
                 foreach (WorkflowEmailBundleItem item in emailBundleCollector.PendingItems
                     .GroupBy(pendingItem => pendingItem.BundleKey)
                     .Select(group => group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First()))
@@ -232,10 +233,10 @@ namespace FWO.Middleware.Server
                     WfReqTask requestTask = ticket?.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
                         ?? ticket?.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
                         ?? item.RequestTask;
-                    await wfHandler.ActionHandler.SendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                    allDelivered &= await wfHandler.ActionHandler.TrySendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
                 }
 
-                return true;
+                return allDelivered;
             }
             catch (Exception fallbackException)
             {
@@ -317,7 +318,8 @@ namespace FWO.Middleware.Server
             approvalTask.StateId = approvalMatrix.LowestStartedState;
             await approvalHandler.PromoteReqTask(approvalTask, setStartedHandler: false);
 
-            await LogRequestTasks([approvalTask], ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
+            List<WfReqTask> promotedTasks = [approvalTask];
+            await LogRequestTasks(promotedTasks, ticket.Requester?.Name, ModellingTypes.ChangeType.Request);
             return WorkflowPhases.approval;
         }
 

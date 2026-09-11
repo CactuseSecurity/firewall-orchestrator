@@ -87,14 +87,46 @@ namespace FWO.Services.Workflow
         }
     }
 
+    /// <summary>
+    /// One email captured into a workflow email bundle, together with the context it was captured in.
+    /// Action and request task are deep copied on creation, so the captured email cannot drift when the
+    /// live objects are mutated by later state changes before the bundle is flushed.
+    /// </summary>
     public sealed class WorkflowEmailBundleItem
     {
+        /// <summary>
+        /// Copy of the state action that triggered the email.
+        /// </summary>
         public WfStateAction Action { get; }
+
+        /// <summary>
+        /// Copy of the request task the email was captured for.
+        /// </summary>
         public WfReqTask RequestTask { get; }
+
+        /// <summary>
+        /// Owner the recipients were resolved for, if any. Held by reference, and only read.
+        /// </summary>
         public FwoOwner? Owner { get; }
+
+        /// <summary>
+        /// User group DN the email was triggered for, if any.
+        /// </summary>
         public string? UserGrpDn { get; }
+
+        /// <summary>
+        /// Key deciding which captured emails may be merged into one email at flush time. Items sharing
+        /// this key are sent as a single email; items differing in it are never merged.
+        /// </summary>
         public string BundleKey { get; }
 
+        /// <summary>
+        /// Captures one email and derives its bundle key.
+        /// </summary>
+        /// <param name="action">State action that triggered the email</param>
+        /// <param name="requestTask">Request task the email belongs to</param>
+        /// <param name="owner">Owner the recipients were resolved for, if any</param>
+        /// <param name="userGrpDn">User group DN the email was triggered for, if any</param>
         public WorkflowEmailBundleItem(WfStateAction action, WfReqTask requestTask, FwoOwner? owner, string? userGrpDn)
         {
             Action = new WfStateAction(action);

@@ -52,15 +52,15 @@
 - name: Use the installed internal CA common name
   set_fact:
     internalca_ca_common_name: "{{ hostvars[internalca_ca_host].internalca_effective_ca_common_name }}"
+    # The CA in force plus every CA this installation has retired. Both halves are
+    # needed: a run that has just rotated the CA still meets leaves signed by the old
+    # one, and a host that missed an earlier rotation meets them on every later upgrade.
     internalca_managed_ca_common_names: >-
       {{
         (
           [hostvars[internalca_ca_host].internalca_effective_ca_common_name]
-          + ([hostvars[internalca_ca_host].internalca_previous_ca_common_name]
-             if hostvars[internalca_ca_host].internalca_previous_ca_common_name
-                | default('') | length > 0
-             else [])
-        ) | unique
+          + hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true)
+        ) | reject('equalto', '') | unique | list
       }}
 
 - name: Install internal CA trust anchor

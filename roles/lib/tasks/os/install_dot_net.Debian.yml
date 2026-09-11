@@ -56,6 +56,23 @@
         - ansible_facts['distribution']|lower != 'ubuntu' or
           (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
+    # A host that took the Microsoft fallback under an earlier version carries the broad
+    # pin, and with it in place the primary install below now succeeds - so the rescue
+    # that would narrow it never runs. Narrow it here instead, on the evidence of the
+    # old file being present, rather than leaving that host pinning every .NET package
+    # on the system to Microsoft for good.
+    - name: look for a superseded dotnet apt pin
+      stat:
+        path: /etc/apt/preferences.d/fworch-dotnet
+      register: dotnet_superseded_pin
+      when: not use_dotnet_install_script
+
+    - name: narrow a superseded dotnet apt pin
+      include_tasks: pin_dotnet_to_microsoft.Debian.yml
+      when:
+        - not use_dotnet_install_script
+        - dotnet_superseded_pin.stat.exists | default(false)
+
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
       when: not use_dotnet_install_script
@@ -117,20 +134,58 @@
             state: absent
 
         - name: prefer microsoft packages for dotnet on ubuntu fallback
-          blockinfile:
-            path: /etc/apt/preferences.d/fworch-dotnet
-            create: true
-            mode: "0644"
-            block: |
-              Package: dotnet-* aspnetcore-* netstandard-*
-              Pin: origin packages.microsoft.com
-              Pin-Priority: 999
+          include_tasks: pin_dotnet_to_microsoft.Debian.yml
 
         - name: apt update after microsoft repo fallback
           apt:
             update_cache: true
 
         - block:
+            # The pin is the whole point of this fallback, and a pin that did not take
+            # effect leaves the distribution candidate in place - which is the mixed
+            # managed/native System.Security.Cryptography combination this path exists to
+            # get away from. Asked before installing, because apt reports nothing when two
+            # preferences files disagree about the same package, and because a wrong SDK
+            # installed and then worked around is harder to explain than a refusal here.
+            - name: read the apt candidate version for {{ dotnet_package_name }}
+              command: "apt-cache policy {{ dotnet_package_name }}"
+              register: dotnet_candidate_policy
+              changed_when: false
+
+            - name: read which repositories offer {{ dotnet_package_name }}
+              command: "apt-cache madison {{ dotnet_package_name }}"
+              register: dotnet_candidate_repositories
+              changed_when: false
+
+            # madison prints "package | version | repository" per offer, so the candidate
+            # coming from Microsoft means the line carrying the candidate version names
+            # packages.microsoft.com. Comparing versions rather than looking for the host
+            # anywhere in the output, which the mere presence of the repo would satisfy.
+            - name: require the microsoft origin for the dotnet sdk candidate
+              assert:
+                that:
+                  - dotnet_candidate_version | length > 0
+                  - >-
+                    dotnet_candidate_repositories.stdout_lines
+                    | select('search', '\|\s*' ~ (dotnet_candidate_version | regex_escape) ~ '\s*\|')
+                    | select('search', 'packages\.microsoft\.com')
+                    | list | length > 0
+                fail_msg: >-
+                  The apt candidate for {{ dotnet_package_name }}
+                  ({{ dotnet_candidate_version | default('none', true) }}) does not come from
+                  packages.microsoft.com even though
+                  /etc/apt/preferences.d/zz-fworch-dotnet pins it there, so the
+                  distribution packages would be installed and can mix incompatible managed
+                  and native System.Security.Cryptography components. Check the other files
+                  in /etc/apt/preferences.d for a conflicting pin.
+              vars:
+                # regex_search returns None when nothing matches, and first would raise on
+                # that, so the empty list stands in before the lookup rather than after.
+                dotnet_candidate_version: >-
+                  {{ dotnet_candidate_policy.stdout
+                     | regex_search('Candidate:\s*(\S+)', '\1')
+                     | default([], true) | first | default('', true) }}
+
             - name: Install {{ dotnet_package_name }} after microsoft repo fallback
               package:
                 name: "{{ dotnet_package_name }}"

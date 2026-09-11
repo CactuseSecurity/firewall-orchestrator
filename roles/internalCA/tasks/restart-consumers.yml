@@ -26,15 +26,26 @@
 # another unit's After=, and a masked unit, are both excluded there. The same expression decides
 # which services an upgrade may stop in roles/api and roles/common.
 
+# maintenance_apache_restart_deferred is the third condition on purpose: roles/common
+# skipped its own restart because the identity did not exist yet, and the maintenance
+# site it enabled - with the FWO web sites already disabled - only starts being served
+# once Apache picks the identity up here. That case does not always change the vhost
+# file, so it cannot be inferred from internalca_maintenance_identity_changed.
 - name: Reload Apache after its served identity was reconciled
   systemd:
     name: "{{ webserver_package_name }}"
-    state: reloaded
+    # The deferred case is the restart roles/common skipped, and a restart also brings
+    # Apache up when the missing identity had left it stopped - reload fails on an
+    # inactive unit. A renewal on a running Apache stays a graceful reload.
+    state: >-
+      {{ 'restarted' if maintenance_apache_restart_deferred | default(false) | bool
+         else 'reloaded' }}
   become: true
   when:
     - >-
       internalca_apache_identity_changed | default(false) | bool
       or internalca_maintenance_identity_changed | default(false) | bool
+      or maintenance_apache_restart_deferred | default(false) | bool
     - (webserver_package_name ~ '.service') in fworch_installed_services
 
 - name: Restart slapd after its server identity was renewed

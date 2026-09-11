@@ -1,4 +1,13 @@
 ---
+# internalca_ca_host is spelled out as the inventory group lookup it is defined from:
+# the variable itself is a roles/internalCA default and therefore out of scope in this
+# play, so referencing it here fails with an undefined variable - the same trap
+# test-internal-ca-name.yml and the closing play of site.yml already document. Keep the
+# two in step with roles/internalCA/defaults/main.yml.
+- name: Name the internal CA issuer host for this play
+  set_fact:
+    test_reset_ca_host: "{{ groups['middlewareserver'] | first }}"
+
 - name: Read the internal CA after reset
   community.crypto.x509_certificate_info:
     path: "{{ internalca_ca_certificate_local }}"
@@ -8,19 +17,45 @@
   assert:
     that:
       - >-
-        hostvars[internalca_ca_host].internalca_previous_ca_common_name | default('')
-        != test_reset_ca_certificate_info.subject.get('commonName', '')
+        test_reset_ca_certificate_info.subject.get('commonName', '')
+        not in hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true)
       - internalca_installed_certificates.results | rejectattr('changed') | list | length == 0
     fail_msg: >-
       The certificate reset did not replace the old internal CA and every FWO-managed
       identity selected on {{ inventory_hostname }}.
 
+# The record is what lets a host that missed this run keep being recognised as carrying
+# an FWO-issued identity on its next upgrade, so it is not optional bookkeeping.
+- name: Read the retired internal CA names after reset
+  slurp:
+    src: "{{ internalca_retired_ca_names }}"
+  register: test_reset_retired_ca_names
+  delegate_to: "{{ test_reset_ca_host }}"
+  run_once: true
+  become: true
+
+- name: Verify the reset recorded the internal CA it retired
+  assert:
+    that:
+      - hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true) | length > 0
+      - >-
+        hostvars[test_reset_ca_host].internalca_previous_ca_common_names
+        | difference((test_reset_retired_ca_names.content | b64decode).split('\n') | map('trim') | list)
+        | length == 0
+    fail_msg: >-
+      The certificate reset did not record the subject of the internal CA it replaced in
+      {{ internalca_retired_ca_names }}, so a host that missed this run would have its
+      FWO-issued identity taken for a customer certificate on its next upgrade.
+  run_once: true
+
+# The loop is expanded before when is evaluated, so it has to stay defined on a host that
+# serves no Apache endpoint at all - a database- or importer-only node. Taking the paths
+# from roles/internalCA's own registered result gives both that and the guarantee of
+# comparing exactly the files it inspected.
 - name: Check retained customer-managed Apache identity after reset
   stat:
     path: "{{ item }}"
-  loop:
-    - "{{ internalca_existing_apache_certificate }}"
-    - "{{ internalca_existing_apache_private_key }}"
+  loop: "{{ internalca_existing_apache_files.results | default([], true) | map(attribute='item') | list }}"
   register: test_reset_retained_apache_files
   become: true
   when: internalca_preserve_apache_certificate | default(false) | bool
@@ -39,12 +74,12 @@
       {{ inventory_hostname }}.
   when: internalca_preserve_apache_certificate | default(false) | bool
 
+# Same two reasons as the Apache check above, and internalca_ldap_certificate and
+# internalca_ldap_private_key are roles/internalCA defaults that are out of scope here.
 - name: Check retained customer-managed OpenLDAP identity after reset
   stat:
     path: "{{ item }}"
-  loop:
-    - "{{ internalca_ldap_certificate }}"
-    - "{{ internalca_ldap_private_key }}"
+  loop: "{{ internalca_existing_ldap_files.results | default([], true) | map(attribute='item') | list }}"
   register: test_reset_retained_ldap_files
   become: true
   when:

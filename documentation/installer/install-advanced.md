@@ -153,8 +153,11 @@ internal CA and new FWO-managed client, Apache, and OpenLDAP identities:
 Customer-managed Apache and OpenLDAP certificate/key pairs are retained unchanged,
 while the self-signed identities installed by FWO before 9.5.0 are replaced. Run the
 full playbook against every host, and remove the switch after the run so a later
-upgrade does not rotate the CA again. See `documentation/certificates.md` for the
-trust-store follow-up and detailed ownership rules.
+upgrade does not rotate the CA again - the installer refuses a run that finds it in
+`/etc/fworch/fwo-install-settings.yml` rather than in `-e`. Internal TLS is unavailable
+between the trust-anchor replacement and the reissue of the leaves, so plan the run as
+a maintenance window. See `documentation/certificates.md` for the trust-store
+follow-up, the recovery from an interrupted reset, and the detailed ownership rules.
 
 ### Parameter "allowRepoChangesForRedhat" to allow RedHat repository changes
 

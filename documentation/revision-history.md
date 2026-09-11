@@ -699,7 +699,11 @@ Not supported any longer are:
   leaves every FWO client failing on a TLS host name mismatch
 - installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
   CA and every FWO-managed client and server identity, including the self-signed identities
-  from versions before 9.5.0, while preserving customer-managed certificate/key pairs
+  from versions before 9.5.0, while preserving customer-managed certificate/key pairs. The
+  subject of every retired CA is recorded, so a host that misses the rotation still has its
+  FWO-issued identity recognised as such on its next upgrade instead of being taken for a
+  customer certificate, and the installer refuses the switch when it is left in
+  /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates
 - versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
   Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
   upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now

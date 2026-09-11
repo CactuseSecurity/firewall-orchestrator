@@ -338,9 +338,30 @@ Run the complete `site.yml` upgrade against the full installation rather than li
 the run by host or tag, because every participating host must receive the new trust
 anchor and identities together. Do not put `internalca_reset_certificates: true` in
 `/etc/fworch/fwo-install-settings.yml`: it is an imperative switch, and leaving it
-enabled rotates the CA again on every upgrade. Browsers and external trust stores do
+enabled rotates the CA again on every upgrade. The installer refuses a run that finds
+it in that file and names the `-e` form instead. Browsers and external trust stores do
 not learn the new anchor automatically; replace their previous
 `fworch Internal CA ...` certificate with the newly displayed public CA after the run.
+
+Plan the run as a maintenance window. The new trust anchor is installed on every host
+early in the run, while the endpoints still serve the leaves the old CA signed, and
+internal TLS between FWO components only settles again once the run has reissued those
+leaves and restarted their consumers. The maintenance web site covers this for browser
+traffic; scheduled importers and API clients see failing handshakes until the run
+finishes.
+
+If a reset run is interrupted - an unreachable host, an aborted preflight - rerun the
+same command **with the switch still set**. The installer records the subject of every
+CA it retires under `/usr/local/fworch/etc/secrets/ca/retired-ca-names`, so a host that
+missed the reset is still recognised as carrying an FWO-issued identity and is brought
+onto the new CA on its next run, with or without the switch. Only an internal CA that
+could not be read at all leaves that record incomplete, because there is then no subject
+to record; the run says so explicitly. Every host in that run is still reissued, but a
+host it did not reach keeps a leaf whose issuer a later upgrade cannot place, and its
+Apache and OpenLDAP identities would be taken for administrator-managed certificates
+there - move both out of the paths the installed vhost and
+`/etc/ldap/certs/<domain>/` (`/etc/openldap/certs/<domain>/` on RedHat) name, so FWO
+issues them again.
 
 Every installer run checks how much validity the CA itself has left, because no
 issued certificate can outlive the CA that signed it. Once the CA has less time

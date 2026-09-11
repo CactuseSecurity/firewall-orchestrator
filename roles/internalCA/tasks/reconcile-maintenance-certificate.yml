@@ -5,14 +5,20 @@
 # either the newly generated FWO pair or the untouched customer pair.
 - name: Check for an installed maintenance Apache configuration
   stat:
-    path: "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
+    path: "{{ internalca_maintenance_configuration_file }}"
   register: internalca_maintenance_configuration
   become: true
 
+# insertafter anchors the replacement inside the TLS vhost. Without it lineinfile appends
+# a directive it cannot find to the end of the file, which lands outside <VirtualHost>
+# and silently sets the identity for the whole server instead of for this site. The
+# anchor is the https vhost line the maintenance template emits, and this file has a
+# plain :80 vhost above it that must not be the one that gets an identity.
 - name: Reconcile maintenance Apache certificate paths
   lineinfile:
-    path: "{{ http_conf_dir }}{{ product_name }}-maintenance.conf"
+    path: "{{ internalca_maintenance_configuration_file }}"
     regexp: "^\\s*{{ item.directive }}\\s+"
+    insertafter: "^\\s*<VirtualHost\\s[^>]*:{{ ui_web_port }}>"
     line: "\t{{ item.directive }} {{ item.path }}"
   loop:
     - directive: SSLCertificateFile

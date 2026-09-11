@@ -25,7 +25,7 @@
     - name: copy httpd maintenance config file to ui target
       template:
         src: "httpd-maintenance.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+        dest: "{{ internalca_maintenance_configuration_file }}"
         owner: root
         group: root
 

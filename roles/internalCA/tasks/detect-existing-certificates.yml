@@ -104,8 +104,18 @@
       decide on its own. A passphrase protected private key is the usual cause.
       Remove the passphrase, or set internalca_issue_apache_certificate to false
       to keep FWO away from this identity entirely.
-  when: internalca_unreadable_apache_files | default([]) | length > 0
+  when:
+    - internalca_unreadable_apache_files | default([]) | length > 0
+    # The remedy the message names has to actually work: with issuance switched off FWO
+    # never touches this identity, so it has no reason to insist on parsing it either.
+    - internalca_issue_apache_certificate | bool
 
+# internalca_managed_ca_common_names holds the CA in force and every CA this installation
+# has retired, so a leaf still signed by a rotated-away CA is recognised as FWO's on every
+# later upgrade - not only during the run that rotated. Deliberately not decided by the
+# certificate's path: an administrator may keep their own pair at the location FWO issues
+# to, and the documented rule is that a certificate and key belonging together is theirs
+# wherever it sits. Ownership is therefore only ever concluded from the issuer.
 - name: Classify the existing Apache certificate
   set_fact:
     internalca_apache_certificate_is_fwo_managed: >-
@@ -135,11 +145,16 @@
       {{ inventory_hostname }} was issued by
       {{ internalca_existing_apache_certificate_info.issuer.get('commonName', 'an unnamed customer CA') }}
       and is customer managed, but {{ internalca_existing_apache_private_key }} is missing
-      or does not belong to it. Restore the matching private key or correct the installed
-      Apache vhost before rerunning the installer. FWO will not replace this certificate.
+      or does not belong to it. Restore the matching private key, correct the installed
+      Apache vhost, or set internalca_issue_apache_certificate to false to keep FWO away
+      from this identity entirely, then rerun the installer. FWO will not replace this
+      certificate.
   when:
     - internalca_existing_apache_configuration is defined
     - internalca_existing_apache_files.results[0].stat.exists
+    # Same reason as the unreadable-identity guard above: an operator who has told FWO to
+    # stay away from the Apache identity must not be stopped by FWO's opinion of it.
+    - internalca_issue_apache_certificate | bool
     - not (internalca_apache_certificate_is_fwo_managed | bool)
     - >-
       not internalca_existing_apache_files.results[1].stat.exists

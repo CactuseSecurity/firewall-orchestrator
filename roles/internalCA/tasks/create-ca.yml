@@ -58,16 +58,84 @@
     - internalca_existing_ca_certificate_info.subject is not defined
     - not (internalca_reset_certificates | bool)
 
-# This is needed only while an explicit reset is crossing from the old CA to the new
-# one. The upgrade classifier runs after creation and must still recognise leaves signed
-# by the CA that existed at the beginning of the run.
-- name: Remember the internal CA name before reset
+# An unreadable CA is fatal above unless a reset is replacing it anyway. In that case its
+# subject cannot be read either, so the name every leaf of this installation carries as
+# its issuer would be lost. Recover it from the client identity instead: that leaf sits at
+# an FWO-owned path on this host, so whoever signed it was this installation's CA.
+- name: Read the client identity issued by the CA being replaced
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_client_certificate }}"
+  register: internalca_replaced_client_certificate_info
+  failed_when: false
+  changed_when: false
+  become: true
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_existing_ca_certificate_info.subject is not defined
+
+# Read from the CA itself where that works, from the client leaf's issuer where it does
+# not. Resolved once, because both the record below and the warning after it need it.
+- name: Determine the internal CA name this reset retires
   set_fact:
-    internalca_previous_ca_common_name: >-
+    internalca_retired_ca_common_name: >-
       {{
         internalca_existing_ca_certificate_info.subject.get('commonName', '')
         if internalca_existing_ca_certificate_info.subject is defined
-        else ''
+        else (internalca_replaced_client_certificate_info.issuer | default({}, true)).get('commonName', '')
+      }}
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+
+# Appended before the CA is replaced, so the name survives the run. The classifier must
+# still recognise leaves signed by it on every later upgrade, not only while the reset is
+# crossing from the old CA to the new one - a host that misses the reset is upgraded with
+# its old leaf still in place and must not have it taken for a customer certificate.
+- name: Record the internal CA name this reset retires
+  lineinfile:
+    path: "{{ internalca_retired_ca_names }}"
+    line: "{{ internalca_retired_ca_common_name }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: internalca_retired_ca_common_name | default('') | length > 0
+
+# Warned rather than failed: the reset is the documented repair for a corrupted CA, so it
+# has to be able to run. Every host this run does reach is reissued regardless, because
+# the reset forces issuance; only a host it does not reach is left with a leaf whose
+# issuer nothing can place any more.
+- name: Report that the retired internal CA name could not be determined
+  debug:
+    msg: >-
+      The internal CA on {{ inventory_hostname }} could not be read and no client identity
+      names its issuer, so the subject it signed its leaves under is unknown and cannot be
+      recorded in {{ internalca_retired_ca_names }}. Every host in this run is reissued
+      anyway. A host this run does not reach keeps a leaf whose issuer a later upgrade
+      cannot recognise, and its Apache and OpenLDAP identities would be taken for customer
+      certificates there: move them out of the paths the installed vhost and
+      {{ internalca_ldap_cert_dir }} name, so {{ product_name }} issues both again.
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_retired_ca_common_name | default('') | length == 0
+
+- name: Read the internal CA names this installation has retired
+  slurp:
+    src: "{{ internalca_retired_ca_names }}"
+  register: internalca_retired_ca_names_content
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remember the internal CA names this installation has retired
+  set_fact:
+    internalca_previous_ca_common_names: >-
+      {{
+        (internalca_retired_ca_names_content.content | default('') | b64decode).split('\n')
+        | map('trim') | reject('equalto', '') | unique | list
       }}
 
 - name: Generate internal CA private key

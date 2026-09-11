@@ -17,9 +17,8 @@
       set_fact:
         use_dotnet_install_script: "{{ ansible_facts['distribution']|lower == 'debian' and (ansible_facts['distribution_release']|lower == debian_testing_release_name or ansible_facts['distribution_major_version'] | int >= 13) }}"
 
-    # Ubuntu 22.04's distro packages can resolve to incompatible managed and native
-    # System.Security.Cryptography components. Use one Microsoft package family there;
-    # Newer Ubuntu releases can use the working distro packages.
+    # Ubuntu 22.04 and newer provide .NET packages through the distribution repositories.
+    # Add the Microsoft repository only when installing those packages fails.
     - block:
 
       - name: get package list from ms {{ dotnet_deb_name }}
@@ -55,21 +54,7 @@
       when:
         - not use_dotnet_install_script
         - ansible_facts['distribution']|lower != 'ubuntu' or
-          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('23', '<'))
-
-    - name: prefer microsoft packages for dotnet on ubuntu 22.04
-      blockinfile:
-        path: /etc/apt/preferences.d/fworch-dotnet
-        create: true
-        mode: "0644"
-        block: |
-          Package: dotnet-* aspnetcore-* netstandard-*
-          Pin: origin packages.microsoft.com
-          Pin-Priority: 999
-      when:
-        - not use_dotnet_install_script
-        - ansible_facts['distribution']|lower == 'ubuntu'
-        - ansible_facts['distribution_major_version'] is version('22', '==')
+          (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
@@ -178,20 +163,9 @@
               failed_when: dotnet_version not in dotnet_sdks_after_script_install.stdout
       when:
         - ansible_facts['distribution']|lower == 'ubuntu'
-        - ansible_facts['distribution_major_version'] is version('23', '>=')
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
         - ansible_facts['architecture'] == "x86_64"
         - not use_dotnet_install_script
-
-    - name: Install current dotnet-sdk-{{ dotnet_version }} from microsoft apt source on ubuntu 22.04
-      apt:
-        name: "{{ dotnet_package_name }}"
-        state: latest
-        update_cache: true
-      when:
-        - ansible_facts['architecture'] == "x86_64"
-        - not use_dotnet_install_script
-        - ansible_facts['distribution']|lower == 'ubuntu'
-        - ansible_facts['distribution_major_version'] is version('22', '==')
 
     - name: Install dotnet-sdk-{{ dotnet_version }} from configured distro source
       package:

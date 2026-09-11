@@ -531,52 +531,26 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Das neue Logging-Modul importiert normalisierte Verkehrs-Logdaten und stellt sie in modellierten Verbindungen dar.</li>
-    <li>Beim Logdaten-Import k&ouml;nnen vorhandene Eintr&auml;ge f&uuml;r alle in der JSON-Datei enthaltenen Applikationen optional ersetzt werden.</li>
-    <li>Die maximale Laufzeit von Importskripten ist als Standardeinstellung konfigurierbar.</li>
-    <li>NAT-Regeln k&ouml;nnen jetzt in der Firewall-Orchestrierung angezeigt werden.</li>
-    <li>Ein kompletter Rollback (L&ouml;schung aller Importdaten einer Management) kann jetzt &uuml;ber eine Standardeinstellung freigeschaltet werden und ist standardm&auml;&szlig;ig deaktiviert.</li>
-    <li>In Zonenmatrizen kann eine automatisch berechnete Internet-Zone angelegt werden.</li>
-    <li>Regelreports k&ouml;nnen nach den Objekttypen von Quelle und Ziel gefiltert werden.</li>
-    <li>FQDN-, dynamische und Access-Role-Objekte ohne IP-Adresse werden als adresslose Objekte behandelt.</li>
-    <li>ANY-Serviceobjekte (alle Protokolle und Ports) werden automatisch dem ANY-Flow-Serviceobjekt korrekt zugeordnet.</li>
-    <li>Alle &Auml;nderungen an erstellten Workflow-Tickets werden f&uuml;r die Audit-Auswertung aufgezeichnet; auditkritische Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden gesondert markiert.</li>
-    <li>Compliance-Diff-Berichte k&ouml;nnen optional auf Regeln beschr&auml;nkt werden, die im ausgew&auml;hlten Zeitraum neu nicht konform geworden sind.</li>
-    <li>In den allgemeinen Flow-Einstellungen kann &uuml;ber Namensmuster festgelegt werden, welche Flow-Netzwerkgruppen Zonen sind; der REST-Endpunkt <code>flow/getAddressGroups</code> kann diese Zonen getrennt ausliefern.</li>
-    <li>Flow-Netzwerkobjekte aus Antr&auml;gen speichern ihre Adressbereiche als Host-Adressen; ein Bereich aus IPv4 und IPv6 wird abgelehnt.</li>
+    <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
+    <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
+    <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
+    <li>Bei eigenen Apache-Zertifikaten kann der Installer nun eine Zwischenzertifikatskette pr&uuml;fen und f&uuml;r alle TLS-Clients bereitstellen.</li>
+    <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
+    <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
+    <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The new Logging module imports normalized traffic log data and displays it in modelled connections.</li>
-    <li>Log data imports can optionally replace existing entries for every application contained in the JSON file.</li>
-    <li>The maximum runtime of import scripts is configurable in the default settings.</li>
-    <li>NAT rules can now be displayed in the Firewall Orchestrator.</li>
-    <li>A full rollback (deletion of all import data of a management) can now be enabled via a default setting and is disabled by default.</li>
-    <li>An auto-calculated Internet zone can be added to zone matrices.</li>
-    <li>Rule reports can be filtered by source and destination object types.</li>
-    <li>FQDN, dynamic, and access-role objects without an IP address are handled as addressless objects.</li>
-    <li>ANY service objects (all protocols and ports) are automatically mapped to the correct ANY flow service object.</li>
-    <li>All changes to created workflow tickets are recorded for audit evaluation; audit-critical content changes by users other than the requester are marked separately.</li>
-    <li>Compliance diff reports can optionally be limited to rules that newly became non-compliant during the selected interval.</li>
-    <li>The general flow settings define through name patterns which flow network groups are zones; the REST endpoint <code>flow/getAddressGroups</code> can return those zones as a separate list.</li>
-    <li>Flow network objects created from requests store their address ranges as host addresses; a range mixing IPv4 and IPv6 is refused.</li>
+    <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
+    <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
+    <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
+    <li>For administrator-managed Apache certificates, the installer can now validate and serve an intermediate certificate chain to every TLS client.</li>
+    <li>The public internal CA certificate can now be viewed, copied and downloaded in the settings under Defaults.</li>
+    <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
+    <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
-</ul>
-');
-
-INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
-INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
-INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
-Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
-    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
-    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
-    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
-    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
-    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
-    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
-    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
         das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
@@ -1532,6 +1506,8 @@ INSERT INTO txt VALUES ('save_app_role', 	    'German',	'App Rolle speichern');
 INSERT INTO txt VALUES ('save_app_role', 	    'English',	'Save App Role');
 INSERT INTO txt VALUES ('delete_app_role', 	    'German',	'App Rolle l&ouml;schen');
 INSERT INTO txt VALUES ('delete_app_role', 	    'English',	'Delete App Role');
+INSERT INTO txt VALUES ('change_app_role_forbidden', 'German',	'&Auml;ndern der App Rolle nicht erlaubt');
+INSERT INTO txt VALUES ('change_app_role_forbidden', 'English',	'Changing App Role not allowed');
 INSERT INTO txt VALUES ('display_app_role',     'German',	'App Rolle darstellen');
 INSERT INTO txt VALUES ('display_app_role',     'English',	'Display App Role');
 INSERT INTO txt VALUES ('to_app_role', 	        'German',	'Zu App Rolle');
@@ -1932,6 +1908,12 @@ INSERT INTO txt VALUES ('share_link', 	        'German',	'Link teilen');
 INSERT INTO txt VALUES ('share_link', 	        'English',	'Share Link');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'German',	'in Zwischenablage kopieren');
 INSERT INTO txt VALUES ('copy_to_clipboard', 	'English',	'Copy to clipboard');
+INSERT INTO txt VALUES ('internal_ca_certificate', 'German', 'Internes CA-Zertifikat');
+INSERT INTO txt VALUES ('internal_ca_certificate', 'English', 'Internal CA certificate');
+INSERT INTO txt VALUES ('internal_ca_certificate_description', 'German', 'Dieses &ouml;ffentliche CA-Zertifikat kann heruntergeladen oder kopiert und auf Client-Systemen als vertrauensw&uuml;rdige Zertifizierungsstelle installiert werden. Wird auf einzelnen Endpunkten ein administrativ verwaltetes Zertifikat eingesetzt, muss dessen ausstellende CA zus&auml;tzlich zu dieser als vertrauensw&uuml;rdig eingetragen werden.');
+INSERT INTO txt VALUES ('internal_ca_certificate_description', 'English', 'Download or copy this public CA certificate and install it as a trusted certificate authority on client systems. Where an administrator-managed certificate is served on some endpoints, its own issuing CA has to be trusted in addition to this one.');
+INSERT INTO txt VALUES ('internal_ca_certificate_load_error', 'German', 'Das interne CA-Zertifikat konnte nicht geladen werden.');
+INSERT INTO txt VALUES ('internal_ca_certificate_load_error', 'English', 'The internal CA certificate could not be loaded.');
 INSERT INTO txt VALUES ('workflow_filters',		'German', 	'Workflow-Filter');
 INSERT INTO txt VALUES ('workflow_filters',	    'English', 	'Workflow Filters');
 INSERT INTO txt VALUES ('other_filters',		'German', 	'Weitere Filter');
@@ -2172,11 +2154,11 @@ INSERT INTO txt VALUES ('criterion_hint_forbid_destination_name', 'German', 'Hin
 INSERT INTO txt VALUES ('criterion_hint_forbid_destination_name', 'English', 'Hint: enter a text fragment. Rules using destination objects whose name contains this text will violate the criterion.');
 INSERT INTO txt VALUES ('criterion_error_minimum_cidr_length', 'German', 'F&uuml;r MinimumCIDRLength muss eine Ganzzahl zwischen 0 und 32 angegeben werden.');
 INSERT INTO txt VALUES ('criterion_error_minimum_cidr_length', 'English', 'MinimumCIDRLength requires an integer between 0 and 32.');
-INSERT INTO txt VALUES ('criterion_error_non_empty_content', 'German', 'FÃ¼r dieses Kriterium muss ein nicht-leerer Inhalt angegeben werden.');
+INSERT INTO txt VALUES ('criterion_error_non_empty_content', 'German', 'F&uuml;r dieses Kriterium muss ein nicht-leerer Inhalt angegeben werden.');
 INSERT INTO txt VALUES ('criterion_error_non_empty_content', 'English', 'This criterion requires non-empty content.');
 INSERT INTO txt VALUES ('criterion_error_forbidden_service_protocol_port', 'German', 'F&uuml;r ForbiddenService im Port/Protokoll-Modus m&uuml;ssen ein g&uuml;ltiger Port oder Portbereich und ein Protokoll angegeben werden.');
 INSERT INTO txt VALUES ('criterion_error_forbidden_service_protocol_port', 'English', 'ForbiddenService in port/protocol mode requires a valid port or port range and a protocol.');
-INSERT INTO txt VALUES ('minimum_cidr_length_violation', 'German', 'Verstoß; gegen minimale CIDR-Pr&auml;fixl&auml;nge');
+INSERT INTO txt VALUES ('minimum_cidr_length_violation', 'German', 'Versto&szlig; gegen minimale CIDR-Pr&auml;fixl&auml;nge');
 INSERT INTO txt VALUES ('minimum_cidr_length_violation', 'English', 'Minimum CIDR prefix length violation');
 INSERT INTO txt VALUES ('zone_object_source_violation', 'German', 'Quellobjektname nicht erlaubt');
 INSERT INTO txt VALUES ('zone_object_source_violation', 'English', 'Source object name is not allowed');
@@ -2582,6 +2564,8 @@ INSERT INTO txt VALUES ('write_user',           'German', 	'Schreibender Nutzer'
 INSERT INTO txt VALUES ('write_user',           'English', 	'Write User');
 INSERT INTO txt VALUES ('write_user_pwd',       'German', 	'Passwort Schreibender Nutzer');
 INSERT INTO txt VALUES ('write_user_pwd',       'English', 	'Write User Password');
+INSERT INTO txt VALUES ('pwd_unchanged',        'German', 	'Leer lassen, um es nicht zu &auml;ndern');
+INSERT INTO txt VALUES ('pwd_unchanged',        'English', 	'Leave empty to keep unchanged');
 INSERT INTO txt VALUES ('tenant',               'German', 	'Mandant');
 INSERT INTO txt VALUES ('tenant',               'English', 	'Tenant');
 INSERT INTO txt VALUES ('owner_lc_state',       'German', 	'Produktionsstatus');
@@ -3767,6 +3751,14 @@ INSERT INTO txt VALUES ('hasura',               'German', 	'Hasura');
 INSERT INTO txt VALUES ('hasura',               'English', 	'Hasura');
 INSERT INTO txt VALUES ('security',             'German', 	'Sicherheit / JWT');
 INSERT INTO txt VALUES ('security',             'English', 	'Security / JWT');
+INSERT INTO txt VALUES ('client_certificates',  'German', 	'Client-Zertifikate');
+INSERT INTO txt VALUES ('client_certificates',  'English', 	'Client Certificates');
+INSERT INTO txt VALUES ('cert_where',           'German', 	'Wo liegen die Zertifikate?');
+INSERT INTO txt VALUES ('cert_where',           'English', 	'Where are the certificates?');
+INSERT INTO txt VALUES ('cert_own_scripts',     'German', 	'Eigene Skripte');
+INSERT INTO txt VALUES ('cert_own_scripts',     'English', 	'Your own scripts');
+INSERT INTO txt VALUES ('cert_troubleshooting', 'German', 	'Fehlersuche');
+INSERT INTO txt VALUES ('cert_troubleshooting', 'English', 	'Troubleshooting');
 INSERT INTO txt VALUES ('further_reading',      'German', 	'Weiterf&uuml;hrendes');
 INSERT INTO txt VALUES ('further_reading',      'English', 	'Further reading');
 INSERT INTO txt VALUES ('basic_commands',       'German', 	'Wichtige Kommandos');
@@ -4668,6 +4660,8 @@ INSERT INTO txt VALUES ('E9028', 'German',  'Angeforderte Schnittstelle ist bere
 INSERT INTO txt VALUES ('E9028', 'English', 'Requested interface is already published');
 INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforderungsaufgaben');
 INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
+INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uuml;rfen nur von deren Verantwortlichen mit der Rolle Modellierer ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -6217,12 +6211,12 @@ INSERT INTO txt VALUES ('H5219', 'German',  'Suchpfad Gruppen: Der Distinguished
 INSERT INTO txt VALUES ('H5219', 'English', 'Group Search Path: The distinguished name (Dn) of the root of the group search tree. This parameter should only be set for the internal Ldap, if user group handling is used.');
 INSERT INTO txt VALUES ('H5220', 'German',  'Nutzer f&uuml;r Suche*: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Suchen im Ldap hat.');
 INSERT INTO txt VALUES ('H5220', 'English', 'Search User*: The distinguished name (Dn) of the user having the rights performing searches in the Ldap.');
-INSERT INTO txt VALUES ('H5221', 'German',  'Passwort Nutzer f&uuml;r Suche*: Passwort des f&uuml;r Suchen verwendeten Nutzers.');
-INSERT INTO txt VALUES ('H5221', 'English', 'Search User Password*: The password for the search user.');
+INSERT INTO txt VALUES ('H5221', 'German',  'Passwort Nutzer f&uuml;r Suche*: Passwort des f&uuml;r Suchen verwendeten Nutzers. Gespeicherte Passw&ouml;rter werden nicht angezeigt: leer lassen, um das gespeicherte Passwort zu behalten.');
+INSERT INTO txt VALUES ('H5221', 'English', 'Search User Password*: The password for the search user. Stored passwords are not displayed: leave the field empty to keep the stored password.');
 INSERT INTO txt VALUES ('H5222', 'German',  'Schreibender Nutzer: Der Distinguished name (Dn) des Nutzers, der die Rechte f&uuml;r Schreiboperationen im Ldap hat. Notwendig nur f&uuml;r das interne Ldap, um Nutzer und Gruppen zu verwalten.');
 INSERT INTO txt VALUES ('H5222', 'English', 'Write User: The distinguished name (Dn) of the user having the rights performing write operations in the Ldap. Necessary only for the internal Ldap to administrate users and groups.');
-INSERT INTO txt VALUES ('H5223', 'German',  'Passwort Schreibender Nutzer: Passwort des zum Schreiben verwendeten Nutzers.');
-INSERT INTO txt VALUES ('H5223', 'English', 'Write User Password: The password for the write user.');
+INSERT INTO txt VALUES ('H5223', 'German',  'Passwort Schreibender Nutzer: Passwort des zum Schreiben verwendeten Nutzers. Gespeicherte Passw&ouml;rter werden nicht angezeigt: leer lassen, um das gespeicherte Passwort zu behalten.');
+INSERT INTO txt VALUES ('H5223', 'English', 'Write User Password: The password for the write user. Stored passwords are not displayed: leave the field empty to keep the stored password.');
 INSERT INTO txt VALUES ('H5224', 'German',  'Mandant: Wenn das Ldap nur f&uuml;r einen Mandanten genutzt werden soll, kann dieser hier ausgew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H5224', 'English', 'Tenant: If the Ldap is used only for one tenant, it can be selected here.');
 INSERT INTO txt VALUES ('H5225', 'German',  'Globaler Mandantenname: Wenn das Ldap Mandanten nutzt (Mandantenebene > 0), kann dieser hier ein Name f&uuml;r den Globalen Mandanten gesetzt werden.
@@ -7505,6 +7499,46 @@ INSERT INTO txt VALUES ('H6301', 'English', 'Login to the API is controlled by p
     The JWT can be used for a limited time (default = 2 hours) to access the API afterwards.
     After that time period (independant of activity) you need to login again, as the JWT is no longer considered valid.<br><br>
     You may use the same credentials you also use for accessing the web user interface and will have the same restrictions and views based on the role based access model.
+');
+INSERT INTO txt VALUES ('H6321', 'German',  'Der Zugriff auf die GraphQL-API erfordert zus&auml;tzlich zum JWT ein Client-Zertifikat.
+    Firewall Orchestrator betreibt dazu eine eigene interne Zertifizierungsstelle (CA), die bei der Installation angelegt wird und jedem FWO-Host eine eigene Identit&auml;t ausstellt.
+    Benutzeroberfl&auml;che, Middleware, Importer und die Integrationstests nutzen diese Identit&auml;t automatisch - hier ist nichts zu konfigurieren.<br><br>
+    Die REST-API der Middleware (Anmeldung, Benutzerverwaltung) ben&ouml;tigt bewusst <b>kein</b> Client-Zertifikat, da genau dort Nutzername und Passwort gegen einen JWT getauscht werden.
+    Sie wird dennoch &uuml;ber TLS bereitgestellt und sollte gegen dieselbe CA gepr&uuml;ft werden.
+');
+INSERT INTO txt VALUES ('H6321', 'English', 'Access to the GraphQL API requires a client certificate in addition to the JWT.
+    Firewall Orchestrator operates its own internal certificate authority (CA) for this. It is created during installation and issues an identity to every FWO host.
+    The user interface, middleware, importer and the integration tests use that identity automatically - there is nothing to configure for them.<br><br>
+    The middleware REST API (login, user management) deliberately requires <b>no</b> client certificate, because that is exactly where username and password are exchanged for a JWT.
+    It is still served over TLS and should be verified against the same CA.
+');
+INSERT INTO txt VALUES ('H6322', 'German',  'Auf jedem FWO-Host liegen drei Dateien, die eigene Skripte ben&ouml;tigen:');
+INSERT INTO txt VALUES ('H6322', 'English', 'Every FWO host holds three files that your own scripts need:');
+INSERT INTO txt VALUES ('H6323', 'German',  '<li><code>/etc/fworch/secrets/client/client.crt</code> - das Client-Zertifikat dieses Hosts</li>
+    <li><code>/etc/fworch/secrets/client/client.key</code> - der zugeh&ouml;rige private Schl&uuml;ssel</li>
+    <li><code>/etc/fworch/fworch-trust-bundle.crt</code> - die CA-Zertifikate zur Pr&uuml;fung der Gegenstelle</li>
+');
+INSERT INTO txt VALUES ('H6323', 'English', '<li><code>/etc/fworch/secrets/client/client.crt</code> - this host''s client certificate</li>
+    <li><code>/etc/fworch/secrets/client/client.key</code> - its matching private key</li>
+    <li><code>/etc/fworch/fworch-trust-bundle.crt</code> - the CA certificates used to verify the peer</li>
+');
+INSERT INTO txt VALUES ('H6324', 'German',  'Der private Schl&uuml;ssel ist nur f&uuml;r das FWO-Dienstkonto lesbar. Eigene Skripte m&uuml;ssen daher als dieser Benutzer oder als root laufen.
+    Das CA-Zertifikat muss explizit angegeben werden: g&auml;ngige Bibliotheken pr&uuml;fen sonst gegen den mitgelieferten &ouml;ffentlichen Zertifikatsspeicher, der die interne CA nicht kennt.
+');
+INSERT INTO txt VALUES ('H6324', 'English', 'The private key is readable only by the FWO service account, so run your own scripts as that user or as root.
+    The CA certificate has to be named explicitly: otherwise common libraries verify against their bundled public trust store, which does not know the internal CA.
+');
+INSERT INTO txt VALUES ('H6325', 'German',  'Typische Fehlerbilder:');
+INSERT INTO txt VALUES ('H6325', 'English', 'Typical failure modes:');
+INSERT INTO txt VALUES ('H6326', 'German',  '<li><b>HTTP 400 "No required SSL certificate was sent"</b> bzw. Abbruch des TLS-Handshakes: es wurde kein Client-Zertifikat mitgesendet (<code>--cert</code> / <code>--key</code> fehlen).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: das CA-Zertifikat wurde nicht angegeben (<code>--cacert</code> fehlt), oder Apache liefert die ben&ouml;tigten Zwischenzertifikate nicht aus.</li>
+    <li><b>"Permission denied"</b> beim Lesen von <code>client.key</code>: das Skript l&auml;uft nicht unter dem FWO-Dienstkonto.</li>
+    <li><b>Namensabweichung</b> (hostname mismatch): die verwendete Adresse steht nicht im Zertifikat des Servers. Es sind die in der Installation hinterlegten Hostnamen zu verwenden.</li>
+');
+INSERT INTO txt VALUES ('H6326', 'English', '<li><b>HTTP 400 "No required SSL certificate was sent"</b>, or an aborted TLS handshake: no client certificate was presented (<code>--cert</code> / <code>--key</code> missing).</li>
+    <li><b>"certificate verify failed: unable to get local issuer certificate"</b>: the CA certificate was not supplied (<code>--cacert</code> missing), or Apache is not serving the required intermediate certificates.</li>
+    <li><b>"Permission denied"</b> reading <code>client.key</code>: the script is not running as the FWO service account.</li>
+    <li><b>Host name mismatch</b>: the address you used is not listed in the server certificate. Use the host names configured during installation.</li>
 ');
 INSERT INTO txt VALUES ('H6401', 'German',  'Mehr zur im Firewall Orchestrator eingesetzten API kann unter folgenden Seiten gefunden werden:');
 INSERT INTO txt VALUES ('H6401', 'English', 'More resources around the API deployed in Firewall Orchestrator can be found at the following sites:');
@@ -8833,10 +8867,12 @@ INSERT INTO txt VALUES ('H9032', 'English', 'App Server: Elementary components (
 INSERT INTO txt VALUES ('H9033', 'German',  'App-Rollen: Dienen der B&uuml;ndelung von App-Servern. Falls in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> so vorgesehen,
     m&uuml;ssen sie einer Netzwerkarea zugeh&ouml;ren. Beim Erstellen der App-Rolle muss dann zun&auml;chst eine Area ausgew&auml;hlt werden, nur von dieser werden dann die App-Server in der Bibliothek angeboten.
     Die Namen der App-Rollen m&uuml;ssen dann einer ebenfalls in den Einstellungen vorgegebenen Namenskonvention folgen.
+    Anlegen, Bearbeiten und L&ouml;schen von App-Rollen ist nur Verantwortlichen der Applikation mit der Rolle Modellierer erlaubt.
 ');
 INSERT INTO txt VALUES ('H9033', 'English', 'App Roles: Used for bundling of App Servers. If required in the <a href="/help/settings/modelling">Modelling Settings</a>,
     they have to belong to a network area. When creating an App Role, first a network area has to be selected, only App Servers belonging to this are are displayed then in the library.
     Names of the App Roles have to comply to a naming convention, defined in the Modelling Settings.
+    Creating, editing and deleting App Roles is only allowed for owners of the application holding the modeller role.
 ');
 INSERT INTO txt VALUES ('H9034', 'German',  'Netzwerkareas: Werden &uuml;ber die Subnetzdaten-Importschnittstelle (<a href="/help/settings/modelling">Import-Einstellungen</a>, <a href="/help/API/subnetdataimport">Import-Schnittstelle</a>) importiert.
     Sie k&ouml;nnen aus der Bibliothek heraus gesucht, selektiert und anschliessend in Quelle oder Ziel der Verbindungen &uuml;bernommen werden.

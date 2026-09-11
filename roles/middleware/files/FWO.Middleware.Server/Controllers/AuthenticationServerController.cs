@@ -38,12 +38,15 @@ namespace FWO.Middleware.Server.Controllers
         /// Address (required) &#xA;
         /// Port (required) &#xA; 
         /// SearchUser AND SearchUserPassword (optional) - leads to test of search user binding &#xA;
-        /// WriteUser AND WriterUserPassword (optional) - leads to test of write user binding
+        /// WriteUser AND WriterUserPassword (optional) - leads to test of write user binding &#xA;
+        /// The passwords are taken as entered (clear text). Stored credentials are never
+        /// used here, so that the connection test cannot be turned into a way of replaying
+        /// them against a freely chosen server.
         /// </remarks>
         /// <param name="parameters">Ldap connection parameters</param>
         /// <returns></returns>
         [HttpGet("TestConnection")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<ActionResult<string>> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {
             try
@@ -63,11 +66,14 @@ namespace FWO.Middleware.Server.Controllers
         /// Get all connected Ldaps.
         /// </summary>
         /// <returns>List of all connected Ldaps</returns>
+        /// <remarks>
+        /// The credentials of the connections are deliberately not part of the answer.
+        /// </remarks>
         [HttpGet]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
         public async Task<List<LdapGetUpdateParameters>> Get()
         {
-            UiLdapConnection[] ldapConnections = await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnections);
+            UiLdapConnection[] ldapConnections = await apiConnection.SendQueryAsync<UiLdapConnection[]>(AuthQueries.getAllLdapConnectionsWithoutSecrets);
             List<LdapGetUpdateParameters> ldapList = [];
             foreach (UiLdapConnection conn in ldapConnections)
             {
@@ -151,6 +157,8 @@ namespace FWO.Middleware.Server.Controllers
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<int> Update([FromBody] LdapGetUpdateParameters ldapData)
         {
+            await KeepStoredPasswords(ldapData);
+
             // Update ldap in DB and in middleware ldap list
             int ldapId = (await apiConnection.SendQueryAsync<ReturnId>(AuthQueries.updateLdapConnection, ldapData)).UpdatedId;
             if (ldapId == ldapData.Id)
@@ -161,6 +169,42 @@ namespace FWO.Middleware.Server.Controllers
 
             // Return status and result
             return ldapId;
+        }
+
+        /// <summary>
+        /// Fills in the passwords that were left empty by the caller with the ones currently stored.
+        /// </summary>
+        /// <remarks>
+        /// The credentials are not handed out by <see cref="Get"/>, so an update coming from the ui
+        /// only carries a password if the administrator has entered a new one. Without this an edit
+        /// of any other setting would wipe the stored credentials.
+        /// </remarks>
+        /// <param name="ldapData">Ldap connection parameters, updated in place</param>
+        private async Task KeepStoredPasswords(LdapGetUpdateParameters ldapData)
+        {
+            bool searchPwdMissing = string.IsNullOrEmpty(ldapData.SearchUserPwd);
+            bool writePwdMissing = string.IsNullOrEmpty(ldapData.WriteUserPwd) && !string.IsNullOrEmpty(ldapData.WriteUser);
+            if (!searchPwdMissing && !writePwdMissing)
+            {
+                return;
+            }
+
+            List<UiLdapConnection> storedConnections = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(
+                AuthQueries.getLdapConnectionSecrets, new { id = ldapData.Id });
+            UiLdapConnection? storedConnection = storedConnections.FirstOrDefault();
+            if (storedConnection == null)
+            {
+                return;
+            }
+
+            if (searchPwdMissing)
+            {
+                ldapData.SearchUserPwd = storedConnection.SearchUserPwd;
+            }
+            if (writePwdMissing)
+            {
+                ldapData.WriteUserPwd = storedConnection.WriteUserPwd;
+            }
         }
 
         // DELETE api/<LdapController>/5

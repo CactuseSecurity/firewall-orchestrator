@@ -48,6 +48,7 @@ namespace FWO.Test
 
             FwoNotification notification = new()
             {
+                Id = 10,
                 NotificationClient = NotificationClient.InterfaceDecomm,
                 Deadline = NotificationDeadline.None,
                 Layout = NotificationLayout.HtmlInBody,
@@ -89,6 +90,7 @@ namespace FWO.Test
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains("Planned")));
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"<a target=\"_blank\" href=\"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}\">")));
             ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}")));
+            CollectionAssert.AreEquivalent(new List<int> { 10 }, apiConnection.UpdatedNotificationIds);
 
             CollectionAssert.AreEquivalent(new List<int> { 2, 3 }, apiConnection.AddedPermittedOwnerAppIds);
             CollectionAssert.AreEquivalent(new List<int> { 2, 3 }, apiConnection.AddedSelectedConnectionAppIds);
@@ -143,6 +145,7 @@ namespace FWO.Test
             public List<int> AddedSelectedConnectionAppIds { get; } = new();
             public List<(int AppId, int ConnectionId)> AddedSelectedConnections { get; } = new();
             public List<int> RemovedSelectedConnections { get; } = new();
+            public List<int> UpdatedNotificationIds { get; } = new();
             public List<ModellingConnection> InterfaceUsers { get; set; } = new();
             public List<FwoOwner> PermittedOwners { get; set; } = new();
             public List<FwoNotification> Notifications { get; set; } = new();
@@ -178,6 +181,11 @@ namespace FWO.Test
                 if (typeof(QueryResponseType) == typeof(List<FwoNotification>) && query == NotificationQueries.getNotifications)
                 {
                     return Task.FromResult((QueryResponseType)(object)Notifications);
+                }
+                if (query == NotificationQueries.updateNotificationsLastSent)
+                {
+                    UpdatedNotificationIds.AddRange(GetIntListVariable(variables, "ids"));
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = UpdatedNotificationIds.Count });
                 }
                 if (query == ModellingQueries.addHistoryEntry)
                 {
@@ -241,6 +249,17 @@ namespace FWO.Test
                 }
                 object? value = variables.GetType().GetProperties().FirstOrDefault(p => p.Name == name)?.GetValue(variables);
                 return value == null ? 0 : Convert.ToInt32(value);
+            }
+
+            private static List<int> GetIntListVariable(object? variables, string name)
+            {
+                System.Reflection.PropertyInfo? property = variables?.GetType().GetProperties().FirstOrDefault(p => p.Name == name);
+                if (property?.GetValue(variables) is IEnumerable<int> values)
+                {
+                    return [.. values];
+                }
+
+                return [];
             }
         }
     }

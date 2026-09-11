@@ -205,7 +205,7 @@ namespace FWO.Middleware.Server
         /// <returns></returns>
         public async Task<int> UpdateNotificationsLastSent()
         {
-            int updatedNotifications = (await ApiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, new { ids = CheckedNotificationIds, lastSent = DateTime.Now })).AffectedRows;
+            int updatedNotifications = await NotificationLastSentHelper.UpdateAsync(ApiConnection, CheckedNotificationIds);
             CheckedNotificationIds = [];
             return updatedNotifications;
         }

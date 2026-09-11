@@ -120,6 +120,7 @@ namespace FWO.Services.Modelling
 
                 int successCount = 0;
                 int failCount = 0;
+                List<int> sentNotificationIds = [];
                 foreach (var app in appsToNotify)
                 {
                     (int appSuccessCount, int appFailCount) = await SendDecommissionNotificationsForApp(
@@ -127,10 +128,12 @@ namespace FWO.Services.Modelling
                         decommissionNotifications,
                         app,
                         reason,
-                        proposedInterface);
+                        proposedInterface,
+                        sentNotificationIds);
                     successCount += appSuccessCount;
                     failCount += appFailCount;
                 }
+                await NotificationLastSentHelper.UpdateAsync(apiConnection, sentNotificationIds);
                 if (successCount > 0)
                 {
                     string msgText = userConfig.GetText("U9033").Replace(Placeholder.OK_NUMBER, successCount.ToString());
@@ -160,7 +163,8 @@ namespace FWO.Services.Modelling
             List<FwoNotification> decommissionNotifications,
             FwoOwner app,
             string reason,
-            ModellingConnection? proposedInterface)
+            ModellingConnection? proposedInterface,
+            List<int> sentNotificationIds)
         {
             int successCount = 0;
             int failCount = 0;
@@ -171,6 +175,10 @@ namespace FWO.Services.Modelling
                 if (await emailHelper.SendEmailToNotificationRecipients(notification, app, subject, body))
                 {
                     successCount++;
+                    if (notification.Id > 0)
+                    {
+                        sentNotificationIds.Add(notification.Id);
+                    }
                 }
                 else
                 {

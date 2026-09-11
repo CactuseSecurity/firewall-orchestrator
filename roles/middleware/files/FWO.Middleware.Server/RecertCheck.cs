@@ -71,10 +71,22 @@ namespace FWO.Middleware.Server
                         NotificationClient.Recertification,
                         globalConfig,
                         apiConnectionMiddlewareServer);
+                    using UserConfig reportUserConfig = UserConfig.ForGlobalSettings(
+                        globalConfig,
+                        apiConnectionMiddlewareServer,
+                        globalConfig.DefaultLanguage);
                     foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
                     {
-                        emailsSent += await notificationService.SendNotificationsIfDue(owner, null, PrepareOwnerBody(owner), await PrepareOwnerReport(owner));
-                        await SetOwnerLastCheck(owner);
+                        int ownerEmailsSent = await notificationService.SendNotificationsIfDue(
+                            owner,
+                            owner.NextRecertDate,
+                            PrepareOwnerBody(owner),
+                            await PrepareOwnerReport(owner, reportUserConfig));
+                        emailsSent += ownerEmailsSent;
+                        if (ownerEmailsSent > 0)
+                        {
+                            await SetOwnerLastCheck(owner);
+                        }
                     }
                     await notificationService.UpdateNotificationsLastSent();
                 }
@@ -343,17 +355,19 @@ namespace FWO.Middleware.Server
             return msgText.Replace(Placeholder.APPNAME, owner.Name);
         }
 
-        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner)
+        private async Task<ReportBase?> PrepareOwnerReport(FwoOwner owner, UserConfig reportUserConfig)
         {
             ReportParams reportParams = new((int)ReportType.OwnerRecertification, new())
             {
                 ModellingFilter = new()
                 {
-                    SelectedOwner = owner
+                    SelectedOwner = owner,
+                    // The scheduled check uses LastRecertCheck for due evaluation. Do not
+                    // apply the interactive report's next_recert_date filter as well.
+                    ShowAllOwners = true
                 }
             };
-            using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnectionMiddlewareServer, globalConfig.DefaultLanguage);
-            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, userConfig, DefaultInit.DoNothing);
+            return await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", reportParams), apiConnectionMiddlewareServer, reportUserConfig, DefaultInit.DoNothing);
         }
 
         private async Task SetOwnerLastCheck(FwoOwner owner)

@@ -61,25 +61,7 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateSentNotificationTimestamps(List<int> notificationIds)
         {
-            List<int> distinctNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
-            if (distinctNotificationIds.Count == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent,
-                    new { ids = distinctNotificationIds, lastSent = DateTime.Now })).AffectedRows;
-                if (affectedRows != distinctNotificationIds.Count)
-                {
-                    Log.WriteWarning("SendEmail", $"Updated last_sent for {affectedRows} of {distinctNotificationIds.Count} workflow action notification(s).");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteWarning("SendEmail", $"Could not update last_sent for workflow action notification(s): {exc.Message}");
-            }
+            await NotificationLastSentHelper.UpdateAsync(apiConnection, notificationIds);
         }
 
         private async Task<List<FwoNotification>> ResolveActionNotifications(EmailActionParams emailActionParams)

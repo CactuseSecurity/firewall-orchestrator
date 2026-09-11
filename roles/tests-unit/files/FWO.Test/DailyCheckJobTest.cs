@@ -209,7 +209,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CheckRecerts_RunsRecertCheckAndWritesLogWhenEnabled()
+        public async Task CheckRecerts_SkipsInactiveOwnersWithoutUpdatingNotifications()
         {
             RecordingRecertCheckApiConnection apiConnection = new()
             {
@@ -256,7 +256,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
-                Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.EqualTo(1));
+                Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.Zero);
                 Assert.That(apiConnection.CountQuery(MonitorQueries.addLogEntry), Is.EqualTo(1));
             });
         }

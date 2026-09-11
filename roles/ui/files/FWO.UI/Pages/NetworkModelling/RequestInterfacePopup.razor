@@ -170,6 +170,8 @@
             bool sent = await emailHelper.SendEmailToNotificationRecipients(notification, SelectedOwner, subject, body);
             if (sent)
             {
+                List<int> notificationIds = new() { notification.Id };
+                await NotificationLastSentHelper.UpdateAsync(apiConnection, notificationIds);
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }
             else

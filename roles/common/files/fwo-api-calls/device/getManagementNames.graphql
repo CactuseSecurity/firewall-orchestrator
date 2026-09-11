@@ -9,8 +9,8 @@
       id: dev_id
       name: dev_name
       uid: dev_uid
-      hide_in_gui: hideInUi
+      hideInUi: hide_in_gui
     }
-    hide_in_gui: hideInUi
+    hideInUi: hide_in_gui
   }
 }

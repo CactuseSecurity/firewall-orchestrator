@@ -121,10 +121,30 @@ namespace FWO.Middleware.Server
             {
                 errorList.Add("Duplicate Zone IdStrings");
             }
+            CheckCommunicationTargets(importedZoneMatrixData, errorList);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
             if (errorList.Count > 0)
             {
                 throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
+            }
+        }
+
+        /// <summary>
+        /// Checks that every allowed communication names a zone the document defines.
+        /// The auto-calculated zones are accepted because they are created by the import itself.
+        /// </summary>
+        private static void CheckCommunicationTargets(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
+            knownZones.Add(NetworkZoneService.kAutoCalculatedInternetZoneIdString);
+            knownZones.Add(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString);
+
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (CommunicationData communication in zone.CommData.Where(c => !knownZones.Contains(c.IdString)))
+                {
+                    errorList.Add($"Unknown communication target {communication.IdString} in zone {zone.IdString}");
+                }
             }
         }
 

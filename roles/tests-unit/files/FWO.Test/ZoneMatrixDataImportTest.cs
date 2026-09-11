@@ -6,6 +6,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
+using FWO.Services;
 using NetTools;
 using NUnit.Framework;
 using System.Net;
@@ -66,6 +67,9 @@ namespace FWO.Test
         }
 
         private static readonly string[] kZoneCDestination = ["zone-c"];
+        private static readonly string[] kMissingZoneDestination = ["zone-does-not-exist"];
+        private static readonly string[] kOtherMissingZoneDestination = ["zone-also-missing"];
+        private static readonly string[] kAutoInternetDestination = [NetworkZoneService.kAutoCalculatedInternetZoneIdString];
 
         private const string kMgmtA = "mgmt-a";
         private const string kMgmtB = "mgmt-b";
@@ -476,6 +480,68 @@ namespace FWO.Test
                 Assert.That(result, Does.Not.Contain(kPathToRootField));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
             });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenCommunicationTargetIsUnknown()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "unknown-comm-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kMissingZoneDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReportsEveryUnknownCommunicationTarget()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "unknown-comm-targets.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kMissingZoneDestination),
+                    CreateZone("zone-b", "Zone B", "198.51.100.0/24", commTargets: kOtherMissingZoneDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
+                Assert.That(result, Does.Contain("Unknown communication target zone-also-missing in zone zone-b"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsAutoCalculatedZoneAsCommunicationTarget()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-comm-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoInternetDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.Not.Contain("Unknown communication target"));
         }
 
         [Test]

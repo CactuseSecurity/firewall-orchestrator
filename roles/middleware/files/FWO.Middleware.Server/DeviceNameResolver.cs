@@ -62,7 +62,7 @@ namespace FWO.Middleware.Server
         {
             foreach (Device device in management.Devices)
             {
-                if (!device.HideInUi | string.IsNullOrWhiteSpace(device.Name))
+                if (device.HideInUi || string.IsNullOrWhiteSpace(device.Name))
                 {
                     continue;
                 }

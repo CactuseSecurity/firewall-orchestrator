@@ -18,6 +18,8 @@ namespace FWO.Test
         private const int kBorderRouterId = 21;
         private const int kFirstAmbiguousId = 31;
         private const int kSecondAmbiguousId = 32;
+        private const string kHiddenDevice = "fw-hidden-01";
+        private const int kRetiredFwCoreId = 99;
 
         /// <summary>
         /// Verifies that a device is resolved by its management and device name.
@@ -77,6 +79,38 @@ namespace FWO.Test
                 Assert.That(resolver.Resolve(kNamelessDeviceMgmt, string.Empty), Is.Null);
                 Assert.That(resolver.Resolve(kNamelessDeviceMgmt, " "), Is.Null);
                 Assert.That(resolver.Resolve(kNamelessDeviceMgmt, kFwCore), Is.EqualTo(kFwCoreId));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that devices hidden in the GUI are not resolvable, while visible
+        /// devices of the same management still are.
+        /// </summary>
+        [Test]
+        public async Task Resolve_SkipsDevicesHiddenInGui()
+        {
+            DeviceNameResolver resolver = await CreateResolver(CreateInventoryWithHiddenDevice());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(resolver.Resolve(kMgmtA, kHiddenDevice), Is.Null);
+                Assert.That(resolver.Resolve(kMgmtA, kFwCore), Is.EqualTo(kFwCoreId));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a retired management hidden in the GUI contributes no device names,
+        /// so its devices cannot collide with the live management of the same name.
+        /// </summary>
+        [Test]
+        public async Task Resolve_SkipsManagementsHiddenInGui()
+        {
+            DeviceNameResolver resolver = await CreateResolver(CreateRetiredAndLiveManagement());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(resolver.IsAmbiguous(kMgmtA, kFwCore), Is.False);
+                Assert.That(resolver.Resolve(kMgmtA, kFwCore), Is.EqualTo(kFwCoreId));
             });
         }
 
@@ -191,6 +225,43 @@ namespace FWO.Test
                         new Device { Id = 43, Name = " " },
                         new Device { Id = kFwCoreId, Name = kFwCore }
                     ]
+                }
+            ];
+        }
+
+        private static List<Management> CreateInventoryWithHiddenDevice()
+        {
+            return
+            [
+                new Management
+                {
+                    Id = 1,
+                    Name = kMgmtA,
+                    Devices =
+                    [
+                        new Device { Id = 51, Name = kHiddenDevice, HideInUi = true },
+                        new Device { Id = kFwCoreId, Name = kFwCore }
+                    ]
+                }
+            ];
+        }
+
+        private static List<Management> CreateRetiredAndLiveManagement()
+        {
+            return
+            [
+                new Management
+                {
+                    Id = 1,
+                    Name = kMgmtA,
+                    HideInUi = true,
+                    Devices = [new Device { Id = kRetiredFwCoreId, Name = kFwCore }]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Name = kMgmtA,
+                    Devices = [new Device { Id = kFwCoreId, Name = kFwCore }]
                 }
             ];
         }

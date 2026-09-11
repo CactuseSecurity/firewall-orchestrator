@@ -186,10 +186,12 @@ namespace FWO.Middleware.Server
         /// The state changes themselves are committed, so this must be visible instead of log-only.
         /// </summary>
         /// <param name="ticketId">Ticket the emails belonged to</param>
-        /// <param name="pendingItemCount">Number of emails that are discarded unsent</param>
-        private async Task AlertUndeliveredInternalWorkEmails(long ticketId, int pendingItemCount)
+        /// <param name="undeliveredTaskCount">Number of request tasks whose approval email is discarded unsent</param>
+        private async Task AlertUndeliveredInternalWorkEmails(long ticketId, int undeliveredTaskCount)
         {
-            string description = $"{pendingItemCount} bundled internal work approval email(s) for ticket {ticketId} " +
+            // Counted in request tasks, not in emails: one email covers a whole bundle key group, so an
+            // email count would not tell an operator how many approvals are actually unannounced.
+            string description = $"The internal work approval email for {undeliveredTaskCount} request task(s) of ticket {ticketId} " +
                 $"could not be sent by either the bundled or the individual path. No automatic retry is available.";
             Log.WriteError("RunInternalWorkStateChangeActions", description);
             try
@@ -201,6 +203,22 @@ namespace FWO.Middleware.Server
             {
                 Log.WriteError("RunInternalWorkStateChangeActions", $"Could not write alert for ticket {ticketId}.", alertException);
             }
+        }
+
+        /// <summary>
+        /// Sends the single email covering one bundle key group on the individual fallback path. The
+        /// request task is re-resolved against the ticket, so the email reports its committed state.
+        /// </summary>
+        /// <param name="pendingGroup">Captured emails sharing one bundle key</param>
+        /// <param name="ticket">Ticket the captured emails belong to, if it could be resolved</param>
+        /// <returns>true if the email was delivered</returns>
+        private async Task<bool> SendPendingInternalWorkEmailGroup(IGrouping<string, WorkflowEmailBundleItem> pendingGroup, WfTicket? ticket)
+        {
+            WorkflowEmailBundleItem item = pendingGroup.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First();
+            WfReqTask requestTask = ticket?.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
+                ?? ticket?.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
+                ?? item.RequestTask;
+            return await wfHandler.ActionHandler!.TrySendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
         }
 
         private async Task<bool> TrySendPendingInternalWorkEmailsIndividually(long ticketId, WorkflowEmailBundleCollector emailBundleCollector)
@@ -225,15 +243,22 @@ namespace FWO.Middleware.Server
                 wfHandler.ActionHandler.EmailBundleCollector = null;
                 WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);
 
+                List<IGrouping<string, WorkflowEmailBundleItem>> pendingGroups =
+                    [.. emailBundleCollector.PendingItems.GroupBy(pendingItem => pendingItem.BundleKey)];
                 bool allDelivered = true;
-                foreach (WorkflowEmailBundleItem item in emailBundleCollector.PendingItems
-                    .GroupBy(pendingItem => pendingItem.BundleKey)
-                    .Select(group => group.OrderBy(bundleItem => bundleItem.RequestTask.TaskNumber).First()))
+                foreach (IGrouping<string, WorkflowEmailBundleItem> pendingGroup in pendingGroups)
                 {
-                    WfReqTask requestTask = ticket?.Tasks.FirstOrDefault(task => task.Id == item.RequestTask.Id)
-                        ?? ticket?.Tasks.FirstOrDefault(task => task.TaskNumber == item.RequestTask.TaskNumber)
-                        ?? item.RequestTask;
-                    allDelivered &= await wfHandler.ActionHandler.TrySendEmail(item.Action, requestTask, WfObjectScopes.RequestTask, item.Owner, item.UserGrpDn);
+                    if (await SendPendingInternalWorkEmailGroup(pendingGroup, ticket))
+                    {
+                        // Delivered items leave the collector right away, so the alert of the caller counts
+                        // only what is really undelivered - even if a later group fails or throws.
+                        List<WorkflowEmailBundleItem> deliveredItems = [.. pendingGroup];
+                        emailBundleCollector.PendingItems.RemoveAll(deliveredItems.Contains);
+                    }
+                    else
+                    {
+                        allDelivered = false;
+                    }
                 }
 
                 return allDelivered;

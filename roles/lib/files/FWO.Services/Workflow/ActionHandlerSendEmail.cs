@@ -9,6 +9,16 @@ namespace FWO.Services.Workflow
 {
     public partial class ActionHandler
     {
+        /// <summary>
+        /// Performs a send email state action, discarding the delivery outcome. This is the entry point of
+        /// the ordinary state action dispatch, where a delivery problem has already been reported to the
+        /// user and no caller can act on it. Use <see cref="TrySendEmail"/> where the outcome matters.
+        /// </summary>
+        /// <param name="action">State action to execute</param>
+        /// <param name="statefulObject">Object the action was triggered for</param>
+        /// <param name="scope">Scope the action was triggered in</param>
+        /// <param name="owner">Owner the recipients are resolved for, if any</param>
+        /// <param name="userGrpDn">User group DN the action was triggered for, if any</param>
         public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
         {
             await TrySendEmail(action, statefulObject, scope, owner, userGrpDn);

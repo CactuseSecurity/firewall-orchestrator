@@ -703,3 +703,5 @@ Not supported any longer are:
   stops an upgrade from an older version before it changes anything, naming the two-step path
   (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
   schema changes silently
+- new import matrix format with path_to_root and path_to_internet, while old format is still supported
+- validation checks for matrix import

@@ -6,6 +6,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Middleware.Server;
+using FWO.Services;
 using NetTools;
 using NUnit.Framework;
 using System.Net;
@@ -66,6 +67,88 @@ namespace FWO.Test
         }
 
         private static readonly string[] kZoneCDestination = ["zone-c"];
+        private static readonly string[] kMissingZoneDestination = ["zone-does-not-exist"];
+        private static readonly string[] kOtherMissingZoneDestination = ["zone-also-missing"];
+        private static readonly string[] kAutoInternetDestination = [NetworkZoneService.kAutoCalculatedInternetZoneIdString];
+        private static readonly string[] kAutoUndefinedInternalDestination = [NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString];
+
+        private const string kMgmtA = "mgmt-a";
+        private const string kMgmtB = "mgmt-b";
+        private const string kFwAccess = "fw-access-01";
+        private const string kFwCore = "fw-core-01";
+        private const string kBorderRouter = "border-router-01";
+        private const string kUnknownDevice = "fw-does-not-exist";
+        private const string kPathToRootField = "path_to_root";
+        private const string kPathToInternetField = "path_to_internet";
+
+        private static readonly DeviceRefData[] kRootPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private static readonly DeviceRefData[] kInternetPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
+        private static readonly DeviceRefData[] kUnknownDevicePath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kUnknownDevice }
+        ];
+
+        private static readonly DeviceRefData[] kSingleCoreDevicePath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private static readonly DeviceRefData[] kDuplicateDevicePath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private const string kDocumentedKeysJson = """
+        {
+          "name": "Matrix Raw",
+          "comment": "raw json using the documented wire names",
+          "areas": [
+            {
+              "name": "Zone A",
+              "id_string": "zone-a",
+              "subnets": [
+                {
+                  "name": "Office network",
+                  "ip": "192.0.2.0/24",
+                  "path_to_root": [
+                    { "mgmt_name": "mgmt-a", "device_name": "fw-does-not-exist" }
+                  ],
+                  "path_to_internet": [
+                    { "mgmt_name": "mgmt-a", "device_name": "fw-core-01" }
+                  ]
+                }
+              ],
+              "communication_to": []
+            }
+          ]
+        }
+        """;
+
+        private const string kLegacyFormatJson = """
+        {
+          "name": "Matrix Legacy",
+          "comment": "old export without path keys",
+          "areas": [
+            {
+              "name": "Zone A",
+              "id_string": "zone-a",
+              "subnets": [ { "name": "Zone A subnet", "ip": "192.0.2.0/24" } ],
+              "communication_to": []
+            }
+          ]
+        }
+        """;
 
         [Test]
         public async Task Run_ReturnsErrorWhenMatrixNameMissing()
@@ -259,6 +342,486 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task Run_ImportsSubnetPathsWhenDevicesExist()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "paths.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kRootPath, pathToInternet: kInternetPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from paths.json"));
+                Assert.That(apiConnection.Count(DeviceQueries.getManagementNames), Is.EqualTo(1));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsLegacyFormatWithoutPathKeys()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run("legacy.json", kLegacyFormatJson, "tester", "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from legacy.json"));
+                Assert.That(result, Does.Contain("Total number of network zones: 1"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsSameDeviceInRootAndInternetPath()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "shared-device.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24",
+                        pathToRoot: kSingleCoreDevicePath, pathToInternet: kSingleCoreDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.StartWith("Ok: Imported from shared-device.json"));
+        }
+
+        [Test]
+        public async Task Run_AcceptsSameDeviceInPathsOfDifferentSubnets()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            NetworkZoneData zone = CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kSingleCoreDevicePath);
+            zone.IpData.Add(new ZoneIpRangeData
+            {
+                Name = "Zone A second subnet",
+                Ip = "198.51.100.0/24",
+                PathToRoot = [.. kSingleCoreDevicePath]
+            });
+
+            string result = await import.Run("two-subnets.json", CreateImportJson("Matrix A", zone), "tester", "cn=tester");
+
+            Assert.That(result, Does.StartWith("Ok: Imported from two-subnets.json"));
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenPathDeviceIsUnknown()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "unknown-device.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kUnknownDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Could not resolve devices"));
+                Assert.That(result, Does.Contain($"{kMgmtA}/{kUnknownDevice}"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(MonitorQueries.addDataImportLogEntry), Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenPathDeviceNameIsAmbiguous()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            apiConnection.Managements = CreateAmbiguousDeviceInventory();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "ambiguous-device.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kSingleCoreDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("are ambiguous"));
+                Assert.That(result, Does.Contain($"{kMgmtA}/{kFwCore}"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenPathContainsDuplicateDevice()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "duplicate-device.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kDuplicateDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
+                Assert.That(result, Does.Contain($"in {kPathToRootField} in subnet 192.0.2.0/24"));
+                Assert.That(result, Does.Not.Contain(kPathToInternetField));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_NamesTheInternetPathWhenItContainsDuplicateDevice()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "duplicate-device-internet.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToInternet: kDuplicateDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
+                Assert.That(result, Does.Contain($"in {kPathToInternetField} in subnet 192.0.2.0/24"));
+                Assert.That(result, Does.Not.Contain(kPathToRootField));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenCommunicationTargetIsUnknown()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "unknown-comm-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kMissingZoneDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReportsEveryUnknownCommunicationTarget()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "unknown-comm-targets.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kMissingZoneDestination),
+                    CreateZone("zone-b", "Zone B", "198.51.100.0/24", commTargets: kOtherMissingZoneDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
+                Assert.That(result, Does.Contain("Unknown communication target zone-also-missing in zone zone-b"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsAutoCalculatedInternetZoneAsCommunicationTargetWhenEnabled()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            apiConnection.MatrixZoneResponses.Clear();
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZonesWithAutoInternet());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-comm-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoInternetDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from auto-comm-target.json"));
+                Assert.That(result, Does.Not.Contain("Unknown communication target"));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsAutoCalculatedInternetZoneAsCommunicationTargetWhenDisabled()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-comm-target-disabled.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoInternetDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedInternetZoneIdString} in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsAutoCalculatedUndefinedInternalZoneAsCommunicationTarget()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "auto-undefined-target.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", commTargets: kAutoUndefinedInternalDestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} in zone zone-a"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenIpCannotBeParsed()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "bad-ip.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "not-an-ip")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet not-an-ip"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenRangeMixesAddressFamilies()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "mixed-family.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "10.0.0.1", "2001:db8::ff")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet 10.0.0.1"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenRangeEndsBeforeItStarts()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "descending-range.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.5", "192.0.2.1")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet 192.0.2.5"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_TreatsBlankIpEndAsAbsentInValidationAndWrite()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "blank-ip-end.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.0/24", "   ")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from blank-ip-end.json"));
+                Assert.That(result, Does.Not.Contain("Bad Ips"));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsIpv6Subnets()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "ipv6.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "2001:db8::/32")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from ipv6.json"));
+                Assert.That(result, Does.Not.Contain("Bad Ips"));
+            });
+        }
+
+        [Test]
+        public async Task Run_ParsesTheDocumentedPathKeysFromRawJson()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run("raw-keys.json", kDocumentedKeysJson, "tester", "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Could not resolve devices {kMgmtA}/{kUnknownDevice}"));
+                Assert.That(result, Does.Not.Contain(kFwCore));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReportsZoneAndDeviceErrorsTogether()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "many-errors.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24", pathToRoot: kUnknownDevicePath),
+                    CreateZone("zone-b", "Zone A", "198.51.100.0/24", pathToRoot: kDuplicateDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Duplicate Zone Names"));
+                Assert.That(result, Does.Contain("Could not resolve devices"));
+                Assert.That(result, Does.Contain("in subnet 198.51.100.0/24"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        private static ZoneMatrixImportApiConnection CreateNewMatrixConnection()
+        {
+            ZoneMatrixImportApiConnection apiConnection = new()
+            {
+                MatrixByNameResponse = [],
+                Managements = CreateDeviceInventory()
+            };
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneA());
+            return apiConnection;
+        }
+
+        private static List<ComplianceNetworkZone> CreateReloadedZonesWithAutoInternet()
+        {
+            return
+            [
+                CreateExistingZone(101, "zone-a", "Zone A"),
+                CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet")
+            ];
+        }
+
+        private static List<ComplianceNetworkZone> CreateReloadedZoneA()
+        {
+            return [CreateExistingZone(101, "zone-a", "Zone A")];
+        }
+
+        private static List<Management> CreateDeviceInventory()
+        {
+            return
+            [
+                new Management
+                {
+                    Id = 1,
+                    Name = kMgmtA,
+                    Devices =
+                    [
+                        new Device { Id = 11, Name = kFwAccess },
+                        new Device { Id = 12, Name = kFwCore }
+                    ]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Name = kMgmtB,
+                    Devices = [new Device { Id = 21, Name = kBorderRouter }]
+                }
+            ];
+        }
+
+        private static List<Management> CreateAmbiguousDeviceInventory()
+        {
+            return
+            [
+                new Management
+                {
+                    Id = 1,
+                    Name = kMgmtA,
+                    Devices = [new Device { Id = 12, Name = kFwCore }]
+                },
+                new Management
+                {
+                    Id = 2,
+                    Name = kMgmtA,
+                    Devices = [new Device { Id = 13, Name = kFwCore }]
+                }
+            ];
+        }
+
         private static SimulatedGlobalConfig CreateNoAutoCalcConfig()
         {
             return new SimulatedGlobalConfig
@@ -305,7 +868,8 @@ namespace FWO.Test
             return JsonSerializer.Serialize(importData);
         }
 
-        private static NetworkZoneData CreateZone(string idString, string name, string ip, string? ipEnd = null, string[]? commTargets = null)
+        private static NetworkZoneData CreateZone(string idString, string name, string ip, string? ipEnd = null,
+            string[]? commTargets = null, DeviceRefData[]? pathToRoot = null, DeviceRefData[]? pathToInternet = null)
         {
             NetworkZoneData zone = new()
             {
@@ -313,11 +877,13 @@ namespace FWO.Test
                 Name = name,
                 IpData =
                 [
-                    new ModellingImportAreaIpData
+                    new ZoneIpRangeData
                     {
                         Name = $"{name} subnet",
                         Ip = ip,
-                        IpEnd = ipEnd
+                        IpEnd = ipEnd,
+                        PathToRoot = pathToRoot == null ? [] : [.. pathToRoot],
+                        PathToInternet = pathToInternet == null ? [] : [.. pathToInternet]
                     }
                 ]
             };
@@ -344,6 +910,7 @@ namespace FWO.Test
         private sealed class ZoneMatrixImportApiConnection : SimulatedApiConnection
         {
             public List<ComplianceCriterion> MatrixByNameResponse { get; set; } = [];
+            public List<Management> Managements { get; set; } = [];
             public List<List<ComplianceNetworkZone>> MatrixZoneResponses { get; } = [];
             public ReturnIdWrapper AddCriterionResponse { get; set; } = new()
             {
@@ -361,6 +928,11 @@ namespace FWO.Test
             {
                 Calls.Add((query, variables));
 
+                if (typeof(QueryResponseType) == typeof(List<Management>) && query == DeviceQueries.getManagementNames)
+                {
+                    return Task.FromResult((QueryResponseType)(object)Managements);
+                }
+
                 if (typeof(QueryResponseType) == typeof(List<ComplianceCriterion>) && query == ComplianceQueries.getMatrixByName)
                 {
                     return Task.FromResult((QueryResponseType)(object)MatrixByNameResponse);
@@ -370,7 +942,9 @@ namespace FWO.Test
                 {
                     int responseIndex = Math.Min(Count(ComplianceQueries.getNetworkZonesForMatrix) - 1, Math.Max(MatrixZoneResponses.Count - 1, 0));
                     List<ComplianceNetworkZone> response = MatrixZoneResponses.Count == 0 ? [] : MatrixZoneResponses[responseIndex];
-                    return Task.FromResult((QueryResponseType)(object)response);
+                    // hand out a fresh list per call: NetworkZoneService.UpdateSpecialZones removes
+                    // entries from the list it receives, which would corrupt later responses
+                    return Task.FromResult((QueryResponseType)(object)new List<ComplianceNetworkZone>(response));
                 }
 
                 if (typeof(QueryResponseType) == typeof(ReturnIdWrapper) && query == ComplianceQueries.addCriterion)

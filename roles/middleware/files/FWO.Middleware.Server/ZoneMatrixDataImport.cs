@@ -25,6 +25,8 @@ namespace FWO.Middleware.Server
         private const string LogMessageTitle = "Import Network Zone Matrix Data";
         private const string LevelFile = "Import File";
         private const string LevelZone = "Zone";
+        private const string PathFieldNameRoot = "path_to_root";
+        private const string PathFieldNameInternet = "path_to_internet";
         private struct Counters
         {
             /// <summary>
@@ -89,7 +91,8 @@ namespace FWO.Middleware.Server
             try
             {
                 ImportNwZoneMatrixData importedZoneMatrixData = JsonSerializer.Deserialize<ImportNwZoneMatrixData>(importFile) ?? throw new JsonException("File could not be parsed.");
-                CheckData(importedZoneMatrixData);
+                DeviceNameResolver deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
+                CheckData(importedZoneMatrixData, deviceLookup, globalConfig);
                 (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
                 responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
             }
@@ -103,19 +106,120 @@ namespace FWO.Middleware.Server
             return responsMessage;
         }
 
-        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData)
+        private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData, DeviceNameResolver deviceLookup, GlobalConfig globalConfig)
         {
+            List<string> errorList = [];
             if (string.IsNullOrEmpty(importedZoneMatrixData.Name))
             {
-                throw new ArgumentException("No Matrix Name");
+                errorList.Add("No Matrix Name");
             }
             if (importedZoneMatrixData.NetworkZones.Select(z => z.Name).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
-                throw new ArgumentException("Duplicate Zone Names");
+                errorList.Add("Duplicate Zone Names");
             }
             if (importedZoneMatrixData.NetworkZones.Select(z => z.IdString).Distinct().ToList().Count != importedZoneMatrixData.NetworkZones.Count)
             {
-                throw new ArgumentException("Duplicate Zone IdStrings");
+                errorList.Add("Duplicate Zone IdStrings");
+            }
+            CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
+            CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
+            CheckIpData(importedZoneMatrixData, errorList);
+            if (errorList.Count > 0)
+            {
+                throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
+            }
+        }
+
+        /// <summary>
+        /// Checks that every allowed communication names a zone the document defines.
+        /// The auto-calculated internet zone is accepted while it is enabled, because the import creates it itself.
+        /// </summary>
+        private static void CheckCommunicationTargets(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList, GlobalConfig globalConfig)
+        {
+            HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
+            if (globalConfig.AutoCalculateInternetZone)
+            {
+                knownZones.Add(NetworkZoneService.kAutoCalculatedInternetZoneIdString);
+            }
+
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (CommunicationData communication in zone.CommData.Where(c => !knownZones.Contains(c.IdString)))
+                {
+                    errorList.Add($"Unknown communication target {communication.IdString} in zone {zone.IdString}");
+                }
+            }
+        }
+
+        private static void CheckDeviceData(ImportNwZoneMatrixData importedZoneMatrixData,
+            DeviceNameResolver deviceLookup, List<string> errorList)
+        {
+            HashSet<string> ambiguous = [];
+            HashSet<string> unknown = [];
+            HashSet<string> duplicateRoot = [];
+            HashSet<string> duplicateInternet = [];
+
+            foreach (DeviceRefData device in ReferencedDevices(importedZoneMatrixData))
+            {
+                if (deviceLookup.IsAmbiguous(device.MgmtName, device.DeviceName))
+                {
+                    ambiguous.Add(DeviceNameResolver.Describe(device.MgmtName, device.DeviceName));
+                }
+                if (deviceLookup.Resolve(device.MgmtName, device.DeviceName) is null)
+                {
+                    unknown.Add(DeviceNameResolver.Describe(device.MgmtName, device.DeviceName));
+                }
+            }
+            foreach (ZoneIpRangeData subnet in importedZoneMatrixData.NetworkZones.SelectMany(zone => zone.IpData))
+            {
+                CheckPathDuplicates(subnet, subnet.PathToRoot, duplicateRoot, PathFieldNameRoot);
+                CheckPathDuplicates(subnet, subnet.PathToInternet, duplicateInternet, PathFieldNameInternet);
+            }
+            if (unknown.Count > 0)
+            {
+                errorList.Add($"Could not resolve devices {string.Join(", ", unknown)}");
+            }
+            if (ambiguous.Count > 0)
+            {
+                errorList.Add($"Devices {string.Join(", ", ambiguous)} are ambiguous");
+            }
+            errorList.AddRange(duplicateRoot);
+            errorList.AddRange(duplicateInternet);
+        }
+
+        private static IEnumerable<DeviceRefData> ReferencedDevices(ImportNwZoneMatrixData matrixData)
+        {
+            return matrixData.NetworkZones
+                .SelectMany(zone => zone.IpData)
+                .SelectMany(subnet => subnet.PathToRoot.Concat(subnet.PathToInternet));
+        }
+
+        private static void CheckPathDuplicates(ZoneIpRangeData subnet,
+            List<DeviceRefData> path, HashSet<string> duplicate, string pathFieldName)
+        {
+            HashSet<string> unique = [];
+
+            foreach (DeviceRefData device in path)
+            {
+                string deviceText = DeviceNameResolver.Describe(device.MgmtName, device.DeviceName);
+                if (!unique.Add(deviceText))
+                {
+                    duplicate.Add($"Duplicate device {deviceText} in {pathFieldName} in subnet {subnet.Ip}");
+                }
+            }
+        }
+
+        private static void CheckIpData(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (ZoneIpRangeData subnet in zone.IpData)
+                {
+                    if (!TryConvertIpDataToAddressRange(subnet, out _))
+                    {
+                        errorList.Add($"Bad Ips for subnet {subnet.Ip} in zone {zone.Name}");
+                    }
+                }
             }
         }
 
@@ -317,15 +421,43 @@ namespace FWO.Middleware.Server
             return (0, 0);
         }
 
-        private static IPAddressRange ConvertIpDataToAddressRange(ModellingImportAreaIpData importAreaIpData)
+        private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)
         {
-            string Ip = importAreaIpData.Ip;
-            string? IpEnd = importAreaIpData.IpEnd;
-            if (string.IsNullOrEmpty(importAreaIpData.IpEnd))
+            return TryConvertIpDataToAddressRange(importAreaIpData, out IPAddressRange range)
+                ? range
+                : throw new ArgumentException($"Invalid ip data: {importAreaIpData.Ip}");
+        }
+
+        /// <summary>
+        /// Converts imported ip data into an address range. Returns false if the data cannot be parsed.
+        /// </summary>
+        private static bool TryConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData, out IPAddressRange range)
+        {
+            range = default!;
+            string ip = importAreaIpData.Ip;
+            string? ipEnd = importAreaIpData.IpEnd;
+            if (string.IsNullOrWhiteSpace(ipEnd))
             {
-                (Ip, IpEnd) = IpOperations.SplitIpToRange(importAreaIpData.Ip);
+                if (!ip.TryParseIPStringToRange(out (string start, string end) parsed))
+                {
+                    return false;
+                }
+                (ip, ipEnd) = parsed;
             }
-            return new(IPAddress.Parse(Ip), IPAddress.Parse(IpEnd ?? Ip));
+            if (!IPAddress.TryParse(ip, out IPAddress? start) || !IPAddress.TryParse(ipEnd ?? ip, out IPAddress? end))
+            {
+                return false;
+            }
+            if (IpOperations.CompareIpFamilies(start, end) != 0)
+            {
+                return false;
+            }
+            if (IpOperations.CompareIpValues(start, end) > 0)
+            {
+                return false;
+            }
+            range = new IPAddressRange(start, end);
+            return true;
         }
     }
 }

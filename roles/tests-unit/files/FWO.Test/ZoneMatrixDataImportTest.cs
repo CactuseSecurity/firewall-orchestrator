@@ -108,6 +108,32 @@ namespace FWO.Test
             new() { MgmtName = kMgmtA, DeviceName = kFwCore }
         ];
 
+        private const string kDocumentedKeysJson = """
+        {
+          "name": "Matrix Raw",
+          "comment": "raw json using the documented wire names",
+          "areas": [
+            {
+              "name": "Zone A",
+              "id_string": "zone-a",
+              "subnets": [
+                {
+                  "name": "Office network",
+                  "ip": "192.0.2.0/24",
+                  "path_to_root": [
+                    { "mgmt_name": "mgmt-a", "device_name": "fw-does-not-exist" }
+                  ],
+                  "path_to_internet": [
+                    { "mgmt_name": "mgmt-a", "device_name": "fw-core-01" }
+                  ]
+                }
+              ],
+              "communication_to": []
+            }
+          ]
+        }
+        """;
+
         private const string kLegacyFormatJson = """
         {
           "name": "Matrix Legacy",
@@ -542,6 +568,118 @@ namespace FWO.Test
                 "cn=tester");
 
             Assert.That(result, Does.Not.Contain("Unknown communication target"));
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenIpCannotBeParsed()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "bad-ip.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "not-an-ip")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet not-an-ip"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenRangeMixesAddressFamilies()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "mixed-family.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "10.0.0.1", "2001:db8::ff")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet 10.0.0.1"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ReturnsErrorWhenRangeEndsBeforeItStarts()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "descending-range.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.5", "192.0.2.1")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Bad Ips for subnet 192.0.2.5"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_TreatsBlankIpEndAsAbsentInValidationAndWrite()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "blank-ip-end.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.0/24", "   ")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from blank-ip-end.json"));
+                Assert.That(result, Does.Not.Contain("Bad Ips"));
+            });
+        }
+
+        [Test]
+        public async Task Run_AcceptsIpv6Subnets()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "ipv6.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "2001:db8::/32")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from ipv6.json"));
+                Assert.That(result, Does.Not.Contain("Bad Ips"));
+            });
+        }
+
+        [Test]
+        public async Task Run_ParsesTheDocumentedPathKeysFromRawJson()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run("raw-keys.json", kDocumentedKeysJson, "tester", "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Could not resolve devices {kMgmtA}/{kUnknownDevice}"));
+                Assert.That(result, Does.Not.Contain(kFwCore));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
         }
 
         [Test]

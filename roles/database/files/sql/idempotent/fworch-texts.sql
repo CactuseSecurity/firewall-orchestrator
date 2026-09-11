@@ -538,7 +538,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
-    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>    
+    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');

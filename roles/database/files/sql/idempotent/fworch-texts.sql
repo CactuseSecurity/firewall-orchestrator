@@ -538,6 +538,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
+    <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -550,6 +551,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The public internal CA certificate can now be viewed, copied and downloaded in the settings under Defaults.</li>
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
+    <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
@@ -3264,6 +3266,8 @@ INSERT INTO txt VALUES ('attached_content',     'German',   'Angeh&auml;ngter In
 INSERT INTO txt VALUES ('attached_content',     'English',  'Attached Content');
 INSERT INTO txt VALUES ('confirm_sent_mail',    'German',   'Versand per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_sent_mail',    'English',  'Confirm sent email via UI message');
+INSERT INTO txt VALUES ('bundle_request_tasks_by_type', 'German',   'Request Tasks nach Task-Typ b&uuml;ndeln');
+INSERT INTO txt VALUES ('bundle_request_tasks_by_type', 'English',  'Bundle request tasks by task type');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'German',   'Aktualisierung per UI-Meldung best&auml;tigen');
 INSERT INTO txt VALUES ('confirm_modelling_update', 'English',  'Confirm modelling update via UI message');
 INSERT INTO txt VALUES ('confirm_flow_creation',    'German',   'Flow-Erzeugung per UI-Meldung best&auml;tigen');
@@ -4670,6 +4674,8 @@ INSERT INTO txt VALUES ('E9103', 'German',  'Fehler beim Schliessen des Tickets.
 INSERT INTO txt VALUES ('E9103', 'English', 'Error closing ticket.');
 INSERT INTO txt VALUES ('E9104', 'German',  'Sie haben nicht die ben&ouml;tigte Rolle.');
 INSERT INTO txt VALUES ('E9104', 'English', 'You do not have the necessary role.');
+INSERT INTO txt VALUES ('E9105', 'German',  'Die Status&auml;nderung wurde durchgef&uuml;hrt, aber die geb&uuml;ndelten Emails konnten nicht versendet werden.');
+INSERT INTO txt VALUES ('E9105', 'English', 'The state change was applied, but the bundled emails could not be sent.');
 
 INSERT INTO txt VALUES ('E9201', 'German',  'Fehler beim L&ouml;schen der existierenden App Zonen Objekte');
 INSERT INTO txt VALUES ('E9201', 'English', 'Error deleting existing app zone objects');
@@ -6756,6 +6762,8 @@ INSERT INTO txt VALUES ('H5537', 'German',  'Saubere Zonen: Wenn aktiviert, werd
 INSERT INTO txt VALUES ('H5537', 'English', 'Clean zones: When enabled, tasks are bundled only if their source and destination objects can be mapped to the same network zones using the selected policy matrix. Without a selected policy or without a matrix in the policy, no clean zone match is assumed.');
 INSERT INTO txt VALUES ('H5538', 'German',  'Die Aktions&uuml;bersicht zeigt zus&auml;tzlich an, in wie vielen Status die jeweilige Aktion verwendet wird. Der Bearbeitungsdialog ist in die Bereiche "Allgemein", "Aktion spezifisch" und "Verwendende Status" gegliedert; dort werden die zugeordneten Status aufgelistet und k&ouml;nnen direkt hinzugef&uuml;gt oder entfernt werden.');
 INSERT INTO txt VALUES ('H5538', 'English', 'The action overview additionally shows how many states use each action. The edit dialog is split into "General", "Action specific", and "Using states"; the linked states are listed there and can be added or removed directly.');
+INSERT INTO txt VALUES ('H5539', 'German',  'Request Tasks nach Task-Typ b&uuml;ndeln: Wenn aktiviert und Beantragte Verbindungen als angeh&auml;ngter Inhalt gew&auml;hlt ist, enth&auml;lt die Email alle passenden Request Tasks desselben Task-Typs. Eine automatische Einmal-Ausl&ouml;sung pro Task-Typ erfolgt nur, wenn der Workflow die Email-Aktionen gesammelt ausf&uuml;hrt, aktuell im Internal-Work-OnSet-Ablauf. In anderen Abl&auml;ufen beeinflusst die Option den Email-Inhalt, aber nicht zwingend die Anzahl der ausgel&ouml;sten Statusaktionen.');
+INSERT INTO txt VALUES ('H5539', 'English', 'Bundle request tasks by task type: If enabled and Requested Connections is selected as attached content, the email contains all matching request tasks of the same task type. Automatic single delivery per task type is only applied when the workflow executes email actions through a collector, currently in the Internal Work OnSet flow. In other flows, the option affects the email content but does not necessarily reduce the number of triggered state actions.');
 INSERT INTO txt VALUES ('H5541', 'German',  'In der Status-Matrix werden die verarbeitbaren Status pro Phase und Tasktyp festgelegt.
     Es gibt eine Master-Matrix, welche die Eigenschaften auf Ticket-Ebene beschreibt, sowie und f&uuml;r jeden Tasktyp separate Matrizen.
     Oberhalb der Konfigurationsauswahl k&ouml;nnen Sichtbarkeitsgruppen und &Uuml;bergangsgruppen bearbeitet sowie neue leere Konfigurationen oder Kopien einer ausgew&auml;hlten Konfiguration angelegt werden. Nur inaktive Konfigurationen k&ouml;nnen gel&ouml;scht werden; nicht mehr verwendete Phasenmatrizen werden dabei ebenfalls entfernt. Mitglieder von Sichtbarkeitsgruppen k&ouml;nnen als DN eingegeben oder &uuml;ber die Benutzer- und Gruppensuche ausgew&auml;hlt werden. Beim L&ouml;schen einer Sichtbarkeitsgruppe wird ihre Zuordnung zu &Uuml;bergangsgruppen entfernt. Beim L&ouml;schen einer &Uuml;bergangsgruppe werden auch ihre &Uuml;berg&auml;nge und Phasenzuordnungen gel&ouml;scht. Genau eine Konfiguration ist aktiv und wird zur Laufzeit verwendet.

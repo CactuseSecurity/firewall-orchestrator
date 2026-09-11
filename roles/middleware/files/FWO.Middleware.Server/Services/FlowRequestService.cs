@@ -633,7 +633,7 @@ public sealed class FlowRequestService : IDisposable
     private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
     {
         UserConfig userConfig = workflowUserConfig.Value;
-        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
+        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true };
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {
             throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");

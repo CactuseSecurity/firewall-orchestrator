@@ -204,6 +204,15 @@ certificate on every FWO client host. When an upgrade retains a customer-managed
 API certificate without this setting, FWO stops before deploying clients that
 would trust the unrelated internal CA.
 
+To keep an administrator-managed OpenLDAP identity entirely outside FWO
+management, set `internalca_issue_ldap_certificate: false` and place the
+certificate and private key at the configured OpenLDAP certificate paths. The
+installer then neither rejects an unreadable or incomplete pair nor changes its
+ownership or contents. The administrator is responsible for keeping both files
+usable by slapd. As with a retained Apache identity, configure
+`internalca_peer_ca_certificate` on every FWO client host when the issuing root
+is not already trusted by the operating system.
+
 When the customer-managed leaf was issued by one or more intermediate CAs, set
 `internalca_peer_ca_intermediate_certificates` to a PEM bundle containing those
 certificates in leaf-to-root order, without the root itself. The file is needed
@@ -283,7 +292,8 @@ passphrase-protected private key, which FWO cannot read and therefore cannot
 recognise as customer-managed; without this check the endpoint would silently
 be repointed at an FWO-issued certificate. Remove the passphrase, or set
 `internalca_issue_apache_certificate: false` to keep the role away from that
-identity entirely.
+identity entirely. The equivalent OpenLDAP opt-out is
+`internalca_issue_ldap_certificate: false`.
 
 If the leaf, intermediate bundle, and configured root do not form one chain, the
 installer stops before changing the Apache vhost. An `unable to get local issuer
@@ -354,14 +364,13 @@ If a reset run is interrupted - an unreachable host, an aborted preflight - reru
 same command **with the switch still set**. The installer records the subject of every
 CA it retires under `/usr/local/fworch/etc/secrets/ca/retired-ca-names`, so a host that
 missed the reset is still recognised as carrying an FWO-issued identity and is brought
-onto the new CA on its next run, with or without the switch. Only an internal CA that
-could not be read at all leaves that record incomplete, because there is then no subject
-to record; the run says so explicitly. Every host in that run is still reissued, but a
-host it did not reach keeps a leaf whose issuer a later upgrade cannot place, and its
-Apache and OpenLDAP identities would be taken for administrator-managed certificates
-there - move both out of the paths the installed vhost and
-`/etc/ldap/certs/<domain>/` (`/etc/openldap/certs/<domain>/` on RedHat) name, so FWO
-issues them again.
+onto the new CA on its next run, with or without the switch. If the old CA certificate is
+unreadable, the installer recovers its subject from the FWO client certificate on the CA
+host. If neither certificate can be read, the installer stops before replacing the old CA
+key. Restore either certificate from backup and rerun the reset. If neither can be
+recovered, move every old FWO-issued Apache and OpenLDAP identity out of its configured
+path and remove the old CA directory before running a complete upgrade that issues a new
+CA.
 
 Every installer run checks how much validity the CA itself has left, because no
 issued certificate can outlive the CA that signed it. Once the CA has less time

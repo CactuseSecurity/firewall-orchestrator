@@ -36,13 +36,13 @@
   set_fact:
     test_selection_present_vhost: |
       <VirtualHost *:{{ ui_web_port }}>
-      	SSLCertificateFile {{ test_selection_directory.path }}/present.crt
-      	SSLCertificateKeyFile {{ test_selection_directory.path }}/present.key
+          SSLCertificateFile {{ test_selection_directory.path }}/present.crt
+          SSLCertificateKeyFile {{ test_selection_directory.path }}/present.key
       </VirtualHost>
     test_selection_absent_vhost: |
       <VirtualHost *:{{ ui_web_port }}>
-      	SSLCertificateFile {{ test_selection_directory.path }}/absent.crt
-      	SSLCertificateKeyFile {{ test_selection_directory.path }}/absent.key
+          SSLCertificateFile {{ test_selection_directory.path }}/absent.crt
+          SSLCertificateKeyFile {{ test_selection_directory.path }}/absent.key
       </VirtualHost>
 
 - name: Select the maintenance identity from a vhost naming an installed identity

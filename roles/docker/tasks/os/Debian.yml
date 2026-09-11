@@ -2,7 +2,7 @@
 - block:
     - set_fact:
         ansible_user: "{{ lookup('env','USER') }}"
-        os_codename: "{{ ansible_facts['lsb']['codename'] | lower }}"
+        os_codename: "{{ ansible_facts['distribution_release'] | lower }}"
 
     # Docker does not provide a Trixie repo yet, so reuse Bookworm.
     - set_fact:

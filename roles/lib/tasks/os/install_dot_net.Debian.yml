@@ -56,22 +56,44 @@
         - ansible_facts['distribution']|lower != 'ubuntu' or
           (ansible_facts['distribution']|lower == 'ubuntu' and ansible_facts['distribution_major_version'] is version('22', '<'))
 
-    # A host that took the Microsoft fallback under an earlier version carries the broad
-    # pin, and with it in place the primary install below now succeeds - so the rescue
-    # that would narrow it never runs. Narrow it here instead, on the evidence of the
-    # old file being present, rather than leaving that host pinning every .NET package
-    # on the system to Microsoft for good.
+    # A host that took the Microsoft fallback on an earlier run reaches this point with
+    # the SDK already installed, so the primary install below succeeds and rescue never
+    # gets a chance to refresh its source. Detect both generations of FWO's pin before
+    # that check. The shared tasks narrow the old policy and migrate the repository line
+    # to the currently installed Ubuntu release.
     - name: look for a superseded dotnet apt pin
       stat:
         path: /etc/apt/preferences.d/fworch-dotnet
       register: dotnet_superseded_pin
-      when: not use_dotnet_install_script
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
 
-    - name: narrow a superseded dotnet apt pin
+    - name: look for an existing dotnet Microsoft fallback pin
+      stat:
+        path: /etc/apt/preferences.d/zz-fworch-dotnet
+      register: dotnet_fallback_pin
+      when:
+        - not use_dotnet_install_script
+        - ansible_facts['distribution'] | lower == 'ubuntu'
+        - ansible_facts['distribution_major_version'] is version('22', '>=')
+
+    - name: reconcile the dotnet Microsoft fallback pin
       include_tasks: pin_dotnet_to_microsoft.Debian.yml
       when:
         - not use_dotnet_install_script
-        - dotnet_superseded_pin.stat.exists | default(false)
+        - >-
+          dotnet_superseded_pin.stat.exists | default(false)
+          or dotnet_fallback_pin.stat.exists | default(false)
+
+    - name: migrate an existing dotnet fallback repository to this Ubuntu release
+      include_tasks: configure_dotnet_microsoft_repository.Debian.yml
+      when:
+        - not use_dotnet_install_script
+        - >-
+          dotnet_superseded_pin.stat.exists | default(false)
+          or dotnet_fallback_pin.stat.exists | default(false)
 
     - name: Install apt-transport-https
       package: name=apt-transport-https state=present
@@ -109,24 +131,8 @@
             deb: "{{ lib_tmp_dir }}/{{ dotnet_deb_name }}"
           when: "'install ok installed' not in dotnet_ms_repo_pkg_status_ubuntu_fallback.stdout"
 
-        - name: check for microsoft apt signing keyring (ubuntu fallback)
-          stat:
-            path: /usr/share/keyrings/microsoft-prod.gpg
-          register: dotnet_ms_keyring_ubuntu_fallback
-
-        - name: ensure microsoft apt repo for dotnet on ubuntu fallback
-          apt_repository:
-            repo: "deb [arch={{ linux_architecture }} signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod {{ ansible_facts['distribution_release'] | lower }} main"
-            filename: microsoft-prod
-            state: present
-          when: dotnet_ms_keyring_ubuntu_fallback.stat.exists
-
-        - name: ensure microsoft apt repo for dotnet on ubuntu fallback (no keyring path)
-          apt_repository:
-            repo: "deb [arch={{ linux_architecture }}] https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod {{ ansible_facts['distribution_release'] | lower }} main"
-            filename: microsoft-prod
-            state: present
-          when: not dotnet_ms_keyring_ubuntu_fallback.stat.exists
+        - name: configure microsoft apt repo for dotnet on ubuntu fallback
+          include_tasks: configure_dotnet_microsoft_repository.Debian.yml
 
         - name: remove package list file (ubuntu fallback)
           file:

@@ -703,7 +703,10 @@ Not supported any longer are:
   subject of every retired CA is recorded, so a host that misses the rotation still has its
   FWO-issued identity recognised as such on its next upgrade instead of being taken for a
   customer certificate, and the installer refuses the switch when it is left in
-  /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates
+  /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates.
+  The reset stops before replacing the old CA key when neither the CA nor its client leaf
+  can provide the retired issuer name, and `internalca_issue_ldap_certificate=false` keeps
+  an externally managed OpenLDAP identity entirely outside FWO certificate management
 - versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
   Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
   upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now

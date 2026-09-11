@@ -7,6 +7,8 @@
   vars:
     http_conf_dir: "{{ test_maintenance_certificate_directory.path }}/"
     product_name: "{{ test_maintenance_case.name }}"
+    internalca_apache_certificate: "{{ test_maintenance_expected_certificate }}"
+    internalca_apache_private_key: "{{ test_maintenance_expected_private_key }}"
 
 - name: Read the reconciled {{ test_maintenance_case.name }} maintenance configuration
   slurp:
@@ -21,8 +23,8 @@
       # the closing tag, where it configures the whole server - and a whole-file substring
       # check passes just the same. The counts keep the plain :80 vhost above from
       # collecting an identity of its own.
-      - "'SSLCertificateFile ' ~ internalca_apache_certificate in test_maintenance_tls_vhost"
-      - "'SSLCertificateKeyFile ' ~ internalca_apache_private_key in test_maintenance_tls_vhost"
+      - "'SSLCertificateFile ' ~ test_maintenance_expected_certificate in test_maintenance_tls_vhost"
+      - "'SSLCertificateKeyFile ' ~ test_maintenance_expected_private_key in test_maintenance_tls_vhost"
       - test_maintenance_reconciled | regex_findall('(?m)^\s*SSLCertificateFile\s') | length == 1
       - test_maintenance_reconciled | regex_findall('(?m)^\s*SSLCertificateKeyFile\s') | length == 1
       - test_maintenance_case.absent | select('in', test_maintenance_reconciled) | list | length == 0

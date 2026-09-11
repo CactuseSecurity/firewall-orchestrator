@@ -140,7 +140,10 @@
               'subject_alt_name': internalca_ldap_subject_alt_names,
               'extended_key_usage': ['serverAuth']
             }
-          ] if 'middlewareserver' in group_names and not (internalca_preserve_ldap_certificate | default(false) | bool) else []
+          ] if 'middlewareserver' in group_names
+               and internalca_issue_ldap_certificate | bool
+               and not (internalca_preserve_ldap_certificate | default(false) | bool)
+             else []
         )
       }}
   vars:

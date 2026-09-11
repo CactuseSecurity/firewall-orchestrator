@@ -1,0 +1,33 @@
+---
+- name: Fail when an existing LDAP identity cannot be read
+  fail:
+    msg: >-
+      Cannot read {{ internalca_unreadable_ldap_files | join(' and ') }} on
+      {{ inventory_hostname }}. The file exists but could not be parsed, so FWO
+      cannot tell whether this identity is customer managed, and it must not
+      decide on its own. A passphrase protected private key is the usual cause.
+      Remove the passphrase, or set internalca_issue_ldap_certificate to false
+      to keep FWO away from this identity entirely.
+  when:
+    - internalca_unreadable_ldap_files | default([]) | length > 0
+    - internalca_issue_ldap_certificate | bool
+
+- name: Refuse to replace an incomplete customer-managed LDAP identity
+  fail:
+    msg: >-
+      The OpenLDAP certificate {{ internalca_ldap_certificate }} on
+      {{ inventory_hostname }} was issued by
+      {{ internalca_existing_ldap_certificate_info.issuer.get('commonName', 'an unnamed customer CA') }}
+      and is customer managed, but {{ internalca_ldap_private_key }} is missing or does
+      not belong to it. Restore the matching private key, or set
+      internalca_issue_ldap_certificate to false to keep FWO away from this identity
+      entirely, then rerun the installer. FWO will not replace this certificate.
+  when:
+    - internalca_existing_ldap_files.results[0].stat.exists
+    - internalca_issue_ldap_certificate | bool
+    - not (internalca_ldap_certificate_is_fwo_managed | bool)
+    - >-
+      not internalca_existing_ldap_files.results[1].stat.exists
+      or internalca_existing_ldap_certificate_info.public_key_fingerprints.sha256
+         != (internalca_existing_ldap_key_info.public_key_fingerprints
+             | default({})).get('sha256', '')

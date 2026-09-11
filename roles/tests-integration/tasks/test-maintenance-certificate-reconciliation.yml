@@ -53,8 +53,8 @@
 
           <VirtualHost *:{{ ui_web_port }}>
               SSLEngine on
-          	SSLCertificateFile {{ internalca_apache_certificate }}
-          	SSLCertificateKeyFile {{ internalca_apache_private_key }}
+          {{ '\t' }}SSLCertificateFile /customer/server.crt
+          {{ '\t' }}SSLCertificateKeyFile /customer/server.key
           </VirtualHost>
         absent: []
       - name: missing-directives
@@ -84,6 +84,9 @@
   loop_control:
     loop_var: test_maintenance_case
     label: "{{ test_maintenance_case.name }}"
+  vars:
+    test_maintenance_expected_certificate: /customer/server.crt
+    test_maintenance_expected_private_key: /customer/server.key
 
 # An empty string restores the "not set" state as far as restart-consumers.yml is
 # concerned: it reads the fact through | default(false) | bool.

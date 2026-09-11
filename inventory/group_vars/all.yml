@@ -272,6 +272,10 @@ internalca_endpoint_host_names: >-
 internalca_client_certificate: "{{ fworch_secrets_dir }}/client/client.crt"
 internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"
 
+# Shared by roles/internalCA and roles/openldap-server. Disable this only when the
+# administrator supplies and maintains the slapd identity at the configured paths.
+internalca_issue_ldap_certificate: true
+
 # The issuer copy of the CA certificate exists only on the CA host and sits in a
 # root-only directory. Every host gets a world-readable copy at this path, and
 # that is the one all unprivileged consumers must reference. Read by roles/api,

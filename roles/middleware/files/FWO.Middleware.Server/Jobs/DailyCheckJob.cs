@@ -240,7 +240,9 @@ namespace FWO.Middleware.Server.Jobs
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             List<UserGroup> OwnerGroups = await MiddlewareServerServices.GetInternalGroups(connectedLdaps);
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
-            WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+            WfHandler wfHandler = new(userConfig, apiConnection, WorkflowPhases.implementation, OwnerGroups,
+                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection))
+            { SystemContext = true };
             await wfHandler.Init();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest,

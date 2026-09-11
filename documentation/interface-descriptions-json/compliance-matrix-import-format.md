@@ -98,7 +98,7 @@ must not be greater than the end.
 
 ## Path Objects
 
-Both path_to_root and path_to_internet store lists of dicts with management and device name. They are ordered with list position, case sensitive management and device name combination has to be known and unique in database. Duplicate devices per path result in an error.
+Both path_to_root and path_to_internet store lists of dicts with management and device name. They are ordered with list position, case sensitive management and device name combination has to be known and unique in database. Duplicate devices per path result in an error. Managements and Devices that are disabled for import may still be used. Managements and Devices that are marked as hidden in GUI are not resolvable and cause the import to fail with an unknown-device error.
 
 | Field         | Type     | Required | Description |
 |---------------|----------|----------|-------------|

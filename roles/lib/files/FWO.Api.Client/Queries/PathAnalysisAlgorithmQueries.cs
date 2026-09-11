@@ -12,7 +12,6 @@ namespace FWO.Api.Client.Queries
             {
                 getPathAnalysisAlgorithms =
                     GetQueryText("path_analysis/getIdAndNameOfPathAnalysisAlgorithm.graphql");
-
             }
             catch (Exception exception)
             {

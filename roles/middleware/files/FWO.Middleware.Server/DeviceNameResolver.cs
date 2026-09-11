@@ -22,7 +22,10 @@ namespace FWO.Middleware.Server
                 await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
             foreach (Management management in managements)
             {
-                lookup.AddDevicesOf(management);
+                if (!management.HideInUi)
+                {
+                    lookup.AddDevicesOf(management);
+                }
             }
             return lookup;
         }
@@ -59,7 +62,7 @@ namespace FWO.Middleware.Server
         {
             foreach (Device device in management.Devices)
             {
-                if (string.IsNullOrWhiteSpace(device.Name))
+                if (!device.HideInUi | string.IsNullOrWhiteSpace(device.Name))
                 {
                     continue;
                 }

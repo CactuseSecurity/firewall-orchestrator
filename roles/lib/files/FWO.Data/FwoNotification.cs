@@ -14,7 +14,8 @@ namespace FWO.Data
         AppDecomm = 6,
         Report = 7,
         WfAction = 8,
-        InterfaceDecomm = 9
+        InterfaceDecomm = 9,
+        RuleRecertification = 10
     }
 
     public static class NotificationClientGroups
@@ -30,7 +31,8 @@ namespace FWO.Data
                 or NotificationClient.InterfaceRequest
                 or NotificationClient.RuleTimer
                 or NotificationClient.AppDecomm
-                or NotificationClient.InterfaceDecomm;
+                or NotificationClient.InterfaceDecomm
+                or NotificationClient.RuleRecertification;
         }
 
         /// <summary>
@@ -236,6 +238,7 @@ namespace FWO.Data
             return client switch
             {
                 NotificationClient.Recertification => [NotificationDeadline.RecertDate],
+                NotificationClient.RuleRecertification => [NotificationDeadline.None],
                 NotificationClient.ImportChange => [NotificationDeadline.None],
                 NotificationClient.RuleTimer => [NotificationDeadline.RuleExpiry],
                 NotificationClient.InterfaceRequest => [NotificationDeadline.None, NotificationDeadline.RequestDate],

@@ -6,10 +6,8 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
-using FWO.Data.Middleware;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
-using FWO.Mail;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
@@ -21,13 +19,8 @@ namespace FWO.Test
     {
         private static readonly string kUpcomingText = "upcoming for " + Placeholder.APPNAME;
         private static readonly string kOverdueText = "overdue for " + Placeholder.APPNAME;
-        private static readonly string[] kDummyEmailAddresses = ["dummy@example.test"];
-        private static readonly string[] kResolvedEmailAddresses = ["alpha@example.test", "beta@example.test"];
-        private static readonly string[] kResolvedOwnerDns = ["cn=alpha,dc=test", "cn=beta,dc=test"];
         private static readonly string[] kExpectedQueries =
         [
-            AuthQueries.getLdapConnections,
-            AuthQueries.getUsers,
             OwnerQueries.getOwners
         ];
 
@@ -36,11 +29,6 @@ namespace FWO.Test
         {
             RecertCheckApiConnection apiConnection = new()
             {
-                Ldaps = [],
-                Users =
-                [
-                    new UiUser { Dn = "cn=user,dc=test", Email = "user@example.test" }
-                ],
                 Owners =
                 [
                     new FwoOwner { Id = 1, Name = "Owner A", RecertActive = true }
@@ -58,11 +46,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CheckRecertifications_ReturnsZeroWhenInitEnvThrows()
+        public async Task CheckRecertifications_ReturnsZeroWhenOwnerLoadingThrows()
         {
             RecertCheckApiConnection apiConnection = new()
             {
-                ThrowOnLdapConnections = true
+                ThrowOnOwners = true
             };
             RecertCheck recertCheck = CreateRecertCheck(apiConnection, CreateGlobalConfig());
 
@@ -72,7 +60,7 @@ namespace FWO.Test
             {
                 Assert.That(emailsSent, Is.Zero);
                 Assert.That(apiConnection.Queries, Has.Count.EqualTo(1));
-                Assert.That(apiConnection.Queries[0], Is.EqualTo(AuthQueries.getLdapConnections));
+                Assert.That(apiConnection.Queries[0], Is.EqualTo(OwnerQueries.getOwners));
             });
         }
 
@@ -81,14 +69,6 @@ namespace FWO.Test
         {
             RecertCheckApiConnection apiConnection = new()
             {
-                Ldaps =
-                [
-                    new Ldap()
-                ],
-                Users =
-                [
-                    new UiUser { Dn = "cn=user,dc=test", Email = "user@example.test" }
-                ],
                 Owners =
                 [
                     new FwoOwner { Id = 7, Name = "Owner B" }
@@ -100,7 +80,6 @@ namespace FWO.Test
             await InvokePrivateTask(recertCheck, "InitEnv");
 
             RecertCheckParams? loadedParams = GetPrivateField<RecertCheckParams?>(recertCheck, "globCheckParams");
-            List<UiUser> uiUsers = GetPrivateField<List<UiUser>>(recertCheck, "uiUsers");
             List<FwoOwner> owners = GetPrivateField<List<FwoOwner>>(recertCheck, "owners");
 
             Assert.Multiple(() =>
@@ -108,7 +87,6 @@ namespace FWO.Test
                 Assert.That(loadedParams, Is.Not.Null);
                 Assert.That(loadedParams!.RecertCheckInterval, Is.EqualTo(SchedulerInterval.Days));
                 Assert.That(loadedParams.RecertCheckOffset, Is.EqualTo(7));
-                Assert.That(uiUsers, Has.Count.EqualTo(1));
                 Assert.That(owners, Has.Count.EqualTo(1));
             });
         }
@@ -267,81 +245,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CollectEmailAddresses_UsesDummyAddress()
-        {
-            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
-            globalConfig.UseDummyEmailAddress = true;
-            globalConfig.DummyEmailAddress = "dummy@example.test";
-            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), globalConfig);
-
-            List<string> result = await InvokePrivateAsync<List<string>>(recertCheck, "CollectEmailAddresses", new FwoOwner());
-
-            Assert.That(result, Is.EquivalentTo(kDummyEmailAddresses));
-        }
-
-        [Test]
-        public async Task CollectEmailAddresses_ResolvesConfiguredEmails()
-        {
-            RecertCheckApiConnection apiConnection = new();
-            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
-            globalConfig.UseDummyEmailAddress = false;
-            RecertCheck recertCheck = CreateRecertCheck(apiConnection, globalConfig);
-            SetPrivateField(recertCheck, "connectedLdaps", new List<Ldap>
-            {
-                new Ldap
-                {
-                    UserSearchPath = "",
-                    GroupSearchPath = ""
-                }
-            });
-            SetPrivateField(recertCheck, "uiUsers", new List<UiUser>
-            {
-                new() { Dn = "cn=alpha,dc=test", Email = "alpha@example.test" },
-                new() { Dn = "cn=beta,dc=test", Email = "beta@example.test" }
-            });
-
-            FwoOwner owner = new();
-            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=alpha,dc=test");
-            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeSupporting, "cn=beta,dc=test");
-
-            List<string> result = await InvokePrivateAsync<List<string>>(recertCheck, "CollectEmailAddresses", owner);
-
-            Assert.That(result, Is.EquivalentTo(kResolvedEmailAddresses));
-        }
-
-        [Test]
-        public async Task ResolveOwnerUserDns_ReturnsDirectDnsWhenNoGroupHandlingIsConfigured()
-        {
-            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), CreateGlobalConfig());
-            SetPrivateField(recertCheck, "connectedLdaps", new List<Ldap>
-            {
-                new Ldap
-                {
-                    UserSearchPath = "",
-                    GroupSearchPath = ""
-                }
-            });
-
-            FwoOwner owner = new();
-            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=alpha,dc=test");
-            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeSupporting, "cn=beta,dc=test");
-
-            List<string> result = await InvokePrivateAsync<List<string>>(recertCheck, "ResolveOwnerUserDns", owner);
-
-            Assert.That(result, Is.EquivalentTo(kResolvedOwnerDns));
-        }
-
-        [Test]
-        public async Task ResolveOwnerUserDns_ReturnsEmptyWhenNoResponsiblesExist()
-        {
-            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), CreateGlobalConfig());
-
-            List<string> result = await InvokePrivateAsync<List<string>>(recertCheck, "ResolveOwnerUserDns", new FwoOwner());
-
-            Assert.That(result, Is.Empty);
-        }
-
-        [Test]
         public void PrepareOwnerBody_ChoosesUpcomingAndOverdueMessages()
         {
             SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
@@ -402,27 +305,6 @@ namespace FWO.Test
             string line = InvokePrivate<string>(typeof(RecertCheck), "PrepareLine", rule);
 
             Assert.That(line, Does.StartWith(": Device A: No date rule:UID-NO-DATE"));
-        }
-
-        [Test]
-        public async Task PrepareRulesEmail_ReturnsMailDataWithExpectedSubjectAndBody()
-        {
-            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
-            globalConfig.UseDummyEmailAddress = true;
-            RecertCheck recertCheck = CreateRecertCheck(new RecertCheckApiConnection(), globalConfig);
-
-            MailData mailData = await InvokePrivateAsync<MailData>(recertCheck, "PrepareRulesEmail", new FwoOwner
-            {
-                Name = "Owner A"
-            }, new List<Rule> { CreateRule("Upcoming Rule", "UID-UP", new DateTime(2026, 7, 24)) }, new List<Rule>());
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(mailData.Subject, Is.EqualTo("Recertification check Owner A"));
-                Assert.That(mailData.To, Is.EquivalentTo(kDummyEmailAddresses));
-                Assert.That(mailData.Body, Does.Contain("Upcoming Rule"));
-                Assert.That(mailData.Body, Does.Contain("Owner A"));
-            });
         }
 
         [Test]
@@ -554,10 +436,8 @@ namespace FWO.Test
 
         private sealed class RecertCheckApiConnection : JobTestApiConnectionBase
         {
-            public bool ThrowOnLdapConnections { get; set; }
+            public bool ThrowOnOwners { get; set; }
             public bool ThrowOnDevicesQuery { get; set; }
-            public List<Ldap> Ldaps { get; set; } = [];
-            public List<UiUser> Users { get; set; } = [];
             public List<FwoOwner> Owners { get; set; } = [];
             public List<ManagementSelect> Managements { get; set; } = [];
 
@@ -577,22 +457,12 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)new List<UiText>());
                 }
 
-                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<Ldap>))
+                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
                 {
-                    if (ThrowOnLdapConnections)
+                    if (ThrowOnOwners)
                     {
                         throw new InvalidOperationException("boom");
                     }
-                    return Task.FromResult((QueryResponseType)(object)Ldaps);
-                }
-
-                if (query == AuthQueries.getUsers && typeof(QueryResponseType) == typeof(List<UiUser>))
-                {
-                    return Task.FromResult((QueryResponseType)(object)Users);
-                }
-
-                if (query == OwnerQueries.getOwners && typeof(QueryResponseType) == typeof(List<FwoOwner>))
-                {
                     return Task.FromResult((QueryResponseType)(object)Owners);
                 }
 

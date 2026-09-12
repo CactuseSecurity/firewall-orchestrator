@@ -170,6 +170,7 @@ namespace FWO.Config.Api.Data
         public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
 
         [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+        [Obsolete("Migrated to notification subjects in version 9.5.5.")]
         public string RecCheckEmailSubject { get; set; } = "";
 
         [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]

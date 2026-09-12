@@ -111,6 +111,75 @@ update_reminder_bodies AS
 )
 SELECT 1;
 
+-- migrate rule-by-rule recertification delivery to notifications
+WITH recert_config AS
+(
+    SELECT
+        MAX(CASE WHEN config_key = 'recCheckEmailSubject' THEN COALESCE(config_value, '') END) AS subject
+    FROM config
+    WHERE config_user = 0
+      AND config_key = 'recCheckEmailSubject'
+),
+recert_notification_seed AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'RuleRecertification'
+),
+insert_rule_recertification_notification AS
+(
+    INSERT INTO notification
+    (
+        notification_client,
+        name,
+        channel,
+        recipient_to,
+        email_address_to,
+        recipient_cc,
+        email_address_cc,
+        recipient_bcc,
+        email_address_bcc,
+        email_subject,
+        email_body,
+        layout,
+        deadline,
+        interval_before_deadline,
+        offset_before_deadline,
+        repeat_interval_after_deadline,
+        initial_offset_after_deadline,
+        repeat_offset_after_deadline,
+        repetitions_after_deadline
+    )
+    SELECT
+        'RuleRecertification',
+        'Rule recertification',
+        'Email',
+        'AllOwnerResponsibles',
+        '',
+        'None',
+        '',
+        'None',
+        '',
+        CASE
+            WHEN COALESCE(recert_config.subject, '') = '' THEN 'Rule recertification @@APPNAME@@'
+            ELSE recert_config.subject || ' @@APPNAME@@'
+        END,
+        '@@CONTENT@@',
+        'SimpleText',
+        'None',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    FROM recert_config
+    CROSS JOIN recert_notification_seed
+    WHERE notification_count = 0
+    RETURNING 1
+)
+SELECT 1;
+
 ALTER TABLE notification
     ADD COLUMN IF NOT EXISTS logging Varchar NOT NULL DEFAULT 'send_only';
 

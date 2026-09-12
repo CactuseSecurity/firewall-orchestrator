@@ -209,18 +209,10 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CheckRecerts_SkipsInactiveOwnersWithoutUpdatingNotifications()
+        public async Task CheckRecerts_SkipsInactiveOwnersWithoutSendingOrUpdatingNotifications()
         {
             RecordingRecertCheckApiConnection apiConnection = new()
             {
-                Ldaps =
-                [
-                    CreateInternalTestLdap()
-                ],
-                Users =
-                [
-                    new UiUser { Dn = "cn=user,dc=test", Email = "user@example.test" }
-                ],
                 Owners =
                 [
                     new FwoOwner { Id = 1, Name = "Owner A", RecertActive = false }
@@ -252,8 +244,6 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.CountQuery(AuthQueries.getLdapConnections), Is.EqualTo(1));
-                Assert.That(apiConnection.CountQuery(AuthQueries.getUsers), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(OwnerQueries.getOwners), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.getNotifications), Is.EqualTo(1));
                 Assert.That(apiConnection.CountQuery(NotificationQueries.updateNotificationsLastSent), Is.Zero);

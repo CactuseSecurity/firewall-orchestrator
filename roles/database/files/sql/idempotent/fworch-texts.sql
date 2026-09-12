@@ -1,4 +1,4 @@
-﻿-- text codes (roughly) categorized:
+-- text codes (roughly) categorized:
 -- U: user texts (explanation or confirmation texts)
 -- E: error texts
 -- A: Api errors

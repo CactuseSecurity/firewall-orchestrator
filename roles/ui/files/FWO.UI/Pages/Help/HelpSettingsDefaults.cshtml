@@ -14,6 +14,8 @@
 <div class="p-2">
     <h3>@(userConfig.GetText("standards"))</h3>
     @(Html.Raw(userConfig.GetText("H5401")))
+    <h4>@userConfig.GetText("internal_ca_certificate")</h4>
+    <p>@userConfig.GetText("internal_ca_certificate_description")</p>
     <br><br>
     <ul>
         <li>@(Html.Raw(userConfig.GetText("H5411")))</li>

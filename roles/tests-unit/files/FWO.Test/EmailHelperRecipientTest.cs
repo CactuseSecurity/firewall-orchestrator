@@ -391,7 +391,7 @@ namespace FWO.Test
                 Csv = "workflow"
             };
 
-            bool sent = await helper.SendWorkflowActionEmail(
+            WorkflowEmailDeliveryResult deliveryResult = await helper.SendWorkflowActionEmail(
                 notification,
                 new WfStatefulObject(),
                 owner,
@@ -406,7 +406,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(sent, Is.True);
+                Assert.That(deliveryResult, Is.EqualTo(WorkflowEmailDeliveryResult.Delivered));
                 Assert.That(helper.CapturedTo, Is.EqualTo(new List<string> { "requester@example.test" }));
                 Assert.That(helper.CapturedCc, Is.EqualTo(new List<string> { "group@example.test" }));
                 Assert.That(helper.CapturedBcc, Is.EqualTo(new List<string> { "bcc@example.test" }));

@@ -1,7 +1,68 @@
 ---
 # for installation options see https://github.com/CactuseSecurity/firewall-orchestrator/blob/master/documentation/installer/install-advanced.md
 
+# The host wide, operator owned installer settings (see documentation/installer/
+# install-advanced.md). Loaded here rather than only by scripts/run-playbook-with-sudo.sh,
+# because the launcher can be bypassed - a plain "ansible-playbook site.yml" then applied
+# none of the settings, silently, and installed the endpoints under the inventory names
+# instead. include_vars outranks inventory/group_vars and survives into the later plays,
+# while extra variables given on the command line still outrank it.
+#
+# "tags: always" so that a tag limited run - "--tags certificates" above all, which
+# reissues the very certificates these names are written into - is configured like a
+# full one.
 - hosts: all
+  gather_facts: false
+  vars:
+    # The launcher reads the same two locations in the same order. Both are resolved on
+    # the controller, because that is where include_vars and --extra-vars read from.
+    fwo_effective_install_settings_file: "{{ lookup('env', 'FWORCH_LOCAL_SETTINGS') | default(fwo_install_settings_file, true) }}"
+  tasks:
+    - name: look for the {{ product_name }} installer settings file
+      stat:
+        path: "{{ fwo_effective_install_settings_file }}"
+      register: fwo_install_settings_stat
+      delegate_to: localhost
+      run_once: true
+      changed_when: false
+      tags: always
+
+    - name: apply the {{ product_name }} installer settings
+      include_vars:
+        file: "{{ fwo_effective_install_settings_file }}"
+      when: fwo_install_settings_stat.stat.exists
+      tags: always
+
+    - name: report the endpoints the installer settings put in force
+      debug:
+        msg: >-
+          Applied installer settings from {{ fwo_effective_install_settings_file }}
+          - api: {{ api_network_listening_ip_address }},
+          middleware: {{ middleware_hostname }}, ui: {{ ui_hostname }}
+      when: fwo_install_settings_stat.stat.exists
+      tags: always
+  tags:
+    - backend
+    - frontend
+    - importer
+    - ui
+    - api
+    - certificates
+
+# any_errors_fatal for the same reason as the internalCA play below, and this is the play
+# where it matters most: the upgrade source version guard and the Apache private key
+# preflight both live here, and a failing host is otherwise merely dropped - so on a
+# distributed installation the database play went on to migrate the schema on another host
+# after a preflight had just refused the upgrade. The flag only ever fires for a failure
+# inside its own play, so a host already unreachable in an earlier play does not abort the
+# run for the others.
+#
+# The cost is deliberate: OS preparation and package installation happen here too, so a
+# failure on one host now stops the whole run rather than installing the rest. For an
+# installer that is the safer half of the trade - a partially prepared installation is
+# what the preflights in this play exist to prevent.
+- hosts: all
+  any_errors_fatal: true
   roles:
     - { role: common }
   tags:
@@ -10,6 +71,27 @@
     - importer
     - ui
     - api
+
+# Certificates are created after the common role has created the FWO user and
+# configuration directories, but before any service consumes them.
+#
+# any_errors_fatal because this play is preflight plus certificate issuance, where one
+# host failing makes the rest worthless: the retained-certificate checks run on the
+# middleware host alone, and without this Ansible would merely drop that host and let the
+# database play migrate the schema on another one - so an upgrade the installer had just
+# refused would still have changed the installation. It also stops a host from being left
+# without an identity while the services that need it are installed on the others.
+- hosts: all
+  any_errors_fatal: true
+  roles:
+    - { role: internalCA, when: "not installation_mode == 'uninstall'" }
+  tags:
+    - backend
+    - frontend
+    - importer
+    - ui
+    - api
+    - certificates
 
 - hosts: databaseserver
   roles:
@@ -114,6 +196,72 @@
     - name: show listener status
       import_tasks: scripts/show-fworch-listeners.yml
       become: true
+
+    # Read from the world readable copy every host receives, not from the issuer copy on
+    # the CA host. internalca_ca_certificate_local and the anchor file name it is built
+    # from are defined in inventory/group_vars/all.yml, so they are in scope in every
+    # play, while internalca_ca_host is a roles/internalCA default and is not: delegating
+    # to it here failed the whole installation on the very last play with
+    # "'internalca_ca_host' is undefined". The local copy is the file the documentation
+    # tells an operator to trust anyway.
+    #
+    # failed_when: false because this is the closing information display of a completed
+    # installation. Everything that depends on the certificate has already run and
+    # succeeded by now, so not being able to print it must not turn a good installation
+    # into a failed run - it reports that it could not, instead.
+    - name: read the internal CA certificate for browser trust setup
+      ansible.builtin.slurp:
+        src: "{{ internalca_ca_certificate_local }}"
+      register: fwo_internal_ca_certificate
+      become: true
+      run_once: true
+      failed_when: false
+      when: installation_mode in ['new', 'upgrade']
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
+
+    # "content is defined" rather than "is not skipped": it is false for a skipped read
+    # and for a failed one alike, which is what the two branches here need.
+    - name: display the internal CA certificate for browser trust setup
+      ansible.builtin.debug:
+        msg:
+          - "Trust this FWO internal CA certificate on the browser host to accept {{ product_name }} Apache certificates:"
+          - (unless you already have a peer certificate configured, in which case the peer CA certificate is the one to trust)
+          - "{{ fwo_internal_ca_certificate.content | b64decode }}"
+      run_once: true
+      when:
+        - installation_mode in ['new', 'upgrade']
+        - fwo_internal_ca_certificate.content is defined
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
+
+    - name: report that the internal CA certificate could not be shown
+      ansible.builtin.debug:
+        msg: >-
+          Could not read {{ internalca_ca_certificate_local }}, so the internal CA
+          certificate is not printed here. That file is the one to trust on the browser
+          host; the installation itself is unaffected.
+      run_once: true
+      when:
+        - installation_mode in ['new', 'upgrade']
+        - fwo_internal_ca_certificate.content is not defined
+      tags:
+        - backend
+        - frontend
+        - importer
+        - ui
+        - api
+        - certificates
 
     - name: display secrets for this installation
       debug:

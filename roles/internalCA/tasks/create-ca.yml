@@ -1,0 +1,119 @@
+---
+- name: Create internal CA directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+  loop:
+    - "{{ internalca_ca_dir }}"
+    - "{{ internalca_ca_issued_dir }}"
+  become: true
+
+# An existing CA is an installation's trust anchor. Its subject must remain unchanged
+# on upgrade, including for installations created before CA names gained a unique
+# suffix, because changing it would replace the certificate trusted by external clients.
+- name: Check for an existing internal CA certificate
+  stat:
+    path: "{{ internalca_ca_certificate }}"
+  register: internalca_existing_ca_certificate
+  become: true
+
+# failed_when, so that an unreadable certificate is answered by the message below rather
+# than by the module's bare parse error. Before the subject was read back, this state
+# repaired itself silently: x509_certificate regenerated an unparseable ca.crt from the
+# retained key under the fixed name, so subject and key were unchanged and every
+# certificate already issued still chained to it. A regenerated CA now carries a new
+# unique name instead. That does not orphan the leaves of the hosts in the run - an
+# issuer that no longer matches the ownca subject is a regeneration trigger, so
+# issue-certificates.yml reissues them - but it does replace the anchor everything
+# outside the installer's reach was given: a browser or trust store holding the old CA,
+# an exported client bundle, and any host this run does not touch, which keeps a leaf
+# the new CA did not sign. Replacing an installation's trust anchor is not something to
+# do silently, so the run stops here, the way every other unreadable certificate in this
+# role does: naming the file, not guessing.
+# Keyed on the returned subject rather than on the task result: failed_when overrides the
+# module's own failure, so an unreadable certificate still reports failed = false.
+- name: Read the existing internal CA identity
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate }}"
+  register: internalca_existing_ca_certificate_info
+  failed_when: false
+  become: true
+  when: internalca_existing_ca_certificate.stat.exists
+
+- name: Stop when the existing internal CA certificate cannot be read
+  fail:
+    msg: >-
+      The internal CA certificate {{ internalca_ca_certificate }} exists on
+      {{ inventory_hostname }} but cannot be read
+      ({{ internalca_existing_ca_certificate_info.msg | default('no reason reported') }}).
+      Its subject is the issuer of every certificate this installation has issued, so the
+      installer cannot replace it without invalidating all of them. Restore the file from a
+      backup, or - when no issued certificate has to survive - remove {{ internalca_ca_dir }}
+      to have the CA and every identity reissued.
+  when:
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_existing_ca_certificate_info.subject is not defined
+
+- name: Generate internal CA private key
+  community.crypto.openssl_privatekey:
+    path: "{{ internalca_ca_private_key }}"
+    size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
+    type: "{{ internalca_key_type }}"
+    curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    mode: "0600"
+  become: true
+  no_log: true
+
+- name: Read the internal CA public key fingerprint
+  community.crypto.openssl_privatekey_info:
+    path: "{{ internalca_ca_private_key }}"
+  register: internalca_ca_private_key_info
+  become: true
+  no_log: true
+
+# The key is generated from cryptographically secure randomness. Its fingerprint makes
+# the name unique without separate mutable state, and stays stable on repeated runs.
+- name: Select the internal CA common name
+  set_fact:
+    internalca_ca_common_name: >-
+      {{
+        internalca_existing_ca_certificate_info.subject.commonName
+        if internalca_existing_ca_certificate.stat.exists
+        else internalca_ca_common_name_prefix ~ ' '
+          ~ (internalca_ca_private_key_info.public_key_fingerprints.sha256
+             | replace(':', '') | lower)[:16]
+      }}
+
+# RFC 5280 4.2.1.9 requires a conforming CA to mark basicConstraints critical in
+# a CA certificate whose key signs other certificates, and 4.2.1.3 says the same
+# for keyUsage where it is present. community.crypto defaults both flags to false,
+# so they are set here: without them a strict validator - a TLS inspection
+# appliance or an embedded stack - may refuse this anchor, which is precisely the
+# kind of peer internalca_key_type exists to accommodate.
+- name: Generate internal CA signing request
+  community.crypto.openssl_csr:
+    path: "{{ internalca_ca_csr }}"
+    privatekey_path: "{{ internalca_ca_private_key }}"
+    common_name: "{{ internalca_ca_common_name }}"
+    basic_constraints:
+      - CA:TRUE
+    basic_constraints_critical: true
+    key_usage:
+      - keyCertSign
+      - cRLSign
+    key_usage_critical: true
+  become: true
+
+- name: Generate internal CA certificate
+  community.crypto.x509_certificate:
+    path: "{{ internalca_ca_certificate }}"
+    privatekey_path: "{{ internalca_ca_private_key }}"
+    csr_path: "{{ internalca_ca_csr }}"
+    provider: selfsigned
+    selfsigned_not_after: "+{{ internalca_ca_validity_days }}d"
+    selfsigned_digest: sha256
+    mode: "0644"
+  become: true

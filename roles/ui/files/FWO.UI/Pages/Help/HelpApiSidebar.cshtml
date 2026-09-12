@@ -13,6 +13,9 @@
                 <a class="nav-link" href="/help/API/security/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.Security"></span> @userConfig.GetText("security")
                 </a>
+                <a class="nav-link" href="/help/API/certificates/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Locked"></span> @userConfig.GetText("client_certificates")
+                </a>
                 <a class="nav-link" href="/help/API/login/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.Login"></span> @userConfig.GetText("login")
                 </a>

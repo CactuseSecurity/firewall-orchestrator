@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Basics.Exceptions;
 using FWO.Config.Api;
 using FWO.Config.File;
 using FWO.Compliance;
@@ -21,6 +22,10 @@ using Scalar.AspNetCore;
 object changesLock = new(); // LOCK
 const string kApiDocsPageRoute = "/api-docs";
 const string kApiDocsRoute = "/api-docs/{documentName}.json";
+const string kApiStartupLogCategory = "Api startup";
+// EX_CONFIG from sysexits(3): the service was configured to reach an api it cannot reach.
+// Non-zero is what makes systemd's Restart=on-failure and its start rate limit apply at all.
+const int kApiUnavailableExitCode = 78;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -31,24 +36,26 @@ TokenLifetimeProvider tokenLifetimeProvider = new();
 JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
 InternalApiTokenService internalApiTokenService = new(jwtWriter, tokenLifetimeProvider);
 
-// Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header. 
-ApiConnection apiConnection = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), internalApiTokenService.CreateInitialMiddlewareToken());
+// Create JWT for middleware-server API calls (relevant part is the role middleware-server) and add it to the Api connection header.
+string apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
+ApiConnection apiConnection = new GraphQlApiConnection(apiServerUri, internalApiTokenService.CreateInitialMiddlewareToken());
 
-List<Ldap> connectedLdaps = [];
-int connectionAttemptsCount = 1;
-while (true)
+// Retried, because the graphql api may not have started yet - but bounded, because the web
+// server below is not started until this succeeds, so an api that stays unreachable used to
+// leave a service that reports itself as running and never answers. Giving up hands the
+// decision to systemd, which restarts and reports it; see ApiStartupProbe.
+List<Ldap> connectedLdaps;
+try
 {
-    // Repeat first api call in case graphql api is not started yet
-    try
-    {
-        connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections);
-        break;
-    }
-    catch (Exception ex)
-    {
-        Log.WriteError("Graphql api", "Graphql api unreachable.", ex);
-        Thread.Sleep(500 * connectionAttemptsCount++);
-    }
+    connectedLdaps = await ApiStartupProbe.RunFirstQueryAsync(
+        () => apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getAllLdapConnections), apiServerUri);
+}
+catch (ApiUnavailableAtStartupException exception)
+{
+    // The inner exception carries the last actual failure, so it is logged rather than this
+    // one's own stack trace, which would only point back at this line.
+    Log.WriteError(kApiStartupLogCategory, exception.Message, exception.InnerException);
+    return kApiUnavailableExitCode;
 }
 
 GraphQlApiSubscription<List<Ldap>>.SubscriptionUpdate connectedLdapsSubscriptionUpdate = (List<Ldap> ldapsChanges) => { lock (changesLock) { connectedLdaps = ldapsChanges; } };
@@ -232,6 +239,10 @@ app.Services.GetRequiredService<UpdateRuleOwnerMappingSchedulerService>();
 app.Services.GetRequiredService<UpdateFlowsSchedulerService>();
 
 await app.RunAsync();
+
+// A shut down web server is an ordinary stop, so systemd must not see it as a failure and
+// restart it. Only the startup give-up above exits non-zero.
+return 0;
 
 namespace FWO.Middleware.ServerTest
 {

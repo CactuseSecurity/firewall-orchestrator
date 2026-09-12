@@ -25,7 +25,7 @@ pytest-cov==7.1.0
 # Linting
 ruff==0.16.3
 pre-commit==4.6.2
-pyright==1.1.411
+pyright==1.1.414
 
 # OPNsense import
 xmltodict==1.0.4

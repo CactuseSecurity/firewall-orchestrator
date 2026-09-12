@@ -825,7 +825,7 @@ namespace FWO.Test
 
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 7 })!;
 
-            Assert.That(notificationIds, Is.EqualTo(new List<int> { 7 }));
+            Assert.That(component.NotificationIds, Is.EqualTo(new List<int> { 7 }));
         }
 
         [Test]
@@ -839,7 +839,7 @@ namespace FWO.Test
             await (Task)GetPrivateMethod("AddNotificationId").Invoke(component, new object?[] { 4 })!;
             await (Task)GetPrivateMethod("RemoveNotificationId").Invoke(component, new object?[] { 4 })!;
 
-            Assert.That(notificationIds, Is.EqualTo(new List<int> { 7 }));
+            Assert.That(component.NotificationIds, Is.EqualTo(new List<int> { 7 }));
         }
 
         [Test]

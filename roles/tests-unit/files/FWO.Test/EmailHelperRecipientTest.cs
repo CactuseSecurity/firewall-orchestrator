@@ -1380,7 +1380,7 @@ namespace FWO.Test
             {
             }
 
-            protected override Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, bool mailFormatHtml = true, Microsoft.AspNetCore.Http.FormFile? attachment = null)
+            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, bool mailFormatHtml = true, Microsoft.AspNetCore.Http.FormFile? attachment = null)
             {
                 SendEmailCallCount++;
                 CapturedTo = [.. tos];
@@ -1394,7 +1394,9 @@ namespace FWO.Test
                 {
                     throw SendException;
                 }
-                return Task.FromResult(SendResult && tos.Any(recipient => recipient != ""));
+                return Task.FromResult(SendResult && tos.Any(recipient => recipient != "")
+                    ? WorkflowEmailDeliveryResult.Delivered
+                    : WorkflowEmailDeliveryResult.Failed);
             }
         }
 

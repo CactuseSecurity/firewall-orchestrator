@@ -1033,7 +1033,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_LogsConfiguredNotificationsUpdatesTimestampAndConfirmsSend()
+        public async Task SendEmail_LogOnlyWritesLogWithoutUpdatingTimestampOrConfirmingSend()
         {
             ActionHandlerTestApiConn apiConn = new()
             {
@@ -1073,11 +1073,9 @@ namespace FWO.Test
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.insertNotificationLog), Is.EqualTo(1));
                 Assert.That(apiConn.Queries.Count(query => query == StmQueries.getIpProtocols), Is.EqualTo(1));
-                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.EqualTo(new List<int> { 42 }));
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Exception, Is.Null);
-                Assert.That(messages[0].Message, Is.EqualTo("1 emails sent"));
-                Assert.That(messages[0].ErrorFlag, Is.False);
+                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.Empty);
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.updateNotificationLog), Is.EqualTo(1));
+                Assert.That(messages, Is.Empty);
             });
         }
 
@@ -1424,7 +1422,7 @@ namespace FWO.Test
             ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0])!;
+                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0, null])!;
 
             Assert.Multiple(() =>
             {

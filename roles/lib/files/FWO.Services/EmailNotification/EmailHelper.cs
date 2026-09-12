@@ -141,11 +141,12 @@ namespace FWO.Services
             }
             try
             {
-                bool sent = await SendEmail(tos, subject, body, ccs, bccs,
+                WorkflowEmailDeliveryResult deliveryResult = await SendEmailWithResult(tos, subject, body, ccs, bccs,
                     notification.Layout == NotificationLayout.HtmlInBody, attachment);
+                bool sent = deliveryResult == WorkflowEmailDeliveryResult.Delivered;
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed or no To recipients resolved.");
-            return sent ? WorkflowEmailDeliveryResult.Delivered : WorkflowEmailDeliveryResult.Failed;
+                return deliveryResult;
             }
             catch (Exception exception)
             {
@@ -228,7 +229,7 @@ namespace FWO.Services
         /// to be surfaced, while an email with no resolvable recipient is a property of the configuration.
         /// </summary>
         /// <returns>Whether the email was delivered, had no recipients, or failed to send</returns>
-        private async Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
+        protected virtual async Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
             bool mailFormatHtml = true, FormFile? attachment = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,

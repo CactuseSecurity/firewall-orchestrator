@@ -707,6 +707,6 @@ Not supported any longer are:
 - extend the flow compliance REST endpoints to accept IPv4 and IPv6 ranges as well as CIDR networks
 - report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
 
-## 9.5.5 - 12.09.2026
+## 9.5.2 - 14.09.2026
 - rework modelling notifications and move interface-request notifications to centralized notification entries
 - interface-request notifications now support separate request and reminder bodies plus optional CC to the requester

@@ -218,7 +218,11 @@ namespace FWO.Test
             handler.OwnerKeysToDelete.Add("app-id");
             handler.SelectSource(OwnerMappingSourceStm.Disabled);
 
-            ConfigData configData = new();
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]"
+            };
             Assert.That(handler.Validate(), Is.Null);
             handler.ApplyTo(configData);
 
@@ -273,6 +277,94 @@ namespace FWO.Test
                 // saving must neither store the abandoned marker nor request a rebuild for a change it did not write
                 Assert.That(handler.ApplyTo(configData), Is.False);
                 Assert.That(configData.ModModelledMarker, Is.EqualTo("FWOC"));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_KeepsStoredOwnerKeys_WhenCustomFieldSectionIsNotDisplayed()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField,
+                CustomFieldOwnerKey = "LegacyKey",
+                ModModelledMarker = "FWOC"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.ModelledMarker = "MODELLED";
+
+            Assert.That(handler.Validate(), Is.Null);
+            handler.ApplyTo(configData);
+
+            // saving the name field marker must not touch the setting of a section the user never opened
+            Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("LegacyKey"));
+        }
+
+        [Test]
+        public void ApplyTo_StillRequestsRebuild_WhenTheFirstSaveAttemptFailed()
+        {
+            // the settings pages hand their long lived configuration to every attempt, the first one changed it
+            ConfigData configData = new();
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
+            handler.OwnerKeysToAdd.Add("app-id");
+
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.True);
+
+            // the write threw, nothing was stored, the admin presses save again
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ApplyTo(configData), Is.True);
+                Assert.That(configData.OwnerSoruceMappingID, Is.EqualTo((int)OwnerMappingSourceStm.CustomField));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_RequestsNoRebuild_WhenTheSavedSettingsWereTakenOver()
+        {
+            ConfigData configData = new();
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
+            handler.OwnerKeysToAdd.Add("app-id");
+
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.True);
+            handler.TakeOverStoredSettings(configData);
+
+            // saving the unchanged settings again must not rebuild the rule owner mappings a second time
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.False);
+        }
+
+        [Test]
+        public void DiscardEdits_ShowsTheStoredSettings_AfterAFailedSave()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]",
+                ModModelledMarker = "FWOC"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.SelectSource(OwnerMappingSourceStm.NameField);
+            handler.ModelledMarker = "XYZ";
+            handler.OwnerKeysToDelete.Add("app-id");
+
+            // the failed attempt left its values in the configuration, they must not be mistaken for stored ones
+            handler.ApplyTo(configData);
+            handler.DiscardEdits();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.SelectedSource, Is.EqualTo(OwnerMappingSourceStm.CustomField));
+                Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "app-id" }));
+                Assert.That(handler.OwnerKeysToDelete, Is.Empty);
+                Assert.That(handler.ModelledMarker, Is.EqualTo("FWOC"));
             });
         }
 

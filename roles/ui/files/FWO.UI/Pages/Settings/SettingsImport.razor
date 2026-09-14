@@ -153,6 +153,7 @@ else
                 bool ruleOwnerReinitializeNeeded = ownerMappingSourceHandler.ApplyTo(configData);
 
                 await globalConfig.WriteToDatabase(configData, apiConnection);
+                ownerMappingSourceHandler.TakeOverStoredSettings(configData);
                 CommitChangeIdKeys(mergedChangeIdKeys);
 
                 if (ruleOwnerReinitializeNeeded)

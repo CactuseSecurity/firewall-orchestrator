@@ -154,6 +154,7 @@
 
             bool ruleOwnerReinitializeNeeded = ownerMappingSourceHandler.ApplyTo(ConfigData);
             await globalConfig.WriteToDatabase(ConfigData, apiConnection);
+            ownerMappingSourceHandler.TakeOverStoredSettings(ConfigData);
 
             if (ruleOwnerReinitializeNeeded)
             {
@@ -178,10 +179,7 @@
     /// </summary>
     private void Close()
     {
-        if (ConfigData != null)
-        {
-            ownerMappingSourceHandler.Init(ConfigData);
-        }
+        ownerMappingSourceHandler.DiscardEdits();
         Display = false;
         _ = DisplayChanged.InvokeAsync(Display);
     }

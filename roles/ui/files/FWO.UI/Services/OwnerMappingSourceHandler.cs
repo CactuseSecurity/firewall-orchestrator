@@ -65,29 +65,53 @@ namespace FWO.Ui.Services
         /// </summary>
         public string ModelledMarker { get; set; } = "";
 
+        private int storedSource;
+        private string storedModelledMarker = "";
         private string rawOwnerKeys = "";
         private bool ownerKeysReadable = true;
 
         /// <summary>
-        /// Reads the mapping source settings from the given configuration.
+        /// Reads the mapping source settings from the given configuration and shows them in the editor.
         /// </summary>
         /// <param name="configData">Configuration to read from.</param>
         public void Init(ConfigData configData)
         {
-            SelectSource(Enum.IsDefined(typeof(OwnerMappingSourceStm), configData.OwnerSoruceMappingID)
-                ? (OwnerMappingSourceStm)configData.OwnerSoruceMappingID
-                : OwnerMappingSourceStm.Disabled);
+            TakeOverStoredSettings(configData);
+            DiscardEdits();
+        }
+
+        /// <summary>
+        /// Takes over the mapping source settings as they are stored in the database. Has to be called again
+        /// after every successful write, because the editor compares against these settings to decide whether a
+        /// full rule owner mapping rebuild is required, see <see cref="ApplyTo"/>.
+        /// </summary>
+        /// <param name="configData">Configuration holding the stored settings.</param>
+        public void TakeOverStoredSettings(ConfigData configData)
+        {
+            storedSource = configData.OwnerSoruceMappingID;
             rawOwnerKeys = configData.CustomFieldOwnerKey ?? "";
+            storedModelledMarker = configData.ModModelledMarker ?? "";
+        }
+
+        /// <summary>
+        /// Drops every edit which was not written to the database and shows the stored settings again.
+        /// </summary>
+        public void DiscardEdits()
+        {
+            SelectSource(Enum.IsDefined(typeof(OwnerMappingSourceStm), storedSource)
+                ? (OwnerMappingSourceStm)storedSource
+                : OwnerMappingSourceStm.Disabled);
             OwnerKeys = DeserializeOwnerKeys(rawOwnerKeys, out ownerKeysReadable);
             OwnerKeysToAdd = [];
             OwnerKeysToDelete = [];
-            ModelledMarker = configData.ModModelledMarker ?? "";
+            ModelledMarker = storedModelledMarker;
         }
 
         /// <summary>
         /// Selects a mapping source. The owner keys queued for addition and removal are kept, so a source
         /// round trip does not lose them; only the key typed into the editor of the section being left is dropped.
-        /// Settings of a source which is not selected are never saved, see <see cref="Validate"/> and <see cref="ApplyTo"/>.
+        /// The settings of a source which is not selected are left as they are stored, see <see cref="Validate"/>
+        /// and <see cref="ApplyTo"/>.
         /// </summary>
         /// <param name="source">Mapping source to select.</param>
         public void SelectSource(OwnerMappingSourceStm? source)
@@ -150,7 +174,9 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Writes the edited mapping source settings into the given configuration.
+        /// Writes the edited mapping source settings into the given configuration. The settings are compared
+        /// against the stored ones taken over by <see cref="TakeOverStoredSettings"/>, so the rebuild a change
+        /// requires is still requested when a previous save attempt failed after changing the configuration.
         /// </summary>
         /// <param name="configData">Configuration to write to.</param>
         /// <returns>True if the change requires a full rule owner mapping rebuild.</returns>
@@ -162,22 +188,23 @@ namespace FWO.Ui.Services
                 throw new InvalidOperationException($"{nameof(Validate)} has to succeed before {nameof(ApplyTo)} is called.");
             }
 
-            int oldSource = configData.OwnerSoruceMappingID;
-            string oldOwnerKeys = configData.CustomFieldOwnerKey ?? "";
-            string oldModelledMarker = configData.ModModelledMarker ?? "";
-
             configData.OwnerSoruceMappingID = (int)SelectedSource.Value;
-            // an unreadable stored value has to survive saving a setting which does not use it
-            configData.CustomFieldOwnerKey = ownerKeysReadable || OwnerKeys.Count > 0
-                ? JsonSerializer.Serialize(OwnerKeys)
-                : rawOwnerKeys;
-            // the marker belongs to the name field section, an edit abandoned there must not be saved unseen
+            // each section only writes its own setting, so an edit abandoned there cannot be saved unseen
+            if (SelectedSource == OwnerMappingSourceStm.CustomField)
+            {
+                // an unreadable stored value has to survive a save which does not replace it
+                configData.CustomFieldOwnerKey = ownerKeysReadable || OwnerKeys.Count > 0
+                    ? JsonSerializer.Serialize(OwnerKeys)
+                    : rawOwnerKeys;
+            }
             if (SelectedSource == OwnerMappingSourceStm.NameField)
             {
                 configData.ModModelledMarker = ModelledMarker;
             }
 
-            return NeedsRuleOwnerReinitialize(oldSource, oldOwnerKeys, oldModelledMarker, configData);
+            // the stored settings are compared, not the ones of the given configuration: a retry after a failed
+            // write would otherwise compare the configuration the previous attempt already changed against itself
+            return NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
         }
 
         /// <summary>

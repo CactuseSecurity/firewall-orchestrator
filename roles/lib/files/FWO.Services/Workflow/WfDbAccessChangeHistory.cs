@@ -65,6 +65,7 @@ namespace FWO.Services.Workflow
                 objectId = target.ObjectId,
                 changeText,
                 changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? Roles.MiddlewareServer : UserConfig.User.Name,
+                changerId = ChangerId > 0 ? ChangerId : null,
                 changeSource = GlobalConst.kModuleWorkflow,
                 workflowPhase = (int)WorkflowPhase,
                 oldData = oldValue,
@@ -73,7 +74,13 @@ namespace FWO.Services.Workflow
             };
             try
             {
-                await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, variables);
+                // In the UI the connection runs with a user role, whose changer_id insert preset fills the
+                // column from the session and is therefore not part of that role's insert input. Only the
+                // middleware-server role writes changer_id itself, so only that path may name it in the
+                // mutation. changerId stays in the variables of both: a variable value the operation does
+                // not declare is not coerced and is ignored.
+                await ApiConnection.SendQueryAsync<ReturnIdWrapper>(
+                    IsUiContext ? ModellingQueries.addHistoryEntry : ModellingQueries.addHistoryEntryAsService, variables);
             }
             catch (Exception exception)
             {

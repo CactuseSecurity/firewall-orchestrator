@@ -3007,6 +3007,7 @@
                       "module",
                       "object_id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "app_id",
                       "change_type",
@@ -3019,7 +3020,7 @@
                       "audit_proof_critical"
                     ]
                   },
-                  "comment": "No changer_id preset: internal middleware JWTs (JwtWriter.CreateJWTInternal) carry no x-hasura-user-id session variable, so a preset would make every history insert of a background job fail. Rows written by the middleware itself keep changer_id NULL and are identified by changer alone."
+                  "comment": "changer_id is a writable column instead of a preset: internal middleware JWTs (JwtWriter.CreateJWTInternal) carry no x-hasura-user-id session variable, so a preset would make every history insert of a background job fail. REST entry points acting for an authenticated human pass that user's id explicitly through addHistoryEntryAsService, so the row stays resolvable to the uiuser record. Background jobs pass nothing and keep changer_id NULL, which is what marks a row as automated. The role is reachable only with an internally issued service JWT, never with a user JWT, so this cannot be used to forge another user's id."
                 },
                 {
                   "role": "requester",

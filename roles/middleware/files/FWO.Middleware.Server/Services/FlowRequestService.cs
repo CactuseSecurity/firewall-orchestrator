@@ -72,7 +72,11 @@ public sealed class FlowRequestService : IDisposable
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds);
-        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName);
+        // requesterId is the id of the authenticated caller, so it is also the changer - but only when that
+        // caller is named. An internal caller supplies a requester without being the user who made the change,
+        // and attributing the change history entry to that requester would be wrong.
+        int? changerId = string.IsNullOrWhiteSpace(callerName) ? null : requesterId;
+        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
         string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateRequestResponse
@@ -631,16 +635,20 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Persists the created ticket through the workflow save path so request actions are executed consistently.
     /// </summary>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName)
+    /// <param name="ticket">Ticket to persist.</param>
+    /// <param name="phase">Workflow phase the ticket is created in.</param>
+    /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
+    /// <param name="changerId">Database id of the authenticated caller, null for unauthenticated internal callers.</param>
+    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
     {
         using UserConfig userConfig = CreateWorkflowUserConfig(callerName);
-        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true };
+        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true, ChangerId = changerId };
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {
             throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
         }
 
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false);
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false) { ChangerId = changerId };
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
 

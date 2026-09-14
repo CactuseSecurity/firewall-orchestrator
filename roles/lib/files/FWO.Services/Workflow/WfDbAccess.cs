@@ -10,6 +10,17 @@ namespace FWO.Services.Workflow
 {
     public partial class WfDbAccess(Action<Exception?, string, string, bool> DisplayMessageInUi, UserConfig UserConfig, ApiConnection ApiConnection, ActionHandler ActionHandler, bool AsAdmin, WorkflowPhases WorkflowPhase, bool IsUiContext = true)
     {
+        /// <summary>
+        /// Database id of the user whose change history entries this instance writes, null for automated changes.
+        /// </summary>
+        /// <remarks>
+        /// Only used outside the UI context. There the api connection runs with the middleware-server role,
+        /// which has no changer_id insert preset, so the id has to be supplied by the entry point that knows
+        /// the authenticated caller. It is a property rather than a constructor parameter to keep the
+        /// constructor at the parameter limit of the coding guidelines.
+        /// </remarks>
+        public int? ChangerId { get; set; }
+
         public async Task<List<WfTicket>> FetchTickets(StateMatrix stateMatrix, List<int>? ownerIds = null, bool allStates = false, bool fullTickets = false,
             Func<WfTicket, bool>? ticketFilter = null)
         {

@@ -24,6 +24,8 @@ namespace FWO.Test;
 [TestFixture]
 internal class FlowRequestServiceTest
 {
+    private const int kTrustedCallerId = 77;
+
     [Test]
     public async Task GetRequestStatusAsync_ReturnsStateNameAndLatestComment()
     {
@@ -1452,6 +1454,44 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
+    public async Task CreateRequest_LogsTheAuthenticatedCallerIdAsChangerId()
+    {
+        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
+        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(CreateAccessRequest("Caller attributed request"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            Assert.That(apiConnection.AddHistoryEntryCallCount, Is.GreaterThan(0));
+            // the middleware-server role has no changer_id preset, so the caller id has to be written explicitly
+            Assert.That(apiConnection.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntryAsService));
+            Assert.That(GetVariable(apiConnection.LastHistoryVariables, "changerId"), Is.EqualTo(kTrustedCallerId));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_LeavesTheChangerIdEmptyWhenTheCallerIsUnknown()
+    {
+        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
+        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+
+        await service.CreateRequestAsync(CreateAccessRequest("Unattributed request"), kTrustedCallerId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(apiConnection.AddHistoryEntryCallCount, Is.GreaterThan(0));
+            // the id is the requester supplied by the internal caller, not the user who made the change
+            Assert.That(GetVariable(apiConnection.LastHistoryVariables, "changerId"), Is.Null);
+        });
+    }
+
+    [Test]
     public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
     {
         FlowRequestServiceApiConn apiConnection = new()
@@ -2411,7 +2451,7 @@ internal class FlowRequestServiceTest
         return new ClaimsPrincipal(new ClaimsIdentity(
             new List<Claim>
             {
-                new("x-hasura-user-id", "77"),
+                new("x-hasura-user-id", $"{kTrustedCallerId}"),
                 new("unique_name", "trusted-caller"),
                 new(ClaimTypes.Name, "Trusted Requester"),
                 new("x-hasura-uuid", "uid=trusted,dc=fworch,dc=internal")
@@ -2555,6 +2595,7 @@ internal class FlowRequestServiceTest
         public WfTicketWriter? LastTicketWriter { get; private set; }
         public int AddHistoryEntryCallCount { get; private set; }
         public object? LastHistoryVariables { get; private set; }
+        public string? LastHistoryQuery { get; private set; }
         public object? NewTicketVariables { get; private set; }
         public WfTicket? CreatedTicket { get; private set; }
         public string? ConfigSubscriptionQuery { get; private set; }
@@ -2584,10 +2625,11 @@ internal class FlowRequestServiceTest
                 return Task.FromResult((QueryResponseType)(object)new List<UiText>());
             }
 
-            if (query == ModellingQueries.addHistoryEntry)
+            if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
             {
                 AddHistoryEntryCallCount++;
                 LastHistoryVariables = variables;
+                LastHistoryQuery = query;
                 return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper());
             }
 

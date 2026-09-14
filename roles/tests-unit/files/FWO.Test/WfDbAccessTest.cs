@@ -68,6 +68,7 @@ namespace FWO.Test
             public int UpdateTicketStateCallCount { get; private set; }
             public int AddHistoryEntryCallCount { get; private set; }
             public object? LastHistoryVariables { get; private set; }
+            public string? LastHistoryQuery { get; private set; }
             public long NewApprovalId { get; set; } = 301;
             public int GetTicketByIdCallCount { get; private set; }
             public bool ThrowOnGetTicketById { get; set; }
@@ -80,10 +81,11 @@ namespace FWO.Test
                     List<TicketId> ids = RegisteredTicketIds.ConvertAll(id => new TicketId { Id = id });
                     return Task.FromResult((T)(object)ids);
                 }
-                if (query == ModellingQueries.addHistoryEntry)
+                if (query == ModellingQueries.addHistoryEntry || query == ModellingQueries.addHistoryEntryAsService)
                 {
                     AddHistoryEntryCallCount++;
                     LastHistoryVariables = variables;
+                    LastHistoryQuery = query;
                     if (ThrowOnAddHistoryEntry)
                     {
                         throw new InvalidOperationException("field 'insert_change_history' not found in type: 'mutation_root'");
@@ -2380,6 +2382,64 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task LogWorkflowChange_NamesTheCallerId_WhenTheMiddlewareActsForAUser()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "alice", false, kCallerUserId);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            Assert.Multiple(() =>
+            {
+                // the middleware-server role has no changer_id preset, so only the service mutation may write it
+                Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntryAsService));
+                Assert.That(HistoryRawValue(apiConn, "changerId"), Is.EqualTo($"{kCallerUserId}"));
+            });
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_LeavesTheChangerIdEmpty_WhenTheMiddlewareActsForAutomation()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "", false, null);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntryAsService));
+                // a background job has no user record, so changer alone identifies the writer
+                Assert.That(HistoryRawValue(apiConn, "changerId"), Is.EqualTo("null"));
+                Assert.That(HistoryRawValue(apiConn, "changer"), Does.Contain(Roles.MiddlewareServer));
+            });
+        }
+
+        [Test]
+        public async Task LogWorkflowChange_KeepsTheChangerIdPresetMutation_InTheUiContext()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101,
+                Ticket = new WfTicket { Id = 101, Title = "Old title", Requester = new UiUser { DbId = 7 } }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.approval, "alice", true, kCallerUserId);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket { Id = 101, Title = "Corrected title" });
+
+            // the user roles fill changer_id from the session preset, which removes the column from their
+            // insert input - naming it in the mutation would make every UI history insert fail
+            Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntry));
+        }
+
         private static WfState CreatePromotingState(int stateId)
         {
             return new WfState
@@ -2452,6 +2512,12 @@ namespace FWO.Test
 
         private static async Task<WfDbAccess> CreateHistoryDbAccess(WfDbAccessTestApiConn apiConnection, WorkflowPhases phase, string? userName = null)
         {
+            return await CreateHistoryDbAccess(apiConnection, phase, userName, true, null);
+        }
+
+        private static async Task<WfDbAccess> CreateHistoryDbAccess(WfDbAccessTestApiConn apiConnection, WorkflowPhases phase, string? userName,
+            bool isUiContext, int? changerId)
+        {
             UserConfig userConfig = new();
             await userConfig.InitWithUserId(apiConnection, 42, false);
             if (userName != null)
@@ -2461,7 +2527,7 @@ namespace FWO.Test
             WfHandler wfHandler = new();
             ActionHandler actionHandler = new(apiConnection, wfHandler);
             await actionHandler.Init(new List<WfState>());
-            return new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, actionHandler, false, phase);
+            return new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, actionHandler, false, phase, isUiContext) { ChangerId = changerId };
         }
 
         private static string? HistoryRawValue(WfDbAccessTestApiConn apiConnection, string name)
@@ -2498,6 +2564,7 @@ namespace FWO.Test
 
         // reflection argument list, kept in a field so no inline array argument is introduced
         private static readonly object[] WithoutTriggerActions = [false];
+        private const int kCallerUserId = 93;
 
         private static void SetWorkflowContext(WfHandler wfHandler, WfDbAccess dbAccess)
         {

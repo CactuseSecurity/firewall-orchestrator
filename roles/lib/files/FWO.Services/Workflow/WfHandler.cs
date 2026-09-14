@@ -54,6 +54,12 @@ namespace FWO.Services.Workflow
         public bool DisplayPromoteReqTaskMode = false;
         public bool DisplayPromoteImplTaskMode = false;
 
+        /// <summary>
+        /// Database id of the authenticated user this handler acts for, null when it acts for automation.
+        /// Handed to the change history writer so entries made outside the UI stay resolvable to a user record.
+        /// </summary>
+        public int? ChangerId { get; set; }
+
         public bool InitDone = false;
         private Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
         public UserConfig userConfig;
@@ -171,7 +177,7 @@ namespace FWO.Services.Workflow
                             List<WfState> states = await apiConnection.SendQueryAsync<List<WfState>>(RequestQueries.getStates);
                             ActionHandler = new(apiConnection, this, UserGroups, usedInMwServer, RequestedRulePolicyChecker, WorkflowRecipientResolver);
                             await ActionHandler.Init(states);
-                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true, Phase, false) { };
+                            dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, apiConnection, ActionHandler, true, Phase, false) { ChangerId = ChangerId };
                             await stateMatrixDict.Init(Phase, apiConnection, states);
                             MasterStateMatrix = stateMatrixDict.Matrices[WfTaskType.master.ToString()];
                         });
@@ -205,7 +211,7 @@ namespace FWO.Services.Workflow
             // usedInMwServer: automated changes must never be classified as audit proof critical.
             dbAcc = new WfDbAccess(DisplayMessageInUi, userConfig, activeApiConnection, ActionHandler,
                 AuthUser == null || userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor), Phase, !usedInMwServer)
-            { };
+            { ChangerId = ChangerId };
             Devices = await activeApiConnection.SendQueryAsync<List<Device>>(DeviceQueries.getDeviceDetails);
             AllOwners = await activeApiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
             await stateMatrixDict.Init(Phase, activeApiConnection, states);

@@ -84,7 +84,7 @@ namespace FWO.Test
         {
             SettingsImport component = new();
             OwnerMappingSourceHandler ownerMappingSourceHandler = GetField<OwnerMappingSourceHandler>(component, "ownerMappingSourceHandler");
-            ownerMappingSourceHandler.SelectedSource = null;
+            ownerMappingSourceHandler.SelectSource(null);
             SetField(component, "ChangeIdKeys", new List<string> { "field-2" });
             SetField(component, "ChangeIdKeysToAdd", new List<string> { "ChangeID" });
             SetField(component, "ChangeIdKeysToDelete", new List<string>());

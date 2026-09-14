@@ -36,9 +36,9 @@ namespace FWO.Ui.Services
                 .Cast<OwnerMappingSourceStm?>()];
 
         /// <summary>
-        /// Currently selected mapping source.
+        /// Currently selected mapping source. Only changeable through <see cref="SelectSource"/>.
         /// </summary>
-        public OwnerMappingSourceStm? SelectedSource { get; set; }
+        public OwnerMappingSourceStm? SelectedSource { get; private set; }
 
         /// <summary>
         /// Owner keys of the custom field mapping.
@@ -74,27 +74,25 @@ namespace FWO.Ui.Services
         /// <param name="configData">Configuration to read from.</param>
         public void Init(ConfigData configData)
         {
-            SelectedSource = Enum.IsDefined(typeof(OwnerMappingSourceStm), configData.OwnerSoruceMappingID)
+            SelectSource(Enum.IsDefined(typeof(OwnerMappingSourceStm), configData.OwnerSoruceMappingID)
                 ? (OwnerMappingSourceStm)configData.OwnerSoruceMappingID
-                : OwnerMappingSourceStm.Disabled;
+                : OwnerMappingSourceStm.Disabled);
             rawOwnerKeys = configData.CustomFieldOwnerKey ?? "";
             OwnerKeys = DeserializeOwnerKeys(rawOwnerKeys, out ownerKeysReadable);
             OwnerKeysToAdd = [];
             OwnerKeysToDelete = [];
-            ActiveOwnerKey = "";
             ModelledMarker = configData.ModModelledMarker ?? "";
         }
 
         /// <summary>
-        /// Selects a mapping source and drops the owner key edits which were not applied yet, so edits made in an
-        /// editor section which is no longer displayed cannot be saved without the user seeing them.
+        /// Selects a mapping source. The owner keys queued for addition and removal are kept, so a source
+        /// round trip does not lose them; only the key typed into the editor of the section being left is dropped.
+        /// Settings of a source which is not selected are never saved, see <see cref="Validate"/> and <see cref="ApplyTo"/>.
         /// </summary>
         /// <param name="source">Mapping source to select.</param>
         public void SelectSource(OwnerMappingSourceStm? source)
         {
             SelectedSource = source;
-            OwnerKeysToAdd = [];
-            OwnerKeysToDelete = [];
             ActiveOwnerKey = "";
         }
 
@@ -127,7 +125,8 @@ namespace FWO.Ui.Services
 
         /// <summary>
         /// Checks whether the mapping source settings can be persisted and applies the pending owner key edits
-        /// only when they can, so a rejected save leaves the editor showing the stored settings.
+        /// only when they can, so a rejected save leaves the editor showing the stored settings. Key edits of the
+        /// custom field section are only committed while that section is displayed.
         /// </summary>
         /// <returns>The text key of the error to display, or <see langword="null"/> when the settings are valid.</returns>
         public string? Validate()
@@ -136,9 +135,13 @@ namespace FWO.Ui.Services
             {
                 return kNoSourceSelectedError;
             }
+            if (SelectedSource != OwnerMappingSourceStm.CustomField)
+            {
+                return null;
+            }
 
             List<string> editedOwnerKeys = BuildOwnerKeysAfterPendingEdits();
-            if (SelectedSource == OwnerMappingSourceStm.CustomField && editedOwnerKeys.Count == 0)
+            if (editedOwnerKeys.Count == 0)
             {
                 return kNoOwnerKeyError;
             }
@@ -168,7 +171,11 @@ namespace FWO.Ui.Services
             configData.CustomFieldOwnerKey = ownerKeysReadable || OwnerKeys.Count > 0
                 ? JsonSerializer.Serialize(OwnerKeys)
                 : rawOwnerKeys;
-            configData.ModModelledMarker = ModelledMarker;
+            // the marker belongs to the name field section, an edit abandoned there must not be saved unseen
+            if (SelectedSource == OwnerMappingSourceStm.NameField)
+            {
+                configData.ModModelledMarker = ModelledMarker;
+            }
 
             return NeedsRuleOwnerReinitialize(oldSource, oldOwnerKeys, oldModelledMarker, configData);
         }
@@ -202,11 +209,8 @@ namespace FWO.Ui.Services
         /// <returns>The owner keys as they are once the queued edits are applied.</returns>
         private List<string> BuildOwnerKeysAfterPendingEdits()
         {
-            List<string> editedOwnerKeys = [.. OwnerKeys];
-            foreach (string key in OwnerKeysToDelete)
-            {
-                editedOwnerKeys.Remove(key);
-            }
+            // the editor marks every row carrying a deleted key, so a key stored twice has to disappear completely
+            List<string> editedOwnerKeys = [.. OwnerKeys.Where(key => !OwnerKeysToDelete.Contains(key))];
             editedOwnerKeys.AddRange(OwnerKeysToAdd);
             return editedOwnerKeys;
         }

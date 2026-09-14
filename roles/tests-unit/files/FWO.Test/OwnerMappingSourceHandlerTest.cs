@@ -114,7 +114,7 @@ namespace FWO.Test
         public void Validate_ReportsMissingSource()
         {
             OwnerMappingSourceHandler handler = new();
-            handler.SelectedSource = null;
+            handler.SelectSource(null);
 
             Assert.That(handler.Validate(), Is.EqualTo(OwnerMappingSourceHandler.kNoSourceSelectedError));
         }
@@ -123,7 +123,7 @@ namespace FWO.Test
         public void Validate_ReportsMissingOwnerKey_ForCustomFieldMapping()
         {
             OwnerMappingSourceHandler handler = new();
-            handler.SelectedSource = OwnerMappingSourceStm.CustomField;
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
 
             Assert.That(handler.Validate(), Is.EqualTo(OwnerMappingSourceHandler.kNoOwnerKeyError));
         }
@@ -181,7 +181,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void SelectSource_DropsTheOwnerKeyEditsOfTheSectionBeingLeft()
+        public void SelectSource_KeepsTheQueuedOwnerKeyEdits()
         {
             OwnerMappingSourceHandler handler = new();
             handler.Init(new ConfigData
@@ -193,15 +193,30 @@ namespace FWO.Test
             handler.OwnerKeysToAdd.Add("queued");
             handler.ActiveOwnerKey = "typed";
 
-            handler.SelectSource(OwnerMappingSourceStm.Disabled);
+            handler.SelectSource(OwnerMappingSourceStm.NameField);
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
 
             Assert.Multiple(() =>
             {
-                Assert.That(handler.SelectedSource, Is.EqualTo(OwnerMappingSourceStm.Disabled));
-                Assert.That(handler.OwnerKeysToAdd, Is.Empty);
-                Assert.That(handler.OwnerKeysToDelete, Is.Empty);
+                Assert.That(handler.SelectedSource, Is.EqualTo(OwnerMappingSourceStm.CustomField));
+                // looking at another source and coming back must not throw away work the editor showed as queued
+                Assert.That(handler.OwnerKeysToAdd, Is.EqualTo(new List<string> { "queued" }));
+                Assert.That(handler.OwnerKeysToDelete, Is.EqualTo(new List<string> { "app-id" }));
                 Assert.That(handler.ActiveOwnerKey, Is.Empty);
             });
+        }
+
+        [Test]
+        public void Validate_KeepsOwnerKeysUnchanged_WhileTheCustomFieldSectionIsNotDisplayed()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]"
+            });
+            handler.OwnerKeysToDelete.Add("app-id");
+            handler.SelectSource(OwnerMappingSourceStm.Disabled);
 
             ConfigData configData = new();
             Assert.That(handler.Validate(), Is.Null);
@@ -212,6 +227,52 @@ namespace FWO.Test
                 // edits queued in the no longer displayed custom field section must not reach the configuration
                 Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "app-id" }));
                 Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"app-id\"]"));
+                // but they stay queued, so the deletion is still offered when the section is displayed again
+                Assert.That(handler.OwnerKeysToDelete, Is.EqualTo(new List<string> { "app-id" }));
+            });
+        }
+
+        [Test]
+        public void Validate_RemovesEveryOccurrenceOfADeletedOwnerKey()
+        {
+            OwnerMappingSourceHandler handler = new();
+            // a version before the editor rejected duplicates could store the same key twice
+            handler.Init(new ConfigData
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\",\"app-id\",\"owner\"]"
+            });
+            handler.OwnerKeysToDelete.Add("app-id");
+
+            Assert.That(handler.Validate(), Is.Null);
+            // the editor marks every row carrying the key as deleted, so none of them may survive the save
+            Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "owner" }));
+        }
+
+        [Test]
+        public void ApplyTo_KeepsStoredMarker_WhenNameFieldSectionIsNotDisplayed()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]",
+                ModModelledMarker = "FWOC"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+
+            // the marker is edited in the name field section, then that source is abandoned again
+            handler.SelectSource(OwnerMappingSourceStm.NameField);
+            handler.ModelledMarker = "XYZ";
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
+
+            Assert.That(handler.Validate(), Is.Null);
+
+            Assert.Multiple(() =>
+            {
+                // saving must neither store the abandoned marker nor request a rebuild for a change it did not write
+                Assert.That(handler.ApplyTo(configData), Is.False);
+                Assert.That(configData.ModModelledMarker, Is.EqualTo("FWOC"));
             });
         }
 
@@ -319,7 +380,7 @@ namespace FWO.Test
         {
             OwnerMappingSourceHandler handler = new();
             handler.Init(new ConfigData());
-            handler.SelectedSource = null;
+            handler.SelectSource(null);
 
             Assert.Throws<InvalidOperationException>(() => handler.ApplyTo(new ConfigData()));
         }
@@ -334,7 +395,7 @@ namespace FWO.Test
             };
             OwnerMappingSourceHandler handler = new();
             handler.Init(configData);
-            handler.SelectedSource = OwnerMappingSourceStm.Disabled;
+            handler.SelectSource(OwnerMappingSourceStm.Disabled);
 
             bool rebuildNeeded = handler.ApplyTo(configData);
 
@@ -411,8 +472,12 @@ namespace FWO.Test
             handler.Init(configData);
             handler.ModelledMarker = "NEW";
 
-            // the marker is only evaluated by the name field mapping
-            Assert.That(handler.ApplyTo(configData), Is.False);
+            Assert.Multiple(() =>
+            {
+                // the marker is only evaluated and only written by the name field mapping
+                Assert.That(handler.ApplyTo(configData), Is.False);
+                Assert.That(configData.ModModelledMarker, Is.EqualTo("OLD"));
+            });
         }
     }
 }

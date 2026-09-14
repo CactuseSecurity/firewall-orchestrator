@@ -7,14 +7,30 @@
 # have actually been rotated stay in test-internal-ca-reset.yml, which runs only when a reset
 # is being performed; keeping the fixture cases here is what makes them execute at all.
 
+# The classifier reads internalca_managed_ca_common_names, a fact roles/internalCA sets in its
+# own play. That play does not run in a "--tags integrationtests" invocation, where this role
+# is the only one executed, so the list is rebuilt here from the anchor every host holds.
+# Taking the name off disk rather than inventing one also keeps the fixture asserting against
+# the issuer name the installed leaves really carry.
+- name: Read the internal CA in force for the ownership fixtures
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_ca_certificate_local }}"
+  register: test_ownership_ca_certificate_info
+
+- name: Build the managed CA name list for the ownership fixtures
+  set_fact:
+    test_ownership_managed_ca_common_names:
+      - "{{ test_ownership_ca_certificate_info.subject.commonName }}"
+
 - name: Classify a leaf signed by the internal CA in force
   include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
   vars:
+    internalca_managed_ca_common_names: "{{ test_ownership_managed_ca_common_names }}"
     internalca_classification_result_fact: test_ownership_current_ca_leaf
     internalca_classification_certificate_exists: true
     internalca_classification_certificate_info:
       issuer:
-        commonName: "{{ internalca_managed_ca_common_names | first }}"
+        commonName: "{{ test_ownership_managed_ca_common_names | first }}"
       subject: {}
       public_key_fingerprints: {}
     internalca_classification_legacy_organization: unused-test-organization
@@ -33,6 +49,7 @@
 - name: Classify a pre-9.5.0 self-signed identity
   include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
   vars:
+    internalca_managed_ca_common_names: "{{ test_ownership_managed_ca_common_names }}"
     internalca_classification_result_fact: test_ownership_legacy_leaf
     internalca_classification_certificate_exists: true
     internalca_classification_certificate_info:
@@ -55,6 +72,7 @@
 - name: Classify a leaf signed by an unrelated customer CA
   include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
   vars:
+    internalca_managed_ca_common_names: "{{ test_ownership_managed_ca_common_names }}"
     internalca_classification_result_fact: test_ownership_customer_leaf
     internalca_classification_certificate_exists: true
     internalca_classification_certificate_info:
@@ -80,22 +98,24 @@
 - name: Classify a certificate that could not be parsed
   include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
   vars:
+    internalca_managed_ca_common_names: "{{ test_ownership_managed_ca_common_names }}"
     internalca_classification_result_fact: test_ownership_unreadable_leaf
     internalca_classification_certificate_exists: true
     internalca_classification_certificate_info:
       issuer:
-        commonName: "{{ internalca_managed_ca_common_names | first }}"
+        commonName: "{{ test_ownership_managed_ca_common_names | first }}"
       subject: {}
     internalca_classification_legacy_organization: IT
 
 - name: Classify an identity that is not installed at all
   include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
   vars:
+    internalca_managed_ca_common_names: "{{ test_ownership_managed_ca_common_names }}"
     internalca_classification_result_fact: test_ownership_absent_leaf
     internalca_classification_certificate_exists: false
     internalca_classification_certificate_info:
       issuer:
-        commonName: "{{ internalca_managed_ca_common_names | first }}"
+        commonName: "{{ test_ownership_managed_ca_common_names | first }}"
       subject: {}
       public_key_fingerprints: {}
     internalca_classification_legacy_organization: IT
@@ -115,6 +135,10 @@
 - name: Start the missing retired CA name guard test
   set_fact:
     test_ownership_missing_retired_ca_name_rejected: false
+    # The one task in require-reset-retired-ca-name.yml that is allowed to stop this block.
+    # Keep it in step with that file's task name.
+    internalca_reset_guard_task_name: >-
+      Refuse an unsafe reset when the retired CA name cannot be determined
 
 - name: Test rejection of a reset without recoverable ownership information
   block:
@@ -122,15 +146,24 @@
       include_tasks: "{{ role_path }}/../internalCA/tasks/require-reset-retired-ca-name.yml"
       vars:
         internalca_reset_certificates: true
+        # A roles/internalCA default, so it is out of scope in this role. Without it the
+        # guard's own message cannot be rendered, and the rescue below would record a
+        # rejection the guard never made. It only appears in that message, so any path does.
+        internalca_ca_dir: /test/ca
         internalca_existing_ca_certificate:
           stat:
             exists: true
         internalca_retired_ca_common_name: ""
 
+  # Keyed on the guard task rather than on "something failed": every other way this block
+  # can fail - an undefined variable above all - looks exactly the same to a bare rescue,
+  # and would report the destructive path as refused when it was never reached.
   rescue:
     - name: Record rejection of the unsafe certificate reset
       set_fact:
-        test_ownership_missing_retired_ca_name_rejected: true
+        test_ownership_missing_retired_ca_name_rejected: >-
+          {{ ansible_failed_task.name == internalca_reset_guard_task_name }}
+        test_ownership_missing_retired_ca_name_failure: "{{ ansible_failed_task.name }}"
 
 - name: Verify reset stops before losing the old CA key
   assert:
@@ -138,7 +171,9 @@
       - test_ownership_missing_retired_ca_name_rejected | bool
     fail_msg: >-
       Certificate reset continued without a recoverable retired CA name and could replace the
-      only old signing key before it can classify and reissue the old leaves.
+      only old signing key before it can classify and reissue the old leaves. The run stopped
+      at "{{ test_ownership_missing_retired_ca_name_failure | default('no task') }}" instead
+      of "{{ internalca_reset_guard_task_name }}".
 
 - name: Exercise the OpenLDAP certificate-management opt-out
   include_tasks: "{{ role_path }}/../internalCA/tasks/validate-existing-ldap-identity.yml"

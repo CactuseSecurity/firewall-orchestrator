@@ -366,6 +366,48 @@ namespace FWO.Test
                 Assert.That(handler.OwnerKeysToDelete, Is.Empty);
                 Assert.That(handler.ModelledMarker, Is.EqualTo("FWOC"));
             });
+
+            Assert.That(handler.Validate(), Is.Null);
+            handler.ApplyTo(configData);
+
+            Assert.Multiple(() =>
+            {
+                // the whole configuration is written, so the marker of the failed attempt must not survive in it
+                Assert.That(configData.ModModelledMarker, Is.EqualTo("FWOC"));
+                Assert.That(configData.OwnerSoruceMappingID, Is.EqualTo((int)OwnerMappingSourceStm.CustomField));
+                Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"app-id\"]"));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_RestoresStoredOwnerKeys_WhichAFailedSaveAttemptLeftInTheConfiguration()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]",
+                ModModelledMarker = "FWOC"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.OwnerKeysToAdd.Add("owner");
+
+            // the first attempt wrote the added key into the configuration, the database write then failed
+            Assert.That(handler.Validate(), Is.Null);
+            handler.ApplyTo(configData);
+            handler.DiscardEdits();
+
+            // the admin cancels, switches to the name field mapping and saves that instead
+            handler.SelectSource(OwnerMappingSourceStm.NameField);
+            handler.ModelledMarker = "MODELLED";
+            Assert.That(handler.Validate(), Is.Null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ApplyTo(configData), Is.True);
+                Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"app-id\"]"));
+                Assert.That(configData.ModModelledMarker, Is.EqualTo("MODELLED"));
+            });
         }
 
         [Test]

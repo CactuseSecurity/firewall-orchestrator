@@ -174,9 +174,10 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Writes the edited mapping source settings into the given configuration. The settings are compared
-        /// against the stored ones taken over by <see cref="TakeOverStoredSettings"/>, so the rebuild a change
-        /// requires is still requested when a previous save attempt failed after changing the configuration.
+        /// Writes the edited mapping source settings into the given configuration, restoring the settings of the
+        /// sources which are not selected. Everything is compared against the stored settings taken over by
+        /// <see cref="TakeOverStoredSettings"/>, so a save attempt following a failed one neither loses the rebuild
+        /// the change requires nor keeps what the failed attempt wrote into the configuration.
         /// </summary>
         /// <param name="configData">Configuration to write to.</param>
         /// <returns>True if the change requires a full rule owner mapping rebuild.</returns>
@@ -189,18 +190,15 @@ namespace FWO.Ui.Services
             }
 
             configData.OwnerSoruceMappingID = (int)SelectedSource.Value;
-            // each section only writes its own setting, so an edit abandoned there cannot be saved unseen
-            if (SelectedSource == OwnerMappingSourceStm.CustomField)
-            {
-                // an unreadable stored value has to survive a save which does not replace it
-                configData.CustomFieldOwnerKey = ownerKeysReadable || OwnerKeys.Count > 0
-                    ? JsonSerializer.Serialize(OwnerKeys)
-                    : rawOwnerKeys;
-            }
-            if (SelectedSource == OwnerMappingSourceStm.NameField)
-            {
-                configData.ModModelledMarker = ModelledMarker;
-            }
+            // every section writes its own setting only and the settings of the other sections are restored from
+            // the stored ones, so neither an abandoned edit nor a value a failed save attempt left in the given
+            // configuration can reach the database, which is written as a whole
+            configData.CustomFieldOwnerKey = SelectedSource == OwnerMappingSourceStm.CustomField
+                ? SerializeOwnerKeys()
+                : rawOwnerKeys;
+            configData.ModModelledMarker = SelectedSource == OwnerMappingSourceStm.NameField
+                ? ModelledMarker
+                : storedModelledMarker;
 
             // the stored settings are compared, not the ones of the given configuration: a retry after a failed
             // write would otherwise compare the configuration the previous attempt already changed against itself
@@ -228,6 +226,15 @@ namespace FWO.Ui.Services
             }
 
             return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && oldModelledMarker != configData.ModModelledMarker;
+        }
+
+        /// <summary>
+        /// Serializes the owner keys shown in the editor, keeping an unreadable stored value which was not replaced.
+        /// </summary>
+        /// <returns>The owner key value to store.</returns>
+        private string SerializeOwnerKeys()
+        {
+            return ownerKeysReadable || OwnerKeys.Count > 0 ? JsonSerializer.Serialize(OwnerKeys) : rawOwnerKeys;
         }
 
         /// <summary>

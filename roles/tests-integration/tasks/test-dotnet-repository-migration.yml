@@ -55,3 +55,65 @@
   file:
     path: "{{ test_dotnet_repository_directory.path }}"
     state: absent
+
+# The Microsoft fallback refuses to install unless the apt candidate comes from
+# packages.microsoft.com, and it establishes that by parsing "Candidate:" out of
+# apt-cache policy. apt translates that label, so the read is pinned to LC_ALL=C in
+# install_dot_net.Debian.yml. Both halves of that reasoning are checked here: that
+# localized output really does defeat the pattern, and that the pin holds even when the
+# host's own locale is not English. The package is apt itself, which is always installed
+# and always has a candidate, because only the shape of the output is under test.
+- name: Parse a localized apt candidate with the production pattern
+  set_fact:
+    test_dotnet_localized_candidate: >-
+      {{ test_dotnet_localized_policy
+         | regex_search('Candidate:\s*(\S+)', '\1')
+         | default([], true) | first | default('', true) }}
+  vars:
+    # Captured from a German host. Kept as a fixture rather than produced by running apt
+    # under a German locale: a host can have the locale generated without apt's
+    # translation installed, which would quietly turn this case back into the English one.
+    test_dotnet_localized_policy: |
+      apt:
+        Installiert:           2.6.1
+        Installationskandidat: 2.6.1
+        Versionstabelle:
+
+- name: Verify localized apt output is what the pinned locale protects against
+  assert:
+    that:
+      - test_dotnet_localized_candidate | length == 0
+    fail_msg: >-
+      The candidate pattern in roles/lib/tasks/os/install_dot_net.Debian.yml now matches
+      localized apt-cache policy output, so the LC_ALL pin on that read no longer has a
+      defect to prevent. Confirm that before removing the pin - the pattern silently
+      returning nothing is what made the installer abandon the Microsoft repository and
+      install the SDK from dotnet-install.sh on every host whose locale is not English.
+
+- name: Read an apt candidate the way the dotnet pin check reads it
+  command: apt-cache policy apt
+  environment:
+    # The pin under test, against an ambient locale that would otherwise translate the
+    # labels. LANG rather than LC_ALL for the ambient half, so the production LC_ALL is
+    # what has to win.
+    LANG: de_DE.UTF-8
+    LC_ALL: C
+  register: test_dotnet_pinned_policy
+  changed_when: false
+
+- name: Verify the pinned locale still yields a candidate version
+  assert:
+    that:
+      - test_dotnet_pinned_candidate | length > 0
+    fail_msg: >-
+      apt-cache policy did not yield a parsable "Candidate:" line. The usual cause is the
+      LC_ALL pin having been dropped - from this read, or from the one in
+      roles/lib/tasks/os/install_dot_net.Debian.yml that this case stands in for - on a
+      host whose locale is not English. Without a candidate version the Microsoft origin
+      check cannot establish where the dotnet SDK comes from, and refuses the very install
+      it is meant to verify.
+  vars:
+    test_dotnet_pinned_candidate: >-
+      {{ test_dotnet_pinned_policy.stdout
+         | regex_search('Candidate:\s*(\S+)', '\1')
+         | default([], true) | first | default('', true) }}

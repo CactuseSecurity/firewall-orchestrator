@@ -153,13 +153,27 @@
             # get away from. Asked before installing, because apt reports nothing when two
             # preferences files disagree about the same package, and because a wrong SDK
             # installed and then worked around is harder to explain than a refusal here.
+            #
+            # LC_ALL because apt translates the labels this output is parsed for: a
+            # German host prints "Installationskandidat:" where the pattern below looks
+            # for "Candidate:". Unpinned, the version came back empty on every host whose
+            # locale is not English, the assert then failed with a message blaming a pin
+            # conflict that did not exist, and the rescue installed the SDK from
+            # dotnet-install.sh - outside apt, and without the pinned Microsoft origin
+            # this whole fallback exists to establish. madison prints no translated
+            # labels today, but its output is parsed just the same, so it is pinned with
+            # it rather than left to be discovered the same way.
             - name: read the apt candidate version for {{ dotnet_package_name }}
               command: "apt-cache policy {{ dotnet_package_name }}"
+              environment:
+                LC_ALL: C
               register: dotnet_candidate_policy
               changed_when: false
 
             - name: read which repositories offer {{ dotnet_package_name }}
               command: "apt-cache madison {{ dotnet_package_name }}"
+              environment:
+                LC_ALL: C
               register: dotnet_candidate_repositories
               changed_when: false
 

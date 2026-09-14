@@ -21,7 +21,7 @@ namespace FWO.Test
     {
         private sealed class TestJob : IJob
         {
-            public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+            public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default) => default;
         }
 
         private sealed class TestSchedulerService : QuartzSchedulerServiceBase<TestJob>
@@ -112,9 +112,9 @@ namespace FWO.Test
         public async Task ConfigEmissionWithUnchangedSchedule_DoesNotRescheduleQuartzJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            await ConfigureQuartzScheduler(scheduler);
+            ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -138,9 +138,9 @@ namespace FWO.Test
         public async Task DailyCheckConfigEmissionWithUnchangedSchedule_DoesNotRecreateQuartzJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            await ConfigureQuartzScheduler(scheduler);
+            ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -160,15 +160,14 @@ namespace FWO.Test
             await WaitUntil(async () => await ScheduleJobAndTriggerCallCount(scheduler) == 2);
         }
 
-        private static ValueTask ConfigureQuartzScheduler(IScheduler scheduler)
+        private static void ConfigureQuartzScheduler(IScheduler scheduler)
         {
-            scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(false));
-            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<AddJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.CompletedTask);
-            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(false));
-            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(true));
-            scheduler.ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(DateTimeOffset.Now));
-            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(DateTimeOffset.Now));
-            return ValueTask.CompletedTask;
+            scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<bool>(false));
+            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<AddJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => default);
+            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<bool>(false));
+            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<bool>(true));
+            scheduler.ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<DateTimeOffset>(DateTimeOffset.Now));
+            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<DateTimeOffset>(DateTimeOffset.Now));
         }
 
         private static async Task<int> ScheduleTriggerCallCount(IScheduler scheduler)

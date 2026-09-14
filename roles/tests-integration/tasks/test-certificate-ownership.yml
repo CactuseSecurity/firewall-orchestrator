@@ -1,0 +1,231 @@
+---
+# Certificate ownership decides whether an installer run replaces an identity or keeps its
+# hands off it. Getting it wrong in one direction overwrites a customer certificate, in the
+# other leaves an FWO one unrenewed until it expires - and both only surface long after the
+# run that caused them. Every case here is driven from literal fixtures rather than from
+# installed files, so the suite runs on every installation. The assertions that need a CA to
+# have actually been rotated stay in test-internal-ca-reset.yml, which runs only when a reset
+# is being performed; keeping the fixture cases here is what makes them execute at all.
+
+- name: Classify a leaf signed by the internal CA in force
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_ownership_current_ca_leaf
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: "{{ internalca_managed_ca_common_names | first }}"
+      subject: {}
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: unused-test-organization
+
+- name: Verify a leaf of the CA in force is FWO-managed
+  assert:
+    that:
+      - test_ownership_current_ca_leaf | bool
+    fail_msg: >-
+      A leaf signed by the internal CA currently in force was classified as customer-managed,
+      so the installer would stop renewing an identity it issued itself.
+
+# The pre-9.5.0 self-signed identities carried no FWO CA at all; they are recognised by
+# subject and issuer organization instead. Apache used "Cactus eSecurity", OpenLDAP used
+# "IT", which is why the classifier takes the legacy organization from its caller.
+- name: Classify a pre-9.5.0 self-signed identity
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_ownership_legacy_leaf
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: some-old-name
+        organizationName: Cactus eSecurity
+      subject:
+        organizationName: Cactus eSecurity
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: Cactus eSecurity
+
+- name: Verify a pre-9.5.0 self-signed identity is FWO-managed
+  assert:
+    that:
+      - test_ownership_legacy_leaf | bool
+    fail_msg: >-
+      A pre-9.5.0 self-signed FWO identity was classified as customer-managed, so an upgrade
+      would refuse to replace the very identity the internal CA exists to take over.
+
+- name: Classify a leaf signed by an unrelated customer CA
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_ownership_customer_leaf
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: customer-ca
+        organizationName: Customer
+      subject:
+        organizationName: Customer
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: IT
+
+- name: Verify a customer CA leaf remains customer-managed
+  assert:
+    that:
+      - not (test_ownership_customer_leaf | bool)
+    fail_msg: >-
+      A leaf signed by an unrelated customer CA was classified as FWO-managed and could be
+      overwritten during certificate reconciliation.
+
+# An identity FWO cannot read is never FWO's: the guards in detect-existing-certificates.yml
+# stop the run instead of guessing, and they only reach that decision because the classifier
+# declines to claim ownership of a certificate with no parsed fingerprints.
+- name: Classify a certificate that could not be parsed
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_ownership_unreadable_leaf
+    internalca_classification_certificate_exists: true
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: "{{ internalca_managed_ca_common_names | first }}"
+      subject: {}
+    internalca_classification_legacy_organization: IT
+
+- name: Classify an identity that is not installed at all
+  include_tasks: "{{ role_path }}/../internalCA/tasks/classify-existing-certificate.yml"
+  vars:
+    internalca_classification_result_fact: test_ownership_absent_leaf
+    internalca_classification_certificate_exists: false
+    internalca_classification_certificate_info:
+      issuer:
+        commonName: "{{ internalca_managed_ca_common_names | first }}"
+      subject: {}
+      public_key_fingerprints: {}
+    internalca_classification_legacy_organization: IT
+
+- name: Verify unreadable and absent identities are never claimed as FWO-managed
+  assert:
+    that:
+      - not (test_ownership_unreadable_leaf | bool)
+      - not (test_ownership_absent_leaf | bool)
+    fail_msg: >-
+      An unparsable or absent certificate was classified as FWO-managed, so the installer
+      would replace an identity it never established ownership of.
+
+# Exercise the reset preflight separately from the real CA files. An expected failure is
+# rescued so the run can prove the guard refuses the destructive path before create-ca.yml
+# reaches either force-regeneration task.
+- name: Start the missing retired CA name guard test
+  set_fact:
+    test_ownership_missing_retired_ca_name_rejected: false
+
+- name: Test rejection of a reset without recoverable ownership information
+  block:
+    - name: Run the certificate reset ownership preflight with no recoverable issuer
+      include_tasks: "{{ role_path }}/../internalCA/tasks/require-reset-retired-ca-name.yml"
+      vars:
+        internalca_reset_certificates: true
+        internalca_existing_ca_certificate:
+          stat:
+            exists: true
+        internalca_retired_ca_common_name: ""
+
+  rescue:
+    - name: Record rejection of the unsafe certificate reset
+      set_fact:
+        test_ownership_missing_retired_ca_name_rejected: true
+
+- name: Verify reset stops before losing the old CA key
+  assert:
+    that:
+      - test_ownership_missing_retired_ca_name_rejected | bool
+    fail_msg: >-
+      Certificate reset continued without a recoverable retired CA name and could replace the
+      only old signing key before it can classify and reissue the old leaves.
+
+- name: Exercise the OpenLDAP certificate-management opt-out
+  include_tasks: "{{ role_path }}/../internalCA/tasks/validate-existing-ldap-identity.yml"
+  vars:
+    internalca_issue_ldap_certificate: false
+    internalca_unreadable_ldap_files:
+      - /test/unreadable-openldap.key
+    internalca_existing_ldap_files:
+      results:
+        - stat:
+            exists: true
+        - stat:
+            exists: false
+    internalca_ldap_certificate_is_fwo_managed: false
+
+# Successful completion of the include is the assertion: either production guard fails the
+# run if the opt-out regresses.
+
+# The Apache opt-out has a second half the LDAP one does not need. OpenLDAP reads its identity
+# from the paths FWO configures, so switching issuance off is enough; every FWO Apache vhost
+# renders internalca_apache_certificate, so switching issuance off there also has to stop that
+# variable naming a path the run will never create.
+- name: Remember the Apache identity paths before testing the issuance opt-out
+  set_fact:
+    test_ownership_apache_identity_before:
+      certificate: "{{ internalca_apache_certificate }}"
+      private_key: "{{ internalca_apache_private_key }}"
+
+- name: Seed the FWO default Apache identity for the opt-out case
+  set_fact:
+    internalca_apache_certificate: /test/fwo-issued.crt
+    internalca_apache_private_key: /test/fwo-issued.key
+
+- name: Resolve the Apache identity with issuance switched off by the operator
+  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration: /test/fworch-ui.conf
+    internalca_existing_apache_certificate: /test/operator.crt
+    internalca_existing_apache_private_key: /test/operator.key
+    internalca_issue_apache_certificate: false
+    internalca_preserve_apache_certificate: false
+
+- name: Verify the operator's own Apache identity is what the vhosts will name
+  assert:
+    that:
+      - internalca_apache_certificate == '/test/operator.crt'
+      - internalca_apache_private_key == '/test/operator.key'
+    fail_msg: >-
+      With internalca_issue_apache_certificate set to false the FWO Apache vhosts still name
+      {{ internalca_apache_certificate }}, which this run does not create. Apache would refuse
+      to start on the next upgrade of a host whose identity FWO was told to keep away from.
+
+- name: Seed the FWO default Apache identity for the ownership-detection case
+  set_fact:
+    internalca_apache_certificate: /test/fwo-issued.crt
+    internalca_apache_private_key: /test/fwo-issued.key
+
+# Ownership detection rewrites the paths itself, and along with them the intermediate chain.
+# Doing it twice would be harmless here but would hide a later change that stopped it.
+- name: Resolve the Apache identity when ownership detection already retained it
+  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration: /test/fworch-ui.conf
+    internalca_existing_apache_certificate: /test/operator.crt
+    internalca_existing_apache_private_key: /test/operator.key
+    internalca_issue_apache_certificate: false
+    internalca_preserve_apache_certificate: true
+
+- name: Resolve the Apache identity on a host FWO does issue for
+  include_tasks: "{{ role_path }}/../internalCA/tasks/use-installed-apache-identity.yml"
+  vars:
+    internalca_existing_apache_configuration: /test/fworch-ui.conf
+    internalca_existing_apache_certificate: /test/operator.crt
+    internalca_existing_apache_private_key: /test/operator.key
+    internalca_issue_apache_certificate: true
+    internalca_preserve_apache_certificate: false
+
+- name: Verify the issued identity is left alone in both other cases
+  assert:
+    that:
+      - internalca_apache_certificate == '/test/fwo-issued.crt'
+      - internalca_apache_private_key == '/test/fwo-issued.key'
+    fail_msg: >-
+      The Apache identity was redirected at the installed vhost paths on a host where FWO
+      issues the identity itself, or where ownership detection had already retained it.
+
+- name: Restore the Apache identity paths after the issuance opt-out test
+  set_fact:
+    internalca_apache_certificate: "{{ test_ownership_apache_identity_before.certificate }}"
+    internalca_apache_private_key: "{{ test_ownership_apache_identity_before.private_key }}"

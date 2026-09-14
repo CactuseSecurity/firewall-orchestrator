@@ -184,6 +184,9 @@
     internalca_issue_apache_certificate: false
   when: internalca_preserve_apache_certificate | default(false) | bool
 
+- name: Keep the installed Apache identity when issuance is switched off
+  include_tasks: use-installed-apache-identity.yml
+
 # Applies to any Apache endpoint FWO clients verify, not just the API: the
 # integration tests validate the middleware and UI endpoints against the same
 # trust bundle, so a retained certificate on those hosts fails just as hard.

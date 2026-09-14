@@ -9,6 +9,44 @@
   register: internalca_maintenance_configuration
   become: true
 
+# With internalca_issue_apache_certificate set to false the selected identity is the
+# operator's own, and FWO has issued nothing - so for the first time these two paths can
+# name files that are not there. Writing them into the vhost anyway and then reloading
+# Apache in restart-consumers.yml fails the configuration test and takes the web server
+# down while the maintenance site is the only thing still enabled. roles/common already
+# refuses to restart Apache into an identity that is not on disk; the deferred restart
+# this task feeds has to apply the same rule rather than undo it.
+- name: Check the Apache identity the maintenance site is to serve
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ internalca_apache_certificate }}"
+    - "{{ internalca_apache_private_key }}"
+  register: internalca_maintenance_target_identity
+  become: true
+  when: internalca_maintenance_configuration.stat.exists
+
+- name: Record whether the maintenance Apache identity can be served
+  set_fact:
+    internalca_maintenance_identity_available: >-
+      {{
+        internalca_maintenance_configuration.stat.exists
+        and internalca_maintenance_target_identity.results | default([], true)
+            | selectattr('stat.exists') | list | length == 2
+      }}
+
+- name: Leave the maintenance site alone while its identity is absent
+  debug:
+    msg: >-
+      {{ internalca_maintenance_configuration_file }} names a maintenance site, but
+      {{ internalca_apache_certificate }} and {{ internalca_apache_private_key }} are not
+      both present - with internalca_issue_apache_certificate set to false FWO does not
+      create them. The vhost is left naming the identity Apache is already serving, and
+      Apache is not restarted, so this host stays exactly as it was.
+  when:
+    - internalca_maintenance_configuration.stat.exists
+    - not (internalca_maintenance_identity_available | bool)
+
 # insertafter anchors the replacement inside the TLS vhost. Without it lineinfile appends
 # a directive it cannot find to the end of the file, which lands outside <VirtualHost>
 # and silently sets the identity for the whole server instead of for this site. The
@@ -30,7 +68,7 @@
       path: "{{ internalca_apache_private_key }}"
   register: internalca_maintenance_identity_reconciliation
   become: true
-  when: internalca_maintenance_configuration.stat.exists
+  when: internalca_maintenance_identity_available | bool
 
 - name: Record maintenance Apache identity reconciliation
   set_fact:

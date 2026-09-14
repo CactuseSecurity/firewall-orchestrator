@@ -42,10 +42,17 @@
          else 'reloaded' }}
   become: true
   when:
+    # The deferred restart is conditional on the identity having arrived in the meantime.
+    # It has not when internalca_issue_apache_certificate is false: FWO then issues nothing,
+    # and the very reason roles/common deferred - the selected pair is not on disk - still
+    # holds. Restarting anyway would turn a web server that is still serving its previous
+    # configuration into a failed unit. Defaulted to true for every host that has no
+    # maintenance site, where reconcile-maintenance-certificate.yml never ran.
     - >-
       internalca_apache_identity_changed | default(false) | bool
       or internalca_maintenance_identity_changed | default(false) | bool
-      or maintenance_apache_restart_deferred | default(false) | bool
+      or (maintenance_apache_restart_deferred | default(false) | bool
+          and internalca_maintenance_identity_available | default(true) | bool)
     - (webserver_package_name ~ '.service') in fworch_installed_services
 
 - name: Restart slapd after its server identity was renewed

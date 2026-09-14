@@ -11,12 +11,28 @@
   set_fact:
     test_maintenance_state_before:
       identity_changed: "{{ internalca_maintenance_identity_changed | default('') }}"
+      # Not an empty-string stand-in like the one above: restart-consumers.yml reads this
+      # fact through | default(true), so an empty string would restore "false" where the
+      # production default is "true" and suppress a deferred restart rather than restore it.
+      identity_available: "{{ internalca_maintenance_identity_available | default(true) }}"
 
 - name: Create a temporary maintenance certificate test directory
   tempfile:
     state: directory
     prefix: fworch-maintenance-certificate-
   register: test_maintenance_certificate_directory
+
+# The production task refuses to write an identity that is not on disk, so the pair the
+# reconciliation cases expect has to exist. Only its presence is under test here - the
+# reconciliation reads neither file, it only writes their paths into the vhost.
+- name: Create the identity the reconciliation cases are reconciled onto
+  copy:
+    content: "not a certificate - only its presence on disk is under test"
+    dest: "{{ test_maintenance_certificate_directory.path }}/{{ item }}"
+    mode: "0600"
+  loop:
+    - expected.crt
+    - expected.key
 
 # Three cases, because each one is a different way for the reconciliation to be wrong:
 # the legacy paths a pre-9.5.0 upgrade brings, a vhost that already names the selected
@@ -53,8 +69,8 @@
 
           <VirtualHost *:{{ ui_web_port }}>
               SSLEngine on
-              SSLCertificateFile /customer/server.crt
-              SSLCertificateKeyFile /customer/server.key
+              SSLCertificateFile {{ test_maintenance_certificate_directory.path }}/expected.crt
+              SSLCertificateKeyFile {{ test_maintenance_certificate_directory.path }}/expected.key
           </VirtualHost>
         absent: []
       - name: missing-directives
@@ -85,14 +101,67 @@
     loop_var: test_maintenance_case
     label: "{{ test_maintenance_case.name }}"
   vars:
-    test_maintenance_expected_certificate: /customer/server.crt
-    test_maintenance_expected_private_key: /customer/server.key
+    test_maintenance_expected_certificate: "{{ test_maintenance_certificate_directory.path }}/expected.crt"
+    test_maintenance_expected_private_key: "{{ test_maintenance_certificate_directory.path }}/expected.key"
 
-# An empty string restores the "not set" state as far as restart-consumers.yml is
-# concerned: it reads the fact through | default(false) | bool.
+# internalca_issue_apache_certificate=false is the one way the selected identity can be
+# absent at this point: FWO issues nothing and the paths are the operator's own. Writing
+# them in and letting restart-consumers.yml reload Apache would fail the configuration
+# test and stop the web server while the maintenance site is all that is enabled, so the
+# vhost has to be left naming whatever Apache is already serving.
+- name: Write a maintenance configuration whose selected identity does not exist
+  copy:
+    content: |
+      <VirtualHost *:80>
+          ServerName maintenance-test:80
+      </VirtualHost>
+
+      <VirtualHost *:{{ ui_web_port }}>
+          SSLEngine on
+          SSLCertificateFile {{ apache_ssl_dir }}/server.crt
+          SSLCertificateKeyFile {{ apache_ssl_dir }}/server.key
+      </VirtualHost>
+    dest: "{{ test_maintenance_certificate_directory.path }}/absent-identity-maintenance.conf"
+    mode: "0600"
+
+- name: Reconcile a maintenance configuration onto an identity that does not exist
+  include_tasks: "{{ role_path }}/../internalCA/tasks/reconcile-maintenance-certificate.yml"
+  vars:
+    http_conf_dir: "{{ test_maintenance_certificate_directory.path }}/"
+    product_name: absent-identity
+    internalca_apache_certificate: "{{ test_maintenance_certificate_directory.path }}/never-issued.crt"
+    internalca_apache_private_key: "{{ test_maintenance_certificate_directory.path }}/never-issued.key"
+
+- name: Read the maintenance configuration that was left alone
+  slurp:
+    src: "{{ test_maintenance_certificate_directory.path }}/absent-identity-maintenance.conf"
+  register: test_maintenance_absent_identity_configuration
+
+- name: Verify an absent identity is neither written into the vhost nor restarted into
+  assert:
+    that:
+      - not (internalca_maintenance_identity_available | bool)
+      - not (internalca_maintenance_identity_changed | bool)
+      - "'never-issued' not in test_maintenance_absent_identity_content"
+      - "apache_ssl_dir ~ '/server.crt' in test_maintenance_absent_identity_content"
+      - "apache_ssl_dir ~ '/server.key' in test_maintenance_absent_identity_content"
+    fail_msg: >-
+      The maintenance vhost was repointed at an identity that does not exist
+      (available={{ internalca_maintenance_identity_available }},
+      changed={{ internalca_maintenance_identity_changed }}). Apache would then be
+      reloaded into a certificate it cannot read. Content: {{ test_maintenance_absent_identity_content }}
+  vars:
+    test_maintenance_absent_identity_content: >-
+      {{ test_maintenance_absent_identity_configuration.content | b64decode }}
+
+# For identity_changed an empty string restores the "not set" state as far as
+# restart-consumers.yml is concerned, because it reads that fact through | default(false).
+# identity_available was captured with its own production default for the opposite reason,
+# noted where it is saved.
 - name: Restore the maintenance reconciliation state
   set_fact:
     internalca_maintenance_identity_changed: "{{ test_maintenance_state_before.identity_changed }}"
+    internalca_maintenance_identity_available: "{{ test_maintenance_state_before.identity_available }}"
 
 - name: Remove the temporary maintenance certificate test directory
   file:

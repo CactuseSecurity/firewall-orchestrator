@@ -91,6 +91,9 @@
 - name: internal CA name testing
   import_tasks: test-internal-ca-name.yml
 
+- name: certificate ownership testing
+  import_tasks: test-certificate-ownership.yml
+
 - name: internal CA reset testing
   import_tasks: test-internal-ca-reset.yml
   vars:

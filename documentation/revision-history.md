@@ -691,6 +691,14 @@ Not supported any longer are:
   the installation addresses its endpoint under, not only when it approaches expiry, so
   renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
   leaves every FWO client failing on a TLS host name mismatch
+- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
+  Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
+  upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now
+  stops an upgrade from an older version before it changes anything, naming the two-step path
+  (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
+  schema changes silently
+
+## 9.5.1 - 12.09.2026
 - installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
   CA and every FWO-managed client and server identity, including the self-signed identities
   from versions before 9.5.0, while preserving customer-managed certificate/key pairs. The
@@ -701,14 +709,9 @@ Not supported any longer are:
   The reset stops before replacing the old CA key when neither the CA nor its client leaf
   can provide the retired issuer name, and `internalca_issue_ldap_certificate=false` keeps
   an externally managed OpenLDAP identity entirely outside FWO certificate management
-- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
-  Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
-  upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now
-  stops an upgrade from an older version before it changes anything, naming the two-step path
-  (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
-  schema changes silently
-
-## 9.5.1 - 12.09.2026
+- installer: `internalca_issue_apache_certificate=false` now also keeps the FWO Apache vhosts
+  on the certificate and key the installed vhost already names, instead of pointing them at
+  an identity the installer has just been told not to create
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology

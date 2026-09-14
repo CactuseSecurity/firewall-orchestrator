@@ -43,6 +43,8 @@ Alter table "changelog_user" add  foreign key ("old_user_id") references firewal
 Alter table "config" add  foreign key ("config_user") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table "device" add  foreign key ("dev_typ_id") references "stm_dev_typ" ("dev_typ_id") on update restrict on delete cascade;
 Alter table "device" add  foreign key ("mgm_id") references "management" ("mgm_id") on update restrict on delete cascade;
+ALTER TABLE "provisioning_config_node" ADD CONSTRAINT provisioning_config_node_parent_id_fkey FOREIGN KEY ("parent_id") REFERENCES "provisioning_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE "provisioning_config_value" ADD CONSTRAINT provisioning_config_value_node_id_fkey FOREIGN KEY ("node_id") REFERENCES "provisioning_config_node" ("id") ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_route ADD CONSTRAINT gw_route_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_route ADD CONSTRAINT gw_route_interface_foreign_key FOREIGN KEY (interface_id) REFERENCES gw_interface(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE gw_interface ADD CONSTRAINT gw_interface_routing_device_foreign_key FOREIGN KEY (routing_device) REFERENCES device(dev_id) ON UPDATE RESTRICT ON DELETE CASCADE;

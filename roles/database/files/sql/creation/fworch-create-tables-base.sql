@@ -373,6 +373,25 @@ Create table "config"
 	primary key ("config_key","config_user")
 );
 
+Create table "provisioning_config_node"
+(
+	"id" BIGSERIAL,
+	"node_type" Varchar NOT NULL,
+	"object_key" Varchar NOT NULL,
+	"parent_id" BIGINT,
+	"display_name" Varchar NOT NULL Default '',
+	"sort_order" Integer,
+	primary key ("id")
+);
+
+Create table "provisioning_config_value"
+(
+	"node_id" BIGINT NOT NULL,
+	"config_key" Varchar NOT NULL,
+	"config_value" Jsonb NOT NULL,
+	primary key ("node_id","config_key")
+);
+
 create table time_object
 (
     time_obj_id BIGSERIAL PRIMARY KEY,

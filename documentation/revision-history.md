@@ -706,3 +706,6 @@ Not supported any longer are:
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 - extend the flow compliance REST endpoints to accept IPv4 and IPv6 ranges as well as CIDR networks
 - report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
+
+## 9.5.2 - 14.09.2026
+- add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides

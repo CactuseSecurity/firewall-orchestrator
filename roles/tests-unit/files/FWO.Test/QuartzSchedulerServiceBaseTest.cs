@@ -114,7 +114,7 @@ namespace FWO.Test
             IScheduler scheduler = Substitute.For<IScheduler>();
             await ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -140,7 +140,7 @@ namespace FWO.Test
             IScheduler scheduler = Substitute.For<IScheduler>();
             await ConfigureQuartzScheduler(scheduler);
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
             CapturingApiConnection apiConnection = new();
             using TestApplicationLifetime appLifetime = new();
 
@@ -162,12 +162,12 @@ namespace FWO.Test
 
         private static ValueTask ConfigureQuartzScheduler(IScheduler scheduler)
         {
-            scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(false));
-            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<AddJobOptions>(), Arg.Any<CancellationToken>()).Returns(ValueTask.CompletedTask);
-            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(false));
-            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(true));
-            scheduler.ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(DateTimeOffset.Now));
-            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(ValueTask.FromResult(DateTimeOffset.Now));
+            scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(false));
+            scheduler.AddJob(Arg.Any<IJobDetail>(), Arg.Any<AddJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.CompletedTask);
+            scheduler.UnscheduleJob(Arg.Any<TriggerKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(false));
+            scheduler.DeleteJob(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(true));
+            scheduler.ScheduleJob(Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(DateTimeOffset.Now));
+            scheduler.ScheduleJob(Arg.Any<IJobDetail>(), Arg.Any<ITrigger>(), Arg.Any<ScheduleJobOptions>(), Arg.Any<CancellationToken>()).Returns(_ => ValueTask.FromResult(DateTimeOffset.Now));
             return ValueTask.CompletedTask;
         }
 

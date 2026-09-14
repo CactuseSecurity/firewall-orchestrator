@@ -31,15 +31,15 @@ namespace FWO.Test
             ITrigger betaTrigger = CreateCronTrigger();
             IScheduler scheduler = Substitute.For<IScheduler>();
             scheduler.QueryJobs(Arg.Any<JobQuery>(), CancellationToken.None)
-                .Returns(ValueTask.FromResult(CreatePagedResult(CreateJobHeader(betaJob), CreateJobHeader(alphaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateJobHeader(betaJob), CreateJobHeader(alphaJob))));
             scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob), CancellationToken.None)
-                .Returns(ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(alphaTrigger, alphaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(alphaTrigger, alphaJob))));
             scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob), CancellationToken.None)
-                .Returns(ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(betaTrigger, betaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(betaTrigger, betaJob))));
             scheduler.GetTrigger(alphaTrigger.Key, CancellationToken.None)
-                .Returns(ValueTask.FromResult<ITrigger?>(alphaTrigger));
+                .Returns(_ => ValueTask.FromResult<ITrigger?>(alphaTrigger));
             scheduler.GetTrigger(betaTrigger.Key, CancellationToken.None)
-                .Returns(ValueTask.FromResult<ITrigger?>(betaTrigger));
+                .Returns(_ => ValueTask.FromResult<ITrigger?>(betaTrigger));
 
             SchedulerController controller = CreateController(scheduler, tracker);
 
@@ -76,7 +76,7 @@ namespace FWO.Test
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
             scheduler.Exists(new JobKey("missing-job"), CancellationToken.None)
-                .Returns(ValueTask.FromResult(false));
+                .Returns(_ => ValueTask.FromResult(false));
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
@@ -91,9 +91,9 @@ namespace FWO.Test
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
             scheduler.Exists(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(ValueTask.FromResult(true));
+                .Returns(_ => ValueTask.FromResult(true));
             scheduler.TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None)
-                .Returns(ValueTask.CompletedTask);
+                .Returns(_ => ValueTask.CompletedTask);
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
@@ -106,7 +106,7 @@ namespace FWO.Test
         private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)
         {
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(_ => ValueTask.FromResult(scheduler));
             return new SchedulerController(schedulerFactory, tracker);
         }
 

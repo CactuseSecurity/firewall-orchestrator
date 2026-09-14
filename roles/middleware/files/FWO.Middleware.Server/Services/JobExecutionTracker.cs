@@ -21,10 +21,10 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         /// <param name="context">The job execution context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A completed task.</returns>
-        public Task JobToBeExecuted(IJobExecutionContext context, CancellationToken cancellationToken = default)
+        /// <returns>A completed value task.</returns>
+        public ValueTask JobToBeExecuted(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         /// <summary>
@@ -32,10 +32,10 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         /// <param name="context">The job execution context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A completed task.</returns>
-        public Task JobExecutionVetoed(IJobExecutionContext context, CancellationToken cancellationToken = default)
+        /// <returns>A completed value task.</returns>
+        public ValueTask JobExecutionVetoed(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         /// <summary>
@@ -44,8 +44,8 @@ namespace FWO.Middleware.Server.Services
         /// <param name="context">The job execution context.</param>
         /// <param name="jobException">The exception thrown by the job, if any.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>A completed task.</returns>
-        public Task JobWasExecuted(IJobExecutionContext context, JobExecutionException? jobException, CancellationToken cancellationToken = default)
+        /// <returns>A completed value task.</returns>
+        public ValueTask JobWasExecuted(IJobExecutionContext context, JobExecutionException? jobException, CancellationToken cancellationToken = default)
         {
             string jobKey = context.JobDetail.Key.Name;
             bool success = jobException == null;
@@ -63,7 +63,7 @@ namespace FWO.Middleware.Server.Services
                 Log.WriteWarning("Job Execution", $"Job {jobKey} failed: {errorMessage}");
             }
 
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
         /// <summary>

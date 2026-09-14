@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
 using NUnit.Framework;
 using Quartz;
-using Quartz.Impl.Matchers;
 
 namespace FWO.Test
 {
@@ -26,15 +25,21 @@ namespace FWO.Test
 
             JobExecutionTracker tracker = new();
             await tracker.JobWasExecuted(CreateExecutionContext(alphaJob), null);
-            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom"), refireImmediately: false));
+            await tracker.JobWasExecuted(CreateExecutionContext(betaJob), new JobExecutionException(new InvalidOperationException("boom")));
 
+            ITrigger alphaTrigger = CreateSimpleTrigger();
+            ITrigger betaTrigger = CreateCronTrigger();
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup(), CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<JobKey>>(new List<JobKey> { betaJob, alphaJob }));
-            scheduler.GetTriggersOfJob(alphaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateSimpleTrigger() }));
-            scheduler.GetTriggersOfJob(betaJob, CancellationToken.None)
-                .Returns(Task.FromResult<IReadOnlyCollection<ITrigger>>(new List<ITrigger> { CreateCronTrigger() }));
+            scheduler.QueryJobs(Arg.Any<JobQuery>(), CancellationToken.None)
+                .Returns(ValueTask.FromResult(CreatePagedResult(CreateJobHeader(betaJob), CreateJobHeader(alphaJob))));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob), CancellationToken.None)
+                .Returns(ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(alphaTrigger, alphaJob))));
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob), CancellationToken.None)
+                .Returns(ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(betaTrigger, betaJob))));
+            scheduler.GetTrigger(alphaTrigger.Key, CancellationToken.None)
+                .Returns(ValueTask.FromResult<ITrigger?>(alphaTrigger));
+            scheduler.GetTrigger(betaTrigger.Key, CancellationToken.None)
+                .Returns(ValueTask.FromResult<ITrigger?>(betaTrigger));
 
             SchedulerController controller = CreateController(scheduler, tracker);
 
@@ -70,8 +75,8 @@ namespace FWO.Test
         public async Task Run_ReturnsNotFoundWhenJobDoesNotExist()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("missing-job"), CancellationToken.None)
-                .Returns(Task.FromResult(false));
+            scheduler.Exists(new JobKey("missing-job"), CancellationToken.None)
+                .Returns(ValueTask.FromResult(false));
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
@@ -85,23 +90,23 @@ namespace FWO.Test
         public async Task Run_TriggersExistingJob()
         {
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.CheckExists(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.FromResult(true));
-            scheduler.TriggerJob(new JobKey("trigger-job"), CancellationToken.None)
-                .Returns(Task.CompletedTask);
+            scheduler.Exists(new JobKey("trigger-job"), CancellationToken.None)
+                .Returns(ValueTask.FromResult(true));
+            scheduler.TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None)
+                .Returns(ValueTask.CompletedTask);
 
             SchedulerController controller = CreateController(scheduler, new JobExecutionTracker());
 
             ActionResult<bool> result = await controller.Run(new SchedulerJobTriggerParameters { JobName = "trigger-job" });
 
             Assert.That(result.Value, Is.True);
-            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), CancellationToken.None);
+            await scheduler.Received(1).TriggerJob(new JobKey("trigger-job"), null, CancellationToken.None);
         }
 
         private static SchedulerController CreateController(IScheduler scheduler, JobExecutionTracker tracker)
         {
             ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
-            schedulerFactory.GetScheduler().Returns(Task.FromResult(scheduler));
+            schedulerFactory.GetScheduler().Returns(ValueTask.FromResult(scheduler));
             return new SchedulerController(schedulerFactory, tracker);
         }
 
@@ -113,6 +118,35 @@ namespace FWO.Test
             IJobExecutionContext context = Substitute.For<IJobExecutionContext>();
             context.JobDetail.Returns(jobDetail);
             return context;
+        }
+
+        private static JobHeader CreateJobHeader(JobKey jobKey)
+        {
+            return new JobHeader(jobKey, "", nameof(IJob), false, false, false, false);
+        }
+
+        private static PagedResult<T> CreatePagedResult<T>(params T[] items)
+        {
+            return new PagedResult<T>(items, false, items.Length);
+        }
+
+        private static TriggerHeader CreateTriggerHeader(ITrigger trigger, JobKey jobKey)
+        {
+            return new TriggerHeader(
+                trigger.Key,
+                jobKey,
+                trigger.Description ?? "",
+                trigger.GetType().Name,
+                TriggerState.Normal,
+                trigger.StartTimeUtc,
+                trigger.EndTimeUtc,
+                trigger.NextFireTimeUtc,
+                trigger.PreviousFireTimeUtc,
+                trigger.CalendarName ?? "",
+                trigger.Priority,
+                "",
+                "",
+                0);
         }
 
         private static ITrigger CreateSimpleTrigger()

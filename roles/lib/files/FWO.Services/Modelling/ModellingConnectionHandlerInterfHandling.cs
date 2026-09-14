@@ -170,7 +170,7 @@ namespace FWO.Services.Modelling
             int failCount = 0;
             foreach (FwoNotification notification in decommissionNotifications.Where(notification => notification.OwnerId == null || notification.OwnerId == app.Id))
             {
-                string subject = RenderDecommissionPlaceholders(notification.EmailSubject, app, reason, proposedInterface);
+                string subject = RenderDecommissionPlaceholders(notification.EmailSubject, reason, proposedInterface);
                 string body = RenderDecommissionBody(notification, app, reason, proposedInterface);
                 if (await emailHelper.SendEmailToNotificationRecipients(notification, app, subject, body))
                 {
@@ -194,7 +194,7 @@ namespace FWO.Services.Modelling
             return new EmailHelper(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
         }
 
-        private string RenderDecommissionPlaceholders(string text, FwoOwner app, string reason, ModellingConnection? proposedInterface)
+        private string RenderDecommissionPlaceholders(string text, string reason, ModellingConnection? proposedInterface)
         {
             NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(reason, proposedInterface);
             return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(text ?? "", placeholderValues, renderHtmlLinks: false);
@@ -202,7 +202,7 @@ namespace FWO.Services.Modelling
 
         private string RenderDecommissionBody(FwoNotification notification, FwoOwner app, string reason, ModellingConnection? proposedInterface)
         {
-            string body = RenderDecommissionBodyPlaceholders(notification.EmailBody, app, reason, proposedInterface);
+            string body = RenderDecommissionBodyPlaceholders(notification.EmailBody, reason, proposedInterface);
             string connList = string.Join(notification.Layout == NotificationLayout.HtmlInBody ? "<br>" : Environment.NewLine,
                 UsingConnections.Where(c => c.AppId != null && c.AppId == app.Id).Select(a => a.Name));
             if (string.IsNullOrWhiteSpace(connList))
@@ -215,7 +215,7 @@ namespace FWO.Services.Modelling
                 : $"{body}{Environment.NewLine}{connList}";
         }
 
-        private string RenderDecommissionBodyPlaceholders(string text, FwoOwner app, string reason, ModellingConnection? proposedInterface)
+        private string RenderDecommissionBodyPlaceholders(string text, string reason, ModellingConnection? proposedInterface)
         {
             NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(reason, proposedInterface);
             return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(text ?? "", placeholderValues, renderHtmlLinks: true);

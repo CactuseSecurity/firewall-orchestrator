@@ -481,7 +481,7 @@ namespace FWO.Ui.Display
             }
             else
             {
-                AnalyzeStyledElements(oldText, newText, ref unchanged, ref deleted, ref added);
+                AnalyzeStyledElements(oldText, newText, unchanged, deleted, added);
             }
 
             return RenderDiffGroups(unchanged, deleted, added);
@@ -505,7 +505,7 @@ namespace FWO.Ui.Display
         /// <param name="unchanged">Receives the elements present before and after the change.</param>
         /// <param name="deleted">Receives the styled elements only present before the change.</param>
         /// <param name="added">Receives the styled elements only present after the change.</param>
-        private static void AnalyzeStyledElements(string oldElement, string newElement, ref List<string> unchanged, ref List<string> deleted, ref List<string> added)
+        private static void AnalyzeStyledElements(string oldElement, string newElement, List<string> unchanged, List<string> deleted, List<string> added)
         {
             string[] oldAr = oldElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);
             string[] newAr = newElement.Split(kLineBreakSeparators, StringSplitOptions.RemoveEmptyEntries);

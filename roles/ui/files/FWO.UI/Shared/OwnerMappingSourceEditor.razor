@@ -6,7 +6,7 @@
     <div class="col-sm-5">
         @* not nullable: "Disabled" is the selection for "no owner mapping", so the selection must never be empty *@
         <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@Handler.SelectedSource"
-                  SelectedElementChanged="@(src => { Handler.SelectedSource = src; StateHasChanged(); })" Elements="Handler.OwnerMappingSources" Nullable="false" id="ownerMappingSourceDropdown">
+                  SelectedElementChanged="@(src => { Handler.SelectedSource = src; ownerKeyMessage = ""; StateHasChanged(); })" Elements="Handler.OwnerMappingSources" Nullable="false" id="ownerMappingSourceDropdown">
             <ElementTemplate Context="source">
                 @GetOwnerMappingSourceText(source)
             </ElementTemplate>
@@ -65,7 +65,8 @@
     /// </summary>
     private void AddOwnerKey()
     {
-        ownerKeyMessage = Handler.AddOwnerKey() ? "" : userConfig.GetText("E5507");
+        string? errorTextKey = Handler.AddOwnerKey();
+        ownerKeyMessage = errorTextKey == null ? "" : userConfig.GetText(errorTextKey);
     }
 
     /// <summary>

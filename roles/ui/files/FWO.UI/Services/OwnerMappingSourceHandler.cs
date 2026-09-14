@@ -17,9 +17,15 @@ namespace FWO.Ui.Services
         public const string kNoSourceSelectedError = "E5504";
 
         /// <summary>
-        /// Text key reported when the custom field mapping is selected without any owner key.
+        /// Text key reported when the custom field mapping is selected without any owner key,
+        /// and when the owner key typed into the editor is blank.
         /// </summary>
         public const string kNoOwnerKeyError = "E5505";
+
+        /// <summary>
+        /// Text key reported when the owner key typed into the editor is already configured.
+        /// </summary>
+        public const string kDuplicateOwnerKeyError = "E5507";
 
         /// <summary>
         /// Mapping sources offered for selection. Manual mappings are set on a single rule and cannot be chosen here.
@@ -82,17 +88,21 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Queues the owner key currently typed into the editor.
         /// </summary>
-        /// <returns>True if the key was queued, false if it was empty or already present.</returns>
-        public bool AddOwnerKey()
+        /// <returns>The text key of the error to display, or <see langword="null"/> when the key was queued.</returns>
+        public string? AddOwnerKey()
         {
             string key = ActiveOwnerKey.Trim();
-            if (key.Length == 0 || OwnerKeys.Contains(key) || OwnerKeysToAdd.Contains(key))
+            if (key.Length == 0)
             {
-                return false;
+                return kNoOwnerKeyError;
+            }
+            if (OwnerKeys.Contains(key) || OwnerKeysToAdd.Contains(key))
+            {
+                return kDuplicateOwnerKeyError;
             }
             OwnerKeysToAdd.Add(key);
             ActiveOwnerKey = "";
-            return true;
+            return null;
         }
 
         /// <summary>

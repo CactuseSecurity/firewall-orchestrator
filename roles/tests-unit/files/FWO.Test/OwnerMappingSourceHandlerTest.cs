@@ -157,7 +157,7 @@ namespace FWO.Test
 
             handler.ActiveOwnerKey = " owner ";
 
-            Assert.That(handler.AddOwnerKey(), Is.True);
+            Assert.That(handler.AddOwnerKey(), Is.Null);
             Assert.Multiple(() =>
             {
                 Assert.That(handler.OwnerKeysToAdd, Is.EqualTo(new List<string> { "owner" }));
@@ -166,8 +166,8 @@ namespace FWO.Test
 
             handler.ActiveOwnerKey = "app-id";
 
-            // a rejected key is reported so the editor can tell the user why nothing happened
-            Assert.That(handler.AddOwnerKey(), Is.False);
+            // a rejected key reports its own cause so the editor shows the matching message
+            Assert.That(handler.AddOwnerKey(), Is.EqualTo(OwnerMappingSourceHandler.kDuplicateOwnerKeyError));
             Assert.Multiple(() =>
             {
                 Assert.That(handler.OwnerKeysToAdd, Has.Count.EqualTo(1));
@@ -182,7 +182,8 @@ namespace FWO.Test
             handler.Init(new ConfigData());
             handler.ActiveOwnerKey = "   ";
 
-            Assert.That(handler.AddOwnerKey(), Is.False);
+            // a blank key must not be reported as a duplicate
+            Assert.That(handler.AddOwnerKey(), Is.EqualTo(OwnerMappingSourceHandler.kNoOwnerKeyError));
             Assert.That(handler.OwnerKeysToAdd, Is.Empty);
         }
 

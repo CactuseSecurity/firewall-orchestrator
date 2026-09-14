@@ -1338,7 +1338,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ]
                   },
                   "comment": ""
@@ -1359,7 +1360,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1380,7 +1382,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1401,7 +1404,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true

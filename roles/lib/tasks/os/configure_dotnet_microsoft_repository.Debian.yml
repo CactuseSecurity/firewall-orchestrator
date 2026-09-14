@@ -12,7 +12,7 @@
     dest: "{{ dotnet_ms_repository_file | default('/etc/apt/sources.list.d/microsoft-prod.list') }}"
     content: >
       deb [arch={{ linux_architecture }}{{ ' signed-by=/usr/share/keyrings/microsoft-prod.gpg' if dotnet_ms_keyring.stat.exists else '' }}]
-      https://packages.microsoft.com/ubuntu/{{ distribution_version }}/prod
+      https://packages.microsoft.com/ubuntu/{{ ansible_facts['distribution_version'] }}/prod
       {{ ansible_facts['distribution_release'] | lower }} main
     mode: "0644"
   register: dotnet_ms_repository_configuration

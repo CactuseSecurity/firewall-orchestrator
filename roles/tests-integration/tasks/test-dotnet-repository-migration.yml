@@ -40,7 +40,7 @@
       - >-
         (test_dotnet_repository_content.content | b64decode).splitlines() | length == 1
       - >-
-        'https://packages.microsoft.com/ubuntu/' ~ distribution_version ~ '/prod'
+        'https://packages.microsoft.com/ubuntu/' ~ ansible_facts['distribution_version'] ~ '/prod'
         in (test_dotnet_repository_content.content | b64decode)
       - >-
         (ansible_facts['distribution_release'] | lower)

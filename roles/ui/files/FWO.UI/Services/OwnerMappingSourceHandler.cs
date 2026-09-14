@@ -1,0 +1,197 @@
+using FWO.Basics;
+using FWO.Config.Api.Data;
+using FWO.Logging;
+using System.Text.Json;
+
+namespace FWO.Ui.Services
+{
+    /// <summary>
+    /// Holds the editor state of the rule owner mapping source settings and keeps the behaviour of every
+    /// settings page offering them identical.
+    /// </summary>
+    public class OwnerMappingSourceHandler
+    {
+        /// <summary>
+        /// Text key reported when no mapping source is selected at all.
+        /// </summary>
+        public const string kNoSourceSelectedError = "E5504";
+
+        /// <summary>
+        /// Text key reported when the custom field mapping is selected without any owner key.
+        /// </summary>
+        public const string kNoOwnerKeyError = "E5505";
+
+        /// <summary>
+        /// Mapping sources offered for selection. Manual mappings are set on a single rule and cannot be chosen here.
+        /// </summary>
+        public List<OwnerMappingSourceStm?> OwnerMappingSources { get; } =
+            [.. Enum.GetValues<OwnerMappingSourceStm>()
+                .Where(source => source != OwnerMappingSourceStm.Manual)
+                .Cast<OwnerMappingSourceStm?>()];
+
+        /// <summary>
+        /// Currently selected mapping source.
+        /// </summary>
+        public OwnerMappingSourceStm? SelectedSource { get; set; }
+
+        /// <summary>
+        /// Owner keys of the custom field mapping.
+        /// </summary>
+        public List<string> OwnerKeys { get; set; } = [];
+
+        /// <summary>
+        /// Owner keys added in the editor but not applied yet.
+        /// </summary>
+        public List<string> OwnerKeysToAdd { get; set; } = [];
+
+        /// <summary>
+        /// Owner keys deleted in the editor but not applied yet.
+        /// </summary>
+        public List<string> OwnerKeysToDelete { get; set; } = [];
+
+        /// <summary>
+        /// Owner key currently typed into the editor.
+        /// </summary>
+        public string ActiveOwnerKey { get; set; } = "";
+
+        /// <summary>
+        /// Marker of the name field mapping.
+        /// </summary>
+        public string ModelledMarker { get; set; } = "";
+
+        /// <summary>
+        /// Reads the mapping source settings from the given configuration.
+        /// </summary>
+        /// <param name="configData">Configuration to read from.</param>
+        public void Init(ConfigData configData)
+        {
+            SelectedSource = Enum.IsDefined(typeof(OwnerMappingSourceStm), configData.OwnerSoruceMappingID)
+                ? (OwnerMappingSourceStm)configData.OwnerSoruceMappingID
+                : OwnerMappingSourceStm.Disabled;
+            OwnerKeys = DeserializeOwnerKeys(configData.CustomFieldOwnerKey);
+            OwnerKeysToAdd = [];
+            OwnerKeysToDelete = [];
+            ActiveOwnerKey = "";
+            ModelledMarker = configData.ModModelledMarker ?? "";
+        }
+
+        /// <summary>
+        /// Queues the owner key currently typed into the editor.
+        /// </summary>
+        public void AddOwnerKey()
+        {
+            string key = ActiveOwnerKey.Trim();
+            if (key.Length > 0 && !OwnerKeys.Contains(key) && !OwnerKeysToAdd.Contains(key))
+            {
+                OwnerKeysToAdd.Add(key);
+                ActiveOwnerKey = "";
+            }
+        }
+
+        /// <summary>
+        /// Applies the pending owner key edits and checks whether the mapping source settings can be persisted.
+        /// </summary>
+        /// <returns>The text key of the error to display, or <see langword="null"/> when the settings are valid.</returns>
+        public string? Validate()
+        {
+            if (SelectedSource == null)
+            {
+                return kNoSourceSelectedError;
+            }
+            ApplyPendingOwnerKeys();
+            if (SelectedSource == OwnerMappingSourceStm.CustomField && OwnerKeys.Count == 0)
+            {
+                return kNoOwnerKeyError;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Writes the edited mapping source settings into the given configuration.
+        /// </summary>
+        /// <param name="configData">Configuration to write to.</param>
+        /// <returns>True if the change requires a full rule owner mapping rebuild.</returns>
+        public bool ApplyTo(ConfigData configData)
+        {
+            int oldSource = configData.OwnerSoruceMappingID;
+            string oldOwnerKeys = configData.CustomFieldOwnerKey ?? "";
+            string oldModelledMarker = configData.ModModelledMarker ?? "";
+
+            configData.OwnerSoruceMappingID = (int)SelectedSource!.Value;
+            configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+            configData.ModModelledMarker = ModelledMarker;
+
+            return NeedsRuleOwnerReinitialize(oldSource, oldOwnerKeys, oldModelledMarker, configData);
+        }
+
+        /// <summary>
+        /// Decides whether the saved settings require a full rule owner mapping rebuild.
+        /// </summary>
+        /// <param name="oldSource">Mapping source before the change.</param>
+        /// <param name="oldOwnerKeys">Serialized owner keys before the change.</param>
+        /// <param name="oldModelledMarker">Name field marker before the change.</param>
+        /// <param name="configData">Configuration holding the saved settings.</param>
+        /// <returns>True if a rebuild is required.</returns>
+        private static bool NeedsRuleOwnerReinitialize(int oldSource, string oldOwnerKeys, string oldModelledMarker, ConfigData configData)
+        {
+            if (oldSource != configData.OwnerSoruceMappingID)
+            {
+                return true;
+            }
+
+            if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.CustomField && oldOwnerKeys != configData.CustomFieldOwnerKey)
+            {
+                return true;
+            }
+
+            return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && oldModelledMarker != configData.ModModelledMarker;
+        }
+
+        /// <summary>
+        /// Applies the owner keys queued for addition and removal to the editor list.
+        /// </summary>
+        private void ApplyPendingOwnerKeys()
+        {
+            foreach (string key in OwnerKeysToDelete)
+            {
+                OwnerKeys.Remove(key);
+            }
+            foreach (string key in OwnerKeysToAdd)
+            {
+                OwnerKeys.Add(key);
+            }
+            OwnerKeysToDelete = [];
+            OwnerKeysToAdd = [];
+        }
+
+        /// <summary>
+        /// Reads a JSON key list while retaining compatibility with legacy single-key values.
+        /// </summary>
+        /// <param name="keysJson">JSON list or legacy plain-text key.</param>
+        /// <returns>The configured keys, or an empty list if the stored value cannot be parsed.</returns>
+        private static List<string> DeserializeOwnerKeys(string keysJson)
+        {
+            if (string.IsNullOrWhiteSpace(keysJson))
+            {
+                return [];
+            }
+
+            string trimmedKeys = keysJson.Trim();
+            if (!trimmedKeys.StartsWith('[') || !trimmedKeys.EndsWith(']'))
+            {
+                return [trimmedKeys];
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(trimmedKeys) ?? [];
+            }
+            catch (JsonException exception)
+            {
+                // keep the settings page usable so the invalid value can be corrected here
+                Log.WriteWarning("Read Config", $"Config item \"CustomFieldOwnerKey\" contains unsupported value \"{keysJson}\". Using empty key list. {exception.Message}");
+                return [];
+            }
+        }
+    }
+}

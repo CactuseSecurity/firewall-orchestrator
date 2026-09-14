@@ -106,7 +106,8 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Applies the pending owner key edits and checks whether the mapping source settings can be persisted.
+        /// Checks whether the mapping source settings can be persisted and applies the pending owner key edits
+        /// only when they can, so a rejected save leaves the editor showing the stored settings.
         /// </summary>
         /// <returns>The text key of the error to display, or <see langword="null"/> when the settings are valid.</returns>
         public string? Validate()
@@ -115,11 +116,13 @@ namespace FWO.Ui.Services
             {
                 return kNoSourceSelectedError;
             }
-            ApplyPendingOwnerKeys();
-            if (SelectedSource == OwnerMappingSourceStm.CustomField && OwnerKeys.Count == 0)
+
+            List<string> editedOwnerKeys = BuildOwnerKeysAfterPendingEdits();
+            if (SelectedSource == OwnerMappingSourceStm.CustomField && editedOwnerKeys.Count == 0)
             {
                 return kNoOwnerKeyError;
             }
+            ApplyPendingOwnerKeys(editedOwnerKeys);
             return null;
         }
 
@@ -174,18 +177,27 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Applies the owner keys queued for addition and removal to the editor list.
+        /// Builds the owner key list resulting from the queued additions and removals without changing the editor state.
         /// </summary>
-        private void ApplyPendingOwnerKeys()
+        /// <returns>The owner keys as they are once the queued edits are applied.</returns>
+        private List<string> BuildOwnerKeysAfterPendingEdits()
         {
+            List<string> editedOwnerKeys = [.. OwnerKeys];
             foreach (string key in OwnerKeysToDelete)
             {
-                OwnerKeys.Remove(key);
+                editedOwnerKeys.Remove(key);
             }
-            foreach (string key in OwnerKeysToAdd)
-            {
-                OwnerKeys.Add(key);
-            }
+            editedOwnerKeys.AddRange(OwnerKeysToAdd);
+            return editedOwnerKeys;
+        }
+
+        /// <summary>
+        /// Commits the owner keys queued for addition and removal to the editor list.
+        /// </summary>
+        /// <param name="editedOwnerKeys">Owner keys resulting from the queued edits.</param>
+        private void ApplyPendingOwnerKeys(List<string> editedOwnerKeys)
+        {
+            OwnerKeys = editedOwnerKeys;
             OwnerKeysToDelete = [];
             OwnerKeysToAdd = [];
         }

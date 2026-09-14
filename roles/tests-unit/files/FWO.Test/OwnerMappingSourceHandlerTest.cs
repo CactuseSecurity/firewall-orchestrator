@@ -150,6 +150,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Validate_KeepsPendingOwnerKeys_WhenCustomFieldMappingLosesItsLastKey()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]"
+            });
+            handler.OwnerKeysToDelete.Add("app-id");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.Validate(), Is.EqualTo(OwnerMappingSourceHandler.kNoOwnerKeyError));
+                // a rejected save must not touch the editor state, so the stored keys stay visible and the deletion revertible
+                Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "app-id" }));
+                Assert.That(handler.OwnerKeysToDelete, Is.EqualTo(new List<string> { "app-id" }));
+            });
+
+            handler.OwnerKeysToAdd.Add("replacement");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.Validate(), Is.Null);
+                // the deletion retained by the rejected attempt is applied once the settings become valid
+                Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "replacement" }));
+                Assert.That(handler.OwnerKeysToAdd, Is.Empty);
+                Assert.That(handler.OwnerKeysToDelete, Is.Empty);
+            });
+        }
+
+        [Test]
         public void AddOwnerKey_TrimsAndRejectsDuplicateKeys()
         {
             OwnerMappingSourceHandler handler = new();

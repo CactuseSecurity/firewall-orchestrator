@@ -432,11 +432,11 @@ namespace FWO.Ui.Display
             {
                 return oldElement;
             }
-            else
-            {
-                return (oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{(newElement.Length > 0 ? ", " : "")}" : "")
-                    + (newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "");
-            }
+
+            string separator = oldElement.Length > 0 && newElement.Length > 0 ? ", " : "";
+            string deletedPart = oldElement.Length > 0 ? $"{userConfig.GetText("deleted")}: {oldElement}{separator}" : "";
+            string addedPart = newElement.Length > 0 ? $"{userConfig.GetText("added")}: {newElement}" : "";
+            return deletedPart + addedPart;
         }
 
         /// <summary>

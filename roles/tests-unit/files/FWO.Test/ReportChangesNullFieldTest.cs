@@ -112,6 +112,25 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public void ExportToJson_RendersEmptyValues_WhenAllValuesStayNull()
+        {
+            ReportChanges reportChanges = new(query, userConfig, ReportType.ResolvedChanges, timeFilter, true)
+            {
+                ReportData = ConstructChangeReportWithoutAnyValues()
+            };
+
+            string report = reportChanges.ExportToJson();
+
+            // null columns are exported as empty values instead of being dropped from the document
+            Assert.Multiple(() =>
+            {
+                Assert.That(report, Does.Contain("\"comment\": \"\""));
+                Assert.That(report, Does.Not.Contain($"{userConfig.GetText("deleted")}:"));
+                Assert.That(report, Does.Not.Contain($"{userConfig.GetText("added")}:"));
+            });
+        }
+
         private static ReportData ConstructChangeReportWithNullFields()
         {
             return ConstructChangeReport(BuildObjectWithNullFields(1), BuildFilledObject(2), BuildServiceWithNullFields(1), BuildFilledService(2));

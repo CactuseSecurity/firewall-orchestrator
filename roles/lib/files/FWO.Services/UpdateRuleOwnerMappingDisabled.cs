@@ -72,7 +72,7 @@ namespace FWO.Services
         private async Task<bool> ActiveRuleOwnersExist()
         {
             List<RuleOwner>? activeRuleOwners = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getActiveRuleOwners, new { limit = kActiveRuleOwnerProbeLimit });
-            return activeRuleOwners?.Any() == true;
+            return activeRuleOwners?.Count > 0;
         }
     }
 }

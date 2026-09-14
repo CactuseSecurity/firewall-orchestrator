@@ -59,6 +59,9 @@ namespace FWO.Ui.Services
         /// </summary>
         public string ModelledMarker { get; set; } = "";
 
+        private string rawOwnerKeys = "";
+        private bool ownerKeysReadable = true;
+
         /// <summary>
         /// Reads the mapping source settings from the given configuration.
         /// </summary>
@@ -68,7 +71,8 @@ namespace FWO.Ui.Services
             SelectedSource = Enum.IsDefined(typeof(OwnerMappingSourceStm), configData.OwnerSoruceMappingID)
                 ? (OwnerMappingSourceStm)configData.OwnerSoruceMappingID
                 : OwnerMappingSourceStm.Disabled;
-            OwnerKeys = DeserializeOwnerKeys(configData.CustomFieldOwnerKey);
+            rawOwnerKeys = configData.CustomFieldOwnerKey ?? "";
+            OwnerKeys = DeserializeOwnerKeys(rawOwnerKeys, out ownerKeysReadable);
             OwnerKeysToAdd = [];
             OwnerKeysToDelete = [];
             ActiveOwnerKey = "";
@@ -78,14 +82,17 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Queues the owner key currently typed into the editor.
         /// </summary>
-        public void AddOwnerKey()
+        /// <returns>True if the key was queued, false if it was empty or already present.</returns>
+        public bool AddOwnerKey()
         {
             string key = ActiveOwnerKey.Trim();
-            if (key.Length > 0 && !OwnerKeys.Contains(key) && !OwnerKeysToAdd.Contains(key))
+            if (key.Length == 0 || OwnerKeys.Contains(key) || OwnerKeysToAdd.Contains(key))
             {
-                OwnerKeysToAdd.Add(key);
-                ActiveOwnerKey = "";
+                return false;
             }
+            OwnerKeysToAdd.Add(key);
+            ActiveOwnerKey = "";
+            return true;
         }
 
         /// <summary>
@@ -111,14 +118,23 @@ namespace FWO.Ui.Services
         /// </summary>
         /// <param name="configData">Configuration to write to.</param>
         /// <returns>True if the change requires a full rule owner mapping rebuild.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when <see cref="Validate"/> did not succeed before.</exception>
         public bool ApplyTo(ConfigData configData)
         {
+            if (SelectedSource == null)
+            {
+                throw new InvalidOperationException($"{nameof(Validate)} has to succeed before {nameof(ApplyTo)} is called.");
+            }
+
             int oldSource = configData.OwnerSoruceMappingID;
             string oldOwnerKeys = configData.CustomFieldOwnerKey ?? "";
             string oldModelledMarker = configData.ModModelledMarker ?? "";
 
-            configData.OwnerSoruceMappingID = (int)SelectedSource!.Value;
-            configData.CustomFieldOwnerKey = JsonSerializer.Serialize(OwnerKeys);
+            configData.OwnerSoruceMappingID = (int)SelectedSource.Value;
+            // an unreadable stored value has to survive saving a setting which does not use it
+            configData.CustomFieldOwnerKey = ownerKeysReadable || OwnerKeys.Count > 0
+                ? JsonSerializer.Serialize(OwnerKeys)
+                : rawOwnerKeys;
             configData.ModModelledMarker = ModelledMarker;
 
             return NeedsRuleOwnerReinitialize(oldSource, oldOwnerKeys, oldModelledMarker, configData);
@@ -168,9 +184,11 @@ namespace FWO.Ui.Services
         /// Reads a JSON key list while retaining compatibility with legacy single-key values.
         /// </summary>
         /// <param name="keysJson">JSON list or legacy plain-text key.</param>
+        /// <param name="readable">True if the stored value could be read, false if it had to be discarded.</param>
         /// <returns>The configured keys, or an empty list if the stored value cannot be parsed.</returns>
-        private static List<string> DeserializeOwnerKeys(string keysJson)
+        private static List<string> DeserializeOwnerKeys(string keysJson, out bool readable)
         {
+            readable = true;
             if (string.IsNullOrWhiteSpace(keysJson))
             {
                 return [];
@@ -189,6 +207,7 @@ namespace FWO.Ui.Services
             catch (JsonException exception)
             {
                 // keep the settings page usable so the invalid value can be corrected here
+                readable = false;
                 Log.WriteWarning("Read Config", $"Config item \"CustomFieldOwnerKey\" contains unsupported value \"{keysJson}\". Using empty key list. {exception.Message}");
                 return [];
             }

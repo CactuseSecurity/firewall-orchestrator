@@ -156,8 +156,8 @@ namespace FWO.Test
             handler.Init(new ConfigData { CustomFieldOwnerKey = "[\"app-id\"]" });
 
             handler.ActiveOwnerKey = " owner ";
-            handler.AddOwnerKey();
 
+            Assert.That(handler.AddOwnerKey(), Is.True);
             Assert.Multiple(() =>
             {
                 Assert.That(handler.OwnerKeysToAdd, Is.EqualTo(new List<string> { "owner" }));
@@ -165,9 +165,70 @@ namespace FWO.Test
             });
 
             handler.ActiveOwnerKey = "app-id";
-            handler.AddOwnerKey();
 
-            Assert.That(handler.OwnerKeysToAdd, Has.Count.EqualTo(1));
+            // a rejected key is reported so the editor can tell the user why nothing happened
+            Assert.That(handler.AddOwnerKey(), Is.False);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.OwnerKeysToAdd, Has.Count.EqualTo(1));
+                Assert.That(handler.ActiveOwnerKey, Is.EqualTo("app-id"));
+            });
+        }
+
+        [Test]
+        public void AddOwnerKey_RejectsBlankKey()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData());
+            handler.ActiveOwnerKey = "   ";
+
+            Assert.That(handler.AddOwnerKey(), Is.False);
+            Assert.That(handler.OwnerKeysToAdd, Is.Empty);
+        }
+
+        [Test]
+        public void ApplyTo_KeepsUnreadableOwnerKeys_WhenSourceDoesNotUseThem()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.IpBased,
+                CustomFieldOwnerKey = "[\"app-id\",]"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+
+            handler.ApplyTo(configData);
+
+            // saving an unrelated setting must not destroy the stored value the admin never saw
+            Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"app-id\",]"));
+        }
+
+        [Test]
+        public void ApplyTo_WritesNewOwnerKeys_AfterUnreadableValueWasReplaced()
+        {
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\",]"
+            };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.OwnerKeysToAdd.Add("owner");
+
+            Assert.That(handler.Validate(), Is.Null);
+            handler.ApplyTo(configData);
+
+            Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"owner\"]"));
+        }
+
+        [Test]
+        public void ApplyTo_Throws_WhenNoSourceIsSelected()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData());
+            handler.SelectedSource = null;
+
+            Assert.Throws<InvalidOperationException>(() => handler.ApplyTo(new ConfigData()));
         }
 
         [Test]

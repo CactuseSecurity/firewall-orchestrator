@@ -20,11 +20,12 @@
     </Body>
     <Footer>
         <div class="btn-group align-items-center">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
+            @* saving can trigger a full rule owner reinitialize, so it needs the same role as the recalculation *@
             <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="SaveOwnerMappingSourceConfig">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
                     @if (!OwnerMappingCalcInProgress)
                     {
                         <button type="button" class="btn btn-sm btn-info" @onclick="OwnerSourceImportNotifier">
@@ -37,6 +38,9 @@
                     }
                 </Authorized>
                 <NotAuthorized>
+                    <button type="button" disabled class="btn btn-sm btn-primary">
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
                     <button type="button" disabled class="btn btn-sm btn-info">
                         @(DisplayService.DisplayButton(userConfig, "H5913", Icons.Refresh))
                     </button>

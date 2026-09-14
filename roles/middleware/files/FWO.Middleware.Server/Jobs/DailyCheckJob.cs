@@ -328,12 +328,6 @@ namespace FWO.Middleware.Server.Jobs
             };
         }
 
-        private async Task<string> PrepareBody(FwoNotification notification, WfTicket ticket, FwoOwner owner)
-        {
-            NotificationPlaceholderResolver.NotificationPlaceholderValues values = await BuildRequestPlaceholderValues(ticket, owner);
-            return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(notification.EmailBody, values, renderHtmlLinks: true);
-        }
-
         private async Task<NotificationPlaceholderResolver.NotificationPlaceholderValues> BuildRequestPlaceholderValues(WfTicket ticket, FwoOwner owner)
         {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());

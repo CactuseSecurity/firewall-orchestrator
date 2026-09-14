@@ -15,7 +15,7 @@ initial_notification_seed AS
     SELECT COUNT(*) AS notification_count
     FROM notification
     WHERE notification_client = 'InterfaceRequest'
-      AND COALESCE(deadline, 'None') = 'None'
+      AND (deadline = 'None' OR deadline IS NULL)
 ),
 reminder_notification_seed AS
 (
@@ -91,7 +91,7 @@ update_initial_bodies AS
     FROM request_config
     CROSS JOIN initial_notification_seed
     WHERE n.notification_client = 'InterfaceRequest'
-      AND COALESCE(n.deadline, 'None') = 'None'
+      AND (n.deadline = 'None' OR n.deadline IS NULL)
       AND initial_notification_seed.notification_count > 0
     RETURNING 1
 ),
@@ -222,7 +222,7 @@ decomm_notification_seed AS
     SELECT COUNT(*) AS notification_count
     FROM notification
     WHERE notification_client = 'InterfaceDecomm'
-      AND COALESCE(deadline, 'None') = 'None'
+      AND (deadline = 'None' OR deadline IS NULL)
 ),
 insert_decomm_notification AS
 (
@@ -301,7 +301,7 @@ update_decomm_subject_bodies AS
     FROM decomm_config
     CROSS JOIN decomm_notification_seed
     WHERE n.notification_client = 'InterfaceDecomm'
-      AND COALESCE(n.deadline, 'None') = 'None'
+      AND (n.deadline = 'None' OR n.deadline IS NULL)
       AND decomm_notification_seed.notification_count > 0
     RETURNING 1
 )

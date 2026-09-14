@@ -196,7 +196,7 @@ namespace FWO.Services.Modelling
 
         private string RenderDecommissionPlaceholders(string text, FwoOwner app, string reason, ModellingConnection? proposedInterface)
         {
-            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(app, reason, proposedInterface);
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(reason, proposedInterface);
             return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(text ?? "", placeholderValues, renderHtmlLinks: false);
         }
 
@@ -217,12 +217,11 @@ namespace FWO.Services.Modelling
 
         private string RenderDecommissionBodyPlaceholders(string text, FwoOwner app, string reason, ModellingConnection? proposedInterface)
         {
-            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(app, reason, proposedInterface);
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = CreateDecommissionPlaceholderValues(reason, proposedInterface);
             return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(text ?? "", placeholderValues, renderHtmlLinks: true);
         }
 
         private NotificationPlaceholderResolver.NotificationPlaceholderValues CreateDecommissionPlaceholderValues(
-            FwoOwner app,
             string reason,
             ModellingConnection? proposedInterface)
         {

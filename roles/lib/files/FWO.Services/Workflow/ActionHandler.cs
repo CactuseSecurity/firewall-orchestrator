@@ -116,8 +116,9 @@ namespace FWO.Services.Workflow
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
 
-            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
-            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
+            StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
         }
 
         /// <summary>
@@ -199,8 +200,11 @@ namespace FWO.Services.Workflow
             return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
         }
 
+        private sealed record StateActionExecutionContext(FwoOwner? Owner, long? TicketId, string? UserGrpDn,
+            NotificationPlaceholderData? PlaceholderData);
+
         private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn, NotificationPlaceholderData? placeholderData)
+            WfObjectScopes scope, StateActionExecutionContext context)
         {
             foreach (var action in actions.Where(IsActionInCurrentPhase))
             {
@@ -208,7 +212,7 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
                 try
                 {
-                    await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
+                    await PerformAction(action, statefulObject, scope, context.Owner, context.TicketId, context.UserGrpDn, context.PlaceholderData);
                 }
                 catch (Exception exc)
                 {

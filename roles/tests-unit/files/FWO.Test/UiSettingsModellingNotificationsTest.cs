@@ -233,7 +233,7 @@ namespace FWO.Test
 
             public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => [];
 
-            public IStringLocalizer WithCulture(System.Globalization.CultureInfo culture) => this;
+            public EmptyStringLocalizer<T> WithCulture(System.Globalization.CultureInfo culture) => this;
         }
     }
 }

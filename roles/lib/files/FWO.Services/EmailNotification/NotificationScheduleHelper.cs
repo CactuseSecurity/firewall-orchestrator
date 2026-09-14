@@ -45,7 +45,7 @@ namespace FWO.Services
             return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
         }
 
-        private static bool TryGetConfiguredInterval(SchedulerInterval? interval, string propertyName, out SchedulerInterval configuredInterval)
+        private static bool TryGetConfiguredInterval(SchedulerInterval? interval, out SchedulerInterval configuredInterval)
         {
             if (interval != null)
             {
@@ -61,7 +61,7 @@ namespace FWO.Services
 
         private static bool IsNotificationDueBeforeDeadline(DateTime deadline, FwoNotification notification)
         {
-            if (!TryGetConfiguredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline), out SchedulerInterval intervalBeforeDeadline))
+            if (!TryGetConfiguredInterval(notification.IntervalBeforeDeadline, out SchedulerInterval intervalBeforeDeadline))
             {
                 return false;
             }
@@ -72,7 +72,7 @@ namespace FWO.Services
 
         private static bool IsNotificationDueAfterDeadline(DateTime deadline, FwoNotification notification)
         {
-            if (!TryGetConfiguredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline), out SchedulerInterval repeatIntervalAfterDeadline))
+            if (!TryGetConfiguredInterval(notification.RepeatIntervalAfterDeadline, out SchedulerInterval repeatIntervalAfterDeadline))
             {
                 return false;
             }

@@ -27,6 +27,19 @@ namespace FWO.Services.Workflow
 
     public partial class WfHandler
     {
+        public string? WorkflowEmailBundleId { get; private set; }
+
+        private void BeginWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = Guid.NewGuid().ToString("N");
+            ActionHandler?.ResetBundledDelegations();
+        }
+
+        private void ClearWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = null;
+        }
+
         // promote the different objects
 
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
@@ -47,27 +60,82 @@ namespace FWO.Services.Workflow
 
         public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
         {
+            bool emailBundleStarted = false;
+            bool emailBundleFlushAttempted = false;
             try
             {
-                if (await PromoteTicket(ticket) && await UpdateRequestTasksFromTicket(false))
+                if (!await PromoteTicket(ticket))
+                {
+                    return false;
+                }
+
+                BeginWorkflowEmailBundle();
+                emailBundleStarted = true;
+
+                bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket(false);
+                if (requestTaskActionsChangedState)
                 {
                     await UpdateActTicketStateFromReqTasks();
                 }
+
+                // Set before the call so a throw inside it still counts as attempted and the finally does
+                // not report the same delivery failure a second time.
+                emailBundleFlushAttempted = true;
+                await FlushWorkflowEmailBundle();
                 return true;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
             }
+            finally
+            {
+                if (emailBundleStarted)
+                {
+                    // Captured emails were suppressed at their state action, so an aborted promote must
+                    // still flush what was collected - those request tasks did change state.
+                    if (!emailBundleFlushAttempted)
+                    {
+                        await FlushWorkflowEmailBundle();
+                    }
+                    ClearWorkflowEmailBundle();
+                }
+            }
             return false;
         }
 
-        public async Task PromoteReqTask(WfStatefulObject reqTask)
+        /// <summary>
+        /// Ends the active workflow email bundle and asks the middleware to send it. Delivery problems are
+        /// reported to the promoting user and never turn a completed state change into a failed one. The
+        /// flush itself decides whether a round trip is needed, so an empty bundle reports nothing.
+        /// </summary>
+        private async Task FlushWorkflowEmailBundle()
+        {
+            if (ActionHandler == null)
+            {
+                // Without an action handler no state action ran, so nothing was captured. Reporting an
+                // email problem here would be misleading.
+                return;
+            }
+
+            try
+            {
+                await ActionHandler.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("send_email"),
+                    $"Could not send bundled workflow emails for ticket {ActTicket.Id}.", exception);
+                DisplayMessageInUi(exception, userConfig.GetText("send_email"), userConfig.GetText("E9105"), true);
+            }
+        }
+
+        public async Task PromoteReqTask(WfStatefulObject reqTask, bool setStartedHandler = true)
         {
             try
             {
                 ActReqTask.StateId = reqTask.StateId;
-                if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
+                if (setStartedHandler && ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
                 {
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;

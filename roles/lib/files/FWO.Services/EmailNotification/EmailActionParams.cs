@@ -10,6 +10,45 @@ namespace FWO.Services
         RequestedConnections = 1
     }
 
+    /// <summary>
+    /// Controls whether one email covers several request tasks of a ticket.
+    /// </summary>
+    public enum EmailRequestTaskBundleMode
+    {
+        /// <summary>
+        /// One email per request task.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// One email for all matching request tasks of the same task type.
+        /// </summary>
+        SameTaskType = 1
+    }
+
+    /// <summary>
+    /// Outcome of sending a single workflow action email. Distinguishes a delivery failure, which the
+    /// workflow has to report, from an action that resolved to no recipients at all, which is a
+    /// configuration property of the action rather than something that went wrong while sending.
+    /// </summary>
+    public enum WorkflowEmailDeliveryResult
+    {
+        /// <summary>
+        /// The email was handed over to the mail server.
+        /// </summary>
+        Delivered = 0,
+
+        /// <summary>
+        /// No To recipient could be resolved, so nothing was sent. Not treated as a delivery failure.
+        /// </summary>
+        NoRecipients = 1,
+
+        /// <summary>
+        /// Sending was attempted and did not succeed.
+        /// </summary>
+        Failed = 2
+    }
+
     public class EmailActionParams
     {
         [JsonProperty("notification_ids"), JsonPropertyName("notification_ids")]
@@ -32,6 +71,13 @@ namespace FWO.Services
 
         [JsonProperty("body"), JsonPropertyName("body")]
         public string Body { get; set; } = "";
+
+        /// <summary>
+        /// Whether matching request tasks of one ticket share a single email. Only effective together with
+        /// <see cref="EmailAttachedContent.RequestedConnections"/>, which renders the task list.
+        /// </summary>
+        [JsonProperty("request_task_bundle_mode"), JsonPropertyName("request_task_bundle_mode")]
+        public EmailRequestTaskBundleMode RequestTaskBundleMode { get; set; } = EmailRequestTaskBundleMode.None;
 
         /// <summary>
         /// Converts workflow action email parameters into the shared notification model.

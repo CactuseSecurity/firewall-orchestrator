@@ -706,6 +706,8 @@ Not supported any longer are:
 - general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
 - extend the flow compliance REST endpoints to accept IPv4 and IPv6 ranges as well as CIDR networks
 - report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
+- new import matrix format with path_to_root and path_to_internet, while old format is still supported
+- validation checks for matrix import
 
 ## 9.5.2 - 14.09.2026
 - rework modelling notifications and move interface-request notifications to centralized notification entries

@@ -181,6 +181,41 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SelectSource_DropsTheOwnerKeyEditsOfTheSectionBeingLeft()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]"
+            });
+            handler.OwnerKeysToDelete.Add("app-id");
+            handler.OwnerKeysToAdd.Add("queued");
+            handler.ActiveOwnerKey = "typed";
+
+            handler.SelectSource(OwnerMappingSourceStm.Disabled);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.SelectedSource, Is.EqualTo(OwnerMappingSourceStm.Disabled));
+                Assert.That(handler.OwnerKeysToAdd, Is.Empty);
+                Assert.That(handler.OwnerKeysToDelete, Is.Empty);
+                Assert.That(handler.ActiveOwnerKey, Is.Empty);
+            });
+
+            ConfigData configData = new();
+            Assert.That(handler.Validate(), Is.Null);
+            handler.ApplyTo(configData);
+
+            Assert.Multiple(() =>
+            {
+                // edits queued in the no longer displayed custom field section must not reach the configuration
+                Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "app-id" }));
+                Assert.That(configData.CustomFieldOwnerKey, Is.EqualTo("[\"app-id\"]"));
+            });
+        }
+
+        [Test]
         public void AddOwnerKey_TrimsAndRejectsDuplicateKeys()
         {
             OwnerMappingSourceHandler handler = new();
@@ -204,6 +239,32 @@ namespace FWO.Test
                 Assert.That(handler.OwnerKeysToAdd, Has.Count.EqualTo(1));
                 Assert.That(handler.ActiveOwnerKey, Is.EqualTo("app-id"));
             });
+        }
+
+        [Test]
+        public void AddOwnerKey_RevertsThePendingDeletionOfAConfiguredKey()
+        {
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(new ConfigData
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = "[\"app-id\"]"
+            });
+            handler.OwnerKeysToDelete.Add("app-id");
+            handler.ActiveOwnerKey = " app-id ";
+
+            // a key which is only marked for removal is not a duplicate, re-adding it takes the removal back
+            Assert.That(handler.AddOwnerKey(), Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.OwnerKeysToDelete, Is.Empty);
+                // the key must not be listed a second time as a pending addition
+                Assert.That(handler.OwnerKeysToAdd, Is.Empty);
+                Assert.That(handler.ActiveOwnerKey, Is.Empty);
+            });
+
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.OwnerKeys, Is.EqualTo(new List<string> { "app-id" }));
         }
 
         [Test]

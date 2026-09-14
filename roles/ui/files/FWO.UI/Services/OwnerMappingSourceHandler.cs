@@ -86,7 +86,21 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Queues the owner key currently typed into the editor.
+        /// Selects a mapping source and drops the owner key edits which were not applied yet, so edits made in an
+        /// editor section which is no longer displayed cannot be saved without the user seeing them.
+        /// </summary>
+        /// <param name="source">Mapping source to select.</param>
+        public void SelectSource(OwnerMappingSourceStm? source)
+        {
+            SelectedSource = source;
+            OwnerKeysToAdd = [];
+            OwnerKeysToDelete = [];
+            ActiveOwnerKey = "";
+        }
+
+        /// <summary>
+        /// Queues the owner key currently typed into the editor, or reverts its pending deletion when it is
+        /// a configured key which is only marked for removal.
         /// </summary>
         /// <returns>The text key of the error to display, or <see langword="null"/> when the key was queued.</returns>
         public string? AddOwnerKey()
@@ -95,6 +109,12 @@ namespace FWO.Ui.Services
             if (key.Length == 0)
             {
                 return kNoOwnerKeyError;
+            }
+            // the key stays configured until the settings are saved, so re-adding it undoes the pending deletion
+            if (OwnerKeysToDelete.Remove(key))
+            {
+                ActiveOwnerKey = "";
+                return null;
             }
             if (OwnerKeys.Contains(key) || OwnerKeysToAdd.Contains(key))
             {

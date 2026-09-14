@@ -267,7 +267,7 @@ namespace FWO.Middleware.Server
             await NetworkZoneService.UpdateSpecialZones(MatrixId, apiConnection, globalConfig);
 
             // Reload existing zones with all Ids
-            ExistingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
+            ExistingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = MatrixId });
             foreach (var zone in ExistingZones)
             {
                 ZoneIds.Add(zone.IdString, zone.Id);
@@ -303,7 +303,7 @@ namespace FWO.Middleware.Server
                     throw new ArgumentException("Manually created matrix existing with same Name");
                 }
                 int matrixId = existingMatrices[0].Id;
-                return (matrixId, await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId }));
+                return (matrixId, await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId }));
             }
             return (0, []);
         }

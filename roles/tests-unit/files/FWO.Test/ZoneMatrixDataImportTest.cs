@@ -257,8 +257,8 @@ namespace FWO.Test
                 Assert.That(result, Does.Contain("Inserted connections: 0"));
                 Assert.That(apiConnection.Count(ComplianceQueries.getMatrixByName), Is.EqualTo(1));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(1));
-                Assert.That(apiConnection.Count(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(2));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(3));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.getNetworkZonesForMatrix), Is.EqualTo(2));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(3));
                 Assert.That(apiConnection.Count(MonitorQueries.addDataImportLogEntry), Is.EqualTo(1));
             });
         }
@@ -304,8 +304,8 @@ namespace FWO.Test
                 Assert.That(result, Does.Contain("removed connections: 1"));
                 Assert.That(apiConnection.Count(ComplianceQueries.getMatrixByName), Is.EqualTo(1));
                 Assert.That(apiConnection.Count(ComplianceQueries.updateCriterionMetadata), Is.EqualTo(1));
-                Assert.That(apiConnection.Count(ComplianceQueries.getNetworkZonesForMatrix), Is.EqualTo(3));
-                Assert.That(apiConnection.Count(ComplianceQueries.removeNetworkZone), Is.EqualTo(1));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.getNetworkZonesForMatrix), Is.EqualTo(3));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.removeNetworkZone), Is.EqualTo(1));
                 Assert.That(apiConnection.Count(MonitorQueries.addDataImportLogEntry), Is.EqualTo(1));
             });
         }
@@ -427,7 +427,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.StartWith("Ok: Imported from paths.json"));
                 Assert.That(apiConnection.Count(DeviceQueries.getManagementNames), Is.EqualTo(1));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(1));
             });
         }
 
@@ -443,7 +443,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.StartWith("Ok: Imported from legacy.json"));
                 Assert.That(result, Does.Contain("Total number of network zones: 1"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(1));
             });
         }
 
@@ -502,7 +502,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Could not resolve devices"));
                 Assert.That(result, Does.Contain($"{kMgmtA}/{kUnknownDevice}"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(MonitorQueries.addDataImportLogEntry), Is.EqualTo(1));
             });
         }
@@ -526,7 +526,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("are ambiguous"));
                 Assert.That(result, Does.Contain($"{kMgmtA}/{kFwCore}"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -549,7 +549,7 @@ namespace FWO.Test
                 Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
                 Assert.That(result, Does.Contain($"in {kPathToRootField} in subnet 192.0.2.0/24"));
                 Assert.That(result, Does.Not.Contain(kPathToInternetField));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -572,7 +572,7 @@ namespace FWO.Test
                 Assert.That(result, Does.Contain($"Duplicate device {kMgmtA}/{kFwCore}"));
                 Assert.That(result, Does.Contain($"in {kPathToInternetField} in subnet 192.0.2.0/24"));
                 Assert.That(result, Does.Not.Contain(kPathToRootField));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -594,7 +594,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -617,7 +617,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Unknown communication target zone-does-not-exist in zone zone-a"));
                 Assert.That(result, Does.Contain("Unknown communication target zone-also-missing in zone zone-b"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -661,7 +661,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedInternetZoneIdString} in zone zone-a"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -682,7 +682,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.Contain($"Unknown communication target {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} in zone zone-a"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -702,7 +702,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Bad Ips for subnet not-an-ip"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -721,7 +721,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.Contain("Bad Ips for subnet 10.0.0.1"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -740,7 +740,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.Contain("Bad Ips for subnet 192.0.2.5"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -794,7 +794,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain($"Could not resolve devices {kMgmtA}/{kUnknownDevice}"));
                 Assert.That(result, Does.Not.Contain(kFwCore));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -816,8 +816,8 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.updateNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -839,8 +839,8 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.updateNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -862,7 +862,7 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -886,7 +886,7 @@ namespace FWO.Test
                 Assert.That(result, Does.Contain("Duplicate Zone Names"));
                 Assert.That(result, Does.Contain("Could not resolve devices"));
                 Assert.That(result, Does.Contain("in subnet 198.51.100.0/24"));
-                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
             });
         }
 
@@ -1084,9 +1084,9 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)MatrixByNameResponse);
                 }
 
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
-                    int responseIndex = Math.Min(Count(ComplianceQueries.getNetworkZonesForMatrix) - 1, Math.Max(MatrixZoneResponses.Count - 1, 0));
+                    int responseIndex = Math.Min(Count(NetworkZoneQueries.getNetworkZonesForMatrix) - 1, Math.Max(MatrixZoneResponses.Count - 1, 0));
                     List<ComplianceNetworkZone> response = MatrixZoneResponses.Count == 0 ? [] : MatrixZoneResponses[responseIndex];
                     // hand out a fresh list per call: NetworkZoneService.UpdateSpecialZones removes
                     // entries from the list it receives, which would corrupt later responses
@@ -1106,9 +1106,9 @@ namespace FWO.Test
                     });
                 }
 
-                if (query == ComplianceQueries.addNetworkZone
-                    || query == ComplianceQueries.updateNetworkZone
-                    || query == ComplianceQueries.removeNetworkZone
+                if (query == NetworkZoneQueries.addNetworkZone
+                    || query == NetworkZoneQueries.updateNetworkZone
+                    || query == NetworkZoneQueries.removeNetworkZone
                     || query == MonitorQueries.addDataImportLogEntry)
                 {
                     if (typeof(QueryResponseType) == typeof(ReturnIdWrapper))

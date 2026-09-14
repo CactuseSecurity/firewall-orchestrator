@@ -541,6 +541,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
+    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -555,6 +556,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
+    <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>

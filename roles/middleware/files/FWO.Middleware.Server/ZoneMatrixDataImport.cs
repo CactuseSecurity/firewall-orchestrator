@@ -121,12 +121,29 @@ namespace FWO.Middleware.Server
             {
                 errorList.Add("Duplicate Zone IdStrings");
             }
+            CheckReservedZoneIds(importedZoneMatrixData, errorList);
             CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
             CheckIpData(importedZoneMatrixData, errorList);
             if (errorList.Count > 0)
             {
                 throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
+            }
+        }
+
+        /// <summary>
+        /// Checks that internal zone names are not used by customer.
+        /// </summary>
+        private static void CheckReservedZoneIds(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
+            if (knownZones.Contains(NetworkZoneService.kAutoCalculatedInternetZoneIdString))
+            {
+                errorList.Add($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString} - please rename your zone");
+            }
+            if (knownZones.Contains(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString))
+            {
+                errorList.Add($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} - please rename your zone");
             }
         }
 

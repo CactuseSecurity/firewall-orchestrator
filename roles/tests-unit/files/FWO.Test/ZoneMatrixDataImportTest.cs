@@ -732,6 +732,74 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_RejectsZoneUsingTheReservedInternetIdString()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "reserved-internet.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsZoneUsingTheReservedUndefinedInternalIdString()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "reserved-undefined-internal.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString, "Reserved", "192.0.2.0/24")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString}"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_RejectsReservedZoneIdStringAlsoWhenAutoCalculationIsDisabled()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "reserved-internet-disabled.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
+                Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
         public async Task Run_ReportsZoneAndDeviceErrorsTogether()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();

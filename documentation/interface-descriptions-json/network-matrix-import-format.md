@@ -125,7 +125,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or connections have been saved, those earlier changes can remain in the matrix. Validate the complete document before importing it into a production system.
 
-The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
+The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; internally reserved zones `AUTO_CALCULATED_ZONE_INTERNET` and `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` are not used as customer zone; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
 
 ## Validation Checklist
 
@@ -137,8 +137,7 @@ The following is checked before anything is written: a non-empty matrix name; zo
 - Provide valid IPv4 or IPv6 values for every subnet.
 - Do not define zones with the reserved identifiers
   `AUTO_CALCULATED_ZONE_INTERNET` or
-  `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; these zones are managed by FWO
-  when automatic zone calculation is enabled.
+  `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL`; these zones are managed by FWO.
 - Reference `AUTO_CALCULATED_ZONE_INTERNET` in `communication_to` only while auto-calculated Internet zones are enabled in the settings; it does not exist otherwise.
 - Never reference `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` in `communication_to`.
 - In subnet paths every referenced management/device pair must exist case sensitive in database.

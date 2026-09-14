@@ -139,11 +139,11 @@ namespace FWO.Middleware.Server
             HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
             if (knownZones.Contains(NetworkZoneService.kAutoCalculatedInternetZoneIdString))
             {
-                errorList.Add($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString} - please rename your zone");
+                errorList.Add($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString} - please use a different id_string for your zone");
             }
             if (knownZones.Contains(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString))
             {
-                errorList.Add($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} - please rename your zone");
+                errorList.Add($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} - please use a different id_string for your zone");
             }
         }
 
@@ -257,7 +257,9 @@ namespace FWO.Middleware.Server
                 await SaveZone(incomingZone);
             }
 
-            foreach (var existingZone in ExistingZones.Where(z => importedMatrix.NetworkZones.FirstOrDefault(i => i.IdString == z.IdString) == null))
+            foreach (var existingZone in ExistingZones.Where(z =>
+                !z.IsAutoCalculatedInternetZone && !z.IsAutoCalculatedUndefinedInternalZone
+                && importedMatrix.NetworkZones.FirstOrDefault(i => i.IdString == z.IdString) == null))
             {
                 await DeactivateZone(existingZone);
             }

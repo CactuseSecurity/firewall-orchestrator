@@ -311,6 +311,73 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Run_DoesNotReportAutoCalculatedZonesAsDeletedOnReimport()
+        {
+            ZoneMatrixImportApiConnection apiConnection = new()
+            {
+                MatrixByNameResponse =
+                [
+                    new ComplianceCriterion
+                    {
+                        Id = 55,
+                        Name = "Matrix A",
+                        ImportSource = "seed.json"
+                    }
+                ],
+                Managements = CreateDeviceInventory()
+            };
+            apiConnection.MatrixZoneResponses.Add(CreateMatrixZonesWithAutoCalculatedZones());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "reimport.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.0/24")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from reimport.json"));
+                Assert.That(result, Does.Contain("Deleted: 0"));
+                Assert.That(result, Does.Contain("failed deletions: 0"));
+            });
+        }
+
+        [Test]
+        public async Task Run_StillDeactivatesStaleZonesBesideAutoCalculatedOnes()
+        {
+            ZoneMatrixImportApiConnection apiConnection = new()
+            {
+                MatrixByNameResponse =
+                [
+                    new ComplianceCriterion
+                    {
+                        Id = 55,
+                        Name = "Matrix A",
+                        ImportSource = "seed.json"
+                    }
+                ],
+                Managements = CreateDeviceInventory()
+            };
+            List<ComplianceNetworkZone> existingZones = CreateMatrixZonesWithAutoCalculatedZones();
+            existingZones.Add(CreateExistingZone(104, "zone-stale", "Zone stale"));
+            apiConnection.MatrixZoneResponses.Add(existingZones);
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "reimport-with-stale.json",
+                CreateImportJson("Matrix A", CreateZone("zone-a", "Zone A", "192.0.2.0/24")),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from reimport-with-stale.json"));
+                Assert.That(result, Does.Contain("Deleted: 1"));
+            });
+        }
+
+        [Test]
         public async Task Run_ReturnsErrorWhenMatrixExistsWithoutImportSource()
         {
             ZoneMatrixImportApiConnection apiConnection = new()
@@ -747,7 +814,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
@@ -770,7 +837,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString}"));
+                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(ComplianceQueries.updateNetworkZone), Is.EqualTo(0));
@@ -793,7 +860,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone name {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(ComplianceQueries.addNetworkZone), Is.EqualTo(0));
             });
@@ -832,6 +899,17 @@ namespace FWO.Test
             };
             apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneA());
             return apiConnection;
+        }
+
+        private static List<ComplianceNetworkZone> CreateMatrixZonesWithAutoCalculatedZones()
+        {
+            ComplianceNetworkZone internetZone =
+                CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet");
+            internetZone.IsAutoCalculatedInternetZone = true;
+            ComplianceNetworkZone undefinedInternalZone =
+                CreateExistingZone(103, NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString, "Undefined internal");
+            undefinedInternalZone.IsAutoCalculatedUndefinedInternalZone = true;
+            return [CreateExistingZone(101, "zone-a", "Zone A"), internetZone, undefinedInternalZone];
         }
 
         private static List<ComplianceNetworkZone> CreateReloadedZonesWithAutoInternet()

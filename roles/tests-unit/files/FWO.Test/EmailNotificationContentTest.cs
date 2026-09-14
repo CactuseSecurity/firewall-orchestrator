@@ -292,7 +292,8 @@ namespace FWO.Test
         [Test]
         public async Task ToPdf_ReturnsBase64EncodedPdfData()
         {
-            if (Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS") == "true")
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"
+                || Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS") == "true")
             {
                 Assert.Ignore("PDF rendering is covered by the dedicated CI browser test.");
             }

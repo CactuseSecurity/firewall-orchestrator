@@ -9,6 +9,7 @@ using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Jobs;
+using FWO.Services;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 
@@ -609,7 +610,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task PrepareBody_ReplacesAllKnownPlaceholders()
+        public async Task BuildRequestPlaceholderValues_ReplacesAllKnownPlaceholders()
         {
             OwnerLookupApiConnection apiConnection = new()
             {
@@ -621,8 +622,8 @@ namespace FWO.Test
                 ModReqInterfaceName = "Interface"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo prepareBody = typeof(DailyCheckJob).GetMethod("PrepareBody", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("PrepareBody method not found.");
+            MethodInfo buildPlaceholderValues = typeof(DailyCheckJob).GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found.");
             WfReqTask reqTask = new()
             {
                 Title = "Interface Request",
@@ -638,20 +639,18 @@ namespace FWO.Test
             };
             FwoOwner owner = new() { Name = "Owner A", ExtAppId = "APP-42" };
 
-            FwoNotification notification = new()
-            {
-                EmailBody = string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders)
-            };
-            Task<string> task = (Task<string>)(prepareBody.Invoke(dailyCheckJob, [notification, ticket, owner])
-                ?? throw new InvalidOperationException("PrepareBody returned null task."));
-            string body = await task;
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
+                (await (Task<NotificationPlaceholderResolver.NotificationPlaceholderValues>)(buildPlaceholderValues.Invoke(dailyCheckJob, [ticket, owner])
+                    ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null task.")));
+            string body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                string.Join("|", ExpectedModUnansweredReqEmailBodyPlaceholders), values, renderHtmlLinks: true);
 
             Assert.That(body, Is.EqualTo(
                 $"Requester A|02.01.2025|Requesting App|REQ-7|Owner A|APP-42|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));
         }
 
         [Test]
-        public async Task PrepareBody_UsesFallbackValuesWhenRequestContextIsIncomplete()
+        public async Task BuildRequestPlaceholderValues_UsesFallbackValuesWhenRequestContextIsIncomplete()
         {
             OwnerLookupApiConnection apiConnection = new();
             SimulatedGlobalConfig globalConfig = new()
@@ -660,8 +659,8 @@ namespace FWO.Test
                 ModReqInterfaceName = "Interface"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo prepareBody = typeof(DailyCheckJob).GetMethod("PrepareBody", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("PrepareBody method not found.");
+            MethodInfo buildPlaceholderValues = typeof(DailyCheckJob).GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found.");
             WfReqTask reqTask = new()
             {
                 Title = "Interface Request",
@@ -675,9 +674,11 @@ namespace FWO.Test
                 Tasks = new List<WfReqTask> { reqTask }
             };
             FwoOwner owner = new() { Name = "Owner A", ExtAppId = "APP-42" };
-            FwoNotification notification = new()
-            {
-                EmailBody = string.Join("|", new List<string>
+            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
+                (await (Task<NotificationPlaceholderResolver.NotificationPlaceholderValues>)(buildPlaceholderValues.Invoke(dailyCheckJob, [ticket, owner])
+                    ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null task.")));
+            string body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                string.Join("|", new List<string>
                 {
                     Placeholder.REQUESTER,
                     Placeholder.INTERFACE_NAME,
@@ -686,11 +687,7 @@ namespace FWO.Test
                     Placeholder.USER_NAME,
                     Placeholder.REQUESTDATE,
                     Placeholder.INTERFACE_LINK
-                })
-            };
-
-            string body = await (Task<string>)(prepareBody.Invoke(dailyCheckJob, new object?[] { notification, ticket, owner })
-                ?? throw new InvalidOperationException("PrepareBody returned null task."));
+                }), values, renderHtmlLinks: true);
 
             Assert.That(body, Is.EqualTo(
                 $"Requester A|Interface Request|||Requester A|02.01.2025|<a target=\"_blank\" href=\"https://fwo.example/{PageName.Modelling}/APP-42/123\">Request Interface</a>"));

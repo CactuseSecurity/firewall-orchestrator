@@ -339,7 +339,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
 
             NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
-                GetPrivateMethod("CreateDecommissionPlaceholderValues").Invoke(handler, [Application, "Reason", proposedInterface])!;
+                GetPrivateMethod("CreateDecommissionPlaceholderValues").Invoke(handler, ["Reason", proposedInterface])!;
 
             Assert.Multiple(() =>
             {

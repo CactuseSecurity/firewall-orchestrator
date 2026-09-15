@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FWO.Middleware.Server.OpenApi;
 using System.Text.Json.Serialization;
 
 namespace FWO.Middleware.Server.Requests;
@@ -26,7 +27,12 @@ public sealed class GetAuditProofCriticalChangesRequest : IRequestWithRootAdditi
     /// value type keeps the key optional for the deserializer while still telling an omitted key
     /// (null) apart from a supplied zero, which is what an unannotated <c>long</c> could not do and
     /// what under-posting turns on.
+    /// <para>
+    /// <see cref="OpenApiRequiredAttribute"/> restores the required marker in the generated schema,
+    /// so the documentation and generated clients still see the key as mandatory.
+    /// </para>
     /// </remarks>
+    [OpenApiRequired]
     [JsonPropertyName("ticketId")]
     public long? TicketId { get; set; }
 

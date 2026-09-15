@@ -20,13 +20,15 @@ public sealed class GetAuditProofCriticalChangesRequest : IRequestWithRootAdditi
     /// Required and greater than 0.
     /// </summary>
     /// <remarks>
-    /// The key is deliberately not marked with <see cref="JsonRequiredAttribute"/>: a deserializer
-    /// that rejects the missing key throws before validation runs, which would report it on its own
-    /// instead of together with every other error of the same request. An omitted key deserializes
-    /// to 0, which the validator reports as the required-key error.
+    /// Nullable rather than marked with <see cref="JsonRequiredAttribute"/> or <c>required</c>: both of
+    /// those make the deserializer throw on the missing key, before validation runs, so the caller
+    /// would get that one error on its own instead of every error of the request together. A nullable
+    /// value type keeps the key optional for the deserializer while still telling an omitted key
+    /// (null) apart from a supplied zero, which is what an unannotated <c>long</c> could not do and
+    /// what under-posting turns on.
     /// </remarks>
     [JsonPropertyName("ticketId")]
-    public long TicketId { get; set; }
+    public long? TicketId { get; set; }
 
     /// <summary>
     /// Gets or sets the optional output options. Defaults to an empty object, which applies no

@@ -107,7 +107,7 @@ internal class WorkflowChangeHistoryControllerTest
         {
             Assert.That(paths, Is.EquivalentTo(new List<string> { "ticketId", "ticket_id", "options.limit", "options.filter.changer" }));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
-                Does.Contain("is required and must be greater than 0"));
+                Does.Contain("must be greater than 0"));
             Assert.That(errors.Errors.Single(error => error.Path == "options.filter.changer").Message,
                 Does.Contain("'changeUserName'"));
         });
@@ -125,6 +125,25 @@ internal class WorkflowChangeHistoryControllerTest
                 Is.EquivalentTo(new List<string> { "ticketId", "options.filter.changer" }));
             Assert.That(errors.Errors.Single(error => error.Path == "ticketId").Message,
                 Does.Contain("is required"));
+        });
+    }
+
+    [Test]
+    public void AnOmittedTicketIdStaysNullInsteadOfSilentlyBecomingZero()
+    {
+        GetAuditProofCriticalChangesRequest omitted = Deserialize("{\"options\":{}}");
+        GetAuditProofCriticalChangesRequest supplied = Deserialize("{\"ticketId\":0}");
+
+        // Under-posting guard: a non-nullable long would make both of these 0 and hide the
+        // difference between a key the caller never sent and a zero it sent on purpose.
+        Assert.Multiple(() =>
+        {
+            Assert.That(omitted.TicketId, Is.Null);
+            Assert.That(supplied.TicketId, Is.EqualTo(0));
+            Assert.That(GetAuditProofCriticalChangesRequestValidator.Validate(omitted).Errors
+                .Single(error => error.Path == "ticketId").Message, Does.Contain("is required"));
+            Assert.That(GetAuditProofCriticalChangesRequestValidator.Validate(supplied).Errors
+                .Single(error => error.Path == "ticketId").Message, Does.Contain("must be greater than 0"));
         });
     }
 

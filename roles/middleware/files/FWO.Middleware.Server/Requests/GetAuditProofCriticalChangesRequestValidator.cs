@@ -36,11 +36,13 @@ public static class GetAuditProofCriticalChangesRequestValidator
 
     private static void ValidateTicketId(GetAuditProofCriticalChangesRequest request, RequestValidationErrorResponse result)
     {
-        if (request.TicketId <= 0)
+        if (request.TicketId == null)
         {
-            // An omitted 'ticketId' deserializes to 0 and lands here, so the required-key case and
-            // an out-of-range value share one message.
-            result.Errors.Add(BuildError("ticketId", "'ticketId' is required and must be greater than 0."));
+            result.Errors.Add(BuildError("ticketId", "'ticketId' is required."));
+        }
+        else if (request.TicketId <= 0)
+        {
+            result.Errors.Add(BuildError("ticketId", "'ticketId' must be greater than 0."));
         }
     }
 

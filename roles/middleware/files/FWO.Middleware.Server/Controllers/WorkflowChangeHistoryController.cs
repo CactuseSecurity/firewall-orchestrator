@@ -49,13 +49,15 @@ public class WorkflowChangeHistoryController : ControllerBase
             return BadRequest(validationErrors);
         }
 
+        // Validation rejects both an absent and a non-positive ticketId, so a value is present here.
+        long ticketId = request.TicketId.GetValueOrDefault();
         try
         {
-            return Ok(await changeHistoryService.GetAuditProofCriticalChangesAsync(request.TicketId, request.Options.Filter));
+            return Ok(await changeHistoryService.GetAuditProofCriticalChangesAsync(ticketId, request.Options.Filter));
         }
         catch (Exception exception)
         {
-            Log.WriteError("Get Audit Proof Critical Changes", $"Error while fetching audit proof critical changes of ticket {request.TicketId}.", exception);
+            Log.WriteError("Get Audit Proof Critical Changes", $"Error while fetching audit proof critical changes of ticket {ticketId}.", exception);
             return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
         }
     }

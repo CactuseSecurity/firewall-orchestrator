@@ -83,6 +83,18 @@ namespace FWO.Test
             public List<WfState> States { get; set; } = [];
             public WfTicket Ticket { get; set; } = new();
 
+            /// <summary>
+            /// Rows the state-change execution claim reports as written. One means the transition
+            /// was claimed by this request, zero that it had already been executed.
+            /// </summary>
+            public int StateChangeClaimAffectedRows { get; set; } = 1;
+
+            /// <summary>
+            /// Variables of the last state-change execution claim, so a test can check what the
+            /// claim was keyed on.
+            /// </summary>
+            public object? LastStateChangeClaimVariables { get; private set; }
+
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
                 GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null,
                 string? operationName = null)
@@ -101,6 +113,12 @@ namespace FWO.Test
                 if (query == RequestQueries.getTicketById)
                 {
                     return Task.FromResult((T)(object)Ticket);
+                }
+
+                if (query == RequestQueries.claimStateChangeExecution)
+                {
+                    LastStateChangeClaimVariables = variables;
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = StateChangeClaimAffectedRows });
                 }
 
                 if (query.Contains("getConfigItemsByUser", StringComparison.OrdinalIgnoreCase)
@@ -418,6 +436,136 @@ namespace FWO.Test
             {
                 SetApiServerUri(previousApiServerUri);
             }
+        }
+
+        /// <summary>
+        /// SEC-06: the object's state is persisted before its actions are requested, so a request
+        /// that only claims "the object stands in the new state" stays valid after the transition
+        /// happened and could be submitted again to fire the side effects a second time. Once the
+        /// transition is claimed, the repeated request must execute nothing.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsInMiddlewareContext_ExecutesNothingForAnAlreadyClaimedTransition()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = [],
+                // what the claim reports once the transition was executed by an earlier request
+                StateChangeClaimAffectedRows = 0
+            };
+            apiConnection.Ticket = new WfTicket
+            {
+                Id = 42,
+                StateId = 8,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+            WorkflowActionResult result = new();
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult executed = await InvokePrivateAsync<WorkflowActionResult>(controller, "ExecuteActionsInMiddlewareContext",
+                    apiConnection, parameters, WfObjectScopes.Ticket, WorkflowPhases.request, 42L, result);
+
+                Assert.Multiple(() =>
+                {
+                    // reported as success: the transition did happen and its actions did run, so an
+                    // accidental double submit must not surface as a failed promote
+                    Assert.That(executed.Success, Is.True);
+                    Assert.That(executed.ErrorMessage, Is.Null.Or.Empty);
+                    Assert.That(executed.Messages.Select(message => message.Message),
+                        Has.Some.Contains("already been executed"));
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.False);
+                    Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.claimStateChangeExecution), Is.EqualTo(1),
+                        "the claim is the single decision point and must be attempted exactly once");
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        /// <summary>
+        /// The claim decides whether the side effects run, so it must be keyed on the object the
+        /// server resolved rather than on the id the caller happened to send.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_KeysTheClaimOnTheResolvedTicket()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = 999,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+
+            object variables = apiConnection.LastStateChangeClaimVariables!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(ReadVariable(variables, "objectId"), Is.EqualTo(42L),
+                    "the ticket scope must be keyed on the resolved ticket, not on the caller's object id");
+                Assert.That(ReadVariable(variables, "objectScope"), Is.EqualTo(WfObjectScopes.Ticket.ToString()));
+                Assert.That(ReadVariable(variables, "fromStateId"), Is.EqualTo(5));
+                Assert.That(ReadVariable(variables, "toStateId"), Is.EqualTo(8));
+            });
+        }
+
+        /// <summary>
+        /// A request naming an action explicitly carries no transition to key a claim on, and is
+        /// validated against the actions currently offered instead. It must not consume the claim of
+        /// the transition the object last went through.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_DoesNotClaimForAnExplicitAction()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ActionId = 3,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, parameters, WfObjectScopes.Ticket, new WfTicket { Id = 42 }, new WorkflowActionResult());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(apiConnection.Queries, Has.None.EqualTo(RequestQueries.claimStateChangeExecution));
+            });
+        }
+
+        /// <summary>
+        /// Reads one property of the anonymous variables object handed to the api connection.
+        /// </summary>
+        /// <param name="variables">The variables object of a recorded query.</param>
+        /// <param name="name">Name of the property to read.</param>
+        private static object? ReadVariable(object variables, string name)
+        {
+            return variables.GetType().GetProperty(name)?.GetValue(variables);
         }
 
         [Test]

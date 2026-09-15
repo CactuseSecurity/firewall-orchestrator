@@ -84,6 +84,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addCommentToApproval;
         public static readonly string addOwnerToReqTask;
         public static readonly string removeOwnerFromReqTask;
+        public static readonly string claimStateChangeExecution;
 
 
         static RequestQueries()
@@ -151,6 +152,7 @@ namespace FWO.Api.Client.Queries
                 replaceStateMatrixConfiguration = GetQueryText("request/replaceStateMatrixConfiguration.graphql");
                 getWorkflowVisibilityGroups = GetQueryText("request/getWorkflowVisibilityGroups.graphql");
                 getStateMatrixTransitionGroups = GetQueryText("request/getStateMatrixTransitionGroups.graphql");
+                claimStateChangeExecution = GetQueryText("request/claimStateChangeExecution.graphql");
                 createWorkflowVisibilityGroup = GetQueryText("request/createWorkflowVisibilityGroup.graphql");
                 updateWorkflowVisibilityGroup = GetQueryText("request/updateWorkflowVisibilityGroup.graphql");
                 deleteWorkflowVisibilityGroup = GetQueryText("request/deleteWorkflowVisibilityGroup.graphql");

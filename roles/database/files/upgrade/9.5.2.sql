@@ -1,0 +1,26 @@
+-- SEC-06: the workflow action endpoint executes the side effects of a state change (mail, external
+-- request, flow creation) for a transition the caller describes. The object's state is persisted by
+-- the caller before the actions are requested, so the only check available was that the object
+-- already stands in the requested new state - which stays true once the transition happened, and
+-- therefore let the same request be submitted again to fire the side effects a second time.
+-- This table records which transition the actions of an object were last executed for. The
+-- middleware claims it in one statement before it runs anything, so the execution can be claimed
+-- exactly once.
+-- One row per object is enough: a replay repeats the transition that was executed last, while
+-- legitimately entering a state again requires leaving it first, which writes a different
+-- transition here in between.
+CREATE TABLE IF NOT EXISTS request.state_change_execution
+(
+    object_scope VARCHAR NOT NULL,
+    object_id BIGINT NOT NULL,
+    from_state_id INT NOT NULL,
+    to_state_id INT NOT NULL,
+    executed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    executed_by VARCHAR,
+    CONSTRAINT state_change_execution_pkey PRIMARY KEY (object_scope, object_id)
+);
+
+-- Existing objects have no recorded execution, so the first transition after this upgrade is
+-- claimable for each of them. That is the safe direction: it can let one already executed
+-- transition be re-requested once, exactly as before this upgrade, rather than blocking a
+-- legitimate promote of every ticket that is currently in flight.

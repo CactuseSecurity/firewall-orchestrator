@@ -35354,6 +35354,62 @@
             },
             {
               "table": {
+                "name": "state_change_execution",
+                "schema": "request"
+              },
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "object_scope",
+                      "object_id",
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "object_scope",
+                      "object_id",
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "state_action",
                 "schema": "request"
               },

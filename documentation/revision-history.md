@@ -708,3 +708,23 @@ Not supported any longer are:
 - report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import
+
+## 9.5.2 - 15.09.2026
+- security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
+  who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.
+  A login and a token refresh derive the roles of a user by resolving uiuser.uuid against LDAP, so
+  rewriting that column let an auditor have its authorization rebuilt as a different, more
+  privileged subject. Self-service updates of uiuser are now limited to uiuser_language for every
+  role except the middleware, and each of those permissions constrains the row after the update as
+  well as before it, so an update cannot move a row to another subject
+- security fix (SEC-04): the LDAP connection test is a POST instead of a GET carrying a body, so
+  the credentials entered for a test are no longer part of a request that proxies and http clients
+  handle inconsistently and may cache or log
+- security fix (SEC-06): the workflow action endpoint could be asked to execute the side effects of
+  a state change more than once. The state of a ticket or task is persisted before its actions are
+  requested, so the endpoint could only check that the object already stands in the requested state,
+  which stays true after the transition happened and therefore let the same request be replayed to
+  send mails, raise external requests or create flows again. The new table
+  request.state_change_execution records which transition the actions of an object were last
+  executed for; the middleware claims it in a single statement and a repeated request now returns
+  without executing anything

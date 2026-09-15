@@ -1,0 +1,41 @@
+# Claims the execution of the workflow actions belonging to one state transition.
+#
+# The insert succeeds for an object whose actions have not run yet. For an object that already has a
+# row, the transition is only claimed when it differs from the one recorded there: a replay repeats
+# the transition that was executed last and is therefore refused, while entering a state again after
+# leaving it carries a different transition and is claimed normally.
+# Postgres evaluates the conflict and the guard in one statement, so two requests arriving together
+# cannot both claim it. affected_rows is 1 when the caller may execute the actions and 0 when the
+# transition was already executed.
+
+mutation claimStateChangeExecution(
+  $objectScope: String!
+  $objectId: bigint!
+  $fromStateId: Int!
+  $toStateId: Int!
+  $executedBy: String
+  $executedAt: timestamptz!
+) {
+  insert_request_state_change_execution(
+    objects: {
+      object_scope: $objectScope
+      object_id: $objectId
+      from_state_id: $fromStateId
+      to_state_id: $toStateId
+      executed_by: $executedBy
+      executed_at: $executedAt
+    }
+    on_conflict: {
+      constraint: state_change_execution_pkey
+      update_columns: [from_state_id, to_state_id, executed_at, executed_by]
+      where: {
+        _or: [
+          { from_state_id: { _neq: $fromStateId } }
+          { to_state_id: { _neq: $toStateId } }
+        ]
+      }
+    }
+  ) {
+    affected_rows
+  }
+}

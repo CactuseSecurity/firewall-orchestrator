@@ -7,7 +7,7 @@
   "api_hasura_jwt_alg": "RS256",
 
   "middleware_native_uri": "http://127.0.0.1:8880/",
-  "middleware_uri": "http://127.0.0.1:8888/",
+  "middleware_uri": "http://127.0.0.1:8880/",
   "middleware_hostname": "127.0.0.1",
-  "middleware_server_port": "8888"
+  "middleware_server_port": "8880"
 }

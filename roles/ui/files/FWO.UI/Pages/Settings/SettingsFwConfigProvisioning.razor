@@ -1,0 +1,354 @@
+@using FWO.Ui.Pages.Settings
+
+@page "/settings/fwconfigprovisioning"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+
+@inject UserConfig userConfig
+@inject IJSRuntime JsRuntime
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("prov_settings"))</h3>
+    <HelpLink Page="settings/fwconfigprovisioning" />
+</div>
+@(userConfig.GetText("prov_settings_intro"))
+<hr />
+
+<div class="row">
+    <div class="col-sm-3 border-end">
+        <ul class="navbar-nav flex-column mb-3">
+            <li class="nav-item">
+                <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == "global" ? "btn-primary" : "btn-light")"
+                        @onclick="SelectGlobal">
+                    <span class="@Icons.Settings"></span> @(userConfig.GetText("prov_global"))
+                </button>
+            </li>
+            @foreach (ProvisioningNode deviceType in ProvisioningSettingsMockData.GetChildren(allNodes, "global"))
+            {
+                <li class="nav-item ms-2">
+                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == deviceType.Id ? "btn-primary" : "btn-light")"
+                            @onclick="() => SelectNode(deviceType)">
+                        <span class="@Icons.Management"></span> @deviceType.Name
+                    </button>
+                    @if (expandedDeviceTypeIds.Contains(deviceType.Id))
+                    {
+                        @foreach (ProvisioningNode manager in ProvisioningSettingsMockData.GetChildren(allNodes, deviceType.Id))
+                        {
+                            <ul class="list-unstyled ms-3">
+                                <li>
+                                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == manager.Id ? "btn-primary" : "btn-outline-light text-dark")"
+                                            @onclick="() => SelectNode(manager)">
+                                        <span class="@Icons.Management"></span> @manager.Name
+                                    </button>
+                                    @if (expandedManagerIds.Contains(manager.Id))
+                                    {
+                                        <ul class="list-unstyled ms-3">
+                                            @foreach (ProvisioningNode gateway in ProvisioningSettingsMockData.GetChildren(allNodes, manager.Id))
+                                            {
+                                                <li>
+                                                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == gateway.Id ? "btn-primary" : "btn-outline-light text-dark")"
+                                                            @onclick="() => SelectNode(gateway)">
+                                                        <span class="@Icons.Gateway"></span> @gateway.Name
+                                                    </button>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </li>
+                            </ul>
+                        }
+                    }
+                </li>
+            }
+        </ul>
+        <div class="text-muted small">
+            @(userConfig.GetText("prov_hierarchy_hint"))
+        </div>
+    </div>
+
+    <div class="col-sm-9">
+        @if (SelectedNode != null)
+        {
+            <div class="d-flex align-items-center gap-2 mb-3">
+                @foreach ((ProvisioningNode crumb, bool isLast) in BreadcrumbChain())
+                {
+                    <span class="fw-@(isLast ? "bold" : "normal")">@crumb.Name</span>
+                    @if (!isLast)
+                    {
+                        <span class="text-muted">&gt;</span>
+                    }
+                }
+            </div>
+
+            <form onsubmit="return false">
+                @foreach (ProvisioningFieldDefinition field in VisibleFields())
+                {
+                    ProvisioningResolvedValue resolved = ProvisioningSettingsMockData.Resolve(allNodes, SelectedNode, field);
+                    bool overriddenHere = resolved.IsOverriddenHere;
+
+                    <div id="@FieldRowId(field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(field.HelpTextKey))">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="fw-semibold">@(userConfig.GetText(field.LabelTextKey))</div>
+                            <button type="button" class="btn btn-sm rounded-pill fw-bold @(overriddenHere ? "btn-success" : "btn-outline-secondary")"
+                                    @onclick="() => ToggleOverride(field)"
+                                    disabled="@(SelectedNode.Level == ProvisioningLevel.Global)">
+                                @(overriddenHere ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
+                            </button>
+                        </div>
+
+                        <div class="mt-2 @(overriddenHere ? "" : "opacity-50")">
+                            @RenderEditor(field, overriddenHere ? GetOverrideValue(field) : resolved.Value, !overriddenHere, v => SetOverrideValue(field, v))
+                        </div>
+
+                        @if (!overriddenHere)
+                        {
+                            <div class="text-muted small mt-1">
+                                @(userConfig.GetText("prov_inherited_from"))
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="() => NavigateToSource(field, resolved)">
+                                    <strong>@LevelLabel(resolved.SourceNode.Level)</strong> "@resolved.SourceNode.Name" <span class="@Icons.Use"></span>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </form>
+
+            <div class="alert alert-info small">
+                @(userConfig.GetText("prov_mock_data_hint"))
+            </div>
+        }
+        else
+        {
+            <Loading />
+        }
+    </div>
+</div>
+
+@code
+{
+    private List<ProvisioningNode> allNodes = [];
+    private readonly HashSet<string> expandedDeviceTypeIds = [];
+    private readonly HashSet<string> expandedManagerIds = [];
+
+    private ProvisioningNode? SelectedNode;
+    private string? pendingHighlightFieldKey;
+
+    protected override void OnInitialized()
+    {
+        allNodes = ProvisioningSettingsMockData.BuildMockHierarchy();
+        SelectedNode = NodeById("global");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (pendingHighlightFieldKey != null)
+        {
+            string fieldKey = pendingHighlightFieldKey;
+            pendingHighlightFieldKey = null;
+            await JsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", $"prov-field-{fieldKey}");
+        }
+    }
+
+    private static string FieldRowId(ProvisioningFieldDefinition field) => $"prov-field-{field.Key}";
+
+    /// <summary>Jumps to the node a field's value is currently inherited from, so it can be edited there.</summary>
+    private void NavigateToSource(ProvisioningFieldDefinition field, ProvisioningResolvedValue resolved)
+    {
+        if (SelectedNode == null || resolved.SourceNode.Id == SelectedNode.Id)
+        {
+            return;
+        }
+
+        SelectNode(resolved.SourceNode);
+        pendingHighlightFieldKey = field.Key;
+    }
+
+    private ProvisioningNode? NodeById(string id) => allNodes.FirstOrDefault(n => n.Id == id);
+
+    private void SelectGlobal() => SelectNode(NodeById("global"));
+
+    private void SelectNode(ProvisioningNode? node)
+    {
+        if (node == null)
+        {
+            return;
+        }
+
+        SelectedNode = node;
+
+        if (node.Level == ProvisioningLevel.DeviceType)
+        {
+            expandedDeviceTypeIds.Add(node.Id);
+        }
+        else if (node.Level == ProvisioningLevel.Manager)
+        {
+            expandedDeviceTypeIds.Add(node.ParentId!);
+            expandedManagerIds.Add(node.Id);
+        }
+        else if (node.Level == ProvisioningLevel.Gateway)
+        {
+            ProvisioningNode? manager = NodeById(node.ParentId!);
+            expandedManagerIds.Add(node.ParentId!);
+            if (manager != null)
+            {
+                expandedDeviceTypeIds.Add(manager.ParentId!);
+            }
+        }
+    }
+
+    private IEnumerable<(ProvisioningNode node, bool isLast)> BreadcrumbChain()
+    {
+        if (SelectedNode == null)
+        {
+            yield break;
+        }
+
+        List<ProvisioningNode> chain = ProvisioningSettingsMockData.GetAncestryChain(allNodes, SelectedNode);
+        chain.Reverse();
+        for (int i = 0; i < chain.Count; i++)
+        {
+            yield return (chain[i], i == chain.Count - 1);
+        }
+    }
+
+    private IEnumerable<ProvisioningFieldDefinition> VisibleFields()
+    {
+        if (SelectedNode == null)
+        {
+            yield break;
+        }
+
+        foreach (ProvisioningFieldDefinition field in ProvisioningSettingsMockData.Fields)
+        {
+            if (!field.AppliesToLevel(SelectedNode.Level))
+            {
+                continue;
+            }
+
+            if (field.FortiManagerOnly && SelectedNode.DeviceTypeGroup != ProvisioningDeviceTypeGroups.FortiManager)
+            {
+                continue;
+            }
+
+            yield return field;
+        }
+    }
+
+    private void ToggleOverride(ProvisioningFieldDefinition field)
+    {
+        if (SelectedNode == null || SelectedNode.Level == ProvisioningLevel.Global)
+        {
+            return;
+        }
+
+        if (SelectedNode.Overrides.ContainsKey(field.Key))
+        {
+            SelectedNode.Overrides.Remove(field.Key);
+        }
+        else
+        {
+            ProvisioningResolvedValue resolved = ProvisioningSettingsMockData.Resolve(allNodes, SelectedNode, field);
+            SelectedNode.Overrides[field.Key] = resolved.Value;
+        }
+    }
+
+    private string GetOverrideValue(ProvisioningFieldDefinition field)
+    {
+        return SelectedNode != null && SelectedNode.Overrides.TryGetValue(field.Key, out string? value) ? value : field.DefaultValue;
+    }
+
+    private void SetOverrideValue(ProvisioningFieldDefinition field, string value)
+    {
+        if (SelectedNode != null)
+        {
+            SelectedNode.Overrides[field.Key] = value;
+        }
+    }
+
+    private string LevelLabel(ProvisioningLevel level) => level switch
+    {
+        ProvisioningLevel.Global => userConfig.GetText("prov_global"),
+        ProvisioningLevel.DeviceType => userConfig.GetText("prov_device_type"),
+        ProvisioningLevel.Manager => userConfig.GetText("prov_manager"),
+        ProvisioningLevel.Gateway => userConfig.GetText("prov_gateway"),
+        _ => level.ToString()
+    };
+
+    /// <summary>
+    /// Renders a field's control. Used both for the editable "set here" state (disabled: false,
+    /// bound to the override dictionary) and for the read-only "inherited" state (disabled: true,
+    /// bound to the resolved/inherited value) - so the inherited value always shows in the same
+    /// shape as the real control, just dehighlighted.
+    /// </summary>
+    private RenderFragment RenderEditor(ProvisioningFieldDefinition field, string value, bool disabled, Action<string> onChange) => builder =>
+    {
+        Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> changeCallback =
+            Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e => onChange(e.Value?.ToString() ?? ""));
+
+        switch (field.Kind)
+        {
+            case ProvisioningFieldKind.SingleSelect:
+                builder.OpenElement(0, "select");
+                builder.AddAttribute(1, "class", "form-select form-select-sm w-auto");
+                builder.AddAttribute(2, "value", value);
+                builder.AddAttribute(3, "onchange", changeCallback);
+                builder.AddAttribute(4, "disabled", disabled);
+                foreach (ProvisioningFieldOption option in field.Options)
+                {
+                    builder.OpenElement(5, "option");
+                    builder.AddAttribute(6, "value", option.Value);
+                    builder.AddContent(7, option.DisplayName);
+                    builder.CloseElement();
+                }
+                builder.CloseElement();
+                break;
+
+            case ProvisioningFieldKind.TemplateText:
+                builder.OpenElement(0, "textarea");
+                builder.AddAttribute(1, "class", "form-control form-control-sm");
+                builder.AddAttribute(2, "rows", 4);
+                builder.AddAttribute(3, "placeholder", userConfig.GetText("prov_templates_placeholder"));
+                builder.AddAttribute(4, "value", value);
+                builder.AddAttribute(5, "onchange", changeCallback);
+                builder.AddAttribute(6, "disabled", disabled);
+                builder.CloseElement();
+                break;
+
+            case ProvisioningFieldKind.MultiSelectTags:
+                builder.OpenElement(0, "div");
+                builder.OpenElement(1, "input");
+                builder.AddAttribute(2, "type", "text");
+                builder.AddAttribute(3, "class", "form-control form-control-sm");
+                builder.AddAttribute(4, "placeholder", userConfig.GetText("prov_tags_placeholder"));
+                builder.AddAttribute(5, "value", value);
+                builder.AddAttribute(6, "onchange", changeCallback);
+                builder.AddAttribute(7, "disabled", disabled);
+                builder.CloseElement();
+
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    builder.OpenElement(8, "div");
+                    builder.AddAttribute(9, "class", "mt-1");
+                    foreach (string tag in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        builder.OpenElement(10, "span");
+                        builder.AddAttribute(11, "class", "badge bg-secondary me-1");
+                        builder.AddContent(12, tag);
+                        builder.CloseElement();
+                    }
+                    builder.CloseElement();
+                }
+                builder.CloseElement();
+                break;
+
+            default:
+                builder.OpenElement(0, "input");
+                builder.AddAttribute(1, "type", "text");
+                builder.AddAttribute(2, "class", "form-control form-control-sm w-auto");
+                builder.AddAttribute(3, "value", value);
+                builder.AddAttribute(4, "onchange", changeCallback);
+                builder.AddAttribute(5, "disabled", disabled);
+                builder.CloseElement();
+                break;
+        }
+    };
+}

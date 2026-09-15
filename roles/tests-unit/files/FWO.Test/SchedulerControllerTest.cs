@@ -8,6 +8,10 @@ using NSubstitute;
 using NUnit.Framework;
 using Quartz;
 
+// Quartz 4 returns ValueTask from IScheduler/ISchedulerFactory. The NSubstitute arrange calls below
+// only record the invocation - the returned instance is never awaited, so CA2012 does not apply.
+#pragma warning disable CA2012
+
 namespace FWO.Test
 {
     [TestFixture]
@@ -168,3 +172,4 @@ namespace FWO.Test
         }
     }
 }
+#pragma warning restore CA2012

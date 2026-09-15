@@ -1,4 +1,8 @@
-mutation addHistoryEntry(
+# Variant of addHistoryEntry for the middleware-server role, which has no changer_id insert preset
+# because internal service JWTs carry no x-hasura-user-id session variable. Entry points that act on
+# behalf of an authenticated human pass that user's id explicitly, so the row stays resolvable to the
+# uiuser record. Background jobs pass null and the row keeps changer_id NULL, marking it as automated.
+mutation addHistoryEntryAsService(
   $appId: Int
   $module: String! = "modelling"
   $changeType: Int!
@@ -6,6 +10,7 @@ mutation addHistoryEntry(
   $objectId: bigint!
   $changeText: String
   $changer: String!
+  $changerId: Int
   $changeSource: String! = "manual"
   $ticketId: bigint
   $workflowPhase: Int
@@ -22,6 +27,7 @@ mutation addHistoryEntry(
       object_id: $objectId
       change_text: $changeText
       changer: $changer
+      changer_id: $changerId
       change_source: $changeSource
       ticket_id: $ticketId
       workflow_phase: $workflowPhase

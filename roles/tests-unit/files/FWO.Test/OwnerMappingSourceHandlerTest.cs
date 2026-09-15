@@ -365,6 +365,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ApplyTo_RequestsNoRebuild_WhenTheSettingsOfAFailedWriteAreAbandoned()
+        {
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.IpBased };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
+            handler.OwnerKeysToAdd.Add("app-id");
+
+            // the write threw, so the settings requiring the rebuild never reached the database
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.True);
+
+            // the admin drops the change instead of retrying it: nothing is stored differently, so the rebuild
+            // the abandoned attempt would have needed must not be requested by the next save
+            handler.DiscardEdits();
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.False);
+        }
+
+        [Test]
         public void DiscardEdits_ShowsTheStoredSettings_AfterAFailedSave()
         {
             ConfigData configData = new()

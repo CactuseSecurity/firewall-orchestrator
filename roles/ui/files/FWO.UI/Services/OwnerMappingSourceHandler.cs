@@ -66,6 +66,7 @@ namespace FWO.Ui.Services
         public string ModelledMarker { get; set; } = "";
 
         private bool ruleOwnerRebuildPending;
+        private bool appliedSettingsRequireRuleOwnerRebuild;
         private int storedSource;
         private string storedModelledMarker = "";
         private string rawOwnerKeys = "";
@@ -84,7 +85,9 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Takes over the mapping source settings as they are stored in the database. Has to be called again
         /// after every successful write, because the editor compares against these settings to decide whether a
-        /// full rule owner mapping rebuild is required, see <see cref="ApplyTo"/>.
+        /// full rule owner mapping rebuild is required, see <see cref="ApplyTo"/>. Taking the settings over is
+        /// also what makes the rebuild they require outstanding, because a write which did not reach the database
+        /// requires no rebuild.
         /// </summary>
         /// <param name="configData">Configuration holding the stored settings.</param>
         public void TakeOverStoredSettings(ConfigData configData)
@@ -92,6 +95,8 @@ namespace FWO.Ui.Services
             storedSource = configData.OwnerSoruceMappingID;
             rawOwnerKeys = configData.CustomFieldOwnerKey ?? "";
             storedModelledMarker = configData.ModModelledMarker ?? "";
+            ruleOwnerRebuildPending |= appliedSettingsRequireRuleOwnerRebuild;
+            appliedSettingsRequireRuleOwnerRebuild = false;
         }
 
         /// <summary>
@@ -181,8 +186,9 @@ namespace FWO.Ui.Services
         /// the change requires nor keeps what the failed attempt wrote into the configuration.
         /// </summary>
         /// <param name="configData">Configuration to write to.</param>
-        /// <returns>True if a full rule owner mapping rebuild is required, which stays true until
-        /// <see cref="ConfirmRuleOwnerRebuild"/> reports one as done.</returns>
+        /// <returns>True if a full rule owner mapping rebuild is required. Once the settings requiring it are
+        /// stored, see <see cref="TakeOverStoredSettings"/>, this stays true until
+        /// <see cref="ConfirmRuleOwnerRebuild"/> reports the rebuild as done.</returns>
         /// <exception cref="InvalidOperationException">Thrown when <see cref="Validate"/> did not succeed before.</exception>
         public bool ApplyTo(ConfigData configData)
         {
@@ -204,13 +210,16 @@ namespace FWO.Ui.Services
 
             // the stored settings are compared, not the ones of the given configuration: a retry after a failed
             // write would otherwise compare the configuration the previous attempt already changed against itself
-            ruleOwnerRebuildPending |= NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
-            return ruleOwnerRebuildPending;
+            // the requirement is only remembered once the settings are stored, so a write which failed leaves no
+            // rebuild outstanding for settings the database never received
+            appliedSettingsRequireRuleOwnerRebuild = NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
+            return ruleOwnerRebuildPending || appliedSettingsRequireRuleOwnerRebuild;
         }
 
         /// <summary>
         /// Reports the rule owner mappings as rebuilt. Until this is called, every save keeps requesting the
-        /// rebuild, so a rebuild which did not succeed is not forgotten by the following save.
+        /// rebuild of the settings already stored, so a rebuild which did not succeed is not forgotten by the
+        /// following save.
         /// </summary>
         public void ConfirmRuleOwnerRebuild()
         {

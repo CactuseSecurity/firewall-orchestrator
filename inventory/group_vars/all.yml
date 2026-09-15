@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.5.0"
+product_version: "9.5.1"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:

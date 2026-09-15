@@ -1,0 +1,81 @@
+@inject UserConfig userConfig
+
+@* editor for the rule owner mapping source settings, shared by every settings page offering them *@
+<div class="form-group row mt-2 align-items-center">
+    <label class="col-sm-4 col-form-label me-2" for="ownerMappingSourceDropdown">@(userConfig.GetText("source"))</label>
+    <div class="col-sm-5">
+        @* not nullable: "Disabled" is the selection for "no owner mapping", so the selection must never be empty *@
+        <Dropdown ElementType="OwnerMappingSourceStm?" ElementToString="GetOwnerMappingSourceText" SelectedElement="@Handler.SelectedSource"
+                  SelectedElementChanged="@(src => { Handler.SelectSource(src); ownerKeyMessage = ""; StateHasChanged(); })" Elements="Handler.OwnerMappingSources" Nullable="false" id="ownerMappingSourceDropdown">
+            <ElementTemplate Context="source">
+                @GetOwnerMappingSourceText(source)
+            </ElementTemplate>
+        </Dropdown>
+    </div>
+</div>
+@if (Handler.SelectedSource == OwnerMappingSourceStm.CustomField)
+{
+    <div class="form-group row mb-4" data-toggle="tooltip" title="@(userConfig.PureLine("H5677"))">
+        <label class="col-form-label col-sm-4">@userConfig.GetText("custom_field_Owner_key"):</label>
+        <div class="col-sm-5">
+            <EditList ElementType="string" Elements="Handler.OwnerKeys.ToArray()" ElementsToAdd="Handler.OwnerKeysToAdd"
+                      ElementsToDelete="Handler.OwnerKeysToDelete" StdLayout="false">
+                <Display>
+                    <div class="row">
+                        <div class="col-sm-12 border bg-transparent">@context</div>
+                    </div>
+                </Display>
+            </EditList>
+            <div class="row col-sm-12 mt-1">
+                <input type="text" class="col-sm-10" @bind="Handler.ActiveOwnerKey" />
+                <button type="button" class="col-sm-2 btn btn-sm btn-primary" @onclick="AddOwnerKey"
+                        @onclick:preventDefault>
+                    @(DisplayService.DisplayButton(userConfig, "add", Icons.Add))
+                </button>
+            </div>
+            @if (ownerKeyMessage.Length > 0)
+            {
+                <div class="row col-sm-12 mt-1 text-danger">@ownerKeyMessage</div>
+            }
+        </div>
+    </div>
+}
+@if (Handler.SelectedSource == OwnerMappingSourceStm.NameField)
+{
+    <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5648"))">
+        <label class="col-sm-4 col-form-label me-2">@userConfig.GetText("modelledMarker"):</label>
+        <div class="col-sm-5">
+            <input type="text" class="form-control" @bind="Handler.ModelledMarker" />
+        </div>
+    </div>
+}
+
+@code
+{
+    /// <summary>
+    /// Editor state of the mapping source settings.
+    /// </summary>
+    [Parameter]
+    public OwnerMappingSourceHandler Handler { get; set; } = new();
+
+    private string ownerKeyMessage = "";
+
+    /// <summary>
+    /// Queues the owner key currently typed into the editor and reports a rejected key.
+    /// </summary>
+    private void AddOwnerKey()
+    {
+        string? errorTextKey = Handler.AddOwnerKey();
+        ownerKeyMessage = errorTextKey == null ? "" : userConfig.GetText(errorTextKey);
+    }
+
+    /// <summary>
+    /// Resolves the display text of a mapping source.
+    /// </summary>
+    /// <param name="source">Mapping source to display.</param>
+    /// <returns>The localized text.</returns>
+    private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)
+    {
+        return userConfig.GetText(source?.ToString() ?? "");
+    }
+}

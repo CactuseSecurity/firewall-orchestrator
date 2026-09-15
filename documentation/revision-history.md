@@ -709,7 +709,7 @@ Not supported any longer are:
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import
 
-## 9.5.2 - 15.09.2026
+## 9.5.3 - 15.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.
   A login and a token refresh derive the roles of a user by resolving uiuser.uuid against LDAP, so

@@ -2,6 +2,8 @@ using FWO.Mail;
 using Microsoft.AspNetCore.Http;
 using MimeKit;
 using NUnit.Framework;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 
@@ -219,6 +221,79 @@ namespace FWO.Test
             bool result = await MailKitMailer.SendAsync(mail, connection);
 
             Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public async Task SendAsync_RemovesRejectedRecipientAndRetriesRemainingRecipients()
+        {
+            using TcpListener listener = new(IPAddress.Loopback, 0);
+            listener.Start();
+            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            Task server = RunSmtpServer(listener);
+            MailData mail = new(new List<string> { "bad@example.test", "good@example.test" }, "Subject")
+            {
+                Body = "Body"
+            };
+            EmailConnection connection = new("127.0.0.1", port, EmailEncryptionMethod.None, "", "", "sender@example.test");
+
+            bool result = await MailKitMailer.SendAsync(mail, connection);
+            await server;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True);
+                Assert.That(mail.To, Is.EqualTo(new List<string> { "bad@example.test", "good@example.test" }));
+            });
+        }
+
+        private static async Task RunSmtpServer(TcpListener listener)
+        {
+            using TcpClient client = await listener.AcceptTcpClientAsync();
+            await using NetworkStream stream = client.GetStream();
+            using StreamReader reader = new(stream, Encoding.ASCII, leaveOpen: true);
+            using StreamWriter writer = new(stream, Encoding.ASCII, leaveOpen: true) { NewLine = "\r\n", AutoFlush = true };
+            await writer.WriteLineAsync("220 localhost");
+
+            int rejectedRecipients = 0;
+            string? line;
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                string command = line.Split(' ', 2)[0].ToUpperInvariant();
+                switch (command)
+                {
+                    case "EHLO":
+                    case "HELO":
+                        await writer.WriteLineAsync("250-localhost");
+                        await writer.WriteLineAsync("250 OK");
+                        break;
+                    case "MAIL":
+                        await writer.WriteLineAsync("250 OK");
+                        break;
+                    case "RCPT":
+                        if (rejectedRecipients++ == 0)
+                        {
+                            await writer.WriteLineAsync("550 mailbox unavailable");
+                        }
+                        else
+                        {
+                            await writer.WriteLineAsync("250 OK");
+                        }
+                        break;
+                    case "DATA":
+                        await writer.WriteLineAsync("354 End data with <CR><LF>.<CR><LF>");
+                        while ((line = await reader.ReadLineAsync()) != null && line != ".")
+                        {
+                        }
+                        await writer.WriteLineAsync("250 OK");
+                        break;
+                    case "QUIT":
+                        await writer.WriteLineAsync("221 Bye");
+                        return;
+                    default:
+                        await writer.WriteLineAsync("250 OK");
+                        break;
+                }
+            }
         }
 
         private static FormFile CreateFile(string fileName, string contentType, string content)

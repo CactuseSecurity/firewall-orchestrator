@@ -10,6 +10,7 @@ using FWO.Data.Report;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Services;
+using FWO.Report;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -341,6 +342,24 @@ namespace FWO.Test
             await InvokePrivateTask(recertCheck, "SetOwnerLastCheck", owner);
 
             Assert.That(apiConnection.Queries, Does.Contain(OwnerQueries.setOwnerLastCheck));
+        }
+
+        [Test]
+        public async Task PrepareOwnerReport_ReturnsNullWhenNoReportDataExists()
+        {
+            RecertCheckApiConnection apiConnection = new();
+            SimulatedGlobalConfig globalConfig = CreateGlobalConfig();
+            RecertCheck recertCheck = CreateRecertCheck(apiConnection, globalConfig);
+            using UserConfig userConfig = UserConfig.ForGlobalSettings(
+                globalConfig, apiConnection, globalConfig.DefaultLanguage);
+
+            ReportBase? report = await InvokePrivateAsync<ReportBase?>(
+                recertCheck,
+                "PrepareOwnerReport",
+                new FwoOwner { Id = 42, Name = "Owner A" },
+                userConfig);
+
+            Assert.That(report, Is.Null);
         }
 
         private static SimulatedGlobalConfig CreateGlobalConfig()

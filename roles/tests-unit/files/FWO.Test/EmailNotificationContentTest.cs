@@ -290,23 +290,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ToPdf_ReturnsBase64EncodedPdfData()
-        {
-            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"
-                || Environment.GetEnvironmentVariable("RUNNING_ON_GITHUB_ACTIONS") == "true")
-            {
-                Assert.Ignore("PDF rendering is covered by the dedicated CI browser test.");
-            }
-
-            string? pdf = await NotificationEmailLayoutHelper.ToPdf("<html><body><h1>Title</h1></body></html>");
-
-            Assert.That(pdf, Is.Not.Null);
-            byte[] decodedPdf = Convert.FromBase64String(pdf!);
-            string header = Encoding.ASCII.GetString(decodedPdf, 0, Math.Min(4, decodedPdf.Length));
-            Assert.That(header, Is.EqualTo("%PDF"));
-        }
-
-        [Test]
         public void ReplaceWorkflowPlaceholdersUsesTicketOwnerFallback()
         {
             WfTicket ticket = new()

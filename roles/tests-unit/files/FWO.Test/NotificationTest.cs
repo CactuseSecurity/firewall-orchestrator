@@ -62,6 +62,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendNotification_SkipsInactiveNotification()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Active = false;
+
+            int emailsSent = await notificationService.SendNotification(notification, new FwoOwner(), EmailText);
+
+            Assert.That(emailsSent, Is.Zero);
+        }
+
+        [Test]
+        public async Task SendBundledNotifications_SkipsInactiveNotifications()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Active = false;
+
+            int emailsSent = await notificationService.SendBundledNotifications(
+                [notification], new FwoOwner(), EmailText);
+
+            Assert.That(emailsSent, Is.Zero);
+        }
+
+        [Test]
         public async Task TestRecertNotification()
         {
             List<UserGroup> ownerGroups = [];

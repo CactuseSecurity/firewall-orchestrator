@@ -1,7 +1,9 @@
 using System.Reflection;
 using FWO.Api.Client;
 using FWO.Data;
+using FWO.Ui.Services;
 using FWO.Ui.Shared;
+using Microsoft.JSInterop;
 using NUnit.Framework;
 
 namespace FWO.Test
@@ -114,20 +116,6 @@ namespace FWO.Test
                 "the late answer of the previous owner must not replace the rows on screen");
         }
 
-        private static void SetPrivateField<T>(LogDataTable component, string fieldName, T value)
-        {
-            FieldInfo field = typeof(LogDataTable).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingFieldException(typeof(LogDataTable).FullName, fieldName);
-            field.SetValue(component, value);
-        }
-
-        private static T GetPrivateProperty<T>(LogDataTable component, string propertyName)
-        {
-            PropertyInfo property = typeof(LogDataTable).GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMemberException(typeof(LogDataTable).FullName, propertyName);
-            return (T)property.GetValue(component)!;
-        }
-
         private static LogDataTable CreateComponent(ApiConnection apiConnection, int ownerId)
         {
             LogDataTable component = new();
@@ -144,9 +132,102 @@ namespace FWO.Test
 
         private static Task StartOnParametersSetAsync(LogDataTable component)
         {
-            MethodInfo method = typeof(LogDataTable).GetMethod("OnParametersSetAsync", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(typeof(LogDataTable).FullName, "OnParametersSetAsync");
+            return InvokePrivateTask(component, "OnParametersSetAsync");
+        }
+
+        private static Task InvokePrivateTask(LogDataTable component, string methodName)
+        {
+            MethodInfo method = typeof(LogDataTable).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingMethodException(typeof(LogDataTable).FullName, methodName);
             return (Task)method.Invoke(component, null)!;
+        }
+
+        [Test]
+        public async Task AdjustPageSize_TakesTheRowCountMeasuredInTheBrowser()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 40 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(40));
+        }
+
+        [Test]
+        public async Task AdjustPageSize_RaisesATinyWindowToTheMinimumPageSize()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 2 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kMinPageSize),
+                "a window too short for the minimum must still show enough rows to page through");
+        }
+
+        [Test]
+        public async Task AdjustPageSize_KeepsTheDefaultWhenTheBrowserCannotBeMeasured()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { Fail = true };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kDefaultPageSize),
+                "a failed measurement must leave the table usable instead of emptying its pages");
+        }
+
+        [Test]
+        public async Task AdjustPageSize_DoesNotMeasureAnEmptyTable()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 40 };
+            LogDataTableTestApiConn apiConnection = new() { FailQuery = true };
+            LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
+            SetPrivateProperty<IJSRuntime>(component, "jsRuntime", jsRuntime);
+            await InvokeOnParametersSetAsync(component);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(jsRuntime.InvocationCount, Is.Zero, "there is no rendered row to measure");
+                Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kDefaultPageSize));
+            });
+        }
+
+        [Test]
+        public async Task AdjustPageSize_MeasuresAgainAfterTheOwnerChanged()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 40 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+            await InvokePrivateTask(component, "AdjustPageSize");
+            Assert.That(GetPrivateField<bool>(component, "pageSizeMeasured"), Is.True);
+
+            SetPrivateProperty(component, nameof(LogDataTable.OwnerId), 8);
+            await InvokeOnParametersSetAsync(component);
+
+            Assert.That(GetPrivateField<bool>(component, "pageSizeMeasured"), Is.False,
+                "the rows of another owner may be higher, so the window has to be measured again");
+        }
+
+        [Test]
+        public async Task AdjustPageSize_RetriesAfterAFailedMeasurement()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { Fail = true };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.That(GetPrivateField<bool>(component, "pageSizeMeasured"), Is.False,
+                "a measurement which did not work out must not be taken as the final one");
+        }
+
+        private static async Task<LogDataTable> CreateLoadedComponent(IJSRuntime jsRuntime)
+        {
+            LogDataTable component = CreateComponent(new LogDataTableTestApiConn(), ownerId: 7);
+            SetPrivateProperty(component, "jsRuntime", jsRuntime);
+            await InvokeOnParametersSetAsync(component);
+            return component;
         }
 
         private static void SetPrivateProperty<T>(LogDataTable component, string propertyName, T value)
@@ -161,6 +242,32 @@ namespace FWO.Test
             FieldInfo field = typeof(LogDataTable).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(typeof(LogDataTable).FullName, fieldName);
             return (T)field.GetValue(component)!;
+        }
+
+        /// <summary>
+        /// Stands in for the browser: answers the row measurement of LogDataTable with a fixed
+        /// number, or refuses it the way a circuit without a browser would.
+        /// </summary>
+        private sealed class LogDataTableTestJsRuntime : IJSRuntime
+        {
+            public int MeasuredRows { get; init; }
+            public bool Fail { get; init; }
+            public int InvocationCount { get; private set; }
+
+            public ValueTask<TValue> InvokeAsync<TValue>(string identifier, object?[]? args)
+            {
+                return InvokeAsync<TValue>(identifier, CancellationToken.None, args);
+            }
+
+            public ValueTask<TValue> InvokeAsync<TValue>(string identifier, CancellationToken cancellationToken, object?[]? args)
+            {
+                InvocationCount++;
+                if (Fail)
+                {
+                    throw new InvalidOperationException("no browser attached");
+                }
+                return ValueTask.FromResult((TValue)(object)MeasuredRows);
+            }
         }
 
         /// <summary>

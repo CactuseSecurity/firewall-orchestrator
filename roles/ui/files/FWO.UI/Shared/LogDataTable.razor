@@ -1,5 +1,8 @@
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
+@inject IJSRuntime jsRuntime
+@inject DomEventService eventService
+@implements IDisposable
 
 <h5 class="mt-3">@(userConfig.GetText("log_data"))</h5>
 @if (isLoading)
@@ -12,9 +15,10 @@ else if (logEntries.Count == 0)
 }
 else
 {
-    <div>
-        <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
-               TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="kPageSize" ColumnReorder="true">
+    @* the id lets the browser measure the rendered table of this instance, see logDataTable.js *@
+    <div id="@containerId">
+        <Table @ref="logTable" TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
+               TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="pageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
             @* protocol and port are separate columns, so the port sorts and filters as a number *@
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtocolDisplay)" Sortable="true" Filterable="true" />
@@ -40,12 +44,15 @@ else
 @code
 {
     private const string kLogTimeFormat = "yyyy-MM-dd HH:mm:ss";
-    // Keep each page short enough to fit below the connection editor in a regular browser
-    // window. The table itself must remain unconstrained so every row of the page is visible.
-    private const int kPageSize = 25;
     // the loudest flows of an owner are enough for the display, an owner with more logged flows
     // than this would only fill the browser memory of every session which opens a connection
     private const int kMaxLoadedEntries = 500;
+    // only needed while the table has no rendered row to measure, every later measurement uses
+    // the height of a real row (see logDataTable.js)
+    private const int kFallbackRowHeight = 31;
+    // dragging a window edge fires resize without interruption, only the size the window comes to
+    // rest at is worth a measurement
+    private const int kResizeSettleMilliseconds = 200;
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -59,6 +66,16 @@ else
     private List<OwnerFirewallLogEntry> logEntries = [];
     private bool isLoading = true;
     private int? loadedOwnerId;
+
+    // the browser is asked to measure the table of this component, so the id must stay unique
+    // even if a page ever shows two of them
+    private readonly string containerId = $"logdatatable-{Guid.NewGuid():N}";
+    private BlazorTable.Table<OwnerFirewallLogEntry>? logTable;
+    // how many rows fit into the browser window, kept up to date by AdjustPageSize
+    private int pageSize = LogDataTableLayout.kDefaultPageSize;
+    private bool pageSizeMeasured;
+    private CancellationTokenSource? resizeSettling;
+    private bool disposed;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -85,6 +102,8 @@ else
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = loadedEntries;
+                // the rows of another owner may be higher or lower, so the window is measured again
+                pageSizeMeasured = false;
             }
         }
         catch (Exception exception)
@@ -107,5 +126,128 @@ else
     private bool IsCurrentLoad(int requestedOwnerId)
     {
         return loadedOwnerId == requestedOwnerId;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await SubscribeToWindowResize();
+        }
+        // only a new set of rows or a resized window needs a new measurement. Measuring on every
+        // render would cost a browser round trip per keystroke in a column filter.
+        if (!pageSizeMeasured)
+        {
+            await AdjustPageSize();
+        }
+    }
+
+    /// <summary>
+    /// Asks the browser how many rows fit into its window and pages the table accordingly.
+    /// </summary>
+    private async Task AdjustPageSize()
+    {
+        if (disposed || logEntries.Count == 0)
+        {
+            return;
+        }
+        int measuredRows = await MeasureFittingRows();
+        // a measurement which did not work out is retried on the next render
+        pageSizeMeasured = measuredRows > 0;
+        int newPageSize = LogDataTableLayout.ResolvePageSize(measuredRows, pageSize);
+        // the measurement does not depend on the number of rows on the page, so applying it
+        // settles after one round instead of re-rendering the table indefinitely
+        if (newPageSize == pageSize)
+        {
+            return;
+        }
+        pageSize = newPageSize;
+        // the table keeps its own paging state, a new size only reaches it through this setter
+        if (logTable is not null)
+        {
+            await logTable.SetPageSizeAsync(newPageSize);
+        }
+    }
+
+    /// <summary>
+    /// Rows the browser reports as fitting into its window, zero if it could not be asked.
+    /// </summary>
+    private async Task<int> MeasureFittingRows()
+    {
+        try
+        {
+            return await jsRuntime.InvokeAsync<int>("measureLogDataTableRows", containerId, kFallbackRowHeight);
+        }
+        catch (Exception exception)
+        {
+            // a window which cannot be measured must not take the table with it, the page size
+            // then simply stays at the value it has
+            Log.WriteDebug("LogDataTable", $"measuring the window failed: {exception.Message}");
+            return 0;
+        }
+    }
+
+    private async Task SubscribeToWindowResize()
+    {
+        if (eventService is null)
+        {
+            return;
+        }
+        if (!eventService.Initialized)
+        {
+            await eventService.Initialize(jsRuntime);
+        }
+        eventService.OnGlobalResize += OnWindowResized;
+    }
+
+    private async void OnWindowResized(string elementId)
+    {
+        CancellationTokenSource settling = new();
+        CancellationTokenSource? previous = Interlocked.Exchange(ref resizeSettling, settling);
+        previous?.Cancel();
+        previous?.Dispose();
+        try
+        {
+            await Task.Delay(kResizeSettleMilliseconds, settling.Token);
+            if (!disposed)
+            {
+                await InvokeAsync(AdjustPageSize);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // a later resize took this one over
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("LogDataTable", $"adjusting the page size after a resize failed: {exception.Message}");
+        }
+    }
+
+    public void Dispose(bool disposing)
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        if (disposing)
+        {
+            if (eventService is not null)
+            {
+                eventService.OnGlobalResize -= OnWindowResized;
+            }
+            resizeSettling?.Cancel();
+            resizeSettling?.Dispose();
+            resizeSettling = null;
+        }
+
+        disposed = true;
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

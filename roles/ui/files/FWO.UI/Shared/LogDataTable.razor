@@ -204,10 +204,15 @@ else
     {
         CancellationTokenSource settling = new();
         CancellationTokenSource? previous = Interlocked.Exchange(ref resizeSettling, settling);
-        previous?.Cancel();
-        previous?.Dispose();
         try
         {
+            if (previous is not null)
+            {
+                // awaiting the cancellation lets its callbacks finish, so the source can be
+                // disposed right after without racing the resize it just took over
+                await previous.CancelAsync();
+                previous.Dispose();
+            }
             await Task.Delay(kResizeSettleMilliseconds, settling.Token);
             if (!disposed)
             {

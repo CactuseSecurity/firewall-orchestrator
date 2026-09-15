@@ -19,15 +19,16 @@
         dest: "/var/www/html/men-at-work.png"
         mode: "0644"
 
+    - name: Select the installed identity for the maintenance site
+      include_tasks: select-maintenance-certificate.yml
+
     - name: copy httpd maintenance config file to ui target
       template:
         src: "httpd-maintenance.conf"
-        dest: "{{ http_conf_dir }}/{{ product_name }}-maintenance.conf"
+        dest: "{{ internalca_maintenance_configuration_file }}"
         owner: root
         group: root
 
-    - name: restart apache with maintenance site
-      service:
-        name: "{{ webserver_package_name }}"
-        state: restarted
+    - name: Restart Apache with maintenance site before certificate reconciliation
+      include_tasks: restart-before-certificate-reconciliation.yml
   become: true

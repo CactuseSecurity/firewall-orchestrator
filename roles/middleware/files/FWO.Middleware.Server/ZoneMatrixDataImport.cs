@@ -61,6 +61,14 @@ namespace FWO.Middleware.Server
             /// Gets the RemoveConnection value.
             /// </summary>
             public int RemoveConnection = 0;
+            /// <summary>
+            /// Gets the InsertPath value.
+            /// </summary>
+            public int InsertPath = 0;
+            /// <summary>
+            /// Gets the RemovePath value.
+            /// </summary>
+            public int RemovePath = 0;
 
             /// <summary>
             /// Initializes a new instance of the type.
@@ -279,6 +287,8 @@ namespace FWO.Middleware.Server
                 counters.RemoveConnection += removes;
             }
 
+            (counters.InsertPath, counters.RemovePath) = await HandleIpRangePaths(importedMatrix, deviceLookup);
+
             string messageText = ConstructMessageText(importfileName);
             Log.WriteInfo(LogMessageTitle, messageText);
             await AddLogEntry(GlobalConst.kImportZoneMatrixData, 0, LevelFile, messageText);
@@ -438,6 +448,40 @@ namespace FWO.Middleware.Server
                 return (addDel.DestinationZonesToAdd.Count, addDel.DestinationZonesToDelete.Count);
             }
             return (0, 0);
+        }
+
+        private async Task<(int, int, int, int)> HandleIpRangePaths(ImportNwZoneMatrixData importedMatrix, DeviceNameResolver deviceLookup)
+        {
+            int deletedRoot = await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot, new { matrixId = MatrixId }).AffectedRows;
+            int deletedInternet = await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId }).AffectedRows;
+
+            foreach (NetworkZoneData zone in importedMatrix.NetworkZones)
+            {
+                foreach (ZoneIpRangeData ipRange in zone.IpData)
+                {
+                    await ImportIpRangePaths(ipRange, deviceLookup);
+                };
+            };
+
+            int insertRoot = 0;
+            int insertInternet = 0;
+            return (deletedRoot, deletedInternet, insertRoot, insertInternet);
+        }
+
+        private async Task<(int, int)> ImportIpRangePaths(ZoneIpRangeData ipRange, DeviceNameResolver deviceLookup)
+        {
+            int orderCounterRoot = 0;
+            int orderCounterInternet = 0;
+            foreach (DeviceRefData device in ipRange.PathToRoot)
+            {
+                int? deviceId = deviceLookup.Resolve(device.MgmtName, device.DeviceName);
+                orderCounterRoot++;
+            }
+            int insertRoot = 0;
+            int insertInternet = 0;
+            return (insertRoot, insertInternet);
         }
 
         private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)

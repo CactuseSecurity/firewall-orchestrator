@@ -7,6 +7,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addNetworkZone;
         public static readonly string removeNetworkZone;
         public static readonly string getNetworkZonesForMatrix;
+        public static readonly string getIpRangesForMatrix;
         public static readonly string updateNetworkZone;
         public static readonly string deleteNetworkZoneDeviceIpRangeRoot;
         public static readonly string deleteNetworkZoneDeviceIpRangeInternet;
@@ -18,6 +19,7 @@ namespace FWO.Api.Client.Queries
                 addNetworkZone = GetQueryText("networkZone/addNetworkZone.graphql");
                 removeNetworkZone = GetQueryText("networkZone/removeNetworkZone.graphql");
                 getNetworkZonesForMatrix = GetQueryText("networkZone/getNetworkZonesForMatrix.graphql");
+                getIpRangesForMatrix = GetQueryText("networkZone/getIpRangesForMatrix.graphql");
                 updateNetworkZone = GetQueryText("networkZone/updateNetworkZone.graphql");
                 deleteNetworkZoneDeviceIpRangeRoot = GetQueryText("networkZone/deleteNetworkZoneDeviceIpRangeRoot.graphql");
                 deleteNetworkZoneDeviceIpRangeInternet = GetQueryText("networkZone/deleteNetworkZoneDeviceIpRangeInternet.graphql");

@@ -1,0 +1,7 @@
+mutation addPathItemRoot($device_id: bigint!, $ip_range_id: bigint!, $order: bigint!){
+  insert_network_zone_device_ip_range_root(objects:[{
+    dev_id: $device_id,
+    ip_range_id: $ip_range_id,
+    order_to_root: $order
+  }]){affected_rows}
+}

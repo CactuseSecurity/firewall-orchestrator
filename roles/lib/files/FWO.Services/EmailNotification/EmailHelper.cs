@@ -84,6 +84,19 @@ namespace FWO.Services
         /// <returns>True when an email was sent; otherwise false.</returns>
         public virtual async Task<bool> SendEmailToNotificationRecipients(FwoNotification notification, FwoOwner? owner, string subject, string body)
         {
+            return await SendEmailToNotificationRecipientsWithResult(notification, owner, subject, body) == NotificationDeliveryResult.Delivered;
+        }
+
+        /// <summary>
+        /// Sends a notification email and reports whether it was delivered, suppressed, or could not be sent.
+        /// </summary>
+        /// <param name="notification">Notification template and recipient configuration.</param>
+        /// <param name="owner">Owner context used to resolve configured responsibles.</param>
+        /// <param name="subject">Rendered notification subject.</param>
+        /// <param name="body">Rendered notification body.</param>
+        /// <returns>The explicit notification delivery outcome.</returns>
+        public virtual async Task<NotificationDeliveryResult> SendEmailToNotificationRecipientsWithResult(FwoNotification notification, FwoOwner? owner, string subject, string body)
+        {
             List<string> tos = await GetNotificationRecipients(notification.RecipientTo, notification.EmailAddressTo, owner);
             List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
                 ? null
@@ -96,7 +109,7 @@ namespace FWO.Services
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
                 await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
-                return true;
+                return NotificationDeliveryResult.Suppressed;
             }
 
             try
@@ -104,7 +117,7 @@ namespace FWO.Services
                 bool sent = await SendEmail(tos, subject, body, ccs, bccs, notification.Layout == NotificationLayout.HtmlInBody);
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed or no To recipients resolved.");
-                return sent;
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
             }
             catch (Exception exception)
             {
@@ -137,7 +150,7 @@ namespace FWO.Services
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
                 await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
-                return WorkflowEmailDeliveryResult.NoRecipients;
+                return WorkflowEmailDeliveryResult.Suppressed;
             }
             try
             {

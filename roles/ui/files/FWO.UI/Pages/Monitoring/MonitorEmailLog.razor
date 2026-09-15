@@ -14,20 +14,36 @@
 @if (InitComplete)
 {
     <div class="vheight75">
-        <PageSizeComponent PageSize="20" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
-        <Table PageSize="PageSize" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="NotificationLogEntry" Items="notificationLogEntries">
+        <PageSizeComponent PageSize="@PageSize" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <div class="btn-group mb-2">
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@(CurrentPage == 0)" @onclick="PreviousPage">&lt;</button>
+            <button type="button" class="btn btn-sm btn-secondary" disabled>@(CurrentPage + 1)</button>
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
+        </div>
+        <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="NotificationLogEntry" Items="notificationLogEntries">
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.NotificationId)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="true" Filterable="true">
+                <Template>
+                    @(userConfig.GetText(context.NotificationType))
+                </Template>
+            </Column>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="true" Filterable="true">
+                <Template>
+                    @(userConfig.GetText(context.DeadlineType.ToString()))
+                </Template>
+            </Column>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="true" Filterable="true">
+                <Template>
+                    @(userConfig.GetText(context.Status.ToString()))
+                </Template>
+            </Column>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("email_subject"))" Field="@(x => x.Subject)" Sortable="true" Filterable="true"/>
             <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("error"))" Field="@(x => x.Error)" Sortable="true" Filterable="true"/>
-            <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
 }
@@ -44,13 +60,16 @@ else
     private List<NotificationLogEntry> notificationLogEntries = [];
     private bool InitComplete = false;
 
-    private int PageSize { get; set; }
+    private const int kDefaultPageSize = 20;
+    private int PageSize { get; set; } = kDefaultPageSize;
+    private int CurrentPage { get; set; }
+    private bool HasNextPage { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            notificationLogEntries = await apiConnection.SendQueryAsync<List<NotificationLogEntry>>(MonitorQueries.getNotificationLogEntrys);
+            await FetchPage();
             InitComplete = true;
         }
         catch (Exception exception)
@@ -59,8 +78,47 @@ else
         }
     }
 
-    private void UpdatePageSize(int pageSize)
+    private async Task UpdatePageSize(int pageSize)
     {
-        PageSize = pageSize;
+        int requestedPageSize = pageSize > 0 ? pageSize : kDefaultPageSize;
+        if (InitComplete && requestedPageSize == PageSize)
+        {
+            return;
+        }
+
+        PageSize = requestedPageSize;
+        CurrentPage = 0;
+        await FetchPage();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 0)
+        {
+            CurrentPage--;
+            await FetchPage();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (HasNextPage)
+        {
+            CurrentPage++;
+            await FetchPage();
+        }
+    }
+
+    private async Task FetchPage()
+    {
+        List<NotificationLogEntry> fetchedEntries = await apiConnection.SendQueryAsync<List<NotificationLogEntry>>(
+            MonitorQueries.getNotificationLogEntrys,
+            new
+            {
+                limit = PageSize + 1,
+                offset = CurrentPage * PageSize
+            });
+        HasNextPage = fetchedEntries.Count > PageSize;
+        notificationLogEntries = [.. fetchedEntries.Take(PageSize)];
     }
 }

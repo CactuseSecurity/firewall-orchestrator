@@ -130,8 +130,8 @@ namespace FWO.Middleware.Server
             }
 
             // Later: Handle other channels here when implemented
-            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline, placeholderValues);
-            if (!sent)
+            NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline, placeholderValues);
+            if (deliveryResult is NotificationDeliveryResult.NoRecipients or NotificationDeliveryResult.Failed)
             {
                 return 0;
             }
@@ -163,8 +163,8 @@ namespace FWO.Middleware.Server
                     continue;
                 }
 
-                bool sent = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
-                if (!sent)
+                NotificationDeliveryResult deliveryResult = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                if (deliveryResult is NotificationDeliveryResult.NoRecipients or NotificationDeliveryResult.Failed)
                 {
                     continue;
                 }
@@ -308,8 +308,8 @@ namespace FWO.Middleware.Server
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
         /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
         /// <param name="placeholderValues">Optional caller-provided values for notification placeholder replacement.</param>
-        /// <returns>True when an email was sent; otherwise false.</returns>
-        private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
+        /// <returns>The delivery outcome of the notification.</returns>
+        private async Task<NotificationDeliveryResult> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
             string timeIntervalText = "", DateTime? resolvedDeadline = null,
             NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
@@ -326,13 +326,13 @@ namespace FWO.Middleware.Server
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
                 await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
-                return false;
+                return NotificationDeliveryResult.NoRecipients;
             }
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
                 await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
-                return true;
+                return NotificationDeliveryResult.Suppressed;
             }
 
             try
@@ -344,7 +344,7 @@ namespace FWO.Middleware.Server
                 bool sent = await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed.");
-                return sent;
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
             }
             catch (Exception exception)
             {
@@ -369,24 +369,64 @@ namespace FWO.Middleware.Server
         /// <param name="owner">Owner context used for placeholder replacement.</param>
         /// <param name="report">Optional report attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
-        /// <returns>True when the email was sent; otherwise false.</returns>
-        private async Task<bool> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        /// <returns>The delivery outcome of the bundled notification.</returns>
+        private async Task<NotificationDeliveryResult> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
             MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
+            List<int> logIds = await LogBundledNotifications(notifications, mail);
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 FwoNotification baseNotification = notifications.First();
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
-                return false;
+                await CompleteNotificationLogs(logIds, NotificationLogStatus.Failed, "No recipients resolved.");
+                return NotificationDeliveryResult.NoRecipients;
             }
 
-            string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+            if (notifications.Any(notification => !NotificationLoggingMode.ShouldSend(notification.Logging)))
+            {
+                await CompleteNotificationLogs(logIds, NotificationLogStatus.Suppressed);
+                return NotificationDeliveryResult.Suppressed;
+            }
 
-            await MailKitMailer.SendAsync(mail, emailConnection, false, new());
-            return true;
+            try
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+
+                bool sent = await MailKitMailer.SendAsync(mail, emailConnection, false, new());
+                await CompleteNotificationLogs(logIds, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed.");
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLogs(logIds, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
+        }
+
+        private async Task<List<int>> LogBundledNotifications(List<FwoNotification> notifications, MailData mail)
+        {
+            List<int> logIds = [];
+            foreach (FwoNotification notification in notifications.Where(notification => NotificationLoggingMode.ShouldLog(notification.Logging)))
+            {
+                int logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject);
+                if (logId > 0)
+                {
+                    logIds.Add(logId);
+                }
+            }
+            return logIds;
+        }
+
+        private async Task CompleteNotificationLogs(List<int> logIds, NotificationLogStatus status, string error = "")
+        {
+            foreach (int logId in logIds)
+            {
+                await NotificationLogHelper.UpdateAsync(ApiConnection, logId, status, error);
+            }
         }
 
         private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,

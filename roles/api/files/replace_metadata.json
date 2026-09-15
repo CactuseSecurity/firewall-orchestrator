@@ -13557,26 +13557,6 @@
                     ]
                   },
                   "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "timestamp",
-                      "notification_id",
-                      "notification_type",
-                      "to",
-                      "cc",
-                      "bcc",
-                      "subject",
-                      "deadline_type",
-                      "deadline",
-                      "status",
-                      "error"
-                    ]
-                  },
-                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -13591,15 +13571,6 @@
                 },
                 {
                   "role": "middleware-server",
-                  "permission": {
-                    "columns": ["status", "error"],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
                   "permission": {
                     "columns": ["status", "error"],
                     "filter": {},

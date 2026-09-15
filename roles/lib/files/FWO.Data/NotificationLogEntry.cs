@@ -47,7 +47,7 @@ namespace FWO.Data
         [JsonProperty("status"), JsonPropertyName("status")]
         [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
         public NotificationLogStatus Status { get; set; } = NotificationLogStatus.Pending;
- 
+
         [JsonProperty("error"), JsonPropertyName("error")]
         public string Error { get; set; } = "";
     }

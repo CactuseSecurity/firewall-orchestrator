@@ -85,6 +85,8 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.NotificationLogQueryCount, Is.EqualTo(1));
                 Assert.That(apiConn.LastQuery, Is.EqualTo(MonitorQueries.getNotificationLogEntrys));
+                Assert.That(apiConn.NotificationLogLimit, Is.EqualTo(21));
+                Assert.That(apiConn.NotificationLogOffset, Is.Zero);
                 Assert.That(GetPrivateField<List<NotificationLogEntry>>(setup.Component, "notificationLogEntries"), Has.Count.EqualTo(1));
                 Assert.That(GetPrivateField<bool>(setup.Component, "InitComplete"), Is.True);
             });
@@ -236,6 +238,8 @@ namespace FWO.Test
 
         public int LogQueryCount { get; private set; }
         public int NotificationLogQueryCount { get; private set; }
+        public int NotificationLogLimit { get; private set; }
+        public int NotificationLogOffset { get; private set; }
         public int AlertQueryCount { get; private set; }
         public int UserQueryCount { get; private set; }
         public int ManagementQueryCount { get; private set; }
@@ -262,6 +266,8 @@ namespace FWO.Test
             if (typeof(QueryResponseType) == typeof(List<NotificationLogEntry>) && query == MonitorQueries.getNotificationLogEntrys)
             {
                 NotificationLogQueryCount++;
+                NotificationLogLimit = GetVariable<int>(variables, "limit");
+                NotificationLogOffset = GetVariable<int>(variables, "offset");
                 return Task.FromResult((QueryResponseType)(object)NotificationLogEntries);
             }
 

@@ -236,11 +236,11 @@ namespace FWO.Test
                 EmailBody = "Body"
             };
 
-            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Rendered subject", "Rendered body");
+            NotificationDeliveryResult deliveryResult = await helper.SendEmailToNotificationRecipientsWithResult(notification, null, "Rendered subject", "Rendered body");
 
             Assert.Multiple(() =>
             {
-                Assert.That(sent, Is.True);
+                Assert.That(deliveryResult, Is.EqualTo(NotificationDeliveryResult.Suppressed));
                 Assert.That(helper.SendEmailCallCount, Is.Zero);
                 Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.InsertCalls[0].NotificationId, Is.EqualTo(42));

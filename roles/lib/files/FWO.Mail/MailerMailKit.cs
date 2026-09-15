@@ -128,10 +128,14 @@ namespace FWO.Mail
 
         private static MailData CopyMailData(MailData source)
         {
-            return new MailData([.. source.To], source.Subject)
+            List<string> toRecipients = [.. source.To];
+            List<string> bccRecipients = [.. source.Bcc];
+            List<string> ccRecipients = [.. source.Cc];
+
+            return new MailData(toRecipients, source.Subject)
             {
-                Bcc = [.. source.Bcc],
-                Cc = [.. source.Cc],
+                Bcc = bccRecipients,
+                Cc = ccRecipients,
                 From = source.From,
                 DisplayName = source.DisplayName,
                 ReplyTo = source.ReplyTo,

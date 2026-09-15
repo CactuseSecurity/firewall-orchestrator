@@ -157,26 +157,49 @@
             EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
             await emailHelper.Init();
 
-            FwoNotification? notification = await LoadImmediateRequestNotification();
-            if (notification == null)
+            List<FwoNotification> notifications = await LoadImmediateRequestNotifications();
+            if (notifications.Count == 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("E9011"), true);
                 return;
             }
 
             NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues = BuildRequestPlaceholderValues(connId);
-            string subject = BuildRequestEmailSubject(notification, requestPlaceholderValues);
-            string body = BuildRequestEmailBody(notification, requestPlaceholderValues);
-            bool sent = await emailHelper.SendEmailToNotificationRecipients(notification, SelectedOwner, subject, body);
-            if (sent)
+            List<int> deliveredNotificationIds = [];
+            Exception? firstException = null;
+            bool hasFailure = false;
+            foreach (FwoNotification notification in notifications)
             {
-                List<int> notificationIds = new() { notification.Id };
-                await NotificationLastSentHelper.UpdateAsync(apiConnection, notificationIds);
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
+                try
+                {
+                    NotificationDeliveryResult deliveryResult = await SendImmediateNotification(
+                        emailHelper, notification, requestPlaceholderValues);
+                    if (deliveryResult == NotificationDeliveryResult.Delivered)
+                    {
+                        deliveredNotificationIds.Add(notification.Id);
+                    }
+                    else if (deliveryResult is NotificationDeliveryResult.Failed or NotificationDeliveryResult.NoRecipients)
+                    {
+                        hasFailure = true;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    firstException ??= exception;
+                    hasFailure = true;
+                }
             }
-            else
+
+            if (deliveredNotificationIds.Count > 0)
             {
-                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("E9011"), true);
+                await NotificationLastSentHelper.UpdateAsync(apiConnection, deliveredNotificationIds);
+            }
+            if (hasFailure)
+            {
+                DisplayMessageInUi(firstException, userConfig.GetText("send_email"), firstException == null ? userConfig.GetText("E9011") : "", true);
+            }
+            else if (deliveredNotificationIds.Count > 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }
         }
         catch (Exception exception)
@@ -185,7 +208,17 @@
         }
     }
 
-    private async Task<FwoNotification?> LoadImmediateRequestNotification()
+    private async Task<NotificationDeliveryResult> SendImmediateNotification(
+        EmailHelper emailHelper,
+        FwoNotification notification,
+        NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues)
+    {
+        string subject = BuildRequestEmailSubject(notification, requestPlaceholderValues);
+        string body = BuildRequestEmailBody(notification, requestPlaceholderValues);
+        return await emailHelper.SendEmailToNotificationRecipientsWithResult(notification, SelectedOwner, subject, body);
+    }
+
+    private async Task<List<FwoNotification>> LoadImmediateRequestNotifications()
     {
         List<FwoNotification> notifications;
         try
@@ -198,7 +231,9 @@
             notifications = new List<FwoNotification>();
         }
 
-        return notifications.FirstOrDefault(notification => notification.Active && notification.Deadline == NotificationDeadline.None);
+        return notifications.Where(notification => notification.Active
+            && notification.Deadline == NotificationDeadline.None
+            && (notification.OwnerId == null || notification.OwnerId == SelectedOwner.Id)).ToList();
     }
 
     private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValues(long connId)

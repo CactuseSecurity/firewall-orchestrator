@@ -355,7 +355,10 @@ create table notification_log
     deadline TIMESTAMP WITH TIME ZONE,
     status Varchar NOT NULL DEFAULT 'Pending',
     error Varchar NOT NULL DEFAULT ''
-);
+ );
+
+create index if not exists notification_log_timestamp_id_idx
+    on notification_log ("timestamp" desc, id desc);
 
 -- configuration
 

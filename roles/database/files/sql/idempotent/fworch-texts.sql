@@ -75,6 +75,14 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('Pending',              'German',   'Ausstehend');
+INSERT INTO txt VALUES ('Pending',              'English',  'Pending');
+INSERT INTO txt VALUES ('Sent',                 'German',   'Gesendet');
+INSERT INTO txt VALUES ('Sent',                 'English',  'Sent');
+INSERT INTO txt VALUES ('Failed',               'German',   'Fehlgeschlagen');
+INSERT INTO txt VALUES ('Failed',               'English',  'Failed');
+INSERT INTO txt VALUES ('Suppressed',            'German',   'Unterdr&uuml;ckt');
+INSERT INTO txt VALUES ('Suppressed',            'English',  'Suppressed');
 INSERT INTO txt VALUES ('note_prefix',           'German',   'Hinweis');
 INSERT INTO txt VALUES ('note_prefix',           'English',  'Note');
 INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
@@ -113,6 +121,22 @@ INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
 INSERT INTO txt VALUES ('WfAction',	            'German', 	'Workflow-Aktion');
 INSERT INTO txt VALUES ('WfAction',		        'English', 	'Workflow action');
+INSERT INTO txt VALUES ('ImportChange',          'German',   'Import&auml;nderung');
+INSERT INTO txt VALUES ('ImportChange',          'English',  'Import change');
+INSERT INTO txt VALUES ('Compliance',            'German',   'Compliance');
+INSERT INTO txt VALUES ('Compliance',            'English',  'Compliance');
+INSERT INTO txt VALUES ('InterfaceRequest',      'German',   'Schnittstellenanfrage');
+INSERT INTO txt VALUES ('InterfaceRequest',      'English',  'Interface request');
+INSERT INTO txt VALUES ('RuleTimer',              'German',   'Regelablauf');
+INSERT INTO txt VALUES ('RuleTimer',              'English',  'Rule expiry');
+INSERT INTO txt VALUES ('AppDecomm',              'German',   'Applikationsstilllegung');
+INSERT INTO txt VALUES ('AppDecomm',              'English',  'Application decommissioning');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'German',   'Schnittstellenstilllegung');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'English',  'Interface decommissioning');
+INSERT INTO txt VALUES ('RuleRecertification',    'German',   'Regelweise Rezertifizierung');
+INSERT INTO txt VALUES ('RuleRecertification',    'English',  'Rule-by-rule recertification');
+INSERT INTO txt VALUES ('Report',                 'German',   'Bericht');
+INSERT INTO txt VALUES ('Report',                 'English',  'Report');
 INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
 INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
 INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben b&uuml;ndeln');
@@ -543,6 +567,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -558,6 +583,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder

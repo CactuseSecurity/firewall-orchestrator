@@ -1,0 +1,42 @@
+# Input and expected values for the 9.5.2 notification recipient migration.
+# These fixtures document the source configurations used by the upgrade tests.
+fixtures:
+  - name: fresh-9.5.1-legacy-request-settings
+    source_version: 9.5.1
+    config:
+      modReqEmailReceiver: OwnerGroupOnly
+      modReqEmailRequesterInCc: "true"
+      modReqEmailOtherAddresses: "requester-support@example.test"
+      modDecommEmailReceiver: OwnerMainResponsible
+      modDecommEmailOtherAddresses: ""
+    expected:
+      request:
+        recipient_to: ConfiguredResponsibles
+        email_address_to: >-
+          {"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[2]}
+        recipient_cc: Requester
+      decommission:
+        recipient_to: ConfiguredResponsibles
+        email_address_to: >-
+          {"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[1]}
+
+  - name: older-upgraded-json-recipient-settings
+    source_version: 9.0.4
+    config:
+      modReqEmailReceiver: >-
+        {"none":false,"other_addresses":true,"owner_responsible_type_ids":[]}
+      modReqEmailRequesterInCc: "false"
+      modReqEmailOtherAddresses: "ops@example.test, audit@example.test"
+      modDecommEmailReceiver: >-
+        {"none":false,"other_addresses":false,"owner_responsible_type_ids":[2]}
+      modDecommEmailOtherAddresses: ""
+    expected:
+      request:
+        recipient_to: OtherAddresses
+        email_address_to: >-
+          {"none":false,"other_addresses":true,"other_address_list":["ops@example.test","audit@example.test"],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[]}
+        recipient_cc: None
+      decommission:
+        recipient_to: ConfiguredResponsibles
+        email_address_to: >-
+          {"none":false,"other_addresses":false,"owner_responsible_type_ids":[2]}

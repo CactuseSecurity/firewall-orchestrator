@@ -124,7 +124,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestInterfacePopup_LoadImmediateRequestNotification_ReturnsDeadlineNoneNotification()
+        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_ReturnsApplicableDeadlineNoneNotifications()
         {
             using BunitContext context = CreateContext(new RequestPopupNotificationApiConn(), Roles.Modeller);
             IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
@@ -132,22 +132,24 @@ namespace FWO.Test
                 new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
                 new FwoOwner { Id = 12, Name = "Requester" });
 
-            MethodInfo loadImmediateNotification = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotification", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotification method not found.");
-            Task<FwoNotification?> task = (Task<FwoNotification?>)(loadImmediateNotification.Invoke(component.Instance, Array.Empty<object?>())
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotification returned null task."));
-            FwoNotification? notification = await task;
+            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
+            List<FwoNotification> notifications = await task;
 
             Assert.Multiple(() =>
             {
-                Assert.That(notification, Is.Not.Null);
-                Assert.That(notification!.Deadline, Is.EqualTo(NotificationDeadline.None));
-                Assert.That(notification.EmailSubject, Is.EqualTo("immediate-subject"));
+                Assert.That(notifications, Has.Count.EqualTo(2));
+                Assert.That(notifications[0].Deadline, Is.EqualTo(NotificationDeadline.None));
+                Assert.That(notifications[0].EmailSubject, Is.EqualTo("immediate-subject"));
+                Assert.That(notifications[1].OwnerId, Is.EqualTo(11));
+                Assert.That(notifications[1].EmailSubject, Is.EqualTo("owner-immediate-subject"));
             });
         }
 
         [Test]
-        public async Task RequestInterfacePopup_LoadImmediateRequestNotification_ReturnsNullWhenNoImmediateNotificationExists()
+        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_ReturnsEmptyWhenNoImmediateNotificationExists()
         {
             using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
             IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
@@ -155,21 +157,19 @@ namespace FWO.Test
                 new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
                 new FwoOwner { Id = 12, Name = "Requester" });
 
-            MethodInfo loadImmediateNotification = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotification", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotification method not found.");
-            Task<FwoNotification?> task = (Task<FwoNotification?>)(loadImmediateNotification.Invoke(component.Instance, Array.Empty<object?>())
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotification returned null task."));
-            FwoNotification? notification = await task;
+            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
+            List<FwoNotification> notifications = await task;
 
-            Assert.That(notification, Is.Null);
+            Assert.That(notifications, Is.Empty);
         }
 
         [Test]
-        public async Task RequestInterfacePopup_SendEmail_DisplaysMissingNotificationErrorWhenNoImmediateNotificationExists()
+        public async Task RequestInterfacePopup_SendEmail_SkipsEmailWhenNoImmediateNotificationExists()
         {
             using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
-            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
-            userConfig.UiHostName = "https://fwo.example";
             IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
                 context,
                 new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
@@ -184,13 +184,7 @@ namespace FWO.Test
             Task task = (Task)(sendEmail.Invoke(component.Instance, new object?[] { 123L }) ?? throw new InvalidOperationException("SendEmail returned null task."));
             await task;
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo(userConfig.GetText("send_email")));
-                Assert.That(messages[0].Message, Is.EqualTo(userConfig.GetText("E9011")));
-                Assert.That(messages[0].IsError, Is.True);
-            });
+            Assert.That(messages, Is.Empty);
         }
 
         [Test]
@@ -714,6 +708,20 @@ namespace FWO.Test
                                 Id = 2,
                                 Deadline = NotificationDeadline.None,
                                 EmailSubject = "immediate-subject"
+                            },
+                            new()
+                            {
+                                Id = 3,
+                                OwnerId = 11,
+                                Deadline = NotificationDeadline.None,
+                                EmailSubject = "owner-immediate-subject"
+                            },
+                            new()
+                            {
+                                Id = 4,
+                                OwnerId = 99,
+                                Deadline = NotificationDeadline.None,
+                                EmailSubject = "other-owner-subject"
                             }
                         }
                     };

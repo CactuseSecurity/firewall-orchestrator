@@ -2,13 +2,63 @@
 WITH request_config AS
 (
     SELECT
-        MAX(CASE WHEN config_key = 'modReqEmailReceiver' THEN COALESCE(config_value, '') END) AS recipients,
+        MAX(CASE WHEN config_key = 'modReqEmailReceiver' THEN BTRIM(COALESCE(config_value, '')) END) AS recipients,
+        MAX(CASE WHEN config_key = 'modReqEmailOtherAddresses' THEN COALESCE(config_value, '') END) AS other_addresses,
+        MAX(CASE WHEN config_key = 'modReqEmailRequesterInCc' THEN LOWER(BTRIM(COALESCE(config_value, ''))) END) AS requester_in_cc,
         MAX(CASE WHEN config_key = 'modReqEmailSubject' THEN COALESCE(config_value, '') END) AS subject,
         MAX(CASE WHEN config_key = 'modReqEmailBody' THEN COALESCE(config_value, '') END) AS body,
         MAX(CASE WHEN config_key = 'modUnansweredReqEmailBody' THEN COALESCE(config_value, '') END) AS reminder_body
     FROM config
     WHERE config_user = 0
-      AND config_key IN ('modReqEmailReceiver', 'modReqEmailSubject', 'modReqEmailBody', 'modUnansweredReqEmailBody')
+      AND config_key IN ('modReqEmailReceiver', 'modReqEmailOtherAddresses', 'modReqEmailRequesterInCc', 'modReqEmailSubject', 'modReqEmailBody', 'modUnansweredReqEmailBody')
+),
+request_recipient AS
+(
+    SELECT
+        request_config.*,
+        CASE
+            WHEN recipients = 'OwnerMainResponsible' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[1]}'
+            WHEN recipients = 'OwnerGroupOnly' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[2]}'
+            WHEN recipients = 'FallbackToMainResponsibleIfOwnerGroupEmpty' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":true,"owner_responsible_type_ids":[2,1]}'
+            WHEN recipients = 'AllOwnerResponsibles' THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', false,
+                    'other_address_list', '[]'::json,
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', COALESCE((
+                        SELECT json_agg(id ORDER BY sort_order DESC)
+                        FROM owner_responsible_type
+                        WHERE active = true
+                    ), '[]'::json)
+                )::text
+            WHEN recipients = 'OtherAddresses' OR (recipients = '' AND other_addresses <> '') THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', true,
+                    'other_address_list', COALESCE((
+                        SELECT json_agg(btrim(address))
+                        FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                        WHERE btrim(address) <> ''
+                    ), '[]'::json),
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', '[]'::json
+                )::text
+            WHEN recipients LIKE '{%' AND other_addresses <> '' AND recipients NOT LIKE '%"other_address_list"%'
+                THEN jsonb_set(recipients::jsonb, '{other_address_list}', COALESCE((
+                    SELECT jsonb_agg(btrim(address))
+                    FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                    WHERE btrim(address) <> ''
+                ), '[]'::jsonb), true)::text
+            WHEN recipients LIKE '{%' THEN recipients
+            ELSE ''
+        END AS recipient_selection
+    FROM request_config
 ),
 initial_notification_seed AS
 (
@@ -53,12 +103,17 @@ insert_initial_notification AS
         'Interface requested',
         'Email',
         CASE
-            WHEN recipients = '' THEN 'None'
-            WHEN recipients LIKE '{%' THEN 'ConfiguredResponsibles'
-            ELSE 'OtherAddresses'
+            WHEN recipient_selection ~ '"requester"[[:space:]]*:[[:space:]]*true'
+              OR recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]' THEN 'ConfiguredResponsibles'
+            WHEN recipient_selection ~ '"other_addresses"[[:space:]]*:[[:space:]]*true'
+              AND recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"' THEN 'OtherAddresses'
+            ELSE 'None'
         END,
-        recipients,
-        'None',
+        CASE
+            WHEN recipient_selection = '' THEN ''
+            ELSE recipient_selection
+        END,
+        CASE WHEN requester_in_cc = 'true' THEN 'Requester' ELSE 'None' END,
         '',
         'None',
         '',
@@ -75,10 +130,10 @@ insert_initial_notification AS
         NULL,
         NULL,
         NULL
-    FROM request_config
+    FROM request_recipient
     CROSS JOIN initial_notification_seed
     WHERE notification_count = 0
-      AND recipients <> ''
+      AND (COALESCE(recipients, '') <> '' OR COALESCE(other_addresses, '') <> '')
     RETURNING 1
 ),
 update_initial_bodies AS
@@ -206,16 +261,67 @@ CREATE TABLE IF NOT EXISTS notification_log
     error Varchar NOT NULL DEFAULT ''
 );
 
+CREATE INDEX IF NOT EXISTS notification_log_timestamp_id_idx
+    ON notification_log ("timestamp" DESC, id DESC);
+
 WITH decomm_config AS
 (
     SELECT
-        MAX(CASE WHEN config_key = 'modDecommEmailReceiver' THEN COALESCE(config_value, '') END) AS recipients,
+        MAX(CASE WHEN config_key = 'modDecommEmailReceiver' THEN BTRIM(COALESCE(config_value, '')) END) AS recipients,
         MAX(CASE WHEN config_key = 'modDecommEmailOtherAddresses' THEN COALESCE(config_value, '') END) AS other_addresses,
         MAX(CASE WHEN config_key = 'modDecommEmailSubject' THEN COALESCE(config_value, '') END) AS subject,
         MAX(CASE WHEN config_key = 'modDecommEmailBody' THEN COALESCE(config_value, '') END) AS body
     FROM config
     WHERE config_user = 0
       AND config_key IN ('modDecommEmailReceiver', 'modDecommEmailOtherAddresses', 'modDecommEmailSubject', 'modDecommEmailBody')
+),
+decomm_recipient AS
+(
+    SELECT
+        decomm_config.*,
+        CASE
+            WHEN recipients = 'OwnerMainResponsible' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[1]}'
+            WHEN recipients = 'OwnerGroupOnly' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[2]}'
+            WHEN recipients = 'FallbackToMainResponsibleIfOwnerGroupEmpty' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":true,"owner_responsible_type_ids":[2,1]}'
+            WHEN recipients = 'AllOwnerResponsibles' THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', false,
+                    'other_address_list', '[]'::json,
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', COALESCE((
+                        SELECT json_agg(id ORDER BY sort_order DESC)
+                        FROM owner_responsible_type
+                        WHERE active = true
+                    ), '[]'::json)
+                )::text
+            WHEN recipients = 'OtherAddresses' OR (recipients = '' AND other_addresses <> '') THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', true,
+                    'other_address_list', COALESCE((
+                        SELECT json_agg(btrim(address))
+                        FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                        WHERE btrim(address) <> ''
+                    ), '[]'::json),
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', '[]'::json
+                )::text
+            WHEN recipients LIKE '{%' AND other_addresses <> '' AND recipients NOT LIKE '%"other_address_list"%'
+                THEN jsonb_set(recipients::jsonb, '{other_address_list}', COALESCE((
+                    SELECT jsonb_agg(btrim(address))
+                    FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                    WHERE btrim(address) <> ''
+                ), '[]'::jsonb), true)::text
+            WHEN recipients LIKE '{%' THEN recipients
+            ELSE ''
+        END AS recipient_selection
+    FROM decomm_config
 ),
 decomm_notification_seed AS
 (
@@ -253,11 +359,16 @@ insert_decomm_notification AS
         'Interface decommissioned',
         'Email',
         CASE
-            WHEN recipients = '' AND other_addresses <> '' THEN 'OtherAddresses'
-            WHEN recipients = '' THEN 'None'
-            ELSE recipients
+            WHEN recipient_selection ~ '"requester"[[:space:]]*:[[:space:]]*true'
+              OR recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]' THEN 'ConfiguredResponsibles'
+            WHEN recipient_selection ~ '"other_addresses"[[:space:]]*:[[:space:]]*true'
+              AND recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"' THEN 'OtherAddresses'
+            ELSE 'None'
         END,
-        other_addresses,
+        CASE
+            WHEN recipient_selection = '' THEN ''
+            ELSE recipient_selection
+        END,
         'None',
         '',
         'None',
@@ -275,12 +386,12 @@ insert_decomm_notification AS
         NULL,
         NULL,
         NULL
-    FROM decomm_config
+    FROM decomm_recipient
     CROSS JOIN decomm_notification_seed
     WHERE notification_count = 0
       AND (
-          LENGTH(recipients) > 0
-          OR LENGTH(other_addresses) > 0
+          recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]'
+          OR recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"'
           OR LENGTH(subject) > 0
           OR LENGTH(body) > 0
       )

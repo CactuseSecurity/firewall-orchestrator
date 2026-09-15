@@ -1,5 +1,5 @@
-query getNotificationLogEntrys {
-  notification_log(order_by: { timestamp: desc }) {
+query getNotificationLogEntrys($limit: Int!, $offset: Int!) {
+  notification_log(limit: $limit, offset: $offset, order_by: [{ timestamp: desc }, { id: desc }]) {
     id
     timestamp
     notification_id

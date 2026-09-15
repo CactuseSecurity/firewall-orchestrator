@@ -417,7 +417,9 @@ namespace FWO.Test
             CertificateRequest serverRequest = new("CN=fwo-api-server-test", serverKey, HashAlgorithmName.SHA256);
             serverRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
             serverRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-            apiServerCertificate = serverRequest.Create(certificateAuthority, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            DateTimeOffset serverNotBefore = DateTimeOffset.UtcNow.AddMinutes(-1);
+            DateTimeOffset serverNotAfter = certificateAuthority.NotAfter.ToUniversalTime().AddMinutes(-1);
+            apiServerCertificate = serverRequest.Create(certificateAuthority, serverNotBefore, serverNotAfter, RandomNumberGenerator.GetBytes(16));
         }
 
         /// <summary>

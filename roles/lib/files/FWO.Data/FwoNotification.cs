@@ -51,6 +51,21 @@ namespace FWO.Data
         Email = 1
     }
 
+    /// <summary>
+    /// Result of processing a notification delivery request.
+    /// </summary>
+    public enum NotificationDeliveryResult
+    {
+        /// <summary>Email was sent successfully.</summary>
+        Delivered,
+        /// <summary>Sending was intentionally skipped by the logging mode.</summary>
+        Suppressed,
+        /// <summary>No recipient was resolved.</summary>
+        NoRecipients,
+        /// <summary>Sending was attempted but failed.</summary>
+        Failed
+    }
+
     public enum NotificationDeadline
     {
         None = 0,

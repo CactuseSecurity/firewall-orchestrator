@@ -373,6 +373,7 @@ namespace FWO.Test
         /// naming who lost the session, which the failing scope no longer has in hand.
         /// </summary>
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RefreshToken_AuditsTheConsumedTokenWhenNoNewPairCouldBeIssued()
         {
             RecordingApiConnection apiConnection = new()
@@ -491,6 +492,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RefreshToken_AuditsAmbiguousConsumption()
         {
             RecordingApiConnection apiConnection = new()
@@ -542,6 +544,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RevokeToken_AuditsAmbiguousRevocation()
         {
             RecordingApiConnection apiConnection = new()

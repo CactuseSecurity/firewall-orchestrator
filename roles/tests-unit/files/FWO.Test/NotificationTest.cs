@@ -99,6 +99,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task CreateAsync_LoadsNotificationsAndFallsBackWhenNoInternalLdapIsConfigured()
         {
             CreateAsyncApiConn createAsyncApiConnection = new()
@@ -119,6 +120,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task CreateAsync_LogsWarningsAndContinuesWhenLdapConnectionsCannotBeLoaded()
         {
             CreateAsyncApiConn createAsyncApiConnection = new()

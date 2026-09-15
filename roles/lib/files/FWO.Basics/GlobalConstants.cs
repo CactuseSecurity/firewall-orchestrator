@@ -206,6 +206,7 @@ namespace FWO.Basics
 
     public enum OwnerMappingSourceStm
     {
+        Disabled = 0,
         IpBased = 1,
         CustomField = 2,
         NameField = 3,

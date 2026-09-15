@@ -33,7 +33,7 @@ namespace FWO.Test
             ActionHandler actionHandler = handler.ActionHandler ?? new ActionHandler(apiConnection, handler);
             actionHandler.Init([]).GetAwaiter().GetResult();
             handler.ActionHandler = actionHandler;
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true, WorkflowPhases.request);
             typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
         }
 

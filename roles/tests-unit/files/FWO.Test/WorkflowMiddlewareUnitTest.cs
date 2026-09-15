@@ -37,6 +37,8 @@ namespace FWO.Test
             "cn=approvers,ou=groups,dc=fworch,dc=internal"
         ];
         private static readonly string[] kGetUserEmailsQuery = [AuthQueries.getUserEmails];
+        private static readonly string[] kApproverRole = [Roles.Approver];
+        private const int kCallerUserId = 93;
         private static readonly string[] kExpectedResolvedUserDns = ["uid=user,ou=users,dc=test"];
 
         private sealed class RecipientResolverApiConn : SimulatedApiConnection
@@ -613,6 +615,38 @@ namespace FWO.Test
             {
                 GlobalStateMatrix.Factory = previousFactory;
             }
+        }
+
+        [Test]
+        public void WorkflowController_ApplyCallerIdentity_AttributesTheChangeToTheAuthenticatedCaller()
+        {
+            SimulatedUserConfig userConfig = new();
+            WfHandler wfHandler = new();
+
+            WorkflowController.ApplyCallerIdentity(PrincipalWithRolesAndClaims(kApproverRole,
+                new Claim("unique_name", "alice"), new Claim("x-hasura-user-id", $"{kCallerUserId}")), userConfig, wfHandler);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConfig.User.Name, Is.EqualTo("alice"));
+                Assert.That(wfHandler.ChangerId, Is.EqualTo(kCallerUserId));
+            });
+        }
+
+        [Test]
+        public void WorkflowController_ApplyCallerIdentity_LeavesAutomationAttributionForAnUnidentifiedCaller()
+        {
+            SimulatedUserConfig userConfig = new();
+            WfHandler wfHandler = new();
+
+            WorkflowController.ApplyCallerIdentity(PrincipalWithRoles(Roles.Approver), userConfig, wfHandler);
+
+            Assert.Multiple(() =>
+            {
+                // an empty name makes the history writer fall back to Roles.MiddlewareServer
+                Assert.That(userConfig.User.Name, Is.Empty);
+                Assert.That(wfHandler.ChangerId, Is.Null);
+            });
         }
 
         [Test]

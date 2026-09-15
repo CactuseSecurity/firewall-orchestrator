@@ -1,0 +1,12 @@
+query getActiveRuleOwners($limit: Int!) {
+  rule_owner(
+    where: {
+      removed: { _is_null: true }
+    }
+    limit: $limit
+  ) {
+    rule_id
+    owner_id
+    created
+  }
+}

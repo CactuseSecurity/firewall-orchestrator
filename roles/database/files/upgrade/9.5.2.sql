@@ -188,7 +188,7 @@ ALTER TABLE notification
 
 UPDATE notification
 SET logging = 'send_only'
-WHERE COALESCE(logging, '') = '';
+WHERE logging IS NULL OR logging = '';
 
 CREATE TABLE IF NOT EXISTS notification_log
 (

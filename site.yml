@@ -222,12 +222,11 @@
       become: true
 
     # Read from the world readable copy every host receives, not from the issuer copy on
-    # the CA host. internalca_ca_certificate_local and the anchor file name it is built
-    # from are defined in inventory/group_vars/all.yml, so they are in scope in every
-    # play, while internalca_ca_host is a roles/internalCA default and is not: delegating
-    # to it here failed the whole installation on the very last play with
-    # "'internalca_ca_host' is undefined". The local copy is the file the documentation
-    # tells an operator to trust anyway.
+    # the CA host: the local copy is the file the documentation tells an operator to
+    # trust, it is world readable where the issuer copy sits in a root-only directory,
+    # and reading it needs no delegation at all. internalca_ca_certificate_local and the
+    # anchor file name it is built from are defined in inventory/group_vars/all.yml, so
+    # they are in scope in this play - role defaults are not.
     #
     # failed_when: false because this is the closing information display of a completed
     # installation. Everything that depends on the certificate has already run and

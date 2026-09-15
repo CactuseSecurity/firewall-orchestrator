@@ -276,6 +276,13 @@ internalca_client_private_key: "{{ fworch_secrets_dir }}/client/client.key"
 # administrator supplies and maintains the slapd identity at the configured paths.
 internalca_issue_ldap_certificate: true
 
+# The single host that holds the CA private key and signs every issued certificate;
+# only the public CA certificate leaves it. Here rather than in the roles/internalCA
+# defaults because roles/tests-integration delegates to it and reads its host facts, and
+# a role default is out of scope there - re-deriving it in the test role instead would
+# quietly assert against the wrong host on an installation that overrides this.
+internalca_ca_host: "{{ groups['middlewareserver'] | first }}"
+
 # The issuer copy of the CA certificate exists only on the CA host and sits in a
 # root-only directory. Every host gets a world-readable copy at this path, and
 # that is the one all unprivileged consumers must reference. Read by roles/api,

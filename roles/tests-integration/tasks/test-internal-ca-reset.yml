@@ -14,7 +14,7 @@
     that:
       - >-
         test_reset_ca_certificate_info.subject.get('commonName', '')
-        not in hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true)
+        not in hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true)
       - internalca_installed_certificates.results | rejectattr('changed') | list | length == 0
     fail_msg: >-
       The certificate reset did not replace the old internal CA and every FWO-managed
@@ -26,16 +26,16 @@
   slurp:
     src: "{{ internalca_retired_ca_names }}"
   register: test_reset_retired_ca_names
-  delegate_to: "{{ test_reset_ca_host }}"
+  delegate_to: "{{ internalca_ca_host }}"
   run_once: true
   become: true
 
 - name: Verify the reset recorded the internal CA it retired
   assert:
     that:
-      - hostvars[test_reset_ca_host].internalca_previous_ca_common_names | default([], true) | length > 0
+      - hostvars[internalca_ca_host].internalca_previous_ca_common_names | default([], true) | length > 0
       - >-
-        hostvars[test_reset_ca_host].internalca_previous_ca_common_names
+        hostvars[internalca_ca_host].internalca_previous_ca_common_names
         | difference((test_reset_retired_ca_names.content | b64decode).split('\n') | map('trim') | list)
         | length == 0
     fail_msg: >-
@@ -51,7 +51,7 @@
     internalca_classification_certificate_exists: true
     internalca_classification_certificate_info:
       issuer:
-        commonName: "{{ hostvars[test_reset_ca_host].internalca_previous_ca_common_names | first }}"
+        commonName: "{{ hostvars[internalca_ca_host].internalca_previous_ca_common_names | first }}"
       subject: {}
       public_key_fingerprints: {}
     internalca_classification_legacy_organization: unused-test-organization

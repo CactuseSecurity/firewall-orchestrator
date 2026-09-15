@@ -355,6 +355,21 @@ it in that file and names the `-e` form instead. Browsers and external trust sto
 not learn the new anchor automatically; replace their previous
 `fworch Internal CA ...` certificate with the newly displayed public CA after the run.
 
+Client identities held outside the FWO hosts have to be replaced as well, and they are
+the part a trust-store update alone does not cover. The reset reissues
+`/usr/local/fworch/etc/secrets/client/client.{crt,key}` in place, so everything reading
+those paths - UI, middleware, importer, the integration tests, local scripts - picks the
+new identity up by itself. Everything that holds a *copy* does not: the PKCS#12 bundles
+imported into browsers (see [Importing the client certificate into
+Firefox](#importing-the-client-certificate-into-firefox)) and any per-person certificate
+issued from the old CA are now signed by a retired issuer. Apache verifies client
+certificates against the internal CA alone, so with
+`graphql_api_requires_client_certificate: true` - the default - the API rejects them
+after the rotation. Re-export or re-issue every such identity from the new CA, and
+remove the old one where it was imported. Plan this with the maintenance window: the
+handshake only fails once someone uses one of those identities again, which is typically
+after the run is long finished.
+
 Plan the run as a maintenance window. The new trust anchor is installed on every host
 early in the run, while the endpoints still serve the leaves the old CA signed, and
 internal TLS between FWO components only settles again once the run has reissued those
@@ -473,6 +488,12 @@ directory, and the export password is the only thing protecting the private key.
 
 Import `client.p12` from Firefox's **Settings → Privacy & Security →
 Certificates → View Certificates → Your Certificates → Import**.
+
+An identity imported here is a copy, and no installer run updates it. After a CA
+rotation with `internalca_reset_certificates` it is signed by a retired issuer and the
+API rejects it, so export and import it again - and delete the previous entry under
+**Your Certificates**, the same way the retired authority is deleted under
+**Authorities**.
 
 ## Private key requirement
 

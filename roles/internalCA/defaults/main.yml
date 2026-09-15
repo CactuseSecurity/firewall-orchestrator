@@ -9,9 +9,10 @@
 internalca_crypto_packages:
   - python3-cryptography
 
-# A single CA is retained on the middleware server. Its private key never
-# leaves that host; only the public CA certificate is installed elsewhere.
-internalca_ca_host: "{{ groups['middlewareserver'] | first }}"
+# A single CA is retained on the middleware server. Its private key never leaves that
+# host; only the public CA certificate is installed elsewhere. The host itself is
+# internalca_ca_host in inventory/group_vars/all.yml, because roles/tests-integration
+# reads it too.
 internalca_ca_dir: "{{ fworch_secrets_dir }}/ca"
 internalca_ca_private_key: "{{ internalca_ca_dir }}/ca.key"
 internalca_ca_csr: "{{ internalca_ca_dir }}/ca.csr"

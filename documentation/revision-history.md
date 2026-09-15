@@ -708,10 +708,16 @@ Not supported any longer are:
   /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates.
   The reset stops before replacing the old CA key when neither the CA nor its client leaf
   can provide the retired issuer name, and `internalca_issue_ldap_certificate=false` keeps
-  an externally managed OpenLDAP identity entirely outside FWO certificate management
+  FWO from issuing or replacing an externally managed OpenLDAP identity, while the trust,
+  address and chain checks FWO clients depend on still apply to it. Client identities
+  exported to a browser or issued to a person from the old CA are copies and are not
+  rotated by the run - re-export or re-issue them, see documentation/certificates.md
 - installer: `internalca_issue_apache_certificate=false` now also keeps the FWO Apache vhosts
   on the certificate and key the installed vhost already names, instead of pointing them at
   an identity the installer has just been told not to create
+- UI fix: the start page shows its quick start section again and the English "What's new"
+  panel ends in English - a merge had dropped both getting_started texts and appended the
+  German menu list to the English whats_new_facts entry
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology

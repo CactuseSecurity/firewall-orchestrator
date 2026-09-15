@@ -57,9 +57,12 @@
     path: "{{ internalca_maintenance_configuration_file }}"
     regexp: "^\\s*{{ item.directive }}\\s+"
     insertafter: "^\\s*<VirtualHost\\s[^>]*:{{ ui_web_port }}>"
-    # Four spaces, not a tab: the fixture in the integration test has to reproduce
-    # this line exactly, and a tab there is both awkward to express in a YAML block
-    # scalar and a space-before-tab whitespace error in the patch.
+    # Four spaces, matching roles/common/templates/httpd-maintenance.conf, which writes
+    # these same two directives on every run before this task reconciles them. Indent
+    # them differently there and lineinfile rewrites both lines on every upgrade purely
+    # over the whitespace, reporting a change that reloads Apache for nothing and making
+    # internalca_maintenance_identity_changed mean "templated again" rather than "the
+    # identity moved". The integration fixtures reproduce this line exactly.
     line: "    {{ item.directive }} {{ item.path }}"
   loop:
     - directive: SSLCertificateFile

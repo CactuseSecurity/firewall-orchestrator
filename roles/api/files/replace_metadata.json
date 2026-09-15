@@ -28824,35 +28824,29 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
-                      "uiuser_email",
-                      "uiuser_end_date",
-                      "uiuser_first_name",
-                      "uiuser_id",
-                      "uiuser_language",
-                      "uiuser_last_login",
-                      "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
-                      "uiuser_username",
-                      "uuid"
+                      "uiuser_language"
                     ],
                     "filter": {
                       "uuid": {
-                        "_eq": "X-Hasura-uuid"
+                        "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28866,7 +28860,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": {}
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28880,7 +28878,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28918,7 +28920,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28932,7 +28938,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28946,7 +28956,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28960,7 +28974,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28974,7 +28992,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -28988,7 +29010,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29002,7 +29028,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 }
               ],

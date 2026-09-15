@@ -110,6 +110,7 @@ builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProv
 builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddSingleton<WorkflowChangeHistoryService>();
 builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
 

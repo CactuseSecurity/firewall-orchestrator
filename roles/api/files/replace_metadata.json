@@ -3311,7 +3311,12 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id"
+                      "id",
+                      "changer",
+                      "change_text",
+                      "change_time",
+                      "ticket_id",
+                      "audit_proof_critical"
                     ],
                     "filter": {}
                   },

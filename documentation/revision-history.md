@@ -709,6 +709,6 @@ Not supported any longer are:
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import
 
-## 9.5.2 - 14.09.2026
+## 9.5.3 - 14.09.2026
 - rework modelling notifications and move interface-request notifications to centralized notification entries
 - interface-request notifications now support separate request and reminder bodies plus optional CC to the requester

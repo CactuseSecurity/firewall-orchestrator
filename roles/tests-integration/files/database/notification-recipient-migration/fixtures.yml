@@ -1,4 +1,4 @@
-# Input and expected values for the 9.5.2 notification recipient migration.
+# Input and expected values for the 9.5.3 notification recipient migration.
 # These fixtures document the source configurations used by the upgrade tests.
 fixtures:
   - name: fresh-9.5.1-legacy-request-settings

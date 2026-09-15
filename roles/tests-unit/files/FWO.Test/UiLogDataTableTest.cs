@@ -211,7 +211,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task AdjustPageSize_RetriesAfterAFailedMeasurement()
+        public async Task AdjustPageSize_RetriesAfterAMeasurementThatCouldNotBeTaken()
         {
             LogDataTableTestJsRuntime jsRuntime = new() { Fail = true };
             LogDataTable component = await CreateLoadedComponent(jsRuntime);
@@ -219,7 +219,72 @@ namespace FWO.Test
             await InvokePrivateTask(component, "AdjustPageSize");
 
             Assert.That(GetPrivateField<bool>(component, "pageSizeMeasured"), Is.False,
-                "a measurement which did not work out must not be taken as the final one");
+                "a measurement which could not be taken must not be treated as the final one");
+        }
+
+        [Test]
+        public async Task AdjustPageSize_DoesNotChangeThePageSizeWhileTheUserHasPagedIntoTheData()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 40 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+            SetPrivateField(component, "logTable", CreateTableOnPage(2));
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kDefaultPageSize),
+                    "a page number means different rows once the page size changes, so the table must stay as it is");
+                Assert.That(GetPrivateField<int>(component, "measuredPageSize"), Is.EqualTo(40),
+                    "the measurement is remembered for when the user is back on the first page");
+            });
+        }
+
+        [Test]
+        public async Task AdjustPageSize_KeepsTheCurrentSizeWhenTheWindowCouldNotBeMeasured()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 40 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            SetPrivateProperty<IJSRuntime>(component, "jsRuntime", new LogDataTableTestJsRuntime { Fail = true });
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(40),
+                "a measurement that could not be taken must leave the size the window had allowed");
+        }
+
+        [Test]
+        public async Task AdjustPageSize_RaisesAWindowTooShortForOneRowToTheMinimum()
+        {
+            LogDataTableTestJsRuntime jsRuntime = new() { MeasuredRows = 0 };
+            LogDataTable component = await CreateLoadedComponent(jsRuntime);
+
+            await InvokePrivateTask(component, "AdjustPageSize");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kMinPageSize),
+                    "zero rows fitting is a measurement, so the floor applies instead of the old size");
+                Assert.That(GetPrivateField<bool>(component, "pageSizeMeasured"), Is.True,
+                    "a window measured as too short was measured, so it must not be retried on every render");
+            });
+        }
+
+        private static BlazorTable.Table<OwnerFirewallLogEntry> CreateTableOnPage(int pageNumber)
+        {
+            BlazorTable.Table<OwnerFirewallLogEntry> table = new();
+            PropertyInfo property = typeof(BlazorTable.Table<OwnerFirewallLogEntry>).GetProperty("PageNumber")
+                ?? throw new MissingMemberException(typeof(BlazorTable.Table<OwnerFirewallLogEntry>).FullName, "PageNumber");
+            property.SetValue(table, pageNumber);
+            return table;
+        }
+
+        private static void SetPrivateField<T>(LogDataTable component, string fieldName, T value)
+        {
+            FieldInfo field = typeof(LogDataTable).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+                ?? throw new MissingFieldException(typeof(LogDataTable).FullName, fieldName);
+            field.SetValue(component, value);
         }
 
         private static async Task<LogDataTable> CreateLoadedComponent(IJSRuntime jsRuntime)

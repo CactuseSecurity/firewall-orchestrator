@@ -7,9 +7,16 @@ namespace FWO.Ui.Services
     public static class LogDataTableLayout
     {
         /// <summary>
-        /// Page size used until the browser has been measured, and whenever a measurement fails.
+        /// Page size used until the browser has been measured.
         /// </summary>
         public const int kDefaultPageSize = 15;
+
+        /// <summary>
+        /// Answer of the browser measurement when there was nothing to measure at all. A window
+        /// measured as too short for a single row reports zero instead, which is a real result
+        /// and not a failure - the two must stay distinguishable (see logDataTable.js).
+        /// </summary>
+        public const int kCouldNotMeasure = -1;
 
         /// <summary>
         /// Smallest page the table is ever given. In a window too short even for this the page
@@ -26,17 +33,19 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Resolves the page size from the number of rows the browser reported as fitting.
         /// </summary>
-        /// <param name="measuredRows">Rows that fit into the window, zero if nothing could be measured.</param>
+        /// <param name="measuredRows">Rows that fit into the window, <see cref="kCouldNotMeasure"/> if there was nothing to measure.</param>
         /// <param name="currentPageSize">Page size the table has, kept if there was nothing to measure.</param>
         /// <returns>Page size within the supported bounds.</returns>
         public static int ResolvePageSize(int measuredRows, int currentPageSize)
         {
-            if (measuredRows <= 0)
+            if (measuredRows < 0)
             {
-                // a window which could not be measured must not make the table jump back to the
-                // default, the size it already has is the better answer
+                // nothing to go by: the size the table already has is a better answer than the
+                // default, which would make the table jump for no reason the user can see
                 return currentPageSize;
             }
+            // zero is a measurement, not a failure: the window is too short for a single row and
+            // the floor below decides how many rows are shown anyway
             return Math.Clamp(measuredRows, kMinPageSize, kMaxPageSize);
         }
     }

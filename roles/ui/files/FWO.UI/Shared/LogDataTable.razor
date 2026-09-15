@@ -71,8 +71,11 @@ else
     // even if a page ever shows two of them
     private readonly string containerId = $"logdatatable-{Guid.NewGuid():N}";
     private BlazorTable.Table<OwnerFirewallLogEntry>? logTable;
-    // how many rows fit into the browser window, kept up to date by AdjustPageSize
+    // page size the table uses now
     private int pageSize = LogDataTableLayout.kDefaultPageSize;
+    // page size the browser window allows. It is handed to the table only while the first page is
+    // shown, so it can differ from pageSize while the user has paged into the data.
+    private int measuredPageSize = LogDataTableLayout.kDefaultPageSize;
     private bool pageSizeMeasured;
     private CancellationTokenSource? resizeSettling;
     private bool disposed;
@@ -128,6 +131,11 @@ else
         return loadedOwnerId == requestedOwnerId;
     }
 
+    /// <summary>
+    /// Measures the window once per set of rows and hands the result to the table as soon as
+    /// doing so cannot move the user, see <see cref="ApplyMeasuredPageSize"/>.
+    /// </summary>
+    /// <param name="firstRender">True on the first render of this component.</param>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -138,39 +146,67 @@ else
         // render would cost a browser round trip per keystroke in a column filter.
         if (!pageSizeMeasured)
         {
-            await AdjustPageSize();
+            await MeasurePageSize();
         }
+        // cheap enough for every render: it reads the page number and touches no browser
+        await ApplyMeasuredPageSize();
     }
 
     /// <summary>
-    /// Asks the browser how many rows fit into its window and pages the table accordingly.
+    /// Measures the window and applies the result, used when the window was resized.
     /// </summary>
     private async Task AdjustPageSize()
+    {
+        await MeasurePageSize();
+        await ApplyMeasuredPageSize();
+    }
+
+    /// <summary>
+    /// Asks the browser how many rows fit into its window and remembers the answer.
+    /// </summary>
+    private async Task MeasurePageSize()
     {
         if (disposed || logEntries.Count == 0)
         {
             return;
         }
         int measuredRows = await MeasureFittingRows();
-        // a measurement which did not work out is retried on the next render
-        pageSizeMeasured = measuredRows > 0;
-        int newPageSize = LogDataTableLayout.ResolvePageSize(measuredRows, pageSize);
+        // a measurement which could not be taken is retried on the next render. A window measured
+        // as too short for a single row is a result, not a failure, and is not retried.
+        pageSizeMeasured = measuredRows != LogDataTableLayout.kCouldNotMeasure;
+        measuredPageSize = LogDataTableLayout.ResolvePageSize(measuredRows, pageSize);
+    }
+
+    /// <summary>
+    /// Hands the measured page size to the table, but only while the first page is shown.
+    /// </summary>
+    private async Task ApplyMeasuredPageSize()
+    {
         // the measurement does not depend on the number of rows on the page, so applying it
         // settles after one round instead of re-rendering the table indefinitely
-        if (newPageSize == pageSize)
+        if (disposed || measuredPageSize == pageSize)
         {
             return;
         }
-        pageSize = newPageSize;
+        // The page number survives a page size change, the rows behind it do not: page 2 of 10
+        // rows starts at row 20, page 2 of 20 rows starts at row 40. Resizing the window would
+        // therefore put a different part of the log on screen without the user asking for it.
+        // On the first page there is nothing to move, so the new size waits for it.
+        if (logTable is not null && logTable.PageNumber != 0)
+        {
+            return;
+        }
+        pageSize = measuredPageSize;
         // the table keeps its own paging state, a new size only reaches it through this setter
         if (logTable is not null)
         {
-            await logTable.SetPageSizeAsync(newPageSize);
+            await logTable.SetPageSizeAsync(pageSize);
         }
     }
 
     /// <summary>
-    /// Rows the browser reports as fitting into its window, zero if it could not be asked.
+    /// Rows the browser reports as fitting into its window,
+    /// <see cref="LogDataTableLayout.kCouldNotMeasure"/> if it could not be asked.
     /// </summary>
     private async Task<int> MeasureFittingRows()
     {
@@ -183,10 +219,13 @@ else
             // a window which cannot be measured must not take the table with it, the page size
             // then simply stays at the value it has
             Log.WriteDebug("LogDataTable", $"measuring the window failed: {exception.Message}");
-            return 0;
+            return LogDataTableLayout.kCouldNotMeasure;
         }
     }
 
+    /// <summary>
+    /// Starts listening for window resizes, so the page size can follow the window.
+    /// </summary>
     private async Task SubscribeToWindowResize()
     {
         if (eventService is null)
@@ -200,6 +239,11 @@ else
         eventService.OnGlobalResize += OnWindowResized;
     }
 
+    /// <summary>
+    /// Re-measures after the window has come to rest. Resizing fires without interruption while a
+    /// window edge is dragged, so every call cancels the one before it and only the last survives.
+    /// </summary>
+    /// <param name="elementId">Element the resize was reported for, not used here.</param>
     private async void OnWindowResized(string elementId)
     {
         CancellationTokenSource settling = new();
@@ -229,6 +273,10 @@ else
         }
     }
 
+    /// <summary>
+    /// Stops listening for window resizes and drops a measurement still waiting to be taken.
+    /// </summary>
+    /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>
     public void Dispose(bool disposing)
     {
         if (disposed)
@@ -250,6 +298,9 @@ else
         disposed = true;
     }
 
+    /// <summary>
+    /// Releases what the component subscribed to in the browser.
+    /// </summary>
     public void Dispose()
     {
         Dispose(true);

@@ -9,12 +9,19 @@ namespace FWO.Test
         [Test]
         public void ResolvePageSize_KeepsTheCurrentSizeWhenNothingCouldBeMeasured()
         {
-            Assert.That(LogDataTableLayout.ResolvePageSize(0, 40), Is.EqualTo(40),
-                "a failed measurement must not make the table jump back to the default");
+            Assert.That(LogDataTableLayout.ResolvePageSize(LogDataTableLayout.kCouldNotMeasure, 40), Is.EqualTo(40),
+                "a measurement that could not be taken must not make the table jump back to the default");
         }
 
         [Test]
-        public void ResolvePageSize_KeepsTheCurrentSizeForAnImpossibleMeasurement()
+        public void ResolvePageSize_RaisesAWindowTooShortForOneRowToTheMinimum()
+        {
+            Assert.That(LogDataTableLayout.ResolvePageSize(0, 40), Is.EqualTo(LogDataTableLayout.kMinPageSize),
+                "zero rows fitting is a measurement, not a failure, so the floor applies to it");
+        }
+
+        [Test]
+        public void ResolvePageSize_TreatsAnyNegativeAnswerAsNotMeasured()
         {
             Assert.That(LogDataTableLayout.ResolvePageSize(-3, LogDataTableLayout.kDefaultPageSize),
                 Is.EqualTo(LogDataTableLayout.kDefaultPageSize),

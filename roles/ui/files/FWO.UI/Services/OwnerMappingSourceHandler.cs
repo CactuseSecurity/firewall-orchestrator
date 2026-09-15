@@ -65,6 +65,7 @@ namespace FWO.Ui.Services
         /// </summary>
         public string ModelledMarker { get; set; } = "";
 
+        private bool ruleOwnerRebuildPending;
         private int storedSource;
         private string storedModelledMarker = "";
         private string rawOwnerKeys = "";
@@ -180,7 +181,8 @@ namespace FWO.Ui.Services
         /// the change requires nor keeps what the failed attempt wrote into the configuration.
         /// </summary>
         /// <param name="configData">Configuration to write to.</param>
-        /// <returns>True if the change requires a full rule owner mapping rebuild.</returns>
+        /// <returns>True if a full rule owner mapping rebuild is required, which stays true until
+        /// <see cref="ConfirmRuleOwnerRebuild"/> reports one as done.</returns>
         /// <exception cref="InvalidOperationException">Thrown when <see cref="Validate"/> did not succeed before.</exception>
         public bool ApplyTo(ConfigData configData)
         {
@@ -202,7 +204,17 @@ namespace FWO.Ui.Services
 
             // the stored settings are compared, not the ones of the given configuration: a retry after a failed
             // write would otherwise compare the configuration the previous attempt already changed against itself
-            return NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
+            ruleOwnerRebuildPending |= NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
+            return ruleOwnerRebuildPending;
+        }
+
+        /// <summary>
+        /// Reports the rule owner mappings as rebuilt. Until this is called, every save keeps requesting the
+        /// rebuild, so a rebuild which did not succeed is not forgotten by the following save.
+        /// </summary>
+        public void ConfirmRuleOwnerRebuild()
+        {
+            ruleOwnerRebuildPending = false;
         }
 
         /// <summary>

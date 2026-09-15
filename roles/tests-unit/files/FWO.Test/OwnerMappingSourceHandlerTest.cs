@@ -334,8 +334,32 @@ namespace FWO.Test
             Assert.That(handler.Validate(), Is.Null);
             Assert.That(handler.ApplyTo(configData), Is.True);
             handler.TakeOverStoredSettings(configData);
+            handler.ConfirmRuleOwnerRebuild();
 
             // saving the unchanged settings again must not rebuild the rule owner mappings a second time
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.False);
+        }
+
+        [Test]
+        public void ApplyTo_StillRequestsRebuild_WhenTheRebuildOfTheSavedSettingsFailed()
+        {
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.IpBased };
+            OwnerMappingSourceHandler handler = new();
+            handler.Init(configData);
+            handler.SelectSource(OwnerMappingSourceStm.CustomField);
+            handler.OwnerKeysToAdd.Add("app-id");
+
+            // the settings are stored, but the rebuild they require reports no success, so it is not confirmed
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.True);
+            handler.TakeOverStoredSettings(configData);
+
+            // the admin removes the cause and saves again: the rebuild must not be reported as done in between
+            Assert.That(handler.Validate(), Is.Null);
+            Assert.That(handler.ApplyTo(configData), Is.True);
+
+            handler.ConfirmRuleOwnerRebuild();
             Assert.That(handler.Validate(), Is.Null);
             Assert.That(handler.ApplyTo(configData), Is.False);
         }

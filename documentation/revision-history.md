@@ -699,6 +699,25 @@ Not supported any longer are:
   schema changes silently
 
 ## 9.5.1 - 12.09.2026
+- installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
+  CA and every FWO-managed client and server identity, including the self-signed identities
+  from versions before 9.5.0, while preserving customer-managed certificate/key pairs. The
+  subject of every retired CA is recorded, so a host that misses the rotation still has its
+  FWO-issued identity recognised as such on its next upgrade instead of being taken for a
+  customer certificate, and the installer refuses the switch when it is left in
+  /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates.
+  The reset stops before replacing the old CA key when neither the CA nor its client leaf
+  can provide the retired issuer name, and `internalca_issue_ldap_certificate=false` keeps
+  FWO from issuing or replacing an externally managed OpenLDAP identity, while the trust,
+  address and chain checks FWO clients depend on still apply to it. Client identities
+  exported to a browser or issued to a person from the old CA are copies and are not
+  rotated by the run - re-export or re-issue them, see documentation/certificates.md
+- installer: `internalca_issue_apache_certificate=false` now also keeps the FWO Apache vhosts
+  on the certificate and key the installed vhost already names, instead of pointing them at
+  an identity the installer has just been told not to create
+- UI fix: the start page shows its quick start section again and the English "What's new"
+  panel ends in English - a merge had dropped both getting_started texts and appended the
+  German menu list to the English whats_new_facts entry
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology

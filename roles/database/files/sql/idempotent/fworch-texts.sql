@@ -540,6 +540,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
     <li>Bei eigenen Apache-Zertifikaten kann der Installer nun eine Zwischenzertifikatskette pr&uuml;fen und f&uuml;r alle TLS-Clients bereitstellen.</li>
     <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
+    <li>Der Installer kann mit dem einmaligen Schalter <code>internalca_reset_certificates</code> die interne CA und alle von FWO verwalteten Zertifikate erneuern, ohne kundeneigene Zertifikate zu ver&auml;ndern.</li>
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
@@ -555,12 +556,26 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
     <li>For administrator-managed Apache certificates, the installer can now validate and serve an intermediate certificate chain to every TLS client.</li>
     <li>The public internal CA certificate can now be viewed, copied and downloaded in the settings under Defaults.</li>
+    <li>The installer can renew the internal CA and every FWO-managed identity with the one-shot <code>internalca_reset_certificates</code> switch without changing customer-managed certificates.</li>
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
+</ul>
+');
+INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');
+INSERT INTO txt VALUES ('getting_started',	    'English', 	'Quick start');
+INSERT INTO txt VALUES ('getting_started_facts',	    'German', 	'
+Die folgenden Hauptmen&uuml;punkte stehen (je nach Rollenzugeh&ouml;rigkeit) zur Verf&uuml;gung:<ul>
+    <li><a href="/report/generation">Reporting</a>: Erlaubt das einmalige Generieren verschiedener Reports sowie eine regelm&auml;&szlig;ige Generierung</li>
+    <li><a href="/request/ticketsoverview">Workflow</a>: Ticketsystem zur Beantragung von &Auml;nderungen</li>
+    <li><a href="/certification">Rezertifizierung</a>: Workflow zur Bereinigung des Regelwerks um nicht mehr ben&ouml;tigte Regeln</li>
+    <li><a href="/networkmodelling">Modellierung</a>: Erlaubt die verteilte Modellierung von Kommunikationsverbindungen (Soll-Zustand)</li>
+    <li><a href="/network_analysis">Netzanalyse</a>: Pfadanalyse - welche Firewalls liegen zwischen zwei IP-Adressen?</li>
+    <li><a href="/compliance/matrix">Compliance</a>: Definition von Zonenmatrix und Zugriffs-Compliance</li>
+    <li><a href="/monitoring">Monitoring</a>: Alarmierung, Log-Files, Import-Status, ...</li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
         das Einbinden <a href="/settings/managements">Ihrer eigenen Firewall-Systeme</a>.<br>
@@ -8127,6 +8142,8 @@ INSERT INTO txt VALUES ('H8014', 'German',  '<a href="/help/workflow/actions">Ak
 INSERT INTO txt VALUES ('H8014', 'English', '<a href="/help/workflow/actions">Actions</a>: To support processing of the requests, different kinds of actions can be defined.
     This includes automatic state forwarding or the request of further approvals. Also configuration of calls to external components is in preparation.
 ');
+INSERT INTO txt VALUES ('H8015', 'German',  'Nach Erstellung eines Tickets werden alle Inhalts- und Standard-Workflow-&Auml;nderungen wie Statuswechsel und Genehmigungen zentral mit Workflow-Phase und vorherigen sowie neuen Werten aufgezeichnet. In der Benutzeroberfl&auml;che vorgenommene Inhalts&auml;nderungen durch andere Benutzer als den Antragsteller werden dabei als auditkritisch markiert. Die Aufzeichnung dient der Auswertung durch Auditoren und wird nicht in der Benutzeroberfl&auml;che angezeigt.');
+INSERT INTO txt VALUES ('H8015', 'English', 'After a ticket has been created, all content and standard workflow changes, including state transitions and approvals, are recorded centrally with the workflow phase and previous and new values. Content changes made in the user interface by users other than the requester are marked as audit-critical. The recording is meant for evaluation by auditors and is not displayed in the user interface.');
 INSERT INTO txt VALUES ('H8101', 'German',  'Das Workflow-Modul operiert mit 4 verschiedenen Objekttypen, welche der Statusbehandlung unterliegen.
     Entsprechend der Objekthierarchie sind die Status voneinander abh&auml;ngig.
 ');

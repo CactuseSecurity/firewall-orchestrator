@@ -1,21 +1,33 @@
 mutation addHistoryEntry(
   $appId: Int
+  $module: String! = "modelling"
   $changeType: Int!
   $objectType: Int!
   $objectId: bigint!
   $changeText: String
   $changer: String!
-  $changeSource: String
+  $changeSource: String! = "manual"
+  $ticketId: bigint
+  $workflowPhase: Int
+  $oldData: jsonb
+  $newData: jsonb
+  $auditProofCritical: Boolean! = false
 ) {
-  insert_modelling_change_history(
+  insert_change_history(
     objects: {
       app_id: $appId
+      module: $module
       change_type: $changeType
       object_type: $objectType
       object_id: $objectId
       change_text: $changeText
       changer: $changer
       change_source: $changeSource
+      ticket_id: $ticketId
+      workflow_phase: $workflowPhase
+      old_data: $oldData
+      new_data: $newData
+      audit_proof_critical: $auditProofCritical
     }
   ) {
     returning {

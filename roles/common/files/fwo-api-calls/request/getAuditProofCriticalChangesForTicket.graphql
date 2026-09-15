@@ -1,0 +1,15 @@
+# Audit proof critical changes of a workflow ticket: the change_history rows the workflow module marked as
+# audit-proof critical. FWO.Services.Workflow.WfDbAccess.LogWorkflowChange sets that flag for a
+# content change made in a UI session by a user other than the ticket requester, which is exactly
+# the "performed manually" case this query reports. The flag is therefore the filter, not
+# change_source: workflow rows always carry change_source = 'workflow'.
+query getAuditProofCriticalChangesForTicket($ticketId: bigint!) {
+  change_history(
+    where: { ticket_id: { _eq: $ticketId }, audit_proof_critical: { _eq: true } }
+    order_by: [{ change_time: desc }, { id: desc }]
+  ) {
+    change_time
+    changer
+    change_text
+  }
+}

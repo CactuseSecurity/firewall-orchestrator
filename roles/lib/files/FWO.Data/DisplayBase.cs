@@ -289,27 +289,32 @@ namespace FWO.Data
             return $"[{string.Join(",", quoted)}]";
         }
 
+        /// <summary>
+        /// Renders the members of a group as the cell of a report table.
+        /// The member names are imported values, so each one is encoded before the separators this method
+        /// adds itself are put between them - the break is markup this code means, the name is not.
+        /// </summary>
+        /// <param name="MemberNames">The member names as the importer stored them, separated by '|'.</param>
+        /// <returns>The table cell holding the member names.</returns>
         public static string MemberNamesAsHtml(string MemberNames)
         {
-            if (MemberNames != null && MemberNames.Contains("|"))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
+            return $"<td>{MemberNamesWithoutHtml(MemberNames)}</td>";
         }
+
+        /// <summary>
+        /// Renders the members of a group without the surrounding table cell, for callers that place them
+        /// in markup of their own. The member names are encoded, only the line breaks between them are markup.
+        /// </summary>
+        /// <param name="MemberNames">The member names as the importer stored them, separated by '|'.</param>
+        /// <returns>The member names, one per line.</returns>
         public static string MemberNamesWithoutHtml(string MemberNames)
         {
-            if (MemberNames != null && MemberNames.Contains("|"))
+            if (MemberNames == null)
             {
-                return $"{string.Join("<br>", MemberNames.Split('|'))}";
+                return "";
             }
-            else
-            {
-                return $"{MemberNames}";
-            }
+
+            return string.Join("<br>", MemberNames.Split('|').Select(HtmlOutputEncoder.EncodeText));
         }
 
         public static string MemberNamesAsCSV(string MemberNames)

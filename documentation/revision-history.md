@@ -766,3 +766,15 @@ Not supported any longer are:
   The request module reports a refused element instead of failing the save with a permission error.
   Negative protocol ids stay reserved for the middleware, which continues to attach the canonical any
   service when it turns a protocol-agnostic request into a flow
+- security fix (SEC-10): report and notification html is assembled from stored values - object, service,
+  device, management and owner names and section headers - and several of those were written into the
+  generated document without being encoded for the place they land in. The headless browser that renders
+  an export to pdf loaded subresources, so markup smuggled into such a value made the server itself issue
+  outbound requests. The renderer now runs with scripting off and aborts every request except the document
+  it starts from, its host name resolution is disabled, and exported documents carry a content security
+  policy that denies everything but their own inline styling. The link a report builds around an object
+  encodes each part for its own context and refuses a target that does not stay on the document, the table
+  of contents no longer turns encoded markup from the body back into live markup, and the headings and
+  the object, service and user tables of a rules report encode every imported field they show - name, uid,
+  comment and group members. Report output changes in two visible ways: object anchor names are now quoted,
+  and exported documents carry the extra policy element

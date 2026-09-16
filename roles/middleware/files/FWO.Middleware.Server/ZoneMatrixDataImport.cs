@@ -76,6 +76,9 @@ namespace FWO.Middleware.Server
             public Counters() { }
         }
         Counters counters = new();
+        private sealed record NetworkZoneDeviceIpRangeInsertInput(int? DeviceId, int? IpRangeId, int Order);
+        private readonly List<NetworkZoneDeviceIpRangeInsertInput> RootPathInput = [];
+        private readonly List<NetworkZoneDeviceIpRangeInsertInput> InternetPathInput = [];
 
         /// <summary>
         /// Run a single Network Zone Matrix Data Import with uploaded data
@@ -457,11 +460,28 @@ namespace FWO.Middleware.Server
             int deletedInternet = await apiConnection.SendQueryAsync<ReturnId>
                 (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId }).AffectedRows;
 
+            List<NetworkZoneIpRange> ipRanges = await apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
+                NetworkZoneQueries.getIpRangesForMatrix, new { matrixId = MatrixId });
+
+
             foreach (NetworkZoneData zone in importedMatrix.NetworkZones)
             {
-                foreach (ZoneIpRangeData ipRange in zone.IpData)
+                if (!ZoneIds.TryGetValue(zone.IdString, out int zoneId))
                 {
-                    await ImportIpRangePaths(ipRange, deviceLookup);
+                    Log.WriteWarning(LogMessageTitle,
+                        $"No zone {zone.IdString} in matrix {MatrixId}, skipping its ip range paths.");
+                    continue;
+                }
+                foreach (ZoneIpRangeData subnet in zone.IpData)
+                {
+                    int? ipRangeId = FindIpRangeId(subnet, ipRanges, zoneId);
+                    if (ipRangeId is null)
+                    {
+                        Log.WriteWarning(LogMessageTitle,
+                            $"Could not resolve ip range with start IP {subnet.Ip} in zone {zone.IdString}, skipping its paths.");
+                        continue;
+                    }
+                    ImportIpRangePaths(subnet, ipRangeId, zoneId, deviceLookup);
                 };
             };
 
@@ -470,18 +490,43 @@ namespace FWO.Middleware.Server
             return (deletedRoot, deletedInternet, insertRoot, insertInternet);
         }
 
-        private async Task<(int, int)> ImportIpRangePaths(ZoneIpRangeData ipRange, DeviceNameResolver deviceLookup)
+        private int? FindIpRangeId(ZoneIpRangeData subnet, List<NetworkZoneIpRange> ipRanges, int zoneId)
         {
-            int orderCounterRoot = 0;
-            int orderCounterInternet = 0;
-            foreach (DeviceRefData device in ipRange.PathToRoot)
+            IPAddressRange subnetRange = ConvertIpDataToAddressRange(subnet);
+            foreach (NetworkZoneIpRange ipRange in ipRanges)
+            {
+                if (ipRange.NetworkZoneId != zoneId)
+                {
+                    continue;
+                }
+                IPAddressRange storedRange = new(ParseAddress(ipRange.IpRangeStart), ParseAddress(ipRange.IpRangeEnd));
+                if (storedRange.Equals(subnetRange))
+                {
+                    return ipRange.Id;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Parses a single address from an inet value, which the API returns with a prefix like "10.0.0.1/32".
+        /// </summary>
+        private static IPAddress ParseAddress(string address) => IPAddressRange.Parse(address).Begin;
+
+
+        private void ImportIpRangePaths(ZoneIpRangeData subnet, int? ipRangeId, int zoneId, DeviceNameResolver deviceLookup)
+        {
+            foreach ((int index, DeviceRefData device) in subnet.PathToRoot.Index())
             {
                 int? deviceId = deviceLookup.Resolve(device.MgmtName, device.DeviceName);
-                orderCounterRoot++;
+                if (deviceId is null)
+                {
+                    Log.WriteWarning(LogMessageTitle,
+                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in subnet {subnet.Ip}, skipping its path.");
+                    return;
+                }
+                RootPathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
             }
-            int insertRoot = 0;
-            int insertInternet = 0;
-            return (insertRoot, insertInternet);
         }
 
         private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)

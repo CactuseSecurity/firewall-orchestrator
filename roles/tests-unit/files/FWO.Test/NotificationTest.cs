@@ -490,6 +490,43 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendBundledNotifications_MixedLoggingUsesOnlySendableRecipients()
+        {
+            SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = false };
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest,
+                localConfig,
+                apiConnection,
+                new List<UserGroup>());
+            FwoNotification sendable = notificationService.Notifications[0];
+            sendable.BundleType = BundleType.Attachments;
+            sendable.BundleId = "mixed-bundle";
+            sendable.Logging = NotificationLoggingMode.SendOnly;
+            sendable.RecipientTo = EmailRecipientOption.None;
+            FwoNotification suppressed = notificationService.Notifications[1];
+            suppressed.BundleType = BundleType.Attachments;
+            suppressed.BundleId = "mixed-bundle";
+            suppressed.Logging = NotificationLoggingMode.LogOnly;
+
+            MethodInfo bundledEmailMethod = typeof(NotificationService).GetMethod("SendBundledEmail", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(NotificationService).FullName, "SendBundledEmail");
+            object?[] bundledEmailArguments =
+            [
+                new List<FwoNotification> { sendable, suppressed },
+                "body",
+                new FwoOwner(),
+                null,
+                ""
+            ];
+            Task<NotificationDeliveryResult> bundledEmailTask = (Task<NotificationDeliveryResult>)(bundledEmailMethod.Invoke(
+                notificationService, bundledEmailArguments)
+                ?? throw new InvalidOperationException("SendBundledEmail returned null task."));
+            NotificationDeliveryResult result = await bundledEmailTask;
+
+            Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+        }
+
+        [Test]
         public async Task SendBundledNotifications_ReturnsZeroForEmptyNotificationList()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(

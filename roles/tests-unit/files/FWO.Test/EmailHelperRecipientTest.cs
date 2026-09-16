@@ -3,11 +3,15 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
+using FWO.Middleware.Client;
 using FWO.Services;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
+using RestSharp;
+using System.Net;
 using System.IO;
 using System.Reflection;
 
@@ -249,6 +253,34 @@ namespace FWO.Test
                 {
                     (1, NotificationLogStatus.Suppressed.ToString(), "")
                 }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_LogOnly_UsesTrustedMiddlewareLogEndpoints()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingMiddlewareClient middlewareClient = new();
+            EmailHelper helper = new(new SimulatedApiConnection(), middlewareClient, userConfig, DefaultInit.DoNothing);
+            FwoNotification notification = new()
+            {
+                Id = 42,
+                Logging = NotificationLoggingMode.LogOnly,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "recipient@example.test",
+                EmailSubject = "subject"
+            };
+
+            NotificationDeliveryResult result = await helper.SendEmailToNotificationRecipientsWithResult(
+                notification, null, "rendered subject", "body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(NotificationDeliveryResult.Suppressed));
+                Assert.That(middlewareClient.InsertedEntries, Has.Count.EqualTo(1));
+                Assert.That(middlewareClient.InsertedEntries[0].NotificationId, Is.EqualTo(42));
+                Assert.That(middlewareClient.UpdatedParameters, Has.Count.EqualTo(1));
+                Assert.That(middlewareClient.UpdatedParameters[0].Status, Is.EqualTo(NotificationLogStatus.Suppressed));
             });
         }
 
@@ -1451,6 +1483,39 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException();
+            }
+        }
+
+        private sealed class RecordingMiddlewareClient : MiddlewareClient
+        {
+            public List<NotificationLogInsertEntry> InsertedEntries { get; } = [];
+            public List<NotificationLogUpdateParameters> UpdatedParameters { get; } = [];
+
+            public RecordingMiddlewareClient() : base("http://localhost/")
+            {
+            }
+
+            public override Task<RestResponse<int>> InsertNotificationLog(NotificationLogInsertEntry entry)
+            {
+                InsertedEntries.Add(entry);
+                return Task.FromResult(CreateResponse(7));
+            }
+
+            public override Task<RestResponse<bool>> UpdateNotificationLog(NotificationLogUpdateParameters parameters)
+            {
+                UpdatedParameters.Add(parameters);
+                return Task.FromResult(CreateResponse(true));
+            }
+
+            private static RestResponse<T> CreateResponse<T>(T data)
+            {
+                return new RestResponse<T>(new RestRequest())
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Data = data,
+                    ResponseStatus = ResponseStatus.Completed,
+                    IsSuccessStatusCode = true
+                };
             }
         }
 

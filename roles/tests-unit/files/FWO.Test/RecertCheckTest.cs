@@ -66,6 +66,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CheckRecertifications_DoesNotCountOrMarkLogOnlyNotificationAsSent()
+        {
+            RecertCheckApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    new FwoOwner
+                    {
+                        Id = 1,
+                        Name = "Owner A",
+                        RecertActive = true,
+                        LastRecertCheck = DateTime.Today.AddDays(-8),
+                        NextRecertDate = DateTime.Today.AddDays(-1)
+                    }
+                ],
+                Notifications =
+                [
+                    new FwoNotification
+                    {
+                        Id = 7,
+                        NotificationClient = NotificationClient.Recertification,
+                        Deadline = NotificationDeadline.None,
+                        Logging = NotificationLoggingMode.LogOnly,
+                        RecipientTo = EmailRecipientOption.OtherAddresses,
+                        EmailAddressTo = "owner@example.test",
+                        EmailSubject = "recertification",
+                        EmailBody = "body"
+                    }
+                ]
+            };
+
+            RecertCheck recertCheck = CreateRecertCheck(apiConnection, CreateGlobalConfig());
+
+            int emailsSent = await recertCheck.CheckRecertifications();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(emailsSent, Is.Zero);
+                Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.Zero);
+                Assert.That(apiConnection.UpdatedOwnerIds, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
         public async Task InitEnv_LoadsGlobalParamsAndQueryData()
         {
             RecertCheckApiConnection apiConnection = new()
@@ -459,6 +504,9 @@ namespace FWO.Test
             public bool ThrowOnDevicesQuery { get; set; }
             public List<FwoOwner> Owners { get; set; } = [];
             public List<ManagementSelect> Managements { get; set; } = [];
+            public List<FwoNotification> Notifications { get; set; } = [];
+            public List<int> UpdatedOwnerIds { get; } = [];
+            public int LastUpdatedNotificationIdCount { get; private set; }
 
             protected override Task<QueryResponseType> HandleQueryAsync<QueryResponseType>(
                 string query,
@@ -485,6 +533,16 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)Owners);
                 }
 
+                if (query == NotificationQueries.getNotifications && typeof(QueryResponseType) == typeof(List<FwoNotification>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)Notifications);
+                }
+
+                if (query == AuthQueries.getLdapConnections && typeof(QueryResponseType) == typeof(List<Ldap>))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<Ldap>());
+                }
+
                 if (query == DeviceQueries.getDevicesByManagement && typeof(QueryResponseType) == typeof(List<ManagementSelect>))
                 {
                     if (ThrowOnDevicesQuery)
@@ -496,10 +554,39 @@ namespace FWO.Test
 
                 if (query == OwnerQueries.setOwnerLastCheck)
                 {
+                    if (variables?.GetType().GetProperty("id")?.GetValue(variables) is int ownerId)
+                    {
+                        UpdatedOwnerIds.Add(ownerId);
+                    }
                     return Task.FromResult(default(QueryResponseType)!);
                 }
 
+                if (query == NotificationQueries.updateNotificationsLastSent && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    LastUpdatedNotificationIdCount = CountIds(variables);
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = LastUpdatedNotificationIdCount });
+                }
+
+                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+
                 throw new InvalidOperationException($"Unexpected query in recert check test: {query}");
+            }
+
+            private static int CountIds(object? variables)
+            {
+                object? ids = variables?.GetType().GetProperty("ids")?.GetValue(variables);
+                return ids is System.Collections.ICollection collection ? collection.Count : 0;
             }
         }
     }

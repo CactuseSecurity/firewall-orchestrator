@@ -278,23 +278,13 @@ namespace FWO.Middleware.Client
         }
 
         /// <summary>
-        /// Persists a notification log entry through the middleware server.
+        /// Sends a rendered notification through the trusted middleware server.
         /// </summary>
-        public virtual async Task<RestResponse<int>> InsertNotificationLog(NotificationLogInsertEntry entry)
+        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendNotificationEmail(NotificationEmailSendParameters parameters)
         {
-            RestRequest request = new("Notification/Log", Method.Post);
-            request.AddJsonBody(entry);
-            return await restClient.ExecuteAsync<int>(request);
-        }
-
-        /// <summary>
-        /// Updates a notification log entry through the middleware server.
-        /// </summary>
-        public virtual async Task<RestResponse<bool>> UpdateNotificationLog(NotificationLogUpdateParameters parameters)
-        {
-            RestRequest request = new("Notification/Log", Method.Patch);
+            RestRequest request = new("Notification/Send", Method.Post);
             request.AddJsonBody(parameters);
-            return await restClient.ExecuteAsync<bool>(request);
+            return await restClient.ExecuteAsync<NotificationDeliveryResult>(request);
         }
 
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)

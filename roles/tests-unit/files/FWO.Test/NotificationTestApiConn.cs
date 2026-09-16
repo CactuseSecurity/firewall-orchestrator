@@ -7,6 +7,8 @@ namespace FWO.Test
 {
     internal class NotificationTestApiConn : SimulatedApiConnection
     {
+        public List<(int Id, NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+
         readonly FwoNotification NotifReq1 = new()
         {
             Id = 1,
@@ -93,6 +95,16 @@ namespace FWO.Test
             }
             if (responseType == typeof(ReturnId))
             {
+                if (query == NotificationQueries.updateNotificationLog)
+                {
+                    int id = GetVariable<int>(variables, "id");
+                    NotificationLogStatus status = Enum.Parse<NotificationLogStatus>(GetVariable<string>(variables, "status"));
+                    string error = GetVariable<string>(variables, "error");
+                    NotificationLogUpdates.Add((id, status, error));
+                    GraphQLResponse<dynamic> updateResponse = new() { Data = new ReturnId() { AffectedRows = 1 } };
+                    return updateResponse.Data;
+                }
+
                 int notifCount = 0;
                 var idsProp = variables?.GetType().GetProperty("ids");
                 if (idsProp != null)
@@ -126,6 +138,12 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException();
+        }
+
+        private static T GetVariable<T>(object? variables, string name)
+        {
+            return (T)(variables?.GetType().GetProperty(name)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing notification-log variable '{name}'."));
         }
 
         private static FwoNotification CloneNotification(FwoNotification notification)

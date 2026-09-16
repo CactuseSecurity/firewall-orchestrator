@@ -379,17 +379,16 @@ namespace FWO.Middleware.Server
             }
             List<int> suppressedLogIds = await LogBundledNotifications(suppressedNotifications, preparedMail);
             List<int> sendableLogIds = await LogBundledNotifications(sendableNotifications, mail);
+            await CompleteNotificationLogs(suppressedLogIds, NotificationLogStatus.Suppressed);
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 FwoNotification baseNotification = notifications.First();
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
-                await CompleteNotificationLogs(suppressedLogIds, NotificationLogStatus.Failed, "No recipients resolved.");
                 await CompleteNotificationLogs(sendableLogIds, NotificationLogStatus.Failed, "No recipients resolved.");
                 return NotificationDeliveryResult.NoRecipients;
             }
 
-            await CompleteNotificationLogs(suppressedLogIds, NotificationLogStatus.Suppressed);
             if (sendableNotifications.Count == 0)
             {
                 return NotificationDeliveryResult.Suppressed;

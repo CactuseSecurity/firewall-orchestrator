@@ -492,6 +492,7 @@ namespace FWO.Test
         [Test]
         public async Task SendBundledNotifications_MixedLoggingUsesOnlySendableRecipients()
         {
+            apiConnection.NotificationLogUpdates.Clear();
             SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = false };
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest,
@@ -501,7 +502,7 @@ namespace FWO.Test
             FwoNotification sendable = notificationService.Notifications[0];
             sendable.BundleType = BundleType.Attachments;
             sendable.BundleId = "mixed-bundle";
-            sendable.Logging = NotificationLoggingMode.SendOnly;
+            sendable.Logging = NotificationLoggingMode.SendAndLog;
             sendable.RecipientTo = EmailRecipientOption.None;
             FwoNotification suppressed = notificationService.Notifications[1];
             suppressed.BundleType = BundleType.Attachments;
@@ -524,6 +525,8 @@ namespace FWO.Test
             NotificationDeliveryResult result = await bundledEmailTask;
 
             Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+            Assert.That(apiConnection.NotificationLogUpdates.Select(update => update.Status),
+                Is.EqualTo(new[] { NotificationLogStatus.Suppressed, NotificationLogStatus.Failed }));
         }
 
         [Test]

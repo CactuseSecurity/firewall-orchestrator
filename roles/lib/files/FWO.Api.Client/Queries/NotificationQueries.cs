@@ -5,6 +5,7 @@ namespace FWO.Api.Client.Queries
     public class NotificationQueries : Queries
     {
         public static readonly string getNotifications;
+        public static readonly string getNotificationById;
         public static readonly string addNotification;
         public static readonly string updateNotification;
         public static readonly string updateNotificationsLastSent;
@@ -19,6 +20,7 @@ namespace FWO.Api.Client.Queries
             try
             {
                 getNotifications = File.ReadAllText(QueryPath + "notification/getNotifications.graphql");
+                getNotificationById = File.ReadAllText(QueryPath + "notification/getNotificationById.graphql");
                 addNotification = File.ReadAllText(QueryPath + "notification/addNotification.graphql");
                 updateNotification = File.ReadAllText(QueryPath + "notification/updateNotification.graphql");
                 updateNotificationsLastSent = File.ReadAllText(QueryPath + "notification/updateNotificationsLastSent.graphql");

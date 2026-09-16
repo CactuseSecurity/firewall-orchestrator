@@ -265,6 +265,7 @@ namespace FWO.Test
             FwoNotification notification = new()
             {
                 Id = 42,
+                NotificationClient = NotificationClient.AppDecomm,
                 Logging = NotificationLoggingMode.LogOnly,
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = "recipient@example.test",
@@ -277,10 +278,9 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Is.EqualTo(NotificationDeliveryResult.Suppressed));
-                Assert.That(middlewareClient.InsertedEntries, Has.Count.EqualTo(1));
-                Assert.That(middlewareClient.InsertedEntries[0].NotificationId, Is.EqualTo(42));
-                Assert.That(middlewareClient.UpdatedParameters, Has.Count.EqualTo(1));
-                Assert.That(middlewareClient.UpdatedParameters[0].Status, Is.EqualTo(NotificationLogStatus.Suppressed));
+                Assert.That(middlewareClient.SendRequests, Has.Count.EqualTo(1));
+                Assert.That(middlewareClient.SendRequests[0].NotificationId, Is.EqualTo(42));
+                Assert.That(middlewareClient.SendRequests[0].Subject, Is.EqualTo("rendered subject"));
             });
         }
 
@@ -1488,23 +1488,16 @@ namespace FWO.Test
 
         private sealed class RecordingMiddlewareClient : MiddlewareClient
         {
-            public List<NotificationLogInsertEntry> InsertedEntries { get; } = [];
-            public List<NotificationLogUpdateParameters> UpdatedParameters { get; } = [];
+            public List<NotificationEmailSendParameters> SendRequests { get; } = [];
 
             public RecordingMiddlewareClient() : base("http://localhost/")
             {
             }
 
-            public override Task<RestResponse<int>> InsertNotificationLog(NotificationLogInsertEntry entry)
+            public override Task<RestResponse<NotificationDeliveryResult>> SendNotificationEmail(NotificationEmailSendParameters parameters)
             {
-                InsertedEntries.Add(entry);
-                return Task.FromResult(CreateResponse(7));
-            }
-
-            public override Task<RestResponse<bool>> UpdateNotificationLog(NotificationLogUpdateParameters parameters)
-            {
-                UpdatedParameters.Add(parameters);
-                return Task.FromResult(CreateResponse(true));
+                SendRequests.Add(parameters);
+                return Task.FromResult(CreateResponse(NotificationDeliveryResult.Suppressed));
             }
 
             private static RestResponse<T> CreateResponse<T>(T data)

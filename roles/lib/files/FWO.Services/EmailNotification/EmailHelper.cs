@@ -105,6 +105,13 @@ namespace FWO.Services
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
                 : await GetNotificationRecipients(notification.RecipientBcc, notification.EmailAddressBcc, owner);
+
+            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, tos, ccs, bccs, subject, body);
+            if (middlewareResult.HasValue)
+            {
+                return middlewareResult.Value;
+            }
+
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
@@ -147,6 +154,11 @@ namespace FWO.Services
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
                 placeholderData, renderHtmlLinks: true);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
+            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, tos, ccs, bccs, subject, body, attachment);
+            if (middlewareResult.HasValue)
+            {
+                return ToWorkflowDeliveryResult(middlewareResult.Value);
+            }
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
@@ -180,6 +192,56 @@ namespace FWO.Services
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
         }
 
+        private async Task<NotificationDeliveryResult?> SendThroughMiddleware(FwoNotification notification,
+            List<string> tos, List<string>? ccs, List<string>? bccs, string subject, string body, FormFile? attachment = null)
+        {
+            if (middlewareClient == null || useInMwServer)
+            {
+                return null;
+            }
+
+            NotificationEmailSendParameters parameters = new()
+            {
+                NotificationId = notification.Id,
+                To = tos,
+                Cc = ccs ?? [],
+                Bcc = bccs ?? [],
+                Subject = subject,
+                Body = body,
+                Html = notification.Layout == NotificationLayout.HtmlInBody
+            };
+            if (attachment != null)
+            {
+                using MemoryStream stream = new();
+                await attachment.CopyToAsync(stream);
+                NotificationEmailAttachment attachmentData = new()
+                {
+                    FileName = attachment.FileName,
+                    ContentType = attachment.ContentType,
+                    ContentBase64 = Convert.ToBase64String(stream.ToArray())
+                };
+                parameters.Attachments.Add(attachmentData);
+            }
+
+            RestResponse<NotificationDeliveryResult> response = await middlewareClient.SendNotificationEmail(parameters);
+            if (!response.IsSuccessful)
+            {
+                throw new InvalidOperationException("Middleware notification send failed.");
+            }
+            return response.Data;
+        }
+
+        private static WorkflowEmailDeliveryResult ToWorkflowDeliveryResult(NotificationDeliveryResult result)
+        {
+            return result switch
+            {
+                NotificationDeliveryResult.Delivered => WorkflowEmailDeliveryResult.Delivered,
+                NotificationDeliveryResult.Suppressed => WorkflowEmailDeliveryResult.Suppressed,
+                NotificationDeliveryResult.NoRecipients => WorkflowEmailDeliveryResult.NoRecipients,
+                _ => WorkflowEmailDeliveryResult.Failed
+            };
+        }
+
         private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
             List<string>? bccs, string subject)
         {
@@ -193,16 +255,6 @@ namespace FWO.Services
             List<string>? loggedBccs = bccs == null ? null : [.. bccs];
             ApplyDummyRecipientOverride(ref loggedTos, ref loggedCcs, ref loggedBccs);
             NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, loggedTos, loggedCcs, loggedBccs, subject);
-            if (middlewareClient != null && !useInMwServer)
-            {
-                RestResponse<int> response = await middlewareClient.InsertNotificationLog(entry);
-                if (!response.IsSuccessful)
-                {
-                    throw new InvalidOperationException("Middleware notification log insert failed.");
-                }
-                return response.Data;
-            }
-
             return await NotificationLogHelper.InsertAsync(apiConnection, entry);
         }
 
@@ -210,21 +262,6 @@ namespace FWO.Services
         {
             if (logId == 0)
             {
-                return;
-            }
-
-            if (middlewareClient != null && !useInMwServer)
-            {
-                RestResponse<bool> response = await middlewareClient.UpdateNotificationLog(new NotificationLogUpdateParameters
-                {
-                    Id = logId,
-                    Status = status,
-                    Error = error
-                });
-                if (!response.IsSuccessful)
-                {
-                    throw new InvalidOperationException("Middleware notification log update failed.");
-                }
                 return;
             }
 

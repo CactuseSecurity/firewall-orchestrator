@@ -1,0 +1,8 @@
+query getNotificationById($id: Int!) {
+  notification(where: { id: { _eq: $id } }) {
+    id
+    notification_client
+    deadline
+    active
+  }
+}

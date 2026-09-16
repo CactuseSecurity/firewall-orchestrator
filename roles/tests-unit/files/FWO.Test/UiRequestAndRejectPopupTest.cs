@@ -167,6 +167,26 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_PropagatesQueryFailure()
+        {
+            using BunitContext context = CreateContext(new RequestPopupFailingApiConn(), Roles.Modeller);
+            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
+                context,
+                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
+                new FwoOwner { Id = 12, Name = "Requester" });
+
+            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
+            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
+                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
+
+            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await task)
+                ?? throw new AssertionException("Expected notification query failure to propagate.");
+
+            Assert.That(exception.Message, Is.EqualTo("notification query failed"));
+        }
+
+        [Test]
         public async Task RequestInterfacePopup_SendEmail_SkipsEmailWhenNoImmediateNotificationExists()
         {
             using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
@@ -787,6 +807,19 @@ namespace FWO.Test
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class RequestPopupFailingApiConn : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (typeof(QueryResponseType) == typeof(List<FwoNotification>) && query == NotificationQueries.getNotifications)
+                {
+                    return Task.FromException<QueryResponseType>(new InvalidOperationException("notification query failed"));
+                }
+
+                return Task.FromException<QueryResponseType>(new AssertionException($"Unexpected query: {query}"));
             }
         }
 

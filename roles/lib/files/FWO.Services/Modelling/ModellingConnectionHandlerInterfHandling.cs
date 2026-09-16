@@ -172,17 +172,20 @@ namespace FWO.Services.Modelling
             {
                 string subject = RenderDecommissionPlaceholders(notification.EmailSubject, reason, proposedInterface);
                 string body = RenderDecommissionBody(notification, app, reason, proposedInterface);
-                if (await emailHelper.SendEmailToNotificationRecipients(notification, app, subject, body))
+                NotificationDeliveryResult deliveryResult = await emailHelper.SendEmailToNotificationRecipientsWithResult(notification, app, subject, body);
+                switch (deliveryResult)
                 {
-                    successCount++;
-                    if (notification.Id > 0)
-                    {
-                        sentNotificationIds.Add(notification.Id);
-                    }
-                }
-                else
-                {
-                    failCount++;
+                    case NotificationDeliveryResult.Delivered:
+                        successCount++;
+                        if (notification.Id > 0)
+                        {
+                            sentNotificationIds.Add(notification.Id);
+                        }
+                        break;
+                    case NotificationDeliveryResult.Failed:
+                    case NotificationDeliveryResult.NoRecipients:
+                        failCount++;
+                        break;
                 }
             }
 

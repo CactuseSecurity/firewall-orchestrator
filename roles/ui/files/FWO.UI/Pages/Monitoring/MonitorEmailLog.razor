@@ -21,29 +21,29 @@
             <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
         </div>
         <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="NotificationLogEntry" Items="notificationLogEntries">
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.NotificationId)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="true" Filterable="true">
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.NotificationId)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="false" Filterable="false">
                 <Template>
                     @(userConfig.GetText(context.NotificationType))
                 </Template>
             </Column>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="true" Filterable="true">
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="false" Filterable="false">
                 <Template>
                     @(userConfig.GetText(context.DeadlineType.ToString()))
                 </Template>
             </Column>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="true" Filterable="true">
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="false" Filterable="false">
                 <Template>
                     @(userConfig.GetText(context.Status.ToString()))
                 </Template>
             </Column>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("email_subject"))" Field="@(x => x.Subject)" Sortable="true" Filterable="true"/>
-            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("error"))" Field="@(x => x.Error)" Sortable="true" Filterable="true"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("email_subject"))" Field="@(x => x.Subject)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("error"))" Field="@(x => x.Error)" Sortable="false" Filterable="false"/>
         </Table>
     </div>
 }

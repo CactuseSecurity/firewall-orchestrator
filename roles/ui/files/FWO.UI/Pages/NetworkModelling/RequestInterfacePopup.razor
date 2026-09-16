@@ -220,16 +220,9 @@
 
     private async Task<List<FwoNotification>> LoadImmediateRequestNotifications()
     {
-        List<FwoNotification> notifications;
-        try
-        {
-            notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
-                new { client = NotificationClient.InterfaceRequest.ToString() });
-        }
-        catch
-        {
-            notifications = new List<FwoNotification>();
-        }
+        List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
+            NotificationQueries.getNotifications,
+            new { client = NotificationClient.InterfaceRequest.ToString() });
 
         return notifications.Where(notification => notification.Active
             && notification.Deadline == NotificationDeadline.None

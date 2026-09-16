@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Data;
 using FWO.Data.Middleware;
 using RestSharp;
 
@@ -274,6 +275,26 @@ namespace FWO.Middleware.Client
             RestRequest request = new("Workflow/Actions", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<WorkflowActionResult>(request);
+        }
+
+        /// <summary>
+        /// Persists a notification log entry through the middleware server.
+        /// </summary>
+        public virtual async Task<RestResponse<int>> InsertNotificationLog(NotificationLogInsertEntry entry)
+        {
+            RestRequest request = new("Notification/Log", Method.Post);
+            request.AddJsonBody(entry);
+            return await restClient.ExecuteAsync<int>(request);
+        }
+
+        /// <summary>
+        /// Updates a notification log entry through the middleware server.
+        /// </summary>
+        public virtual async Task<RestResponse<bool>> UpdateNotificationLog(NotificationLogUpdateParameters parameters)
+        {
+            RestRequest request = new("Notification/Log", Method.Patch);
+            request.AddJsonBody(parameters);
+            return await restClient.ExecuteAsync<bool>(request);
         }
 
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)

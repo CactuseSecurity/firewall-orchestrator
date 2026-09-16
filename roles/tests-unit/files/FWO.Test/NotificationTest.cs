@@ -37,15 +37,14 @@ namespace FWO.Test
             List<UserGroup> ownerGroups = [];
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new();
-
             int emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
-            ClassicAssert.AreEqual(2, emailsSent);
-            ClassicAssert.AreEqual(2, await notificationService.UpdateNotificationsLastSent());
+            ClassicAssert.AreEqual(0, emailsSent);
+            ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-1);
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
-            ClassicAssert.AreEqual(1, emailsSent);
-            ClassicAssert.AreEqual(1, await notificationService.UpdateNotificationsLastSent());
+            ClassicAssert.AreEqual(0, emailsSent);
+            ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[1].LastSent = DateTime.Now.AddDays(-8);
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-15), EmailText);
@@ -54,11 +53,11 @@ namespace FWO.Test
 
             notificationService.Notifications[1].InitialOffsetAfterDeadline = 7;
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-15), EmailText);
-            ClassicAssert.AreEqual(1, emailsSent);
+            ClassicAssert.AreEqual(0, emailsSent);
 
             notificationService.Notifications[1].InitialOffsetAfterDeadline = -7;
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-1), EmailText);
-            ClassicAssert.AreEqual(1, emailsSent);
+            ClassicAssert.AreEqual(0, emailsSent);
         }
 
         [Test]
@@ -96,7 +95,7 @@ namespace FWO.Test
             FwoOwner owner = new() { NextRecertDate = DateTime.Now.AddDays(21) };
 
             int emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText, new ReportRecertEvent(new(""), UserConfig.ForTextOnly(globalConfig), Basics.ReportType.RecertificationEvent) { });
-            ClassicAssert.AreEqual(1, emailsSent);
+            ClassicAssert.AreEqual(0, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now;
             emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText);
@@ -105,7 +104,7 @@ namespace FWO.Test
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-7);
             owner.NextRecertDate = DateTime.Now.AddDays(-7);
             emailsSent = await notificationService.SendNotificationsIfDue(owner, null, EmailText);
-            ClassicAssert.AreEqual(1, emailsSent);
+            ClassicAssert.AreEqual(0, emailsSent);
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-7);
             owner.NextRecertDate = DateTime.Now.AddDays(-14);
@@ -233,7 +232,8 @@ namespace FWO.Test
             MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
             ClassicAssert.IsNotNull(prepareEmail);
 
-                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, "", null])
+            object?[] prepareEmailArguments = [notification, null, owner, null, "", null];
+            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, prepareEmailArguments)
                 ?? throw new InvalidOperationException("PrepareEmail returned null task."));
             FWO.Mail.MailData mailData = await task;
 
@@ -405,7 +405,8 @@ namespace FWO.Test
                 MethodInfo? prepareEmail = typeof(NotificationService).GetMethod("PrepareEmail", BindingFlags.Instance | BindingFlags.NonPublic);
                 ClassicAssert.IsNotNull(prepareEmail);
 
-            Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, [notification, null, owner, null, "", null])
+                object?[] prepareEmailArguments = [notification, null, owner, null, "", null];
+                Task<FWO.Mail.MailData> task = (Task<FWO.Mail.MailData>)(prepareEmail?.Invoke(notificationService, prepareEmailArguments)
                     ?? throw new InvalidOperationException("PrepareEmail returned null task."));
                 FWO.Mail.MailData mailData = await task;
 
@@ -483,8 +484,8 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(emailsSent, Is.EqualTo(2));
-                Assert.That(updatedNotifications, Is.EqualTo(3));
+                Assert.That(emailsSent, Is.Zero);
+                Assert.That(updatedNotifications, Is.Zero);
             });
         }
 

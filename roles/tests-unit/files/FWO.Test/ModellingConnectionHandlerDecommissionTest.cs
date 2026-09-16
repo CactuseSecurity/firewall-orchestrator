@@ -132,10 +132,10 @@ namespace FWO.Test
                 return Task.CompletedTask;
             }
 
-            public override Task<bool> SendEmailToNotificationRecipients(FwoNotification notification, FwoOwner? owner, string subject, string body)
+            public override Task<NotificationDeliveryResult> SendEmailToNotificationRecipientsWithResult(FwoNotification notification, FwoOwner? owner, string subject, string body)
             {
                 SentEmails.Add((owner ?? new FwoOwner(), subject, body, notification));
-                return Task.FromResult(true);
+                return Task.FromResult(NotificationDeliveryResult.Delivered);
             }
         }
 

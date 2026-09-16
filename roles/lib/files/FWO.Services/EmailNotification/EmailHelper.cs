@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using FWO.Basics;
 using FWO.Logging;
+using RestSharp;
 
 namespace FWO.Services
 {
@@ -191,13 +192,39 @@ namespace FWO.Services
             List<string>? loggedCcs = ccs == null ? null : [.. ccs];
             List<string>? loggedBccs = bccs == null ? null : [.. bccs];
             ApplyDummyRecipientOverride(ref loggedTos, ref loggedCcs, ref loggedBccs);
-            return await NotificationLogHelper.InsertAsync(apiConnection, notification, loggedTos, loggedCcs, loggedBccs, subject);
+            NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, loggedTos, loggedCcs, loggedBccs, subject);
+            if (middlewareClient != null && !useInMwServer)
+            {
+                RestResponse<int> response = await middlewareClient.InsertNotificationLog(entry);
+                if (!response.IsSuccessful)
+                {
+                    throw new InvalidOperationException("Middleware notification log insert failed.");
+                }
+                return response.Data;
+            }
+
+            return await NotificationLogHelper.InsertAsync(apiConnection, entry);
         }
 
         private async Task CompleteNotificationLog(int logId, NotificationLogStatus status, string error = "")
         {
             if (logId == 0)
             {
+                return;
+            }
+
+            if (middlewareClient != null && !useInMwServer)
+            {
+                RestResponse<bool> response = await middlewareClient.UpdateNotificationLog(new NotificationLogUpdateParameters
+                {
+                    Id = logId,
+                    Status = status,
+                    Error = error
+                });
+                if (!response.IsSuccessful)
+                {
+                    throw new InvalidOperationException("Middleware notification log update failed.");
+                }
                 return;
             }
 

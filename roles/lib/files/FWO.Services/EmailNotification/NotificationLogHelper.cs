@@ -23,7 +23,18 @@ namespace FWO.Services
             IEnumerable<string> tos, IEnumerable<string>? ccs, IEnumerable<string>? bccs, string subject,
             DateTimeOffset? deadline = null)
         {
-            NotificationLogInsertEntry entry = new()
+            NotificationLogInsertEntry entry = CreateEntry(notification, tos, ccs, bccs, subject, deadline);
+            return await InsertAsync(apiConnection, entry);
+        }
+
+        /// <summary>
+        /// Creates a notification log entry from rendered notification data.
+        /// </summary>
+        public static NotificationLogInsertEntry CreateEntry(FwoNotification notification,
+            IEnumerable<string> tos, IEnumerable<string>? ccs, IEnumerable<string>? bccs, string subject,
+            DateTimeOffset? deadline = null)
+        {
+            return new NotificationLogInsertEntry
             {
                 Timestamp = DateTimeOffset.UtcNow,
                 NotificationId = notification.Id,
@@ -35,6 +46,13 @@ namespace FWO.Services
                 DeadlineType = notification.Deadline,
                 Deadline = deadline
             };
+        }
+
+        /// <summary>
+        /// Inserts a prepared notification log entry.
+        /// </summary>
+        public static async Task<int> InsertAsync(ApiConnection apiConnection, NotificationLogInsertEntry entry)
+        {
 
             ReturnIdWrapper result = await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.insertNotificationLog,
                 new { entries = new List<NotificationLogInsertEntry> { entry } });

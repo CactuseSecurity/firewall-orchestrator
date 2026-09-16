@@ -56,8 +56,6 @@ namespace FWO.Test
 
         private static readonly int[] ExpectedSuccessLogSeverities = [1];
         private static readonly int[] ExpectedNoAlertLogSeverities = [0];
-        private static readonly long[] ExpectedUpdatedNotificationIds = [11L];
-
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
         {
@@ -426,7 +424,7 @@ namespace FWO.Test
 
         [Test]
         [NonParallelizable]
-        public async Task CheckUnansweredInterfaceRequests_SendsDueNotificationForOwnedTicket()
+        public async Task CheckUnansweredInterfaceRequests_DoesNotUpdateLastSentForLogOnlyNotification()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = new()
             {
@@ -464,7 +462,7 @@ namespace FWO.Test
                     Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(ExpectedUpdatedNotificationIds));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
                 });
             }
             finally
@@ -759,13 +757,13 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
         }
 
-        private static FwoNotification CreateInterfaceRequestNotification(int id)
+        private static FwoNotification CreateInterfaceRequestNotification(int id, string logging = NotificationLoggingMode.LogOnly)
         {
             return new FwoNotification
             {
                 Id = id,
                 NotificationClient = NotificationClient.InterfaceRequest,
-                Logging = NotificationLoggingMode.LogOnly,
+                Logging = logging,
                 RecipientTo = EmailRecipientOption.OtherAddresses,
                 EmailAddressTo = "notify@example.test",
                 EmailSubject = "subject",

@@ -50,8 +50,8 @@ namespace FWO.Test
 
             int sentEmails = await check.CheckRuleExpiry();
 
-            ClassicAssert.AreEqual(1, sentEmails);
-            ClassicAssert.AreEqual(1, apiConnection.LastUpdatedNotificationIdCount);
+            ClassicAssert.AreEqual(0, sentEmails);
+            ClassicAssert.AreEqual(0, apiConnection.LastUpdatedNotificationIdCount);
         }
 
         [Test]
@@ -153,8 +153,8 @@ namespace FWO.Test
 
             int sentEmails = await check.CheckRuleExpiry();
 
-            ClassicAssert.AreEqual(3, sentEmails, "Expected one global mail per owner plus one owner-scoped mail for owner 2.");
-            ClassicAssert.AreEqual(2, apiConnection.LastUpdatedNotificationIdCount, "Only unique notification ids should be marked as sent.");
+            ClassicAssert.AreEqual(0, sentEmails, "The configured rule-expiry notifications are log-only.");
+            ClassicAssert.AreEqual(0, apiConnection.LastUpdatedNotificationIdCount, "Log-only notifications must not be marked as sent.");
         }
 
         [Test]

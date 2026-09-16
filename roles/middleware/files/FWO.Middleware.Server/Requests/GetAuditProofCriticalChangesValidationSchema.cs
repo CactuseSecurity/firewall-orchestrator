@@ -40,7 +40,7 @@ public static class GetAuditProofCriticalChangesValidationSchema
 
     private static readonly List<RequestKeyDefinition> kFilterKeys =
     [
-        new RequestKeyDefinition("changeTime", "Optional exact change timestamp filter. Null applies no restriction."),
+        new RequestKeyDefinition("changeTime", "Optional exact change timestamp filter, matched on the wall clock of the installation; an offset or trailing Z is converted to it first. Null applies no restriction."),
         new RequestKeyDefinition("changeUserName", "Optional exact, case-insensitive change user name filter. Null applies no restriction."),
         new RequestKeyDefinition("changeContent", "Optional exact, case-insensitive change content filter. Null applies no restriction.")
     ];

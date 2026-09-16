@@ -599,8 +599,11 @@ public sealed class GetAuditProofCriticalChangesResponseExample : ApiExampleProv
         [
             new AuditProofCriticalChangeResponse
             {
-                ChangeTime = new DateTime(2026, 9, 11, 8, 11, 0, DateTimeKind.Utc),
+                // Unspecified on purpose: the stored column is timezone-naive, so the endpoint emits
+                // no offset and the documented example has to render the same way.
+                ChangeTime = new DateTime(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified),
                 ChangeUserName = "abc",
+                ChangeUserId = 42,
                 ChangeContent = "Updated workflow ticket"
             }
         ]

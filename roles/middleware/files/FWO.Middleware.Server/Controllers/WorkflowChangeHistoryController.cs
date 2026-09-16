@@ -15,6 +15,7 @@ namespace FWO.Middleware.Server.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/workflow")]
+[AggregatedValidationErrors]
 public class WorkflowChangeHistoryController : ControllerBase
 {
     private readonly WorkflowChangeHistoryService changeHistoryService;

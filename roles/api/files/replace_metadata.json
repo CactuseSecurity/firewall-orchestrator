@@ -3313,9 +3313,11 @@
                     "columns": [
                       "id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "change_time",
                       "ticket_id",
+                      "module",
                       "audit_proof_critical"
                     ],
                     "filter": {}

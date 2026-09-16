@@ -85,6 +85,12 @@ public sealed class AuditProofCriticalChangeFilter : IRequestWithAdditionalData
     /// <summary>
     /// Gets or sets the optional exact change timestamp filter.
     /// </summary>
+    /// <remarks>
+    /// Matched against the timezone-naive stored timestamp on the wall clock of the installation.
+    /// A value carrying an offset, including a trailing Z, is converted to that clock first, so the
+    /// same instant selects the same change whichever way it is spelled. A value without an offset
+    /// is taken as that clock directly.
+    /// </remarks>
     [JsonPropertyName("changeTime")]
     public DateTime? ChangeTime { get; set; }
 

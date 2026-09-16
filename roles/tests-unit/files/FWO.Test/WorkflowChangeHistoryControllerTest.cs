@@ -23,8 +23,10 @@ namespace FWO.Test;
 internal class WorkflowChangeHistoryControllerTest
 {
     private static readonly List<string> kControllerRoutes = new() { "api/workflow" };
-    private static readonly DateTime kFirstChangeTime = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Utc);
-    private static readonly DateTime kSecondChangeTime = new(2026, 9, 12, 9, 22, 0, DateTimeKind.Utc);
+    // Unspecified on purpose: change_history.change_time is a timezone-naive column, so this is the
+    // kind Newtonsoft produces for a stored row. Building fixtures as Utc hid the mismatch of F3.
+    private static readonly DateTime kFirstChangeTime = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified);
+    private static readonly DateTime kSecondChangeTime = new(2026, 9, 12, 9, 22, 0, DateTimeKind.Unspecified);
 
     [Test]
     public void GetAuditProofCriticalChangesUsesWorkflowRouteAndAuditRoles()
@@ -49,8 +51,14 @@ internal class WorkflowChangeHistoryControllerTest
             Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Contain("$ticketId: bigint!"));
             Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Contain("ticket_id: { _eq: $ticketId }"));
             Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Contain("audit_proof_critical: { _eq: true }"));
+            // F2: without the module guard a row inserted under module = 'modelling' would be reported
+            // here as a workflow change, and every workflow role may insert one.
+            Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Contain("module: { _eq: \"workflow\" }"));
+            // F1: changer alone is caller-supplied free text, changer_id is the trustworthy identity.
+            Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Contain("changer_id"));
+            // F7: change_time is nullable and Postgres sorts nulls first on a descending order.
             Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket,
-                Does.Contain("order_by: [{ change_time: desc }, { id: desc }]"));
+                Does.Contain("order_by: [{ change_time: desc_nulls_last }, { id: desc }]"));
             Assert.That(RequestQueries.getAuditProofCriticalChangesForTicket, Does.Not.Contain("change_source"));
         });
     }
@@ -81,7 +89,7 @@ internal class WorkflowChangeHistoryControllerTest
         Assert.Multiple(() =>
         {
             Assert.That(request.TicketId, Is.EqualTo(1234));
-            Assert.That(request.Options.Filter!.ChangeTime, Is.EqualTo(kFirstChangeTime));
+            Assert.That(request.Options.Filter!.ChangeTime, Is.EqualTo(new DateTime(2026, 9, 11, 8, 11, 0, DateTimeKind.Utc)));
             Assert.That(request.Options.Filter.ChangeUserName, Is.EqualTo("abc"));
             Assert.That(request.Options.Filter.ChangeContent, Is.Null);
         });
@@ -289,12 +297,12 @@ internal class WorkflowChangeHistoryControllerTest
 
         List<string> columns = MiddlewareServerChangeHistoryColumns(metadataFile);
 
-        // The query selects change_time, changer and change_text and filters and orders on
-        // ticket_id, audit_proof_critical and id. Hasura resolves all of them through the select
-        // permission of the role the middleware runs as.
+        // The query selects change_time, changer, changer_id and change_text and filters and orders
+        // on ticket_id, module, audit_proof_critical and id. Hasura resolves all of them through the
+        // select permission of the role the middleware runs as.
         Assert.That(columns, Is.SupersetOf(new List<string>
         {
-            "id", "changer", "change_text", "change_time", "ticket_id", "audit_proof_critical"
+            "id", "changer", "changer_id", "change_text", "change_time", "ticket_id", "module", "audit_proof_critical"
         }));
     }
 
@@ -342,6 +350,133 @@ internal class WorkflowChangeHistoryControllerTest
         return null;
     }
 
+    [Test]
+    public async Task EveryChangeCarriesTheTrustworthyUserIdNextToTheFreeTextName()
+    {
+        // F1: changer is free text any workflow role may choose, changer_id is preset by the API from
+        // the authenticated session. An audit reader needs the latter to attribute a change.
+        GetAuditProofCriticalChangesResponse response = await AllChanges();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Changes[0].ChangeUserId, Is.EqualTo(8));
+            Assert.That(response.Changes[1].ChangeUserId, Is.EqualTo(42));
+            Assert.That(response.Changes[1].ChangeUserName, Is.EqualTo("abc"));
+        });
+    }
+
+    [Test]
+    public async Task AChangeWrittenByAutomationReportsNoUserId()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = new()
+        {
+            Entries =
+            [
+                new ModellingHistoryEntry
+                {
+                    ChangeTime = kFirstChangeTime,
+                    Changer = "middleware-server",
+                    ChangerId = null,
+                    ChangeText = "Updated workflow ticket"
+                }
+            ]
+        };
+
+        GetAuditProofCriticalChangesResponse response =
+            await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null);
+
+        Assert.That(response.Changes[0].ChangeUserId, Is.Null);
+    }
+
+    [Test]
+    public async Task TheSameInstantSelectsTheSameChangeHoweverItIsSpelled()
+    {
+        // F3: the stored column is timezone-naive. A trailing Z keeps UTC ticks while an explicit
+        // offset is converted to local time while binding, so both have to be reduced to the wall
+        // clock of the installation before they are compared.
+        DateTime utcInstant = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Utc);
+        DateTime storedWallClock = DateTime.SpecifyKind(utcInstant.ToLocalTime(), DateTimeKind.Unspecified);
+
+        AuditProofCriticalChangesApiConnection apiConnection = new()
+        {
+            Entries =
+            [
+                new ModellingHistoryEntry { ChangeTime = storedWallClock, Changer = "abc", ChangerId = 42, ChangeText = "Updated workflow ticket" }
+            ]
+        };
+        WorkflowChangeHistoryService service = new(apiConnection);
+
+        GetAuditProofCriticalChangesResponse fromUtcForm = await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant });
+        GetAuditProofCriticalChangesResponse fromOffsetForm = await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = DateTime.SpecifyKind(storedWallClock, DateTimeKind.Local) });
+        GetAuditProofCriticalChangesResponse fromNaiveForm = await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = storedWallClock });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fromUtcForm.Changes, Has.Count.EqualTo(1), "trailing Z form");
+            Assert.That(fromOffsetForm.Changes, Has.Count.EqualTo(1), "explicit offset form");
+            Assert.That(fromNaiveForm.Changes, Has.Count.EqualTo(1), "form without offset");
+        });
+    }
+
+    [Test]
+    public async Task ADifferentInstantStillSelectsNothing()
+    {
+        DateTime utcInstant = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Utc);
+        DateTime storedWallClock = DateTime.SpecifyKind(utcInstant.ToLocalTime(), DateTimeKind.Unspecified);
+
+        AuditProofCriticalChangesApiConnection apiConnection = new()
+        {
+            Entries =
+            [
+                new ModellingHistoryEntry { ChangeTime = storedWallClock, Changer = "abc", ChangerId = 42, ChangeText = "Updated workflow ticket" }
+            ]
+        };
+
+        GetAuditProofCriticalChangesResponse response = await new WorkflowChangeHistoryService(apiConnection)
+            .GetAuditProofCriticalChangesAsync(1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant.AddHours(1) });
+
+        Assert.That(response.Changes, Is.Empty);
+    }
+
+    [Test]
+    public async Task NullColumnsAreReportedAsEmptyStringsNotNull()
+    {
+        // F8: changer and change_text are nullable columns, the response properties are not.
+        AuditProofCriticalChangesApiConnection apiConnection = new()
+        {
+            Entries =
+            [
+                new ModellingHistoryEntry { ChangeTime = kFirstChangeTime, Changer = null!, ChangerId = null, ChangeText = null! }
+            ]
+        };
+
+        GetAuditProofCriticalChangesResponse response =
+            await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Changes[0].ChangeUserName, Is.Empty);
+            Assert.That(response.Changes[0].ChangeContent, Is.Empty);
+        });
+    }
+
+    [Test]
+    public async Task StoredTimestampsAreReportedWithoutAKind()
+    {
+        // F6: the endpoint must not advertise an offset it does not have.
+        GetAuditProofCriticalChangesResponse response = await AllChanges();
+
+        Assert.That(response.Changes[0].ChangeTime!.Value.Kind, Is.EqualTo(DateTimeKind.Unspecified));
+    }
+
+    private static async Task<GetAuditProofCriticalChangesResponse> AllChanges()
+    {
+        return await new WorkflowChangeHistoryService(CreateApiConnection()).GetAuditProofCriticalChangesAsync(1234, null);
+    }
+
     private static async Task<GetAuditProofCriticalChangesResponse> FilteredChanges(AuditProofCriticalChangeFilter filter)
     {
         WorkflowChangeHistoryService service = new(CreateApiConnection());
@@ -378,12 +513,14 @@ internal class WorkflowChangeHistoryControllerTest
                 {
                     ChangeTime = kSecondChangeTime,
                     Changer = "DEF",
+                    ChangerId = 8,
                     ChangeText = "Updated workflow request task"
                 },
                 new ModellingHistoryEntry
                 {
                     ChangeTime = kFirstChangeTime,
                     Changer = "abc",
+                    ChangerId = 42,
                     ChangeText = "Updated workflow ticket"
                 }
             ]

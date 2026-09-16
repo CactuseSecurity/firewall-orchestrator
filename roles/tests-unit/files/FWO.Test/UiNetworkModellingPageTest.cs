@@ -77,7 +77,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Render_AuditorSeesReadOnlyModellingActions()
+        public async Task Render_AuditorCanModelButCannotSaveOrRequestChanges()
         {
             await using BunitContext context = CreateContext([Roles.Auditor], out NetworkModellingPageTestApiConn apiConn, out _);
 
@@ -87,9 +87,20 @@ namespace FWO.Test
             {
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement addConnectionButton = FindButton(page, "add_connection");
+                IElement editButton = FindButton(page, "edit");
                 IElement requestButton = FindButton(page, "Request firewall changes");
-                Assert.That(addConnectionButton.HasAttribute("disabled"), Is.True);
+                Assert.That(addConnectionButton.HasAttribute("disabled"), Is.False);
+                Assert.That(editButton.HasAttribute("disabled"), Is.False);
                 Assert.That(requestButton.HasAttribute("disabled"), Is.True);
+                Assert.That(apiConn.UnexpectedQueries, Is.Empty);
+            });
+
+            FindButton(page, "add_connection").Click();
+
+            page.WaitForAssertion(() =>
+            {
+                IElement saveButton = FindButton(page, "save");
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -272,6 +283,7 @@ namespace FWO.Test
                 ModRecertActive = true,
                 ModIntegrationMode = ModIntegrationMode.FullyIntegrated,
                 ModNamingConvention = "{}",
+                ModExtraConfigs = "[]",
                 ModModelledMarker = "FWO:",
                 VarianceAnalysisSync = false,
                 VarianceAnalysisRefresh = false,
@@ -316,6 +328,8 @@ namespace FWO.Test
                 ["add_connection"] = "Add connection",
                 ["add_interface"] = "Add interface",
                 ["add_common_service"] = "Add common service",
+                ["edit"] = "Edit",
+                ["save"] = "Save",
                 ["comm_profile"] = "Communication profile",
                 ["share_link"] = "Share link",
                 ["edit_app_server"] = "Edit app server",
@@ -399,6 +413,14 @@ namespace FWO.Test
                         new() { Id = 6, Name = "tcp" },
                         new() { Id = 17, Name = "udp" }
                     });
+                }
+                if (query == StmQueries.getRuleActions)
+                {
+                    return Result<QueryResponseType>(new List<RuleAction>());
+                }
+                if (query == StmQueries.getTracking)
+                {
+                    return Result<QueryResponseType>(new List<Tracking>());
                 }
                 if (query == DeviceQueries.getDeviceDetails)
                 {

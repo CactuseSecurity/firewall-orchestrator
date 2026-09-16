@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -47,6 +48,11 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             if (notification is null)
             {
                 return BadRequest("Notification is not active or does not match the supplied notification context.");
+            }
+
+            if (!IsAuthorizedScope(notification, parameters.OwnerId))
+            {
+                return Forbid();
             }
 
             MailData mail = CreateMail(parameters);
@@ -93,12 +99,49 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         return notification is { Active: true } ? notification : null;
     }
 
+    private bool IsAuthorizedScope(FwoNotification notification, int? ownerId)
+    {
+        ClaimsPrincipal? caller = ControllerContext?.HttpContext?.User;
+        if (caller?.Identity?.IsAuthenticated != true)
+        {
+            return false;
+        }
+
+        if (caller.IsInRole(Roles.Admin) || caller.IsInRole(Roles.FwAdmin))
+        {
+            return true;
+        }
+
+        if (notification.NotificationClient == NotificationClient.WfAction)
+        {
+            return caller.IsInRole(Roles.WorkflowRolesList);
+        }
+
+        if (!caller.IsInRole(Roles.Modeller)
+            || !IsImmediateModellingNotification(notification.NotificationClient)
+            || ownerId is not > 0)
+        {
+            return false;
+        }
+
+        List<int> editableOwnerIds = JwtClaimParser.ExtractIntClaimValues(caller.Claims, "x-hasura-editable-owners");
+        return editableOwnerIds.Contains(ownerId.Value)
+            && (notification.OwnerId is null || notification.OwnerId == ownerId);
+    }
+
+    private static bool IsImmediateModellingNotification(NotificationClient client)
+    {
+        return client is NotificationClient.InterfaceRequest
+            or NotificationClient.AppDecomm
+            or NotificationClient.InterfaceDecomm;
+    }
+
     private static bool IsValidRequest(NotificationEmailSendParameters parameters)
     {
         return parameters is not null
             && parameters.NotificationId > 0
             && IsSafeText(parameters.Subject)
-            && IsSafeText(parameters.Body)
+            && IsSafeBody(parameters.Body)
             && parameters.Attachments is not null
             && parameters.To.All(IsSafeText)
             && parameters.Cc.All(IsSafeText)
@@ -109,6 +152,12 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     private static bool IsSafeText(string? value)
     {
         return value is not null && value.All(character => !char.IsControl(character));
+    }
+
+    private static bool IsSafeBody(string? value)
+    {
+        return value is not null
+            && value.All(character => !char.IsControl(character) || character is '\r' or '\n');
     }
 
     private static bool IsValidAttachment(NotificationEmailAttachment? attachment)

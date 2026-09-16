@@ -106,7 +106,15 @@ namespace FWO.Services
                 ? null
                 : await GetNotificationRecipients(notification.RecipientBcc, notification.EmailAddressBcc, owner);
 
-            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, tos, ccs, bccs, subject, body);
+            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, new MiddlewareEmailData
+            {
+                OwnerId = owner?.Id,
+                Tos = tos,
+                Ccs = ccs,
+                Bccs = bccs,
+                Subject = subject,
+                Body = body
+            });
             if (middlewareResult.HasValue)
             {
                 return middlewareResult.Value;
@@ -154,7 +162,16 @@ namespace FWO.Services
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
                 placeholderData, renderHtmlLinks: true);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
-            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, tos, ccs, bccs, subject, body, attachment);
+            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, new MiddlewareEmailData
+            {
+                OwnerId = owner?.Id,
+                Tos = tos,
+                Ccs = ccs,
+                Bccs = bccs,
+                Subject = subject,
+                Body = body,
+                Attachment = attachment
+            });
             if (middlewareResult.HasValue)
             {
                 return ToWorkflowDeliveryResult(middlewareResult.Value);
@@ -192,8 +209,7 @@ namespace FWO.Services
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
         }
 
-        private async Task<NotificationDeliveryResult?> SendThroughMiddleware(FwoNotification notification,
-            List<string> tos, List<string>? ccs, List<string>? bccs, string subject, string body, FormFile? attachment = null)
+        private async Task<NotificationDeliveryResult?> SendThroughMiddleware(FwoNotification notification, MiddlewareEmailData email)
         {
             if (middlewareClient == null || useInMwServer)
             {
@@ -203,21 +219,22 @@ namespace FWO.Services
             NotificationEmailSendParameters parameters = new()
             {
                 NotificationId = notification.Id,
-                To = tos,
-                Cc = ccs ?? [],
-                Bcc = bccs ?? [],
-                Subject = subject,
-                Body = body,
+                OwnerId = email.OwnerId,
+                To = email.Tos,
+                Cc = email.Ccs ?? [],
+                Bcc = email.Bccs ?? [],
+                Subject = email.Subject,
+                Body = email.Body,
                 Html = notification.Layout == NotificationLayout.HtmlInBody
             };
-            if (attachment != null)
+            if (email.Attachment != null)
             {
                 using MemoryStream stream = new();
-                await attachment.CopyToAsync(stream);
+                await email.Attachment.CopyToAsync(stream);
                 NotificationEmailAttachment attachmentData = new()
                 {
-                    FileName = attachment.FileName,
-                    ContentType = attachment.ContentType,
+                    FileName = email.Attachment.FileName,
+                    ContentType = email.Attachment.ContentType,
                     ContentBase64 = Convert.ToBase64String(stream.ToArray())
                 };
                 parameters.Attachments.Add(attachmentData);
@@ -229,6 +246,17 @@ namespace FWO.Services
                 throw new InvalidOperationException("Middleware notification send failed.");
             }
             return response.Data;
+        }
+
+        private sealed class MiddlewareEmailData
+        {
+            public int? OwnerId { get; init; }
+            public required List<string> Tos { get; init; }
+            public List<string>? Ccs { get; init; }
+            public List<string>? Bccs { get; init; }
+            public required string Subject { get; init; }
+            public required string Body { get; init; }
+            public FormFile? Attachment { get; init; }
         }
 
         private static WorkflowEmailDeliveryResult ToWorkflowDeliveryResult(NotificationDeliveryResult result)

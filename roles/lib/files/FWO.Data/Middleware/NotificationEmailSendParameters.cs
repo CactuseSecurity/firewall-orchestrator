@@ -6,6 +6,7 @@ namespace FWO.Data.Middleware
     public class NotificationEmailSendParameters
     {
         public int NotificationId { get; set; }
+        public int? OwnerId { get; set; }
         public List<string> To { get; set; } = [];
         public List<string> Cc { get; set; } = [];
         public List<string> Bcc { get; set; } = [];

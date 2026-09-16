@@ -524,9 +524,14 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("SendBundledEmail returned null task."));
             NotificationDeliveryResult result = await bundledEmailTask;
 
+            List<NotificationLogStatus> expectedStatuses =
+            [
+                NotificationLogStatus.Suppressed,
+                NotificationLogStatus.Failed
+            ];
             Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
             Assert.That(apiConnection.NotificationLogUpdates.Select(update => update.Status),
-                Is.EqualTo(new[] { NotificationLogStatus.Suppressed, NotificationLogStatus.Failed }));
+                Is.EqualTo(expectedStatuses));
         }
 
         [Test]

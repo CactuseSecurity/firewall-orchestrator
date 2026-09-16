@@ -10,8 +10,10 @@ using FWO.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace FWO.Test;
 
@@ -22,7 +24,7 @@ internal class NotificationControllerTest
     public async Task Send_RejectsUnknownNotification()
     {
         NotificationControllerApiConnection apiConnection = new() { NotificationExists = false };
-        NotificationController controller = new(apiConnection, new GlobalConfig());
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
         NotificationEmailSendParameters parameters = CreateValidParameters();
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
@@ -31,21 +33,26 @@ internal class NotificationControllerTest
     }
 
     [Test]
-    public async Task Send_RejectsControlCharactersInRenderedContent()
+    public async Task Send_AllowsMultilineRenderedBody()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig());
+        RecordingNotificationEmailSender emailSender = new() { SendResult = true };
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(), emailSender);
         NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.Body = "body\nforged-log-entry";
+        parameters.Body = "first line\r\nsecond line";
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
 
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>(), result.Result is ObjectResult objectResult
+            ? $"Unexpected HTTP status {objectResult.StatusCode}: {objectResult.Value}"
+            : "The controller returned no result.");
+        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Delivered));
+        Assert.That(emailSender.Mail?.Body, Is.EqualTo(parameters.Body));
     }
 
     [Test]
     public async Task Send_RejectsInvalidRequestId()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig());
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.NotificationId = 0;
 
@@ -57,7 +64,7 @@ internal class NotificationControllerTest
     [Test]
     public async Task Send_RejectsUnknownNotificationId()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection { NotificationExists = false }, new GlobalConfig());
+        NotificationController controller = CreateController(new NotificationControllerApiConnection { NotificationExists = false }, new GlobalConfig());
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.NotificationId = 99;
 
@@ -70,7 +77,7 @@ internal class NotificationControllerTest
     public async Task Send_RejectsInactiveNotification()
     {
         NotificationControllerApiConnection apiConnection = new() { Active = false };
-        NotificationController controller = new(apiConnection, new GlobalConfig());
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
 
@@ -78,13 +85,41 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task Send_RejectsModellerOutsideEditableOwnerScope()
+    {
+        List<Claim> claims =
+        [
+            new Claim(ClaimTypes.Role, Roles.Modeller),
+            new Claim("x-hasura-editable-owners", "{ 7 }")
+        ];
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(),
+            new RecordingNotificationEmailSender { SendResult = true });
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"))
+            }
+        };
+        NotificationEmailSendParameters parameters = CreateValidParameters();
+        parameters.OwnerId = 4;
+
+        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
+
+        Assert.That(result.Result, Is.TypeOf<ForbidResult>());
+    }
+
+    [Test]
     public async Task Send_LogOnly_CompletesLogWithoutSmtpDelivery()
     {
         NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.LogOnly };
-        NotificationController controller = new(apiConnection, new GlobalConfig());
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
 
+        Assert.That(result.Result, Is.TypeOf<OkObjectResult>(), result.Result is ObjectResult objectResult
+            ? $"Unexpected HTTP status {objectResult.StatusCode}: {objectResult.Value}"
+            : "The controller returned no result.");
         Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Suppressed));
         Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
         Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
@@ -95,7 +130,7 @@ internal class NotificationControllerTest
     {
         NotificationControllerApiConnection apiConnection = new() { InsertedId = 9 };
         RecordingNotificationEmailSender emailSender = new() { SendResult = true };
-        NotificationController controller = new(apiConnection, new GlobalConfig(), emailSender);
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), emailSender);
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.Attachments =
         [
@@ -118,7 +153,7 @@ internal class NotificationControllerTest
     public async Task Send_SendOnly_DeliversWithoutAttachments()
     {
         RecordingNotificationEmailSender emailSender = new() { SendResult = true };
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig(), emailSender);
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(), emailSender);
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
 
@@ -130,7 +165,7 @@ internal class NotificationControllerTest
     public async Task Send_SendAndLog_ReturnsFailedWhenMailerFails()
     {
         NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.SendAndLog };
-        NotificationController controller = new(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
 
@@ -148,7 +183,7 @@ internal class NotificationControllerTest
             NotificationClient = NotificationClient.AppDecomm,
             Deadline = NotificationDeadline.DecommissionDate
         };
-        NotificationController controller = new(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender { SendResult = true });
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender { SendResult = true });
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
 
@@ -162,7 +197,7 @@ internal class NotificationControllerTest
     public async Task Send_ReturnsNoRecipientsAndCompletesFailedLog()
     {
         NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.SendAndLog };
-        NotificationController controller = new(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.To = [];
         parameters.Cc = [];
@@ -177,7 +212,7 @@ internal class NotificationControllerTest
     [Test]
     public async Task Send_RejectsMalformedAttachment()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig());
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.Attachments = [new NotificationEmailAttachment { ContentBase64 = "not-base64" }];
 
@@ -189,7 +224,7 @@ internal class NotificationControllerTest
     [Test]
     public async Task Send_RejectsAttachmentWithUnsafeFileName()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig());
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
         NotificationEmailSendParameters parameters = CreateValidParameters();
         parameters.Attachments =
         [
@@ -209,7 +244,7 @@ internal class NotificationControllerTest
     [Test]
     public async Task Send_ReturnsInternalServerErrorWhenMailerThrows()
     {
-        NotificationController controller = new(new NotificationControllerApiConnection(), new GlobalConfig(),
+        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(),
             new ThrowingNotificationEmailSender());
 
         ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
@@ -225,6 +260,23 @@ internal class NotificationControllerTest
         AuthorizeAttribute? authorize = method.GetCustomAttribute<AuthorizeAttribute>();
 
         Assert.That(authorize?.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.WorkflowRolesList}"));
+    }
+
+    private static NotificationController CreateController(ApiConnection apiConnection, GlobalConfig globalConfig,
+        INotificationEmailSender? emailSender = null)
+    {
+        List<Claim> claims = [new Claim(ClaimTypes.Role, Roles.Admin)];
+        NotificationController controller = new(apiConnection, globalConfig, emailSender)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"))
+                }
+            }
+        };
+        return controller;
     }
 
     private static NotificationEmailSendParameters CreateValidParameters()
@@ -275,17 +327,15 @@ internal class NotificationControllerTest
                     return Task.FromResult((QueryResponseType)(object)new List<FwoNotification>());
                 }
 
-                List<FwoNotification> notifications =
-                [
-                    new FwoNotification
-                    {
-                        Id = 4,
-                        NotificationClient = this.NotificationClient,
-                        Deadline = this.Deadline,
-                        Active = this.Active,
-                        Logging = this.Logging
-                    }
-                ];
+                string response = JsonConvert.SerializeObject(new
+                {
+                    id = 4,
+                    notification_client = this.NotificationClient.ToString(),
+                    deadline = this.Deadline.ToString(),
+                    logging = this.Logging,
+                    active = this.Active
+                });
+                List<FwoNotification> notifications = JsonConvert.DeserializeObject<List<FwoNotification>>($"[{response}]")!;
                 return Task.FromResult((QueryResponseType)(object)notifications);
             }
 

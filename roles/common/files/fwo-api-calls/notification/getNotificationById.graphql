@@ -3,6 +3,7 @@ query getNotificationById($id: Int!) {
     id
     notification_client
     deadline
+    logging
     active
   }
 }

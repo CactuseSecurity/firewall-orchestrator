@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Middleware.Server;
 using NUnit.Framework;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

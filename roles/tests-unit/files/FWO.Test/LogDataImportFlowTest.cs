@@ -6,6 +6,7 @@ using FWO.Config.File;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

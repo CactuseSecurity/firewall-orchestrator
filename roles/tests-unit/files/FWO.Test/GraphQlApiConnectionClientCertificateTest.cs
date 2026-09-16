@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Assert = NUnit.Framework.Assert;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

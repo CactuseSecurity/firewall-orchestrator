@@ -13,7 +13,7 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Class handling the scheduler base processing
     /// </summary>
-    public abstract class SchedulerBase
+    public abstract class SchedulerBase : IDisposable
     {
         /// <summary>
         /// API connection
@@ -38,6 +38,8 @@ namespace FWO.Middleware.Server
         private readonly string SchedulerText;
         private readonly SchedulerInterval SchedulerInterval;
         private int SleepTime;
+        private readonly object TimerGate = new();
+        private bool Disposed;
 
 
         /// <summary>
@@ -72,6 +74,14 @@ namespace FWO.Middleware.Server
             {
                 try
                 {
+                    lock (TimerGate)
+                    {
+                        if (Disposed)
+                        {
+                            return;
+                        }
+                    }
+
                     // Dispose old timer if existant
                     ScheduleTimer.Stop();
                     ScheduleTimer.Elapsed -= Process;
@@ -96,16 +106,26 @@ namespace FWO.Middleware.Server
         {
             try
             {
-                // Dispose old timer if existant
-                RecurringTimer.Stop();
-                RecurringTimer.Elapsed -= Process;
-                RecurringTimer.Dispose();
+                lock (TimerGate)
+                {
+                    // the schedule timer may elapse while the scheduler is being disposed,
+                    // which would otherwise revive a recurring timer nobody can stop any more
+                    if (Disposed)
+                    {
+                        return;
+                    }
 
-                RecurringTimer = new();
-                RecurringTimer.Elapsed += Process;
-                RecurringTimer.Interval = SleepTimeToMilliseconds();
-                RecurringTimer.AutoReset = true;
-                RecurringTimer.Start();
+                    // Dispose old timer if existant
+                    RecurringTimer.Stop();
+                    RecurringTimer.Elapsed -= Process;
+                    RecurringTimer.Dispose();
+
+                    RecurringTimer = new();
+                    RecurringTimer.Elapsed += Process;
+                    RecurringTimer.Interval = SleepTimeToMilliseconds();
+                    RecurringTimer.AutoReset = true;
+                    RecurringTimer.Start();
+                }
                 Log.WriteInfo(SchedulerText, "RecurringTimer started.");
             }
             catch (Exception exception)
@@ -147,6 +167,53 @@ namespace FWO.Middleware.Server
                 SchedulerInterval.Seconds => SleepTime * GlobalConst.kSecondsToMilliseconds,
                 _ => throw new NotSupportedException($"Error: wrong time interval format:" + SchedulerInterval.ToString())
             };
+        }
+
+        /// <summary>
+        /// Stops both timers and the config subscription. Without it the recurring timer keeps
+        /// firing - and logging - for the lifetime of the process.
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the timers and the config change subscription.
+        /// </summary>
+        /// <param name="disposing">True when called from Dispose rather than from a finalizer.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposing)
+            {
+                return;
+            }
+
+            lock (TimerGate)
+            {
+                if (Disposed)
+                {
+                    return;
+                }
+                Disposed = true;
+                StopTimers();
+            }
+
+            ConfigDataSubscription?.Dispose();
+            ConfigDataSubscription = null;
+        }
+
+        private void StopTimers()
+        {
+            ScheduleTimer.Stop();
+            ScheduleTimer.Elapsed -= Process;
+            ScheduleTimer.Elapsed -= StartRecurringTimer;
+            ScheduleTimer.Dispose();
+
+            RecurringTimer.Stop();
+            RecurringTimer.Elapsed -= Process;
+            RecurringTimer.Dispose();
         }
     }
 }

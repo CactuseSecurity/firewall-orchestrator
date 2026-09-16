@@ -10,6 +10,7 @@ using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

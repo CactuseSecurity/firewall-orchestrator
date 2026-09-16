@@ -11,6 +11,7 @@ using FWO.Report;
 using FWO.Report.Filter;
 using System.IO;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

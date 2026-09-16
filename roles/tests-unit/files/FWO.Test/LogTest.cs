@@ -1,5 +1,6 @@
 using FWO.Logging;
 using NUnit.Framework;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

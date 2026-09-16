@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
 using System.IO;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {

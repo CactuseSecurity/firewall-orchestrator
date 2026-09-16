@@ -7056,21 +7056,6 @@
               ],
               "insert_permissions": [
                 {
-                  "role": "admin",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "display_name",
-                      "id",
-                      "node_type",
-                      "object_key",
-                      "parent_id",
-                      "sort_order"
-                    ]
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
@@ -7102,21 +7087,6 @@
                 }
               ],
               "select_permissions": [
-                {
-                  "role": "admin",
-                  "permission": {
-                    "columns": [
-                      "display_name",
-                      "id",
-                      "node_type",
-                      "object_key",
-                      "parent_id",
-                      "sort_order"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
                 {
                   "role": "fw-admin",
                   "permission": {
@@ -7150,21 +7120,6 @@
               ],
               "update_permissions": [
                 {
-                  "role": "admin",
-                  "permission": {
-                    "columns": [
-                      "display_name",
-                      "node_type",
-                      "object_key",
-                      "parent_id",
-                      "sort_order"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -7196,13 +7151,6 @@
                 }
               ],
               "delete_permissions": [
-                {
-                  "role": "admin",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
                 {
                   "role": "fw-admin",
                   "permission": {
@@ -7234,18 +7182,6 @@
               ],
               "insert_permissions": [
                 {
-                  "role": "admin",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "config_key",
-                      "config_value",
-                      "node_id"
-                    ]
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "fw-admin",
                   "permission": {
                     "check": {},
@@ -7271,18 +7207,6 @@
                 }
               ],
               "select_permissions": [
-                {
-                  "role": "admin",
-                  "permission": {
-                    "columns": [
-                      "config_key",
-                      "config_value",
-                      "node_id"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
                 {
                   "role": "fw-admin",
                   "permission": {
@@ -7310,17 +7234,6 @@
               ],
               "update_permissions": [
                 {
-                  "role": "admin",
-                  "permission": {
-                    "columns": [
-                      "config_value"
-                    ],
-                    "filter": {},
-                    "check": {}
-                  },
-                  "comment": ""
-                },
-                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -7344,13 +7257,6 @@
                 }
               ],
               "delete_permissions": [
-                {
-                  "role": "admin",
-                  "permission": {
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
                 {
                   "role": "fw-admin",
                   "permission": {

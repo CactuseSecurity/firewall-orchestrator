@@ -76,23 +76,27 @@ namespace FWO.Middleware.Server
                 {
                     lock (TimerGate)
                     {
+                        // the whole replacement has to happen under the lock: checking the flag
+                        // and then releasing it would let Dispose stop the old timer while a new
+                        // one is being started, leaving a timer nothing can reach any more
                         if (Disposed)
                         {
                             return;
                         }
+
+                        // Dispose old timer if existant
+                        ScheduleTimer.Stop();
+                        ScheduleTimer.Elapsed -= Process;
+                        ScheduleTimer.Elapsed -= StartRecurringTimer;
+                        ScheduleTimer.Dispose();
+
+                        ScheduleTimer = new();
+                        ScheduleTimer.Elapsed += Process;
+                        ScheduleTimer.Elapsed += StartRecurringTimer;
+                        ScheduleTimer.Interval = (CalculateStartTime(startTime) - DateTime.Now).TotalMilliseconds;
+                        ScheduleTimer.AutoReset = false;
+                        ScheduleTimer.Start();
                     }
-
-                    // Dispose old timer if existant
-                    ScheduleTimer.Stop();
-                    ScheduleTimer.Elapsed -= Process;
-                    ScheduleTimer.Dispose();
-
-                    ScheduleTimer = new();
-                    ScheduleTimer.Elapsed += Process;
-                    ScheduleTimer.Elapsed += StartRecurringTimer;
-                    ScheduleTimer.Interval = (CalculateStartTime(startTime) - DateTime.Now).TotalMilliseconds;
-                    ScheduleTimer.AutoReset = false;
-                    ScheduleTimer.Start();
                     Log.WriteInfo(SchedulerText, "ScheduleTimer started.");
                 }
                 catch (Exception exception)
@@ -173,6 +177,13 @@ namespace FWO.Middleware.Server
         /// Stops both timers and the config subscription. Without it the recurring timer keeps
         /// firing - and logging - for the lifetime of the process.
         /// </summary>
+        /// <remarks>
+        /// Does not wait for a <see cref="Process"/> callback that is already running. The timers
+        /// are stopped, but Process is implemented as async void, so a tick that is already in
+        /// flight runs to completion after this method returns. Callers must therefore not
+        /// dispose resources Process uses - the API connection for instance - immediately after
+        /// disposing the scheduler.
+        /// </remarks>
         public void Dispose()
         {
             Dispose(true);

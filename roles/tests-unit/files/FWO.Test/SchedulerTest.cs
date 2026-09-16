@@ -37,6 +37,15 @@ namespace FWO.Test
                 StartScheduleTimer(1, DateTime.Now);
             }
 
+            /// <summary>
+            /// Restarts the schedule timer the way a config change would, so the guard against
+            /// starting a timer on a disposed scheduler can be tested.
+            /// </summary>
+            public void RestartScheduleTimer()
+            {
+                StartScheduleTimer(1, DateTime.Now);
+            }
+
             private readonly int Counter = 1;
 
             /// <summary>
@@ -58,10 +67,20 @@ namespace FWO.Test
         static readonly SchedulerTestApiConn apiConnection = new();
 
         /// <summary>
-        /// The schedule timer is set to one second, so this is long enough for exactly one
-        /// recurring tick to have happened.
+        /// Id of the open alert SchedulerTestApiConn hands out, which the scheduler acknowledges.
         /// </summary>
-        private static readonly TimeSpan kFirstTickWait = TimeSpan.FromMilliseconds(1500);
+        private static readonly long kAcknowledgedAlertId = 7;
+
+        /// <summary>
+        /// Generous upper bound for a scheduler tick. Waited out by polling rather than slept
+        /// through, so a loaded runner cannot turn a working scheduler into a failing test.
+        /// </summary>
+        private static readonly TimeSpan kTickTimeout = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// How often the polled conditions are re-evaluated.
+        /// </summary>
+        private static readonly TimeSpan kPollInterval = TimeSpan.FromMilliseconds(25);
 
         /// <summary>
         /// Time given to a tick that was already running when the scheduler was disposed.
@@ -69,16 +88,11 @@ namespace FWO.Test
         private static readonly TimeSpan kSettleWait = TimeSpan.FromMilliseconds(500);
 
         /// <summary>
-        /// Spans more than two recurring intervals, so a timer that kept running would be seen.
+        /// Spans more than two recurring intervals. Proving that nothing happens can only be
+        /// done by waiting, so this one stays a fixed delay.
         /// </summary>
         private static readonly TimeSpan kSilenceAfterDisposeWait = TimeSpan.FromMilliseconds(2500);
 
-
-        [SetUp]
-        public void Initialize()
-        {
-            //
-        }
 
         [Test]
         [NonParallelizable] // redirects the process wide Console.Out
@@ -88,6 +102,7 @@ namespace FWO.Test
             string startupLog = string.Empty;
             int logEntriesAtStart = -1;
             int alertsAtStart = -1;
+            bool ticked = false;
 
             try
             {
@@ -102,9 +117,13 @@ namespace FWO.Test
                     // from the constructor rather than from the recurring timer starting later
                     startupLog = capture.Snapshot();
 
-                    await Task.Delay(kFirstTickWait);
+                    ticked = await WaitForAsync(
+                        () => apiConnection.LogEntries.Count >= 1
+                            && capture.Snapshot().Contains("RecurringTimer started."),
+                        kTickTimeout);
                 });
 
+                ClassicAssert.IsTrue(ticked, "the scheduler did not tick within the timeout");
                 ClassicAssert.AreEqual(0, logEntriesAtStart);
                 ClassicAssert.AreEqual(0, alertsAtStart);
                 ClassicAssert.IsTrue(startupLog.Contains("Scheduler-Test"));
@@ -116,7 +135,7 @@ namespace FWO.Test
                 ClassicAssert.AreEqual(1, apiConnection.Alerts.Count);
                 ClassicAssert.IsTrue(apiConnection.Alerts[0].Contains("alertDesc 1"));
                 ClassicAssert.AreEqual(1, apiConnection.AcknowledgedAlerts.Count);
-                ClassicAssert.AreEqual(7, apiConnection.AcknowledgedAlerts[0]);
+                ClassicAssert.AreEqual(kAcknowledgedAlertId, apiConnection.AcknowledgedAlerts[0]);
                 ClassicAssert.IsTrue(output.Contains("RecurringTimer started."));
             }
             finally
@@ -133,8 +152,8 @@ namespace FWO.Test
             SchedulerTestApiConn disposeApiConnection = new();
             TestScheduler scheduler = await TestScheduler.CreateAsync(disposeApiConnection);
 
-            await Task.Delay(kFirstTickWait);
-            ClassicAssert.AreEqual(1, disposeApiConnection.LogEntries.Count, "the recurring timer has to have ticked before disposal is meaningful");
+            bool ticked = await WaitForAsync(() => disposeApiConnection.LogEntries.Count >= 1, kTickTimeout);
+            ClassicAssert.IsTrue(ticked, "the recurring timer has to have ticked before disposal is meaningful");
 
             scheduler.Dispose();
             await Task.Delay(kSettleWait);
@@ -144,6 +163,42 @@ namespace FWO.Test
 
             ClassicAssert.AreEqual(logEntriesAfterDispose, disposeApiConnection.LogEntries.Count);
             ClassicAssert.DoesNotThrow(scheduler.Dispose, "disposing twice has to stay harmless");
+        }
+
+        [Test]
+        public async Task StartScheduleTimerDoesNothingAfterDispose()
+        {
+            SchedulerTestApiConn guardApiConnection = new();
+            TestScheduler scheduler = await TestScheduler.CreateAsync(guardApiConnection);
+            scheduler.Dispose();
+
+            // a config change arriving during shutdown takes this path
+            scheduler.RestartScheduleTimer();
+
+            await Task.Delay(kSilenceAfterDisposeWait);
+
+            ClassicAssert.AreEqual(0, guardApiConnection.LogEntries.Count);
+        }
+
+        /// <summary>
+        /// Polls a condition instead of sleeping for a fixed window, so a slow runner delays the
+        /// test rather than failing it.
+        /// </summary>
+        /// <param name="condition">Condition that is expected to become true.</param>
+        /// <param name="timeout">Upper bound for the wait.</param>
+        /// <returns>True when the condition became true within the timeout.</returns>
+        private static async Task<bool> WaitForAsync(Func<bool> condition, TimeSpan timeout)
+        {
+            long deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
+            while (Environment.TickCount64 < deadline)
+            {
+                if (condition())
+                {
+                    return true;
+                }
+                await Task.Delay(kPollInterval);
+            }
+            return condition();
         }
     }
 }

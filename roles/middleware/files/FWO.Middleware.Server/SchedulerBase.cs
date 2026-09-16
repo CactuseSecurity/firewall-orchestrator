@@ -30,10 +30,9 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected GraphQlApiSubscription<List<ConfigItem>>? ConfigDataSubscription;
 
-        /// <summary>
-        /// Schedule Timer
-        /// </summary>
-        protected System.Timers.Timer ScheduleTimer = new();
+        // both timers are private on purpose: every access has to go through TimerGate, and a
+        // subclass reaching past StartScheduleTimer would silently break that invariant
+        private System.Timers.Timer ScheduleTimer = new();
         private System.Timers.Timer RecurringTimer = new();
         private readonly string SchedulerText;
         private readonly SchedulerInterval SchedulerInterval;

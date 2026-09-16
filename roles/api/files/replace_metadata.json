@@ -2982,13 +2982,19 @@
             {
               "table": {
                 "name": "change_history",
-                "schema": "modelling"
+                "schema": "public"
               },
               "object_relationships": [
                 {
                   "name": "owner",
                   "using": {
                     "foreign_key_constraint_on": "app_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
                   }
                 }
               ],
@@ -2998,16 +3004,171 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
+                      "object_id",
+                      "changer",
+                      "changer_id",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ]
+                  },
+                  "comment": "changer_id is a writable column instead of a preset: internal middleware JWTs (JwtWriter.CreateJWTInternal) carry no x-hasura-user-id session variable, so a preset would make every history insert of a background job fail. REST entry points acting for an authenticated human pass that user's id explicitly through addHistoryEntryAsService, so the row stays resolvable to the uiuser record. Background jobs pass nothing and keep changer_id NULL, which is what marks a row as automated. The role is reachable only with an internally issued service JWT, never with a user JWT, so this cannot be used to forge another user's id."
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 },
@@ -3016,16 +3177,23 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 },
@@ -3034,16 +3202,23 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 }
@@ -3054,16 +3229,81 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "module",
                       "object_id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
                     ],
                     "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "module",
+                      "object_id",
+                      "changer",
+                      "changer_id",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "filter": {
+                      "module": {
+                        "_eq": "modelling"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "recertifier",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "module",
+                      "object_id",
+                      "changer",
+                      "changer_id",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_time",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "filter": {
+                      "module": {
+                        "_eq": "modelling"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -3078,36 +3318,60 @@
                   "comment": ""
                 },
                 {
-                  "role": "modeller",
+                  "role": "requester",
                   "permission": {
                     "columns": [
-                      "id",
-                      "object_id",
-                      "changer",
-                      "change_text",
-                      "app_id",
-                      "change_type",
-                      "object_type",
-                      "change_time",
-                      "change_source"
+                      "id"
                     ],
                     "filter": {}
                   },
                   "comment": ""
                 },
                 {
-                  "role": "recertifier",
+                  "role": "approver",
                   "permission": {
                     "columns": [
-                      "id",
-                      "object_id",
-                      "changer",
-                      "change_text",
-                      "app_id",
-                      "change_type",
-                      "object_type",
-                      "change_time",
-                      "change_source"
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id"
                     ],
                     "filter": {}
                   },
@@ -14814,7 +15078,7 @@
                       "column": "app_id",
                       "table": {
                         "name": "change_history",
-                        "schema": "modelling"
+                        "schema": "public"
                       }
                     }
                   }

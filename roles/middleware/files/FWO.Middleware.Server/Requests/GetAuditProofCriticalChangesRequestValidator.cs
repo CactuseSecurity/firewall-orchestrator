@@ -34,15 +34,35 @@ public static class GetAuditProofCriticalChangesRequestValidator
         return result;
     }
 
+    /// <summary>
+    /// Builds the error reported for a well-formed ticket id that names no workflow ticket.
+    /// </summary>
+    /// <param name="ticketId">Ticket id the caller supplied.</param>
+    /// <returns>An error response attributing the failure to the <c>ticketId</c> key.</returns>
+    /// <remarks>
+    /// Whether the ticket exists can only be answered by the API, so this error is raised after the
+    /// key-level validation above rather than inside it. It is reported in the same shape so that a
+    /// caller parses one error contract for every rejected request of this endpoint.
+    /// </remarks>
+    public static RequestValidationErrorResponse BuildUnknownTicketError(long ticketId)
+    {
+        RequestValidationErrorResponse result = new();
+        result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+            GetAuditProofCriticalChangesValidationSchema.DescribeUnknownTicket(ticketId)));
+        return result;
+    }
+
     private static void ValidateTicketId(GetAuditProofCriticalChangesRequest request, RequestValidationErrorResponse result)
     {
         if (request.TicketId == null)
         {
-            result.Errors.Add(BuildError("ticketId", "'ticketId' is required."));
+            result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+                $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' is required."));
         }
         else if (request.TicketId <= 0)
         {
-            result.Errors.Add(BuildError("ticketId", "'ticketId' must be greater than 0."));
+            result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+                $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' must be greater than 0."));
         }
     }
 

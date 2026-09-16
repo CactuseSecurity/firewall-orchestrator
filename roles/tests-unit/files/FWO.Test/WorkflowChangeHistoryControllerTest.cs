@@ -4,6 +4,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data.Modelling;
+using FWO.Data.Workflow;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
@@ -198,7 +199,99 @@ internal class WorkflowChangeHistoryControllerTest
 
         ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 4321 });
 
+        Assert.Multiple(() =>
+        {
+            Assert.That(OkResponse(result).Changes, Is.Empty);
+            // An existing ticket without such changes stays a 200 with an empty list: only an id that
+            // names no ticket at all is an error.
+            Assert.That(apiConnection.Queries, Does.Contain(RequestQueries.getTicketIdIfExists));
+        });
+    }
+
+    [Test]
+    public void ExistenceQueryReadsNothingButTheIdOfTheNamedTicket()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(RequestQueries.getTicketIdIfExists, Does.Contain("query getTicketIdIfExists"));
+            Assert.That(RequestQueries.getTicketIdIfExists, Does.Contain("$ticketId: bigint!"));
+            Assert.That(RequestQueries.getTicketIdIfExists, Does.Contain("request_ticket(where: { id: { _eq: $ticketId } }, limit: 1)"));
+            // request_ticket_by_pk resolves to JSON null for an unknown id, which the API connection
+            // cannot deserialize; the filtered list answers with an empty array instead.
+            Assert.That(RequestQueries.getTicketIdIfExists, Does.Not.Contain("request_ticket_by_pk"));
+        });
+    }
+
+    [Test]
+    public async Task AnUnknownTicketIdIsReportedAsNotFoundInsteadOfAnEmptyList()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = new() { ExistingTicketIds = [] };
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+
+        ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 999 });
+
+        NotFoundObjectResult notFound = (NotFoundObjectResult)result.Result!;
+        RequestValidationErrorResponse errors = (RequestValidationErrorResponse)notFound.Value!;
+        Assert.Multiple(() =>
+        {
+            Assert.That(notFound.StatusCode, Is.EqualTo(404));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(new List<string> { "ticketId" }));
+            Assert.That(errors.Errors[0].Message, Does.Contain("does not exist"));
+            Assert.That(errors.Errors[0].Message, Does.Contain("999"));
+        });
+    }
+
+    [Test]
+    public async Task TheServiceReportsAnUnknownTicketAsNull()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = new() { ExistingTicketIds = [] };
+
+        GetAuditProofCriticalChangesResponse? response =
+            await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(999, null);
+
+        Assert.That(response, Is.Null);
+    }
+
+    [Test]
+    public async Task TheExistenceProbeIsSkippedWhenTheTicketAlreadyReturnedChanges()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+
+        await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest { TicketId = 1234 });
+
+        // A returned change already proves the ticket exists, so the common case stays at one round trip.
+        Assert.That(apiConnection.Queries, Is.EqualTo(new List<string> { RequestQueries.getAuditProofCriticalChangesForTicket }));
+    }
+
+    [Test]
+    public async Task AFilterThatExcludesEveryChangeStaysAnEmptyResultNotANotFound()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        WorkflowChangeHistoryController controller = new(new WorkflowChangeHistoryService(apiConnection));
+
+        ActionResult<GetAuditProofCriticalChangesResponse> result = await controller.GetAuditProofCriticalChanges(new GetAuditProofCriticalChangesRequest
+        {
+            TicketId = 1234,
+            Options = new GetAuditProofCriticalChangesOptions { Filter = new AuditProofCriticalChangeFilter { ChangeUserName = "nobody" } }
+        });
+
         Assert.That(OkResponse(result).Changes, Is.Empty);
+    }
+
+    [Test]
+    public void MiddlewareServerMaySelectTheTicketIdTheExistenceQueryReads()
+    {
+        FileInfo? metadataFile = LocateMetadata();
+        if (metadataFile == null)
+        {
+            Assert.Ignore("The Hasura metadata is not reachable in this environment.");
+            return;
+        }
+
+        List<string> columns = MiddlewareServerSelectColumns(metadataFile, "request", "ticket");
+
+        Assert.That(columns, Does.Contain("id"));
     }
 
     [Test]
@@ -295,7 +388,7 @@ internal class WorkflowChangeHistoryControllerTest
             return;
         }
 
-        List<string> columns = MiddlewareServerChangeHistoryColumns(metadataFile);
+        List<string> columns = MiddlewareServerSelectColumns(metadataFile, "public", "change_history");
 
         // The query selects change_time, changer, changer_id and change_text and filters and orders
         // on ticket_id, module, audit_proof_critical and id. Hasura resolves all of them through the
@@ -306,15 +399,22 @@ internal class WorkflowChangeHistoryControllerTest
         }));
     }
 
-    private static List<string> MiddlewareServerChangeHistoryColumns(FileInfo metadataFile)
+    /// <summary>
+    /// Reads the columns the middleware-server role may select from one tracked table.
+    /// </summary>
+    /// <param name="metadataFile">Hasura metadata of the installation.</param>
+    /// <param name="schema">Database schema of the table.</param>
+    /// <param name="table">Database name of the table.</param>
+    /// <returns>The permitted columns.</returns>
+    private static List<string> MiddlewareServerSelectColumns(FileInfo metadataFile, string schema, string table)
     {
         using JsonDocument metadata = JsonDocument.Parse(File.ReadAllText(metadataFile.FullName));
         foreach (JsonElement source in metadata.RootElement.GetProperty("args").GetProperty("metadata").GetProperty("sources").EnumerateArray())
         {
-            foreach (JsonElement table in source.GetProperty("tables").EnumerateArray())
+            foreach (JsonElement trackedTable in source.GetProperty("tables").EnumerateArray())
             {
-                if (table.GetProperty("table").GetProperty("name").GetString() != "change_history"
-                    || !table.TryGetProperty("select_permissions", out JsonElement selectPermissions))
+                if (!MatchesTable(trackedTable, schema, table)
+                    || !trackedTable.TryGetProperty("select_permissions", out JsonElement selectPermissions))
                 {
                     continue;
                 }
@@ -330,7 +430,14 @@ internal class WorkflowChangeHistoryControllerTest
             }
         }
 
-        throw new AssertionException("No middleware-server select permission on change_history found.");
+        throw new AssertionException($"No middleware-server select permission on {schema}.{table} found.");
+    }
+
+    private static bool MatchesTable(JsonElement trackedTable, string schema, string table)
+    {
+        JsonElement identifier = trackedTable.GetProperty("table");
+        return identifier.GetProperty("name").GetString() == table
+            && identifier.GetProperty("schema").GetString() == schema;
     }
 
     private static FileInfo? LocateMetadata()
@@ -383,7 +490,7 @@ internal class WorkflowChangeHistoryControllerTest
         };
 
         GetAuditProofCriticalChangesResponse response =
-            await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null);
+            (await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null))!;
 
         Assert.That(response.Changes[0].ChangeUserId, Is.Null);
     }
@@ -406,12 +513,12 @@ internal class WorkflowChangeHistoryControllerTest
         };
         WorkflowChangeHistoryService service = new(apiConnection);
 
-        GetAuditProofCriticalChangesResponse fromUtcForm = await service.GetAuditProofCriticalChangesAsync(
-            1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant });
-        GetAuditProofCriticalChangesResponse fromOffsetForm = await service.GetAuditProofCriticalChangesAsync(
-            1234, new AuditProofCriticalChangeFilter { ChangeTime = DateTime.SpecifyKind(storedWallClock, DateTimeKind.Local) });
-        GetAuditProofCriticalChangesResponse fromNaiveForm = await service.GetAuditProofCriticalChangesAsync(
-            1234, new AuditProofCriticalChangeFilter { ChangeTime = storedWallClock });
+        GetAuditProofCriticalChangesResponse fromUtcForm = (await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant }))!;
+        GetAuditProofCriticalChangesResponse fromOffsetForm = (await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = DateTime.SpecifyKind(storedWallClock, DateTimeKind.Local) }))!;
+        GetAuditProofCriticalChangesResponse fromNaiveForm = (await service.GetAuditProofCriticalChangesAsync(
+            1234, new AuditProofCriticalChangeFilter { ChangeTime = storedWallClock }))!;
 
         Assert.Multiple(() =>
         {
@@ -435,8 +542,8 @@ internal class WorkflowChangeHistoryControllerTest
             ]
         };
 
-        GetAuditProofCriticalChangesResponse response = await new WorkflowChangeHistoryService(apiConnection)
-            .GetAuditProofCriticalChangesAsync(1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant.AddHours(1) });
+        GetAuditProofCriticalChangesResponse response = (await new WorkflowChangeHistoryService(apiConnection)
+            .GetAuditProofCriticalChangesAsync(1234, new AuditProofCriticalChangeFilter { ChangeTime = utcInstant.AddHours(1) }))!;
 
         Assert.That(response.Changes, Is.Empty);
     }
@@ -454,7 +561,7 @@ internal class WorkflowChangeHistoryControllerTest
         };
 
         GetAuditProofCriticalChangesResponse response =
-            await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null);
+            (await new WorkflowChangeHistoryService(apiConnection).GetAuditProofCriticalChangesAsync(1234, null))!;
 
         Assert.Multiple(() =>
         {
@@ -474,13 +581,13 @@ internal class WorkflowChangeHistoryControllerTest
 
     private static async Task<GetAuditProofCriticalChangesResponse> AllChanges()
     {
-        return await new WorkflowChangeHistoryService(CreateApiConnection()).GetAuditProofCriticalChangesAsync(1234, null);
+        return (await new WorkflowChangeHistoryService(CreateApiConnection()).GetAuditProofCriticalChangesAsync(1234, null))!;
     }
 
     private static async Task<GetAuditProofCriticalChangesResponse> FilteredChanges(AuditProofCriticalChangeFilter filter)
     {
         WorkflowChangeHistoryService service = new(CreateApiConnection());
-        return await service.GetAuditProofCriticalChangesAsync(1234, filter);
+        return (await service.GetAuditProofCriticalChangesAsync(1234, filter))!;
     }
 
     private static GetAuditProofCriticalChangesResponse OkResponse(ActionResult<GetAuditProofCriticalChangesResponse> result)
@@ -531,6 +638,12 @@ internal class WorkflowChangeHistoryControllerTest
     {
         public List<ModellingHistoryEntry> Entries { get; set; } = [];
 
+        /// <summary>
+        /// Gets or sets the ticket ids the simulated API knows. Defaults to the ids the fixtures use,
+        /// so a test that only cares about changes does not have to declare the ticket as well.
+        /// </summary>
+        public List<long> ExistingTicketIds { get; set; } = new() { 1234, 4321 };
+
         public List<string> Queries { get; } = [];
 
         public object? LastVariables { get; private set; }
@@ -545,7 +658,20 @@ internal class WorkflowChangeHistoryControllerTest
                 return Task.FromResult((QueryResponseType)(object)Entries);
             }
 
+            if (query == RequestQueries.getTicketIdIfExists && typeof(QueryResponseType) == typeof(List<WfTicketBase>))
+            {
+                List<WfTicketBase> tickets = ExistingTicketIds.Contains(TicketIdOf(variables))
+                    ? [new WfTicketBase { Id = TicketIdOf(variables) }]
+                    : [];
+                return Task.FromResult((QueryResponseType)(object)tickets);
+            }
+
             throw new AssertionException($"Unexpected query: {query}");
+        }
+
+        private static long TicketIdOf(object? variables)
+        {
+            return (long)(variables?.GetType().GetProperty("ticketId")?.GetValue(variables) ?? 0L);
         }
     }
 

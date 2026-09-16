@@ -18,6 +18,11 @@ public static class GetAuditProofCriticalChangesValidationSchema
     public const string kRootPath = "";
 
     /// <summary>
+    /// JSON path of the ticket id key.
+    /// </summary>
+    public const string kTicketIdPath = "ticketId";
+
+    /// <summary>
     /// JSON path of the options object.
     /// </summary>
     public const string kOptionsPath = "options";
@@ -59,6 +64,16 @@ public static class GetAuditProofCriticalChangesValidationSchema
     /// Gets the allowed keys inside <c>options.filter</c>.
     /// </summary>
     public static IReadOnlyList<RequestKeyDefinition> FilterKeys => kFilterKeys;
+
+    /// <summary>
+    /// Builds the message reported for a syntactically valid ticket id that names no workflow ticket.
+    /// </summary>
+    /// <param name="ticketId">Ticket id the caller supplied.</param>
+    /// <returns>Message naming the id and stating that no such ticket exists.</returns>
+    public static string DescribeUnknownTicket(long ticketId)
+    {
+        return $"Workflow ticket with '{kTicketIdPath}' {ticketId} does not exist.";
+    }
 
     /// <summary>
     /// Builds the help text listing the valid keys of one request object.

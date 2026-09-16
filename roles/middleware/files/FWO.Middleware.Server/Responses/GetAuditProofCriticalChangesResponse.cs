@@ -9,7 +9,8 @@ public sealed class GetAuditProofCriticalChangesResponse
 {
     /// <summary>
     /// Gets or sets the audit proof critical changes of the ticket, newest first. Empty when the
-    /// ticket has none, or does not exist.
+    /// ticket carries none or the supplied filter excludes all of them; a ticket that does not
+    /// exist is reported as 404 instead of an empty list.
     /// </summary>
     [JsonPropertyName("changes")]
     public List<AuditProofCriticalChangeResponse> Changes { get; set; } = [];

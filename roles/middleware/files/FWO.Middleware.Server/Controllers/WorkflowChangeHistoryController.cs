@@ -36,11 +36,17 @@ public class WorkflowChangeHistoryController : ControllerBase
     /// An audit proof critical change is a change history entry of the ticket that the workflow module marked
     /// as audit-proof critical: a content change made in a user session by someone other than the
     /// ticket requester. Changes written by background jobs are never reported.
+    /// <para>
+    /// A ticket that exists but carries no such change answers with an empty <c>changes</c> list. A
+    /// ticketId that names no ticket answers 404 with the error contract of this endpoint, so an
+    /// empty result cannot be mistaken for a mistyped or already deleted ticket id.
+    /// </para>
     /// </remarks>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAuditProofCriticalChanges")]
     [ProducesResponseType(typeof(GetAuditProofCriticalChangesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetAuditProofCriticalChangesResponse>> GetAuditProofCriticalChanges([FromBody] GetAuditProofCriticalChangesRequest request)
     {
@@ -54,7 +60,13 @@ public class WorkflowChangeHistoryController : ControllerBase
         long ticketId = request.TicketId.GetValueOrDefault();
         try
         {
-            return Ok(await changeHistoryService.GetAuditProofCriticalChangesAsync(ticketId, request.Options.Filter));
+            GetAuditProofCriticalChangesResponse? response = await changeHistoryService.GetAuditProofCriticalChangesAsync(ticketId, request.Options.Filter);
+            if (response == null)
+            {
+                return NotFound(GetAuditProofCriticalChangesRequestValidator.BuildUnknownTicketError(ticketId));
+            }
+
+            return Ok(response);
         }
         catch (Exception exception)
         {

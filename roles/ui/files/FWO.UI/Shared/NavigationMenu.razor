@@ -38,9 +38,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
 							<li class="nav-item px-2">
-								<a href="@("/" + PageName.ReportGeneration)" class="nav-link @(navigationManager.Uri.Contains("/report/") ? "active" : "")">
+								<SectionNavLink href="@("/" + PageName.ReportGeneration)" class="nav-link" ActivePath="/report">
 									<span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
-								</a>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -48,9 +48,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="@firstWorkflowPage">
+								<SectionNavLink class="nav-link" href="@firstWorkflowPage" ActivePath="/request">
 									<span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
-								</NavLink>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -58,9 +58,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="@("/" + PageName.Certification)">
+								<SectionNavLink class="nav-link" href="@("/" + PageName.Certification)" ActivePath="/certification">
 									<span class="@Icons.Recertification"></span> @(userConfig.GetText("recertification"))
-								</NavLink>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -68,9 +68,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Modeller}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="@("/" + PageName.Modelling)">
+								<SectionNavLink class="nav-link" href="@("/" + PageName.Modelling)" ActivePath="/networkmodelling">
 									<span class="@Icons.Modelling"></span> @(userConfig.GetText("modelling"))
-								</NavLink>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -78,9 +78,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="/network_analysis">
+								<SectionNavLink class="nav-link" href="/network_analysis" ActivePath="/network_analysis">
 									<span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
-								</NavLink>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -88,9 +88,9 @@
 					{
 						<ExecutionModeAuthorizeView Roles="@($"{ComplianceRoles()}")">
 							<li class="nav-item px-2">
-								<NavLink class="nav-link" href="/compliance/policies">
+								<SectionNavLink class="nav-link" href="/compliance/policies" ActivePath="/compliance">
 									<span class="@Icons.Compliance"></span> @(userConfig.GetText("compliance"))
-								</NavLink>
+								</SectionNavLink>
 							</li>
 						</ExecutionModeAuthorizeView>
 					}
@@ -100,7 +100,7 @@
 						@* d-flex align-items-center *@
 						@* an open alert makes the alarm indicator the point of this link, so it leads to the alerts
 						   instead of the system usage start page of the monitoring section *@
-						<NavLink class="nav-link" href="@(ShowAlert ? "/monitoring/main" : "/monitoring")">
+						<SectionNavLink class="nav-link" href="@(ShowAlert ? "/monitoring/main" : "/monitoring")" ActivePath="/monitoring">
 							<span class="@Icons.Monitoring">
 								@if (ShowAlert)
 								{
@@ -108,18 +108,18 @@
 								}
 							</span>
 							@(userConfig.GetText("monitoring"))
-						</NavLink>
+						</SectionNavLink>
 					</li>
 					<li class="nav-item px-2">
-						<NavLink class="nav-link" href="/settings">
+						<SectionNavLink class="nav-link" href="/settings" ActivePath="/settings" ExcludedPath="/settings/user">
 							<span class="@Icons.Settings"></span> @(userConfig.GetText("settings"))
-						</NavLink>
+						</SectionNavLink>
 					</li>
 					<li class="nav-item px-2">
 						<HelpLink> @userConfig.GetText("help")</HelpLink>
 					</li>
 					<li class="nav-item px-2">
-						<NavLink class="nav-link" href="/settings/user">
+						<NavLink class="nav-link" href="/settings/user" Match="NavLinkMatch.All">
 							<span class="@Icons.User"></span> @(GetUserNameDisplay())
 						</NavLink>
 					</li>

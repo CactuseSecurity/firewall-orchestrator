@@ -753,4 +753,16 @@ Not supported any longer are:
   request.state_change_execution records which transition the actions of an object were last
   executed for; the middleware claims it in a single statement and a repeated request now returns
   without executing anything
-  
+- security fix (SEC-09): the flow catalog tables were readable without restriction by every workflow
+  role, and a request element could be pointed at any flow entry by id. A requester could therefore
+  enumerate flow objects an administrator had hidden or retired, attach them to a task, and reference
+  the canonical any-IP-protocol service, which is an internal representation the platform writes for
+  itself. The same eligibility predicate is now enforced at all three layers: the Hasura select
+  permissions of the workflow roles on flow.nwobject, flow.svcobject and flow.timeobject return only
+  entries that are offered in the request module, not retired and in a live state, and exclude
+  negative protocol ids; the Hasura insert and update permissions on request.reqelement refuse a flow
+  object, flow group or protocol id that does not meet it; and the flow creation refuses an element
+  whose stored flow id names an entry that has since been hidden or retired instead of following it.
+  The request module reports a refused element instead of failing the save with a permission error.
+  Negative protocol ids stay reserved for the middleware, which continues to attach the canonical any
+  service when it turns a protocol-agnostic request into a flow

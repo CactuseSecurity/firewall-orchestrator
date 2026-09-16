@@ -3303,6 +3303,8 @@ INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'German',   'Adr
 INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'English',  'Address range starts and ends in different address families');
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse konnte nicht gelesen werden');
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
+INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'German',   'Flow-Objekt wird im Antragsmodul nicht mehr angeboten');
+INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'English',  'Flow object is no longer offered in the request module');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -4627,6 +4629,8 @@ INSERT INTO txt VALUES ('E8015', 'German',  'Eigent&uuml;mer konnte nicht zugeor
 INSERT INTO txt VALUES ('E8015', 'English', 'Owner could not be assigned');
 INSERT INTO txt VALUES ('E8016', 'German',  'Eigent&uuml;mer konnte nicht entfernt werden');
 INSERT INTO txt VALUES ('E8016', 'English', 'Owner could not be removed');
+INSERT INTO txt VALUES ('E8017', 'German',  'Die Aufgabe verweist auf ein Flow-Objekt oder ein Protokoll, das im Antragsmodul nicht angefordert werden darf. Bitte die betroffenen Elemente neu ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E8017', 'English', 'The task references a flow object or protocol that may not be requested in the request module. Please select the affected elements again.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');

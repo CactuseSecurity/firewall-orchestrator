@@ -406,7 +406,7 @@
 
     private static bool IsSelectable(FlowTimeObject timeObject)
     {
-        return timeObject.ShowInRequestModule && timeObject.RemovedDate == null;
+        return FlowObjectEligibility.IsRequestable(timeObject);
     }
 
     private static bool ShowsFlowDbSelection(string selection)

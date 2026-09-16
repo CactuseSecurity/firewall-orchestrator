@@ -22,6 +22,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFlowRequestNwObjectCatalog;
         public static readonly string getFlowRequestSvcObjectCatalog;
         public static readonly string getFlowRequestTimeObjectCatalog;
+        public static readonly string getRequestableFlowNwObjectIds;
+        public static readonly string getRequestableFlowSvcObjectIds;
         public static readonly string getFlowSelectableManagements;
         public static readonly string getFlowServiceGroups;
         public static readonly string getFlowServiceObjectId;
@@ -103,6 +105,12 @@ namespace FWO.Api.Client.Queries
 
                 getFlowRequestTimeObjectCatalog =
                     GetQueryText("flow/getFlowRequestTimeObjectCatalog.graphql");
+
+                getRequestableFlowNwObjectIds =
+                    GetQueryText("flow/getRequestableFlowNwObjectIds.graphql");
+
+                getRequestableFlowSvcObjectIds =
+                    GetQueryText("flow/getRequestableFlowSvcObjectIds.graphql");
 
                 getFlowSelectableManagements =
                     GetQueryText("flow/getFlowSelectableManagements.graphql");

@@ -1,0 +1,12 @@
+query getRequestableFlowNwObjectIds($nwObjIds: [bigint!]!) {
+  nwobjects: flow_nwobject(
+    where: {
+      nwobj_id: { _in: $nwObjIds }
+      show_in_request_module: { _eq: true }
+      removed_date: { _is_null: true }
+      state: { _in: ["requested", "implemented"] }
+    }
+  ) {
+    nwobj_id
+  }
+}

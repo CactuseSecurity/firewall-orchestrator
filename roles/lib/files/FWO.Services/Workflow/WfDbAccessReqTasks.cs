@@ -20,6 +20,11 @@ namespace FWO.Services.Workflow
         public async Task<long> AddReqTaskToDb(WfReqTask reqtask, WfTicket? previousTicket = null)
         {
             long returnId = 0;
+            if (!await FlowReferencesAreRequestable(reqtask))
+            {
+                return returnId;
+            }
+
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
             try
             {
@@ -67,7 +72,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         public async Task UpdateReqTaskInDb(WfReqTask reqtask)
         {
-            if (reqtask.Locked)
+            if (reqtask.Locked || !await FlowReferencesAreRequestable(reqtask))
             {
                 return;
             }

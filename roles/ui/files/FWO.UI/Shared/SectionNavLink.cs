@@ -26,9 +26,9 @@ namespace FWO.Ui.Shared
         /// <summary>
         /// Determines whether the current URI belongs to the configured application section.
         /// </summary>
-        protected override bool ShouldMatch(string currentUriAbsolute)
+        protected override bool ShouldMatch(string uriAbsolute)
         {
-            string currentPath = NavigationManager.ToBaseRelativePath(currentUriAbsolute);
+            string currentPath = NavigationManager.ToBaseRelativePath(uriAbsolute);
             int queryOrFragmentStart = currentPath.IndexOfAny('?', '#');
             if (queryOrFragmentStart >= 0)
             {

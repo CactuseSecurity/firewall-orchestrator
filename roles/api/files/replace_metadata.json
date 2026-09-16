@@ -7281,6 +7281,264 @@
             },
             {
               "table": {
+                "name": "provisioning_config_node",
+                "schema": "public"
+              },
+              "array_relationships": [
+                {
+                  "name": "child_nodes",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "parent_id",
+                      "table": {
+                        "name": "provisioning_config_node",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                },
+                {
+                  "name": "values",
+                  "using": {
+                    "foreign_key_constraint_on": {
+                      "column": "node_id",
+                      "table": {
+                        "name": "provisioning_config_value",
+                        "schema": "public"
+                      }
+                    }
+                  }
+                }
+              ],
+              "object_relationships": [
+                {
+                  "name": "parent_node",
+                  "using": {
+                    "foreign_key_constraint_on": "parent_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "provisioning_config_value",
+                "schema": "public"
+              },
+              "object_relationships": [
+                {
+                  "name": "node",
+                  "using": {
+                    "foreign_key_constraint_on": "node_id"
+                  }
+                }
+              ],
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "config_value"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "delete_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
                 "name": "config",
                 "schema": "public"
               },

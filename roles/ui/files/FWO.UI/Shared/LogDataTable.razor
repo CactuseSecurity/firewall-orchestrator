@@ -77,7 +77,9 @@ else
     // shown, so it can differ from pageSize while the user has paged into the data.
     private int measuredPageSize = LogDataTableLayout.kDefaultPageSize;
     private bool pageSizeMeasured;
-    private CancellationTokenSource? resizeSettling;
+    // counts the resizes seen so far, so a settling resize can tell whether a later one has
+    // taken it over. A counter needs no disposal and therefore no ownership between the calls.
+    private int resizeGeneration;
     private bool disposed;
 
     protected override async Task OnParametersSetAsync()
@@ -132,8 +134,8 @@ else
     }
 
     /// <summary>
-    /// Measures the window once per set of rows and hands the result to the table as soon as
-    /// doing so cannot move the user, see <see cref="ApplyMeasuredPageSize"/>.
+    /// Measures the window once per set of rows and hands the result to the table while doing so
+    /// cannot move the user, see <see cref="ApplyMeasuredPageSize"/>.
     /// </summary>
     /// <param name="firstRender">True on the first render of this component.</param>
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -178,7 +180,8 @@ else
     }
 
     /// <summary>
-    /// Hands the measured page size to the table, but only while the first page is shown.
+    /// Hands the measured page size to the table, but only while the first page is shown. On any
+    /// other page the size is kept back until a later measurement finds the first page again.
     /// </summary>
     private async Task ApplyMeasuredPageSize()
     {
@@ -191,8 +194,12 @@ else
         // The page number survives a page size change, the rows behind it do not: page 2 of 10
         // rows starts at row 20, page 2 of 20 rows starts at row 40. Resizing the window would
         // therefore put a different part of the log on screen without the user asking for it.
-        // On the first page there is nothing to move, so the new size waits for it.
-        if (logTable is not null && logTable.PageNumber != 0)
+        // BlazorTable 1.17.0 offers neither a page change event nor a public page number setter,
+        // so the position cannot be carried over either and the size is kept back instead. It
+        // reaches the table at the next measurement taken while the first page is shown: a later
+        // resize, or the rows of another owner. Paging back to the first page does not render
+        // this component and therefore does not apply it on its own.
+        if (!LogDataTableLayout.MayApplyPageSize(logTable?.PageNumber))
         {
             return;
         }
@@ -241,31 +248,23 @@ else
 
     /// <summary>
     /// Re-measures after the window has come to rest. Resizing fires without interruption while a
-    /// window edge is dragged, so every call cancels the one before it and only the last survives.
+    /// window edge is dragged, so only the last of a run of resizes is measured.
     /// </summary>
     /// <param name="elementId">Element the resize was reported for, not used here.</param>
     private async void OnWindowResized(string elementId)
     {
-        CancellationTokenSource settling = new();
-        CancellationTokenSource? previous = Interlocked.Exchange(ref resizeSettling, settling);
+        int generation = Interlocked.Increment(ref resizeGeneration);
         try
         {
-            if (previous is not null)
+            await Task.Delay(kResizeSettleMilliseconds);
+            // the window has come to rest only if no further resize arrived while this one waited.
+            // Reading the counter instead of cancelling the wait keeps every call to itself: there
+            // is no shared object a later resize could dispose while this one still uses it.
+            if (disposed || Volatile.Read(ref resizeGeneration) != generation)
             {
-                // awaiting the cancellation lets its callbacks finish, so the source can be
-                // disposed right after without racing the resize it just took over
-                await previous.CancelAsync();
-                previous.Dispose();
+                return;
             }
-            await Task.Delay(kResizeSettleMilliseconds, settling.Token);
-            if (!disposed)
-            {
-                await InvokeAsync(AdjustPageSize);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // a later resize took this one over
+            await InvokeAsync(AdjustPageSize);
         }
         catch (Exception exception)
         {
@@ -274,36 +273,19 @@ else
     }
 
     /// <summary>
-    /// Stops listening for window resizes and drops a measurement still waiting to be taken.
+    /// Stops listening for window resizes, so a resize settling at this moment does nothing and
+    /// the browser event no longer reaches a component which has left the page.
     /// </summary>
-    /// <param name="disposing">True when called from <see cref="Dispose()"/>.</param>
-    public void Dispose(bool disposing)
+    public void Dispose()
     {
         if (disposed)
         {
             return;
         }
-
-        if (disposing)
-        {
-            if (eventService is not null)
-            {
-                eventService.OnGlobalResize -= OnWindowResized;
-            }
-            resizeSettling?.Cancel();
-            resizeSettling?.Dispose();
-            resizeSettling = null;
-        }
-
         disposed = true;
-    }
-
-    /// <summary>
-    /// Releases what the component subscribed to in the browser.
-    /// </summary>
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
+        if (eventService is not null)
+        {
+            eventService.OnGlobalResize -= OnWindowResized;
+        }
     }
 }

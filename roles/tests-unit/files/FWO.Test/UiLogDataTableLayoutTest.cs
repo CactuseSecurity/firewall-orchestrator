@@ -58,6 +58,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MayApplyPageSize_AllowsTheFirstPage()
+        {
+            Assert.That(LogDataTableLayout.MayApplyPageSize(LogDataTableLayout.kFirstPageNumber), Is.True,
+                "the first page has nothing above it that a changed page size could push out of view");
+        }
+
+        [Test]
+        public void MayApplyPageSize_AllowsATableWithoutPagingStateYet()
+        {
+            Assert.That(LogDataTableLayout.MayApplyPageSize(null), Is.True,
+                "a table which has not paged yet shows its first rows, so nothing can be moved");
+        }
+
+        [Test]
+        public void MayApplyPageSize_RefusesAnyLaterPage()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataTableLayout.MayApplyPageSize(LogDataTableLayout.kFirstPageNumber + 1), Is.False);
+                Assert.That(LogDataTableLayout.MayApplyPageSize(7), Is.False,
+                    "page 2 of 10 rows starts at row 20, page 2 of 20 rows at row 40 - the user would be moved");
+            });
+        }
+
+        [Test]
         public void ResolvePageSize_KeepsTheMaximumItself()
         {
             Assert.That(LogDataTableLayout.ResolvePageSize(LogDataTableLayout.kMaxPageSize, LogDataTableLayout.kDefaultPageSize),

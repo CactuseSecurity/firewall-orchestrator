@@ -236,7 +236,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kDefaultPageSize),
                     "a page number means different rows once the page size changes, so the table must stay as it is");
                 Assert.That(GetPrivateField<int>(component, "measuredPageSize"), Is.EqualTo(40),
-                    "the measurement is remembered for when the user is back on the first page");
+                    "the measurement is remembered for the next one taken while the first page is shown");
             });
         }
 

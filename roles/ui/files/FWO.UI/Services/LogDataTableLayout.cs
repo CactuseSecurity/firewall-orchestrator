@@ -31,6 +31,24 @@ namespace FWO.Ui.Services
         public const int kMaxPageSize = 100;
 
         /// <summary>
+        /// Page the table starts on. Only this one has nothing above it that a changed page size
+        /// could push out of view.
+        /// </summary>
+        public const int kFirstPageNumber = 0;
+
+        /// <summary>
+        /// Whether a measured page size may be handed to the table right now. A page number keeps
+        /// its value across a page size change while the rows behind it do not, so resizing any
+        /// later page would show the user a different part of the log without being asked.
+        /// </summary>
+        /// <param name="shownPageNumber">Page the table shows, null while it has no paging state yet.</param>
+        /// <returns>True while the change cannot move the user.</returns>
+        public static bool MayApplyPageSize(int? shownPageNumber)
+        {
+            return shownPageNumber is null or kFirstPageNumber;
+        }
+
+        /// <summary>
         /// Resolves the page size from the number of rows the browser reported as fitting.
         /// </summary>
         /// <param name="measuredRows">Rows that fit into the window, <see cref="kCouldNotMeasure"/> if there was nothing to measure.</param>

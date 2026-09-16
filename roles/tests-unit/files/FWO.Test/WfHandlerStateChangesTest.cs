@@ -37,22 +37,6 @@ namespace FWO.Test
             typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
         }
 
-        private static async Task<string> CaptureConsoleOutput(Func<Task> action)
-        {
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-            try
-            {
-                Console.SetOut(logOutput);
-                await action();
-                return logOutput.ToString();
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
-        }
-
         [Test]
         public async Task PromoteTicket_SetsStateAndCompletionAndResetsFlags()
         {
@@ -895,7 +879,7 @@ namespace FWO.Test
             WfTicket ticket = new() { Id = 42, StateId = 1 };
             ticket.ResetStateChanged();
 
-            string logOutput = await CaptureConsoleOutput(async () =>
+            string logOutput = await ConsoleOutput.CaptureAsync(async () =>
                 await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly));
 
             Assert.Multiple(() =>
@@ -936,7 +920,7 @@ namespace FWO.Test
             };
             WfTicket ticket = new() { Id = 42, Tasks = [reqTask] };
 
-            string logOutput = await CaptureConsoleOutput(async () =>
+            string logOutput = await ConsoleOutput.CaptureAsync(async () =>
                 await handler.AutoCreateInitialImplTasksForMonitoring(ticket, reqTask));
 
             Assert.Multiple(() =>

@@ -13,6 +13,7 @@ using NUnit.Framework;
 using System.Net;
 using System.IO;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -636,7 +637,7 @@ namespace FWO.Test
             EmailHelper helper = new(new ThrowingOwnerResponsibleTypesApiConnection(), null,
                 new SimulatedUserConfig { UseDummyEmailAddress = false }, DefaultInit.DoNothing);
 
-            string output = await CaptureConsoleAsync(() => helper.Init());
+            string output = await ConsoleOutput.CaptureAsync(() => helper.Init());
 
             Assert.That(output, Does.Contain("Could not load owner responsible types"));
         }
@@ -658,7 +659,7 @@ namespace FWO.Test
                 EmailAddressTo = ""
             };
 
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 MethodInfo method = typeof(NotificationService).GetMethod(
                     "CollectRecipients",
@@ -1458,21 +1459,5 @@ namespace FWO.Test
             }
         }
 
-        private static async Task<string> CaptureConsoleAsync(Func<Task> action)
-        {
-            TextWriter originalOut = Console.Out;
-            StringWriter writer = new();
-            Console.SetOut(writer);
-            try
-            {
-                await action();
-                await writer.FlushAsync();
-                return writer.ToString();
-            }
-            finally
-            {
-                Console.SetOut(originalOut);
-            }
-        }
     }
 }

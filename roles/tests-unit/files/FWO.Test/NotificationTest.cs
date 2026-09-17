@@ -11,6 +11,7 @@ using FWO.Report;
 using FWO.Report.Filter;
 using System.IO;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -127,6 +128,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task CreateAsync_LoadsNotificationsAndFallsBackWhenNoInternalLdapIsConfigured()
         {
             CreateAsyncApiConn createAsyncApiConnection = new()
@@ -135,7 +137,7 @@ namespace FWO.Test
             };
 
             NotificationService? notificationService = null;
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
             });
@@ -147,6 +149,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task CreateAsync_LogsWarningsAndContinuesWhenLdapConnectionsCannotBeLoaded()
         {
             CreateAsyncApiConn createAsyncApiConnection = new()
@@ -155,7 +158,7 @@ namespace FWO.Test
             };
 
             NotificationService? notificationService = null;
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, createAsyncApiConnection);
             });
@@ -699,7 +702,7 @@ namespace FWO.Test
             };
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
@@ -728,7 +731,7 @@ namespace FWO.Test
                 EmailAddressTo = "{\"other_addresses\":true}"
             };
 
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
@@ -758,7 +761,7 @@ namespace FWO.Test
                 EmailAddressTo = ""
             };
 
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
@@ -788,7 +791,7 @@ namespace FWO.Test
                 EmailAddressTo = ""
             };
 
-            string output = await CaptureConsoleAsync(async () =>
+            string output = await ConsoleOutput.CaptureAsync(async () =>
             {
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
@@ -990,24 +993,5 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
         }
 
-        private static async Task<string> CaptureConsoleAsync(Func<Task> action)
-        {
-            TextWriter originalOut = Console.Out;
-            StringWriter writer = new();
-            Console.SetOut(TextWriter.Synchronized(writer));
-            try
-            {
-                await action();
-                await writer.FlushAsync();
-                lock (writer)
-                {
-                    return writer.ToString();
-                }
-            }
-            finally
-            {
-                Console.SetOut(originalOut);
-            }
-        }
     }
 }

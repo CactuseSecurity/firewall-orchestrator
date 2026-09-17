@@ -435,10 +435,16 @@ internal class WorkflowChangeHistoryControllerTest
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null)
         {
-            FileInfo candidate = new(Path.Combine(directory.FullName, "roles", "api", "files", "replace_metadata.json"));
-            if (candidate.Exists)
+            FileInfo repositoryMetadata = new(Path.Combine(directory.FullName, "roles", "api", "files", "replace_metadata.json"));
+            if (repositoryMetadata.Exists)
             {
-                return candidate;
+                return repositoryMetadata;
+            }
+
+            FileInfo installedMetadata = new(Path.Combine(directory.FullName, "replace_metadata.json"));
+            if (installedMetadata.Exists)
+            {
+                return installedMetadata;
             }
 
             directory = directory.Parent;

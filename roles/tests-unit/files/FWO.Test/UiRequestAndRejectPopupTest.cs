@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using RestSharp;
 using System.Security.Claims;
 using System.Reflection;
 using static FWO.Basics.Placeholder;
@@ -124,161 +125,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_ReturnsApplicableDeadlineNoneNotifications()
-        {
-            using BunitContext context = CreateContext(new RequestPopupNotificationApiConn(), Roles.Modeller);
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
-                new FwoOwner { Id = 12, Name = "Requester" });
-
-            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
-            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
-            List<FwoNotification> notifications = await task;
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(notifications, Has.Count.EqualTo(2));
-                Assert.That(notifications[0].Deadline, Is.EqualTo(NotificationDeadline.None));
-                Assert.That(notifications[0].EmailSubject, Is.EqualTo("immediate-subject"));
-                Assert.That(notifications[1].OwnerId, Is.EqualTo(11));
-                Assert.That(notifications[1].EmailSubject, Is.EqualTo("owner-immediate-subject"));
-            });
-        }
-
-        [Test]
-        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_ReturnsEmptyWhenNoImmediateNotificationExists()
-        {
-            using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
-                new FwoOwner { Id = 12, Name = "Requester" });
-
-            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
-            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
-            List<FwoNotification> notifications = await task;
-
-            Assert.That(notifications, Is.Empty);
-        }
-
-        [Test]
-        public async Task RequestInterfacePopup_LoadImmediateRequestNotifications_PropagatesQueryFailure()
-        {
-            using BunitContext context = CreateContext(new RequestPopupFailingApiConn(), Roles.Modeller);
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
-                new FwoOwner { Id = 12, Name = "Requester" });
-
-            MethodInfo loadImmediateNotifications = typeof(RequestInterfacePopup).GetMethod("LoadImmediateRequestNotifications", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications method not found.");
-            Task<List<FwoNotification>> task = (Task<List<FwoNotification>>)(loadImmediateNotifications.Invoke(component.Instance, Array.Empty<object?>())
-                ?? throw new InvalidOperationException("LoadImmediateRequestNotifications returned null task."));
-
-            InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(async () => await task)
-                ?? throw new AssertionException("Expected notification query failure to propagate.");
-
-            Assert.That(exception.Message, Is.EqualTo("notification query failed"));
-        }
-
-        [Test]
-        public async Task RequestInterfacePopup_SendEmail_SkipsEmailWhenNoImmediateNotificationExists()
-        {
-            using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
-                new FwoOwner { Id = 12, Name = "Requester" },
-                messageSink: null);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            SetPrivateMember(component.Instance, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
-            SetPrivateMember(component.Instance, "middlewareClient", null);
-
-            MethodInfo sendEmail = typeof(RequestInterfacePopup).GetMethod("SendEmail", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("SendEmail method not found.");
-            Task task = (Task)(sendEmail.Invoke(component.Instance, new object?[] { 123L }) ?? throw new InvalidOperationException("SendEmail returned null task."));
-            await task;
-
-            Assert.That(messages, Is.Empty);
-        }
-
-        [Test]
-        public async Task RequestInterfacePopup_SendEmail_DisplaysMissingRecipientErrorWhenNotificationHasNoRecipients()
-        {
-            using BunitContext context = CreateContext(new RequestPopupNoImmediateApiConn(), Roles.Modeller);
-            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
-            userConfig.UiHostName = "https://fwo.example";
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
-                new FwoOwner { Id = 12, Name = "Requester" },
-                messageSink: null);
-            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
-            SetPrivateMember(component.Instance, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, message, isError) => messages.Add((exception, title, message, isError))));
-            SetPrivateMember(component.Instance, "middlewareClient", null);
-
-            RequestPopupNoRecipientsApiConn apiConn = new();
-            SetPrivateMember(component.Instance, "apiConnection", apiConn);
-
-            MethodInfo sendEmail = typeof(RequestInterfacePopup).GetMethod("SendEmail", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("SendEmail method not found.");
-            Task task = (Task)(sendEmail.Invoke(component.Instance, new object?[] { 123L }) ?? throw new InvalidOperationException("SendEmail returned null task."));
-            await task;
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(messages, Has.Count.EqualTo(1));
-                Assert.That(messages[0].Title, Is.EqualTo(userConfig.GetText("send_email")));
-                Assert.That(messages[0].Message, Is.EqualTo(userConfig.GetText("E9011")));
-                Assert.That(messages[0].IsError, Is.True);
-            });
-        }
-
-        [Test]
-        public async Task RequestInterfacePopup_BuildRequestPlaceholderValues_UsesCurrentRequestState()
-        {
-            using BunitContext context = CreateContext(new RequestPopupNotificationApiConn(), Roles.Modeller);
-            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
-            userConfig.UiHostName = "https://fwo.example";
-            userConfig.ModReqInterfaceName = "req-interface";
-            FwoOwner selectedApp = new() { Id = 11, Name = "Selected", ExtAppId = "APP-42" };
-            FwoOwner requestingOwner = new() { Id = 12, Name = "Requester" };
-
-            IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
-                context,
-                selectedApp,
-                requestingOwner);
-
-            component.Find("input[type='text']").Change("branch-if");
-            component.Find("textarea").Change("needed");
-
-            MethodInfo buildPlaceholderValues = typeof(RequestInterfacePopup).GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found.");
-            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)(buildPlaceholderValues.Invoke(component.Instance, new object?[] { 123L })
-                ?? throw new InvalidOperationException("BuildRequestPlaceholderValues returned null."));
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(values.Application, Is.SameAs(selectedApp));
-                Assert.That(values.RequestingOwner, Is.SameAs(requestingOwner));
-                Assert.That(values.InterfaceName, Is.EqualTo("branch-if"));
-                Assert.That(values.InterfaceLinkText, Is.EqualTo(userConfig.GetText("request_interface")));
-                Assert.That(values.InterfaceLinkUrl, Is.EqualTo("https://fwo.example/networkmodelling/APP-42/123"));
-                Assert.That(values.NewInterfaceName, Is.EqualTo("branch-if"));
-                Assert.That(values.NewInterfaceLinkText, Is.EqualTo(userConfig.GetText("request_interface")));
-                Assert.That(values.NewInterfaceLinkUrl, Is.EqualTo("https://fwo.example/networkmodelling/APP-42/123"));
-                Assert.That(values.RequesterName, Is.EqualTo(userConfig.User.Name));
-                Assert.That(values.UserName, Is.EqualTo(userConfig.User.Name));
-                Assert.That(values.RequestDate, Is.EqualTo(DateTime.Now.ToString("dd.MM.yyyy")));
-            });
-        }
-
-        [Test]
         public async Task RequestInterfacePopup_SendRequest_StopsWhenAlreadyInProgress()
         {
             using BunitContext context = CreateContext(new RequestPopupNotificationApiConn(), Roles.Modeller);
@@ -313,48 +159,23 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RequestInterfacePopup_BuildRequestEmailSubjectAndBody_ReplacesPlaceholders()
+        public async Task RequestInterfacePopup_SendEmail_DelegatesToMiddlewareFacade()
         {
             using BunitContext context = CreateContext(Roles.Modeller);
-            SimulatedUserConfig userConfig = (SimulatedUserConfig)context.Services.GetRequiredService<UserConfig>();
-            userConfig.UiHostName = "https://fwo.example";
-            userConfig.ModReqInterfaceName = "req-interface";
-            FwoOwner selectedApp = new() { Id = 11, Name = "Selected", ExtAppId = "APP-42" };
-            FwoOwner requestingOwner = new() { Id = 12, Name = "Requester" };
-
             IRenderedComponent<RequestInterfacePopup> component = RenderRequestInterfacePopup(
                 context,
-                selectedApp,
-                requestingOwner);
+                new FwoOwner { Id = 11, Name = "Selected", ExtAppId = "APP-42" },
+                new FwoOwner { Id = 12, Name = "Requester" });
+            RecordingNotificationMiddlewareClient middlewareClient = new();
+            SetPrivateMember(component.Instance, "middlewareClient", middlewareClient);
 
-            component.Find("input[type='text']").Change("branch-if");
-            component.Find("textarea").Change("needed");
+            MethodInfo sendEmail = typeof(RequestInterfacePopup).GetMethod("SendEmail", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("SendEmail method not found.");
+            Task task = (Task)(sendEmail.Invoke(component.Instance, new object?[] { 123L })
+                ?? throw new InvalidOperationException("SendEmail returned null task."));
+            await task;
 
-            FwoNotification notification = new()
-            {
-                EmailSubject = $"{REQUESTER}/{APPNAME}/{INTERFACE_LINK}",
-                EmailBody = $"Body:{REQUESTER}/{APPNAME}/{INTERFACE_NAME}/{INTERFACE_LINK}"
-            };
-            NotificationPlaceholderResolver.NotificationPlaceholderValues values =
-                (NotificationPlaceholderResolver.NotificationPlaceholderValues)(typeof(RequestInterfacePopup)
-                    .GetMethod("BuildRequestPlaceholderValues", BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?.Invoke(component.Instance, new object?[] { 123L })
-                    ?? throw new InvalidOperationException("BuildRequestPlaceholderValues method not found."));
-
-            string subject = (string)(typeof(RequestInterfacePopup)
-                .GetMethod("BuildRequestEmailSubject", BindingFlags.Static | BindingFlags.NonPublic)
-                ?.Invoke(null, new object?[] { notification, values })
-                ?? throw new InvalidOperationException("BuildRequestEmailSubject method not found."));
-            string body = (string)(typeof(RequestInterfacePopup)
-                .GetMethod("BuildRequestEmailBody", BindingFlags.Static | BindingFlags.NonPublic)
-                ?.Invoke(null, new object?[] { notification, values })
-                ?? throw new InvalidOperationException("BuildRequestEmailBody method not found."));
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(subject, Is.EqualTo($"{userConfig.User.Name}/Selected/https://fwo.example/networkmodelling/APP-42/123"));
-                Assert.That(body, Is.EqualTo($"Body:{userConfig.User.Name}/Selected/branch-if/<a target=\"_blank\" href=\"https://fwo.example/networkmodelling/APP-42/123\">Request Interface: branch-if</a>"));
-            });
+            Assert.That(middlewareClient.ConnectionId, Is.EqualTo(123));
         }
 
         [Test]
@@ -902,6 +723,24 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
                 throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class RecordingNotificationMiddlewareClient : MiddlewareClient
+        {
+            public int ConnectionId { get; private set; }
+
+            public RecordingNotificationMiddlewareClient() : base("http://localhost/")
+            { }
+
+            public override Task<RestResponse<NotificationDeliveryResult>> SendInterfaceRequestNotification(int connectionId)
+            {
+                ConnectionId = connectionId;
+                return Task.FromResult(new RestResponse<NotificationDeliveryResult>(new RestRequest())
+                {
+                    IsSuccessStatusCode = true,
+                    Data = NotificationDeliveryResult.Delivered
+                });
             }
         }
     }

@@ -10,7 +10,6 @@ using FWO.Middleware.Client;
 using FWO.Services;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
-using RestSharp;
 using System.Net;
 using System.IO;
 using System.Reflection;
@@ -46,7 +45,8 @@ namespace FWO.Test
         private static readonly string[] kResolverDns = ["cn=existing,dc=test", "cn=fresh,dc=test"];
         private static readonly string[] kOwnerGroupDns = ["cn=network-team,dc=test", "cn=external,dc=test"];
         private static readonly string[] kResolvedRecipients = ["new@example.test", "fresh@example.test"];
-        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
+        private static readonly Type[] kCollectRecipientsParameterTypes =
+            [typeof(FwoNotification), typeof(FwoOwner), typeof(UiUser), typeof(bool), typeof(bool)];
 
         private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
             IWorkflowRecipientResolver? recipientResolver = null)
@@ -253,34 +253,6 @@ namespace FWO.Test
                 {
                     (1, NotificationLogStatus.Suppressed.ToString(), "")
                 }));
-            });
-        }
-
-        [Test]
-        public async Task SendEmailToNotificationRecipients_LogOnly_UsesTrustedMiddlewareLogEndpoints()
-        {
-            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
-            RecordingMiddlewareClient middlewareClient = new();
-            EmailHelper helper = new(new SimulatedApiConnection(), middlewareClient, userConfig, DefaultInit.DoNothing);
-            FwoNotification notification = new()
-            {
-                Id = 42,
-                NotificationClient = NotificationClient.AppDecomm,
-                Logging = NotificationLoggingMode.LogOnly,
-                RecipientTo = EmailRecipientOption.OtherAddresses,
-                EmailAddressTo = "recipient@example.test",
-                EmailSubject = "subject"
-            };
-
-            NotificationDeliveryResult result = await helper.SendEmailToNotificationRecipientsWithResult(
-                notification, null, "rendered subject", "body");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(result, Is.EqualTo(NotificationDeliveryResult.Suppressed));
-                Assert.That(middlewareClient.SendRequests, Has.Count.EqualTo(1));
-                Assert.That(middlewareClient.SendRequests[0].NotificationId, Is.EqualTo(42));
-                Assert.That(middlewareClient.SendRequests[0].Subject, Is.EqualTo("rendered subject"));
             });
         }
 
@@ -696,7 +668,7 @@ namespace FWO.Test
                     null)
                     ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
 
-                object?[] args = new object?[] { notification, null, false, false };
+                object?[] args = new object?[] { notification, null, null, false, false };
                 Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, args)!;
                 List<string> recipients = await task;
 
@@ -1153,9 +1125,9 @@ namespace FWO.Test
                 new() { Dn = "cn=scoped,dc=test", Email = "scoped@example.test" }
             });
 
-            List<string> dummyRecipients = await InvokePrivateAsync<List<string>>(dummyHelper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test" });
-            List<string> explicitRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test" });
-            List<string> fallbackRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", null });
+            List<string> dummyRecipients = await InvokePrivateAsync<List<string>>(dummyHelper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test", null });
+            List<string> explicitRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test", null });
+            List<string> fallbackRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", null, null });
 
             Assert.That(dummyRecipients, Is.EqualTo(kDummyRecipients));
             Assert.That(explicitRecipients, Is.EqualTo(kScopedRecipients));
@@ -1483,32 +1455,6 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException();
-            }
-        }
-
-        private sealed class RecordingMiddlewareClient : MiddlewareClient
-        {
-            public List<NotificationEmailSendParameters> SendRequests { get; } = [];
-
-            public RecordingMiddlewareClient() : base("http://localhost/")
-            {
-            }
-
-            public override Task<RestResponse<NotificationDeliveryResult>> SendNotificationEmail(NotificationEmailSendParameters parameters)
-            {
-                SendRequests.Add(parameters);
-                return Task.FromResult(CreateResponse(NotificationDeliveryResult.Suppressed));
-            }
-
-            private static RestResponse<T> CreateResponse<T>(T data)
-            {
-                return new RestResponse<T>(new RestRequest())
-                {
-                    StatusCode = HttpStatusCode.OK,
-                    Data = data,
-                    ResponseStatus = ResponseStatus.Completed,
-                    IsSuccessStatusCode = true
-                };
             }
         }
 

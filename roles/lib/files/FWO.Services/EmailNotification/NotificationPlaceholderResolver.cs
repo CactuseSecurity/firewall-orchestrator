@@ -17,6 +17,7 @@ namespace FWO.Services
         {
             public FwoOwner Application { get; init; } = new();
             public FwoOwner? RequestingOwner { get; init; }
+            public UiUser? Requester { get; init; }
             public string InterfaceName { get; init; } = "";
             public string InterfaceLinkText { get; init; } = "";
             public string InterfaceLinkName { get; init; } = "";

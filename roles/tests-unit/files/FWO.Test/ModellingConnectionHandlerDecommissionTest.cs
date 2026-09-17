@@ -10,6 +10,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using FWO.Middleware.Client;
 using FWO.Api.Client.Queries;
+using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -58,7 +59,6 @@ namespace FWO.Test
             };
             apiConnection.Notifications = new List<FwoNotification> { notification };
 
-            TestEmailHelper emailHelper = new(userConfig);
             List<ModellingConnection> interfaceUsers = new()
             {
                 new ModellingConnection { Id = 20, AppId = 2, App = new FwoOwner { Id = 2, Name = "Owner2" }, Name = "Conn2" },
@@ -68,29 +68,20 @@ namespace FWO.Test
             apiConnection.InterfaceUsers = interfaceUsers;
             apiConnection.ConnectionById = interfaceConn;
 
-            DecommissionTestHandler handler = new(apiConnection, userConfig, owner, new List<ModellingConnection> { interfaceConn }, interfaceConn, addMode: false,
+            ModellingConnectionHandler handler = new(apiConnection, userConfig, owner, new List<ModellingConnection> { interfaceConn }, interfaceConn, addMode: false,
                 readOnly: false, DefaultInit.DoNothing, DefaultInit.DoNothing, isOwner: true)
             {
                 UsingConnections = interfaceUsers,
-                ActConnNeedsRefresh = false,
-                EmailHelperOverride = emailHelper
+                ActConnNeedsRefresh = false
             };
 
-            MiddlewareClient middlewareClient = new("http://localhost/");
+            RecordingNotificationMiddlewareClient middlewareClient = new();
 
             await handler.DecommissionInterface("Planned", true, proposedInterface, middlewareClient);
 
-            ClassicAssert.IsTrue(emailHelper.InitCalled);
-            ClassicAssert.AreEqual(2, emailHelper.SentEmails.Count);
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Owner.Id != owner.Id));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Subject == $"Subject {interfaceConn.Name}"));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains(interfaceConn.Name)));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains(proposedInterface.Name)));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains(userConfig.User.Name)));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains("Planned")));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"<a target=\"_blank\" href=\"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}\">")));
-            ClassicAssert.IsTrue(emailHelper.SentEmails.All(email => email.Body.Contains($"{userConfig.UiHostName}/{PageName.Modelling}/{proposedInterface.App.ExtAppId}/{proposedInterface.Id}")));
-            CollectionAssert.AreEquivalent(new List<int> { 10 }, apiConnection.UpdatedNotificationIds);
+            ClassicAssert.AreEqual(interfaceConn.Id, middlewareClient.ConnectionId);
+            ClassicAssert.AreEqual(proposedInterface.Id, middlewareClient.ReplacementConnectionId);
+            ClassicAssert.AreEqual("Planned", middlewareClient.Reason);
 
             CollectionAssert.AreEquivalent(new List<int> { 2, 3 }, apiConnection.AddedPermittedOwnerAppIds);
             CollectionAssert.AreEquivalent(new List<int> { 2, 3 }, apiConnection.AddedSelectedConnectionAppIds);
@@ -98,44 +89,26 @@ namespace FWO.Test
             ClassicAssert.IsTrue(apiConnection.RemovedSelectedConnections.Contains(interfaceConn.Id));
         }
 
-        private sealed class DecommissionTestHandler : ModellingConnectionHandler
+        private sealed class RecordingNotificationMiddlewareClient : MiddlewareClient
         {
-            public TestEmailHelper? EmailHelperOverride { get; set; }
+            public int ConnectionId { get; private set; }
+            public int? ReplacementConnectionId { get; private set; }
+            public string Reason { get; private set; } = "";
 
-            public DecommissionTestHandler(ApiConnection apiConnection, SimulatedUserConfig userConfig, FwoOwner application,
-                List<ModellingConnection> connections, ModellingConnection conn, bool addMode, bool readOnly,
-                Action<Exception?, string, string, bool> displayMessageInUi, Func<Task> refreshParent, bool isOwner)
-                : base(apiConnection, userConfig, application, connections, conn, addMode, readOnly, displayMessageInUi, refreshParent, isOwner)
+            public RecordingNotificationMiddlewareClient() : base("http://localhost/")
+            { }
+
+            public override Task<RestResponse<NotificationDeliveryResult>> SendInterfaceDecommissionNotification(
+                int connectionId, int? replacementConnectionId, string reason)
             {
-            }
-
-            protected override EmailHelper CreateEmailHelper(MiddlewareClient middlewareClient)
-            {
-                return EmailHelperOverride ?? base.CreateEmailHelper(middlewareClient);
-            }
-        }
-
-        private sealed class TestEmailHelper : EmailHelper
-        {
-            public bool InitCalled { get; private set; }
-            public List<(FwoOwner Owner, string Subject, string Body, FwoNotification Notification)> SentEmails { get; } = new();
-
-            public TestEmailHelper(UserConfig userConfig)
-                : base(new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing)
-            {
-            }
-
-            public override Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null,
-                string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null)
-            {
-                InitCalled = true;
-                return Task.CompletedTask;
-            }
-
-            public override Task<NotificationDeliveryResult> SendEmailToNotificationRecipientsWithResult(FwoNotification notification, FwoOwner? owner, string subject, string body)
-            {
-                SentEmails.Add((owner ?? new FwoOwner(), subject, body, notification));
-                return Task.FromResult(NotificationDeliveryResult.Delivered);
+                ConnectionId = connectionId;
+                ReplacementConnectionId = replacementConnectionId;
+                Reason = reason;
+                return Task.FromResult(new RestResponse<NotificationDeliveryResult>(new RestRequest())
+                {
+                    IsSuccessStatusCode = true,
+                    Data = NotificationDeliveryResult.Delivered
+                });
             }
         }
 

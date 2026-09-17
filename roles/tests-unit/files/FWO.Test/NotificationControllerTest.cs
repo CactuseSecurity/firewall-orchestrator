@@ -4,9 +4,10 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Data.Modelling;
+using FWO.Data.Workflow;
+using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
-using FWO.Middleware.Server.Services;
-using FWO.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,252 +22,247 @@ namespace FWO.Test;
 internal class NotificationControllerTest
 {
     [Test]
-    public async Task Send_RejectsUnknownNotification()
+    public void InterfaceRequestEndpoint_AllowsBusinessRoles()
     {
-        NotificationControllerApiConnection apiConnection = new() { NotificationExists = false };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
+        Assert.That(GetRoles(nameof(NotificationController.SendInterfaceRequest)),
+            Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}"));
+    }
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
+    [Test]
+    public void InterfaceDecommissionEndpoint_AllowsBusinessRoles()
+    {
+        Assert.That(GetRoles(nameof(NotificationController.SendInterfaceDecommission)),
+            Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}"));
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_RejectsInvalidConnectionId()
+    {
+        NotificationController controller = CreateController(new ControllerApiConnection(), new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 0 });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
     [Test]
-    public async Task Send_AllowsMultilineRenderedBody()
+    public async Task SendInterfaceRequest_RejectsNonRequestedConnection()
     {
-        RecordingNotificationEmailSender emailSender = new() { SendResult = true };
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(), emailSender);
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.Body = "first line\r\nsecond line";
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
-
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>(), result.Result is ObjectResult objectResult
-            ? $"Unexpected HTTP status {objectResult.StatusCode}: {objectResult.Value}"
-            : "The controller returned no result.");
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Delivered));
-        Assert.That(emailSender.Mail?.Body, Is.EqualTo(parameters.Body));
-    }
-
-    [Test]
-    public async Task Send_RejectsInvalidRequestId()
-    {
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.NotificationId = 0;
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
-
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task Send_RejectsUnknownNotificationId()
-    {
-        NotificationController controller = CreateController(new NotificationControllerApiConnection { NotificationExists = false }, new GlobalConfig());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.NotificationId = 99;
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
-
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task Send_RejectsInactiveNotification()
-    {
-        NotificationControllerApiConnection apiConnection = new() { Active = false };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
-
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-    }
-
-    [Test]
-    public async Task Send_RejectsModellerOutsideEditableOwnerScope()
-    {
-        List<Claim> claims =
-        [
-            new Claim(ClaimTypes.Role, Roles.Modeller),
-            new Claim("x-hasura-editable-owners", "{ 7 }")
-        ];
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(),
-            new RecordingNotificationEmailSender { SendResult = true });
-        controller.ControllerContext = new ControllerContext
+        ControllerApiConnection apiConnection = new()
         {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"))
-            }
+            Connection = new ModellingConnection { Id = 10, IsInterface = true, TicketId = 20 }
         };
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.OwnerId = 4;
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_RejectsModellerOutsideOwnerScope()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket()
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), Roles.Modeller,
+            "{ 7 }");
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
 
         Assert.That(result.Result, Is.TypeOf<ForbidResult>());
     }
 
     [Test]
-    public async Task Send_LogOnly_CompletesLogWithoutSmtpDelivery()
+    public async Task SendInterfaceRequest_AllowsTheRequestCreatorWithoutTargetOwnerEditRights()
     {
-        NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.LogOnly };
+        ModellingConnection connection = RequestedConnection();
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = connection,
+            Ticket = new WfTicket { Requester = new UiUser { DbId = 4, Name = "modeller" } }
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig(), Roles.Modeller);
+        List<Claim> claims =
+        [
+            new Claim(ClaimTypes.Role, Roles.Modeller),
+            new Claim("x-hasura-user-id", "4")
+        ];
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_ReturnsSuppressedWhenNoNotificationIsConfigured()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket()
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_ResolvesTicketAndRequestOwner()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Owner = new FwoOwner { Id = 9, Name = "Request Owner" },
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket
+            {
+                CreationDate = new DateTime(2026, 1, 2),
+                RequesterDn = "cn=requester",
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.new_interface.ToString(),
+                        Title = "Requested interface",
+                        Reason = "Request reason",
+                        AdditionalInfo = "{\"ReqOwner\":\"9\"}"
+                    }
+                ]
+            }
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+        Assert.That(apiConnection.OwnerQueryCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_ReturnsNoRecipientsAndCompletesLog()
+    {
+        ControllerApiConnection apiConnection = ConfiguredNoRecipientConnection();
         NotificationController controller = CreateController(apiConnection, new GlobalConfig());
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>(), result.Result is ObjectResult objectResult
-            ? $"Unexpected HTTP status {objectResult.StatusCode}: {objectResult.Value}"
-            : "The controller returned no result.");
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Suppressed));
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.NoRecipients));
         Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
         Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
     }
 
     [Test]
-    public async Task Send_SendOnly_DeliversWithAllAttachments()
+    public async Task SendInterfaceDecommission_RejectsMissingReason()
     {
-        NotificationControllerApiConnection apiConnection = new() { InsertedId = 9 };
-        RecordingNotificationEmailSender emailSender = new() { SendResult = true };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), emailSender);
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.Attachments =
-        [
-            new NotificationEmailAttachment { FileName = "one.txt", ContentType = "text/plain", ContentBase64 = Convert.ToBase64String("one"u8.ToArray()) },
-            new NotificationEmailAttachment { FileName = "two.txt", ContentType = "text/plain", ContentBase64 = Convert.ToBase64String("two"u8.ToArray()) }
-        ];
+        NotificationController controller = CreateController(new ControllerApiConnection(), new GlobalConfig());
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters { ConnectionId = 10 });
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>(), result.Result is ObjectResult objectResult
-            ? $"Unexpected HTTP status {objectResult.StatusCode}: {objectResult.Value}"
-            : "The controller returned no result.");
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Delivered));
-        Assert.That(emailSender.Mail, Is.Not.Null);
-        Assert.That(emailSender.Mail!.Attachments, Has.Count.EqualTo(2));
-        Assert.That(apiConnection.UpdateCount, Is.EqualTo(0));
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
     [Test]
-    public async Task Send_SendOnly_DeliversWithoutAttachments()
+    public async Task SendInterfaceDecommission_RejectsActiveConnection()
     {
-        RecordingNotificationEmailSender emailSender = new() { SendResult = true };
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(), emailSender);
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
-
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Delivered));
-        Assert.That(emailSender.Mail?.Attachments, Is.Null);
-    }
-
-    [Test]
-    public async Task Send_SendAndLog_ReturnsFailedWhenMailerFails()
-    {
-        NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.SendAndLog };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
-
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.Failed));
-        Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
-    }
-
-    [Test]
-    public async Task Send_SendAndLog_DerivesNotificationMetadataFromStoredNotification()
-    {
-        NotificationControllerApiConnection apiConnection = new()
+        ControllerApiConnection apiConnection = new()
         {
-            InsertedId = 9,
-            Logging = NotificationLoggingMode.SendAndLog,
-            NotificationClient = NotificationClient.AppDecomm,
-            Deadline = NotificationDeadline.DecommissionDate
+            Connection = new ModellingConnection { Id = 10, IsInterface = true, AppId = 8 }
         };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender { SendResult = true });
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters { ConnectionId = 10, Reason = "reason" });
 
-        Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-        Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
-        Assert.That(apiConnection.InsertedEntries[0].NotificationType, Is.EqualTo(NotificationClient.AppDecomm.ToString()));
-        Assert.That(apiConnection.InsertedEntries[0].DeadlineType, Is.EqualTo(NotificationDeadline.DecommissionDate));
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
     [Test]
-    public async Task Send_ReturnsNoRecipientsAndCompletesFailedLog()
+    public async Task SendInterfaceDecommission_RejectsModellerOutsideOwnerScope()
     {
-        NotificationControllerApiConnection apiConnection = new() { InsertedId = 9, Logging = NotificationLoggingMode.SendAndLog };
-        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), new RecordingNotificationEmailSender());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.To = [];
-        parameters.Cc = [];
-        parameters.Bcc = [];
+        ControllerApiConnection apiConnection = new() { Connection = DecommissionedConnection() };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), Roles.Modeller,
+            "{ 7 }");
 
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters { ConnectionId = 10, Reason = "reason" });
 
-        Assert.That(((OkObjectResult)result.Result!).Value, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+        Assert.That(result.Result, Is.TypeOf<ForbidResult>());
+    }
+
+    [Test]
+    public async Task SendInterfaceDecommission_ReturnsSuppressedWhenNoUsersOrNotificationsExist()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = DecommissionedConnection()
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters { ConnectionId = 10, Reason = "reason" });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+    }
+
+    [Test]
+    public async Task SendInterfaceDecommission_ReturnsNoRecipientsAndCompletesLog()
+    {
+        ControllerApiConnection apiConnection = ConfiguredNoRecipientConnection();
+        apiConnection.Connection = DecommissionedConnection();
+        apiConnection.InterfaceUsers = [new ModellingConnection
+        {
+            Id = 11,
+            AppId = 9,
+            App = new FwoOwner { Id = 9, ExtAppId = "APP-9" },
+            Name = "Using interface"
+        }];
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters { ConnectionId = 10, Reason = "reason" });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+        Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
         Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
     }
 
-    [Test]
-    public async Task Send_RejectsMalformedAttachment()
+    private static string? GetRoles(string methodName)
     {
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.Attachments = [new NotificationEmailAttachment { ContentBase64 = "not-base64" }];
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
-
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        MethodInfo method = typeof(NotificationController).GetMethod(methodName)!;
+        return method.GetCustomAttribute<AuthorizeAttribute>()?.Roles;
     }
 
-    [Test]
-    public async Task Send_RejectsAttachmentWithUnsafeFileName()
+    private static NotificationDeliveryResult GetResult(ActionResult<NotificationDeliveryResult> result)
     {
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig());
-        NotificationEmailSendParameters parameters = CreateValidParameters();
-        parameters.Attachments =
-        [
-            new NotificationEmailAttachment
-            {
-                FileName = "attachment\n.txt",
-                ContentType = "text/plain",
-                ContentBase64 = Convert.ToBase64String("content"u8.ToArray())
-            }
-        ];
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(parameters);
-
-        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        return (NotificationDeliveryResult)((OkObjectResult)result.Result!).Value!;
     }
 
-    [Test]
-    public async Task Send_ReturnsInternalServerErrorWhenMailerThrows()
+    private static NotificationController CreateController(ControllerApiConnection apiConnection, GlobalConfig globalConfig,
+        string role = Roles.Admin, string? editableOwners = null)
     {
-        NotificationController controller = CreateController(new NotificationControllerApiConnection(), new GlobalConfig(),
-            new ThrowingNotificationEmailSender());
-
-        ActionResult<NotificationDeliveryResult> result = await controller.Send(CreateValidParameters());
-
-        Assert.That(result.Result, Is.TypeOf<ObjectResult>());
-        Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
-    }
-
-    [Test]
-    public void SendEndpoint_IsRestrictedToModellers()
-    {
-        MethodInfo method = typeof(NotificationController).GetMethod(nameof(NotificationController.Send))!;
-        AuthorizeAttribute? authorize = method.GetCustomAttribute<AuthorizeAttribute>();
-
-        Assert.That(authorize?.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.WorkflowRolesList}"));
-    }
-
-    private static NotificationController CreateController(ApiConnection apiConnection, GlobalConfig globalConfig,
-        INotificationEmailSender? emailSender = null)
-    {
-        List<Claim> claims = [new Claim(ClaimTypes.Role, Roles.Admin)];
-        NotificationController controller = new(apiConnection, globalConfig, emailSender)
+        List<Claim> claims = [new Claim(ClaimTypes.Role, role)];
+        if (editableOwners != null)
+        {
+            claims.Add(new Claim("x-hasura-editable-owners", editableOwners));
+        }
+        return new NotificationController(apiConnection, globalConfig)
         {
             ControllerContext = new ControllerContext
             {
@@ -276,21 +272,48 @@ internal class NotificationControllerTest
                 }
             }
         };
-        return controller;
     }
 
-    private static NotificationEmailSendParameters CreateValidParameters()
+    private static ModellingConnection RequestedConnection()
     {
-        return new NotificationEmailSendParameters
+        return new ModellingConnection
         {
-            NotificationId = 4,
-            To = ["recipient@example.test"],
-            Subject = "subject",
-            Body = "body"
+            Id = 10,
+            ProposedAppId = 8,
+            ProposedApp = new FwoOwner { Id = 8, ExtAppId = "APP-8" },
+            IsInterface = true,
+            IsRequested = true,
+            TicketId = 20,
+            Name = "Requested interface"
         };
     }
 
-    private sealed class NotificationControllerApiConnection : SimulatedApiConnection
+    private static ModellingConnection DecommissionedConnection()
+    {
+        return new ModellingConnection
+        {
+            Id = 10,
+            AppId = 8,
+            App = new FwoOwner { Id = 8, ExtAppId = "APP-8" },
+            IsInterface = true,
+            Removed = true,
+            Name = "Old interface"
+        };
+    }
+
+    private static ControllerApiConnection ConfiguredNoRecipientConnection()
+    {
+        return new ControllerApiConnection
+        {
+            InsertedId = 9,
+            Logging = NotificationLoggingMode.SendAndLog,
+            RecipientTo = EmailRecipientOption.None,
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket()
+        };
+    }
+
+    private sealed class ControllerApiConnection : SimulatedApiConnection
     {
         public int InsertedId { get; init; }
         public string Logging { get; init; } = NotificationLoggingMode.SendOnly;
@@ -298,74 +321,86 @@ internal class NotificationControllerTest
         public bool NotificationExists { get; init; } = true;
         public NotificationClient NotificationClient { get; init; } = NotificationClient.InterfaceRequest;
         public NotificationDeadline Deadline { get; init; } = NotificationDeadline.None;
-        public List<NotificationLogInsertEntry> InsertedEntries { get; } = [];
+        public EmailRecipientOption RecipientTo { get; init; } = EmailRecipientOption.OtherAddresses;
+        public ModellingConnection? Connection { get; set; }
+        public List<ModellingConnection> InterfaceUsers { get; set; } = [];
+        public WfTicket? Ticket { get; init; }
+        public FwoOwner? Owner { get; init; }
+        public int OwnerQueryCount { get; private set; }
         public int InsertCount { get; private set; }
         public int UpdateCount { get; private set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
             string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
         {
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getConnectionForNotification)
+            {
+                List<ModellingConnection> result = Connection == null ? [] : [Connection];
+                return Task.FromResult((QueryResponseType)(object)result);
+            }
+            if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getInterfaceUsers)
+            {
+                return Task.FromResult((QueryResponseType)(object)InterfaceUsers);
+            }
+            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
+            {
+                return Task.FromResult((QueryResponseType)(object)(Ticket ?? new WfTicket()));
+            }
+            if (typeof(QueryResponseType) == typeof(FwoOwner)
+                && (query == OwnerQueries.getOwnerById || query == OwnerQueries.getOwnerForNotification))
+            {
+                OwnerQueryCount++;
+                return Task.FromResult((QueryResponseType)(object)(Owner ?? new FwoOwner()));
+            }
+            if (typeof(QueryResponseType) == typeof(List<Ldap>) && query == AuthQueries.getLdapConnections)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<Ldap>());
+            }
+            if (typeof(QueryResponseType) == typeof(List<OwnerResponsibleType>) && query == OwnerQueries.getOwnerResponsibleTypes)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<OwnerResponsibleType>());
+            }
+            if (typeof(QueryResponseType) == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<UiUser>());
+            }
             if (typeof(QueryResponseType) == typeof(ReturnIdWrapper))
             {
                 InsertCount++;
-                if (variables?.GetType().GetProperty("entries")?.GetValue(variables)
-                    is IEnumerable<NotificationLogInsertEntry> entries)
-                {
-                    InsertedEntries.AddRange(entries);
-                }
-
                 return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                 {
                     ReturnIds = [new ReturnId { Id = InsertedId }]
                 });
             }
-
+            if (typeof(QueryResponseType) == typeof(ReturnId))
+            {
+                UpdateCount++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+            }
             if (typeof(QueryResponseType) == typeof(List<FwoNotification>))
             {
                 if (!NotificationExists)
                 {
                     return Task.FromResult((QueryResponseType)(object)new List<FwoNotification>());
                 }
-
                 string response = JsonConvert.SerializeObject(new
                 {
                     id = 4,
-                    notification_client = this.NotificationClient.ToString(),
-                    deadline = this.Deadline.ToString(),
-                    logging = this.Logging,
-                    active = this.Active
+                    notification_client = NotificationClient.ToString(),
+                    deadline = Deadline.ToString(),
+                    recipient_to = RecipientTo.ToString(),
+                    email_address_to = "",
+                    recipient_cc = EmailRecipientOption.None.ToString(),
+                    email_address_cc = "",
+                    recipient_bcc = EmailRecipientOption.None.ToString(),
+                    email_address_bcc = "",
+                    logging = Logging,
+                    active = Active
                 });
                 List<FwoNotification> notifications = JsonConvert.DeserializeObject<List<FwoNotification>>($"[{response}]")!;
                 return Task.FromResult((QueryResponseType)(object)notifications);
             }
-
-            if (typeof(QueryResponseType) == typeof(ReturnId))
-            {
-                UpdateCount++;
-                return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
-            }
-
             throw new InvalidOperationException($"Unexpected query: {query}");
-        }
-    }
-
-    private sealed class RecordingNotificationEmailSender : INotificationEmailSender
-    {
-        public bool SendResult { get; init; }
-        public MailData? Mail { get; private set; }
-
-        public Task<bool> SendAsync(MailData mail, EmailConnection connection, bool html)
-        {
-            Mail = mail;
-            return Task.FromResult(SendResult);
-        }
-    }
-
-    private sealed class ThrowingNotificationEmailSender : INotificationEmailSender
-    {
-        public Task<bool> SendAsync(MailData mail, EmailConnection connection, bool html)
-        {
-            throw new InvalidOperationException("SMTP failed.");
         }
     }
 }

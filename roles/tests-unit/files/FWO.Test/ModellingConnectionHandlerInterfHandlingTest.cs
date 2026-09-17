@@ -327,32 +327,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CreateDecommissionPlaceholderValues_UsesInterfaceAndReplacementData()
-        {
-            ModellingConnection connection = new() { Id = 20, Name = "OldInterface" };
-            ModellingConnection proposedInterface = new()
-            {
-                Id = 21,
-                App = new FwoOwner { ExtAppId = "APP-2" },
-                Name = "NewInterface"
-            };
-            ModellingConnectionHandler handler = CreateHandler(connection);
-
-            NotificationPlaceholderResolver.NotificationPlaceholderValues values = (NotificationPlaceholderResolver.NotificationPlaceholderValues)
-                GetPrivateMethod("CreateDecommissionPlaceholderValues").Invoke(handler, ["Reason", proposedInterface])!;
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(values.Application, Is.SameAs(handler.ActConn.App));
-                Assert.That(values.Application, Is.Not.SameAs(Application));
-                Assert.That(values.InterfaceName, Is.EqualTo("OldInterface"));
-                Assert.That(values.NewInterfaceName, Is.EqualTo("NewInterface"));
-                Assert.That(values.Reason, Is.EqualTo("Reason"));
-                Assert.That(values.NewInterfaceLinkUrl, Does.Contain("APP-2/21"));
-            });
-        }
-
-        [Test]
         public async Task ReplaceLinks_DoesNothingWhenInterfaceIsNotUsed()
         {
             ModellingConnectionHandler handler = CreateHandler(new ModellingConnection { Id = 22 });

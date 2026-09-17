@@ -73,7 +73,8 @@ namespace FWO.Services.Workflow
                 await SetScope(statefulObject, scope, actionNotification);
                 WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
                 EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
-                await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
+                await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc,
+                    wfHandler.ActTicket.Requester?.Name);
                 WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
                 WorkflowEmailDeliveryResult deliveryResult = await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject,
                     placeholderData);

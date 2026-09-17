@@ -278,12 +278,34 @@ namespace FWO.Middleware.Client
         }
 
         /// <summary>
-        /// Sends a rendered notification through the trusted middleware server.
+        /// Processes the configured immediate notification for an interface request.
         /// </summary>
-        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendNotificationEmail(NotificationEmailSendParameters parameters)
+        /// <param name="connectionId">Database ID of the requested modelling connection.</param>
+        /// <returns>The REST response containing the result of processing the configured notifications.</returns>
+        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendInterfaceRequestNotification(int connectionId)
         {
-            RestRequest request = new("Notification/Send", Method.Post);
-            request.AddJsonBody(parameters);
+            RestRequest request = new("Notification/interface-request", Method.Post);
+            request.AddJsonBody(new InterfaceRequestNotificationParameters { ConnectionId = connectionId });
+            return await restClient.ExecuteAsync<NotificationDeliveryResult>(request);
+        }
+
+        /// <summary>
+        /// Processes configured immediate notifications for applications using a decommissioned interface.
+        /// </summary>
+        /// <param name="connectionId">Database ID of the decommissioned modelling connection.</param>
+        /// <param name="replacementConnectionId">Optional replacement connection ID.</param>
+        /// <param name="reason">User-supplied decommission reason.</param>
+        /// <returns>The REST response containing the processing result.</returns>
+        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendInterfaceDecommissionNotification(
+            int connectionId, int? replacementConnectionId, string reason)
+        {
+            RestRequest request = new("Notification/interface-decommission", Method.Post);
+            request.AddJsonBody(new InterfaceDecommissionNotificationParameters
+            {
+                ConnectionId = connectionId,
+                ReplacementConnectionId = replacementConnectionId,
+                Reason = reason
+            });
             return await restClient.ExecuteAsync<NotificationDeliveryResult>(request);
         }
 

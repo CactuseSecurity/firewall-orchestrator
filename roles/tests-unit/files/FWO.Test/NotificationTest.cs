@@ -29,7 +29,8 @@ namespace FWO.Test
         private static readonly string[] kMainRecipients = ["main@example.test"];
         private static readonly NotificationDeadline[] kNoneDeadline = [NotificationDeadline.None];
         private static readonly NotificationDeadline[] kInterfaceRequestDeadlines = [NotificationDeadline.None, NotificationDeadline.RequestDate];
-        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
+        private static readonly Type[] kCollectRecipientsParameterTypes =
+            [typeof(FwoNotification), typeof(FwoOwner), typeof(UiUser), typeof(bool), typeof(bool)];
 
         [Test]
         public async Task TestInterfaceRequestNotification()
@@ -640,10 +641,10 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                object?[] jsonArgs = [jsonNotification, owner, false, false];
+                object?[] jsonArgs = [jsonNotification, owner, null, false, false];
                 Task<List<string>> jsonTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, jsonArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
-                object?[] configuredArgs = [configuredNotification, owner, false, false];
+                object?[] configuredArgs = [configuredNotification, owner, null, false, false];
                 Task<List<string>> configuredTask = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, configuredArgs)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
 
@@ -662,8 +663,9 @@ namespace FWO.Test
         [Test]
         public async Task CollectRecipientsReturnsDummyRecipientsWhenDummyEmailIsEnabled()
         {
+            SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de" };
             List<UserGroup> ownerGroups = [];
-            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
+            NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, localConfig, apiConnection, ownerGroups);
             FwoNotification notification = new()
             {
                 NotificationClient = NotificationClient.InterfaceRequest,
@@ -675,7 +677,7 @@ namespace FWO.Test
             MethodInfo? collectRecipients = GetCollectRecipientsMethod();
             ClassicAssert.IsNotNull(collectRecipients);
 
-            object?[] args = [notification, owner, false, false];
+            object?[] args = [notification, owner, null, false, false];
             Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                 ?? throw new InvalidOperationException("CollectRecipients returned null task."));
             List<string> recipients = await task;
@@ -702,7 +704,7 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                object?[] args = [notification, owner, false, false];
+                object?[] args = [notification, owner, null, false, false];
                 Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
@@ -731,7 +733,7 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                object?[] args = [notification, null, false, false];
+                object?[] args = [notification, null, null, false, false];
                 Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
@@ -761,7 +763,7 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                object?[] args = [notification, null, false, false];
+                object?[] args = [notification, null, null, false, false];
                 Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;
@@ -791,7 +793,7 @@ namespace FWO.Test
                 MethodInfo? collectRecipients = GetCollectRecipientsMethod();
                 ClassicAssert.IsNotNull(collectRecipients);
 
-                object?[] args = [notification, null, false, false];
+                object?[] args = [notification, null, null, false, false];
                 Task<List<string>> task = (Task<List<string>>)(collectRecipients?.Invoke(notificationService, args)
                     ?? throw new InvalidOperationException("CollectRecipients returned null task."));
                 List<string> recipients = await task;

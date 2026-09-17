@@ -3,6 +3,7 @@
 @using FWO.Compliance
 @using FWO.Middleware.Client
 @using FWO.Services
+@using RestSharp
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject MiddlewareClient middlewareClient
@@ -154,50 +155,23 @@
     {
         try
         {
-            EmailHelper emailHelper = new(apiConnection, middlewareClient, userConfig, DisplayMessageInUi);
-            await emailHelper.Init();
-
-            List<FwoNotification> notifications = await LoadImmediateRequestNotifications();
-            if (notifications.Count == 0)
+            RestResponse<NotificationDeliveryResult> response = await middlewareClient.SendInterfaceRequestNotification((int)connId);
+            if (!response.IsSuccessful)
             {
-                return;
+                string responseDetails = response.ErrorMessage
+                    ?? response.Content
+                    ?? response.StatusDescription
+                    ?? response.StatusCode.ToString();
+                throw new InvalidOperationException(
+                    $"Middleware interface request notification failed with HTTP {(int)response.StatusCode}: {responseDetails}");
             }
 
-            NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues = BuildRequestPlaceholderValues(connId);
-            List<int> deliveredNotificationIds = [];
-            Exception? firstException = null;
-            bool hasFailure = false;
-            foreach (FwoNotification notification in notifications)
+            NotificationDeliveryResult deliveryResult = response.Data;
+            if (deliveryResult is NotificationDeliveryResult.Failed or NotificationDeliveryResult.NoRecipients)
             {
-                try
-                {
-                    NotificationDeliveryResult deliveryResult = await SendImmediateNotification(
-                        emailHelper, notification, requestPlaceholderValues);
-                    if (deliveryResult == NotificationDeliveryResult.Delivered)
-                    {
-                        deliveredNotificationIds.Add(notification.Id);
-                    }
-                    else if (deliveryResult is NotificationDeliveryResult.Failed or NotificationDeliveryResult.NoRecipients)
-                    {
-                        hasFailure = true;
-                    }
-                }
-                catch (Exception exception)
-                {
-                    firstException ??= exception;
-                    hasFailure = true;
-                }
+                DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("E9011"), true);
             }
-
-            if (deliveredNotificationIds.Count > 0)
-            {
-                await NotificationLastSentHelper.UpdateAsync(apiConnection, deliveredNotificationIds);
-            }
-            if (hasFailure)
-            {
-                DisplayMessageInUi(firstException, userConfig.GetText("send_email"), firstException == null ? userConfig.GetText("E9011") : "", true);
-            }
-            else if (deliveredNotificationIds.Count > 0)
+            else if (deliveryResult == NotificationDeliveryResult.Delivered)
             {
                 DisplayMessageInUi(null, userConfig.GetText("send_email"), userConfig.GetText("U9011"), false);
             }
@@ -206,62 +180,6 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("send_email"), "", true);
         }
-    }
-
-    private async Task<NotificationDeliveryResult> SendImmediateNotification(
-        EmailHelper emailHelper,
-        FwoNotification notification,
-        NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues)
-    {
-        string subject = BuildRequestEmailSubject(notification, requestPlaceholderValues);
-        string body = BuildRequestEmailBody(notification, requestPlaceholderValues);
-        return await emailHelper.SendEmailToNotificationRecipientsWithResult(notification, SelectedOwner, subject, body);
-    }
-
-    private async Task<List<FwoNotification>> LoadImmediateRequestNotifications()
-    {
-        List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
-            NotificationQueries.getNotifications,
-            new { client = NotificationClient.InterfaceRequest.ToString() });
-
-        return notifications.Where(notification => notification.Active
-            && notification.Deadline == NotificationDeadline.None
-            && (notification.OwnerId == null || notification.OwnerId == SelectedOwner.Id)).ToList();
-    }
-
-    private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValues(long connId)
-    {
-        string interfaceUrl = $"{userConfig.UiHostName}/{PageName.Modelling}/{SelectedOwner.ExtAppId}/{connId}";
-        return new NotificationPlaceholderResolver.NotificationPlaceholderValues
-        {
-            Application = SelectedOwner,
-            RequestingOwner = RequestingOwner,
-            InterfaceName = InterfaceName,
-            InterfaceLinkText = userConfig.GetText("request_interface"),
-            InterfaceLinkName = InterfaceName,
-            InterfaceLinkUrl = interfaceUrl,
-            NewInterfaceName = InterfaceName,
-            NewInterfaceLinkText = userConfig.GetText("request_interface"),
-            NewInterfaceLinkName = InterfaceName,
-            NewInterfaceLinkUrl = interfaceUrl,
-            Reason = Reason,
-            UserName = userConfig.User.Name,
-            RequesterName = userConfig.User.Name,
-            RequestDate = DateTime.Now.ToString("dd.MM.yyyy")
-        };
-    }
-
-    private static string BuildRequestEmailSubject(FwoNotification notification, NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues)
-    {
-        return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(notification.EmailSubject, requestPlaceholderValues);
-    }
-
-    private static string BuildRequestEmailBody(FwoNotification notification, NotificationPlaceholderResolver.NotificationPlaceholderValues requestPlaceholderValues)
-    {
-        return NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
-            NotificationEmailLayoutHelper.BuildBody(notification, (string?)null),
-            requestPlaceholderValues,
-            renderHtmlLinks: true);
     }
 
     private void Close()

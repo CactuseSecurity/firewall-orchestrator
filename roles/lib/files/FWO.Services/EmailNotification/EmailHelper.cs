@@ -12,7 +12,6 @@ using System.Text.RegularExpressions;
 using System.Linq;
 using FWO.Basics;
 using FWO.Logging;
-using RestSharp;
 
 namespace FWO.Services
 {
@@ -34,6 +33,7 @@ namespace FWO.Services
         private string? ScopedUserEmailTo;
         private string? ScopedUserEmailCc;
         private string? ScopedUserEmailBcc;
+        private string? ScopedUserName;
 
 
         public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi,
@@ -49,7 +49,8 @@ namespace FWO.Services
         }
 
         public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null,
-            string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null)
+            string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null,
+            string? scopedUserName = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
@@ -73,6 +74,7 @@ namespace FWO.Services
             ScopedUserEmailTo = scopedUserEmailTo;
             ScopedUserEmailCc = scopedUserEmailCc;
             ScopedUserEmailBcc = scopedUserEmailBcc;
+            ScopedUserName = scopedUserName;
         }
 
         /// <summary>
@@ -105,20 +107,6 @@ namespace FWO.Services
             List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
                 ? null
                 : await GetNotificationRecipients(notification.RecipientBcc, notification.EmailAddressBcc, owner);
-
-            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, new MiddlewareEmailData
-            {
-                OwnerId = owner?.Id,
-                Tos = tos,
-                Ccs = ccs,
-                Bccs = bccs,
-                Subject = subject,
-                Body = body
-            });
-            if (middlewareResult.HasValue)
-            {
-                return middlewareResult.Value;
-            }
 
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
 
@@ -162,20 +150,6 @@ namespace FWO.Services
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
                 placeholderData, renderHtmlLinks: true);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
-            NotificationDeliveryResult? middlewareResult = await SendThroughMiddleware(notification, new MiddlewareEmailData
-            {
-                OwnerId = owner?.Id,
-                Tos = tos,
-                Ccs = ccs,
-                Bccs = bccs,
-                Subject = subject,
-                Body = body,
-                Attachment = attachment
-            });
-            if (middlewareResult.HasValue)
-            {
-                return ToWorkflowDeliveryResult(middlewareResult.Value);
-            }
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
             {
@@ -207,56 +181,6 @@ namespace FWO.Services
             }
 
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
-        }
-
-        private async Task<NotificationDeliveryResult?> SendThroughMiddleware(FwoNotification notification, MiddlewareEmailData email)
-        {
-            if (middlewareClient == null || useInMwServer)
-            {
-                return null;
-            }
-
-            NotificationEmailSendParameters parameters = new()
-            {
-                NotificationId = notification.Id,
-                OwnerId = email.OwnerId,
-                To = email.Tos,
-                Cc = email.Ccs ?? [],
-                Bcc = email.Bccs ?? [],
-                Subject = email.Subject,
-                Body = email.Body,
-                Html = notification.Layout == NotificationLayout.HtmlInBody
-            };
-            if (email.Attachment != null)
-            {
-                using MemoryStream stream = new();
-                await email.Attachment.CopyToAsync(stream);
-                NotificationEmailAttachment attachmentData = new()
-                {
-                    FileName = email.Attachment.FileName,
-                    ContentType = email.Attachment.ContentType,
-                    ContentBase64 = Convert.ToBase64String(stream.ToArray())
-                };
-                parameters.Attachments.Add(attachmentData);
-            }
-
-            RestResponse<NotificationDeliveryResult> response = await middlewareClient.SendNotificationEmail(parameters);
-            if (!response.IsSuccessful)
-            {
-                throw new InvalidOperationException("Middleware notification send failed.");
-            }
-            return response.Data;
-        }
-
-        private sealed class MiddlewareEmailData
-        {
-            public int? OwnerId { get; init; }
-            public required List<string> Tos { get; init; }
-            public List<string>? Ccs { get; init; }
-            public List<string>? Bccs { get; init; }
-            public required string Subject { get; init; }
-            public required string Body { get; init; }
-            public FormFile? Attachment { get; init; }
         }
 
         private static WorkflowEmailDeliveryResult ToWorkflowDeliveryResult(NotificationDeliveryResult result)
@@ -386,6 +310,7 @@ namespace FWO.Services
             string? scopedUserEmail)
         {
             Func<Task<List<string>>> scopedUserHandler = () => CollectEmailAddressesFromScopedUser(scopedUser, scopedUserEmail);
+            Func<Task<List<string>>> requesterHandler = () => CollectEmailAddressesFromScopedUser(scopedUser, scopedUserEmail, ScopedUserName);
             return new Dictionary<EmailRecipientOption, Func<Task<List<string>>>>
             {
                 { EmailRecipientOption.CurrentHandler, () => CollectEmailAddressesFromUser(statefulObject?.CurrentHandler) },
@@ -395,7 +320,7 @@ namespace FWO.Services
                 { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
                 { EmailRecipientOption.OwnerGroupOnly, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting) },
                 { EmailRecipientOption.ConfiguredResponsibles, () => Task.FromResult(new List<string>()) },
-                { EmailRecipientOption.Requester, scopedUserHandler },
+                { EmailRecipientOption.Requester, requesterHandler },
                 { EmailRecipientOption.Approver, scopedUserHandler },
                 { EmailRecipientOption.LastCommenter, scopedUserHandler },
                 { EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, () => GetOwnerGroupOrMainResponsibleRecipients(owner) },
@@ -431,7 +356,8 @@ namespace FWO.Services
             return mainResponsibleAddresses;
         }
 
-        public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses,
+            UiUser? requester = null)
         {
             if (!selection.HasAnyRecipientOption())
             {
@@ -444,7 +370,7 @@ namespace FWO.Services
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
             AddOtherAddresses(selection, otherAddresses, recipients);
-            AddRequesterRecipients(selection, recipients);
+            await AddRequesterRecipients(selection, recipients, requester);
             if (owner != null)
             {
                 await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
@@ -454,10 +380,11 @@ namespace FWO.Services
             return recipients.ToList();
         }
 
-        public async Task<List<string>> GetRecipients(string recipientConfig, FwoOwner? owner, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(string recipientConfig, FwoOwner? owner, List<string>? otherAddresses,
+            UiUser? requester = null)
         {
             EmailRecipientSelection selection = EmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds());
-            return await GetRecipients(selection, owner, otherAddresses);
+            return await GetRecipients(selection, owner, otherAddresses, requester);
         }
 
         private async Task<List<string>> GetNotificationRecipients(EmailRecipientOption recipientOption, string addressList, FwoOwner? owner)
@@ -487,12 +414,17 @@ namespace FWO.Services
             }
         }
 
-        private void AddRequesterRecipients(EmailRecipientSelection selection, HashSet<string> recipients)
+        private async Task AddRequesterRecipients(EmailRecipientSelection selection, HashSet<string> recipients, UiUser? requester)
         {
-            if (selection.Requester && !string.IsNullOrWhiteSpace(userConfig.User.Email))
+            if (!selection.Requester)
             {
-                AddAddresses(recipients, new List<string> { userConfig.User.Email });
+                return;
             }
+
+            List<string> requesterRecipients = requester == null
+                ? await CollectEmailAddressesFromUser(userConfig.User)
+                : await CollectEmailAddressesFromUser(requester);
+            AddAddresses(recipients, requesterRecipients);
         }
 
         private async Task AddOwnerTypeRecipients(FwoOwner owner, IEnumerable<int> responsibleTypeIds, HashSet<string> recipients)
@@ -616,7 +548,7 @@ namespace FWO.Services
             return await CollectEmailAddressesFromDns(dn == null ? null : [dn]);
         }
 
-        private async Task<List<string>> CollectEmailAddressesFromScopedUser(string? dn, string? email)
+        private async Task<List<string>> CollectEmailAddressesFromScopedUser(string? dn, string? email, string? userName = null)
         {
             if (userConfig.UseDummyEmailAddress)
             {
@@ -626,12 +558,20 @@ namespace FWO.Services
             {
                 return [email];
             }
+            UiUser? cachedUser = uiUsers.FirstOrDefault(user =>
+                !string.IsNullOrWhiteSpace(userName)
+                && string.Equals(user.Name, userName, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(user.Email));
+            if (cachedUser != null)
+            {
+                return [cachedUser.Email!];
+            }
             return await CollectEmailAddressesFromUserOrGroup(dn);
         }
 
         private async Task<List<string>> CollectEmailAddressesFromUser(UiUser? user)
         {
-            if (user == null || string.IsNullOrWhiteSpace(user.Dn))
+            if (user == null)
             {
                 return [];
             }
@@ -642,6 +582,10 @@ namespace FWO.Services
             if (!string.IsNullOrWhiteSpace(user.Email))
             {
                 return [user.Email];
+            }
+            if (string.IsNullOrWhiteSpace(user.Dn))
+            {
+                return [];
             }
             return await CollectEmailAddressesFromUserOrGroup(user.Dn);
         }

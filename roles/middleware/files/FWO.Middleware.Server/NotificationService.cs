@@ -124,19 +124,38 @@ namespace FWO.Middleware.Server
             string timeIntervalText = "", DateTime? resolvedDeadline = null,
             NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
+            return await SendNotificationWithResult(notification, owner, content, report, timeIntervalText,
+                resolvedDeadline, placeholderValues) == NotificationDeliveryResult.Delivered ? 1 : 0;
+        }
+
+        /// <summary>
+        /// Sends one active notification and preserves the complete delivery outcome.
+        /// </summary>
+        /// <param name="notification">Notification to send.</param>
+        /// <param name="owner">Owner for whom the notification is sent.</param>
+        /// <param name="content">Optional caller content for the notification body.</param>
+        /// <param name="report">Optional report attachment.</param>
+        /// <param name="timeIntervalText">Optional interval text for placeholders.</param>
+        /// <param name="resolvedDeadline">Resolved deadline used for logging.</param>
+        /// <param name="placeholderValues">Optional caller context for placeholders.</param>
+        /// <returns>The explicit processing result.</returns>
+        public async Task<NotificationDeliveryResult> SendNotificationWithResult(FwoNotification notification, FwoOwner? owner,
+            string? content = null, ReportBase? report = null, string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
+        {
             if (!notification.Active)
             {
-                return 0;
+                return NotificationDeliveryResult.Suppressed;
             }
 
-            // Later: Handle other channels here when implemented
-            NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText, resolvedDeadline, placeholderValues);
-            if (deliveryResult != NotificationDeliveryResult.Delivered)
+            // Later: Handle other channels here when implemented.
+            NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText,
+                resolvedDeadline, placeholderValues);
+            if (deliveryResult == NotificationDeliveryResult.Delivered)
             {
-                return 0;
+                AddCheckedNotificationId(notification.Id);
             }
-            AddCheckedNotificationId(notification.Id);
-            return 1;
+            return deliveryResult;
         }
 
         /// <summary>
@@ -458,9 +477,10 @@ namespace FWO.Middleware.Server
             {
                 body += report.ExportToHtmlBody();
             }
-            List<string> tos = emailHelper == null ? await CollectRecipients(notification, owner) : await CollectRecipients(notification, owner, emailHelper);
-            List<string> bccs = emailHelper == null ? await CollectRecipients(notification, owner, false, true) : await CollectRecipients(notification, owner, emailHelper, false, true);
-            List<string> ccs = emailHelper == null ? await CollectRecipients(notification, owner, true) : await CollectRecipients(notification, owner, emailHelper, true);
+            UiUser? requester = placeholderValues?.Requester;
+            List<string> tos = emailHelper == null ? await CollectRecipients(notification, owner, requester) : await CollectRecipients(notification, owner, emailHelper, requester);
+            List<string> bccs = emailHelper == null ? await CollectRecipients(notification, owner, requester, false, true) : await CollectRecipients(notification, owner, emailHelper, requester, false, true);
+            List<string> ccs = emailHelper == null ? await CollectRecipients(notification, owner, requester, true) : await CollectRecipients(notification, owner, emailHelper, requester, true);
             MailData mailData = new(tos, subject)
             {
                 Body = body,
@@ -545,17 +565,19 @@ namespace FWO.Middleware.Server
         /// </summary>
         /// <param name="notification">Notification to inspect.</param>
         /// <param name="owner">Owner context used for recipient resolution.</param>
+        /// <param name="requester">Optional persisted requester used for requester recipient resolution.</param>
         /// <param name="cc">Whether to resolve the Cc recipient set.</param>
         /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
         /// <returns>Resolved email addresses.</returns>
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, UiUser? requester,
+            bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
                 return [GlobalConfig.DummyEmailAddress];
             }
             EmailHelper emailHelper = await CreateEmailHelper();
-            return await CollectRecipients(notification, owner, emailHelper, cc, bcc);
+            return await CollectRecipients(notification, owner, emailHelper, requester, cc, bcc);
         }
 
         /// <summary>
@@ -564,10 +586,12 @@ namespace FWO.Middleware.Server
         /// <param name="notification">Notification to inspect.</param>
         /// <param name="owner">Owner context used for recipient resolution.</param>
         /// <param name="emailHelper">Preinitialized email helper.</param>
+        /// <param name="requester">Optional persisted requester used for requester recipient resolution.</param>
         /// <param name="cc">Whether to resolve the Cc recipient set.</param>
         /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
         /// <returns>Resolved email addresses.</returns>
-        private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
+        private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper,
+            UiUser? requester, bool cc = false, bool bcc = false)
         {
             EmailRecipientOption recipientOption = notification.RecipientTo;
             string? addressList = notification.EmailAddressTo;
@@ -585,7 +609,7 @@ namespace FWO.Middleware.Server
             List<string> addresses = EmailHelper.SplitAddresses(addressList);
             if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
             {
-                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", owner, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", owner, null, requester);
                 if (recipients.Count == 0)
                 {
                     Log.WriteWarning("Notifications", $"No recipients resolved for configured responsibles while preparing notification client {notification.NotificationClient}.");
@@ -594,14 +618,15 @@ namespace FWO.Middleware.Server
             }
             if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
             {
-                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", null, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", null, null, requester);
                 if (recipients.Count == 0)
                 {
                     Log.WriteWarning("Notifications", $"No recipients resolved for other addresses while preparing notification client {notification.NotificationClient}.");
                 }
                 return recipients;
             }
-            List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+            List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner,
+                requester?.Dn, addresses, requester?.Email);
             if (resolvedRecipients.Count == 0 && recipientOption != EmailRecipientOption.None)
             {
                 Log.WriteWarning("Notifications", $"No recipients resolved for notification client {notification.NotificationClient} using option {recipientOption}.");

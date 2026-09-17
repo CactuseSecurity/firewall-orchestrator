@@ -164,7 +164,8 @@ else
     private readonly RuleOwnerMappingRunHandler Handler = new();
     private bool InitComplete = false;
 
-    private RuleOwnerMappingRunState State => Handler.GetSelectedState();
+    // every use of this sits inside the "SelectedRun != null" block below, where a state always exists
+    private RuleOwnerMappingRunState State => Handler.GetSelectedState()!.Value;
     private List<RuleOwnerMappingRunEntry> Entries => Handler.GetSelectedEntries();
 
     protected override async Task OnInitializedAsync()

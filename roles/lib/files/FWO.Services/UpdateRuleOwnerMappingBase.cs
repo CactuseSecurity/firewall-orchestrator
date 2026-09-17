@@ -196,6 +196,8 @@ namespace FWO.Services
                 return await HandleFailedImports(failedImportControlIds, fullReinitFunc);
             }
 
+            // every pending import was processed, so an import failing again later starts counting from zero
+            await new RuleOwnerMappingRunHistory(apiConnection).ClearFailedImports();
             return true;
         }
 
@@ -344,6 +346,14 @@ namespace FWO.Services
         /// <summary>
         /// Marks every active mapping as removed and returns the state that was just replaced, which the
         /// run history diffs against the rebuilt mappings.
+        /// <para>
+        /// This materializes every active mapping in memory, and the caller holds the rebuilt set alongside
+        /// it while the diff is computed - so the peak is a small multiple of the active rule_owner rows.
+        /// That is accepted deliberately: rule_owner holds one row per mapped rule and owner, which stays in
+        /// the same order of magnitude as the rule base. Should an installation grow far beyond that, fetch
+        /// the counts by aggregate and materialize only the pairs the history actually lists
+        /// (kMaxListedPairs) instead of returning every row here.
+        /// </para>
         /// </summary>
         /// <param name="controlId">Import control the removal is recorded under.</param>
         /// <returns>The mappings that were active before the removal.</returns>
@@ -521,16 +531,26 @@ namespace FWO.Services
         private async Task<bool> HandleFailedImports(List<long> failedImportControlIds, Func<Task<bool>> fullReinitFunc)
         {
             string failedIds = string.Join(", ", failedImportControlIds);
-            bool failedBefore = await RaiseAlert($"Rule owner mapping failed for import_control {failedIds}. See the middleware log for details.");
+            RuleOwnerMappingRunHistory history = new(apiConnection);
+
+            // the run history, not the alert, decides whether this is a repeat: an alert stops being open as
+            // soon as somebody acknowledges it, which would leave a permanently failing import unrepaired
+            bool failedBefore = await history.RecordFailedImports(failedImportControlIds);
+            await RaiseAlert($"Rule owner mapping failed for import_control {failedIds}. See the middleware log for details.");
 
             if (!failedBefore)
             {
                 return false;
             }
 
-            // the alert of the previous run is still open, so this is at least the second attempt
             Log.WriteWarning(LogMessageTitle, $"import_control {failedIds} failed again. Falling back to full rule_owner reinitialize.");
-            return await fullReinitFunc();
+            bool repaired = await fullReinitFunc();
+            if (repaired)
+            {
+                // the rebuild recomputed everything and completed the stuck imports, so the failures are settled
+                await history.ClearFailedImports();
+            }
+            return repaired;
         }
 
         /// <summary>
@@ -566,18 +586,17 @@ namespace FWO.Services
 
         /// <summary>
         /// Writes a log entry and an alert unless the same alert is already open, so a job repeating every
-        /// few seconds does not flood the alert list with identical entries. The already open alert also
-        /// tells a repeated problem from a first occurrence, see <see cref="HandleFailedImports"/>.
+        /// few seconds does not flood the alert list with identical entries. Purely a notification: whether
+        /// an import failed before is decided by the run history, see <see cref="HandleFailedImports"/>.
         /// </summary>
         /// <param name="description">Description shown in the alert and the log entry.</param>
-        /// <returns>True if an alert with the same description was already open and nothing was written.</returns>
-        private async Task<bool> RaiseAlert(string description)
+        private async Task RaiseAlert(string description)
         {
             try
             {
                 if (await SameAlertAlreadyOpen(description))
                 {
-                    return true;
+                    return;
                 }
 
                 await AlertHelper.AddLogEntry(apiConnection, kAlertSeverity, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping);
@@ -588,7 +607,6 @@ namespace FWO.Services
             {
                 Log.WriteError(LogMessageTitle, "Error while raising a rule_owner mapping alert.", ex);
             }
-            return false;
         }
 
         /// <summary>

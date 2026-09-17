@@ -109,7 +109,9 @@ namespace FWO.Services
 
         /// <summary>
         /// Pairs the full reinitialize established although they did not exist before, so the incremental
-        /// mapping never created them. Look them up as rule_owner rows with created = <see cref="ControlId"/>.
+        /// mapping never created them. These are kept here because they cannot be recovered from rule_owner:
+        /// the run stamps created = <see cref="ControlId"/> on every rebuilt mapping, not only on the new
+        /// ones, so that column identifies the run rather than the difference.
         /// Capped, see <see cref="PairListsTruncated"/>; <see cref="AddedCount"/> always holds the full number.
         /// </summary>
         [JsonPropertyName("added")]
@@ -117,8 +119,9 @@ namespace FWO.Services
 
         /// <summary>
         /// Pairs that were active before and the full reinitialize does not produce any more, so the
-        /// incremental mapping left them behind. Look them up as rule_owner rows with
-        /// removed = <see cref="ControlId"/>. Capped, see <see cref="PairListsTruncated"/>;
+        /// incremental mapping left them behind. Kept here for the same reason as <see cref="Added"/>: the
+        /// run stamps removed = <see cref="ControlId"/> on every previously active mapping, not only on the
+        /// obsolete ones. Capped, see <see cref="PairListsTruncated"/>;
         /// <see cref="RemovedCount"/> always holds the full number.
         /// </summary>
         [JsonPropertyName("removed")]
@@ -168,6 +171,15 @@ namespace FWO.Services
         /// <summary>Runs that found a difference, newest first.</summary>
         [JsonPropertyName("runsWithFindings")]
         public List<RuleOwnerMappingRun> RunsWithFindings { get; set; } = [];
+
+        /// <summary>
+        /// Control ids of the imports that failed on the previous incremental run. An import failing again
+        /// while it is listed here has failed twice in a row, which the run then repairs by a full
+        /// reinitialize. Kept here rather than derived from an open alert: an alert stops being open as soon
+        /// as somebody acknowledges it, which would silently disarm the repair.
+        /// </summary>
+        [JsonPropertyName("failedImports")]
+        public List<long> FailedImports { get; set; } = [];
     }
 
     /// <summary>
@@ -178,7 +190,21 @@ namespace FWO.Services
     /// </summary>
     public class RuleOwnerMappingRunHistory
     {
-        /// <summary>Config key the history is stored under.</summary>
+        /// <summary>
+        /// Config key the history is stored under, written with config_user = 0.
+        /// <para>
+        /// That tier is FWO's public one: the anonymous role may select every config_user = 0 row, because
+        /// the login page reads global config before anybody has signed in. Only the client certificate the
+        /// GraphQL API requires keeps this out of reach - anyone holding one reads this entry without user
+        /// credentials. Comparable operational data does not live here for that reason; import_control and
+        /// alert have their own tables and are not readable by the anonymous role at all.
+        /// </para>
+        /// <para>
+        /// Accepted for what is stored today: rule ids, owner ids and import control ids, no names and no
+        /// rule content. Do not extend this entry with anything more revealing - move it to its own table
+        /// with select limited to middleware-server, admin and auditor instead.
+        /// </para>
+        /// </summary>
         public const string kConfigKey = "ruleOwnerMappingRunHistory";
 
         /// <summary>How many runs with a finding are kept. Shown on the page, so it stays in one place.</summary>
@@ -268,18 +294,78 @@ namespace FWO.Services
                     history.RunsWithFindings = history.RunsWithFindings.Take(kMaxRuns).ToList();
                 }
 
-                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, new
-                {
-                    config_key = kConfigKey,
-                    config_value = JsonSerializer.Serialize(history, SerializerOptions),
-                    config_user = 0
-                });
+                await Save(history);
             }
             catch (Exception ex)
             {
                 // the history is a diagnostic aid, it must never break the mapping itself
                 Log.WriteError(kLogMessageTitle, "Error while storing the rule_owner mapping run history.", ex);
             }
+        }
+
+        /// <summary>
+        /// Remembers which imports failed and reports whether any of them had already failed on the previous
+        /// run. The repair path keys off this instead of an open alert, so acknowledging the alert - the
+        /// normal response to one - cannot disarm the repair of a persistently failing import.
+        /// </summary>
+        /// <param name="failedImportControlIds">Control ids of the imports that failed on this run.</param>
+        /// <returns>True if at least one of them had already failed on the previous run.</returns>
+        public async Task<bool> RecordFailedImports(List<long> failedImportControlIds)
+        {
+            try
+            {
+                RuleOwnerMappingRunHistoryData history = await Load();
+                bool failedBefore = failedImportControlIds.Exists(history.FailedImports.Contains);
+
+                history.FailedImports = failedImportControlIds;
+                await Save(history);
+                return failedBefore;
+            }
+            catch (Exception ex)
+            {
+                // without the stored state the run cannot tell a repeated failure from a first one. Reporting
+                // "not seen before" only delays the repair by one run, while the opposite would rebuild
+                // everything on a single transient failure
+                Log.WriteError(kLogMessageTitle, "Error while recording the failed rule_owner mapping imports.", ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Forgets the remembered failures after a run that processed every pending import, so an import
+        /// failing again much later is treated as the first failure it is.
+        /// </summary>
+        public async Task ClearFailedImports()
+        {
+            try
+            {
+                RuleOwnerMappingRunHistoryData history = await Load();
+                if (history.FailedImports.Count == 0)
+                {
+                    return;
+                }
+
+                history.FailedImports = [];
+                await Save(history);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kLogMessageTitle, "Error while clearing the failed rule_owner mapping imports.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Writes the history to its config entry.
+        /// </summary>
+        /// <param name="history">History to store.</param>
+        private async Task Save(RuleOwnerMappingRunHistoryData history)
+        {
+            await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, new
+            {
+                config_key = kConfigKey,
+                config_value = JsonSerializer.Serialize(history, SerializerOptions),
+                config_user = 0
+            });
         }
 
         /// <summary>
@@ -318,7 +404,9 @@ namespace FWO.Services
             List<RuleOwnerMappingRun> storedRuns = JsonSerializer.Deserialize<List<RuleOwnerMappingRun>>(storedValue) ?? [];
             return new RuleOwnerMappingRunHistoryData
             {
-                LastRunWithoutFindings = storedRuns.FirstOrDefault(HasNoFindings),
+                // same condition as in Store: a run that found nothing while imports were still pending
+                // proves nothing and must not be migrated into "last verified correct"
+                LastRunWithoutFindings = storedRuns.FirstOrDefault(run => HasNoFindings(run) && run.DiffMeaningful),
                 RunsWithFindings = storedRuns.Where(run => !HasNoFindings(run)).Take(kMaxRuns).ToList()
             };
         }

@@ -735,11 +735,16 @@ Not supported any longer are:
 - change history entries written through the REST workflow endpoints name the authenticated caller instead of the middleware server, and carry that caller's user id in changer_id. changer_id therefore stays empty only for changes made by automation - background jobs and unauthenticated internal callers - so an audit can tell an automated change from a human one and resolve the human one to a user record even after a directory rename.
 
 ## 9.5.3 - 17.09.2026
-- rule owner mapping: fix an owner import blocking the incremental processing permanently - rebuilding
-  the mappings of a newly created owner collided with the partial unique index on rule_owner because the
-  on_conflict clause only covers the primary key, and the failure was swallowed and reported as success
+- rule owner mapping: an owner import no longer blocks the incremental processing permanently. Rebuilding
+  the mappings of a newly created owner collided with the partial unique index on rule_owner, because the
+  on_conflict clause covers the primary key only; mappings that are still active are now skipped before
+  the insert. The resulting error is also no longer reported as a successful run
 - rule owner mapping: a failing import no longer holds up the imports behind it, and failures raise an
   alert instead of only a log line
+- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize, which
+  recomputes every mapping and completes the stuck import. Without it a persistently failing import would
+  keep its changes unapplied indefinitely, because the healthy imports drain and the pending backlog never
+  reaches the threshold that triggers the fallback
 - rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
   reports the empty result as an alert, instead of aborting and leaving the previous state in place
 - rule owner mapping: new setting for the log level of mapping issues, so installations with many

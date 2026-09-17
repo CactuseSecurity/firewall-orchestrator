@@ -154,8 +154,9 @@ namespace FWO.Ui.Services
                 return [];
             }
 
-            // the run establishes the missing pairs and removes the left over ones, so both rows are
-            // findable in rule_owner by the run's control id - only the origin of a left over pair is older
+            // the recorded pairs are the difference itself. rule_owner cannot be filtered down to it: the run
+            // stamps its control id on every mapping it rebuilt and on every one it replaced, so that column
+            // identifies the run, not what actually changed
             List<RuleOwnerMappingRunEntry> entries = run.Added
                 .Select(pair => new RuleOwnerMappingRunEntry
                 {
@@ -186,10 +187,14 @@ namespace FWO.Ui.Services
         /// Decides how the result of the shown run has to be read. A pending backlog and a configuration
         /// change both explain a difference on their own, so neither is reported as a problem.
         /// </summary>
-        /// <returns>The state of the shown run.</returns>
-        public RuleOwnerMappingRunState GetSelectedState()
+        /// <returns>
+        /// The state of the shown run, or <see langword="null"/> when no run is shown at all. "Nothing was
+        /// recorded" is not a state of a run and must not be answered with one, least of all with a state
+        /// that renders as a warning.
+        /// </returns>
+        public RuleOwnerMappingRunState? GetSelectedState()
         {
-            return SelectedRun == null ? RuleOwnerMappingRunState.ImportsPending : GetState(SelectedRun);
+            return SelectedRun == null ? null : GetState(SelectedRun);
         }
 
         /// <summary>

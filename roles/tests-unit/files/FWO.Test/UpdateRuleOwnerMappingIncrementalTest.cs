@@ -381,6 +381,50 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task RunAsync_ShouldStillRepair_WhenTheAlertWasAcknowledgedInBetween()
+        {
+            // acknowledging an alert is the normal response to it and must not disarm the repair: the run
+            // history remembers the previous failure, the open alert does not
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            Assert.That(apiConnection.StoredHistory.FailedImports, Does.Contain(1L), "the failure is remembered where an ack cannot reach it");
+
+            apiConnection.AcknowledgeAlerts();
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(1), "the repeated failure still triggers the rebuild");
+                Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
+                Assert.That(apiConnection.StoredHistory.FailedImports, Is.Empty, "the repaired failure is forgotten again");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNotMigrateAnUnverifiableRun_FromTheLegacyHistoryFormat()
+        {
+            // the older format stored a plain run list. A run that found nothing while imports were still
+            // pending proves nothing, so it must not arrive as "last verified without deviation"
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("""
+                [{"runTime":"2026-09-01T10:00:00Z","controlId":5,"mappingSource":"CustomField","mappingCount":3,
+                  "addedCount":0,"removedCount":0,"pendingImportsBefore":[9],"diffMeaningful":false}]
+                """);
+            apiConnection.AddPendingImport(7, ImportType.OWNER);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.That(apiConnection.StoredHistory.LastRunWithoutFindings, Is.Null,
+                "a run taken over from the legacy format must pass the same check as a new one");
+        }
+
         /// <summary>
         /// Simulated API connection for the CustomField mapping source.
         /// </summary>
@@ -418,6 +462,19 @@ namespace FWO.Test
             }
 
             public List<string> ActivePairs => activeRuleOwners.Select(ruleOwner => $"{ruleOwner.RuleId}->{ruleOwner.OwnerId}").OrderBy(pair => pair).ToList();
+
+            /// <summary>Clears the open alerts, as acknowledging them in the monitoring view does.</summary>
+            public void AcknowledgeAlerts()
+            {
+                RaisedAlerts.Clear();
+            }
+
+            /// <summary>Seeds the stored config entry, for instance in the shape an older version wrote.</summary>
+            /// <param name="json">Value to store under the history config key.</param>
+            public void SeedStoredHistoryJson(string json)
+            {
+                StoredHistoryJson = json;
+            }
 
             public void AddPendingImport(long controlId, int importTypeId)
             {

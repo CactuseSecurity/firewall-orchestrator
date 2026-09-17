@@ -291,5 +291,16 @@ namespace FWO.Test
             Assert.That(handler.GetSelectedState(), Is.EqualTo(RuleOwnerMappingRunState.InSync),
                 "no difference is the strongest statement, whatever triggered the run");
         }
+
+        [Test]
+        public void GetSelectedState_AnswersNothing_WhenNoRunWasRecorded()
+        {
+            // "nothing was recorded" is not a state of a run. Answering it with one - ImportsPending renders
+            // as a warning - would report a problem that nobody observed
+            RuleOwnerMappingRunHandler handler = new();
+            handler.Init(new RuleOwnerMappingRunHistoryData());
+
+            Assert.That(handler.GetSelectedState(), Is.Null);
+        }
     }
 }

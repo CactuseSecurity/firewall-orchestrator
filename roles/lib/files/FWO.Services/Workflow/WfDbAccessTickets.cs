@@ -23,6 +23,7 @@ namespace FWO.Services.Workflow
                 ticket.UpdateCidrsInTaskElements();
                 ticket.UpdateIpStringsFromCidrInTaskElements();
                 var variables = BuildTicketVariables(ticket);
+                variables["preWorkflowTicketReference"] = ticket.PreWorkflowTicketReference;
                 variables["requesterId"] = ticket.Requester?.DbId;
                 variables["requestTasks"] = new WfTicketWriter(ticket);
                 variables["locked"] = ticket.Locked;
@@ -82,7 +83,6 @@ namespace FWO.Services.Workflow
                 ["title"] = ticket.Title,
                 ["state"] = ticket.StateId,
                 ["reason"] = ticket.Reason,
-                ["preWorkflowTicketReference"] = ticket.PreWorkflowTicketReference,
                 ["deadline"] = ticket.Deadline,
                 ["priority"] = ticket.Priority
             };

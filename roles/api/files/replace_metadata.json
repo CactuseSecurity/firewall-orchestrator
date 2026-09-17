@@ -36975,7 +36975,6 @@
                     "columns": [
                       "date_completed",
                       "external_ticket_id",
-                      "pre_workflow_ticket_reference",
                       "state_id",
                       "ticket_deadline",
                       "ticket_priority"
@@ -37024,7 +37023,6 @@
                       "id",
                       "assigned_group",
                       "external_ticket_id",
-                      "pre_workflow_ticket_reference",
                       "requester_dn",
                       "requester_group",
                       "title",

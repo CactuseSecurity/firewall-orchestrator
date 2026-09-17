@@ -27,49 +27,26 @@ namespace FWO.Middleware.Server
         private const string LevelZone = "Zone";
         private const string PathFieldNameRoot = "path_to_root";
         private const string PathFieldNameInternet = "path_to_internet";
+        /// <summary>
+        /// Bulk import into network_zone.device_ip_range_root and network_zone.device_ip_range_internet
+        /// gets chunked with this size.
+        /// </summary>
+        protected const int kPathInsertBatchSize = 500;
         private struct Counters
         {
-            /// <summary>
-            /// Gets the AllZones value.
-            /// </summary>
-            public int AllZones = 0;
-            /// <summary>
-            /// Gets the NewZoneSuccess value.
-            /// </summary>
-            public int NewZoneSuccess = 0;
-            /// <summary>
-            /// Gets the UpdateZoneSuccess value.
-            /// </summary>
-            public int UpdateZoneSuccess = 0;
-            /// <summary>
-            /// Gets the ZoneFail value.
-            /// </summary>
-            public int ZoneFail = 0;
-            /// <summary>
-            /// Gets the DeleteZoneSuccess value.
-            /// </summary>
-            public int DeleteZoneSuccess = 0;
-            /// <summary>
-            /// Gets the DeleteZoneFail value.
-            /// </summary>
-            public int DeleteZoneFail = 0;
-            /// <summary>
-            /// Gets the InsertConnection value.
-            /// </summary>
-            public int InsertConnection = 0;
-            /// <summary>
-            /// Gets the RemoveConnection value.
-            /// </summary>
-            public int RemoveConnection = 0;
-            /// <summary>
-            /// Gets the InsertPath value.
-            /// </summary>
-            public int InsertPath = 0;
-            /// <summary>
-            /// Gets the RemovePath value.
-            /// </summary>
-            public int RemovePath = 0;
-
+            public int AllZones;
+            public int NewZoneSuccess;
+            public int UpdateZoneSuccess;
+            public int ZoneFail;
+            public int DeleteZoneSuccess;
+            public int DeleteZoneFail;
+            public int InsertConnection;
+            public int RemoveConnection;
+            public int InsertPathRoot;
+            public int InsertPathInternet;
+            public int RemovePathRoot;
+            public int RemovePathInternet;
+            public int RemovePath;
             /// <summary>
             /// Initializes a new instance of the type.
             /// </summary>
@@ -85,7 +62,6 @@ namespace FWO.Middleware.Server
         /// </summary>
         public async Task<string> Run(string importFileName, string importedData, string userName, string userDn)
         {
-            List<string> FailedImports = [];
             importFile = importedData;
             Log.WriteAudit(
                 Title: $"Compliance Matrix Import",
@@ -93,10 +69,10 @@ namespace FWO.Middleware.Server
                 UserName: userName,
                 UserDN: userDn);
 
-            return await ImportSingleMatrix(importFileName, FailedImports);
+            return await ImportSingleMatrix(importFileName);
         }
 
-        private async Task<string> ImportSingleMatrix(string importfileName, List<string> failedImports)
+        private async Task<string> ImportSingleMatrix(string importfileName)
         {
             string responsMessage;
             try
@@ -105,14 +81,13 @@ namespace FWO.Middleware.Server
                 DeviceNameResolver deviceLookup = await DeviceNameResolver.ConstructAsync(apiConnection);
                 CheckData(importedZoneMatrixData, deviceLookup, globalConfig);
                 (MatrixId, ExistingZones) = await GetExistingMatrixWithZones(importedZoneMatrixData.Name);
-                responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName);
+                responsMessage = await ImportMatrix(importedZoneMatrixData, importfileName, deviceLookup);
             }
             catch (Exception exc)
             {
                 responsMessage = $"File {importfileName} could not be processed: {exc.Message}";
                 Log.WriteError(LogMessageTitle, responsMessage);
                 await AddLogEntry(GlobalConst.kImportZoneMatrixData, 2, LevelFile, responsMessage);
-                failedImports.Add(importfileName);
             }
             return responsMessage;
         }
@@ -251,7 +226,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importfileName)
+        private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importfileName, DeviceNameResolver deviceLookup)
         {
             counters = new() { AllZones = importedMatrix.NetworkZones.Count };
             if (MatrixId == 0)
@@ -290,7 +265,7 @@ namespace FWO.Middleware.Server
                 counters.RemoveConnection += removes;
             }
 
-            (counters.InsertPath, counters.RemovePath) = await HandleIpRangePaths(importedMatrix, deviceLookup);
+            await HandleIpRangePaths(importedMatrix, deviceLookup);
 
             string messageText = ConstructMessageText(importfileName);
             Log.WriteInfo(LogMessageTitle, messageText);
@@ -303,7 +278,9 @@ namespace FWO.Middleware.Server
             return $"Ok: Imported from {importfileName}: Total number of network zones: {counters.AllZones}, " +
                 $"new: {counters.NewZoneSuccess}, updated: {counters.UpdateZoneSuccess}, failed: {counters.ZoneFail}. " +
                 $"Deleted: {counters.DeleteZoneSuccess}, failed deletions: {counters.DeleteZoneFail}. " +
-                $"Inserted connections: {counters.InsertConnection}, removed connections: {counters.RemoveConnection}.";
+                $"Inserted connections: {counters.InsertConnection}, removed connections: {counters.RemoveConnection}. " +
+                $"Inserted paths to root: {counters.InsertPathRoot}, removed paths to root: {counters.RemovePathRoot}. " +
+                $"Inserted paths to internet: {counters.InsertPathInternet}, removed paths to internet: {counters.RemovePathInternet}.";
         }
 
         private async Task<(int, List<ComplianceNetworkZone>)> GetExistingMatrixWithZones(string matrixName)
@@ -453,16 +430,15 @@ namespace FWO.Middleware.Server
             return (0, 0);
         }
 
-        private async Task<(int, int, int, int)> HandleIpRangePaths(ImportNwZoneMatrixData importedMatrix, DeviceNameResolver deviceLookup)
+        private async Task HandleIpRangePaths(ImportNwZoneMatrixData importedMatrix, DeviceNameResolver deviceLookup)
         {
-            int deletedRoot = await apiConnection.SendQueryAsync<ReturnId>
-                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot, new { matrixId = MatrixId }).AffectedRows;
-            int deletedInternet = await apiConnection.SendQueryAsync<ReturnId>
-                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId }).AffectedRows;
+            counters.RemovePathRoot = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot, new { matrixId = MatrixId })).AffectedRows;
+            counters.RemovePathInternet = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId })).AffectedRows;
 
             List<NetworkZoneIpRange> ipRanges = await apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
                 NetworkZoneQueries.getIpRangesForMatrix, new { matrixId = MatrixId });
-
 
             foreach (NetworkZoneData zone in importedMatrix.NetworkZones)
             {
@@ -481,13 +457,47 @@ namespace FWO.Middleware.Server
                             $"Could not resolve ip range with start IP {subnet.Ip} in zone {zone.IdString}, skipping its paths.");
                         continue;
                     }
-                    ImportIpRangePaths(subnet, ipRangeId, zoneId, deviceLookup);
+                    ImportIpRangePaths(subnet, ipRangeId, deviceLookup);
                 };
             };
 
-            int insertRoot = 0;
-            int insertInternet = 0;
-            return (deletedRoot, deletedInternet, insertRoot, insertInternet);
+            counters.InsertPathRoot = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.addPathItemsRoot,
+                new
+                {
+                    objects = RootPathInput.Select(item => new
+                    {
+                        dev_id = item.DeviceId,
+                        ip_range_id = item.IpRangeId,
+                        order_to_root = item.Order
+                    }).ToList()
+                },
+                chunkingOptions: new QueryChunkingOptions
+                {
+                    Enabled = true,
+                    ChunkVariableName = "objects",
+                    ChunkSize = kPathInsertBatchSize,
+                    MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
+                })).AffectedRows;
+
+            counters.InsertPathInternet = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.addPathItemsInternet,
+                new
+                {
+                    objects = InternetPathInput.Select(item => new
+                    {
+                        dev_id = item.DeviceId,
+                        ip_range_id = item.IpRangeId,
+                        order_to_internet = item.Order
+                    }).ToList()
+                },
+                chunkingOptions: new QueryChunkingOptions
+                {
+                    Enabled = true,
+                    ChunkVariableName = "objects",
+                    ChunkSize = kPathInsertBatchSize,
+                    MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
+                })).AffectedRows;
         }
 
         private int? FindIpRangeId(ZoneIpRangeData subnet, List<NetworkZoneIpRange> ipRanges, int zoneId)
@@ -513,8 +523,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         private static IPAddress ParseAddress(string address) => IPAddressRange.Parse(address).Begin;
 
-
-        private void ImportIpRangePaths(ZoneIpRangeData subnet, int? ipRangeId, int zoneId, DeviceNameResolver deviceLookup)
+        private void ImportIpRangePaths(ZoneIpRangeData subnet, int? ipRangeId, DeviceNameResolver deviceLookup)
         {
             foreach ((int index, DeviceRefData device) in subnet.PathToRoot.Index())
             {
@@ -522,10 +531,22 @@ namespace FWO.Middleware.Server
                 if (deviceId is null)
                 {
                     Log.WriteWarning(LogMessageTitle,
-                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in subnet {subnet.Ip}, skipping its path.");
+                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in path_to_root in subnet {subnet.Ip}, skipping its path.");
                     return;
                 }
                 RootPathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
+            }
+
+            foreach ((int index, DeviceRefData device) in subnet.PathToInternet.Index())
+            {
+                int? deviceId = deviceLookup.Resolve(device.MgmtName, device.DeviceName);
+                if (deviceId is null)
+                {
+                    Log.WriteWarning(LogMessageTitle,
+                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in path_to_internet in subnet {subnet.Ip}, skipping its path.");
+                    return;
+                }
+                InternetPathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
             }
         }
 

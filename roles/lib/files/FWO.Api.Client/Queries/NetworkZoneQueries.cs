@@ -5,6 +5,8 @@ namespace FWO.Api.Client.Queries
     public class NetworkZoneQueries : Queries
     {
         public static readonly string addNetworkZone;
+        public static readonly string addPathItemsRoot;
+        public static readonly string addPathItemsInternet;
         public static readonly string removeNetworkZone;
         public static readonly string getNetworkZonesForMatrix;
         public static readonly string getIpRangesForMatrix;
@@ -17,6 +19,8 @@ namespace FWO.Api.Client.Queries
             try
             {
                 addNetworkZone = GetQueryText("networkZone/addNetworkZone.graphql");
+                addPathItemsRoot = GetQueryText("networkZone/addPathItemsRoot.graphql");
+                addPathItemsInternet = GetQueryText("networkZone/addPathItemsInternet.graphql");
                 removeNetworkZone = GetQueryText("networkZone/removeNetworkZone.graphql");
                 getNetworkZonesForMatrix = GetQueryText("networkZone/getNetworkZonesForMatrix.graphql");
                 getIpRangesForMatrix = GetQueryText("networkZone/getIpRangesForMatrix.graphql");

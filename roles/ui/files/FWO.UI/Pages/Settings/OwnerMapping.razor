@@ -119,7 +119,9 @@
     }
 
     /// <summary>
-    /// Triggers a full rule-owner mapping rebuild after mapping configuration changes were saved.
+    /// Triggers a full rule-owner mapping rebuild after mapping configuration changes were saved. The rebuilt
+    /// state differs from the stored one by design here, so the run is marked as following a configuration
+    /// change and its difference is not reported as drift of the incremental mapping.
     /// </summary>
     private async Task<bool> TriggerFullRuleOwnerReinitialize()
     {
@@ -127,7 +129,7 @@
         try
         {
             var tcs = new TaskCompletionSource<bool>();
-            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, Completion = tcs };
+            var args = new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true, TriggeredByChange = true, Changes = ownerMappingSourceHandler.AppliedChanges, Completion = tcs };
             EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
             return await tcs.Task;
         }

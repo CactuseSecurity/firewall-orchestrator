@@ -708,3 +708,19 @@ Not supported any longer are:
 - report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import
+
+## 9.5.2
+- rule owner mapping: fix an owner import blocking the incremental processing permanently - rebuilding
+  the mappings of a newly created owner collided with the partial unique index on rule_owner because the
+  on_conflict clause only covers the primary key, and the failure was swallowed and reported as success
+- rule owner mapping: a failing import no longer holds up the imports behind it, and failures raise an
+  alert instead of only a log line
+- rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
+  reports the empty result as an alert, instead of aborting and leaving the previous state in place
+- rule owner mapping: new setting for the log level of mapping issues, so installations with many
+  unmappable legacy rules no longer get one message per rule on every run
+- rule owner mapping: the result of the last full reinitialize runs is kept in the config entry
+  ruleOwnerMappingRunHistory and shown on the new page monitoring/rule_owner_mapping, including which
+  rules were affected and whether a deliberate change, a pending import backlog or a real deviation
+  caused the difference
+- rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area

@@ -12,6 +12,10 @@ namespace FWO.Services
     public abstract class UpdateRuleOwnerMappingBase : IUpdateRuleOwnerMapping
     {
         protected const int MaxPendingImportsBeforeFullReinit = 3;
+        private const int kAlertSeverity = 1;
+
+        private bool triggeredByChange;
+        private List<RuleOwnerMappingChange> appliedChanges = [];
         protected const int RuleOwnerRemovalBatchSize = 500;
         protected const int RuleOwnerInsertBatchSize = 500;
 
@@ -19,10 +23,17 @@ namespace FWO.Services
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
 
+        /// <summary>
+        /// Writes the per-rule and per-object messages, filtered by the configured level. Import failures,
+        /// alerts and the per-run summary bypass this and are always logged.
+        /// </summary>
+        protected RuleOwnerMappingLogger MappingLog { get; }
+
         protected UpdateRuleOwnerMappingBase(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
+            MappingLog = new RuleOwnerMappingLogger(globalConfig.RuleOwnerMappingLogLevel);
         }
 
         public abstract OwnerMappingSourceStm Source { get; }
@@ -30,11 +41,28 @@ namespace FWO.Services
         public abstract Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null);
 
         /// <summary>
-        /// Chooses between full reinitialize and incremental processing based on the event arguments.
+        /// Chooses between full reinitialize and incremental processing based on the event arguments and
+        /// remembers whether the run follows a configuration change, which decides how its result is read.
         /// </summary>
-        protected static async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, bool isFullReInitialize)
+        /// <param name="fullReinitFunc">Rebuilds every mapping.</param>
+        /// <param name="incrementalFunc">Processes the pending imports.</param>
+        /// <param name="eventArgs">Arguments of the triggering event.</param>
+        /// <returns>True if the run succeeded.</returns>
+        protected async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, UpdateRuleOwnerMappingEventArgs? eventArgs)
         {
-            return isFullReInitialize ? await fullReinitFunc() : await incrementalFunc();
+            TakeOverEventArgs(eventArgs);
+            return (eventArgs?.isFullReInitialize ?? false) ? await fullReinitFunc() : await incrementalFunc();
+        }
+
+        /// <summary>
+        /// Remembers what the triggering event said about the run, which decides how its result is read.
+        /// Sources that do not go through <see cref="UpdateRuleOwners"/> have to call this themselves.
+        /// </summary>
+        /// <param name="eventArgs">Arguments of the triggering event.</param>
+        protected void TakeOverEventArgs(UpdateRuleOwnerMappingEventArgs? eventArgs)
+        {
+            triggeredByChange = eventArgs?.TriggeredByChange ?? false;
+            appliedChanges = eventArgs?.Changes ?? [];
         }
 
         /// <summary>
@@ -52,15 +80,13 @@ namespace FWO.Services
 
         /// <summary>
         /// Persists a full reinitialize by replacing all active rule-owner mappings with the provided set.
+        /// An empty set is a valid result and still replaces the previous state: the configured mapping
+        /// source can legitimately stop matching any rule, and the obsolete mappings have to go. Because
+        /// that is almost always a configuration problem, it raises an alert instead of failing silently.
         /// </summary>
         protected async Task<bool> FinalizeFullReinitialize(List<RuleOwner> newRuleOwners)
         {
-            if (!newRuleOwners.Any())
-            {
-                Log.WriteInfo(LogMessageTitle, "No new rule owners to insert. Aborting import.");
-                return false;
-            }
-
+            List<long> pendingImportsBefore = await LoadPendingImportControlIds();
             long importControlId = await CreateImportControl();
 
             foreach (RuleOwner ruleOwner in newRuleOwners)
@@ -68,12 +94,64 @@ namespace FWO.Services
                 ruleOwner.Created = importControlId;
             }
 
-            await SetAllActiveRuleOwnersRemoved(importControlId);
+            List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
             await CompleteImportControlFullReInit(importControlId);
 
-            Log.WriteInfo(LogMessageTitle, "FULL rule_owner reinitialize completed.");
+            await RecordRun(importControlId, previousRuleOwners, newRuleOwners, pendingImportsBefore);
+
+            if (!newRuleOwners.Any())
+            {
+                await AlertEmptyMappingResult();
+            }
+
+            Log.WriteInfo(LogMessageTitle, $"FULL rule_owner reinitialize completed with {newRuleOwners.Count} mappings.");
             return true;
+        }
+
+        /// <summary>
+        /// Stores the result of a full reinitialize and alerts when it changed anything although the
+        /// incremental mapping was up to date - that difference means the incremental path missed something.
+        /// </summary>
+        /// <param name="importControlId">Import control of the full reinitialize.</param>
+        /// <param name="previousRuleOwners">Mappings that were active before the run.</param>
+        /// <param name="newRuleOwners">Mappings the run rebuilt.</param>
+        /// <param name="pendingImportsBefore">Imports still waiting to be mapped when the run started.</param>
+        protected async Task RecordRun(long importControlId, List<RuleOwner> previousRuleOwners, List<RuleOwner> newRuleOwners, List<long> pendingImportsBefore)
+        {
+            RuleOwnerMappingRun run = RuleOwnerMappingRunHistory.BuildRun(importControlId, Source, previousRuleOwners, newRuleOwners,
+                pendingImportsBefore, triggeredByChange, appliedChanges);
+            await new RuleOwnerMappingRunHistory(apiConnection).Store(run);
+
+            Log.WriteInfo(LogMessageTitle, $"Full reinitialize {importControlId}: {run.AddedCount} mappings added, {run.RemovedCount} removed, " +
+                $"{run.PendingImportsBefore.Count} imports were still pending.");
+
+            if (IndicatesDrift(run))
+            {
+                await AlertMappingDrift(run);
+            }
+        }
+
+        /// <summary>
+        /// Decides whether a run result means the incremental mapping missed something. A deliberate change
+        /// rebuilds a different state on purpose, a pending backlog explains the difference on its own, and an
+        /// empty result has its own more precise alert - none of those is drift.
+        /// </summary>
+        /// <param name="run">Result of the full reinitialize.</param>
+        /// <returns>True if the difference points at the incremental mapping.</returns>
+        private static bool IndicatesDrift(RuleOwnerMappingRun run)
+        {
+            return run.DiffMeaningful && !run.TriggeredByChange && run.MappingCount > 0 && run.AddedCount + run.RemovedCount > 0;
+        }
+
+        /// <summary>
+        /// Reads the control ids of the imports that are still waiting to be mapped.
+        /// </summary>
+        /// <returns>The pending control ids, empty when the backlog is clear.</returns>
+        protected async Task<List<long>> LoadPendingImportControlIds()
+        {
+            List<ImportControl>? pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
+            return pendingImports?.Select(import => import.ControlId).ToList() ?? [];
         }
 
         /// <summary>
@@ -91,8 +169,11 @@ namespace FWO.Services
             if (pendingImports.Count > MaxPendingImportsBeforeFullReinit)
             {
                 Log.WriteWarning(LogMessageTitle, $"Found {pendingImports.Count} pending imports. Falling back to full rule_owner reinitialize.");
+                await AlertFullReinitFallback(pendingImports.Count);
                 return await fullReinitFunc();
             }
+
+            List<long> failedImportControlIds = [];
 
             foreach (var import in pendingImports.OrderBy(i => i.ControlId))
             {
@@ -102,9 +183,17 @@ namespace FWO.Services
                 }
                 catch (Exception ex)
                 {
+                    // one broken import must not block the pending imports behind it, so the loop
+                    // continues and the failures are reported instead of being swallowed
+                    failedImportControlIds.Add(import.ControlId);
                     Log.WriteError(LogMessageTitle, $"Error while processing import_control {import.ControlId}. ", ex);
-                    break;
                 }
+            }
+
+            if (failedImportControlIds.Any())
+            {
+                await AlertFailedIncrementalImports(failedImportControlIds);
+                return false;
             }
 
             return true;
@@ -149,8 +238,54 @@ namespace FWO.Services
             }
 
             await SetAffectedRuleOwnersRemoved(ruleOwnersToRemove, importControlId);
-            await InsertNewRuleOwners(newRuleOwners);
+            await InsertNewRuleOwners(await DropStillActiveMappings(newRuleOwners));
             await CompleteImportControl(importControlId);
+        }
+
+        /// <summary>
+        /// Drops mappings that are still active after the removal step so the insert cannot collide with the
+        /// partial unique index on (rule_id, owner_id) where removed is null. An owner insert or reactivation
+        /// rebuilds the mapping for every rule without removing anything first, and the on_conflict clause on
+        /// pk_rule_owner (rule_id, owner_id, created) does not catch that because the created value differs.
+        /// </summary>
+        /// <param name="newRuleOwners">Mappings that were just rebuilt for this import.</param>
+        /// <returns>The mappings that are safe to insert.</returns>
+        protected async Task<List<RuleOwner>> DropStillActiveMappings(List<RuleOwner> newRuleOwners)
+        {
+            if (!newRuleOwners.Any())
+            {
+                return newRuleOwners;
+            }
+
+            List<RuleOwner> activeRuleOwners = await LoadActiveMappingsForSmallerKeySet(newRuleOwners);
+            HashSet<(long RuleId, int OwnerId)> activePairs = activeRuleOwners.Select(ruleOwner => (ruleOwner.RuleId, ruleOwner.OwnerId)).ToHashSet();
+            List<RuleOwner> insertableRuleOwners = newRuleOwners.Where(ruleOwner => !activePairs.Contains((ruleOwner.RuleId, ruleOwner.OwnerId))).ToList();
+
+            int skippedCount = newRuleOwners.Count - insertableRuleOwners.Count;
+            if (skippedCount > 0)
+            {
+                Log.WriteInfo(LogMessageTitle, $"Skipped {skippedCount} rule_owner mappings that are already active.");
+            }
+
+            return insertableRuleOwners;
+        }
+
+        /// <summary>
+        /// Loads the currently active mappings, filtering by whichever key set is smaller: an owner import
+        /// rebuilds few owners across all rules, a rule import few rules across all owners.
+        /// </summary>
+        /// <param name="newRuleOwners">Mappings that were just rebuilt for this import.</param>
+        /// <returns>The active mappings covering the rebuilt set.</returns>
+        private async Task<List<RuleOwner>> LoadActiveMappingsForSmallerKeySet(List<RuleOwner> newRuleOwners)
+        {
+            List<long> ruleIds = newRuleOwners.Select(ruleOwner => ruleOwner.RuleId).Distinct().ToList();
+            List<int> ownerIds = newRuleOwners.Select(ruleOwner => ruleOwner.OwnerId).Distinct().ToList();
+
+            List<RuleOwner>? activeRuleOwners = ruleIds.Count <= ownerIds.Count
+                ? await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByRule, new { ruleIds })
+                : await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getRuleOwnerToRemoveByOwner, new { ownerIds });
+
+            return activeRuleOwners ?? [];
         }
 
         /// <summary>
@@ -206,11 +341,18 @@ namespace FWO.Services
             }
         }
 
-        protected async Task SetAllActiveRuleOwnersRemoved(long controlId)
+        /// <summary>
+        /// Marks every active mapping as removed and returns the state that was just replaced, which the
+        /// run history diffs against the rebuilt mappings.
+        /// </summary>
+        /// <param name="controlId">Import control the removal is recorded under.</param>
+        /// <returns>The mappings that were active before the removal.</returns>
+        protected async Task<List<RuleOwner>> SetAllActiveRuleOwnersRemoved(long controlId)
         {
             try
             {
-                await apiConnection.SendQueryAsync<RuleOwnerMutationWrapper>(OwnerQueries.setAllActiveRuleOwnersRemoved, new { controlId });
+                UpdateRuleOwner? result = await apiConnection.SendQueryAsync<UpdateRuleOwner>(OwnerQueries.setAllActiveRuleOwnersRemoved, new { controlId });
+                return result?.Returning ?? [];
             }
             catch (Exception ex)
             {
@@ -360,11 +502,87 @@ namespace FWO.Services
         }
 
 
+        /// <summary>
+        /// Raises an alert for incremental imports that could not be processed, so a failing rule_owner
+        /// mapping becomes visible outside the middleware log file.
+        /// </summary>
+        /// <param name="failedImportControlIds">Control ids of the imports that failed.</param>
+        private async Task AlertFailedIncrementalImports(List<long> failedImportControlIds)
+        {
+            await RaiseAlert($"Rule owner mapping failed for import_control {string.Join(", ", failedImportControlIds)}. See the middleware log for details.");
+        }
+
+        /// <summary>
+        /// Raises an alert when the pending import backlog forces a full reinitialize, because that hides
+        /// whatever stopped the incremental processing from keeping up.
+        /// </summary>
+        /// <param name="pendingImportCount">Number of imports waiting to be mapped.</param>
+        private async Task AlertFullReinitFallback(int pendingImportCount)
+        {
+            await RaiseAlert($"Rule owner mapping fell back to a full reinitialize because {pendingImportCount} imports were pending.");
+        }
+
+        /// <summary>
+        /// Raises an alert when a full reinitialize produced no mapping at all, which removes every existing
+        /// mapping and almost always points at a misconfigured mapping source.
+        /// </summary>
+        private async Task AlertEmptyMappingResult()
+        {
+            await RaiseAlert($"Rule owner mapping source '{Source}' matched no rule. All existing rule_owner mappings were removed.");
+        }
+
+        /// <summary>
+        /// Raises an alert when a full reinitialize changed mappings although no import was pending. With a
+        /// correct incremental mapping the rebuilt state matches the stored one, so any difference means the
+        /// incremental path missed a change.
+        /// </summary>
+        /// <param name="run">The recorded run holding the difference.</param>
+        private async Task AlertMappingDrift(RuleOwnerMappingRun run)
+        {
+            await RaiseAlert($"Full rule_owner reinitialize {run.ControlId} added {run.AddedCount} and removed {run.RemovedCount} mappings " +
+                $"although no import was pending. The incremental mapping missed these changes. See config key '{RuleOwnerMappingRunHistory.kConfigKey}' for the affected rules and owners.");
+        }
+
+        /// <summary>
+        /// Writes a log entry and an alert unless the same alert is already open, so a job repeating every
+        /// few seconds does not flood the alert list with identical entries.
+        /// </summary>
+        /// <param name="description">Description shown in the alert and the log entry.</param>
+        private async Task RaiseAlert(string description)
+        {
+            try
+            {
+                if (await SameAlertAlreadyOpen(description))
+                {
+                    return;
+                }
+
+                await AlertHelper.AddLogEntry(apiConnection, kAlertSeverity, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping);
+                await AlertHelper.SetAlert(apiConnection, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping, AlertCode.RuleOwnerMapping,
+                    new AlertHelper.AdditionalAlertData { CompareDesc = true });
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogMessageTitle, "Error while raising a rule_owner mapping alert.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Checks whether an unacknowledged rule_owner mapping alert with the same description exists.
+        /// </summary>
+        /// <param name="description">Description to look for.</param>
+        /// <returns>True if such an alert is still open.</returns>
+        private async Task<bool> SameAlertAlreadyOpen(string description)
+        {
+            List<Alert>? openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
+            return openAlerts?.Any(alert => alert.AlertCode == AlertCode.RuleOwnerMapping && alert.Description == description) == true;
+        }
+
         protected static bool ProcessOwnerChanges(List<OwnerChange> changelogOwners, List<FwoOwner> ownersToAdd, List<FwoOwner> ownersToRemove)
         {
             if (changelogOwners == null || !changelogOwners.Any())
             {
-                Log.WriteInfo(LogMessageTitle, "No changed owners found for rule-owner mapping. Aborting incremental import.");
+                Log.WriteInfo(LogMessageTitle, "No changed owners found for rule-owner mapping. Nothing to map for this import.");
                 return false;
             }
             foreach (var change in changelogOwners)
@@ -395,7 +613,7 @@ namespace FWO.Services
         {
             if (changelogRules == null || !changelogRules.Any())
             {
-                Log.WriteInfo(LogMessageTitle, "No changed rules found. Aborting incremental import.");
+                Log.WriteInfo(LogMessageTitle, "No changed rules found. Nothing to map for this import.");
                 return false;
             }
 

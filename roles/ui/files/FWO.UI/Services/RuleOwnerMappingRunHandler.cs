@@ -1,0 +1,231 @@
+using FWO.Services;
+
+namespace FWO.Ui.Services
+{
+    /// <summary>
+    /// What a recorded difference says about a single rule-owner pair.
+    /// </summary>
+    public enum RuleOwnerMappingFinding
+    {
+        /// <summary>The full reinitialize established the mapping, so the incremental mapping never created it.</summary>
+        Missing,
+
+        /// <summary>The full reinitialize does not produce the mapping, so the incremental mapping left it behind.</summary>
+        Superfluous
+    }
+
+    /// <summary>
+    /// One rule-owner pair of a recorded run together with what it says about the incremental mapping.
+    /// </summary>
+    public class RuleOwnerMappingRunEntry
+    {
+        /// <summary>Rule the mapping belongs to.</summary>
+        public long RuleId { get; init; }
+
+        /// <summary>Owner the rule was mapped to.</summary>
+        public int OwnerId { get; init; }
+
+        /// <summary>Rule metadata the mapping belongs to, which survives new versions of the rule.</summary>
+        public long? RuleMetadataId { get; init; }
+
+        /// <summary>What the difference means for this pair.</summary>
+        public RuleOwnerMappingFinding Finding { get; init; }
+
+        /// <summary>
+        /// Import that created the rule_owner row. For a missing pair this is the run itself, for a left over
+        /// pair the import it had originally been established by.
+        /// </summary>
+        public long Created { get; init; }
+
+        /// <summary>
+        /// Import that removed the rule_owner row, or <see langword="null"/> while the mapping is active.
+        /// A left over pair is removed by the run itself, a missing pair is active afterwards.
+        /// </summary>
+        public long? Removed { get; init; }
+    }
+
+    /// <summary>
+    /// How a recorded run has to be read. Only <see cref="Drift"/> points at a problem of the incremental
+    /// mapping; the other states explain the difference by something else.
+    /// </summary>
+    public enum RuleOwnerMappingRunState
+    {
+        /// <summary>Rebuilt state matches the stored one, nothing to do.</summary>
+        InSync,
+
+        /// <summary>Imports were still waiting to be mapped, so the difference is just the backlog.</summary>
+        ImportsPending,
+
+        /// <summary>The run followed a deliberate change, so a different result is expected.</summary>
+        ChangeApplied,
+
+        /// <summary>The incremental mapping missed the listed changes.</summary>
+        Drift
+    }
+
+    /// <summary>
+    /// Editor state of the rule owner mapping run history: which of the stored runs is shown and how its
+    /// result has to be read.
+    /// </summary>
+    public class RuleOwnerMappingRunHandler
+    {
+        /// <summary>Text key shown while no full reinitialize has been recorded yet.</summary>
+        public const string kNoHistoryText = "U7551";
+
+        /// <summary>Recorded runs that found a difference, newest first.</summary>
+        public List<RuleOwnerMappingRun> Runs { get; private set; } = [];
+
+        /// <summary>
+        /// Most recent run that found no difference. Kept apart from <see cref="Runs"/> so it can never be
+        /// pushed out by newer findings - it is the answer to "when was the mapping last verified correct".
+        /// </summary>
+        public RuleOwnerMappingRun? LastRunWithoutFindings { get; private set; }
+
+        /// <summary>Position of the shown run, 0 being the newest.</summary>
+        public int SelectedIndex { get; private set; }
+
+        /// <summary>Run currently shown, or <see langword="null"/> when nothing was recorded yet.</summary>
+        public RuleOwnerMappingRun? SelectedRun => SelectedIndex < Runs.Count ? Runs[SelectedIndex] : null;
+
+        /// <summary>
+        /// How the mapping stands right now, taken from whichever run happened last. The history below only
+        /// holds runs that found something and therefore cannot answer this - which is the question the page
+        /// is opened for. Null while nothing was recorded at all.
+        /// </summary>
+        public RuleOwnerMappingRunState? CurrentState
+        {
+            get
+            {
+                if (Runs.Count == 0)
+                {
+                    return LastRunWithoutFindings == null ? null : RuleOwnerMappingRunState.InSync;
+                }
+                return LastRunWithoutFindings != null && LastRunWithoutFindings.RunTime >= Runs[0].RunTime
+                    ? RuleOwnerMappingRunState.InSync
+                    : GetState(Runs[0]);
+            }
+        }
+
+        /// <summary>True when a newer run than the shown one exists.</summary>
+        public bool HasNewer => SelectedIndex > 0;
+
+        /// <summary>True when an older run than the shown one exists.</summary>
+        public bool HasOlder => SelectedIndex + 1 < Runs.Count;
+
+        /// <summary>
+        /// Takes over the recorded history and shows the newest run that found a difference.
+        /// </summary>
+        /// <param name="history">History as it is stored.</param>
+        public void Init(RuleOwnerMappingRunHistoryData history)
+        {
+            Runs = history.RunsWithFindings;
+            LastRunWithoutFindings = history.LastRunWithoutFindings;
+            SelectedIndex = 0;
+        }
+
+        /// <summary>Shows the next newer run, if there is one.</summary>
+        public void SelectNewer()
+        {
+            if (HasNewer)
+            {
+                SelectedIndex--;
+            }
+        }
+
+        /// <summary>Shows the next older run, if there is one.</summary>
+        public void SelectOlder()
+        {
+            if (HasOlder)
+            {
+                SelectedIndex++;
+            }
+        }
+
+        /// <summary>
+        /// Lists the pairs of the shown run, missing ones first, each with what it says about the
+        /// incremental mapping.
+        /// </summary>
+        /// <returns>The listed pairs, empty when the run found no difference.</returns>
+        public List<RuleOwnerMappingRunEntry> GetSelectedEntries()
+        {
+            RuleOwnerMappingRun? run = SelectedRun;
+            if (run == null)
+            {
+                return [];
+            }
+
+            // the run establishes the missing pairs and removes the left over ones, so both rows are
+            // findable in rule_owner by the run's control id - only the origin of a left over pair is older
+            List<RuleOwnerMappingRunEntry> entries = run.Added
+                .Select(pair => new RuleOwnerMappingRunEntry
+                {
+                    RuleId = pair.RuleId,
+                    OwnerId = pair.OwnerId,
+                    RuleMetadataId = pair.RuleMetadataId,
+                    Finding = RuleOwnerMappingFinding.Missing,
+                    Created = pair.Created ?? run.ControlId,
+                    Removed = null
+                })
+                .ToList();
+
+            entries.AddRange(run.Removed
+                .Select(pair => new RuleOwnerMappingRunEntry
+                {
+                    RuleId = pair.RuleId,
+                    OwnerId = pair.OwnerId,
+                    RuleMetadataId = pair.RuleMetadataId,
+                    Finding = RuleOwnerMappingFinding.Superfluous,
+                    Created = pair.Created ?? run.ControlId,
+                    Removed = run.ControlId
+                }));
+
+            return entries;
+        }
+
+        /// <summary>
+        /// Decides how the result of the shown run has to be read. A pending backlog and a configuration
+        /// change both explain a difference on their own, so neither is reported as a problem.
+        /// </summary>
+        /// <returns>The state of the shown run.</returns>
+        public RuleOwnerMappingRunState GetSelectedState()
+        {
+            return SelectedRun == null ? RuleOwnerMappingRunState.ImportsPending : GetState(SelectedRun);
+        }
+
+        /// <summary>
+        /// Decides how the result of one run has to be read.
+        /// </summary>
+        /// <param name="run">Run to judge.</param>
+        /// <returns>The state of that run.</returns>
+        private static RuleOwnerMappingRunState GetState(RuleOwnerMappingRun run)
+        {
+            if (!run.DiffMeaningful)
+            {
+                return RuleOwnerMappingRunState.ImportsPending;
+            }
+            // no difference is the strongest statement there is, whatever triggered the run - a change that
+            // turned out to have no effect is still a verification that the stored state was correct
+            if (run.AddedCount + run.RemovedCount == 0)
+            {
+                return RuleOwnerMappingRunState.InSync;
+            }
+            return run.TriggeredByChange ? RuleOwnerMappingRunState.ChangeApplied : RuleOwnerMappingRunState.Drift;
+        }
+
+        /// <summary>
+        /// Resolves the bootstrap context of a state, so what needs attention reads at a glance.
+        /// </summary>
+        /// <param name="state">State to display.</param>
+        /// <returns>The bootstrap context name.</returns>
+        public static string GetStateStyle(RuleOwnerMappingRunState state)
+        {
+            return state switch
+            {
+                RuleOwnerMappingRunState.InSync => "success",
+                RuleOwnerMappingRunState.Drift => "danger",
+                RuleOwnerMappingRunState.ImportsPending => "warning",
+                _ => "secondary"
+            };
+        }
+    }
+}

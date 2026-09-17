@@ -1,0 +1,25 @@
+@page "/help/monitoring/rule_owner_mapping"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar{
+    @{ 
+        await Html.RenderPartialAsync("HelpMonitoringSidebar.cshtml"); 
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("rule_owner_mapping_runs")</h3>
+    @(Html.Raw(userConfig.GetText("H7261")))
+    <br><br>
+    <ul>
+        <li>@(Html.Raw(userConfig.GetText("H7262")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7263")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7264")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7265")))</li>
+        <li>@(Html.Raw(userConfig.GetText("H7276")))</li>
+    </ul>
+</div>

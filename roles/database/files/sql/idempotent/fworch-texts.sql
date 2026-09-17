@@ -345,6 +345,14 @@ INSERT INTO txt VALUES ('CustomField',          'German',   'Custom-Feld');
 INSERT INTO txt VALUES ('CustomField',          'English',  'Custom field');
 INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
 INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
+INSERT INTO txt VALUES ('Error',                'German',   'Fehler');
+INSERT INTO txt VALUES ('Error',                'English',  'Error');
+INSERT INTO txt VALUES ('Warning',              'German',   'Warnung');
+INSERT INTO txt VALUES ('Warning',              'English',  'Warning');
+INSERT INTO txt VALUES ('Info',                 'German',   'Info');
+INSERT INTO txt VALUES ('Info',                 'English',  'Info');
+INSERT INTO txt VALUES ('Debug',                'German',   'Debug');
+INSERT INTO txt VALUES ('Debug',                'English',  'Debug');
 INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
 INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
 INSERT INTO txt VALUES ('DemoData',             'German', 	'Demo-Daten');
@@ -543,6 +551,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
+    <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung.</li>
+    <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
+    <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -558,6 +570,10 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
+    <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation.</li>
+    <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
+    <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
     <li><a href="/help" target="_blank">Hilfeseiten</a>: Benutzerhandbuch</li>
     <li><a href="/settings">Einstellungen</a>: Alle Einstellungen wie z.B. Sprache der Benutzeroberfl&auml;che oder
@@ -2336,6 +2352,56 @@ INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuor
 INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'German',   'Custom-Feld-Eigent&uuml;mer-Schl&uuml;ssel');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'English',  'Custom Field Owner key');
+INSERT INTO txt VALUES ('ruleOwnerMappingLogLevel', 'German',   'Protokollierung Zuordnungsprobleme');
+INSERT INTO txt VALUES ('ruleOwnerMappingLogLevel', 'English',  'Logging of mapping issues');
+INSERT INTO txt VALUES ('rule_owner_mapping_runs',   'German',   'Eigent&uuml;merzuordnung: L&auml;ufe');
+INSERT INTO txt VALUES ('rule_owner_mapping_runs',   'English',  'Owner mapping runs');
+INSERT INTO txt VALUES ('rule_owner_mappings_total', 'German',   'Zuordnungen gesamt');
+INSERT INTO txt VALUES ('rule_owner_mappings_total', 'English',  'Mappings in total');
+INSERT INTO txt VALUES ('rule_owner_pending_imports','German',   'Offene Importe');
+INSERT INTO txt VALUES ('rule_owner_pending_imports','English',  'Pending imports');
+INSERT INTO txt VALUES ('rule_owner_run_InSync',     'German',   'Unver&auml;ndert');
+INSERT INTO txt VALUES ('rule_owner_run_InSync',     'English',  'In sync');
+INSERT INTO txt VALUES ('rule_owner_run_Drift',      'German',   'Abweichung');
+INSERT INTO txt VALUES ('rule_owner_run_Drift',      'English',  'Deviation');
+INSERT INTO txt VALUES ('rule_owner_run_ImportsPending',       'German',   'Importe offen');
+INSERT INTO txt VALUES ('rule_owner_run_ImportsPending',       'English',  'Imports pending');
+INSERT INTO txt VALUES ('rule_owner_run_ChangeApplied',        'German',   '&Auml;nderung vorgenommen');
+INSERT INTO txt VALUES ('rule_owner_run_ChangeApplied',        'English',  'Change applied');
+INSERT INTO txt VALUES ('rule_owner_finding_Missing',     'German',   'Nicht angelegt');
+INSERT INTO txt VALUES ('rule_owner_finding_Missing',     'English',  'Not created');
+INSERT INTO txt VALUES ('rule_owner_finding_Superfluous', 'German',   'Nicht entfernt');
+INSERT INTO txt VALUES ('rule_owner_finding_Superfluous', 'English',  'Not removed');
+INSERT INTO txt VALUES ('rule_owner_change_added',        'German',   'Neu hinzugekommen');
+INSERT INTO txt VALUES ('rule_owner_change_added',        'English',  'Newly added');
+INSERT INTO txt VALUES ('rule_owner_change_removed',      'German',   'Weggefallen');
+INSERT INTO txt VALUES ('rule_owner_change_removed',      'English',  'No longer applies');
+INSERT INTO txt VALUES ('run',                       'German',   'Lauf');
+INSERT INTO txt VALUES ('run',                       'English',  'Run');
+INSERT INTO txt VALUES ('newer',                     'German',   'Neuer');
+INSERT INTO txt VALUES ('newer',                     'English',  'Newer');
+INSERT INTO txt VALUES ('older',                     'German',   '&Auml;lter');
+INSERT INTO txt VALUES ('older',                     'English',  'Older');
+INSERT INTO txt VALUES ('finding',                   'German',   'Art der Abweichung');
+INSERT INTO txt VALUES ('finding',                   'English',  'Type of deviation');
+INSERT INTO txt VALUES ('rule_metadata_id',           'German',   'Regel-Metadaten-ID');
+INSERT INTO txt VALUES ('rule_metadata_id',           'English',  'Rule metadata ID');
+INSERT INTO txt VALUES ('rule_owner_applied_changes', 'German',   'Ge&auml;nderte Einstellung');
+INSERT INTO txt VALUES ('rule_owner_applied_changes', 'English',  'Changed setting');
+INSERT INTO txt VALUES ('rule_owner_last_clean_run',  'German',   'Zuletzt ohne Abweichung gepr&uuml;ft');
+INSERT INTO txt VALUES ('rule_owner_last_clean_run',  'English',  'Last verified without deviation');
+INSERT INTO txt VALUES ('rule_owner_current_InSync',          'German',   'Aktuell keine Abweichung');
+INSERT INTO txt VALUES ('rule_owner_current_InSync',          'English',  'Currently no deviation');
+INSERT INTO txt VALUES ('rule_owner_current_Drift',           'German',   'Die letzte Pr&uuml;fung hat Abweichungen gefunden');
+INSERT INTO txt VALUES ('rule_owner_current_Drift',           'English',  'The last check found deviations');
+INSERT INTO txt VALUES ('rule_owner_current_ChangeApplied',   'German',   '&Auml;nderung angewendet, seither nicht gepr&uuml;ft');
+INSERT INTO txt VALUES ('rule_owner_current_ChangeApplied',   'English',  'Change applied, not verified since');
+INSERT INTO txt VALUES ('rule_owner_current_ImportsPending',  'German',   'Letzte Pr&uuml;fung nicht aussagekr&auml;ftig, es waren Importe offen');
+INSERT INTO txt VALUES ('rule_owner_current_ImportsPending',  'English',  'Last check inconclusive, imports were pending');
+INSERT INTO txt VALUES ('rule_owner_runs_with_findings', 'German',   'Aufgezeichnete L&auml;ufe');
+INSERT INTO txt VALUES ('rule_owner_runs_with_findings', 'English',  'Recorded runs');
+INSERT INTO txt VALUES ('removed',                   'German',   'Entfernt');
+INSERT INTO txt VALUES ('removed',                   'English',  'Removed');
 INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'German',   'Custom-Feld-&Auml;nderungs-ID-Schl&uuml;ssel');
 INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'English',  'Custom field change-ID keys');
 INSERT INTO txt VALUES ('custom_field_import_Settings',    'German', 	'Custom-Feld-Einstellungen');
@@ -4151,8 +4217,8 @@ INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
-INSERT INTO txt VALUES ('U5503', 'German',  'Import erfolgreich.');
-INSERT INTO txt VALUES ('U5503', 'English', 'Import successful.');
+INSERT INTO txt VALUES ('U5503', 'German',  'Eigent&uuml;merzuordnung neu berechnet.');
+INSERT INTO txt VALUES ('U5503', 'English', 'Owner mapping recalculated.');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -4181,6 +4247,16 @@ INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichte
 INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
+INSERT INTO txt VALUES ('U7550', 'German', 'Ergebnis der letzten vollst&auml;ndigen Neuberechnungen der Eigent&uuml;merzuordnung. Ein vollst&auml;ndiger Neuaufbau berechnet alle Zuordnungen neu; weicht das Ergebnis vom gespeicherten Stand ab, obwohl kein Import offen war, hat die laufende Aktualisierung etwas &uuml;bersehen. Aufgelistet werden nur L&auml;ufe mit Abweichung; wann zuletzt ohne Befund gepr&uuml;ft wurde, steht oben.');
+INSERT INTO txt VALUES ('U7550', 'English', 'Result of the last full recalculations of the owner mapping. A full rebuild recalculates every mapping; if the result differs from the stored state although no import was pending, the running update missed something. Only runs with a deviation are listed; when it was last verified without findings is shown above.');
+INSERT INTO txt VALUES ('U7551', 'German', 'Bisher wurde keine vollst&auml;ndige Neuberechnung aufgezeichnet. Sie wird unter Einstellungen - Eigent&uuml;mer - Eigent&uuml;merzuordnung ausgel&ouml;st.');
+INSERT INTO txt VALUES ('U7551', 'English', 'No full recalculation has been recorded yet. It is triggered under Settings - Owners - Owner Mapping.');
+INSERT INTO txt VALUES ('U7552', 'German', 'Es wurden mehr Abweichungen gefunden, als hier aufgelistet sind. Die Anzahl oben ist vollst&auml;ndig, die Liste zeigt nur die ersten Eintr&auml;ge.');
+INSERT INTO txt VALUES ('U7552', 'English', 'More deviations were found than are listed here. The counts above are complete, the list only shows the first entries.');
+INSERT INTO txt VALUES ('U7553', 'German', 'Keine Abweichung: die laufende Aktualisierung hat denselben Stand erzeugt wie die vollst&auml;ndige Neuberechnung.');
+INSERT INTO txt VALUES ('U7553', 'English', 'No deviation: the running update produced the same state as the full recalculation.');
+INSERT INTO txt VALUES ('U7554', 'German', 'Bei einem Wechsel der Mapping-Quelle &auml;ndert sich jede Zuordnung. Die Einzelliste wird deshalb nicht gespeichert, die Zahlen oben sind vollst&auml;ndig.');
+INSERT INTO txt VALUES ('U7554', 'English', 'Switching the mapping source changes every mapping. The individual list is therefore not stored; the counts above are complete.');
 
 INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie Folgendes l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
@@ -4547,8 +4623,8 @@ INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed m
 
 INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
 INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
-INSERT INTO txt VALUES ('E5502', 'German',  'Keine Regeln/Eigent&uuml;mer gefunden oder falsches Schl&uuml;sselfeld.');
-INSERT INTO txt VALUES ('E5502', 'English', 'No Rules/Owner or wrong Key-Field.');
+INSERT INTO txt VALUES ('E5502', 'German',  'Die Neuberechnung der Eigent&uuml;merzuordnung ist fehlgeschlagen. Einzelheiten stehen im Middleware-Log.');
+INSERT INTO txt VALUES ('E5502', 'English', 'Recalculating the owner mapping failed. See the middleware log for details.');
 INSERT INTO txt VALUES ('E5503', 'German',  'Fehler beim Import.');
 INSERT INTO txt VALUES ('E5503', 'English', 'Import error.');
 INSERT INTO txt VALUES ('E5504', 'German',  'Bitte eine Eigent&uuml;merzuordnungsquelle ausw&auml;hlen.');
@@ -7987,6 +8063,38 @@ INSERT INTO txt VALUES ('H7252', 'English', 'Sample data (defined by the ending 
 ');
 INSERT INTO txt VALUES ('H7253', 'German', 'Die Ergebnisse der Pr&uuml;fung des Import-Status der aktiven Managements sind hier protokolliert. Werden Anomalien wie &uuml;berlange Import-Zeiten oder fehlende Imports festgestellt,
     werden einzelne Alarme ausgel&ouml;st, die unter <a href="/help/monitoring/open_alerts">Offenen Alarme</a> analysiert und behandelt werden k&ouml;nnen. Hier wird lediglich die Anzahl der gefundenen Probleme protokolliert.
+INSERT INTO txt VALUES ('H7261', 'German', 'Ein vollst&auml;ndiger Neuaufbau berechnet alle Zuordnungen von Grund auf und vergleicht das Ergebnis mit dem gespeicherten Stand. Der Balken oben sagt, wie die Zuordnung <b>aktuell</b> steht; er nimmt den zuletzt gelaufenen Neuaufbau. Darunter stehen die aufgezeichneten L&auml;ufe, zwischen denen mit <i>Neuer</i> und <i>&Auml;lter</i> gewechselt wird.');
+INSERT INTO txt VALUES ('H7261', 'English', 'A full rebuild recalculates every mapping from scratch and compares the result with the stored state. The banner at the top says how the mapping stands <b>right now</b>, taken from the rebuild that ran last. Below it are the recorded runs; use <i>Newer</i> and <i>Older</i> to move between them.');
+INSERT INTO txt VALUES ('H7262', 'German', 'Die vier Zust&auml;nde: <b>Unver&auml;ndert</b> &ndash; der Lauf fand keinen Unterschied, die laufende Aktualisierung ist auf dem richtigen Stand. <b>&Auml;nderung angewendet</b> &ndash; eine Einstellung wurde ge&auml;ndert, das Ergebnis weicht deshalb bewusst ab. <b>Importe offen</b> &ndash; es war noch etwas unverarbeitet, der Lauf kann nichts aussagen. <b>Abweichung</b> &ndash; Unterschied ohne offene Importe und ohne &Auml;nderung; nur dieser Zustand ist ein Problem.');
+INSERT INTO txt VALUES ('H7262', 'English', 'The four states: <b>In sync</b> &ndash; the run found no difference, the running update is up to date. <b>Change applied</b> &ndash; a setting was changed, so the result deliberately differs. <b>Imports pending</b> &ndash; something was still unprocessed, the run cannot judge. <b>Deviation</b> &ndash; a difference without pending imports and without a change; only this state is a problem.');
+INSERT INTO txt VALUES ('H7263', 'German', 'Aufgezeichnet werden L&auml;ufe mit Unterschied und L&auml;ufe, die eine ge&auml;nderte Einstellung angewendet haben &ndash; letztere auch dann, wenn sie nichts bewirkt haben, denn genau das will man sehen. Ein Neuaufbau ohne Unterschied belegt keinen Platz, er frischt nur den Zeitstempel oben auf. Es werden bis zu zehn L&auml;ufe behalten.');
+INSERT INTO txt VALUES ('H7263', 'English', 'Recorded are runs with a difference and runs that applied a changed setting &ndash; the latter even when they had no effect, because that is exactly what you want to see. A rebuild without a difference takes no slot, it only refreshes the timestamp above. Up to ten runs are kept.');
+INSERT INTO txt VALUES ('H7264', 'German', 'In der Tabelle h&auml;ngt die Bezeichnung vom Anlass ab. Bei einer Abweichung hei&szlig;t es <b>Nicht angelegt</b> beziehungsweise <b>Nicht entfernt</b> &ndash; die laufende Aktualisierung h&auml;tte das tun m&uuml;ssen. Nach einer bewussten &Auml;nderung hei&szlig;t dasselbe <b>Neu hinzugekommen</b> und <b>Weggefallen</b>, denn dort ist es das gewollte Ergebnis. Regel, Eigent&uuml;mer und Metadaten sind als IDs angegeben; &uuml;ber <i>Erstellt</i> und <i>Entfernt</i> l&auml;sst sich die Zeile in der Tabelle rule_owner wiederfinden.');
+INSERT INTO txt VALUES ('H7264', 'English', 'In the table the wording depends on what caused the run. For a deviation it reads <b>Not created</b> or <b>Not removed</b> &ndash; the running update should have done that. After a deliberate change the same thing reads <b>Newly added</b> and <b>No longer applies</b>, because there it is the intended result. Rule, owner and metadata are given as IDs; <i>Created</i> and <i>Removed</i> let you find the row again in the rule_owner table.');
+INSERT INTO txt VALUES ('H7265', 'German', 'Beim Wechsel der Mapping-Quelle &auml;ndert sich jede Zuordnung. Die Einzelliste wird dann nicht gespeichert, weil sie nichts aussagen w&uuml;rde; die Z&auml;hler bleiben vollst&auml;ndig. Waren Importe offen, stehen deren Nummern dabei und der Lauf frischt den Zeitstempel oben nicht auf &ndash; er hat ja nichts nachgewiesen.');
+INSERT INTO txt VALUES ('H7265', 'English', 'Switching the mapping source changes every mapping. The individual list is then not stored because it would say nothing; the counts stay complete. If imports were pending, their numbers are listed and the run does not refresh the timestamp above &ndash; it proved nothing.');
+INSERT INTO txt VALUES ('H7276', 'German', 'Ein Alarm wird gemeldet, wenn ein Import nicht verarbeitet werden konnte, wenn wegen zu vieler offener Importe auf einen vollst&auml;ndigen Neuaufbau ausgewichen wurde, wenn die Mapping-Quelle &uuml;berhaupt keine Regel mehr trifft, und bei einer echten Abweichung. Eine bewusste &Auml;nderung und offene Importe l&ouml;sen keinen Alarm aus. Alarme stehen unter Monitoring &ndash; Alarme.');
+INSERT INTO txt VALUES ('H7276', 'English', 'An alert is raised when an import could not be processed, when too many pending imports forced a full rebuild, when the mapping source no longer matches any rule at all, and on a real deviation. A deliberate change and pending imports raise no alert. Alerts are listed under Monitoring &ndash; Alerts.');
+INSERT INTO txt VALUES ('H7266', 'German', 'Wie das Ergebnis dieses Laufs zu lesen ist. Nur <i>Abweichung</i> weist auf ein Problem hin; die anderen Zust&auml;nde erkl&auml;ren den Unterschied von selbst.');
+INSERT INTO txt VALUES ('H7266', 'English', 'How the result of this run has to be read. Only <i>Deviation</i> points at a problem; the other states explain the difference themselves.');
+INSERT INTO txt VALUES ('H7267', 'German', 'Zeitpunkt, zu dem die vollst&auml;ndige Neuberechnung abgeschlossen und ihr Ergebnis festgehalten wurde.');
+INSERT INTO txt VALUES ('H7267', 'English', 'Point in time at which the full recalculation finished and its result was recorded.');
+INSERT INTO txt VALUES ('H7268', 'German', 'Nummer des Imports, unter dem die Neuberechnung verbucht wurde. Alle unten aufgef&uuml;hrten Zeilen sind in der Tabelle rule_owner &uuml;ber diese Nummer auffindbar.');
+INSERT INTO txt VALUES ('H7268', 'English', 'Number of the import the recalculation was recorded under. Every row listed below can be found in the rule_owner table by this number.');
+INSERT INTO txt VALUES ('H7269', 'German', 'Verfahren, nach dem die Zuordnungen berechnet wurden, also IP-basiert, Custom-Feld oder Namensfeld.');
+INSERT INTO txt VALUES ('H7269', 'English', 'Method the mappings were calculated with, that is IP based, custom field or name field.');
+INSERT INTO txt VALUES ('H7270', 'German', 'Anzahl der Zuordnungen nach diesem Lauf.');
+INSERT INTO txt VALUES ('H7270', 'English', 'Number of mappings after this run.');
+INSERT INTO txt VALUES ('H7271', 'German', 'Zuordnungen, die dieser Lauf angelegt hat, weil es sie vorher nicht gab. Die laufende Aktualisierung h&auml;tte sie erzeugen m&uuml;ssen.');
+INSERT INTO txt VALUES ('H7271', 'English', 'Mappings this run created because they did not exist before. The running update should have created them.');
+INSERT INTO txt VALUES ('H7272', 'German', 'Zuordnungen, die dieser Lauf entfernt hat, weil sie nicht mehr zutreffen. Die laufende Aktualisierung h&auml;tte sie abr&auml;umen m&uuml;ssen.');
+INSERT INTO txt VALUES ('H7272', 'English', 'Mappings this run removed because they no longer apply. The running update should have cleared them.');
+INSERT INTO txt VALUES ('H7273', 'German', 'Importe, die zu Beginn des Laufs noch nicht verarbeitet waren. Sind hier Nummern eingetragen, erkl&auml;rt der Rückstand den Unterschied und der Lauf sagt nichts &uuml;ber die Qualit&auml;t der laufenden Aktualisierung.');
+INSERT INTO txt VALUES ('H7273', 'English', 'Imports that had not been processed when the run started. If numbers are listed here, the backlog explains the difference and the run says nothing about the quality of the running update.');
+INSERT INTO txt VALUES ('H7274', 'German', 'Was vor diesem Lauf ge&auml;ndert wurde. Deshalb weicht das Ergebnis bewusst vom vorherigen Stand ab, und der Unterschied wird nicht als Problem gemeldet.');
+INSERT INTO txt VALUES ('H7274', 'English', 'What was changed before this run. That is why the result deliberately differs from the previous state, and the difference is not reported as a problem.');
+INSERT INTO txt VALUES ('H7275', 'German', 'Wie die Eigent&uuml;merzuordnung aktuell steht, abgeleitet aus dem zuletzt gelaufenen Neuaufbau. Nur <i>Die letzte Pr&uuml;fung hat Abweichungen gefunden</i> weist auf ein Problem hin. Die unten aufgelisteten L&auml;ufe sind Historie: jeder Neuaufbau schreibt selbst den korrekten Stand, der Befund berichtet also, was vorher falsch war. Der Zeitstempel der letzten Pr&uuml;fung ohne Befund wird nie verdr&auml;ngt.');
+INSERT INTO txt VALUES ('H7275', 'English', 'How the owner mapping stands right now, taken from the rebuild that ran last. Only <i>The last check found deviations</i> points at a problem. The runs listed below are history: every rebuild writes the correct state itself, so a finding reports what was wrong before it ran. The timestamp of the last check without findings is never pushed out.');
 ');
 INSERT INTO txt VALUES ('H7253', 'English', 'Results of the Import status checks of the active managements are recorded here. If anomalies as overdue or missing imports are found,
     separate alerts are raised, which can be analysed and handled at <a href="/help/monitoring/open_alerts">Open Alerts</a>.
@@ -9138,3 +9246,7 @@ INSERT INTO txt VALUES ('H5914', 'German', 'Standardm&auml;&szlig;ig zeigt der C
 INSERT INTO txt VALUES ('H5914', 'English', 'By default, the compliance diff report shows all violations found in the selected interval, including violations for rules that were already non-compliant at the start of the interval and violations that have since been resolved. When enabled, it shows only rules that were compliant at the start of the interval and subsequently became non-compliant. Resolved violations continue to be shown.');
 INSERT INTO txt VALUES ('H5915', 'German',  'Deaktiviert: Es wird keine automatische Eigent&uuml;merzuordnung berechnet. Dies ist die Voreinstellung. Beim Speichern dieser Quelle und beim Neuberechnen werden bereits berechnete Zuordnungen entfernt.');
 INSERT INTO txt VALUES ('H5915', 'English', 'Disabled: No automatic owner mapping is calculated. This is the default. Saving this source and recalculating remove the mappings calculated so far.');
+INSERT INTO txt VALUES ('H5916', 'German', 'Legt fest, wie ausf&uuml;hrlich einzelne nicht zuordenbare Regeln und ung&uuml;ltige Eigent&uuml;mer-Netze im Middleware-Log protokolliert werden. Bei vielen Altregeln ohne Zuordnung erzeugt jeder Lauf sonst eine Meldung pro Regel. Die Zusammenfassung pro Lauf und fehlgeschlagene Importe werden immer protokolliert.');
+INSERT INTO txt VALUES ('H5916', 'English', 'Controls how much detail about single unmappable rules and invalid owner networks is written to the middleware log. With many legacy rules that can never be mapped, every run would otherwise produce one message per rule. The per-run summary and failed imports are always logged.');
+INSERT INTO txt VALUES ('H5917', 'German', '<b>Protokollierung Zuordnungsprobleme</b>: bestimmt, wie ausf&uuml;hrlich einzelne Regeln und Objekte im Middleware-Log auftauchen, die nicht zugeordnet werden konnten. Die Zusammenfassung jedes Laufs, fehlgeschlagene Importe und Alarme werden unabh&auml;ngig davon immer protokolliert. Die Einstellung gilt nur f&uuml;r die Eigent&uuml;merzuordnung und &auml;ndert die Protokollierung anderer Komponenten nicht. Die Stufen bauen aufeinander auf:<ul><li><i>Keine(r/s)</i>: keine Meldungen zu einzelnen Regeln oder Objekten.</li><li><i>Fehler</i>: die Konfiguration selbst ist unbrauchbar, z. B. ein Eigent&uuml;mer-Netz mit ung&uuml;ltigem IP-Bereich oder eine fehlende Markierung. Wenige Meldungen, immer zu pr&uuml;fen.</li><li><i>Warnung</i>: zus&auml;tzlich Regeln, die trotz Modellierung ohne Eigent&uuml;mer bleiben, z. B. wenn die Markierung auf eine Verbindung ohne aktiven Eigent&uuml;mer zeigt. Voreinstellung.</li><li><i>Info</i>: zus&auml;tzlich im Normalbetrieb erwartbare F&auml;lle, z. B. Regeln ganz ohne Netzwerkobjekt.</li><li><i>Debug</i>: zus&auml;tzlich alle nie modellierten Altregeln. Mit Abstand die gr&ouml;&szlig;te Menge.</li></ul>');
+INSERT INTO txt VALUES ('H5917', 'English', '<b>Logging of mapping issues</b>: sets how much detail about single rules and objects that could not be mapped appears in the middleware log. The summary of every run, failed imports and alerts are always logged regardless. The setting applies to the owner mapping only and does not change the logging of any other component. The levels build on each other:<ul><li><i>None</i>: no messages about single rules or objects.</li><li><i>Error</i>: the configuration itself is unusable, for instance an owner network with an invalid IP range or a missing marker. Few messages, always worth checking.</li><li><i>Warning</i>: additionally rules that stay without an owner although they were modelled, for instance when the marker points to a connection without an active owner. Default.</li><li><i>Info</i>: additionally cases that are plausible in normal operation, such as rules without any network object.</li><li><i>Debug</i>: additionally every rule that was never modelled. By far the largest volume.</li></ul>');

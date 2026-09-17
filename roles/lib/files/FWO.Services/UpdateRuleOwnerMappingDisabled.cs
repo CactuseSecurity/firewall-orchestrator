@@ -37,6 +37,10 @@ namespace FWO.Services
         /// <returns>True if the disabled mapping state was established successfully.</returns>
         public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
         {
+            // this source does not use UpdateRuleOwners, so the change note of the triggering save would
+            // otherwise be lost and switching the mapping off would look like drift
+            TakeOverEventArgs(eventArgs);
+
             if (!(eventArgs?.isFullReInitialize ?? false))
             {
                 // the scheduled run has nothing to do while the owner mapping is disabled
@@ -57,9 +61,14 @@ namespace FWO.Services
                 return true;
             }
 
+            List<long> pendingImportsBefore = await LoadPendingImportControlIds();
             long importControlId = await CreateImportControl();
-            await SetAllActiveRuleOwnersRemoved(importControlId);
+            List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
             await CompleteImportControlFullReInit(importControlId);
+
+            // switching the mapping off removes every mapping, which belongs in the run history just like any
+            // other rebuild - otherwise the entry that explains an empty mapping table would be missing
+            await RecordRun(importControlId, previousRuleOwners, [], pendingImportsBefore);
 
             Log.WriteInfo(LogMessageTitle, "All rule_owner mappings removed because the owner mapping source is disabled.");
             return true;

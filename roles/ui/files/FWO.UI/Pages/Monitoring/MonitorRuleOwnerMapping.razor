@@ -1,0 +1,258 @@
+@using FWO.Services
+@using FWO.Ui.Services
+
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/rule_owner_mapping"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("rule_owner_mapping_runs"))</h3>
+    <HelpLink Page="monitoring/rule_owner_mapping" />
+</div>
+@(userConfig.GetText("U7550"))
+<hr />
+
+@if (!InitComplete)
+{
+    <Loading />
+}
+else
+{
+    @* the history below only holds runs that found something, so it cannot show how the mapping stands
+       right now - that is what this banner is for, in the colour of the newest run's own state *@
+    @if (Handler.CurrentState != null)
+    {
+        <div class="alert alert-@(RuleOwnerMappingRunHandler.GetStateStyle(Handler.CurrentState.Value))"
+             data-toggle="tooltip" title="@(userConfig.PureLine("H7275"))">
+            <b>@(userConfig.GetText($"rule_owner_current_{Handler.CurrentState}"))</b>
+            @if (Handler.LastRunWithoutFindings != null)
+            {
+                <text> &ndash; @(userConfig.GetText("rule_owner_last_clean_run")):
+                @(Handler.LastRunWithoutFindings.RunTime.ToLocalTime().ToString("g"))
+                (@(userConfig.GetText("import_id")) @(Handler.LastRunWithoutFindings.ControlId))</text>
+            }
+        </div>
+    }
+
+    @if (Handler.SelectedRun == null)
+    {
+        @* nothing recorded at all reads differently from recorded and never found anything *@
+        <div class="alert alert-secondary">
+            @(userConfig.GetText(Handler.LastRunWithoutFindings == null ? RuleOwnerMappingRunHandler.kNoHistoryText : "U7553"))
+        </div>
+    }
+}
+
+@if (InitComplete && Handler.SelectedRun != null)
+{
+    <h5 class="mt-3">@(userConfig.GetText("rule_owner_runs_with_findings"))</h5>
+    <div class="btn-group m-1">
+        <button type="button" class="btn btn-sm btn-secondary" disabled="@(!Handler.HasNewer)" @onclick="Handler.SelectNewer">
+            @(DisplayService.DisplayButton(userConfig, "newer", Icons.CollapseLeft))
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" disabled="@(!Handler.HasOlder)" @onclick="Handler.SelectOlder">
+            @(DisplayService.DisplayButton(userConfig, "older", Icons.CollapseRight))
+        </button>
+    </div>
+    <span class="ms-2">@(userConfig.GetText("run")) @(Handler.SelectedIndex + 1) / @(Handler.Runs.Count)</span>
+
+    <div class="row m-1 mt-3">
+        <div class="col-sm-8">
+            <table class="table table-sm table-borderless w-auto">
+                <tbody>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7266"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("state")):</th>
+                        <td><span class="badge text-bg-@(RuleOwnerMappingRunHandler.GetStateStyle(State))">@(GetStateText(State))</span></td>
+                    </tr>
+                    @if (Handler.SelectedRun.Changes.Count > 0)
+                    {
+                        <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7274"))">
+                            <th scope="row" class="pe-4">@(userConfig.GetText("rule_owner_applied_changes")):</th>
+                            <td>
+                                @foreach (RuleOwnerMappingChange change in Handler.SelectedRun.Changes)
+                                {
+                                    <div>@(DescribeChange(change))</div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7267"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("timestamp")):</th>
+                        <td>@(Handler.SelectedRun.RunTime.ToLocalTime().ToString("g"))</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7268"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("import_id")):</th>
+                        <td>@(Handler.SelectedRun.ControlId)</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7269"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("source")):</th>
+                        <td>@(userConfig.GetText(Handler.SelectedRun.MappingSource))</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7270"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("rule_owner_mappings_total")):</th>
+                        <td>@(Handler.SelectedRun.MappingCount)</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7271"))">
+                        <th scope="row" class="pe-4">@(GetAddedLabel()):</th>
+                        <td>@(Handler.SelectedRun.AddedCount)</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7272"))">
+                        <th scope="row" class="pe-4">@(GetRemovedLabel()):</th>
+                        <td>@(Handler.SelectedRun.RemovedCount)</td>
+                    </tr>
+                    <tr data-toggle="tooltip" title="@(userConfig.PureLine("H7273"))">
+                        <th scope="row" class="pe-4">@(userConfig.GetText("rule_owner_pending_imports")):</th>
+                        <td>
+                            @if (Handler.SelectedRun.PendingImportsBefore.Count == 0)
+                            {
+                                @(userConfig.GetText("none"))
+                            }
+                            else
+                            {
+                                @(string.Join(", ", Handler.SelectedRun.PendingImportsBefore))
+                            }
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (Handler.SelectedRun.PairListsTruncated)
+    {
+        <div class="alert alert-warning m-1">@(userConfig.GetText("U7552"))</div>
+    }
+
+    @if (Entries.Count == 0)
+    {
+        @* a source switch replaces every mapping, so only the counts are kept *@
+        <div class="alert alert-secondary m-1">@(userConfig.GetText("U7554"))</div>
+    }
+    else
+    {
+    <div class="m-1 vheight60">
+            <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
+                   TableItem="RuleOwnerMappingRunEntry" Items="Entries" PageSize="0">
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("rule"))" Field="@(x => x.RuleId)" Sortable="true" Filterable="true" />
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("owner"))" Field="@(x => x.OwnerId)" Sortable="true" Filterable="true" />
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("rule_metadata_id"))" Field="@(x => x.RuleMetadataId)" Sortable="true" Filterable="true" />
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("created"))" Field="@(x => x.Created)" Sortable="true" Filterable="true" />
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("removed"))" Field="@(x => x.Removed)" Sortable="true" Filterable="false">
+                    <Template>
+                        @(context.Removed?.ToString() ?? "null")
+                    </Template>
+                </Column>
+                                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("finding"))" Field="@(x => x.Finding)" Sortable="true" Filterable="true">
+                    <Template>
+                        <span class="badge text-bg-@(context.Finding == RuleOwnerMappingFinding.Missing ? "danger" : "warning")">
+                            @(GetFindingText(context.Finding))
+                        </span>
+                    </Template>
+                </Column>
+            </Table>
+    </div>
+    }
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private readonly RuleOwnerMappingRunHandler Handler = new();
+    private bool InitComplete = false;
+
+    private RuleOwnerMappingRunState State => Handler.GetSelectedState();
+    private List<RuleOwnerMappingRunEntry> Entries => Handler.GetSelectedEntries();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Handler.Init(await new RuleOwnerMappingRunHistory(apiConnection).Load());
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("rule_owner_mapping_runs"), "", true);
+        }
+        finally
+        {
+            InitComplete = true;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the display text of a run state.
+    /// </summary>
+    /// <param name="state">State to display.</param>
+    /// <returns>The localized text.</returns>
+    private string GetStateText(RuleOwnerMappingRunState state)
+    {
+        return userConfig.GetText($"rule_owner_run_{state}");
+    }
+
+    /// <summary>
+    /// Describes one recorded change as "setting: from to". Mapping source names are localized, the other
+    /// values are the configured texts themselves and are shown as they were entered.
+    /// </summary>
+    /// <param name="change">Change to describe.</param>
+    /// <returns>The readable description.</returns>
+    private string DescribeChange(RuleOwnerMappingChange change)
+    {
+        bool isSource = change.Setting == RuleOwnerMappingChangeSetting.kSource;
+        string from = isSource ? userConfig.GetText(change.From) : change.From;
+        string to = isSource ? userConfig.GetText(change.To) : change.To;
+        return $"{userConfig.GetText(GetChangeSettingTextKey(change.Setting))}: {from} → {to}";
+    }
+
+    /// <summary>
+    /// Resolves the text key naming a changed setting.
+    /// </summary>
+    /// <param name="setting">Setting identifier as it was recorded.</param>
+    /// <returns>The text key.</returns>
+    private static string GetChangeSettingTextKey(string setting)
+    {
+        return setting switch
+        {
+            RuleOwnerMappingChangeSetting.kSource => "source",
+            RuleOwnerMappingChangeSetting.kMarker => "modelledMarker",
+            RuleOwnerMappingChangeSetting.kCustomFieldKeys => "custom_field_Owner_key",
+            _ => "change"
+        };
+    }
+
+    /// <summary>
+    /// Resolves the display text of a finding. After a deliberate change the difference is the intended
+    /// result, so it is named neutrally instead of as something the incremental mapping failed to do.
+    /// </summary>
+    /// <param name="finding">Finding to display.</param>
+    /// <returns>The localized text.</returns>
+    private string GetFindingText(RuleOwnerMappingFinding finding)
+    {
+        return finding == RuleOwnerMappingFinding.Missing ? GetAddedLabel() : GetRemovedLabel();
+    }
+
+    /// <summary>
+    /// Names the mappings the run established, as an omission or as a plain addition.
+    /// </summary>
+    /// <returns>The localized text.</returns>
+    private string GetAddedLabel()
+    {
+        return userConfig.GetText(State == RuleOwnerMappingRunState.ChangeApplied
+            ? "rule_owner_change_added"
+            : "rule_owner_finding_Missing");
+    }
+
+    /// <summary>
+    /// Names the mappings the run dropped, as an omission or as a plain removal.
+    /// </summary>
+    /// <returns>The localized text.</returns>
+    private string GetRemovedLabel()
+    {
+        return userConfig.GetText(State == RuleOwnerMappingRunState.ChangeApplied
+            ? "rule_owner_change_removed"
+            : "rule_owner_finding_Superfluous");
+    }
+}

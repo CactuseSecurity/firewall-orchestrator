@@ -5,6 +5,7 @@ mutation updateTicket(
   $state: Int
   $deadline: timestamp
   $priority: Int
+  $preWorkflowTicketReference: String
   ) {
   update_request_ticket_by_pk(
     pk_columns: { id: $id }
@@ -14,6 +15,7 @@ mutation updateTicket(
     state_id: $state
     ticket_deadline: $deadline
     ticket_priority: $priority
+    pre_workflow_ticket_reference: $preWorkflowTicketReference
   }) {
     UpdatedIdLong: id
   }

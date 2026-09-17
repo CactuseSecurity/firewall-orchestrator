@@ -194,6 +194,7 @@ namespace FWO.Services.Workflow
                 ["requestAction"] = reqtask.RequestAction,
                 ["ruleAction"] = reqtask.RuleAction,
                 ["tracking"] = reqtask.Tracking,
+                ["preWorkflowTicketReference"] = reqtask.PreWorkflowTicketReference,
                 ["validFrom"] = reqtask.TargetBeginDate,
                 ["validTo"] = reqtask.TargetEndDate,
                 ["reason"] = reqtask.Reason,

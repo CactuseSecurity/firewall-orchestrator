@@ -8,6 +8,12 @@ namespace FWO.Middleware.Server.Requests;
 public sealed class CreateRequestRequest
 {
     /// <summary>
+    /// Gets the reference of the ticket in the workflow which preceded this workflow.
+    /// </summary>
+    [JsonPropertyName("preWorkflowTicketReference")]
+    public string? PreWorkflowTicketReference { get; set; }
+
+    /// <summary>
     /// Gets the RequestorName value.
     /// </summary>
     [JsonPropertyName("requestorName")]

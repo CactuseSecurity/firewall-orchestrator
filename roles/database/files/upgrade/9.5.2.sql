@@ -115,3 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON public.change_histo
 GRANT SELECT ON public.change_history TO fwo_ro;
 
 GRANT SELECT ON SEQUENCE public.change_history_id_seq TO fwo_ro;
+
+ALTER TABLE request.ticket ADD COLUMN IF NOT EXISTS pre_workflow_ticket_reference varchar;
+ALTER TABLE request.reqtask ADD COLUMN IF NOT EXISTS pre_workflow_ticket_reference varchar;
+ALTER TABLE request.impltask ADD COLUMN IF NOT EXISTS pre_workflow_ticket_reference varchar;

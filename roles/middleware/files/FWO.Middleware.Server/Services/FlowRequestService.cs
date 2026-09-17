@@ -236,6 +236,7 @@ public sealed class FlowRequestService : IDisposable
         return new WfTicket
         {
             Title = request.Title,
+            PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             StateId = ticketStateId,
             Requester = BuildRequester(request, requesterId),
             Reason = BuildRequestReason(request),
@@ -348,6 +349,7 @@ public sealed class FlowRequestService : IDisposable
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
+            PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
@@ -369,6 +371,7 @@ public sealed class FlowRequestService : IDisposable
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
+            PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
@@ -401,6 +404,7 @@ public sealed class FlowRequestService : IDisposable
         return new WfReqTask
         {
             Title = string.IsNullOrWhiteSpace(rule.Name) ? request.Title : rule.Name,
+            PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             TaskNumber = taskNumber,
             TaskType = WfTaskType.access.ToString(),
             RequestAction = RequestAction.create.ToString(),

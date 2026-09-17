@@ -10,6 +10,7 @@ fragment implTaskDetails on request_impltask {
   implementation_action
   rule_action
   rule_tracking
+  pre_workflow_ticket_reference
   start
   stop
   svc_grp_id

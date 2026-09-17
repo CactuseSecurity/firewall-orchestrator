@@ -55,6 +55,7 @@ namespace FWO.Data.Workflow
             ImplAction = reqtask.RequestAction;
             RuleAction = reqtask.RuleAction;
             Tracking = reqtask.Tracking;
+            PreWorkflowTicketReference = reqtask.PreWorkflowTicketReference;
             Start = null;
             Stop = null;
             ServiceGroupId = reqtask.ServiceGroupId;

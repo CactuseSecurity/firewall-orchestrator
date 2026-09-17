@@ -191,6 +191,7 @@ namespace FWO.Services.Workflow
 
         public async Task AddImplTask()
         {
+            ActImplTask.PreWorkflowTicketReference ??= ActReqTask.PreWorkflowTicketReference;
             if (dbAcc != null)
             {
                 ActImplTask.Id = await dbAcc.AddImplTaskToDb(ActImplTask);

@@ -8,6 +8,7 @@ mutation updateImplementationTask(
   $implAction: action_enum
   $ruleAction: Int
   $tracking: Int
+  $preWorkflowTicketReference: String
   $handler: Int
   $validFrom: timestamp
   $validTo: timestamp
@@ -24,6 +25,7 @@ mutation updateImplementationTask(
     implementation_action: $implAction
     rule_action: $ruleAction
     rule_tracking: $tracking
+    pre_workflow_ticket_reference: $preWorkflowTicketReference
     current_handler: $handler
     target_begin_date: $validFrom
 	  target_end_date: $validTo

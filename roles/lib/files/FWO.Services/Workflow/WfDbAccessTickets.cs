@@ -82,6 +82,7 @@ namespace FWO.Services.Workflow
                 ["title"] = ticket.Title,
                 ["state"] = ticket.StateId,
                 ["reason"] = ticket.Reason,
+                ["preWorkflowTicketReference"] = ticket.PreWorkflowTicketReference,
                 ["deadline"] = ticket.Deadline,
                 ["priority"] = ticket.Priority
             };

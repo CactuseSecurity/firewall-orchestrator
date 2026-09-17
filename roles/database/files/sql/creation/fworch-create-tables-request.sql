@@ -19,6 +19,7 @@ create table request.reqtask
     request_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
+    pre_workflow_ticket_reference varchar,
     start Timestamp,
     stop Timestamp,
     svc_grp_id int,
@@ -98,6 +99,7 @@ create table request.ticket
     reason text,
 	external_ticket_id varchar,
 	external_ticket_source int,
+	pre_workflow_ticket_reference varchar,
 	ticket_deadline Timestamp,
 	ticket_priority int,
 	locked boolean NOT NULL DEFAULT FALSE
@@ -281,6 +283,7 @@ create table request.impltask
     implementation_action action_enum NOT NULL,
     rule_action int,
     rule_tracking int,
+    pre_workflow_ticket_reference varchar,
     start timestamp,
     stop timestamp,
     svc_grp_id int,

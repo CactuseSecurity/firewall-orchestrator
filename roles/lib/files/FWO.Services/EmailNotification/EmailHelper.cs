@@ -183,17 +183,6 @@ namespace FWO.Services
             return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
         }
 
-        private static WorkflowEmailDeliveryResult ToWorkflowDeliveryResult(NotificationDeliveryResult result)
-        {
-            return result switch
-            {
-                NotificationDeliveryResult.Delivered => WorkflowEmailDeliveryResult.Delivered,
-                NotificationDeliveryResult.Suppressed => WorkflowEmailDeliveryResult.Suppressed,
-                NotificationDeliveryResult.NoRecipients => WorkflowEmailDeliveryResult.NoRecipients,
-                _ => WorkflowEmailDeliveryResult.Failed
-            };
-        }
-
         private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
             List<string>? bccs, string subject)
         {

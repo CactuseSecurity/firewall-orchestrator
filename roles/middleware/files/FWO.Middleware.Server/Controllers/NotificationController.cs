@@ -54,9 +54,11 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
                 return Forbid();
             }
 
-            ModellingConnection? replacement = parameters.ReplacementConnectionId is > 0
-                ? await LoadConnection(parameters.ReplacementConnectionId.Value)
-                : null;
+            ModellingConnection? replacement = null;
+            if (parameters.ReplacementConnectionId is > 0)
+            {
+                replacement = await LoadConnection(parameters.ReplacementConnectionId.Value);
+            }
             List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
                 ModellingQueries.getInterfaceUsers, new { id = connection.Id });
             List<FwoOwner> usingOwners = await LoadUsingOwners(usingConnections, connection.AppId);
@@ -156,11 +158,18 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
 
     private async Task<FwoOwner?> LoadOwner(int? ownerId, bool includeResponsibles = false)
     {
-        return ownerId is > 0
-            ? await apiConnection.SendQueryAsync<FwoOwner>(includeResponsibles
-                ? OwnerQueries.getOwnerForNotification
-                : OwnerQueries.getOwnerById, new { id = ownerId.Value })
-            : null;
+        if (ownerId is not > 0)
+        {
+            return null;
+        }
+
+        string query = OwnerQueries.getOwnerById;
+        if (includeResponsibles)
+        {
+            query = OwnerQueries.getOwnerForNotification;
+        }
+
+        return await apiConnection.SendQueryAsync<FwoOwner>(query, new { id = ownerId.Value });
     }
 
     private async Task<List<FwoOwner>> LoadUsingOwners(List<ModellingConnection> usingConnections, int? decommissionedOwnerId)
@@ -171,7 +180,11 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             .DistinctBy(usingConnection => usingConnection.AppId))
         {
             FwoOwner? owner = await LoadOwner(usingConnection.AppId, includeResponsibles: true);
-            FwoOwner resolvedOwner = owner is { Id: > 0 } ? owner : usingConnection.App;
+            FwoOwner resolvedOwner = usingConnection.App;
+            if (owner is { Id: > 0 })
+            {
+                resolvedOwner = owner;
+            }
             if (resolvedOwner.Id > 0)
             {
                 owners.Add(resolvedOwner);
@@ -222,16 +235,22 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     {
         if (ticket?.Requester != null)
         {
-            UiUser requester = new(ticket.Requester)
+            string requesterDn = ticket.Requester.Dn ?? "";
+            if (string.IsNullOrWhiteSpace(requesterDn))
             {
-                Dn = string.IsNullOrWhiteSpace(ticket.Requester.Dn) ? ticket.RequesterDn ?? "" : ticket.Requester.Dn
-            };
+                requesterDn = ticket.RequesterDn ?? "";
+            }
+
+            UiUser requester = new(ticket.Requester) { Dn = requesterDn };
             return requester;
         }
 
-        return string.IsNullOrWhiteSpace(ticket?.RequesterDn)
-            ? null
-            : new UiUser { Dn = ticket.RequesterDn };
+        if (string.IsNullOrWhiteSpace(ticket?.RequesterDn))
+        {
+            return null;
+        }
+
+        return new UiUser { Dn = ticket.RequesterDn };
     }
 
     private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildInterfaceRequestPlaceholderValues(
@@ -282,10 +301,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             noRecipients |= result == NotificationDeliveryResult.NoRecipients;
         }
 
-        return delivered ? NotificationDeliveryResult.Delivered
-            : failed ? NotificationDeliveryResult.Failed
-            : noRecipients ? NotificationDeliveryResult.NoRecipients
-            : NotificationDeliveryResult.Suppressed;
+        return CombineDeliveryResults(delivered, failed, noRecipients);
     }
 
     private async Task<NotificationDeliveryResult> SendInterfaceDecommissionNotifications(NotificationService service,
@@ -318,10 +334,27 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             }
         }
 
-        return delivered ? NotificationDeliveryResult.Delivered
-            : failed ? NotificationDeliveryResult.Failed
-            : noRecipients ? NotificationDeliveryResult.NoRecipients
-            : NotificationDeliveryResult.Suppressed;
+        return CombineDeliveryResults(delivered, failed, noRecipients);
+    }
+
+    private static NotificationDeliveryResult CombineDeliveryResults(bool delivered, bool failed, bool noRecipients)
+    {
+        if (delivered)
+        {
+            return NotificationDeliveryResult.Delivered;
+        }
+
+        if (failed)
+        {
+            return NotificationDeliveryResult.Failed;
+        }
+
+        if (noRecipients)
+        {
+            return NotificationDeliveryResult.NoRecipients;
+        }
+
+        return NotificationDeliveryResult.Suppressed;
     }
 
     private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildInterfaceDecommissionPlaceholderValues(

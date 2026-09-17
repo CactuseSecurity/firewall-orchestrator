@@ -106,6 +106,14 @@ namespace FWO.Test
             });
         }
 
+        [TestCase("report/generation", "report")]
+        [TestCase("/report/generation", "report")]
+        [TestCase("/report/generation/", "report")]
+        public void GetSectionPath_NormalizesRouteSlashes(string pagePath, string expectedSection)
+        {
+            Assert.That(NavigationMenu.GetSectionPath(pagePath), Is.EqualTo(expectedSection));
+        }
+
         private static BunitContext CreateContext(IEnumerable<string> roles, bool approvalActive, bool planningActive,
             out NavigationMenuTestApiConnection apiConnection, out SimulatedUserConfig userConfig)
         {

@@ -11,7 +11,7 @@
     <h3>@(userConfig.GetText("rule_owner_mapping_runs"))</h3>
     <HelpLink Page="monitoring/rule_owner_mapping" />
 </div>
-@(userConfig.GetText("U7550"))
+@((MarkupString)userConfig.GetText("U7550"))
 <hr />
 
 @if (!InitComplete)
@@ -47,7 +47,7 @@ else
 
 @if (InitComplete && Handler.SelectedRun != null)
 {
-    <h5 class="mt-3">@(userConfig.GetText("rule_owner_runs_with_findings"))</h5>
+    <h5 class="mt-3">@(userConfig.GetText("rule_owner_runs_with_findings")) (@(userConfig.GetText("last")) @(RuleOwnerMappingRunHistory.kMaxRuns))</h5>
     <div class="btn-group m-1">
         <button type="button" class="btn btn-sm btn-secondary" disabled="@(!Handler.HasNewer)" @onclick="Handler.SelectNewer">
             @(DisplayService.DisplayButton(userConfig, "newer", Icons.CollapseLeft))

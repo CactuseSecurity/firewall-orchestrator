@@ -85,7 +85,7 @@ namespace FWO.Services
             var connectionsToOwnerMap = connectionOwnersToMap.Where(c => c.AppId.HasValue)
                                               .ToDictionary(c => c.Id, c => c.AppId!.Value);
             var newRuleOwners = new List<RuleOwner>();
-            if (rulesToMap.Any() && string.IsNullOrWhiteSpace(globalConfig.ModModelledMarker))
+            if (rulesToMap.Count > 0 && string.IsNullOrWhiteSpace(globalConfig.ModModelledMarker))
             {
                 // reported once per run instead of once per rule, and only when there is something to map,
                 // so an idle scheduled run stays silent: without a marker no rule can be mapped at all

@@ -17,6 +17,9 @@ namespace FWO.Services
     {
         private const int kActiveRuleOwnerProbeLimit = 1;
 
+        /// <summary>Result of the disabled mapping source: it never produces a mapping.</summary>
+        private static readonly List<RuleOwner> NoRuleOwners = [];
+
         /// <inheritdoc/>
         public override OwnerMappingSourceStm Source => OwnerMappingSourceStm.Disabled;
 
@@ -64,11 +67,12 @@ namespace FWO.Services
             List<long> pendingImportsBefore = await LoadPendingImportControlIds();
             long importControlId = await CreateImportControl();
             List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
-            await CompleteImportControlFullReInit(importControlId);
 
             // switching the mapping off removes every mapping, which belongs in the run history just like any
-            // other rebuild - otherwise the entry that explains an empty mapping table would be missing
-            await RecordRun(importControlId, previousRuleOwners, [], pendingImportsBefore);
+            // other rebuild - otherwise the entry that explains an empty mapping table would be missing.
+            // recorded before the completion so a failure there does not lose the result of the run
+            await RecordRun(importControlId, previousRuleOwners, NoRuleOwners, pendingImportsBefore);
+            await CompleteImportControlFullReInit(importControlId);
 
             Log.WriteInfo(LogMessageTitle, "All rule_owner mappings removed because the owner mapping source is disabled.");
             return true;

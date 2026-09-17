@@ -96,11 +96,12 @@ namespace FWO.Services
 
             List<RuleOwner> previousRuleOwners = await SetAllActiveRuleOwnersRemoved(importControlId);
             await InsertNewRuleOwners(newRuleOwners);
+
+            // recorded before the completion so a failure there does not lose the result of the run
+            await RecordRun(importControlId, previousRuleOwners, newRuleOwners, pendingImportsBefore);
             await CompleteImportControlFullReInit(importControlId);
 
-            await RecordRun(importControlId, previousRuleOwners, newRuleOwners, pendingImportsBefore);
-
-            if (!newRuleOwners.Any())
+            if (newRuleOwners.Count == 0)
             {
                 await AlertEmptyMappingResult();
             }
@@ -190,7 +191,7 @@ namespace FWO.Services
                 }
             }
 
-            if (failedImportControlIds.Any())
+            if (failedImportControlIds.Count > 0)
             {
                 return await HandleFailedImports(failedImportControlIds, fullReinitFunc);
             }
@@ -251,7 +252,7 @@ namespace FWO.Services
         /// <returns>The mappings that are safe to insert.</returns>
         protected async Task<List<RuleOwner>> DropStillActiveMappings(List<RuleOwner> newRuleOwners)
         {
-            if (!newRuleOwners.Any())
+            if (newRuleOwners.Count == 0)
             {
                 return newRuleOwners;
             }
@@ -442,7 +443,10 @@ namespace FWO.Services
             }
             catch (Exception ex)
             {
+                // an import that was not marked done stays pending and would be processed again, so the
+                // failure has to reach RunIncremental instead of leaving the run looking successful
                 Log.WriteError(LogMessageTitle, "Error while updating import control completion status.", ex);
+                throw;
             }
         }
 
@@ -465,7 +469,10 @@ namespace FWO.Services
             }
             catch (Exception ex)
             {
+                // same reasoning as in CompleteImportControl: a rebuild whose import control was not
+                // completed must not be reported as a successful run
                 Log.WriteError(LogMessageTitle, "Error while updating import control completion status.", ex);
+                throw;
             }
         }
 

@@ -181,7 +181,8 @@ namespace FWO.Services
         /// <summary>Config key the history is stored under.</summary>
         public const string kConfigKey = "ruleOwnerMappingRunHistory";
 
-        private const int kMaxRuns = 10;
+        /// <summary>How many runs with a finding are kept. Shown on the page, so it stays in one place.</summary>
+        public const int kMaxRuns = 10;
         private const int kMaxListedPairs = 500;
         private const string kLogMessageTitle = "Update rule_owner Notifier";
 

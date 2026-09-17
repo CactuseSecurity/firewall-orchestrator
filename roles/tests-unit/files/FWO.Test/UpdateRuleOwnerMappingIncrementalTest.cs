@@ -80,6 +80,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldReportFailure_WhenMarkingTheImportDoneFails()
+        {
+            // the mapping changes are written but the import stays pending, so it would be processed again -
+            // reporting the run as successful would hide exactly that
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.AddRuleChange(1, ChangelogActionType.INSERT, kRuleId);
+            apiConnection.FailCompletionForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            bool result = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.False, "a completion that failed must not be reported as success");
+                Assert.That(apiConnection.CompletedImports, Is.Empty, "the import stays pending");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("import_control 1"));
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldRaiseAlert_WhenImportFails()
         {
             RuleOwnerMappingFake apiConnection = new();
@@ -376,6 +398,7 @@ namespace FWO.Test
             public List<long> CompletedImports { get; } = [];
             public List<string> RaisedAlerts { get; } = [];
             public long? FailRuleChangeLookupForImport { get; set; }
+            public long? FailCompletionForImport { get; set; }
             public int FullReinitializeCount { get; private set; }
             public string? StoredHistoryJson { get; private set; }
 
@@ -475,7 +498,12 @@ namespace FWO.Test
 
                 if (query == ImportQueries.updateImportControlForRuleOwnerInc || query == ImportQueries.updateImportControlForRuleOwnerFull)
                 {
-                    CompletedImports.Add(ReadLong(variables, "controlId"));
+                    long completedId = ReadLong(variables, "controlId");
+                    if (FailCompletionForImport == completedId)
+                    {
+                        throw new InvalidOperationException($"Simulated API failure while completing import_control {completedId}.");
+                    }
+                    CompletedImports.Add(completedId);
                     result = new ImportControl();
                     return true;
                 }

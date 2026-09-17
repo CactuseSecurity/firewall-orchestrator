@@ -282,12 +282,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void MiddlewareServerMaySelectTheTicketIdTheExistenceQueryReads()
     {
-        FileInfo? metadataFile = LocateMetadata();
-        if (metadataFile == null)
-        {
-            Assert.Ignore("The Hasura metadata is not reachable in this environment.");
-            return;
-        }
+        FileInfo metadataFile = LocateMetadata();
 
         List<string> columns = MiddlewareServerSelectColumns(metadataFile, "request", "ticket");
 
@@ -381,12 +376,7 @@ internal class WorkflowChangeHistoryControllerTest
     [Test]
     public void MiddlewareServerMaySelectEveryColumnTheQueryTouches()
     {
-        FileInfo? metadataFile = LocateMetadata();
-        if (metadataFile == null)
-        {
-            Assert.Ignore("The Hasura metadata is not reachable in this environment.");
-            return;
-        }
+        FileInfo metadataFile = LocateMetadata();
 
         List<string> columns = MiddlewareServerSelectColumns(metadataFile, "public", "change_history");
 
@@ -440,7 +430,7 @@ internal class WorkflowChangeHistoryControllerTest
             && identifier.GetProperty("schema").GetString() == schema;
     }
 
-    private static FileInfo? LocateMetadata()
+    private static FileInfo LocateMetadata()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null)
@@ -454,7 +444,7 @@ internal class WorkflowChangeHistoryControllerTest
             directory = directory.Parent;
         }
 
-        return null;
+        throw new AssertionException("The Hasura metadata is not reachable in this environment.");
     }
 
     [Test]

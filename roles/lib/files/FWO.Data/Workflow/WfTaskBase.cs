@@ -43,9 +43,6 @@ namespace FWO.Data.Workflow
         [JsonProperty("rule_tracking"), JsonPropertyName("rule_tracking")]
         public int? Tracking { get; set; }
 
-        [JsonProperty("pre_workflow_ticket_reference"), JsonPropertyName("pre_workflow_ticket_reference")]
-        public string? PreWorkflowTicketReference { get; set; }
-
         [JsonProperty("start"), JsonPropertyName("start")]
         public DateTime? Start { get; set; }
 
@@ -81,7 +78,6 @@ namespace FWO.Data.Workflow
             TaskType = task.TaskType;
             RuleAction = task.RuleAction;
             Tracking = task.Tracking;
-            PreWorkflowTicketReference = task.PreWorkflowTicketReference;
             Start = task.Start;
             Stop = task.Stop;
             ServiceGroupId = task.ServiceGroupId;
@@ -97,7 +93,6 @@ namespace FWO.Data.Workflow
             bool shortened = base.Sanitize();
             Title = Title.SanitizeMand(ref shortened);
             FreeText = FreeText.SanitizeOpt(ref shortened);
-            PreWorkflowTicketReference = PreWorkflowTicketReference.SanitizeOpt(ref shortened);
             return shortened;
         }
 

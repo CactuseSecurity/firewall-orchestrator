@@ -295,7 +295,6 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "preWorkflowTicketReference"), Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.CreatedTicket!.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
-            Assert.That(apiConnection.LastTicketWriter.Tasks[0].PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(1));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList, Has.Count.EqualTo(3));
@@ -2790,7 +2789,6 @@ internal class FlowRequestServiceTest
                         AdditionalInfo = taskWriter.AdditionalInfo,
                         Locked = taskWriter.Locked,
                         Tracking = taskWriter.Tracking,
-                        PreWorkflowTicketReference = taskWriter.PreWorkflowTicketReference,
                         RuleAction = taskWriter.RuleAction,
                         ManagementId = taskWriter.ManagementId,
                         Elements = [],

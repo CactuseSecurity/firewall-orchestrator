@@ -142,7 +142,6 @@ namespace FWO.Services.Workflow
                 ["implAction"] = impltask.ImplAction,
                 ["ruleAction"] = impltask.RuleAction,
                 ["tracking"] = impltask.Tracking,
-                ["preWorkflowTicketReference"] = impltask.PreWorkflowTicketReference,
                 ["handler"] = impltask.CurrentHandler?.DbId,
                 ["validFrom"] = impltask.TargetBeginDate,
                 ["validTo"] = impltask.TargetEndDate,

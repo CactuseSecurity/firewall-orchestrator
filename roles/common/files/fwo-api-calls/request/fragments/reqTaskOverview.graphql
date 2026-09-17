@@ -8,7 +8,6 @@ fragment reqTaskOverview on request_reqtask {
   request_action
   rule_action
   rule_tracking
-  pre_workflow_ticket_reference
   start
   stop
   flow_access_id
@@ -26,7 +25,6 @@ fragment reqTaskOverview on request_reqtask {
     state_id
     start
     stop
-    pre_workflow_ticket_reference
   }
   request_approvals: approvals {
     id

@@ -287,7 +287,6 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            ActReqTask.PreWorkflowTicketReference ??= ActTicket.PreWorkflowTicketReference;
             if (ActTicket.Id > 0) // ticket already created -> write directly to db
             {
                 ActReqTask.TicketId = ActTicket.Id;

@@ -95,16 +95,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public void WfImplTaskFromReqTask_CopiesPreWorkflowTicketReference()
-        {
-            WfReqTask requestTask = new() { PreWorkflowTicketReference = "Ticket-12345" };
-
-            WfImplTask implementationTask = new(requestTask);
-
-            Assert.That(implementationTask.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
-        }
-
-        [Test]
         public void WfReqTaskBase_AddInfoGetters_Work()
         {
             WfReqTaskBase task = new();

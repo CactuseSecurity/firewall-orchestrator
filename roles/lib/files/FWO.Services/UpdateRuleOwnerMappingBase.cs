@@ -192,8 +192,7 @@ namespace FWO.Services
 
             if (failedImportControlIds.Any())
             {
-                await AlertFailedIncrementalImports(failedImportControlIds);
-                return false;
+                return await HandleFailedImports(failedImportControlIds, fullReinitFunc);
             }
 
             return true;
@@ -503,13 +502,28 @@ namespace FWO.Services
 
 
         /// <summary>
-        /// Raises an alert for incremental imports that could not be processed, so a failing rule_owner
-        /// mapping becomes visible outside the middleware log file.
+        /// Reports imports that could not be processed and repairs the state when the same ones already
+        /// failed on the previous run. A single failure is usually transient and is retried by the next run,
+        /// so processing simply continues. One that persists would leave its changes unapplied indefinitely,
+        /// because the healthy imports drain and the pending backlog never reaches the fallback threshold -
+        /// the full reinitialize takes over instead, recomputing everything and completing the stuck import.
         /// </summary>
         /// <param name="failedImportControlIds">Control ids of the imports that failed.</param>
-        private async Task AlertFailedIncrementalImports(List<long> failedImportControlIds)
+        /// <param name="fullReinitFunc">Rebuilds every mapping.</param>
+        /// <returns>False after the first failure, the result of the rebuild after a repeated one.</returns>
+        private async Task<bool> HandleFailedImports(List<long> failedImportControlIds, Func<Task<bool>> fullReinitFunc)
         {
-            await RaiseAlert($"Rule owner mapping failed for import_control {string.Join(", ", failedImportControlIds)}. See the middleware log for details.");
+            string failedIds = string.Join(", ", failedImportControlIds);
+            bool failedBefore = await RaiseAlert($"Rule owner mapping failed for import_control {failedIds}. See the middleware log for details.");
+
+            if (!failedBefore)
+            {
+                return false;
+            }
+
+            // the alert of the previous run is still open, so this is at least the second attempt
+            Log.WriteWarning(LogMessageTitle, $"import_control {failedIds} failed again. Falling back to full rule_owner reinitialize.");
+            return await fullReinitFunc();
         }
 
         /// <summary>
@@ -545,16 +559,18 @@ namespace FWO.Services
 
         /// <summary>
         /// Writes a log entry and an alert unless the same alert is already open, so a job repeating every
-        /// few seconds does not flood the alert list with identical entries.
+        /// few seconds does not flood the alert list with identical entries. The already open alert also
+        /// tells a repeated problem from a first occurrence, see <see cref="HandleFailedImports"/>.
         /// </summary>
         /// <param name="description">Description shown in the alert and the log entry.</param>
-        private async Task RaiseAlert(string description)
+        /// <returns>True if an alert with the same description was already open and nothing was written.</returns>
+        private async Task<bool> RaiseAlert(string description)
         {
             try
             {
                 if (await SameAlertAlreadyOpen(description))
                 {
-                    return;
+                    return true;
                 }
 
                 await AlertHelper.AddLogEntry(apiConnection, kAlertSeverity, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping);
@@ -565,6 +581,7 @@ namespace FWO.Services
             {
                 Log.WriteError(LogMessageTitle, "Error while raising a rule_owner mapping alert.", ex);
             }
+            return false;
         }
 
         /// <summary>

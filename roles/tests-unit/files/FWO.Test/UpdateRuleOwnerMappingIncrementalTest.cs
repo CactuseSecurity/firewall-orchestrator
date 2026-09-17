@@ -329,6 +329,36 @@ namespace FWO.Test
             Assert.That(apiConnection.StoredHistory.LastRunWithoutFindings, Is.Null);
         }
 
+        [Test]
+        public async Task RunAsync_ShouldRepairByFullReinitialize_WhenTheSameImportFailsAgain()
+        {
+            // the healthy imports drain, so a stuck one never lets the backlog reach the fallback threshold -
+            // without this its changes would stay unapplied for good
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            bool firstRun = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstRun, Is.False, "the first failure is reported and retried, not repaired");
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(0));
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("import_control 1"));
+            });
+
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(1), "the repeated failure triggers the rebuild");
+                Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("import_control 1"), "the open alert is not raised twice");
+            });
+        }
+
         /// <summary>
         /// Simulated API connection for the CustomField mapping source.
         /// </summary>
@@ -346,6 +376,7 @@ namespace FWO.Test
             public List<long> CompletedImports { get; } = [];
             public List<string> RaisedAlerts { get; } = [];
             public long? FailRuleChangeLookupForImport { get; set; }
+            public int FullReinitializeCount { get; private set; }
             public string? StoredHistoryJson { get; private set; }
 
             public RuleOwnerMappingRunHistoryData StoredHistory => StoredHistoryJson == null
@@ -437,6 +468,7 @@ namespace FWO.Test
 
                 if (query == ImportQueries.addImportForRuleOwner)
                 {
+                    FullReinitializeCount++;
                     result = new InsertImportControl { Returning = [new ImportControl { ControlId = 999 }] };
                     return true;
                 }
@@ -562,7 +594,8 @@ namespace FWO.Test
 
                 if (query == MonitorQueries.getOpenAlerts)
                 {
-                    result = new List<Alert>();
+                    // like the real table: an alert stays open until somebody acknowledges it
+                    result = RaisedAlerts.Select(description => new Alert { AlertCode = AlertCode.RuleOwnerMapping, Description = description }).ToList();
                     return true;
                 }
 

@@ -14,7 +14,7 @@ namespace FWO.Ui.Shared
         /// <summary>
         /// Gets or sets the application-relative path which identifies the section.
         /// </summary>
-        [Parameter]
+        [Parameter, EditorRequired]
         public string ActivePath { get; set; } = "";
 
         /// <summary>

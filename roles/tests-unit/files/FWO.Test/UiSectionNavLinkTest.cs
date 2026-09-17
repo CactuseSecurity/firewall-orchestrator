@@ -13,6 +13,7 @@ namespace FWO.Test
         [TestCase("/compliance/checks", "/compliance", true)]
         [TestCase("/requesting", "/request", false)]
         [TestCase("/report/generation?device=1", "/report", true)]
+        [TestCase("/report/generation#details", "/report", true)]
         public void SectionNavLink_HighlightsOnlyMatchingSection(string currentPath, string activePath, bool expectedActive)
         {
             using BunitContext context = new();
@@ -41,6 +42,22 @@ namespace FWO.Test
                 .AddChildContent("Settings"));
 
             Assert.That(link.Find("a").ClassList.Contains("active"), Is.False);
+        }
+
+        [Test]
+        public void SectionNavLink_HighlightsNonExcludedSubsection()
+        {
+            using BunitContext context = new();
+            BunitNavigationManager navigationManager = context.Services.GetRequiredService<BunitNavigationManager>();
+            navigationManager.NavigateTo("/settings/users");
+
+            IRenderedComponent<SectionNavLink> link = context.Render<SectionNavLink>(parameters => parameters
+                .Add(component => component.ActivePath, "/settings")
+                .Add(component => component.ExcludedPath, "/settings/user")
+                .AddUnmatched("href", "/settings")
+                .AddChildContent("Settings"));
+
+            Assert.That(link.Find("a").ClassList.Contains("active"), Is.True);
         }
     }
 }

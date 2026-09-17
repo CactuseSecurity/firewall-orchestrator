@@ -20,6 +20,8 @@ namespace FWO.Test
     [FixtureLifeCycle(LifeCycle.InstancePerTestCase)]
     internal class UiNavigationMenuTest
     {
+        private static readonly List<string> kAdminRoles = new() { Roles.Admin };
+
         [Test]
         public void NavigationMenu_IgnoresDisposedServicesDuringInitialization()
         {
@@ -74,6 +76,32 @@ namespace FWO.Test
                 Assert.That(apiConnection.QueryRoles, Is.EqualTo(new[] { Roles.Approver, Roles.Approver }));
                 Assert.That(menu.Markup, Does.Contain("/request/plannings"));
                 Assert.That(menu.Markup, Does.Contain("networkmodelling"));
+            });
+        }
+
+        [TestCase("/report/archives", "/report/generation")]
+        [TestCase("/request/tickets", "/request/ticketsoverview")]
+        [TestCase("/certification/42", "/certification")]
+        [TestCase("/networkmodelling/42", "/networkmodelling")]
+        [TestCase("/network_analysis/results", "/network_analysis")]
+        [TestCase("/compliance/checks", "/compliance/policies")]
+        [TestCase("/monitoring/main", "/monitoring")]
+        [TestCase("/settings/general", "/settings")]
+        [TestCase("/settings/user", "/settings/user")]
+        public async Task NavigationMenu_HighlightsOnlyCurrentSection(string currentPath, string expectedHref)
+        {
+            await using BunitContext context = CreateContext(kAdminRoles, approvalActive: true, planningActive: true,
+                out _, out _);
+            BunitNavigationManager navigationManager = context.Services.GetRequiredService<BunitNavigationManager>();
+            navigationManager.NavigateTo(currentPath);
+
+            IRenderedComponent<NavigationMenu> menu = RenderMenu(context);
+
+            menu.WaitForAssertion(() =>
+            {
+                var activeLinks = menu.FindAll("a.active");
+                Assert.That(activeLinks, Has.Count.EqualTo(1));
+                Assert.That(activeLinks[0].GetAttribute("href"), Is.EqualTo(expectedHref));
             });
         }
 

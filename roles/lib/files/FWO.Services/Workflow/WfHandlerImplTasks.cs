@@ -242,9 +242,11 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
+                // The stored ticket is read once and handed to every delete, instead of once per task.
+                WfTicket? storedTicket = ActReqTask.ImplementationTasks.Count > 0 ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId) : null;
                 foreach (var impltask in ActReqTask.ImplementationTasks)
                 {
-                    await dbAcc.DeleteImplTaskFromDb(impltask);
+                    await dbAcc.DeleteImplTaskFromDb(impltask, storedTicket);
                 }
             }
             ActReqTask.ImplementationTasks.Clear();
@@ -255,14 +257,27 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
-                foreach (var device in await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection))
+                List<Device> devices = await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection);
+                WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
+                foreach (var device in devices)
                 {
                     if (reqTask.ImplementationTasks.FirstOrDefault(x => x.DeviceId == device.Id) == null)
                     {
-                        await CreateAccessImplTask(reqTask, device.Id);
+                        await CreateAccessImplTask(reqTask, device.Id, true, storedTicket);
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Reads the stored ticket once for a batch of implementation task creations.
+        /// </summary>
+        /// <param name="reqTask">Request task the implementation tasks belong to.</param>
+        /// <param name="taskCount">Number of implementation tasks about to be created.</param>
+        /// <returns>The stored ticket, or null when nothing will be created or no database access exists.</returns>
+        private async Task<WfTicket?> LoadTicketForImplTaskCreation(WfReqTask reqTask, int taskCount)
+        {
+            return dbAcc != null && taskCount > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
         }
 
         private async Task AutoCreateOrUpdateImplTasks()
@@ -532,9 +547,10 @@ namespace FWO.Services.Workflow
 
         private async Task CreateImplTasksForDevices(WfReqTask reqTask, List<int> deviceIds)
         {
+            WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, deviceIds.Count);
             foreach (int deviceId in deviceIds)
             {
-                await CreateAccessImplTask(reqTask, deviceId);
+                await CreateAccessImplTask(reqTask, deviceId, true, storedTicket);
             }
         }
 
@@ -548,7 +564,7 @@ namespace FWO.Services.Workflow
             reqTask.ImplementationTasks.Add(newImplTask);
         }
 
-        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true)
+        private async Task CreateAccessImplTask(WfReqTask reqTask, int? deviceId, bool adaptTitle = true, WfTicket? previousTicket = null)
         {
             WfImplTask newImplTask;
             newImplTask = new WfImplTask(reqTask)
@@ -563,7 +579,7 @@ namespace FWO.Services.Workflow
             }
             if (dbAcc != null)
             {
-                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask);
+                newImplTask.Id = await dbAcc.AddImplTaskToDb(newImplTask, previousTicket);
             }
             reqTask.ImplementationTasks.Add(newImplTask);
         }

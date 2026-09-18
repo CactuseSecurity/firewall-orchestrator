@@ -16,7 +16,7 @@
     <PackageReference Include="PuppeteerSharp" Version="25.10.0" />
     <PackageReference Include="Quartz" Version="3.21.0" />
     <PackageReference Include="Quartz.Extensions.Hosting" Version="3.21.0" />
-    <PackageReference Include="Quartz.Serialization.Json" Version="3.21.0" />
+    <PackageReference Include="Quartz.Serialization.Json" Version="4.0.1" />
   </ItemGroup>
 
   <ItemGroup>

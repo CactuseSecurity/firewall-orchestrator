@@ -473,12 +473,20 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RunAsyncCustomField_ShouldNotTryToInsertDuplicateActiveRuleOwnerPair()
+        public async Task RunAsyncCustomField_ShouldNotTryToInsertDuplicateActiveRuleOwnerPair()
         {
             DuplicateInsertGuardCustomFieldApiConnection apiConnection = new();
             UpdateRuleOwnerMappingCustomField service = new(apiConnection, new GlobalConfig { CustomFieldOwnerKey = @"[""owner""]" });
 
-            Assert.DoesNotThrowAsync(async () => await service.RunAsync(), "Incremental mapping should remove the active pair before re-inserting it.");
+            // RunIncremental catches every exception, so asserting that RunAsync does not throw would pass
+            // even when the insert collided - the completed imports are what shows whether it really worked
+            bool result = await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True, "Incremental mapping should remove the active pair before re-inserting it.");
+                Assert.That(apiConnection.CompletedImports, Is.EquivalentTo(new List<long> { 1, 2, 3 }), "Every pending import has to be completed.");
+            });
         }
 
         [Test]
@@ -1194,8 +1202,8 @@ namespace FWO.Test
             private readonly List<ImportControl> pendingImports;
             private readonly Dictionary<long, List<RuleChange>> ruleChangesByImport;
             private readonly Dictionary<long, List<OwnerChange>> ownerChangesByImport;
-            private readonly Dictionary<long, List<Rule>> rulesByImport;
-            private readonly Dictionary<long, List<FwoOwner>> ownersByImport;
+            private readonly List<Rule> allRules;
+            private readonly List<FwoOwner> allOwners;
             private readonly List<RuleOwner> activeRuleOwners = [];
             private long currentImportId;
 
@@ -1260,29 +1268,10 @@ namespace FWO.Test
                         [2] = []
                     };
 
-                rulesByImport = ruleImportFirst
-                    ? new()
-                    {
-                        [1] = BuildRules(rules),
-                        [2] = BuildRules(rules)
-                    }
-                    : new()
-                    {
-                        [1] = [],
-                        [2] = BuildRules(rules)
-                    };
-
-                ownersByImport = ruleImportFirst
-                    ? new()
-                    {
-                        [1] = [],
-                        [2] = BuildOwners(owners)
-                    }
-                    : new()
-                    {
-                        [1] = BuildOwners(owners),
-                        [2] = BuildOwners(owners)
-                    };
+                // getRulesForRuleOwnerCustomField and getOwnersForRuleOwnerCustomField read the live state
+                // in production - neither is filtered by the import that is currently being processed
+                allRules = BuildRules(rules);
+                allOwners = BuildOwners(owners);
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -1306,12 +1295,12 @@ namespace FWO.Test
 
                 if (query == FWO.Api.Client.Queries.OwnerQueries.getOwnersForRuleOwnerCustomField)
                 {
-                    return Task.FromResult((QueryResponseType)(object)ownersByImport[currentImportId]);
+                    return Task.FromResult((QueryResponseType)(object)allOwners.ToList());
                 }
 
                 if (query == FWO.Api.Client.Queries.RuleQueries.getRulesForRuleOwnerCustomField)
                 {
-                    return Task.FromResult((QueryResponseType)(object)rulesByImport[currentImportId]);
+                    return Task.FromResult((QueryResponseType)(object)allRules.ToList());
                 }
 
                 if (query == FWO.Api.Client.Queries.OwnerQueries.getRuleOwnerToRemoveByRule)
@@ -1483,13 +1472,14 @@ namespace FWO.Test
                 Metadata = new RuleMetadata { Id = 1101 }
             };
             private readonly FwoOwner trackedOwner = new() { Id = 1, ExtAppId = "A" };
-            private readonly List<long> completedImports = [];
+
+            public List<long> CompletedImports { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 if (query == FWO.Api.Client.Queries.ImportQueries.getPendingRuleOwnerImports)
                 {
-                    return Task.FromResult((QueryResponseType)(object)pendingImports.Where(import => !completedImports.Contains(import.ControlId)).ToList());
+                    return Task.FromResult((QueryResponseType)(object)pendingImports.Where(import => !CompletedImports.Contains(import.ControlId)).ToList());
                 }
 
                 if (query == FWO.Api.Client.Queries.RuleQueries.getChangedRulesForRuleOwnerMappingCustomField)
@@ -1556,7 +1546,7 @@ namespace FWO.Test
 
                 if (query == FWO.Api.Client.Queries.ImportQueries.updateImportControlForRuleOwnerInc)
                 {
-                    completedImports.Add(ReadLong(variables, "controlId"));
+                    CompletedImports.Add(ReadLong(variables, "controlId"));
                     return Task.FromResult(default(QueryResponseType)!);
                 }
 

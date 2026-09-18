@@ -734,3 +734,39 @@ Not supported any longer are:
 - change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.
 - change history entries written through the REST workflow endpoints name the authenticated caller instead of the middleware server, and carry that caller's user id in changer_id. changer_id therefore stays empty only for changes made by automation - background jobs and unauthenticated internal callers - so an audit can tell an automated change from a human one and resolve the human one to a user record even after a directory rename.
 - new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries of that ticket which are marked as audit proof critical, meaning a content change made in a user session by someone other than the requester. It is available to admins and auditors and reports change time, change user name, change user id and the recorded change text, newest first. The change user id is the trustworthy attribution, as the change user name is free text supplied by the writer of the change; it stays empty for changes made by automation. Change times carry the wall clock of the installation and no offset, because the underlying column is timezone naive. A ticketId that names no workflow ticket is answered with 404 and the error message "Workflow ticket with 'ticketId' <id> does not exist." instead of an empty changes list, so a mistyped or already deleted ticket id cannot be read as a ticket without audit proof critical changes; an existing ticket without such changes, or one whose changes the supplied filter excludes, still answers 200 with an empty list.
+
+## 9.5.3 - 17.09.2026
+- rule owner mapping: an owner import no longer blocks the incremental processing permanently. Rebuilding
+  the mappings of a newly created owner collided with the partial unique index on rule_owner, because the
+  on_conflict clause covers the primary key only; mappings that are still active are now skipped before
+  the insert. The resulting error is also no longer reported as a successful run
+- rule owner mapping: a failing import no longer holds up the imports behind it, and failures raise an
+  alert instead of only a log line
+- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize, which
+  recomputes every mapping and completes the stuck import. Without it a persistently failing import would
+  keep its changes unapplied indefinitely, because the healthy imports drain and the pending backlog never
+  reaches the threshold that triggers the fallback
+- rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
+  reports the empty result as an alert, instead of aborting and leaving the previous state in place.
+  This applies to a source that stops matching, not to a run that found no rule base at all: without
+  a rule there is nothing to judge, so the stored mappings are kept, no run is recorded and no alert is
+  raised. Which of the two it is, is decided by counting the active rules rather than by the result of
+  the mapping query, because that query is narrowed to the rules its source can map. An installation
+  without rules therefore no longer reports an empty mapping result on every run
+- rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
+  rebuild applies it, at most for a week. The configuration is written before the rebuild runs, so without
+  this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -
+  reported the intended effect of that setting as a deviation of the incremental mapping. The note expires
+  because a save that was never retried would otherwise explain away a much later rebuild and suppress the
+  deviation that one found. A run that drops an expired note says so, in its alert and on the monitoring
+  page: the difference is reported as before, but is no longer attributed to the incremental mapping alone
+- rule owner mapping: a problem that is still present is reported again and replaces its own earlier
+  alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
+  repeatedly failing import is exempt, because it is reported once and then repaired
+- rule owner mapping: new setting for the log level of mapping issues, so installations with many
+  unmappable legacy rules no longer get one message per rule on every run
+- rule owner mapping: the result of the last full reinitialize runs is kept in the config entry
+  ruleOwnerMappingRunHistory and shown on the new page monitoring/rule_owner_mapping, including which
+  rules were affected and whether a deliberate change, a pending import backlog or a real deviation
+  caused the difference
+- rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area

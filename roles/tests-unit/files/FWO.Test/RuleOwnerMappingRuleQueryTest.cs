@@ -14,6 +14,13 @@ namespace FWO.Test
     /// Nothing but that silence reports the mismatch at run time, which is why it is pinned on the query text
     /// here. The queries are compared without whitespace, because their formatting carries no meaning.
     /// </para>
+    /// <para>
+    /// Every <see cref="RuleQueries"/> access has to stay inside a test body. NUnit evaluates a
+    /// <c>TestCaseSource</c> while it builds the test cases, which happens before the
+    /// <see cref="TestInitializer"/> set-up fixture points FWO_BASE_DIR at the repository. RuleQueries would
+    /// then read its files from the installation path, and a failed type initializer is cached for the whole
+    /// process - so one such access fails every test in the assembly that touches a query, not just this one.
+    /// </para>
     /// </summary>
     [TestFixture]
     internal class RuleOwnerMappingRuleQueryTest
@@ -31,19 +38,6 @@ namespace FWO.Test
         /// </summary>
         private static readonly List<string> kRuleBasePredicates = new() { "removed:{_is_null:true}", "access_rule:{_eq:true}" };
 
-        /// <summary>
-        /// Enumerates the rule queries of the mapping sources by name, so a failure points at the file to repair.
-        /// </summary>
-        private static IEnumerable<TestCaseData> MappingSourceQueries()
-        {
-            yield return new TestCaseData(RuleQueries.getRulesForOwnerMappingCustomField)
-                .SetName("getRulesForOwnerMappingCustomField_StaysWithinTheCountedRuleBase");
-            yield return new TestCaseData(RuleQueries.getRulesForOwnerMappingNameField)
-                .SetName("getRulesForOwnerMappingNameField_StaysWithinTheCountedRuleBase");
-            yield return new TestCaseData(RuleQueries.getRulesForOwnerMappingIpBased)
-                .SetName("getRulesForOwnerMappingIpBased_StaysWithinTheCountedRuleBase");
-        }
-
         [Test]
         public void CountQuery_CountsEveryActiveAccessRule()
         {
@@ -54,18 +48,28 @@ namespace FWO.Test
                 "narrowing it makes an empty mapping result read as 'there is no rule base'");
         }
 
-        [TestCaseSource(nameof(MappingSourceQueries))]
-        public void MappingSourceQuery_StaysWithinTheCountedRuleBase(string mappingSourceQuery)
+        [Test]
+        public void MappingSourceQueries_StayWithinTheCountedRuleBase()
         {
-            string queryWithoutWhitespace = WithoutWhitespace(mappingSourceQuery);
+            // resolved here rather than in a TestCaseSource, see the note on the class
+            Dictionary<string, string> mappingSourceQueries = new()
+            {
+                { nameof(RuleQueries.getRulesForOwnerMappingCustomField), RuleQueries.getRulesForOwnerMappingCustomField },
+                { nameof(RuleQueries.getRulesForOwnerMappingNameField), RuleQueries.getRulesForOwnerMappingNameField },
+                { nameof(RuleQueries.getRulesForOwnerMappingIpBased), RuleQueries.getRulesForOwnerMappingIpBased }
+            };
 
             Assert.Multiple(() =>
             {
-                foreach (string predicate in kRuleBasePredicates)
+                foreach (KeyValuePair<string, string> mappingSourceQuery in mappingSourceQueries)
                 {
-                    Assert.That(queryWithoutWhitespace, Does.Contain(predicate),
-                        $"a mapping source query missing '{predicate}' can return a rule " +
-                        "countActiveRulesForOwnerMapping does not count, so an empty result would keep the obsolete mappings");
+                    string queryWithoutWhitespace = WithoutWhitespace(mappingSourceQuery.Value);
+                    foreach (string predicate in kRuleBasePredicates)
+                    {
+                        Assert.That(queryWithoutWhitespace, Does.Contain(predicate),
+                            $"{mappingSourceQuery.Key} is missing '{predicate}' and can therefore return a rule " +
+                            "countActiveRulesForOwnerMapping does not count, so an empty result would keep the obsolete mappings");
+                    }
                 }
             });
         }

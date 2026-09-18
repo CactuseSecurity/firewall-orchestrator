@@ -235,7 +235,7 @@ namespace FWO.Services
             if (pendingImports.Count > MaxPendingImportsBeforeFullReinit)
             {
                 Log.WriteWarning(LogMessageTitle, $"Found {pendingImports.Count} pending imports. Falling back to full rule_owner reinitialize.");
-                await AlertFullReinitFallback(pendingImports.Count);
+                await AlertFullReinitFallback();
                 return await fullReinitFunc();
             }
 
@@ -539,8 +539,6 @@ namespace FWO.Services
                 });
 
                 Log.WriteInfo(LogMessageTitle, $"Import control {importControlId} completed successfully.");
-
-                await CompleteOlderPendingImports(importControlId);
             }
             catch (Exception ex)
             {
@@ -548,6 +546,29 @@ namespace FWO.Services
                 // completed must not be reported as a successful run
                 Log.WriteError(LogMessageTitle, "Error while updating import control completion status.", ex);
                 throw;
+            }
+
+            await DrainOlderPendingImports(importControlId);
+        }
+
+        /// <summary>
+        /// Marks the imports the completed rebuild has already covered as done, and keeps a failure there to
+        /// itself. The rebuild is written and its own import control is complete by now, so reporting the run
+        /// as failed would send the caller after a state that is already correct - the UI would show the
+        /// rebuild as failed and keep the configuration change outstanding. The backlog is drained again by
+        /// the next run, or forces another full reinitialize, which is the same repair either way.
+        /// </summary>
+        /// <param name="importControlId">Import control of the completed rebuild.</param>
+        private async Task DrainOlderPendingImports(long importControlId)
+        {
+            try
+            {
+                await CompleteOlderPendingImports(importControlId);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(LogMessageTitle, "Error while completing the imports the full reinitialize already covered. " +
+                    "The rebuild itself is complete, the remaining imports are processed by the next run.", ex);
             }
         }
 
@@ -626,11 +647,17 @@ namespace FWO.Services
         /// <summary>
         /// Raises an alert when the pending import backlog forces a full reinitialize, because that hides
         /// whatever stopped the incremental processing from keeping up.
+        /// <para>
+        /// The description names the threshold, not the actual backlog: <see cref="RaiseAlert"/> recognizes a
+        /// repeat by the exact text, so a number differing from run to run would leave one open alert behind
+        /// per run - and this condition repeats on every run for as long as the rebuild it falls back to keeps
+        /// failing. The actual count is logged by the caller.
+        /// </para>
         /// </summary>
-        /// <param name="pendingImportCount">Number of imports waiting to be mapped.</param>
-        private async Task AlertFullReinitFallback(int pendingImportCount)
+        private async Task AlertFullReinitFallback()
         {
-            await RaiseAlert($"Rule owner mapping fell back to a full reinitialize because {pendingImportCount} imports were pending.");
+            await RaiseAlert($"Rule owner mapping fell back to a full reinitialize because more than {MaxPendingImportsBeforeFullReinit} " +
+                "imports were pending. See the middleware log for the number.");
         }
 
         /// <summary>

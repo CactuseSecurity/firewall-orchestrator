@@ -32,7 +32,10 @@ namespace FWO.Middleware.Server
         /// gets chunked with this size.
         /// </summary>
         protected const int kPathInsertBatchSize = 500;
-        private struct ImportCounters
+        /// <summary>
+        /// Counts database inserts, removals and fails during matrix import.
+        /// </summary>
+        private class ImportCounters
         {
             public int AllZones;
             public int NewZoneSuccess;
@@ -46,10 +49,6 @@ namespace FWO.Middleware.Server
             public int InsertPathInternet;
             public int RemovePathRoot;
             public int RemovePathInternet;
-            /// <summary>
-            /// Initializes a new instance of the type.
-            /// </summary>
-            public ImportCounters() { }
         }
         private ImportCounters counters = new();
         /// <summary>
@@ -73,7 +72,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Top level methode to import a matrix; calls validation, get existing data and import input matrix.
+        /// Top level method to import a matrix; calls validation, get existing data and import input matrix.
         /// </summary>
         private async Task<string> ImportSingleMatrix(string importFileName)
         {
@@ -96,8 +95,8 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Top level validation methode. Simple checks are done here, more complicated checks are called.
-        /// Failed checks don't interrupt validation but add to an error list, which interupts if exists and is displayed in the end.
+        /// Top level validation method. Simple checks are done here, more complicated checks are called.
+        /// Failed checks don't interrupt validation but add to an error list, which interrupts if exists and is displayed in the end.
         /// </summary>
         private static void CheckData(ImportNwZoneMatrixData importedZoneMatrixData, DeviceNameResolver deviceLookup, GlobalConfig globalConfig)
         {
@@ -225,7 +224,7 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Helper that creates a iteration over all Management + Device combinations in input matrix paths
+        /// Helper that creates an iteration over all Management + Device combinations in input matrix paths
         /// </summary>
         private static IEnumerable<DeviceRefData> ReferencedDevices(ImportNwZoneMatrixData matrixData)
         {

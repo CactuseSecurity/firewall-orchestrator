@@ -15,8 +15,9 @@ else if (logEntries.Count == 0)
 }
 else
 {
-    @* the id lets the browser measure the rendered table of this instance, see logDataTable.js *@
-    <div id="@containerId">
+    @* the id lets the browser measure the rendered table of this instance, see logDataTable.js.
+       The click handler catches the paging of the table below, see OnTableClicked *@
+    <div id="@containerId" @onclick="OnTableClicked">
         <Table @ref="logTable" TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
                TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="pageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
@@ -181,7 +182,7 @@ else
 
     /// <summary>
     /// Hands the measured page size to the table, but only while the first page is shown. On any
-    /// other page the size is kept back until a later measurement finds the first page again.
+    /// other page the size is kept back until the user is on the first page again.
     /// </summary>
     private async Task ApplyMeasuredPageSize()
     {
@@ -196,9 +197,7 @@ else
         // therefore put a different part of the log on screen without the user asking for it.
         // BlazorTable 1.17.0 offers neither a page change event nor a public page number setter,
         // so the position cannot be carried over either and the size is kept back instead. It
-        // reaches the table at the next measurement taken while the first page is shown: a later
-        // resize, or the rows of another owner. Paging back to the first page does not render
-        // this component and therefore does not apply it on its own.
+        // reaches the table as soon as the user is on the first page again, see OnTableClicked.
         if (!LogDataTableLayout.MayApplyPageSize(logTable?.PageNumber))
         {
             return;
@@ -209,6 +208,19 @@ else
         {
             await logTable.SetPageSizeAsync(pageSize);
         }
+    }
+
+    /// <summary>
+    /// Hands over a page size kept back while the user had paged into the data, once a click has
+    /// brought them back to the first page. The pager belongs to the table, so paging re-renders
+    /// the table and not this component: without this handler a kept back size would wait for the
+    /// next window resize. Blazor dispatches a click from the clicked element outwards, so the
+    /// pager has already taken this click and the page number read here is the one it has moved
+    /// to.
+    /// </summary>
+    private async Task OnTableClicked()
+    {
+        await ApplyMeasuredPageSize();
     }
 
     /// <summary>

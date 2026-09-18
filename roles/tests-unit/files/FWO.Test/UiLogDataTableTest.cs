@@ -1,8 +1,13 @@
 using System.Reflection;
+using AngleSharp.Dom;
+using BlazorTable;
+using Bunit;
 using FWO.Api.Client;
+using FWO.Config.Api;
 using FWO.Data;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using NUnit.Framework;
 
@@ -11,6 +16,15 @@ namespace FWO.Test
     [TestFixture]
     internal class UiLogDataTableTest
     {
+        // rows the browser is said to fit once the window is maximised
+        private const int kMaximisedWindowRows = 40;
+        // enough rows for several pages at both page sizes used here
+        private const int kLoadedEntries = 60;
+        // the pager ends in first, previous, next and last page, counted from the end because the
+        // items before them depend on the pager options
+        private const int kNextPageItemFromEnd = 2;
+        private const int kPreviousPageItemFromEnd = 3;
+
         [Test]
         public async Task OnParametersSet_LoadsLogEntriesOfOwner()
         {
@@ -236,7 +250,7 @@ namespace FWO.Test
                 Assert.That(GetPrivateField<int>(component, "pageSize"), Is.EqualTo(LogDataTableLayout.kDefaultPageSize),
                     "a page number means different rows once the page size changes, so the table must stay as it is");
                 Assert.That(GetPrivateField<int>(component, "measuredPageSize"), Is.EqualTo(40),
-                    "the measurement is remembered for the next one taken while the first page is shown");
+                    "the measurement is remembered for when the user is back on the first page");
             });
         }
 
@@ -271,13 +285,59 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task PagingBackToTheFirstPage_AppliesThePageSizeTheResizeHadToKeepBack()
+        {
+            using BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            JSRuntimeInvocationHandler<int> measurement = context.JSInterop.Setup<int>("measureLogDataTableRows", _ => true);
+            measurement.SetResult(LogDataTableLayout.kMinPageSize);
+            context.Services.AddBlazorTable();
+            context.Services.AddSingleton<ApiConnection>(new LogDataTableTestApiConn { EntryCount = kLoadedEntries });
+            context.Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            context.Services.AddSingleton(new DomEventService());
+
+            IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters
+                .Add(component => component.OwnerId, 7));
+            page.WaitForAssertion(() => Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(LogDataTableLayout.kMinPageSize),
+                "the table starts with the page size the measured window allows"));
+
+            // the user pages into the data, then maximises the window. The measurement is taken
+            // directly, the settling of a run of resize events is not what this test is about
+            FindPagerItem(page, kNextPageItemFromEnd).Click();
+            measurement.SetResult(kMaximisedWindowRows);
+            await page.InvokeAsync(() => InvokePrivateTask(page.Instance, "AdjustPageSize"));
+            Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(LogDataTableLayout.kMinPageSize),
+                "a page size change would move the user to a different part of the log while they are paged in");
+
+            FindPagerItem(page, kPreviousPageItemFromEnd).Click();
+
+            page.WaitForAssertion(() => Assert.That(page.FindAll("tbody tr"), Has.Count.EqualTo(kMaximisedWindowRows),
+                "paging does not render this component, so the click which paged has to hand the kept back size over"));
+        }
+
+        /// <summary>
+        /// Picks one of the pager items BlazorTable renders, counted from the end because only
+        /// their order is stable - their labels follow the language of the browser.
+        /// </summary>
+        private static IElement FindPagerItem(IRenderedComponent<LogDataTable> page, int positionFromEnd)
+        {
+            IReadOnlyList<IElement> pagerItems = page.FindAll("ul.pagination li.page-item");
+            return pagerItems[^positionFromEnd];
+        }
+
         private static BlazorTable.Table<OwnerFirewallLogEntry> CreateTableOnPage(int pageNumber)
         {
             BlazorTable.Table<OwnerFirewallLogEntry> table = new();
+            SetTablePage(table, pageNumber);
+            return table;
+        }
+
+        private static void SetTablePage(BlazorTable.Table<OwnerFirewallLogEntry> table, int pageNumber)
+        {
             PropertyInfo property = typeof(BlazorTable.Table<OwnerFirewallLogEntry>).GetProperty("PageNumber")
                 ?? throw new MissingMemberException(typeof(BlazorTable.Table<OwnerFirewallLogEntry>).FullName, "PageNumber");
             property.SetValue(table, pageNumber);
-            return table;
         }
 
         private static void SetPrivateField<T>(LogDataTable component, string fieldName, T value)
@@ -377,6 +437,7 @@ namespace FWO.Test
             public int? LastOwnerId { get; private set; }
             public int? LastLimit { get; private set; }
             public bool FailQuery { get; init; }
+            public int EntryCount { get; init; } = 1;
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -389,7 +450,8 @@ namespace FWO.Test
                     throw new InvalidOperationException("query failed");
                 }
 
-                List<OwnerFirewallLogEntry> entries = [new() { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32" }];
+                List<OwnerFirewallLogEntry> entries = [.. Enumerable.Range(0, EntryCount)
+                    .Select(_ => new OwnerFirewallLogEntry { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32" })];
                 return Task.FromResult((QueryResponseType)(object)entries);
             }
         }

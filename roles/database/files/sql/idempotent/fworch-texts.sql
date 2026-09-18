@@ -544,6 +544,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Die Log-Daten einer Verbindung in der Modellierung f&uuml;llen nun das Browser-Fenster: die Tabelle zeigt so viele Zeilen pro Seite, wie das Fenster zul&auml;sst, und folgt einer &Auml;nderung der Fenstergr&ouml;&szlig;e. Eine neue Seitengr&ouml;&szlig;e wird nur auf der ersten Seite &uuml;bernommen und springt damit nie an eine andere Stelle der Log-Daten.</li>
+    <li>Auditoren k&ouml;nnen die Modellierungs-Formulare aller Applikationen - Verbindungen, bereitgestellte Schnittstellen und Common Services - nun &ouml;ffnen und die dort angezeigten Log-Daten einsehen. Speichern, L&ouml;schen und das Beantragen von Firewall-&Auml;nderungen bleiben den Verantwortlichen mit der Rolle Modellierer vorbehalten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -560,6 +562,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>The log data shown with a connection in the modelling ui now fills the browser window: the table takes as many rows per page as the window allows and follows a window resize. A new page size is only applied while the first page is shown, so it never moves you to a different part of the log.</li>
+    <li>Auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

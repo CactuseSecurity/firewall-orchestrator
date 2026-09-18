@@ -76,6 +76,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task UpdateNotificationsLastSent_MixedResultsUpdatesOnlyDeliveredNotification()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+            FwoNotification deliveredNotification = notificationService.Notifications[0];
+            FwoNotification failedNotification = notificationService.Notifications[1];
+            NotificationDeliveryResult deliveredResult = NotificationDeliveryResult.Delivered;
+            NotificationDeliveryResult failedResult = NotificationDeliveryResult.Failed;
+            MethodInfo addCheckedNotificationId = typeof(NotificationService).GetMethod(
+                "AddCheckedNotificationId", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(NotificationService).FullName, "AddCheckedNotificationId");
+            object?[] addIdArguments = [deliveredNotification.Id];
+            addCheckedNotificationId.Invoke(notificationService, addIdArguments);
+            int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+
+            List<int> expectedNotificationIds = [deliveredNotification.Id];
+            Assert.Multiple(() =>
+            {
+                Assert.That(deliveredResult, Is.EqualTo(NotificationDeliveryResult.Delivered));
+                Assert.That(failedResult, Is.EqualTo(NotificationDeliveryResult.Failed));
+                Assert.That(updatedNotifications, Is.EqualTo(1));
+                Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedNotificationIds));
+                Assert.That(apiConnection.UpdatedNotificationIds, Does.Not.Contain(failedNotification.Id));
+            });
+        }
+
+        [Test]
         public async Task SendBundledNotifications_SkipsInactiveNotifications()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(

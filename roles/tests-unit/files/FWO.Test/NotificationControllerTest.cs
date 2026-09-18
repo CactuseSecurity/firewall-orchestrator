@@ -261,12 +261,15 @@ internal class NotificationControllerTest
         Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
     }
 
-    [TestCase(10, false, true, "Public")]
-    [TestCase(11, false, true, "Public")]
-    [TestCase(11, true, false, "Public")]
-    [TestCase(11, true, true, "Private")]
+    [TestCase(10, false, true, "Public", false, null)]
+    [TestCase(11, false, true, "Public", false, null)]
+    [TestCase(11, true, false, "Public", false, null)]
+    [TestCase(11, true, true, "Private", false, null)]
+    [TestCase(11, true, true, "Public", true, "Decommissioned")]
+    [TestCase(11, true, true, "Public", false, "Rejected")]
     public async Task SendInterfaceDecommission_RejectsIneligibleReplacement(
-        int replacementId, bool isInterface, bool isPublished, string interfacePermission)
+        int replacementId, bool isInterface, bool isPublished, string interfacePermission, bool removed,
+        string? lifecycleProperty)
     {
         ControllerApiConnection apiConnection = new()
         {
@@ -277,6 +280,8 @@ internal class NotificationControllerTest
                 Id = replacementId,
                 IsInterface = isInterface,
                 IsPublished = isPublished,
+                Removed = removed,
+                Properties = lifecycleProperty == null ? "" : $"{{\"{lifecycleProperty}\":\"\"}}",
                 InterfacePermission = interfacePermission
             }
         };

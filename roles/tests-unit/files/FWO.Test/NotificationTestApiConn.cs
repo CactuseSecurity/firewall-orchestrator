@@ -2,12 +2,14 @@ using GraphQL;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Services;
+using System.Reflection;
 
 namespace FWO.Test
 {
     internal class NotificationTestApiConn : SimulatedApiConnection
     {
         public List<(int Id, NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+        public List<int> UpdatedNotificationIds { get; } = [];
 
         readonly FwoNotification NotifReq1 = new()
         {
@@ -95,6 +97,15 @@ namespace FWO.Test
             }
             if (responseType == typeof(ReturnId))
             {
+                if (query == NotificationQueries.updateNotificationsLastSent)
+                {
+                    PropertyInfo? idsProperty = variables?.GetType().GetProperty("ids");
+                    if (idsProperty?.GetValue(variables) is IEnumerable<int> ids)
+                    {
+                        UpdatedNotificationIds.AddRange(ids);
+                    }
+                }
+
                 if (query == NotificationQueries.updateNotificationLog)
                 {
                     int id = GetVariable<int>(variables, "id");

@@ -74,10 +74,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
                 .ToList();
             NotificationDeliveryResult result = await SendInterfaceDecommissionNotifications(notificationService, notifications,
                 connection, replacement, usingConnections, usingOwners, parameters.Reason);
-            if (result == NotificationDeliveryResult.Delivered)
-            {
-                await notificationService.UpdateNotificationsLastSent();
-            }
+            await notificationService.UpdateNotificationsLastSent();
             return Ok(result);
         }
         catch (Exception exception)
@@ -141,10 +138,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             }
 
             NotificationDeliveryResult result = await SendNotifications(notificationService, notifications, owner, placeholderValues);
-            if (result == NotificationDeliveryResult.Delivered)
-            {
-                await notificationService.UpdateNotificationsLastSent();
-            }
+            await notificationService.UpdateNotificationsLastSent();
             return Ok(result);
         }
         catch (Exception exception)
@@ -168,7 +162,13 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             return false;
         }
 
-        if (!replacement.IsInterface || !replacement.IsPublished)
+        if (!replacement.IsInterface || !replacement.IsPublished || replacement.Removed)
+        {
+            return false;
+        }
+
+        if (replacement.GetBoolProperty(ConState.Decommissioned.ToString())
+            || replacement.GetBoolProperty(ConState.Rejected.ToString()))
         {
             return false;
         }

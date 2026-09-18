@@ -84,6 +84,7 @@
                 {
                     ProvisioningResolvedValue resolved = ProvisioningSettingsMockData.Resolve(allNodes, SelectedNode, field);
                     bool overriddenHere = resolved.IsOverriddenHere;
+                    ProvisioningNode? sourceNode = resolved.SourceNode;
 
                     <div id="@FieldRowId(field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(field.HelpTextKey))">
                         <div class="d-flex align-items-center justify-content-between">
@@ -106,13 +107,19 @@
                             @RenderEditor(field, overriddenHere ? GetOverrideValue(field) : resolved.Value, v => SetOverrideValue(field, v))
                         </div>
 
-                        @if (!overriddenHere)
+                        @if (!overriddenHere && sourceNode != null)
                         {
                             <div class="text-muted small mt-1">
                                 @(userConfig.GetText("prov_inherited_from"))
-                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="() => NavigateToSource(field, resolved)">
-                                    <strong>@LevelLabel(resolved.SourceNode.Level)</strong> "@resolved.SourceNode.Name" <span class="@Icons.Use"></span>
+                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="() => NavigateToSource(field, sourceNode)">
+                                    <strong>@LevelLabel(sourceNode.Level)</strong> "@sourceNode.Name" <span class="@Icons.Use"></span>
                                 </button>
+                            </div>
+                        }
+                        else if (!overriddenHere)
+                        {
+                            <div class="text-muted small mt-1">
+                                @(userConfig.GetText("prov_not_set"))
                             </div>
                         }
                     </div>
@@ -158,14 +165,14 @@
     private static string FieldRowId(ProvisioningFieldDefinition field) => $"prov-field-{field.Key}";
 
     /// <summary>Jumps to the node a field's value is currently inherited from, so it can be edited there.</summary>
-    private void NavigateToSource(ProvisioningFieldDefinition field, ProvisioningResolvedValue resolved)
+    private void NavigateToSource(ProvisioningFieldDefinition field, ProvisioningNode sourceNode)
     {
-        if (SelectedNode == null || resolved.SourceNode.Id == SelectedNode.Id)
+        if (SelectedNode == null || sourceNode.Id == SelectedNode.Id)
         {
             return;
         }
 
-        SelectNode(resolved.SourceNode);
+        SelectNode(sourceNode);
         pendingHighlightFieldKey = field.Key;
     }
 

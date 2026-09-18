@@ -101,8 +101,10 @@ namespace FWO.Ui.Pages.Settings
 
     /// <summary>
     /// Where an effective field value came from, for display ("inherited from ..." vs "set here").
+    /// SourceNode is null when no node in the chain (including Global) overrides the field,
+    /// i.e. the value is just the field's schema default with nothing to link to.
     /// </summary>
-    public sealed record ProvisioningResolvedValue(string Value, ProvisioningNode SourceNode, bool IsOverriddenHere);
+    public sealed record ProvisioningResolvedValue(string Value, ProvisioningNode? SourceNode, bool IsOverriddenHere);
 
     /// <summary>
     /// Field schema plus an in-memory mock hierarchy, standing in for the not-yet-built
@@ -447,7 +449,7 @@ namespace FWO.Ui.Pages.Settings
                     return new ProvisioningResolvedValue(value, candidate, candidate.Id == node.Id);
                 }
             }
-            return new ProvisioningResolvedValue(field.DefaultValue, node, false);
+            return new ProvisioningResolvedValue(field.DefaultValue, null, false);
         }
 
         public static List<ProvisioningNode> GetChildren(List<ProvisioningNode> allNodes, string? parentId) =>

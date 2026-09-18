@@ -546,6 +546,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -562,6 +563,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

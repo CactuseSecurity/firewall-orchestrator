@@ -1,0 +1,33 @@
+# Audit proof critical changes of a workflow ticket: the change_history rows the workflow module marked as
+# audit-proof critical. FWO.Services.Workflow.WfDbAccess.LogWorkflowChange sets that flag for a
+# content change made in a UI session by a user other than the ticket requester, which is exactly
+# the "performed manually" case this query reports. The flag is therefore the filter, not
+# change_source: workflow rows always carry change_source = 'workflow'.
+#
+# module is part of the filter although the workflow module is the only writer of audit-proof-critical
+# rows today: audit_proof_critical, module and ticket_id are all insertable by the workflow and
+# modelling roles, so without it a row written directly through the API under module = 'modelling'
+# would be reported here as a workflow change of someone else's ticket.
+#
+# changer_id is selected next to changer because only changer_id is trustworthy: the API presets it
+# from the authenticated session, while changer is free text supplied by the writer. A reader that
+# has to attribute a change uses changer_id; changer stays in the result because it is the only
+# attribution available for rows written outside a user session, where changer_id is null.
+#
+# change_time sorts nulls last so that a row without a timestamp cannot take the place of the newest
+# change: the column is nullable and Postgres orders nulls first on a descending sort.
+query getAuditProofCriticalChangesForTicket($ticketId: bigint!) {
+  change_history(
+    where: {
+      ticket_id: { _eq: $ticketId }
+      module: { _eq: "workflow" }
+      audit_proof_critical: { _eq: true }
+    }
+    order_by: [{ change_time: desc_nulls_last }, { id: desc }]
+  ) {
+    change_time
+    changer
+    changer_id
+    change_text
+  }
+}

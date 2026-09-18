@@ -1,8 +1,12 @@
+# the full reinitialize keeps the stored mappings when this query comes back empty, because an empty rule
+# base says nothing about them. That only holds while every rule is returned: narrowing the result by what
+# the mapping source matches - here a rule carrying custom fields at all - would make "the source stopped
+# matching" indistinguishable from "there are no rules" and silently keep the obsolete mappings. Which rule
+# maps to which owner is decided by BuildNewRuleOwnersCustomField, not here.
 query getRulesForOwnerMappingCustomField {
   firewall_rule(
     where: {
       removed: { _is_null: true }
-      rule_custom_fields: { _is_null: false }
       access_rule: { _eq: true }
     }
   ) {

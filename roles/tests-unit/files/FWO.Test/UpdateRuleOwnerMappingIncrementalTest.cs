@@ -489,6 +489,21 @@ namespace FWO.Test
         }
 
         [Test]
+        public void FullReinitializeRuleQuery_ShouldNotNarrowTheRuleSetByWhatTheSourceMatches()
+        {
+            // the test above keeps the stored mappings when the rule query comes back empty, which is only
+            // correct while that query returns every rule. Narrowing it by what the source matches - for the
+            // custom field source, a rule carrying custom fields at all - reports "the source stopped
+            // matching" as "there are no rules", so the obsolete mappings stay active while neither an alert
+            // nor a recorded run says so. Which rule maps to which owner is decided by the mapper alone.
+            // The simulated API returns every seeded rule for this query, so only the query text can say it
+            string queryWithoutWhitespace = string.Concat(RuleQueries.getRulesForOwnerMappingCustomField.Where(character => !char.IsWhiteSpace(character)));
+
+            Assert.That(queryWithoutWhitespace, Does.Not.Contain("rule_custom_fields:{"),
+                "the custom field source must match in BuildNewRuleOwnersCustomField, not in its rule query");
+        }
+
+        [Test]
         public async Task RunAsync_ShouldNotReportDrift_WhenAChangeWasSavedButItsRebuildNeverCompleted()
         {
             // the configuration is written before the rebuild runs. After a failed rebuild the new setting is

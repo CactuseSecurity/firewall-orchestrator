@@ -70,6 +70,12 @@ namespace FWO.Services
         /// mapping set. An empty owner set is a legitimate configuration state - no owner matches, so nothing
         /// maps and the obsolete mappings have to go - but an empty rule set is not: see
         /// <see cref="CompleteFullReinitializeWithoutRules"/>.
+        /// <para>
+        /// That distinction rests on <paramref name="rulesQuery"/> returning every rule rather than only the
+        /// ones the mapping source matches. A query narrowed by a mapping setting would report "the source
+        /// stopped matching" as "there are no rules" and keep the obsolete mappings without a word. What a
+        /// source matches is decided by <paramref name="buildNewRuleOwnersFunc"/> alone.
+        /// </para>
         /// </summary>
         protected async Task<bool> RunFullReinitialize<TMappingOwner>(string rulesQuery, Func<Task<List<TMappingOwner>>> loadOwnersFunc, Func<List<Rule>, List<TMappingOwner>, List<RuleOwner>> buildNewRuleOwnersFunc)
         {
@@ -584,9 +590,8 @@ namespace FWO.Services
 
             // the same import failing again is logged every run and repaired below; the alert raised on the
             // first failure stands for the condition and is not replaced by an identical one
-            Log.WriteError(LogMessageTitle, $"Rule owner mapping failed again for import_control {failedIds}. See the middleware log for details.");
-
-            Log.WriteWarning(LogMessageTitle, $"import_control {failedIds} failed again. Falling back to full rule_owner reinitialize.");
+            Log.WriteError(LogMessageTitle, $"Rule owner mapping failed again for import_control {failedIds}. " +
+                "Falling back to full rule_owner reinitialize.");
             bool repaired = await fullReinitFunc();
             if (repaired)
             {

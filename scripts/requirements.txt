@@ -7,4 +7,4 @@ GitPython==3.1.61
 # Note: Requests >=2.34.2 is compatible with urllib3 2.x
 requests==2.34.2
 urllib3==2.7.0
-graphql-core==3.2.11
+graphql-core==3.2.12

@@ -2,14 +2,19 @@ using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
+    /// <summary>
+    /// GraphQL operations on the network_zone schema. Allowed communications
+    /// between zones are deliberately not here - they live in
+    /// compliance.network_zone_communication and stay in ComplianceQueries.
+    /// </summary>
     public class NetworkZoneQueries : Queries
     {
         public static readonly string addNetworkZone;
         public static readonly string addPathItemsRoot;
         public static readonly string addPathItemsInternet;
-        public static readonly string removeNetworkZone;
         public static readonly string getNetworkZonesForMatrix;
         public static readonly string getIpRangesForMatrix;
+        public static readonly string removeNetworkZone;
         public static readonly string updateNetworkZone;
         public static readonly string deleteNetworkZoneDeviceIpRangeRoot;
         public static readonly string deleteNetworkZoneDeviceIpRangeInternet;
@@ -27,7 +32,6 @@ namespace FWO.Api.Client.Queries
                 updateNetworkZone = GetQueryText("networkZone/updateNetworkZone.graphql");
                 deleteNetworkZoneDeviceIpRangeRoot = GetQueryText("networkZone/deleteNetworkZoneDeviceIpRangeRoot.graphql");
                 deleteNetworkZoneDeviceIpRangeInternet = GetQueryText("networkZone/deleteNetworkZoneDeviceIpRangeInternet.graphql");
-
             }
             catch (Exception exception)
             {

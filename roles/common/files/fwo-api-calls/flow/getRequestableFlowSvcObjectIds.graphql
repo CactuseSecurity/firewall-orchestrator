@@ -1,0 +1,13 @@
+query getRequestableFlowSvcObjectIds($svcObjIds: [bigint!]!) {
+  svcobjects: flow_svcobject(
+    where: {
+      svcobj_id: { _in: $svcObjIds }
+      show_in_request_module: { _eq: true }
+      removed_date: { _is_null: true }
+      state: { _in: ["requested", "implemented"] }
+      ip_proto_id: { _gte: 0 }
+    }
+  ) {
+    svcobj_id
+  }
+}

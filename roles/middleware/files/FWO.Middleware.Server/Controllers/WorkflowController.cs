@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
@@ -202,6 +203,11 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            if (!await TryClaimStateChangeExecution(actionApiConnection, parameters, scope, ticket, result))
+            {
+                return result;
+            }
+
             // The bundle is neither flushed nor removed here: the dedicated flush-only request is the
             // single flush entry point and removes the bundle itself. Removing it on an action request
             // would discard captured emails whenever the action fails.
@@ -369,6 +375,69 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Claims the one execution of the state-change actions belonging to a transition.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: the state of the object is persisted by the caller before its actions are
+        /// requested, so "the object stands in the requested state" stays true once the transition
+        /// happened and cannot tell a first request apart from a replay. The claim is what makes the
+        /// difference: request.state_change_execution holds the transition the actions of this object
+        /// last ran for, and the mutation records the new one only when it differs, in a single
+        /// statement. A repeated request therefore executes nothing.
+        /// An already claimed transition is reported as success rather than as an error: the
+        /// transition did happen and its actions did run, so the caller has the outcome it asked for,
+        /// and an accidental double submit must not surface as a failed promote.
+        /// Only the persisted-transition path is claimed. A request naming an action explicitly
+        /// carries no transition to key the claim on and is validated against the actions currently
+        /// offered instead.
+        /// </remarks>
+        /// <param name="actionApiConnection">Api connection running under the middleware role.</param>
+        /// <param name="parameters">The requested action, holding the claimed transition.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        /// <param name="ticket">The resolved ticket, which is the stateful object of the ticket scope.</param>
+        /// <param name="result">Result of the action request, completed when the claim is refused.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
+            WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return true;
+            }
+
+            // Taken from the resolved object rather than from the request: the ticket scope carries
+            // its id in TicketId or ObjectId depending on the caller, and the key must not depend on
+            // which of the two was filled in.
+            long objectId = scope == WfObjectScopes.Ticket ? ticket.Id : parameters.ObjectId;
+            var claimVariables = new
+            {
+                objectScope = scope.ToString(),
+                objectId = objectId,
+                fromStateId = parameters.OldStateId,
+                toStateId = parameters.NewStateId,
+                executedBy = User.FindFirstValue("x-hasura-uuid") ?? "",
+                executedAt = DateTime.UtcNow
+            };
+
+            ReturnId claim = await actionApiConnection.SendQueryAsync<ReturnId>(RequestQueries.claimStateChangeExecution, claimVariables);
+            if (claim.AffectedRows == 1)
+            {
+                return true;
+            }
+
+            Log.WriteAudit("Workflow Actions", $"State-change actions for {scope} {objectId} were already executed for the transition " +
+                $"{parameters.OldStateId}->{parameters.NewStateId}, so this request executed nothing.");
+            result.Success = true;
+            result.Messages.Add(new()
+            {
+                Title = "Workflow Actions",
+                Message = $"The actions of this state change have already been executed for {scope} {objectId}.",
+                ErrorFlag = false
+            });
+            return false;
         }
 
         private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)

@@ -121,8 +121,14 @@ namespace FWO.Services
             }
 
             executablePath ??= browsers.OrderBy(browser => browser.BuildId).Last().GetExecutablePath();
-            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions { ExecutablePath = executablePath, Headless = true });
+            await using IBrowser browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                ExecutablePath = executablePath,
+                Headless = true,
+                Args = PdfRenderSecurity.GetHardenedBrowserArgs()
+            });
             using IPage page = await browser.NewPageAsync();
+            await PdfRenderSecurity.HardenPageAsync(page);
             await page.SetContentAsync(html);
             PdfOptions options = new() { DisplayHeaderFooter = false, Landscape = true, PrintBackground = true, Format = PaperFormat.A4 };
             return Convert.ToBase64String(await page.PdfDataAsync(options));

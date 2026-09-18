@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Data.Modelling;
 using FWO.Services;
@@ -48,6 +49,8 @@ namespace FWO.Test
             public long UpdatedReqElementId { get; set; } = 302;
             public long DeletedReqElementId { get; set; } = 303;
             public bool ReturnNullNewReqElementIds { get; set; }
+            public List<FlowNwObject> RequestableFlowNwObjects { get; set; } = [];
+            public List<FlowSvcObject> RequestableFlowSvcObjects { get; set; } = [];
             public int NewReqTaskCallCount { get; private set; }
             public int UpdateReqTaskCallCount { get; private set; }
             public int UpdateReqTaskStateCallCount { get; private set; }
@@ -276,6 +279,14 @@ namespace FWO.Test
                 {
                     List<Rule> rules = FindRuleUidHasMatch ? [new Rule()] : [];
                     return Task.FromResult((T)(object)rules);
+                }
+                if (query == FlowQueries.getRequestableFlowNwObjectIds)
+                {
+                    return Task.FromResult((T)(object)RequestableFlowNwObjects);
+                }
+                if (query == FlowQueries.getRequestableFlowSvcObjectIds)
+                {
+                    return Task.FromResult((T)(object)RequestableFlowSvcObjects);
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }
@@ -1198,6 +1209,7 @@ namespace FWO.Test
                 new() { Id = 1, Name = "requested" }
             });
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            apiConn.RequestableFlowSvcObjects = [new FlowSvcObject { Id = 7 }];
 
             WfReqTask reqTask = new()
             {
@@ -1224,6 +1236,114 @@ namespace FWO.Test
             Assert.That(apiConn.DeleteReqElementCallCount, Is.EqualTo(1));
             Assert.That(reqTask.Elements[0].Id, Is.EqualTo(301));
             Assert.That(reqTask.Elements[1].Id, Is.EqualTo(22));
+        }
+
+        /// <summary>
+        /// The Flow id columns of a request element are writable by the requesting user, so a task naming
+        /// a Flow object the request module does not offer is refused before anything is written (SEC-09).
+        /// </summary>
+        [Test]
+        public async Task UpdateReqTaskInDb_RefusesTaskAttachingAFlowObjectThatIsNotRequestable()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            apiConn.RequestableFlowNwObjects = [];
+
+            WfReqTask reqTask = new()
+            {
+                Id = 100,
+                TicketId = 77,
+                StateId = 1,
+                Elements = new List<WfReqElement>
+                {
+                    new() { Id = 0, Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.create.ToString(), FlowNetworkObjectId = 4711 }
+                },
+                Owners = new List<FwoOwnerDataHelper>()
+            };
+
+            await dbAccess.UpdateReqTaskInDb(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.UpdateReqTaskCallCount, Is.EqualTo(0));
+                Assert.That(apiConn.NewReqElementCallCount, Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
+        /// A negative protocol id is an internal representation and may not be requested, so a task
+        /// carrying one is refused without asking the API for the Flow catalog at all (SEC-09).
+        /// </summary>
+        [Test]
+        public async Task AddReqTaskToDb_RefusesTaskCarryingAnInternalProtocolId()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            WfReqTask reqTask = new()
+            {
+                TicketId = 77,
+                StateId = 1,
+                Elements = new List<WfReqElement>
+                {
+                    new() { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.create.ToString(), ProtoId = GlobalConst.kAnyIpProtocolId }
+                },
+                Owners = new List<FwoOwnerDataHelper>()
+            };
+
+            long newId = await dbAccess.AddReqTaskToDb(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.EqualTo(0));
+                Assert.That(apiConn.NewReqTaskCallCount, Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
+        /// A task whose Flow ids all name requestable entries passes the check and is written.
+        /// </summary>
+        [Test]
+        public async Task AddReqTaskToDb_AcceptsTaskAttachingRequestableFlowObjects()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init(new List<WfState>
+            {
+                new() { Id = 1, Name = "requested" }
+            });
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            apiConn.RequestableFlowNwObjects = [new FlowNwObject { Id = 4711 }];
+
+            WfReqTask reqTask = new()
+            {
+                TicketId = 77,
+                StateId = 1,
+                Elements = new List<WfReqElement>
+                {
+                    new() { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.create.ToString(), FlowNetworkObjectId = 4711 }
+                },
+                Owners = new List<FwoOwnerDataHelper>()
+            };
+
+            long newId = await dbAccess.AddReqTaskToDb(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.EqualTo(201));
+                Assert.That(apiConn.NewReqElementCallCount, Is.EqualTo(1));
+            });
         }
 
         [Test]

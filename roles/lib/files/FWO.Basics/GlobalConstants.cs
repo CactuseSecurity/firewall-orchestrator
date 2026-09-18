@@ -78,6 +78,15 @@ namespace FWO.Basics
         public const string kUndefinedText = "(undefined text)";
 
         public const string kStyleHighlightedRed = "color: red;";
+
+        /// <summary>
+        /// Content security policy of an exported report or notification document.
+        /// The export is a self contained document: it carries its styles inline and loads nothing else,
+        /// so everything but inline styling is denied. This keeps a reference that was smuggled into a
+        /// stored value from being fetched - by the headless browser that renders the pdf, and by the
+        /// browser of whoever opens the exported html afterwards.
+        /// </summary>
+        public const string kExportContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; font-src 'none'; img-src 'none'; script-src 'none'; frame-src 'none'; connect-src 'none'";
         public const string kStyleHighlightedGreen = "color: green;";
         public const string kStyleDeleted = "color: red; text-decoration: line-through red;";
         public const string kStyleAdded = "color: green; text-decoration: bold;";

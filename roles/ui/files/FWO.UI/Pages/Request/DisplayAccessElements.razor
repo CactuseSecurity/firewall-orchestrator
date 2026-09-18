@@ -522,12 +522,12 @@ else
 
     private static bool IsSelectable(FlowNwObject nwObject)
     {
-        return nwObject.ShowInRequestModule && nwObject.RemovedDate == null;
+        return FlowObjectEligibility.IsRequestable(nwObject);
     }
 
     private static bool IsSelectable(FlowSvcObject svcObject)
     {
-        return svcObject.ShowInRequestModule && svcObject.RemovedDate == null;
+        return FlowObjectEligibility.IsRequestable(svcObject);
     }
 
     private static NetworkObject ToNetworkObject(FlowNwObject nwObject)

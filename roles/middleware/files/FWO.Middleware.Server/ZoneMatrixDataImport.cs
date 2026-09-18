@@ -11,6 +11,7 @@ using System.Text.Json;
 using FWO.Basics.Exceptions;
 using NetTools;
 using System.Net;
+using FWO.Data.Modelling;
 
 namespace FWO.Middleware.Server
 {
@@ -46,14 +47,13 @@ namespace FWO.Middleware.Server
             public int InsertPathInternet;
             public int RemovePathRoot;
             public int RemovePathInternet;
-            public int RemovePath;
             /// <summary>
             /// Initializes a new instance of the type.
             /// </summary>
             public Counters() { }
         }
         Counters counters = new();
-        private sealed record NetworkZoneDeviceIpRangeInsertInput(int? DeviceId, int? IpRangeId, int Order);
+        private sealed record NetworkZoneDeviceIpRangeInsertInput(int DeviceId, int IpRangeId, int Order);
         private readonly List<NetworkZoneDeviceIpRangeInsertInput> RootPathInput = [];
         private readonly List<NetworkZoneDeviceIpRangeInsertInput> InternetPathInput = [];
 
@@ -108,12 +108,32 @@ namespace FWO.Middleware.Server
                 errorList.Add("Duplicate Zone IdStrings");
             }
             CheckReservedZoneIds(importedZoneMatrixData, errorList);
+            CheckDuplicateSubnet(importedZoneMatrixData, errorList);
             CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
             CheckIpData(importedZoneMatrixData, errorList);
             if (errorList.Count > 0)
             {
                 throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
+            }
+        }
+
+        private static void CheckDuplicateSubnet(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                HashSet<IPAddressRange> subnetsInZone = [];
+                foreach (ZoneIpRangeData subnet in zone.IpData)
+                {
+                    if (!TryConvertIpDataToAddressRange(subnet, out IPAddressRange range))
+                    {
+                        continue;
+                    }
+                    if (!subnetsInZone.Add(range))
+                    {
+                        errorList.Add($"Duplicate subnet with IP {subnet.Ip} in zone {zone.IdString}.");
+                    }
+                }
             }
         }
 
@@ -450,16 +470,18 @@ namespace FWO.Middleware.Server
                 }
                 foreach (ZoneIpRangeData subnet in zone.IpData)
                 {
-                    int? ipRangeId = FindIpRangeId(subnet, ipRanges, zoneId);
-                    if (ipRangeId is null)
+                    if (FindIpRangeId(subnet, ipRanges, zoneId) is not int ipRangeId)
                     {
                         Log.WriteWarning(LogMessageTitle,
                             $"Could not resolve ip range with start IP {subnet.Ip} in zone {zone.IdString}, skipping its paths.");
                         continue;
                     }
-                    ImportIpRangePaths(subnet, ipRangeId, deviceLookup);
-                };
-            };
+                    RootPathInput.AddRange(BuildPathItems(subnet.PathToRoot, ipRangeId, deviceLookup, PathFieldNameRoot, subnet.Ip));
+                    InternetPathInput.AddRange(BuildPathItems(subnet.PathToInternet, ipRangeId, deviceLookup, PathFieldNameInternet, subnet.Ip));
+                }
+                ;
+            }
+            ;
 
             counters.InsertPathRoot = (await apiConnection.SendQueryAsync<ReturnId>
                 (NetworkZoneQueries.addPathItemsRoot,
@@ -500,7 +522,7 @@ namespace FWO.Middleware.Server
                 })).AffectedRows;
         }
 
-        private int? FindIpRangeId(ZoneIpRangeData subnet, List<NetworkZoneIpRange> ipRanges, int zoneId)
+        private static int? FindIpRangeId(ZoneIpRangeData subnet, List<NetworkZoneIpRange> ipRanges, int zoneId)
         {
             IPAddressRange subnetRange = ConvertIpDataToAddressRange(subnet);
             foreach (NetworkZoneIpRange ipRange in ipRanges)
@@ -523,31 +545,21 @@ namespace FWO.Middleware.Server
         /// </summary>
         private static IPAddress ParseAddress(string address) => IPAddressRange.Parse(address).Begin;
 
-        private void ImportIpRangePaths(ZoneIpRangeData subnet, int? ipRangeId, DeviceNameResolver deviceLookup)
+        private static List<NetworkZoneDeviceIpRangeInsertInput> BuildPathItems(
+            List<DeviceRefData> path, int ipRangeId, DeviceNameResolver deviceLookup, string pathFieldName, string subnetIp)
         {
-            foreach ((int index, DeviceRefData device) in subnet.PathToRoot.Index())
+            List<NetworkZoneDeviceIpRangeInsertInput> pathInput = [];
+            foreach ((int index, DeviceRefData device) in path.Index())
             {
-                int? deviceId = deviceLookup.Resolve(device.MgmtName, device.DeviceName);
-                if (deviceId is null)
+                if (deviceLookup.Resolve(device.MgmtName, device.DeviceName) is not int deviceId)
                 {
                     Log.WriteWarning(LogMessageTitle,
-                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in path_to_root in subnet {subnet.Ip}, skipping its path.");
-                    return;
+                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in {pathFieldName} in subnet {subnetIp}, skipping its path.");
+                    return [];
                 }
-                RootPathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
+                pathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
             }
-
-            foreach ((int index, DeviceRefData device) in subnet.PathToInternet.Index())
-            {
-                int? deviceId = deviceLookup.Resolve(device.MgmtName, device.DeviceName);
-                if (deviceId is null)
-                {
-                    Log.WriteWarning(LogMessageTitle,
-                        $"Could not resolve {DeviceNameResolver.Describe(device.MgmtName, device.DeviceName)} in path_to_internet in subnet {subnet.Ip}, skipping its path.");
-                    return;
-                }
-                InternetPathInput.Add(new NetworkZoneDeviceIpRangeInsertInput(deviceId, ipRangeId, index + 1));
-            }
+            return pathInput;
         }
 
         private static IPAddressRange ConvertIpDataToAddressRange(ZoneIpRangeData importAreaIpData)

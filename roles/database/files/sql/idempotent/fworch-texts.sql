@@ -3277,6 +3277,8 @@ INSERT INTO txt VALUES ('prov_inherited',       'German', 	'Geerbt');
 INSERT INTO txt VALUES ('prov_inherited',       'English', 	'Inherited');
 INSERT INTO txt VALUES ('prov_inherited_from',  'German', 	'Geerbt von');
 INSERT INTO txt VALUES ('prov_inherited_from',  'English', 	'Inherited from');
+INSERT INTO txt VALUES ('prov_reset_to_inherited', 'German', 	'Auf geerbten Wert zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('prov_reset_to_inherited', 'English', 	'Reset to inherited value');
 INSERT INTO txt VALUES ('prov_not_set',         'German', 	'nicht gesetzt');
 INSERT INTO txt VALUES ('prov_not_set',         'English', 	'not set');
 INSERT INTO txt VALUES ('prov_mock_data_hint',  'German', 	'Diese Ansicht arbeitet aktuell mit Beispieldaten. Anbindung an die tats&auml;chliche Konfigurationsablage folgt separat.');

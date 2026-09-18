@@ -88,15 +88,22 @@
                     <div id="@FieldRowId(field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(field.HelpTextKey))">
                         <div class="d-flex align-items-center justify-content-between">
                             <div class="fw-semibold">@(userConfig.GetText(field.LabelTextKey))</div>
-                            <button type="button" class="btn btn-sm rounded-pill fw-bold @(overriddenHere ? "btn-success" : "btn-outline-secondary")"
-                                    @onclick="() => ToggleOverride(field)"
-                                    disabled="@(SelectedNode.Level == ProvisioningLevel.Global)">
-                                @(overriddenHere ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
-                            </button>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge rounded-pill fw-bold @(overriddenHere ? "bg-success" : "bg-secondary")">
+                                    @(overriddenHere ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
+                                </span>
+                                @if (overriddenHere && SelectedNode.Level != ProvisioningLevel.Global)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="@(userConfig.GetText("prov_reset_to_inherited"))"
+                                            @onclick="() => ResetOverride(field)">
+                                        <span class="@Icons.Undo"></span>
+                                    </button>
+                                }
+                            </div>
                         </div>
 
-                        <div class="mt-2 @(overriddenHere ? "" : "opacity-50")">
-                            @RenderEditor(field, overriddenHere ? GetOverrideValue(field) : resolved.Value, !overriddenHere, v => SetOverrideValue(field, v))
+                        <div class="mt-2">
+                            @RenderEditor(field, overriddenHere ? GetOverrideValue(field) : resolved.Value, v => SetOverrideValue(field, v))
                         </div>
 
                         @if (!overriddenHere)
@@ -233,22 +240,15 @@
         }
     }
 
-    private void ToggleOverride(ProvisioningFieldDefinition field)
+    /// <summary>Removes the override at the selected node, reverting the field back to its inherited value.</summary>
+    private void ResetOverride(ProvisioningFieldDefinition field)
     {
         if (SelectedNode == null || SelectedNode.Level == ProvisioningLevel.Global)
         {
             return;
         }
 
-        if (SelectedNode.Overrides.ContainsKey(field.Key))
-        {
-            SelectedNode.Overrides.Remove(field.Key);
-        }
-        else
-        {
-            ProvisioningResolvedValue resolved = ProvisioningSettingsMockData.Resolve(allNodes, SelectedNode, field);
-            SelectedNode.Overrides[field.Key] = resolved.Value;
-        }
+        SelectedNode.Overrides.Remove(field.Key);
     }
 
     private string GetOverrideValue(ProvisioningFieldDefinition field)
@@ -274,12 +274,11 @@
     };
 
     /// <summary>
-    /// Renders a field's control. Used both for the editable "set here" state (disabled: false,
-    /// bound to the override dictionary) and for the read-only "inherited" state (disabled: true,
-    /// bound to the resolved/inherited value) - so the inherited value always shows in the same
-    /// shape as the real control, just dehighlighted.
+    /// Renders a field's control. Always editable, whether the field currently shows the
+    /// "set here" value or the inherited one - editing an inherited value overrides it at
+    /// the selected node via <paramref name="onChange"/>.
     /// </summary>
-    private RenderFragment RenderEditor(ProvisioningFieldDefinition field, string value, bool disabled, Action<string> onChange) => builder =>
+    private RenderFragment RenderEditor(ProvisioningFieldDefinition field, string value, Action<string> onChange) => builder =>
     {
         Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> changeCallback =
             Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e => onChange(e.Value?.ToString() ?? ""));
@@ -291,7 +290,6 @@
                 builder.AddAttribute(1, "class", "form-select form-select-sm w-auto");
                 builder.AddAttribute(2, "value", value);
                 builder.AddAttribute(3, "onchange", changeCallback);
-                builder.AddAttribute(4, "disabled", disabled);
                 foreach (ProvisioningFieldOption option in field.Options)
                 {
                     builder.OpenElement(5, "option");
@@ -309,7 +307,6 @@
                 builder.AddAttribute(3, "placeholder", userConfig.GetText("prov_templates_placeholder"));
                 builder.AddAttribute(4, "value", value);
                 builder.AddAttribute(5, "onchange", changeCallback);
-                builder.AddAttribute(6, "disabled", disabled);
                 builder.CloseElement();
                 break;
 
@@ -321,7 +318,6 @@
                 builder.AddAttribute(4, "placeholder", userConfig.GetText("prov_tags_placeholder"));
                 builder.AddAttribute(5, "value", value);
                 builder.AddAttribute(6, "onchange", changeCallback);
-                builder.AddAttribute(7, "disabled", disabled);
                 builder.CloseElement();
 
                 if (!string.IsNullOrWhiteSpace(value))
@@ -346,7 +342,6 @@
                 builder.AddAttribute(2, "class", "form-control form-control-sm w-auto");
                 builder.AddAttribute(3, "value", value);
                 builder.AddAttribute(4, "onchange", changeCallback);
-                builder.AddAttribute(5, "disabled", disabled);
                 builder.CloseElement();
                 break;
         }

@@ -127,8 +127,13 @@ else
 
     @if (Entries.Count == 0)
     {
-        @* a source switch replaces every mapping, so only the counts are kept *@
-        <div class="alert alert-secondary m-1">@(userConfig.GetText("U7554"))</div>
+        @* an empty list has two causes, which must not be explained by the same sentence: a run that found
+           no difference at all - a deliberate change is recorded even then, because that it had no effect is
+           what the person who just saved it needs to see - and a source switch, which replaces every mapping
+           and therefore stores only the counts *@
+        <div class="alert alert-secondary m-1">
+            @(userConfig.GetText(Handler.SelectedRun.AddedCount + Handler.SelectedRun.RemovedCount == 0 ? "U7555" : "U7554"))
+        </div>
     }
     else
     {

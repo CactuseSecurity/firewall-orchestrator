@@ -10,6 +10,16 @@ internal class FlowRequestContractTest
 {
 
     [Test]
+    public void CreateRequestRequest_UsesExpectedPreWorkflowTicketReferenceJsonName()
+    {
+        CreateRequestRequest request = new() { PreWorkflowTicketReference = "Ticket-12345" };
+
+        string json = JsonSerializer.Serialize(request);
+
+        Assert.That(json, Does.Contain("\"preWorkflowTicketReference\":\"Ticket-12345\""));
+    }
+
+    [Test]
     public void GetRequestStatusRequest_RequiresTicketId()
     {
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetRequestStatusRequest>("{}"));

@@ -67,6 +67,7 @@ namespace FWO.Test
             public int AssignImplCommentCallCount { get; private set; }
             public int UpdateTicketStateCallCount { get; private set; }
             public int AddHistoryEntryCallCount { get; private set; }
+            public object? LastUpdateTicketVariables { get; private set; }
             public object? LastHistoryVariables { get; private set; }
             public string? LastHistoryQuery { get; private set; }
             public long NewApprovalId { get; set; } = 301;
@@ -123,6 +124,7 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.updateTicket)
                 {
+                    LastUpdateTicketVariables = variables;
                     return Task.FromResult((T)(object)new ReturnId { UpdatedIdLong = UpdatedTicketId });
                 }
                 if (query == RequestQueries.updateApproval)
@@ -602,6 +604,34 @@ namespace FWO.Test
             WfTicket result = await dbAccess.UpdateTicketInDb(ticket);
 
             Assert.That(result, Is.SameAs(ticket));
+        }
+
+        [Test]
+        public async Task UpdateTicketInDb_DoesNotPersistCreateOnlyPreWorkflowTicketReference()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                UpdatedTicketId = 101
+            };
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            await actionHandler.Init([]);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            await dbAccess.UpdateTicketInDb(new WfTicket
+            {
+                Id = 101,
+                PreWorkflowTicketReference = "Changed reference"
+            });
+
+            Dictionary<string, object?> variables = (Dictionary<string, object?>)apiConn.LastUpdateTicketVariables!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(variables.ContainsKey("preWorkflowTicketReference"), Is.False);
+                Assert.That(RequestQueries.updateTicket, Does.Not.Contain("pre_workflow_ticket_reference"));
+            });
         }
 
         [Test]

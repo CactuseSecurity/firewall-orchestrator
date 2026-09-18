@@ -236,6 +236,7 @@ public sealed class FlowRequestService : IDisposable
         return new WfTicket
         {
             Title = request.Title,
+            PreWorkflowTicketReference = request.PreWorkflowTicketReference,
             StateId = ticketStateId,
             Requester = BuildRequester(request, requesterId),
             Reason = BuildRequestReason(request),

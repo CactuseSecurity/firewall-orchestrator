@@ -16,6 +16,7 @@ fragment ticketDetailsReqTaskOverview on request_ticket {
   reason
   external_ticket_id
   external_ticket_source
+  pre_workflow_ticket_reference
   ticket_deadline
   ticket_priority
   locked

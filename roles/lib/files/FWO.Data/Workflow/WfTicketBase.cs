@@ -39,6 +39,9 @@ namespace FWO.Data.Workflow
         [JsonProperty("external_ticket_source"), JsonPropertyName("external_ticket_source")]
         public int? ExternalTicketSource { get; set; }
 
+        [JsonProperty("pre_workflow_ticket_reference"), JsonPropertyName("pre_workflow_ticket_reference")]
+        public string? PreWorkflowTicketReference { get; set; }
+
         [JsonProperty("ticket_deadline"), JsonPropertyName("ticket_deadline")]
         public DateTime? Deadline { get; set; }
 
@@ -66,6 +69,7 @@ namespace FWO.Data.Workflow
             Reason = ticket.Reason;
             ExternalTicketId = ticket.ExternalTicketId;
             ExternalTicketSource = ticket.ExternalTicketSource;
+            PreWorkflowTicketReference = ticket.PreWorkflowTicketReference;
             Deadline = ticket.Deadline;
             Priority = ticket.Priority;
             Locked = ticket.Locked;
@@ -79,6 +83,7 @@ namespace FWO.Data.Workflow
             RequesterGroup = RequesterGroup.SanitizeLdapPathOpt(ref shortened);
             Reason = Reason.SanitizeOpt(ref shortened);
             ExternalTicketId = ExternalTicketId.SanitizeOpt(ref shortened);
+            PreWorkflowTicketReference = PreWorkflowTicketReference.SanitizeOpt(ref shortened);
             return shortened;
         }
     }

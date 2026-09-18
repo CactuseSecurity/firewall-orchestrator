@@ -15,6 +15,7 @@ namespace FWO.Services
         private readonly UpdateRuleOwnerMappingIpBased updateRuleOwnerMappingIpBased;
         private readonly UpdateRuleOwnerMappingCustomField updateRuleOwnerMappingCustomField;
         private readonly UpdateRuleOwnerMappingNameField updateRuleOwnerMappingNameField;
+        private readonly UpdateRuleOwnerMappingDisabled updateRuleOwnerMappingDisabled;
 
         public UpdateRuleOwnerMapping(ApiConnection apiConnection, GlobalConfig globalConfig)
         {
@@ -24,6 +25,7 @@ namespace FWO.Services
             updateRuleOwnerMappingIpBased = new UpdateRuleOwnerMappingIpBased(apiConnection, globalConfig);
             updateRuleOwnerMappingCustomField = new UpdateRuleOwnerMappingCustomField(apiConnection, globalConfig);
             updateRuleOwnerMappingNameField = new UpdateRuleOwnerMappingNameField(apiConnection, globalConfig);
+            updateRuleOwnerMappingDisabled = new UpdateRuleOwnerMappingDisabled(apiConnection, globalConfig);
         }
 
         protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
@@ -33,6 +35,7 @@ namespace FWO.Services
                 OwnerMappingSourceStm.IpBased => await updateRuleOwnerMappingIpBased.RunAsync(eventArgs),
                 OwnerMappingSourceStm.CustomField => await updateRuleOwnerMappingCustomField.RunAsync(eventArgs),
                 OwnerMappingSourceStm.NameField => await updateRuleOwnerMappingNameField.RunAsync(eventArgs),
+                OwnerMappingSourceStm.Disabled => await updateRuleOwnerMappingDisabled.RunAsync(eventArgs),
                 _ => false
             };
         }

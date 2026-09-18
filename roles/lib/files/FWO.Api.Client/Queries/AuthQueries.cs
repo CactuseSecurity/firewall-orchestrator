@@ -35,7 +35,10 @@ namespace FWO.Api.Client.Queries
         public static readonly string assertUserExists;
 
         public static readonly string getLdapConnections;
+        public static readonly string getLdapConnectionsWithoutSecrets;
         public static readonly string getAllLdapConnections;
+        public static readonly string getAllLdapConnectionsWithoutSecrets;
+        public static readonly string getLdapConnectionSecrets;
         public static readonly string getLdapConnectionsSubscription;
         public static readonly string getLdapConnectionForUserSearchById;
         public static readonly string newLdapConnection;
@@ -80,7 +83,10 @@ namespace FWO.Api.Client.Queries
                 assertUserExists = GetQueryText("auth/assertUserExists.graphql");
 
                 getLdapConnections = GetQueryText("auth/getLdapConnections.graphql");
+                getLdapConnectionsWithoutSecrets = GetQueryText("auth/getLdapConnectionsWithoutSecrets.graphql");
                 getAllLdapConnections = GetQueryText("auth/getAllLdapConnections.graphql");
+                getAllLdapConnectionsWithoutSecrets = GetQueryText("auth/getAllLdapConnectionsWithoutSecrets.graphql");
+                getLdapConnectionSecrets = GetQueryText("auth/getLdapConnectionSecrets.graphql");
                 getLdapConnectionsSubscription = GetQueryText("auth/getLdapConnectionsSubscription.graphql");
                 getLdapConnectionForUserSearchById = GetQueryText("auth/getLdapConnectionForUserSearchById.graphql");
                 newLdapConnection = GetQueryText("auth/newLdapConnection.graphql");

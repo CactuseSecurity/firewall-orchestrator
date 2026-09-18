@@ -19,6 +19,13 @@ namespace FWO.Test
         static readonly SimulatedUserConfig userConfig = new();
         static readonly Action<Exception?, string, string, bool> DisplayMessageInUi = DefaultInit.DoNothing;
         static readonly FwoOwner Application = new() { Id = 1, Name = "TestApp" };
+        // SimulatedUserConfig.GetText echoes unknown keys, so this is "<title key>:<message key>".
+        // E9015 would be the network-object placement error, which does not apply to role checks.
+        private const string kExpectedForbiddenMessage = "change_app_role_forbidden:E9030";
+        // NetworkAreaUseAllowed only reads the list it is handed, so these are safe to
+        // share across the parallelizable tests below.
+        private static readonly List<ModellingNetworkArea> kAreaIdOne = [new ModellingNetworkArea { Id = 1 }];
+        private static readonly List<ModellingNetworkArea> kAreaIdTwo = [new ModellingNetworkArea { Id = 2 }];
 
         [Test]
         public void RefreshSelectableNwObjects_IncludesCommonSelectedRolesAndServers()
@@ -53,6 +60,104 @@ namespace FWO.Test
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.Network, 20)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppRole, 30)));
             ClassicAssert.IsTrue(handler.AvailableNwElems.Contains(new KeyValuePair<int, long>((int)ModellingTypes.ModObjectType.AppServer, 40)));
+        }
+
+        /// <summary>
+        /// Only the modeller role may change modelling data. Admin deliberately has no
+        /// write access here even though it may view modelling reports, so this test
+        /// pins that rule down rather than leaving it implicit.
+        /// </summary>
+        [Test]
+        public void CanModifyAppRoles_AllowsOnlyOwningModellers()
+        {
+            ModellingConnection connection = new() { Id = 101 };
+            SimulatedUserConfig auditorConfig = new();
+            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            ModellingConnectionHandler auditorHandler = CreateHandler(connection, auditorConfig);
+
+            SimulatedUserConfig adminConfig = new();
+            adminConfig.User.Roles = new List<string> { Roles.Admin };
+            ModellingConnectionHandler adminHandler = CreateHandler(connection, adminConfig);
+
+            SimulatedUserConfig modellerConfig = new();
+            modellerConfig.User.Roles = new List<string> { Roles.Modeller };
+            ModellingConnectionHandler modellerHandler = CreateHandler(connection, modellerConfig);
+
+            ClassicAssert.IsFalse(auditorHandler.CanModifyAppRoles());
+            ClassicAssert.IsFalse(adminHandler.CanModifyAppRoles());
+            ClassicAssert.IsTrue(modellerHandler.CanModifyAppRoles());
+
+            modellerHandler.IsOwner = false;
+
+            ClassicAssert.IsFalse(modellerHandler.CanModifyAppRoles());
+        }
+
+        [Test]
+        public void CreateAppRole_DoesNotOpenEditorForAuditor()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(102, messages);
+
+            handler.CreateAppRole();
+
+            ClassicAssert.IsFalse(handler.AddAppRoleMode);
+            ClassicAssert.IsFalse(handler.EditAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        /// <summary>
+        /// Editing and deleting used to fail silently, leaving the user without any hint
+        /// why nothing happened. All three paths must report the same reason.
+        /// </summary>
+        [Test]
+        public void EditAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(103, messages);
+
+            handler.EditAppRole(new ModellingAppRole() { Id = 1 });
+
+            ClassicAssert.IsFalse(handler.EditAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        [Test]
+        public async Task RequestDeleteAppRole_ReportsForbiddenInsteadOfSilentlyDoingNothing()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(104, messages);
+
+            await handler.RequestDeleteAppRole(new ModellingAppRole() { Id = 1 });
+
+            ClassicAssert.IsFalse(handler.DeleteAppRoleMode);
+            ClassicAssert.AreEqual(1, messages.Count);
+            ClassicAssert.AreEqual(kExpectedForbiddenMessage, messages[0]);
+        }
+
+        /// <summary>
+        /// A null application role is not an authorization problem, so it stays silent.
+        /// </summary>
+        [Test]
+        public void AppRoleActions_StayQuietForMissingAppRole()
+        {
+            List<string> messages = [];
+            ModellingConnectionHandler handler = CreateAuditorHandler(105, messages);
+
+            handler.EditAppRole(null);
+
+            ClassicAssert.IsEmpty(messages);
+        }
+
+        private static ModellingConnectionHandler CreateAuditorHandler(int connectionId, List<string> messages)
+        {
+            ModellingConnection connection = new() { Id = connectionId };
+            SimulatedUserConfig auditorConfig = new();
+            auditorConfig.User.Roles = new List<string> { Roles.Auditor };
+            List<ModellingConnection> connections = [connection];
+            Action<Exception?, string, string, bool> displayMessage = (_, title, text, _) => messages.Add($"{title}:{text}");
+            return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), auditorConfig, Application, connections, connection, false, false, displayMessage, DefaultInit.DoNothing, true);
         }
 
         [Test]
@@ -135,7 +240,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -152,7 +257,7 @@ namespace FWO.Test
             };
             ModellingConnectionHandler handler = CreateHandler(connection);
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Edit Interface", reason.Title);
@@ -170,7 +275,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 100 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Common Service", reason.Title);
@@ -184,7 +289,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 1 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdOne, Direction.Source, out var reason);
 
             ClassicAssert.IsTrue(result);
             ClassicAssert.AreEqual("Edit Connection", reason.Title);
@@ -197,7 +302,7 @@ namespace FWO.Test
             ModellingConnectionHandler handler = CreateHandler(connection);
             handler.CommonAreaConfigItems = [new CommonAreaConfig { AreaId = 1 }];
 
-            bool result = handler.NetworkAreaUseAllowed([new ModellingNetworkArea { Id = 2 }], Direction.Source, out var reason);
+            bool result = handler.NetworkAreaUseAllowed(kAreaIdTwo, Direction.Source, out var reason);
 
             ClassicAssert.IsFalse(result);
             ClassicAssert.AreEqual("Common areas not allowed", reason.Text);
@@ -525,6 +630,11 @@ namespace FWO.Test
             {
                 ModNamingConvention = $"{{\"networkAreaRequired\":true,\"fixedPartLength\":{fixedPartLength},\"freePartLength\":5,\"networkAreaPattern\":\"NA\",\"appRolePattern\":\"AR\"}}"
             };
+            // Changing an application role requires an owning modeller (CanModifyAppRoles).
+            // These cases cover whether the area can be converted, not who may convert it, so
+            // the user is given that role - without it the dialogs never open and every case
+            // would pass or fail for the wrong reason.
+            config.User.Roles = new List<string> { Roles.Modeller };
             ModellingConnection connection = new() { Id = 21 };
             List<ModellingConnection> connections = new() { connection };
             return new ModellingConnectionHandler(new ModellingHandlerTestApiConn(), config, Application, connections, connection, false,

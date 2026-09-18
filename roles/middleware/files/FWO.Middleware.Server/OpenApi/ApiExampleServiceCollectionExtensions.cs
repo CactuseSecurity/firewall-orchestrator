@@ -19,9 +19,11 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, CreateRequestRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
+        services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesRequestExample>();
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
@@ -36,6 +38,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, AddressObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, ServiceObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnerResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesResponseExample>();
         services.AddOpenApiEndpointDocumentationProviders();
         return services;
     }
@@ -160,6 +163,26 @@ public sealed class VisibleInRequestFilterExample : ApiExampleProvider<VisibleIn
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="GetAddressGroupsRequest"/>.
+/// The example documents the default response shape, so zone separation is switched off.
+/// </summary>
+public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddressGroupsRequest>
+{
+    /// <inheritdoc />
+    public override GetAddressGroupsRequest GetExample() => new()
+    {
+        Filter = new VisibleInRequestFilter
+        {
+            VisibleInRequest = true
+        },
+        Option = new AddressGroupsOption
+        {
+            SeparateZoneGroups = false
+        }
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetFlowComplianceStateRequest"/>.
 /// </summary>
 public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<GetFlowComplianceStateRequest>
@@ -171,8 +194,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpNetwork = "192.0.2.0/24"
             }
         ],
         Destination =
@@ -180,7 +202,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
                 IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.20"
+                IpEnd = "198.51.100.29"
             }
         ],
         Service =
@@ -541,5 +563,49 @@ public sealed class GetOwnerResponseExample : ApiExampleProvider<GetOwnerRespons
         RecertActive = true,
         DecommDate = new DateTime(2027, 6, 30, 0, 0, 0, DateTimeKind.Utc),
         AdditionalInfo = new Dictionary<string, string> { ["costCenter"] = "CC-42" }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAuditProofCriticalChangesRequest"/>.
+/// </summary>
+public sealed class GetAuditProofCriticalChangesRequestExample : ApiExampleProvider<GetAuditProofCriticalChangesRequest>
+{
+    /// <inheritdoc />
+    public override GetAuditProofCriticalChangesRequest GetExample() => new()
+    {
+        TicketId = 1234,
+        Options = new GetAuditProofCriticalChangesOptions
+        {
+            Filter = new AuditProofCriticalChangeFilter
+            {
+                ChangeTime = null,
+                ChangeUserName = null,
+                ChangeContent = null
+            }
+        }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAuditProofCriticalChangesResponse"/>.
+/// </summary>
+public sealed class GetAuditProofCriticalChangesResponseExample : ApiExampleProvider<GetAuditProofCriticalChangesResponse>
+{
+    /// <inheritdoc />
+    public override GetAuditProofCriticalChangesResponse GetExample() => new()
+    {
+        Changes =
+        [
+            new AuditProofCriticalChangeResponse
+            {
+                // Unspecified on purpose: the stored column is timezone-naive, so the endpoint emits
+                // no offset and the documented example has to render the same way.
+                ChangeTime = new DateTime(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified),
+                ChangeUserName = "abc",
+                ChangeUserId = 42,
+                ChangeContent = "Updated workflow ticket"
+            }
+        ]
     };
 }

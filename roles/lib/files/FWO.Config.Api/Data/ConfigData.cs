@@ -409,6 +409,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
         public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
+        [JsonProperty("flowZoneGroupNamePatterns"), JsonPropertyName("flowZoneGroupNamePatterns")]
+        public string FlowZoneGroupNamePatterns { get; set; } = "[]";
+
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 

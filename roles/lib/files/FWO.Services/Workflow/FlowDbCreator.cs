@@ -16,6 +16,13 @@ namespace FWO.Services.Workflow
         private const string LogMessageTitle = "Create Flow";
         private readonly ApiConnection apiConnection;
         private readonly string timeObjectPrecision;
+        private readonly List<FlowCreationRefusal> refusals = [];
+
+        /// <summary>
+        /// What this flow creation refused because the requested data cannot be stored, in the order it was met.
+        /// A failed creation without any entry here failed on something the requester cannot correct.
+        /// </summary>
+        public IReadOnlyList<FlowCreationRefusal> Refusals => refusals;
 
         public FlowDbCreator(ApiConnection apiConnection, string timeObjectPrecision = FlowIntegrationTimePrecisionOptions.Seconds)
         {

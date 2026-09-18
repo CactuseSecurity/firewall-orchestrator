@@ -155,6 +155,15 @@ namespace FWO.Services
         /// </summary>
         [JsonPropertyName("changes"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public List<RuleOwnerMappingChange> Changes { get; set; } = [];
+
+        /// <summary>
+        /// When a change note was written that this run dropped as expired instead of applying it, or
+        /// <see langword="null"/> when none was dropped. The run is still judged on its own - that is what
+        /// the expiry is for - but the difference it found may just as well be the effect of that never
+        /// applied setting, so whoever is told about the difference has to be told about the note as well.
+        /// </summary>
+        [JsonPropertyName("droppedChangeRecordedAt"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public DateTime? DroppedChangeRecordedAt { get; set; }
     }
 
     /// <summary>
@@ -368,6 +377,9 @@ namespace FWO.Services
             // The caller clears the note either way, so an expired one is dropped rather than carried on
             if (DateTime.UtcNow - history.PendingChangesRecordedAt > kPendingChangesMaxAge)
             {
+                // kept on the run rather than only in this log line: the run is judged on its own from here
+                // on, so whatever difference it reports has to carry that a never applied change may explain it
+                run.DroppedChangeRecordedAt = history.PendingChangesRecordedAt;
                 Log.WriteWarning(kLogMessageTitle, "Dropping the rule_owner mapping change note of " +
                     $"{history.PendingChangesRecordedAt:u}: no rebuild applied it within {kPendingChangesMaxAge.TotalDays} days, " +
                     "so a difference of this run is judged on its own.");

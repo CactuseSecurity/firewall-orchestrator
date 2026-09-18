@@ -564,8 +564,12 @@ namespace FWO.Test
             {
                 Assert.That(run.TriggeredByChange, Is.False, "an expired note must not explain this run away");
                 Assert.That(run.Changes, Is.Empty, "and must not be named as the cause of its difference");
-                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("incremental mapping missed"),
-                    "the drift the run actually found has to be reported");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("was never applied by a rebuild"),
+                    "the difference has to be reported, naming the note the run dropped as a possible cause");
+                Assert.That(apiConnection.RaisedAlerts, Has.None.Contains("incremental mapping missed these changes"),
+                    "having dropped the evidence, the run cannot assert that cause");
+                Assert.That(run.DroppedChangeRecordedAt, Is.EqualTo(staleHistory.PendingChangesRecordedAt).Within(TimeSpan.FromSeconds(1)),
+                    "the page needs the dropped note as well, the log line alone does not reach the operator");
                 Assert.That(history.PendingChanges, Is.Empty, "the expired note is dropped rather than carried on");
             });
         }

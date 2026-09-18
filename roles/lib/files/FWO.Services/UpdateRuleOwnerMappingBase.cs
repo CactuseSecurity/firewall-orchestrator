@@ -672,13 +672,30 @@ namespace FWO.Services
         /// <summary>
         /// Raises an alert when a full reinitialize changed mappings although no import was pending. With a
         /// correct incremental mapping the rebuilt state matches the stored one, so any difference means the
-        /// incremental path missed a change.
+        /// incremental path missed a change - unless the run dropped an expired change note, in which case
+        /// the difference is just as likely the effect of that never applied setting and is named as such.
         /// </summary>
         /// <param name="run">The recorded run holding the difference.</param>
         private async Task AlertMappingDrift(RuleOwnerMappingRun run)
         {
             await RaiseAlert($"Full rule_owner reinitialize {run.ControlId} added {run.AddedCount} and removed {run.RemovedCount} mappings " +
-                $"although no import was pending. The incremental mapping missed these changes. See config key '{RuleOwnerMappingRunHistory.kConfigKey}' for the affected rules and owners.");
+                $"although no import was pending. {DescribeDriftCause(run)} " +
+                $"See config key '{RuleOwnerMappingRunHistory.kConfigKey}' for the affected rules and owners.");
+        }
+
+        /// <summary>
+        /// Names what the difference of a run most likely comes from. Asserting the incremental mapping is
+        /// only justified while nothing else explains the difference; a change note the run has just dropped
+        /// as expired does explain it, and the run cannot tell the two apart.
+        /// </summary>
+        /// <param name="run">The recorded run holding the difference.</param>
+        /// <returns>The sentence naming the cause.</returns>
+        private static string DescribeDriftCause(RuleOwnerMappingRun run)
+        {
+            return run.DroppedChangeRecordedAt == null
+                ? "The incremental mapping missed these changes."
+                : $"A mapping setting saved on {run.DroppedChangeRecordedAt:u} was never applied by a rebuild and is no longer " +
+                  "taken into account, so this difference may be its intended effect rather than one the incremental mapping missed.";
         }
 
         /// <summary>

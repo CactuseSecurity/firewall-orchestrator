@@ -125,6 +125,14 @@ else
         <div class="alert alert-warning m-1">@(userConfig.GetText("U7552"))</div>
     }
 
+    @if (Handler.SelectedRun.DroppedChangeRecordedAt != null)
+    {
+        @* the run was judged without the change note it dropped as expired, so the state above says
+           deviation without naming a cause - which this run cannot know. Everything else about it stays,
+           the difference is real and still worth looking at *@
+        <div class="alert alert-warning m-1">@(GetDroppedChangeText())</div>
+    }
+
     @if (Entries.Count == 0)
     {
         @* an empty list has two causes, which must not be explained by the same sentence: a run that found
@@ -187,6 +195,16 @@ else
         {
             InitComplete = true;
         }
+    }
+
+    /// <summary>
+    /// Names the change note the shown run dropped as expired, with the time it was saved at.
+    /// </summary>
+    /// <returns>The localized text.</returns>
+    private string GetDroppedChangeText()
+    {
+        return userConfig.GetText("U7556")
+            .Replace(Placeholder.DATE, Handler.SelectedRun!.DroppedChangeRecordedAt!.Value.ToLocalTime().ToString("g"));
     }
 
     /// <summary>

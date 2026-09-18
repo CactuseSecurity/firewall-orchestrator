@@ -758,7 +758,8 @@ Not supported any longer are:
   this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -
   reported the intended effect of that setting as a deviation of the incremental mapping. The note expires
   because a save that was never retried would otherwise explain away a much later rebuild and suppress the
-  deviation that one found
+  deviation that one found. A run that drops an expired note says so, in its alert and on the monitoring
+  page: the difference is reported as before, but is no longer attributed to the incremental mapping alone
 - rule owner mapping: a problem that is still present is reported again and replaces its own earlier
   alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
   repeatedly failing import is exempt, because it is reported once and then repaired

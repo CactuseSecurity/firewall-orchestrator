@@ -89,8 +89,51 @@ namespace FWO.Test
             ClassicAssert.IsTrue(apiConnection.RemovedSelectedConnections.Contains(interfaceConn.Id));
         }
 
+        [Test]
+        public async Task NotifyUsers_FailureDoesNotClaimExactRecipientCount()
+        {
+            SimulatedUserConfig userConfig = new();
+            List<(string Title, string Message, bool IsError)> messages = [];
+            userConfig.UiHostName = "https://ui.example.test";
+            FwoOwner owner = new() { Id = 1, Name = "Owner1", ExtAppId = "APP1" };
+            ModellingConnection connection = new() { Id = 10, AppId = owner.Id, App = owner, IsInterface = true };
+            List<ModellingConnection> connections = [connection];
+            TestableModellingConnectionHandler handler = new(
+                new DecommissionTestApiConn(), userConfig, owner, connections, connection,
+                (exception, title, message, isError) => messages.Add((title, message, isError)));
+            RecordingNotificationMiddlewareClient middlewareClient = new()
+            {
+                DeliveryResult = NotificationDeliveryResult.Failed
+            };
+
+            await handler.NotifyUsersForTest("reason", null, middlewareClient);
+
+            Assert.That(messages, Has.Count.EqualTo(1));
+            Assert.That(messages[0].IsError, Is.True);
+            Assert.That(messages[0].Message, Is.EqualTo(userConfig.GetText("E9031")));
+            Assert.That(messages[0].Message, Does.Not.Contain("2"));
+        }
+
+        private sealed class TestableModellingConnectionHandler : ModellingConnectionHandler
+        {
+            public TestableModellingConnectionHandler(DecommissionTestApiConn apiConnection, SimulatedUserConfig userConfig,
+                FwoOwner application, List<ModellingConnection> connections, ModellingConnection activeConnection,
+                Action<Exception?, string, string, bool> displayMessage)
+                : base(apiConnection, userConfig, application, connections, activeConnection, false, false,
+                    displayMessage, DefaultInit.DoNothing, true)
+            {
+            }
+
+            public Task NotifyUsersForTest(string reason, ModellingConnection? proposedInterface,
+                MiddlewareClient middlewareClient)
+            {
+                return NotifyUsers(reason, proposedInterface, middlewareClient);
+            }
+        }
+
         private sealed class RecordingNotificationMiddlewareClient : MiddlewareClient
         {
+            public NotificationDeliveryResult DeliveryResult { get; init; } = NotificationDeliveryResult.Delivered;
             public int ConnectionId { get; private set; }
             public int? ReplacementConnectionId { get; private set; }
             public string Reason { get; private set; } = "";
@@ -106,8 +149,10 @@ namespace FWO.Test
                 Reason = reason;
                 return Task.FromResult(new RestResponse<NotificationDeliveryResult>(new RestRequest())
                 {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    ResponseStatus = ResponseStatus.Completed,
                     IsSuccessStatusCode = true,
-                    Data = NotificationDeliveryResult.Delivered
+                    Data = DeliveryResult
                 });
             }
         }

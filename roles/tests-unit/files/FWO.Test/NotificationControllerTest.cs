@@ -62,6 +62,24 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task SendInterfaceRequest_RejectsRejectedConnection()
+    {
+        ModellingConnection connection = RequestedConnection();
+        connection.AddProperty(ConState.Rejected.ToString());
+        ControllerApiConnection apiConnection = new()
+        {
+            Connection = connection,
+            Ticket = new WfTicket()
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
     public async Task SendInterfaceRequest_RejectsModellerOutsideOwnerScope()
     {
         ControllerApiConnection apiConnection = new()
@@ -243,6 +261,51 @@ internal class NotificationControllerTest
         Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
     }
 
+    [TestCase(10, false, true, "Public")]
+    [TestCase(11, false, true, "Public")]
+    [TestCase(11, true, false, "Public")]
+    [TestCase(11, true, true, "Private")]
+    public async Task SendInterfaceDecommission_RejectsIneligibleReplacement(
+        int replacementId, bool isInterface, bool isPublished, string interfacePermission)
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = DecommissionedConnection(),
+            ReplacementConnection = new ModellingConnection
+            {
+                Id = replacementId,
+                IsInterface = isInterface,
+                IsPublished = isPublished,
+                InterfacePermission = interfacePermission
+            }
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceDecommission(
+            new InterfaceDecommissionNotificationParameters
+            {
+                ConnectionId = 10,
+                ReplacementConnectionId = replacementId,
+                Reason = "reason"
+            });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
+    public void CombineDeliveryResults_PrioritizesPartialFailureOverDelivery()
+    {
+        MethodInfo method = typeof(NotificationController).GetMethod(
+            "CombineDeliveryResults", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(NotificationController).FullName, "CombineDeliveryResults");
+        object?[] arguments = [true, true, true];
+
+        NotificationDeliveryResult result = (NotificationDeliveryResult)method.Invoke(null, arguments)!;
+
+        Assert.That(result, Is.EqualTo(NotificationDeliveryResult.Failed));
+    }
+
     private static string? GetRoles(string methodName)
     {
         MethodInfo method = typeof(NotificationController).GetMethod(methodName)!;
@@ -323,6 +386,7 @@ internal class NotificationControllerTest
         public NotificationDeadline Deadline { get; init; } = NotificationDeadline.None;
         public EmailRecipientOption RecipientTo { get; init; } = EmailRecipientOption.OtherAddresses;
         public ModellingConnection? Connection { get; set; }
+        public ModellingConnection? ReplacementConnection { get; init; }
         public List<ModellingConnection> InterfaceUsers { get; set; } = [];
         public WfTicket? Ticket { get; init; }
         public FwoOwner? Owner { get; init; }
@@ -335,7 +399,11 @@ internal class NotificationControllerTest
         {
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getConnectionForNotification)
             {
-                List<ModellingConnection> result = Connection == null ? [] : [Connection];
+                int requestedId = variables?.GetType().GetProperty("id")?.GetValue(variables) is int id ? id : 0;
+                ModellingConnection? selectedConnection = requestedId == ReplacementConnection?.Id
+                    ? ReplacementConnection
+                    : Connection;
+                List<ModellingConnection> result = selectedConnection == null ? [] : [selectedConnection];
                 return Task.FromResult((QueryResponseType)(object)result);
             }
             if (typeof(QueryResponseType) == typeof(List<ModellingConnection>) && query == ModellingQueries.getInterfaceUsers)

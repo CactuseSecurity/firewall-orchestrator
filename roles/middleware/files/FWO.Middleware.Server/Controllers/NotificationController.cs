@@ -58,6 +58,10 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             if (parameters.ReplacementConnectionId is > 0)
             {
                 replacement = await LoadConnection(parameters.ReplacementConnectionId.Value);
+                if (!IsEligibleReplacement(connection, replacement))
+                {
+                    return BadRequest("The replacement interface is not eligible for decommissioning.");
+                }
             }
             List<ModellingConnection> usingConnections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
                 ModellingQueries.getInterfaceUsers, new { id = connection.Id });
@@ -104,7 +108,8 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             }
 
             ModellingConnection? connection = await LoadConnection(parameters.ConnectionId);
-            if (connection is null || !connection.IsInterface || !connection.IsRequested || connection.TicketId is not > 0
+            if (connection is null || !connection.IsInterface || !connection.IsRequested || connection.Removed
+                || connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.TicketId is not > 0
                 || connection.ProposedAppId is not > 0)
             {
                 return BadRequest("The requested interface could not be found.");
@@ -154,6 +159,22 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
             ModellingQueries.getConnectionForNotification, new { id = connectionId });
         return connections.SingleOrDefault();
+    }
+
+    private static bool IsEligibleReplacement(ModellingConnection connection, ModellingConnection? replacement)
+    {
+        if (replacement == null || replacement.Id == connection.Id)
+        {
+            return false;
+        }
+
+        if (!replacement.IsInterface || !replacement.IsPublished)
+        {
+            return false;
+        }
+
+        return !string.Equals(replacement.InterfacePermission, InterfacePermissions.Private.ToString(),
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<FwoOwner?> LoadOwner(int? ownerId, bool includeResponsibles = false)
@@ -339,11 +360,6 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
 
     private static NotificationDeliveryResult CombineDeliveryResults(bool delivered, bool failed, bool noRecipients)
     {
-        if (delivered)
-        {
-            return NotificationDeliveryResult.Delivered;
-        }
-
         if (failed)
         {
             return NotificationDeliveryResult.Failed;
@@ -352,6 +368,11 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         if (noRecipients)
         {
             return NotificationDeliveryResult.NoRecipients;
+        }
+
+        if (delivered)
+        {
+            return NotificationDeliveryResult.Delivered;
         }
 
         return NotificationDeliveryResult.Suppressed;

@@ -4336,6 +4336,8 @@ INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforder
 INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht modellierte Verbindungen vorhanden.');
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
+INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
+INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4739,6 +4741,8 @@ INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforde
 INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
 INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uuml;rfen nur von deren Verantwortlichen mit der Rolle Modellierer ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
+INSERT INTO txt VALUES ('E9031', 'German',  'Nicht alle Benachrichtigungen an App-Verantwortliche konnten gesendet werden.');
+INSERT INTO txt VALUES ('E9031', 'English', 'Not all notifications could be sent to App responsibles.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');

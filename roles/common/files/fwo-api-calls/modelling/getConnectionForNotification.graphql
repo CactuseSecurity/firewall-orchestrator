@@ -5,7 +5,10 @@ query getConnectionForNotification($id: Int!) {
     proposed_app_id
     name
     reason
+    conn_prop
     is_interface
+    is_published
+    interface_permission
     is_requested
     ticket_id
     creator

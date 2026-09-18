@@ -98,14 +98,14 @@ namespace FWO.Services.Modelling
                 .ToList();
             if (appsToNotify.Count > 0)
             {
-                await NotifyUsers(appsToNotify, reason, proposedInterface, middlewareClient);
+                await NotifyUsers(reason, proposedInterface, middlewareClient);
             }
 
             await AddPermittedOwnersIfMissing(proposedInterface, appsToNotify);
             await AddToSelections(proposeAlternative, proposedInterface, appsToNotify);
         }
 
-        protected virtual async Task NotifyUsers(List<FwoOwner> appsToNotify, string reason, ModellingConnection? proposedInterface, MiddlewareClient middlewareClient)
+        protected virtual async Task NotifyUsers(string reason, ModellingConnection? proposedInterface, MiddlewareClient middlewareClient)
         {
             try
             {
@@ -119,12 +119,12 @@ namespace FWO.Services.Modelling
                 switch (response.Data)
                 {
                     case NotificationDeliveryResult.Delivered:
-                        string successText = userConfig.GetText("U9033").Replace(Placeholder.OK_NUMBER, appsToNotify.Count.ToString());
+                        string successText = userConfig.GetText("U9044");
                         DisplayMessageInUi(null, userConfig.GetText("send_email"), successText, false);
                         break;
                     case NotificationDeliveryResult.Failed:
                     case NotificationDeliveryResult.NoRecipients:
-                        string failureText = userConfig.GetText("E9019").Replace(Placeholder.FAIL_NUMBER, appsToNotify.Count.ToString());
+                        string failureText = userConfig.GetText("E9031");
                         DisplayMessageInUi(null, userConfig.GetText("send_email"), failureText, true);
                         break;
                 }

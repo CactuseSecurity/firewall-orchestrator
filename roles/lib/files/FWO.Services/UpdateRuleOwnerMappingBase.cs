@@ -14,6 +14,8 @@ namespace FWO.Services
         protected const int MaxPendingImportsBeforeFullReinit = 3;
         private const int kAlertSeverity = 1;
 
+        private static readonly List<RuleOwner> NoRuleOwners = [];
+
         private bool triggeredByChange;
         private List<RuleOwnerMappingChange> appliedChanges = [];
         protected const int RuleOwnerRemovalBatchSize = 500;
@@ -68,13 +70,13 @@ namespace FWO.Services
         /// <summary>
         /// Loads all rules and mapping owners for a full reinitialize and delegates persistence of the rebuilt
         /// mapping set. An empty owner set is a legitimate configuration state - no owner matches, so nothing
-        /// maps and the obsolete mappings have to go - but an empty rule set is not: see
+        /// maps and the obsolete mappings have to go - and so is an empty rule result, as long as a rule base
+        /// exists at all. Without one there is nothing to judge: see
         /// <see cref="CompleteFullReinitializeWithoutRules"/>.
         /// <para>
-        /// That distinction rests on <paramref name="rulesQuery"/> returning every rule rather than only the
-        /// ones the mapping source matches. A query narrowed by a mapping setting would report "the source
-        /// stopped matching" as "there are no rules" and keep the obsolete mappings without a word. What a
-        /// source matches is decided by <paramref name="buildNewRuleOwnersFunc"/> alone.
+        /// <paramref name="rulesQuery"/> may be narrowed to the rules its source can map at all, so its empty
+        /// result cannot tell the two apart by itself. <see cref="ActiveRuleBaseExists"/> answers that
+        /// separately, and only on the path where there is nothing to map anyway.
         /// </para>
         /// </summary>
         protected async Task<bool> RunFullReinitialize<TMappingOwner>(string rulesQuery, Func<Task<List<TMappingOwner>>> loadOwnersFunc, Func<List<Rule>, List<TMappingOwner>, List<RuleOwner>> buildNewRuleOwnersFunc)
@@ -86,7 +88,11 @@ namespace FWO.Services
             List<Rule> rulesToMap = rulesTask.Result ?? [];
             if (rulesToMap.Count == 0)
             {
-                return await CompleteFullReinitializeWithoutRules();
+                // the query matched nothing, which is a valid result while rules exist to match against
+                bool ruleBaseExists = await ActiveRuleBaseExists();
+                return ruleBaseExists
+                    ? await FinalizeFullReinitialize(NoRuleOwners)
+                    : await CompleteFullReinitializeWithoutRules();
             }
 
             List<TMappingOwner> ownersToMap = ownersTask.Result ?? [];
@@ -95,7 +101,7 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Completes a full reinitialize that could not load a single rule. That is not the same as "the
+        /// Completes a full reinitialize that ran against an empty rule base. That is not the same as "the
         /// configured source matched no rule": without a rule there is nothing to map and nothing to judge,
         /// so replacing the stored state would remove every mapping on the strength of an input the run never
         /// had - on a fresh installation without rules, or if the rule query came back empty, on exactly the
@@ -116,6 +122,18 @@ namespace FWO.Services
             long importControlId = await CreateImportControl();
             await CompleteImportControlFullReInit(importControlId);
             return true;
+        }
+
+        /// <summary>
+        /// Checks whether the managed rule base holds any rule a mapping source could match. Asked only when a
+        /// source specific rule query came back empty, to tell a source that stopped matching from an
+        /// installation that has no rule to match against.
+        /// </summary>
+        /// <returns>True if at least one active access rule exists.</returns>
+        private async Task<bool> ActiveRuleBaseExists()
+        {
+            AggregateCount? activeRules = await apiConnection.SendQueryAsync<AggregateCount>(RuleQueries.countActiveRulesForOwnerMapping);
+            return activeRules?.Aggregate?.Count > 0;
         }
 
         /// <summary>

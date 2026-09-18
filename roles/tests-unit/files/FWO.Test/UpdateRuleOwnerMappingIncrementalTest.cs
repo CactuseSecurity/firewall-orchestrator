@@ -489,18 +489,26 @@ namespace FWO.Test
         }
 
         [Test]
-        public void FullReinitializeRuleQuery_ShouldNotNarrowTheRuleSetByWhatTheSourceMatches()
+        public async Task RunAsync_ShouldRemoveTheMappingsAndAlert_WhenRulesExistButNoneCanBeMapped()
         {
-            // the test above keeps the stored mappings when the rule query comes back empty, which is only
-            // correct while that query returns every rule. Narrowing it by what the source matches - for the
-            // custom field source, a rule carrying custom fields at all - reports "the source stopped
-            // matching" as "there are no rules", so the obsolete mappings stay active while neither an alert
-            // nor a recorded run says so. Which rule maps to which owner is decided by the mapper alone.
-            // The simulated API returns every seeded rule for this query, so only the query text can say it
-            string queryWithoutWhitespace = string.Concat(RuleQueries.getRulesForOwnerMappingCustomField.Where(character => !char.IsWhiteSpace(character)));
+            // the counterpart of the test above, and the reason the rule base is probed separately: the rule
+            // query is narrowed to what the source can map, so its empty result means "nothing matches any
+            // more" as long as rules exist at all. The obsolete mappings have to go, and somebody has to hear
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
+            apiConnection.ReplaceRulesWithUnmappableRule(kRuleId);
 
-            Assert.That(queryWithoutWhitespace, Does.Not.Contain("rule_custom_fields:{"),
-                "the custom field source must match in BuildNewRuleOwnersCustomField, not in its rule query");
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            bool result = await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True, "an empty result is a result, not a failure");
+                Assert.That(apiConnection.ActivePairs, Is.Empty, "a source that stopped matching must not leave its mappings active");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("matched no rule"), "the operator has to hear about it");
+                Assert.That(apiConnection.StoredRuns, Is.Not.Empty, "this run judged the state, so it belongs in the history");
+            });
         }
 
         [Test]
@@ -665,6 +673,16 @@ namespace FWO.Test
                 rules = [];
             }
 
+            /// <summary>
+            /// Replaces the rule base with a rule the custom field source cannot map, as a rule base whose
+            /// custom fields disappeared leaves it: the mapping query comes back empty while rules exist.
+            /// </summary>
+            /// <param name="ruleId">Id of the remaining rule.</param>
+            public void ReplaceRulesWithUnmappableRule(long ruleId)
+            {
+                rules = [new Rule { Id = ruleId, CustomFields = "", Metadata = new RuleMetadata { Id = ruleId + 1000 } }];
+            }
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 return Task.FromResult(Handle<QueryResponseType>(query, variables));
@@ -761,9 +779,23 @@ namespace FWO.Test
                     return true;
                 }
 
-                if (query == RuleQueries.getRulesForRuleOwnerCustomField || query == RuleQueries.getRulesForOwnerMappingCustomField)
+                if (query == RuleQueries.getRulesForRuleOwnerCustomField)
                 {
                     result = rules.ToList();
+                    return true;
+                }
+
+                // mirrors rule_custom_fields: { _is_null: false } in the real query: a rule the source cannot
+                // map never reaches the mapper, which is what makes an empty result ambiguous by itself
+                if (query == RuleQueries.getRulesForOwnerMappingCustomField)
+                {
+                    result = rules.Where(rule => !string.IsNullOrEmpty(rule.CustomFields)).ToList();
+                    return true;
+                }
+
+                if (query == RuleQueries.countActiveRulesForOwnerMapping)
+                {
+                    result = new AggregateCount { Aggregate = new Aggregate { Count = rules.Count } };
                     return true;
                 }
 

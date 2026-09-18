@@ -747,9 +747,11 @@ Not supported any longer are:
   reaches the threshold that triggers the fallback
 - rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
   reports the empty result as an alert, instead of aborting and leaving the previous state in place.
-  This applies to a source that stops matching, not to a run that could not load a single rule: without
+  This applies to a source that stops matching, not to a run that found no rule base at all: without
   a rule there is nothing to judge, so the stored mappings are kept, no run is recorded and no alert is
-  raised. An installation without rules therefore no longer reports an empty mapping result on every run
+  raised. Which of the two it is, is decided by counting the active rules rather than by the result of
+  the mapping query, because that query is narrowed to the rules its source can map. An installation
+  without rules therefore no longer reports an empty mapping result on every run
 - rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
   rebuild applies it. The configuration is written before the rebuild runs, so without this the next
   rebuild - the manual recalculation, the backlog fallback or the repair of a failing import - reported

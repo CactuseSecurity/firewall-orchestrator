@@ -425,6 +425,142 @@ namespace FWO.Test
                 "a run taken over from the legacy format must pass the same check as a new one");
         }
 
+        [Test]
+        public async Task RunAsync_ShouldReplaceTheOpenAlert_WhenTheSameProblemOccursAgain()
+        {
+            // the open alert has to carry the latest occurrence, otherwise "failed once last week" and
+            // "failing on every run since" are indistinguishable in the alert list
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.ClearOwners();
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RaisedAlerts.Count(description => description.Contains("matched no rule")), Is.EqualTo(2),
+                    "a problem that is still there has to be reported again");
+                Assert.That(apiConnection.OpenAlerts, Has.Exactly(1).Contains("matched no rule"),
+                    "the previous alert is acknowledged, so the list does not accumulate identical open entries");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNotAlertTwice_WhileTheSameImportKeepsFailing()
+        {
+            // the one condition that can repeat on every run: alerting per run would leave one acknowledged
+            // alert per run behind, so only the state change is reported and the repair takes over
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            await service.RunAsync();
+
+            Assert.That(apiConnection.RaisedAlerts.Count(description => description.Contains("import_control 1")), Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldKeepTheMappings_WhenNoRuleCouldBeLoaded()
+        {
+            // an empty rule base is not "the source matched nothing": there is nothing to judge, so removing
+            // every mapping would act on an input the run never had
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
+            apiConnection.AddPendingImport(7, ImportType.RULE);
+            apiConnection.ClearRules();
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            bool result = await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.True, "there was nothing to do, which is not a failure");
+                Assert.That(apiConnection.ActivePairs, Is.EquivalentTo(new List<string> { "101->1" }), "the existing mappings must survive");
+                Assert.That(apiConnection.RaisedAlerts, Is.Empty, "nothing was observed, so nothing is reported");
+                Assert.That(apiConnection.StoredRuns, Is.Empty, "a run that could not judge must not be recorded");
+                Assert.That(apiConnection.CompletedImports, Does.Contain(7L), "the backlog still has to drain");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNotReportDrift_WhenAChangeWasSavedButItsRebuildNeverCompleted()
+        {
+            // the configuration is written before the rebuild runs. After a failed rebuild the new setting is
+            // live while the mappings still follow the old one, and the next rebuild - here the manual
+            // recalculation, which knows nothing about the save - would report that difference as drift
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(999, kOwnerId, 50);
+            List<RuleOwnerMappingChange> savedChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(savedChanges);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            RuleOwnerMappingRunHistoryData history = apiConnection.StoredHistory;
+            RuleOwnerMappingRun run = history.RunsWithFindings.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(run.TriggeredByChange, Is.True, "the saved change explains the difference");
+                Assert.That(run.Changes.Single().To, Is.EqualTo("APP"), "and is named with the run");
+                Assert.That(apiConnection.RaisedAlerts, Has.None.Contains("incremental mapping missed"));
+                Assert.That(history.PendingChanges, Is.Empty, "the note is consumed once a rebuild applied it");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldDropThePairLists_WhenThePendingChangeSwitchedTheSource()
+        {
+            // same rule as in BuildRun: after a source switch every mapping differs, so the pairs say nothing
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(999, kOwnerId, 50);
+            List<RuleOwnerMappingChange> savedChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "IpBased", To = "CustomField" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(savedChanges);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            RuleOwnerMappingRun run = apiConnection.StoredHistory.RunsWithFindings.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(run.AddedCount, Is.EqualTo(1), "the counts stay complete");
+                Assert.That(run.RemovedCount, Is.EqualTo(1));
+                Assert.That(run.Added, Is.Empty);
+                Assert.That(run.Removed, Is.Empty);
+                Assert.That(run.PairListsTruncated, Is.False, "the lists were left out on purpose, not cut off");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNameTheChangeOnce_WhenTheRebuildCarriesItAsWell()
+        {
+            // the save records the note and the rebuild it triggers carries the same one
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(999, kOwnerId, 50);
+            List<RuleOwnerMappingChange> changes = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(changes);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs
+            {
+                isFullReInitialize = true,
+                TriggeredByChange = true,
+                Changes = changes
+            });
+
+            Assert.That(apiConnection.StoredHistory.RunsWithFindings.Single().Changes, Has.Count.EqualTo(1));
+        }
+
         /// <summary>
         /// Simulated API connection for the CustomField mapping source.
         /// </summary>
@@ -436,11 +572,18 @@ namespace FWO.Test
             private readonly Dictionary<long, List<RuleChange>> ruleChangesByImport = [];
             private readonly Dictionary<long, List<OwnerChange>> ownerChangesByImport = [];
             private readonly List<RuleOwner> activeRuleOwners = [];
-            private readonly List<Rule> rules = [CreateRule(kRuleId)];
+            private readonly List<Alert> openAlerts = [];
+            private List<Rule> rules = [CreateRule(kRuleId)];
             private List<FwoOwner> owners = [new() { Id = kOwnerId, ExtAppId = "A" }];
+            private long nextAlertId = 1;
 
             public List<long> CompletedImports { get; } = [];
+
+            /// <summary>Every alert that was raised, including ones acknowledged again since.</summary>
             public List<string> RaisedAlerts { get; } = [];
+
+            /// <summary>Alerts still waiting for somebody to acknowledge them.</summary>
+            public List<string> OpenAlerts => openAlerts.Select(alert => alert.Description ?? "").ToList();
             public long? FailRuleChangeLookupForImport { get; set; }
             public long? FailCompletionForImport { get; set; }
             public int FullReinitializeCount { get; private set; }
@@ -466,7 +609,7 @@ namespace FWO.Test
             /// <summary>Clears the open alerts, as acknowledging them in the monitoring view does.</summary>
             public void AcknowledgeAlerts()
             {
-                RaisedAlerts.Clear();
+                openAlerts.Clear();
             }
 
             /// <summary>Seeds the stored config entry, for instance in the shape an older version wrote.</summary>
@@ -499,6 +642,12 @@ namespace FWO.Test
             public void ClearOwners()
             {
                 owners = [];
+            }
+
+            /// <summary>Empties the rule base, as a fresh installation or a failed rule query leaves it.</summary>
+            public void ClearRules()
+            {
+                rules = [];
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -680,7 +829,7 @@ namespace FWO.Test
                 if (query == MonitorQueries.getOpenAlerts)
                 {
                     // like the real table: an alert stays open until somebody acknowledges it
-                    result = RaisedAlerts.Select(description => new Alert { AlertCode = AlertCode.RuleOwnerMapping, Description = description }).ToList();
+                    result = openAlerts.Select(alert => new Alert { Id = alert.Id, AlertCode = alert.AlertCode, Description = alert.Description }).ToList();
                     return true;
                 }
 
@@ -692,13 +841,19 @@ namespace FWO.Test
 
                 if (query == MonitorQueries.addAlert)
                 {
-                    RaisedAlerts.Add(ReadString(variables, "description"));
+                    string description = ReadString(variables, "description");
+                    RaisedAlerts.Add(description);
+                    openAlerts.Add(new Alert { Id = nextAlertId++, AlertCode = AlertCode.RuleOwnerMapping, Description = description });
                     result = new ReturnIdWrapper { ReturnIds = AlertReturnIds };
                     return true;
                 }
 
                 if (query == MonitorQueries.acknowledgeAlert)
                 {
+                    // SetAlert acknowledges the older alert for the same problem, so the open list keeps
+                    // exactly one entry per condition and that entry is always the most recent one
+                    long acknowledgedId = ReadLong(variables, "id");
+                    openAlerts.RemoveAll(alert => alert.Id == acknowledgedId);
                     result = new ReturnId();
                     return true;
                 }

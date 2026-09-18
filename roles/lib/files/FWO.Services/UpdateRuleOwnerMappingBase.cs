@@ -66,7 +66,10 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Loads all rules and mapping owners for a full reinitialize and delegates persistence of the rebuilt mapping set.
+        /// Loads all rules and mapping owners for a full reinitialize and delegates persistence of the rebuilt
+        /// mapping set. An empty owner set is a legitimate configuration state - no owner matches, so nothing
+        /// maps and the obsolete mappings have to go - but an empty rule set is not: see
+        /// <see cref="CompleteFullReinitializeWithoutRules"/>.
         /// </summary>
         protected async Task<bool> RunFullReinitialize<TMappingOwner>(string rulesQuery, Func<Task<List<TMappingOwner>>> loadOwnersFunc, Func<List<Rule>, List<TMappingOwner>, List<RuleOwner>> buildNewRuleOwnersFunc)
         {
@@ -74,8 +77,39 @@ namespace FWO.Services
             var ownersTask = loadOwnersFunc();
             await Task.WhenAll(rulesTask, ownersTask);
 
-            var newRuleOwners = buildNewRuleOwnersFunc(rulesTask.Result, ownersTask.Result);
+            List<Rule> rulesToMap = rulesTask.Result ?? [];
+            if (rulesToMap.Count == 0)
+            {
+                return await CompleteFullReinitializeWithoutRules();
+            }
+
+            List<TMappingOwner> ownersToMap = ownersTask.Result ?? [];
+            var newRuleOwners = buildNewRuleOwnersFunc(rulesToMap, ownersToMap);
             return await FinalizeFullReinitialize(newRuleOwners);
+        }
+
+        /// <summary>
+        /// Completes a full reinitialize that could not load a single rule. That is not the same as "the
+        /// configured source matched no rule": without a rule there is nothing to map and nothing to judge,
+        /// so replacing the stored state would remove every mapping on the strength of an input the run never
+        /// had - on a fresh installation without rules, or if the rule query came back empty, on exactly the
+        /// path taken when something is already wrong.
+        /// <para>
+        /// The stored mappings are therefore kept, no run is recorded - the run proved nothing and must not
+        /// refresh "last verified without deviation" - and no empty-result alert is raised. The import control
+        /// is still created and completed together with the older pending ones, so the backlog drains and the
+        /// next run does not fall back to a full reinitialize again.
+        /// </para>
+        /// </summary>
+        /// <returns>True, because there was nothing to do rather than something that failed.</returns>
+        private async Task<bool> CompleteFullReinitializeWithoutRules()
+        {
+            Log.WriteWarning(LogMessageTitle, "No rule could be loaded for the full rule_owner reinitialize. " +
+                "The existing mappings are kept, because an empty input says nothing about them.");
+
+            long importControlId = await CreateImportControl();
+            await CompleteImportControlFullReInit(importControlId);
+            return true;
         }
 
         /// <summary>
@@ -122,7 +156,10 @@ namespace FWO.Services
         {
             RuleOwnerMappingRun run = RuleOwnerMappingRunHistory.BuildRun(importControlId, Source, previousRuleOwners, newRuleOwners,
                 pendingImportsBefore, triggeredByChange, appliedChanges);
-            await new RuleOwnerMappingRunHistory(apiConnection).Store(run);
+
+            // Store takes over a change that was saved but whose rebuild never completed, so the drift
+            // decision below has to be made on what was stored, not on what this run knew by itself
+            run = await new RuleOwnerMappingRunHistory(apiConnection).Store(run);
 
             Log.WriteInfo(LogMessageTitle, $"Full reinitialize {importControlId}: {run.AddedCount} mappings added, {run.RemovedCount} removed, " +
                 $"{run.PendingImportsBefore.Count} imports were still pending.");
@@ -536,12 +573,18 @@ namespace FWO.Services
             // the run history, not the alert, decides whether this is a repeat: an alert stops being open as
             // soon as somebody acknowledges it, which would leave a permanently failing import unrepaired
             bool failedBefore = await history.RecordFailedImports(failedImportControlIds);
-            await RaiseAlert($"Rule owner mapping failed for import_control {failedIds}. See the middleware log for details.");
 
             if (!failedBefore)
             {
+                // raised on the state change only. This is the one condition that can repeat on every run, so
+                // alerting per run would leave one acknowledged alert per run behind - see RaiseAlert
+                await RaiseAlert($"Rule owner mapping failed for import_control {failedIds}. See the middleware log for details.");
                 return false;
             }
+
+            // the same import failing again is logged every run and repaired below; the alert raised on the
+            // first failure stands for the condition and is not replaced by an identical one
+            Log.WriteError(LogMessageTitle, $"Rule owner mapping failed again for import_control {failedIds}. See the middleware log for details.");
 
             Log.WriteWarning(LogMessageTitle, $"import_control {failedIds} failed again. Falling back to full rule_owner reinitialize.");
             bool repaired = await fullReinitFunc();
@@ -585,20 +628,22 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Writes a log entry and an alert unless the same alert is already open, so a job repeating every
-        /// few seconds does not flood the alert list with identical entries. Purely a notification: whether
-        /// an import failed before is decided by the run history, see <see cref="HandleFailedImports"/>.
+        /// Writes a log entry and an alert, following the platform convention of <see cref="AlertHelper.SetAlert"/>
+        /// with <see cref="AlertHelper.AdditionalAlertData.CompareDesc"/>: the new alert is inserted and the
+        /// older one for the same problem is acknowledged, so the open alert always carries the timestamp of
+        /// the latest occurrence. Suppressing the insert instead would freeze that timestamp at the first
+        /// occurrence, making "failed once last week" and "failing on every run since" indistinguishable.
+        /// <para>
+        /// Every caller therefore has to raise only on a state change rather than once per run, or the alert
+        /// list fills up with one acknowledged row per run of a job that repeats every few seconds. See
+        /// <see cref="HandleFailedImports"/>, the only condition that can persist across runs.
+        /// </para>
         /// </summary>
         /// <param name="description">Description shown in the alert and the log entry.</param>
         private async Task RaiseAlert(string description)
         {
             try
             {
-                if (await SameAlertAlreadyOpen(description))
-                {
-                    return;
-                }
-
                 await AlertHelper.AddLogEntry(apiConnection, kAlertSeverity, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping);
                 await AlertHelper.SetAlert(apiConnection, LogMessageTitle, description, GlobalConst.kRuleOwnerMapping, AlertCode.RuleOwnerMapping,
                     new AlertHelper.AdditionalAlertData { CompareDesc = true });
@@ -607,17 +652,6 @@ namespace FWO.Services
             {
                 Log.WriteError(LogMessageTitle, "Error while raising a rule_owner mapping alert.", ex);
             }
-        }
-
-        /// <summary>
-        /// Checks whether an unacknowledged rule_owner mapping alert with the same description exists.
-        /// </summary>
-        /// <param name="description">Description to look for.</param>
-        /// <returns>True if such an alert is still open.</returns>
-        private async Task<bool> SameAlertAlreadyOpen(string description)
-        {
-            List<Alert>? openAlerts = await apiConnection.SendQueryAsync<List<Alert>>(MonitorQueries.getOpenAlerts);
-            return openAlerts?.Any(alert => alert.AlertCode == AlertCode.RuleOwnerMapping && alert.Description == description) == true;
         }
 
         protected static bool ProcessOwnerChanges(List<OwnerChange> changelogOwners, List<FwoOwner> ownersToAdd, List<FwoOwner> ownersToRemove)

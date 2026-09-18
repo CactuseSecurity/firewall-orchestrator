@@ -180,6 +180,20 @@ namespace FWO.Services
         /// </summary>
         [JsonPropertyName("failedImports")]
         public List<long> FailedImports { get; set; } = [];
+
+        /// <summary>
+        /// Mapping-relevant settings that were saved but whose full reinitialize has not completed yet. The
+        /// configuration is written before the rebuild runs, so a rebuild that fails leaves the new setting
+        /// live while the stored mappings still follow the old one. Whichever rebuild comes next - the manual
+        /// recalculation, the backlog fallback or the repeated-failure repair, none of which knows about the
+        /// save - then produces that difference on purpose and must not report it as drift.
+        /// <para>
+        /// Kept here rather than in the editor: the editor state lives in one browser circuit, while the
+        /// rebuild that finally applies the change may run in the middleware.
+        /// </para>
+        /// </summary>
+        [JsonPropertyName("pendingChanges")]
+        public List<RuleOwnerMappingChange> PendingChanges { get; set; } = [];
     }
 
     /// <summary>
@@ -269,14 +283,21 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Prepends the run to the stored history and drops everything beyond the newest entries.
+        /// Prepends the run to the stored history and drops everything beyond the newest entries. A change
+        /// that was saved but not yet applied is taken over onto the run first, see
+        /// <see cref="RuleOwnerMappingRunHistoryData.PendingChanges"/>.
         /// </summary>
         /// <param name="run">Run to store.</param>
-        public async Task Store(RuleOwnerMappingRun run)
+        /// <returns>
+        /// The stored run. It differs from the one passed in when a pending change was taken over, so the
+        /// caller has to decide about drift on the returned run rather than on its own.
+        /// </returns>
+        public async Task<RuleOwnerMappingRun> Store(RuleOwnerMappingRun run)
         {
             try
             {
                 RuleOwnerMappingRunHistoryData history = await Load();
+                TakeOverPendingChanges(run, history);
 
                 // a run without findings updates "last verified correct", so a repeated rebuild cannot push
                 // anything out of the limited history - but only when it could judge at all: with imports
@@ -294,12 +315,91 @@ namespace FWO.Services
                     history.RunsWithFindings = history.RunsWithFindings.Take(kMaxRuns).ToList();
                 }
 
+                history.PendingChanges = [];
                 await Save(history);
             }
             catch (Exception ex)
             {
                 // the history is a diagnostic aid, it must never break the mapping itself
                 Log.WriteError(kLogMessageTitle, "Error while storing the rule_owner mapping run history.", ex);
+            }
+            return run;
+        }
+
+        /// <summary>
+        /// Takes a change that was saved but not yet applied over onto the run that applies it now, so its
+        /// difference is read as the intended result instead of as drift of the incremental mapping.
+        /// </summary>
+        /// <param name="run">Run being stored, adjusted in place.</param>
+        /// <param name="history">Stored history holding the pending changes.</param>
+        private static void TakeOverPendingChanges(RuleOwnerMappingRun run, RuleOwnerMappingRunHistoryData history)
+        {
+            if (history.PendingChanges.Count == 0)
+            {
+                return;
+            }
+
+            run.TriggeredByChange = true;
+            run.Changes = MergeChanges(run.Changes, history.PendingChanges);
+
+            // same reasoning as in BuildRun: after a source switch every mapping differs, so the individual
+            // pairs say nothing and only the counts are kept
+            if (run.Changes.Exists(change => change.Setting == RuleOwnerMappingChangeSetting.kSource))
+            {
+                run.Added = [];
+                run.Removed = [];
+                run.PairListsTruncated = false;
+            }
+        }
+
+        /// <summary>
+        /// Merges change notes about the same setting into one: the value it started from and the value it
+        /// ended at. Saving twice before the rebuild succeeds would otherwise report the intermediate value
+        /// as the starting point.
+        /// </summary>
+        /// <param name="earlier">Change notes recorded first.</param>
+        /// <param name="later">Change notes recorded afterwards.</param>
+        /// <returns>One note per setting, ordered as first seen.</returns>
+        public static List<RuleOwnerMappingChange> MergeChanges(List<RuleOwnerMappingChange> earlier, List<RuleOwnerMappingChange> later)
+        {
+            List<RuleOwnerMappingChange> merged = [];
+            foreach (RuleOwnerMappingChange change in earlier.Concat(later))
+            {
+                RuleOwnerMappingChange? known = merged.Find(entry => entry.Setting == change.Setting);
+                if (known == null)
+                {
+                    merged.Add(new RuleOwnerMappingChange { Setting = change.Setting, From = change.From, To = change.To });
+                    continue;
+                }
+                known.To = change.To;
+            }
+            return merged.Where(change => change.From != change.To).ToList();
+        }
+
+        /// <summary>
+        /// Remembers a mapping-relevant setting that was saved, before the rebuild applying it is triggered.
+        /// The next stored run takes it over, so a rebuild that only happens after a failed attempt is still
+        /// recognized as following a deliberate change. Cleared by <see cref="Store"/>.
+        /// </summary>
+        /// <param name="changes">Settings that were changed, empty to record nothing.</param>
+        public async Task RecordPendingChanges(List<RuleOwnerMappingChange> changes)
+        {
+            if (changes.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                RuleOwnerMappingRunHistoryData history = await Load();
+                history.PendingChanges = MergeChanges(history.PendingChanges, changes);
+                await Save(history);
+            }
+            catch (Exception ex)
+            {
+                // without the note the next rebuild reports the intended change as drift, which is a wrong
+                // alert but not a wrong mapping - it must not stop the save from triggering the rebuild
+                Log.WriteError(kLogMessageTitle, "Error while recording the pending rule_owner mapping changes.", ex);
             }
         }
 

@@ -60,6 +60,49 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MergeChanges_KeepsTheValueItStartedFromAndTheValueItEndedAt()
+        {
+            // saving twice before a rebuild succeeds must not report the intermediate value as the origin
+            List<RuleOwnerMappingChange> firstSave = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }];
+            List<RuleOwnerMappingChange> secondSave = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "APP", To = "TEAM" }];
+
+            List<RuleOwnerMappingChange> merged = RuleOwnerMappingRunHistory.MergeChanges(firstSave, secondSave);
+
+            RuleOwnerMappingChange change = merged.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(change.From, Is.EqualTo("FWOC"));
+                Assert.That(change.To, Is.EqualTo("TEAM"));
+            });
+        }
+
+        [Test]
+        public void MergeChanges_DropsASettingThatWasChangedBackToWhereItStarted()
+        {
+            // nothing was changed in the end, so the run has no change to explain its result with
+            List<RuleOwnerMappingChange> firstSave = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }];
+            List<RuleOwnerMappingChange> secondSave = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "APP", To = "FWOC" }];
+
+            List<RuleOwnerMappingChange> merged = RuleOwnerMappingRunHistory.MergeChanges(firstSave, secondSave);
+
+            Assert.That(merged, Is.Empty);
+        }
+
+        [Test]
+        public void MergeChanges_KeepsOneNotePerSetting()
+        {
+            List<RuleOwnerMappingChange> sourceSwitch = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "IpBased", To = "NameField" }];
+            List<RuleOwnerMappingChange> markerEdit = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "", To = "APP" }];
+            List<string> expectedSettings = [RuleOwnerMappingChangeSetting.kSource, RuleOwnerMappingChangeSetting.kMarker];
+
+            List<RuleOwnerMappingChange> merged = RuleOwnerMappingRunHistory.MergeChanges(sourceSwitch, markerEdit);
+
+            Assert.That(merged.Select(change => change.Setting), Is.EqualTo(expectedSettings),
+                "the settings stay in the order they were first recorded");
+        }
+
+        [Test]
         public void BuildRun_TruncatesRemovedPairsAsWell()
         {
             // a rebuild that drops a large set must not fill the config entry either

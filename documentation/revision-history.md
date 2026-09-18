@@ -746,7 +746,17 @@ Not supported any longer are:
   keep its changes unapplied indefinitely, because the healthy imports drain and the pending backlog never
   reaches the threshold that triggers the fallback
 - rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
-  reports the empty result as an alert, instead of aborting and leaving the previous state in place
+  reports the empty result as an alert, instead of aborting and leaving the previous state in place.
+  This applies to a source that stops matching, not to a run that could not load a single rule: without
+  a rule there is nothing to judge, so the stored mappings are kept, no run is recorded and no alert is
+  raised. An installation without rules therefore no longer reports an empty mapping result on every run
+- rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
+  rebuild applies it. The configuration is written before the rebuild runs, so without this the next
+  rebuild - the manual recalculation, the backlog fallback or the repair of a failing import - reported
+  the intended effect of that setting as a deviation of the incremental mapping
+- rule owner mapping: a problem that is still present is reported again and replaces its own earlier
+  alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
+  repeatedly failing import is exempt, because it is reported once and then repaired
 - rule owner mapping: new setting for the log level of mapping issues, so installations with many
   unmappable legacy rules no longer get one message per rule on every run
 - rule owner mapping: the result of the last full reinitialize runs is kept in the config entry

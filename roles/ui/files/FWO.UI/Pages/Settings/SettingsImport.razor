@@ -158,6 +158,11 @@ else
 
                 if (ruleOwnerReinitializeNeeded)
                 {
+                    // recorded before the rebuild is triggered: the configuration is already saved, so if the
+                    // rebuild fails the note is what keeps the later rebuild from reporting the intended
+                    // change as drift - whichever path finally runs it
+                    await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(ownerMappingSourceHandler.AppliedChanges);
+
                     bool rebuildSuccess = await TriggerFullRuleOwnerReinitialize();
                     if (!rebuildSuccess)
                     {

@@ -132,7 +132,7 @@ else
     }
     else
     {
-    <div class="m-1 vheight60">
+        <div class="m-1 vheight60">
             <Table TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header"
                    TableItem="RuleOwnerMappingRunEntry" Items="Entries" PageSize="0">
                 <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("rule"))" Field="@(x => x.RuleId)" Sortable="true" Filterable="true" />
@@ -141,10 +141,10 @@ else
                 <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("created"))" Field="@(x => x.Created)" Sortable="true" Filterable="true" />
                 <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("removed"))" Field="@(x => x.Removed)" Sortable="true" Filterable="false">
                     <Template>
-                        @(context.Removed?.ToString() ?? "null")
+                        @(context.Removed?.ToString() ?? userConfig.GetText("none"))
                     </Template>
                 </Column>
-                                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("finding"))" Field="@(x => x.Finding)" Sortable="true" Filterable="true">
+                <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("finding"))" Field="@(x => x.Finding)" Sortable="true" Filterable="true">
                     <Template>
                         <span class="badge text-bg-@(context.Finding == RuleOwnerMappingFinding.Missing ? "danger" : "warning")">
                             @(GetFindingText(context.Finding))
@@ -152,7 +152,7 @@ else
                     </Template>
                 </Column>
             </Table>
-    </div>
+        </div>
     }
 }
 

@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
         /// </summary>
         protected const int kPathInsertBatchSize = 500;
         /// <summary>
-        /// Counts database inserts, removals and fails during matrix import.
+        /// Counts database inserts, removals and failures during matrix import.
         /// </summary>
         private class ImportCounters
         {
@@ -273,7 +273,6 @@ namespace FWO.Middleware.Server
         /// metadata, then writes the zones of the import file, deactivates the zones the file no longer
         /// names, and recalculates the auto-calculated zones.
         /// </summary>
-
         private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importFileName, DeviceNameResolver deviceLookup)
         {
             counters = new() { AllZones = importedMatrix.NetworkZones.Count };
@@ -586,7 +585,7 @@ namespace FWO.Middleware.Server
 
         /// <summary>
         /// Loops over devices in a path and adds it to the bulk import list. In case a device is not
-        /// resolvable, the path is skipped with a warning. 
+        /// resolvable, the path is skipped with a warning.
         /// </summary>
         private static List<NetworkZoneDeviceIpRangeInsertInput> BuildPathItems(
             List<DeviceRefData> path, int ipRangeId, DeviceNameResolver deviceLookup, string pathFieldName, string subnetIp)

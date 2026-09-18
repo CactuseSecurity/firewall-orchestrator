@@ -336,6 +336,82 @@
                 builder.CloseElement();
                 break;
 
+            case ProvisioningFieldKind.StringList:
+                {
+                    List<string> ParseList() => value.Split(',', StringSplitOptions.TrimEntries).ToList();
+                    string BuildValue(List<string> items) => string.Join(",", items);
+
+                    List<string> items = ParseList();
+
+                    builder.OpenElement(0, "div");
+                    for (int i = 0; i < items.Count; i++)
+                    {
+                        int idx = i;
+                        Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> itemChangeCallback =
+                            Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e =>
+                            {
+                                List<string> current = ParseList();
+                                if (idx < current.Count)
+                                {
+                                    current[idx] = e.Value?.ToString() ?? "";
+                                    onChange(BuildValue(current));
+                                }
+                            });
+
+                        Microsoft.AspNetCore.Components.EventCallback removeCallback =
+                            Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, () =>
+                            {
+                                List<string> current = ParseList();
+                                if (idx < current.Count)
+                                {
+                                    current.RemoveAt(idx);
+                                    onChange(BuildValue(current));
+                                }
+                            });
+
+                        builder.OpenElement(1, "div");
+                        builder.AddAttribute(2, "class", "d-flex mb-1 gap-1");
+
+                        builder.OpenElement(3, "input");
+                        builder.AddAttribute(4, "type", "text");
+                        builder.AddAttribute(5, "class", "form-control form-control-sm");
+                        builder.AddAttribute(6, "value", items[idx]);
+                        builder.AddAttribute(7, "onchange", itemChangeCallback);
+                        builder.CloseElement();
+
+                        builder.OpenElement(8, "button");
+                        builder.AddAttribute(9, "type", "button");
+                        builder.AddAttribute(10, "class", "btn btn-sm btn-danger");
+                        builder.AddAttribute(11, "onclick", removeCallback);
+                        builder.OpenElement(12, "span");
+                        builder.AddAttribute(13, "class", Icons.Delete);
+                        builder.CloseElement();
+                        builder.CloseElement();
+
+                        builder.CloseElement();
+                    }
+
+                    Microsoft.AspNetCore.Components.EventCallback addCallback =
+                        Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, () =>
+                        {
+                            List<string> current = ParseList();
+                            current.Add("");
+                            onChange(BuildValue(current));
+                        });
+
+                    builder.OpenElement(20, "button");
+                    builder.AddAttribute(21, "type", "button");
+                    builder.AddAttribute(22, "class", "btn btn-sm btn-primary");
+                    builder.AddAttribute(23, "onclick", addCallback);
+                    builder.OpenElement(24, "span");
+                    builder.AddAttribute(25, "class", Icons.Add);
+                    builder.CloseElement();
+                    builder.CloseElement();
+
+                    builder.CloseElement();
+                }
+                break;
+
             default:
                 builder.OpenElement(0, "input");
                 builder.AddAttribute(1, "type", "text");

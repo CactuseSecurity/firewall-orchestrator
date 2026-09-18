@@ -42,7 +42,8 @@ namespace FWO.Ui.Pages.Settings
         SingleSelect,
         MultiSelectTags,
         Text,
-        TemplateText
+        TemplateText,
+        StringList
     }
 
     /// <summary>
@@ -284,7 +285,7 @@ namespace FWO.Ui.Pages.Settings
                 Key = FieldSecurityProfiles,
                 LabelTextKey = "prov_security_profiles",
                 HelpTextKey = "prov_security_profiles_help",
-                Kind = ProvisioningFieldKind.MultiSelectTags,
+                Kind = ProvisioningFieldKind.StringList,
                 DefaultValue = "",
                 MinLevel = ProvisioningLevel.DeviceType,
                 MaxLevel = ProvisioningLevel.Gateway,

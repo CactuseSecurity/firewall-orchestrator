@@ -24,6 +24,11 @@
                 </div>
             </Template>
         </Column>
+        <Column TableItem="FwoNotification" Title="@(userConfig.GetText("active"))" Field="@(x => x.Active)" Sortable="true" Filterable="false">
+            <Template>
+                @(context.Active.ShowAsHtml())
+            </Template>
+        </Column>
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="false" />
         <Column TableItem="FwoNotification" Title="@(userConfig.GetText("notification"))" Field="@(x => x.Id)" Sortable="false" Filterable="false">
             <Template>
@@ -51,8 +56,12 @@
         {
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4109"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("name")):</label>
-                <div class="col-sm-9">
+                <div class="col-sm-7">
                     <input type="text" class="form-control form-control-sm w-100" @bind="actNotification.Name" />
+                </div>
+                <div class="col-sm-2 form-check">
+                    <input id="notification-active" type="checkbox" class="form-check-input" @bind="actNotification.Active" />
+                    <label for="notification-active" class="form-check-label">@(userConfig.GetText("active"))</label>
                 </div>
             </div>
             @if(Enum.GetValues(typeof(NotificationChannel)).Length > 1)
@@ -91,7 +100,11 @@
             <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4103"))">
                 <label class="col-form-label col-sm-3">@(userConfig.GetText("deadline")):</label>
                 <div class="col-sm-3">
-                    @if(OfferedDeadlineOptions().Count > 1)
+                    @if (IsDeadlineLocked)
+                    {
+                        @(userConfig.GetText(actNotification.Deadline.ToString()))
+                    }
+                    else if(OfferedDeadlineOptions().Count > 1)
                     {
                         <Dropdown ElementType="NotificationDeadline" @bind-SelectedElement="actNotification.Deadline" ElementToString="@(i => userConfig.GetText(i.ToString()))"
                                 Elements="OfferedDeadlineOptions()" >
@@ -157,6 +170,19 @@
                 </div>
             </div>
 
+            <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H4111"))">
+                <label class="col-form-label col-sm-3">@(userConfig.GetText("logging_mode")):</label>
+                <div class="col-sm-3">
+                    <Dropdown ElementType="string" @bind-SelectedElement="actNotification.Logging"
+                              ElementToString="@(i => userConfig.GetText(i))"
+                              Elements="NotificationLoggingMode.OfferedOptions()" >
+                        <ElementTemplate Context="mode">
+                            @(userConfig.GetText(mode))
+                        </ElementTemplate>
+                    </Dropdown>
+                </div>
+            </div>
+
             @if(Client.IsWorkflowRecipientClient())
             {
                 <WorkflowEmailRecipientEditor LabelText="@(userConfig.GetText("recipient_to"))"
@@ -180,7 +206,7 @@
                     <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_to")):</label>
                     <div class="col-sm-9">
                         <EmailRecipientSelectionEditor Selection="@ToRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                            CheckboxIdPrefix="notif_to_resp"
+                            CheckboxIdPrefix="notif_to_resp" ShowRequesterOption="@ShowRequesterOption"
                             Client="@Client" />
                     </div>
                 </div>
@@ -189,7 +215,7 @@
                     <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_cc")):</label>
                     <div class="col-sm-9">
                         <EmailRecipientSelectionEditor Selection="@CcRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                            CheckboxIdPrefix="notif_cc_resp"
+                            CheckboxIdPrefix="notif_cc_resp" ShowRequesterOption="@ShowRequesterOption"
                             Client="@Client" />
                     </div>
                 </div>
@@ -197,7 +223,7 @@
                     <label class="col-form-label col-sm-3">@(userConfig.GetText("recipient_bcc")):</label>
                     <div class="col-sm-9">
                         <EmailRecipientSelectionEditor Selection="@BccRecipientSelection" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                            CheckboxIdPrefix="notif_bcc_resp"
+                            CheckboxIdPrefix="notif_bcc_resp" ShowRequesterOption="@ShowRequesterOption"
                             Client="@Client" />
                     </div>
                 </div>
@@ -259,11 +285,14 @@
     [Parameter]
     public EventCallback<List<int>> NotificationIdsChanged { get; set; }
 
+    [Parameter]
+    public NotificationDeadline? DeadlineFilter { get; set; }
+
     private List<FwoNotification> Notifications = [];
     private List<FwoNotification> DisplayedNotifications =>
-        NotificationIds == null
-            ? Notifications
-            : [.. Notifications.Where(notification => NotificationIds.Contains(notification.Id))];
+        [.. Notifications
+            .Where(notification => DeadlineFilter == null || notification.Deadline == DeadlineFilter)
+            .Where(notification => NotificationIds == null || NotificationIds.Contains(notification.Id))];
     private FwoNotification actNotification = new();
 
     private List<string> ToAddresses = [];
@@ -279,6 +308,8 @@
     private bool DeleteNotifMode = false;
     private bool ResetNotifMode = false;
     private const string EditNotifString = "edit_notification";
+    private bool ShowRequesterOption => Client == NotificationClient.InterfaceRequest;
+    private bool IsDeadlineLocked => DeadlineFilter.HasValue;
 
 
     protected override async Task OnInitializedAsync()
@@ -301,10 +332,11 @@
         actNotification.RecipientTo = EmailRecipientOption.None;
         actNotification.RecipientCc = EmailRecipientOption.None;
         actNotification.RecipientBcc = EmailRecipientOption.None;
+        ApplyDeadlineFilter();
         ToRecipientSelection = CreateDefaultToSelection();
         CcRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientCc);
         BccRecipientSelection = CreateDefaultSelectionForRecipient(actNotification.RecipientBcc);
-        if(Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
+        if (OfferedLayoutOptions().Contains(NotificationLayout.HtmlInBody))
         {
             actNotification.Layout = NotificationLayout.HtmlInBody;
         }
@@ -329,6 +361,7 @@
     private void EditNotification(FwoNotification notification)
     {
         actNotification = new FwoNotification(notification);
+        ApplyDeadlineFilter();
         ToAddresses = EmailHelper.SplitAddresses(notification.EmailAddressTo);
         CcAddresses = EmailHelper.SplitAddresses(notification.EmailAddressCc);
         BccAddresses = EmailHelper.SplitAddresses(notification.EmailAddressBcc);
@@ -391,6 +424,10 @@
             .ThenBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
             .Select(GetOwnerResponsibleTypeDisplayName)
             .ToList();
+        if (selection.Requester)
+        {
+            selectedTypeNames.Add(userConfig.GetText(nameof(EmailRecipientOption.Requester)));
+        }
         if (selection.OtherAddresses)
         {
             selectedTypeNames.Add(userConfig.GetText(nameof(EmailRecipientOption.OtherAddresses)));
@@ -592,7 +629,7 @@
 
     private List<NotificationLayout> OfferedLayoutOptions()
     {
-        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm)
+        if(Client == NotificationClient.InterfaceRequest || Client == NotificationClient.RuleTimer || Client == NotificationClient.AppDecomm || Client == NotificationClient.InterfaceDecomm)
         {
             return NotificationLayoutGroups.WithoutAttachments().ToList();
         }
@@ -601,6 +638,11 @@
 
     private List<NotificationDeadline> OfferedDeadlineOptions()
     {
+        if (DeadlineFilter.HasValue)
+        {
+            return new List<NotificationDeadline> { DeadlineFilter.Value };
+        }
+
         return FwoNotification.OfferedDeadlineOptions(Client);
     }
 
@@ -608,6 +650,7 @@
     {
         try
         {
+            ApplyDeadlineFilter();
             SyncAddresses();
             EnsureNotificationIntervals();
             if(CheckConsistency())
@@ -634,6 +677,7 @@
 
     private void SyncAddresses()
     {
+        ApplyDeadlineFilter();
         if (Client.IsWorkflowRecipientClient())
         {
             return;
@@ -645,6 +689,7 @@
             actNotification.RecipientBcc = string.IsNullOrWhiteSpace(actNotification.EmailAddressBcc) ? EmailRecipientOption.None : EmailRecipientOption.OtherAddresses;
             return;
         }
+        NormalizeRequesterSelections();
         (actNotification.RecipientTo, actNotification.EmailAddressTo) = RecipientFieldsFromSelection(ToRecipientSelection, ToAddresses);
         (actNotification.RecipientCc, actNotification.EmailAddressCc) = RecipientFieldsFromSelection(CcRecipientSelection, CcAddresses);
         (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = RecipientFieldsFromSelection(BccRecipientSelection, BccAddresses);
@@ -659,7 +704,7 @@
         }
 
         string recipientValue = effectiveSelection.ToConfigValue(ActiveOwnerResponsibleTypeIds());
-        return effectiveSelection.OwnerResponsibleTypeIds.Count > 0
+        return effectiveSelection.OwnerResponsibleTypeIds.Count > 0 || effectiveSelection.Requester
             ? (EmailRecipientOption.ConfiguredResponsibles, recipientValue)
             : (EmailRecipientOption.OtherAddresses, recipientValue);
     }
@@ -676,8 +721,21 @@
     private static bool HasEffectiveRecipient(EmailRecipientSelection selection, List<string> legacyAddresses)
     {
         return selection.OwnerResponsibleTypeIds.Count > 0
+            || selection.Requester
             || selection.OtherAddresses && selection.OtherAddressList.Count > 0
             || legacyAddresses.Count > 0;
+    }
+
+    private void NormalizeRequesterSelections()
+    {
+        if (ShowRequesterOption)
+        {
+            return;
+        }
+
+        ToRecipientSelection.Requester = false;
+        CcRecipientSelection.Requester = false;
+        BccRecipientSelection.Requester = false;
     }
 
     private void EnsureNotificationIntervals()
@@ -745,6 +803,14 @@
     {
         return recipientOption == EmailRecipientOption.None
             || recipientOption == EmailRecipientOption.OtherAddresses && EmailHelper.SplitAddresses(addresses).Count == 0;
+    }
+
+    private void ApplyDeadlineFilter()
+    {
+        if (DeadlineFilter.HasValue)
+        {
+            actNotification.Deadline = DeadlineFilter.Value;
+        }
     }
 
     private Task SetDirectAddressTo(string addresses)

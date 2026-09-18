@@ -1,4 +1,7 @@
 @using FWO.Middleware.Client
+@using FWO.Data
+@using FWO.Api.Client.Queries
+@using FWO.Data.Workflow
 
 @using FWO.Compliance
 
@@ -65,10 +68,14 @@
     [Parameter]
     public bool AllowAdminReject { get; set; } = false;
 
+    [Parameter]
+    public FwoOwner? RequestingApp { get; set; }
+
     private string Reason { get; set; } = "";
     private string Message { get; set; } = "";
     private bool WorkInProgress = false;
     private bool firstTry = true;
+    private FwoOwner? resolvedRequestingApp;
 
 
     protected override void OnParametersSet()
@@ -95,6 +102,10 @@
             WorkInProgress = true;
             try
             {
+                await ResolveRequestingApp();
+                NotificationPlaceholderData placeholderData = BuildNotificationPlaceholderData();
+                await ConnHandler.RefreshActConn();
+                long? ticketId = ConnHandler.ActConn.TicketId;
                 ConnHandler.ActConn.AddProperty(ConState.Rejected.ToString());
                 bool saved = AllowAdminReject
                     ? await ConnHandler.SavePropertiesOnly()
@@ -104,7 +115,7 @@
                     return;
                 }
                 await ConnHandler.RemoveFromAllSelections();
-                await RejectInTicket();
+                await RejectInTicket(ticketId, placeholderData);
                 await RefreshParent();
                 Close();
             }
@@ -119,15 +130,61 @@
         }
     }
 
-    private async Task RejectInTicket()
+    private async Task RejectInTicket(long? ticketId, NotificationPlaceholderData? placeholderData = null)
     {
-        if(ConnHandler != null && ConnHandler.ActConn.TicketId != null)
+        if(ConnHandler != null && ticketId != null)
         {
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
-            if(await ticketCreator.PromoteNewInterfaceImplTask((long)ConnHandler.ActConn.TicketId, ExtStates.Rejected, Reason))
+            if(await ticketCreator.PromoteNewInterfaceImplTask(ticketId.Value, ExtStates.Rejected, Reason,
+                placeholderData ?? BuildNotificationPlaceholderData()))
             {
                 DisplayMessageInUi(null, userConfig.GetText("reject_interface"), userConfig.GetText("U9018"), false);
             }
+        }
+    }
+
+    private NotificationPlaceholderData BuildNotificationPlaceholderData()
+    {
+        string interfaceName = ConnHandler?.ActConn.Name ?? "";
+        string interfaceUrl = ConnHandler?.Application == null
+            ? ""
+            : $"{userConfig.UiHostName}/{PageName.Modelling}/{ConnHandler.Application.ExtAppId}/{ConnHandler.ActConn.Id}";
+        return new NotificationPlaceholderData
+        {
+            RequestingAppName = (RequestingApp ?? resolvedRequestingApp)?.Name ?? "",
+            RequestingAppId = (RequestingApp ?? resolvedRequestingApp)?.ExtAppId ?? "",
+            InterfaceName = interfaceName,
+            InterfaceLinkText = userConfig.GetText("interface"),
+            InterfaceLinkName = interfaceName,
+            InterfaceLinkUrl = interfaceUrl,
+            Content = Reason,
+            UserName = userConfig.User?.Name ?? "",
+            RequestDate = ConnHandler?.ActConn.CreationDate?.ToString("dd.MM.yyyy") ?? ""
+        };
+    }
+
+    private async Task ResolveRequestingApp()
+    {
+        ModellingConnectionHandler? handler = ConnHandler;
+        if (RequestingApp != null || resolvedRequestingApp != null || handler?.ActConn.TicketId is not long ticketId)
+        {
+            return;
+        }
+
+        try
+        {
+            WfTicket ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+            WfReqTask? requestTask = ticket.Tasks.FirstOrDefault(task =>
+                task.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ConnId) == handler.ActConn.Id);
+            int requestingAppId = requestTask?.GetAddInfoIntValueOrZero(AdditionalInfoKeys.ReqOwner) ?? 0;
+            if (requestingAppId > 0)
+            {
+                resolvedRequestingApp = await apiConnection.SendQueryAsync<FwoOwner>(OwnerQueries.getOwnerById, new { id = requestingAppId });
+            }
+        }
+        catch
+        {
+            resolvedRequestingApp = null;
         }
     }
 
@@ -135,6 +192,7 @@
     {
         Display = false;
         firstTry = true;
+        resolvedRequestingApp = null;
         Reason = "";
         Message = "";
         DisplayChanged.InvokeAsync(Display);

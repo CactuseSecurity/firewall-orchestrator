@@ -33,7 +33,7 @@ namespace FWO.Middleware.Server
         {
             ApiConnection = apiConnection;
             GlobalConfig = globalConfig;
-            Notifications = notifications;
+            Notifications = notifications.Where(notification => notification.Active).ToList();
             OwnerGroups = ownerGroups;
             WorkflowRecipientResolver = workflowRecipientResolver;
         }
@@ -117,20 +117,45 @@ namespace FWO.Middleware.Server
         /// <param name="content">Text for notification (e.g. email body).</param>
         /// <param name="report">Optional report to be sent as attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text for placeholder replacement.</param>
+        /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
+        /// <param name="placeholderValues">Optional caller-provided values for notification placeholder replacement.</param>
         /// <returns>number of emails sent</returns>
-        public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
+        public async Task<int> SendNotification(FwoNotification notification, FwoOwner? owner, string? content = null, ReportBase? report = null,
+            string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
-            // Later: Handle other channels here when implemented
-            bool sent = await SendEmail(notification, content, owner, report, timeIntervalText);
-            if (!sent)
+            return await SendNotificationWithResult(notification, owner, content, report, timeIntervalText,
+                resolvedDeadline, placeholderValues) == NotificationDeliveryResult.Delivered ? 1 : 0;
+        }
+
+        /// <summary>
+        /// Sends one active notification and preserves the complete delivery outcome.
+        /// </summary>
+        /// <param name="notification">Notification to send.</param>
+        /// <param name="owner">Owner for whom the notification is sent.</param>
+        /// <param name="content">Optional caller content for the notification body.</param>
+        /// <param name="report">Optional report attachment.</param>
+        /// <param name="timeIntervalText">Optional interval text for placeholders.</param>
+        /// <param name="resolvedDeadline">Resolved deadline used for logging.</param>
+        /// <param name="placeholderValues">Optional caller context for placeholders.</param>
+        /// <returns>The explicit processing result.</returns>
+        public async Task<NotificationDeliveryResult> SendNotificationWithResult(FwoNotification notification, FwoOwner? owner,
+            string? content = null, ReportBase? report = null, string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
+        {
+            if (!notification.Active)
             {
-                return 0;
+                return NotificationDeliveryResult.Suppressed;
             }
-            if (!CheckedNotificationIds.Contains(notification.Id))
+
+            // Later: Handle other channels here when implemented.
+            NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText,
+                resolvedDeadline, placeholderValues);
+            if (deliveryResult == NotificationDeliveryResult.Delivered)
             {
-                CheckedNotificationIds.Add(notification.Id);
+                AddCheckedNotificationId(notification.Id);
             }
-            return 1;
+            return deliveryResult;
         }
 
         /// <summary>
@@ -145,7 +170,7 @@ namespace FWO.Middleware.Server
         public async Task<int> SendBundledNotifications(List<FwoNotification> notifications, FwoOwner? owner, string? content = null, ReportBase? report = null, string timeIntervalText = "")
         {
             int emailsSent = 0;
-            foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.GroupBy(GetBundleGroupKey))
+            foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.Where(notification => notification.Active).GroupBy(GetBundleGroupKey))
             {
                 List<FwoNotification> groupedNotifications = [.. notificationGroup];
                 if (groupedNotifications.Count == 1 || groupedNotifications[0].BundleType == null)
@@ -154,16 +179,16 @@ namespace FWO.Middleware.Server
                     continue;
                 }
 
-                bool sent = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
-                if (!sent)
+                NotificationDeliveryResult deliveryResult = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                if (deliveryResult != NotificationDeliveryResult.Delivered)
                 {
                     continue;
                 }
                 foreach (FwoNotification notification in groupedNotifications)
                 {
-                    if (!CheckedNotificationIds.Contains(notification.Id))
+                    if (NotificationLoggingMode.ShouldSend(notification.Logging))
                     {
-                        CheckedNotificationIds.Add(notification.Id);
+                        AddCheckedNotificationId(notification.Id);
                     }
                 }
                 emailsSent++;
@@ -185,7 +210,7 @@ namespace FWO.Middleware.Server
         {
             if (IsNotificationDue(owner, extDeadline, notification))
             {
-                return await SendNotification(notification, owner, content, report, timeIntervalText);
+                return await SendNotification(notification, owner, content, report, timeIntervalText, extDeadline);
             }
             return 0;
         }
@@ -196,7 +221,7 @@ namespace FWO.Middleware.Server
         /// <returns></returns>
         public async Task<int> UpdateNotificationsLastSent()
         {
-            int updatedNotifications = (await ApiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent, new { ids = CheckedNotificationIds, lastSent = DateTime.Now })).AffectedRows;
+            int updatedNotifications = await NotificationLastSentHelper.UpdateAsync(ApiConnection, CheckedNotificationIds);
             CheckedNotificationIds = [];
             return updatedNotifications;
         }
@@ -210,96 +235,7 @@ namespace FWO.Middleware.Server
         /// <returns>True if the notification should be sent now; otherwise false.</returns>
         public static bool IsNotificationDue(FwoOwner? owner, DateTime? extDeadline, FwoNotification notification)
         {
-            if (notification.Deadline == NotificationDeadline.None)
-            {
-                return true;
-            }
-
-            DateTime deadline = GetDeadlineDate(notification.Deadline, owner, extDeadline);
-
-            return deadline >= DateTime.Now
-                ? IsNotificationDueBeforeDeadline(deadline, notification)
-                : IsNotificationDueAfterDeadline(deadline, notification);
-        }
-
-        private static bool IsTimeToSend(DateTime? lastSent, DateTime notifDate)
-        {
-            return (lastSent == null || ((DateTime)lastSent).Date < notifDate.Date) && notifDate.Date <= DateTime.Now.Date;
-        }
-
-        private static bool TryGetConfiguredInterval(SchedulerInterval? interval, string propertyName, out SchedulerInterval configuredInterval)
-        {
-            if (interval != null)
-            {
-                configuredInterval = (SchedulerInterval)interval;
-                return true;
-            }
-
-            Log.WriteWarning("Notifications", $"Notification interval '{propertyName}' is not configured. Skipping due evaluation.");
-            configuredInterval = default;
-            return false;
-        }
-
-        private static bool IsNotificationDueBeforeDeadline(DateTime deadline, FwoNotification notification)
-        {
-            if (!TryGetConfiguredInterval(notification.IntervalBeforeDeadline, nameof(notification.IntervalBeforeDeadline), out SchedulerInterval intervalBeforeDeadline))
-            {
-                return false;
-            }
-
-            DateTime notifDate = ApplyIntervalOffset(deadline, intervalBeforeDeadline, -notification.OffsetBeforeDeadline ?? 0);
-            return IsTimeToSend(notification.LastSent, notifDate);
-        }
-
-        private static bool IsNotificationDueAfterDeadline(DateTime deadline, FwoNotification notification)
-        {
-            if (!TryGetConfiguredInterval(notification.RepeatIntervalAfterDeadline, nameof(notification.RepeatIntervalAfterDeadline), out SchedulerInterval repeatIntervalAfterDeadline))
-            {
-                return false;
-            }
-
-            DateTime nextNotifDate = ApplyIntervalOffset(deadline.Date, repeatIntervalAfterDeadline, notification.InitialOffsetAfterDeadline ?? 0);
-            DateTime currentNotifDate = nextNotifDate;
-            int counter = -1;
-            while (nextNotifDate <= DateTime.Now.Date && counter++ <= notification.RepetitionsAfterDeadline)
-            {
-                currentNotifDate = nextNotifDate;
-                nextNotifDate = ApplyIntervalOffset(nextNotifDate, repeatIntervalAfterDeadline, notification.RepeatOffsetAfterDeadline ?? 0);
-            }
-
-            return counter <= notification.RepetitionsAfterDeadline && IsTimeToSend(notification.LastSent, currentNotifDate);
-        }
-
-        private static DateTime ApplyIntervalOffset(DateTime value, SchedulerInterval interval, int offset)
-        {
-            return interval switch
-            {
-                SchedulerInterval.Days => value.AddDays(offset),
-                SchedulerInterval.Weeks => value.AddDays(offset * GlobalConst.kDaysPerWeek),
-                SchedulerInterval.Months => value.AddMonths(offset),
-                _ => throw new NotSupportedException("Time interval is not supported.")
-            };
-        }
-
-        private static DateTime GetDeadlineDate(NotificationDeadline deadline, FwoOwner? owner, DateTime? extDeadline)
-        {
-            if (deadline == NotificationDeadline.RecertDate && owner?.NextRecertDate != null)
-            {
-                return (DateTime)owner.NextRecertDate;
-            }
-            else if (deadline == NotificationDeadline.RequestDate && extDeadline != null)
-            {
-                return (DateTime)extDeadline;
-            }
-            else if (deadline == NotificationDeadline.RuleExpiry && extDeadline != null)
-            {
-                return (DateTime)extDeadline;
-            }
-            else if (deadline == NotificationDeadline.DecommissionDate && owner?.DecommDate != null)
-            {
-                return (DateTime)owner.DecommDate;
-            }
-            return DateTime.Now;
+            return NotificationScheduleHelper.IsNotificationDue(owner, extDeadline, notification);
         }
 
         /// <summary>
@@ -386,23 +322,59 @@ namespace FWO.Middleware.Server
         /// <param name="owner">Owner context used for placeholder replacement.</param>
         /// <param name="report">Optional report attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
-        /// <returns>True when an email was sent; otherwise false.</returns>
-        private async Task<bool> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        /// <param name="resolvedDeadline">Resolved deadline timestamp used for notification logging.</param>
+        /// <param name="placeholderValues">Optional caller-provided values for notification placeholder replacement.</param>
+        /// <returns>The delivery outcome of the notification.</returns>
+        private async Task<NotificationDeliveryResult> SendEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
+            string timeIntervalText = "", DateTime? resolvedDeadline = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
-            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText);
+            MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText, placeholderValues);
+            int logId = 0;
+            if (NotificationLoggingMode.ShouldLog(notification.Logging))
+            {
+                DateTimeOffset? deadline = resolvedDeadline.HasValue ? new DateTimeOffset(resolvedDeadline.Value) : null;
+                logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject, deadline);
+            }
+
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
-                return false;
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
+                return NotificationDeliveryResult.NoRecipients;
             }
 
-            string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+            if (!NotificationLoggingMode.ShouldSend(notification.Logging))
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
+                return NotificationDeliveryResult.Suppressed;
+            }
 
-            await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
-            return true;
+            try
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+
+                bool sent = await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed.");
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
+        }
+
+        private async Task CompleteNotificationLog(int logId, NotificationLogStatus status, string error = "")
+        {
+            if (logId > 0)
+            {
+                await NotificationLogHelper.UpdateAsync(ApiConnection, logId, status, error);
+            }
         }
 
         /// <summary>
@@ -413,39 +385,102 @@ namespace FWO.Middleware.Server
         /// <param name="owner">Owner context used for placeholder replacement.</param>
         /// <param name="report">Optional report attachment.</param>
         /// <param name="timeIntervalText">Optional resolved time interval text.</param>
-        /// <returns>True when the email was sent; otherwise false.</returns>
-        private async Task<bool> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        /// <returns>The delivery outcome of the bundled notification.</returns>
+        private async Task<NotificationDeliveryResult> SendBundledEmail(List<FwoNotification> notifications, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
         {
-            MailData mail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
+            List<FwoNotification> sendableNotifications = [.. notifications.Where(notification => NotificationLoggingMode.ShouldSend(notification.Logging))];
+            List<FwoNotification> suppressedNotifications = [.. notifications.Where(notification => !NotificationLoggingMode.ShouldSend(notification.Logging))];
+            MailData preparedMail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
+            MailData mail = preparedMail;
+            if (sendableNotifications.Count > 0 && suppressedNotifications.Count > 0)
+            {
+                mail = await PrepareBundledEmail(sendableNotifications, content, owner, report, timeIntervalText);
+            }
+            List<int> suppressedLogIds = await LogBundledNotifications(suppressedNotifications, preparedMail);
+            List<int> sendableLogIds = await LogBundledNotifications(sendableNotifications, mail);
+            await CompleteNotificationLogs(suppressedLogIds, NotificationLogStatus.Suppressed);
             if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
             {
                 FwoNotification baseNotification = notifications.First();
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
-                return false;
+                await CompleteNotificationLogs(sendableLogIds, NotificationLogStatus.Failed, "No recipients resolved.");
+                return NotificationDeliveryResult.NoRecipients;
             }
 
-            string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-            EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+            if (sendableNotifications.Count == 0)
+            {
+                return NotificationDeliveryResult.Suppressed;
+            }
 
-            await MailKitMailer.SendAsync(mail, emailConnection, false, new());
-            return true;
+            try
+            {
+                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+
+                bool sent = await MailKitMailer.SendAsync(mail, emailConnection, false, new());
+                await CompleteNotificationLogs(sendableLogIds, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed.");
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLogs(sendableLogIds, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
         }
 
-        private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null, string timeIntervalText = "")
+        private void AddCheckedNotificationId(int notificationId)
+        {
+            if (!CheckedNotificationIds.Contains(notificationId))
+            {
+                CheckedNotificationIds.Add(notificationId);
+            }
+        }
+
+        private async Task<List<int>> LogBundledNotifications(List<FwoNotification> notifications, MailData mail)
+        {
+            List<int> logIds = [];
+            foreach (FwoNotification notification in notifications.Where(notification => NotificationLoggingMode.ShouldLog(notification.Logging)))
+            {
+                int logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject);
+                if (logId > 0)
+                {
+                    logIds.Add(logId);
+                }
+            }
+            return logIds;
+        }
+
+        private async Task CompleteNotificationLogs(List<int> logIds, NotificationLogStatus status, string error = "")
+        {
+            foreach (int logId in logIds)
+            {
+                await NotificationLogHelper.UpdateAsync(ApiConnection, logId, status, error);
+            }
+        }
+
+        private async Task<MailData> PrepareEmail(FwoNotification notification, string? content, FwoOwner? owner, ReportBase? report = null,
+            string timeIntervalText = "", NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner, timeIntervalText);
             string body = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, content), owner, timeIntervalText);
+            if (placeholderValues != null)
+            {
+                subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
+                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues, renderHtmlLinks: true);
+            }
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();
             if (report != null && notification.Layout == NotificationLayout.HtmlInBody)
             {
                 body += report.ExportToHtmlBody();
             }
-            List<string> tos = emailHelper == null ? await CollectRecipients(notification, owner) : await CollectRecipients(notification, owner, emailHelper);
-            List<string> bccs = emailHelper == null ? await CollectRecipients(notification, owner, false, true) : await CollectRecipients(notification, owner, emailHelper, false, true);
-            List<string> ccs = emailHelper == null ? await CollectRecipients(notification, owner, true) : await CollectRecipients(notification, owner, emailHelper, true);
+            UiUser? requester = placeholderValues?.Requester;
+            List<string> tos = emailHelper == null ? await CollectRecipients(notification, owner, requester) : await CollectRecipients(notification, owner, emailHelper, requester);
+            List<string> bccs = emailHelper == null ? await CollectRecipients(notification, owner, requester, false, true) : await CollectRecipients(notification, owner, emailHelper, requester, false, true);
+            List<string> ccs = emailHelper == null ? await CollectRecipients(notification, owner, requester, true) : await CollectRecipients(notification, owner, emailHelper, requester, true);
             MailData mailData = new(tos, subject)
             {
                 Body = body,
@@ -530,17 +565,19 @@ namespace FWO.Middleware.Server
         /// </summary>
         /// <param name="notification">Notification to inspect.</param>
         /// <param name="owner">Owner context used for recipient resolution.</param>
+        /// <param name="requester">Optional persisted requester used for requester recipient resolution.</param>
         /// <param name="cc">Whether to resolve the Cc recipient set.</param>
         /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
         /// <returns>Resolved email addresses.</returns>
-        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, bool cc = false, bool bcc = false)
+        private async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, UiUser? requester,
+            bool cc = false, bool bcc = false)
         {
             if (GlobalConfig.UseDummyEmailAddress)
             {
                 return [GlobalConfig.DummyEmailAddress];
             }
             EmailHelper emailHelper = await CreateEmailHelper();
-            return await CollectRecipients(notification, owner, emailHelper, cc, bcc);
+            return await CollectRecipients(notification, owner, emailHelper, requester, cc, bcc);
         }
 
         /// <summary>
@@ -549,10 +586,12 @@ namespace FWO.Middleware.Server
         /// <param name="notification">Notification to inspect.</param>
         /// <param name="owner">Owner context used for recipient resolution.</param>
         /// <param name="emailHelper">Preinitialized email helper.</param>
+        /// <param name="requester">Optional persisted requester used for requester recipient resolution.</param>
         /// <param name="cc">Whether to resolve the Cc recipient set.</param>
         /// <param name="bcc">Whether to resolve the Bcc recipient set.</param>
         /// <returns>Resolved email addresses.</returns>
-        private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper, bool cc = false, bool bcc = false)
+        private static async Task<List<string>> CollectRecipients(FwoNotification notification, FwoOwner? owner, EmailHelper emailHelper,
+            UiUser? requester, bool cc = false, bool bcc = false)
         {
             EmailRecipientOption recipientOption = notification.RecipientTo;
             string? addressList = notification.EmailAddressTo;
@@ -570,7 +609,7 @@ namespace FWO.Middleware.Server
             List<string> addresses = EmailHelper.SplitAddresses(addressList);
             if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
             {
-                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", owner, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", owner, null, requester);
                 if (recipients.Count == 0)
                 {
                     Log.WriteWarning("Notifications", $"No recipients resolved for configured responsibles while preparing notification client {notification.NotificationClient}.");
@@ -579,14 +618,15 @@ namespace FWO.Middleware.Server
             }
             if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
             {
-                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", null, null);
+                List<string> recipients = await emailHelper.GetRecipients(addressList ?? "", null, null, requester);
                 if (recipients.Count == 0)
                 {
                     Log.WriteWarning("Notifications", $"No recipients resolved for other addresses while preparing notification client {notification.NotificationClient}.");
                 }
                 return recipients;
             }
-            List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner, null, addresses);
+            List<string> resolvedRecipients = await emailHelper.GetRecipients(recipientOption, null, owner,
+                requester?.Dn, addresses, requester?.Email);
             if (resolvedRecipients.Count == 0 && recipientOption != EmailRecipientOption.None)
             {
                 Log.WriteWarning("Notifications", $"No recipients resolved for notification client {notification.NotificationClient} using option {recipientOption}.");

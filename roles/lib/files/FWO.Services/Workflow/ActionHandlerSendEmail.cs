@@ -10,18 +10,12 @@ namespace FWO.Services.Workflow
     public partial class ActionHandler
     {
         /// <summary>
-        /// Performs a send email state action, discarding the delivery outcome. This is the entry point of
-        /// the ordinary state action dispatch, where a delivery problem has already been reported to the
-        /// user and no caller can act on it. Use <see cref="TrySendEmail"/> where the outcome matters.
+        /// Performs a send email state action, discarding the delivery outcome.
         /// </summary>
-        /// <param name="action">State action to execute</param>
-        /// <param name="statefulObject">Object the action was triggered for</param>
-        /// <param name="scope">Scope the action was triggered in</param>
-        /// <param name="owner">Owner the recipients are resolved for, if any</param>
-        /// <param name="userGrpDn">User group DN the action was triggered for, if any</param>
-        public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
+        public async Task SendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
-            await TrySendEmail(action, statefulObject, scope, owner, userGrpDn);
+            await TrySendEmail(action, statefulObject, scope, owner, userGrpDn, placeholderData);
         }
 
         /// <summary>
@@ -34,8 +28,10 @@ namespace FWO.Services.Workflow
         /// <param name="scope">Scope the action was triggered in</param>
         /// <param name="owner">Owner the recipients are resolved for, if any</param>
         /// <param name="userGrpDn">User group DN the action was triggered for, if any</param>
-        /// <returns>false if a send was attempted and failed, or the action threw; true otherwise</returns>
-        public virtual async Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null)
+        /// <param name="placeholderData">Caller-provided values for notification placeholders</param>
+        /// <returns>false if the action failed or a send was attempted and failed; true otherwise</returns>
+        public virtual async Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner, string? userGrpDn = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             Log.WriteDebug("SendEmail", "Perform Action");
             EmailActionParams? emailActionParams = null;
@@ -48,7 +44,7 @@ namespace FWO.Services.Workflow
                     return true;
                 }
 
-                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn);
+                return await SendActionNotifications(emailActionParams, statefulObject, scope, owner, userGrpDn, placeholderData);
             }
             catch (Exception exc)
             {
@@ -66,7 +62,7 @@ namespace FWO.Services.Workflow
         /// </summary>
         /// <returns>false if at least one send was attempted and failed</returns>
         private async Task<bool> SendActionNotifications(EmailActionParams emailActionParams, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn)
+            WfObjectScopes scope, FwoOwner? owner, string? userGrpDn, NotificationPlaceholderData? placeholderData)
         {
             List<FwoNotification> actionNotifications = await ResolveActionNotifications(emailActionParams);
             int sentEmailCount = 0;
@@ -77,9 +73,11 @@ namespace FWO.Services.Workflow
                 await SetScope(statefulObject, scope, actionNotification);
                 WorkflowEmailContent? workflowContent = await CreateWorkflowEmailContent(emailActionParams, statefulObject, scope);
                 EmailHelper emailHelper = new(apiConnection, wfHandler.MiddlewareClient, wfHandler.userConfig, wfHandler.DisplayMessage, UserGroups, useInMwServer, workflowRecipientResolver);
-                await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc);
+                await emailHelper.Init(ScopedUserTo, ScopedUserCc, ScopedUserBcc, ScopedUserEmailTo, ScopedUserEmailCc, ScopedUserEmailBcc,
+                    wfHandler.ActTicket.Requester?.Name);
                 WfStatefulObject placeholderObject = WorkflowPlaceholderObject(statefulObject);
-                WorkflowEmailDeliveryResult deliveryResult = await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject);
+                WorkflowEmailDeliveryResult deliveryResult = await emailHelper.SendWorkflowActionEmail(actionNotification, statefulObject, owner, userGrpDn, workflowContent, placeholderObject,
+                    placeholderData);
                 if (deliveryResult == WorkflowEmailDeliveryResult.Failed)
                 {
                     ++failedEmailCount;
@@ -139,25 +137,7 @@ namespace FWO.Services.Workflow
 
         private async Task UpdateSentNotificationTimestamps(List<int> notificationIds)
         {
-            List<int> distinctNotificationIds = [.. notificationIds.Where(id => id > 0).Distinct()];
-            if (distinctNotificationIds.Count == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                int affectedRows = (await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationsLastSent,
-                    new { ids = distinctNotificationIds, lastSent = DateTime.Now })).AffectedRows;
-                if (affectedRows != distinctNotificationIds.Count)
-                {
-                    Log.WriteWarning("SendEmail", $"Updated last_sent for {affectedRows} of {distinctNotificationIds.Count} workflow action notification(s).");
-                }
-            }
-            catch (Exception exc)
-            {
-                Log.WriteWarning("SendEmail", $"Could not update last_sent for workflow action notification(s): {exc.Message}");
-            }
+            await NotificationLastSentHelper.UpdateAsync(apiConnection, notificationIds);
         }
 
         private async Task<List<FwoNotification>> ResolveActionNotifications(EmailActionParams emailActionParams)
@@ -167,7 +147,7 @@ namespace FWO.Services.Workflow
             {
                 List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(NotificationQueries.getNotifications,
                     new { client = NotificationClient.WfAction.ToString() });
-                List<FwoNotification> actionNotifications = [.. notifications.Where(n => notificationIds.Contains(n.Id))];
+                List<FwoNotification> actionNotifications = [.. notifications.Where(n => n.Active && notificationIds.Contains(n.Id))];
                 List<int> missingNotificationIds = [.. notificationIds.Except(actionNotifications.Select(n => n.Id))];
                 if (missingNotificationIds.Count > 0)
                 {

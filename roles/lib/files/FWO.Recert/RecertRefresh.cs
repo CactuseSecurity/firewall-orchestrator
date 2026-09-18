@@ -22,7 +22,8 @@ namespace FWO.Recert
                 OwnerRefresh? refreshResult = (await apiConnection.SendQueryAsync<List<OwnerRefresh>>(RecertQueries.refreshViewRuleWithOwner)).FirstOrDefault();
                 if (refreshResult == null || refreshResult.GetStatus() != "Materialized view refreshed successfully")
                 {
-                    Log.WriteError("Refresh materialized view view_rule_with_owner", "refresh failed");
+                    string status = refreshResult?.GetStatus() ?? "No refresh result returned";
+                    Log.WriteError("Refresh materialized view view_rule_with_owner", $"refresh failed: {status}");
                     return true;
                 }
                 watch.Stop();
@@ -33,8 +34,9 @@ namespace FWO.Recert
                     await RecalcRecertsOfOwner(owner, managements, apiConnection);
                 }
             }
-            catch (Exception)
+            catch (Exception exception)
             {
+                Log.WriteError("Refresh recertification data", "Recertification refresh failed unexpectedly.", exception);
                 return true;
             }
             return false;

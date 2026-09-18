@@ -269,7 +269,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 _ => throw new ArgumentException($"Invalid InField: {inField}")
             };
 
-            if (isInRange)
+            bool hasPrefixViolation = ipHelper.ExceedsPrefixThreshold(minPrefix, sourceObjects) ||
+                                      ipHelper.ExceedsPrefixThreshold(minPrefix, destObjects);
+
+            if (isInRange && !hasPrefixViolation)
             {
                 ruleItems.Add(rule);
             }
@@ -316,7 +319,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = s.Name,
                         Protocol = s.Protocol?.Name ?? notFound,
-                        Port = s.DestinationPort ?? -1
+                        Port = s.DestinationPort ?? -1,
+                        PortEnd = s.DestinationPortEnd
                     })
                     .ToList(),
                 ServiceShort = DisplayServicesPlain(ruleServices, item.ServiceNegated, userConfig),
@@ -494,6 +498,11 @@ public sealed class IpFilterHelper
     {
         return _rangeAnalyzer.MatchesIpFilter(ipAddress, minPrefix, objects);
     }
+
+    public bool ExceedsPrefixThreshold(int minPrefix, List<NetworkObject> objects)
+    {
+        return _rangeAnalyzer.ExceedsPrefixThreshold(minPrefix, objects);
+    }
 }
 
 public class RulesByFilterRequest
@@ -626,6 +635,10 @@ public class ServiceObject
 
     [JsonPropertyName("port")]
     public int Port { get; set; }
+
+    [JsonPropertyName("portEnd")]
+    [System.Text.Json.Serialization.JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? PortEnd { get; set; }
 }
 
 public class RequestContext

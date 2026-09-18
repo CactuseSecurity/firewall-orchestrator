@@ -1,7 +1,7 @@
 import fwo_globals
 import pytest
 from fwo_api_call import FwoApiCall
-from fwo_exceptions import FwoApiLoginFailedError, ShutdownRequestedError
+from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, ShutdownRequestedError
 from model_controllers.import_state_controller import ImportStateController
 from model_controllers.management_controller import ManagementController
 from pytest_mock.plugin import MockerFixture
@@ -240,3 +240,44 @@ class TestImportSingleManagement:
 
         # Assert
         assert "shutdown requested" in str(excinfo.value)
+
+    def test_import_single_management_backs_off_on_middleware_unavailable(
+        self,
+        mocker: MockerFixture,
+        import_state_controller: ImportStateController,
+        api_call: FwoApiCall,
+    ):
+        # Arrange
+        mock_wait = mocker.patch("importer.import_main_loop.wait_with_shutdown_check")
+        mocker.patch.object(
+            ImportStateController,
+            "initialize_import",
+            return_value=import_state_controller,
+        )
+        mocker.patch("importer.import_main_loop.register_global_state")
+        mocker.patch.object(
+            ManagementController,
+            "get_mgm_details",
+            return_value=MockObjectsFactory.get_mock_mgm_details(),
+        )
+        mocker.patch(
+            "importer.import_main_loop.import_management",
+            side_effect=FwoApiServiceUnavailableError("FWO Middleware API HTTP error 503 (middleware died?)"),
+        )
+
+        # Act
+        result = import_single_management(
+            mgm_id=1,
+            fwo_api_call=api_call,
+            verify_certificates=True,
+            api_fetch_limit=100,
+            clear=False,
+            suppress_certificate_warnings=False,
+            force=False,
+            fwo_major_version=9,
+            sleep_timer=42,
+        )
+
+        # Assert
+        assert result is None
+        mock_wait.assert_called_with(42)

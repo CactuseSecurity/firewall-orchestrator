@@ -25,4 +25,6 @@
     state: restarted
     daemon_reload: true
   become: true
-  when: middleware_service_unit.results | selectattr('stat.exists') | list | length > 0
+  when:
+    - middleware_service_unit.results | selectattr('stat.exists') | list | length > 0
+    - (ldap_parent_result.changed | default(false)) or (ldap_result.changed | default(false)) or (ui_ambient_role_smoke_role_result.changed | default(false))

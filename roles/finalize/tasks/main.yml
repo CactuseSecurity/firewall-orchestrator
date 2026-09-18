@@ -109,15 +109,6 @@
   become: true
   when: "demo_data_present.query_result == [] and 'sampleserver' in group_names"
 
-- name: start importer service
-  systemd:
-    name: "{{ product_name }}-importer-api"
-    state: started
-    daemon_reload: true
-    enabled: true
-  become: true
-  when: "'importers' in group_names"
-
 - name: remove maint website dir
   file:
     path: "{{ fworch_home }}/maint-website"
@@ -156,6 +147,41 @@
     daemon_reload: true
   become: true
   when: "'middlewareserver' in group_names and (mw_deploy_changed | default(false) or internalca_client_identity_changed | default(false))"
+
+# The importer must never start (or keep running) against a middleware that isn't actually
+# serving requests yet - systemd's "restarted" only means the process forked, not that the
+# dotnet app finished initializing. Probe the real endpoint before letting the importer go.
+- name: wait for middleware to be ready before starting importer
+  uri:
+    url: "{{ middleware_uri }}api-docs/"
+    method: GET
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    return_content: false
+  register: mw_readiness_check
+  changed_when: false
+  failed_when: false
+  until: mw_readiness_check.status | default(-1) == 200
+  retries: 10 # 10 * 5 seconds
+  delay: 5 # Every 5 seconds
+  when: "'importers' in group_names"
+
+- name: fail if middleware is not ready for the importer to start
+  fail:
+    msg: >-
+      Middleware at {{ middleware_uri }} did not become ready
+      (last status: {{ mw_readiness_check.status | default('unknown') }}).
+      Refusing to start the importer against an unstable middleware.
+  when: "'importers' in group_names and mw_readiness_check.status | default(-1) != 200"
+
+- name: start importer service
+  systemd:
+    name: "{{ product_name }}-importer-api"
+    state: started
+    daemon_reload: true
+    enabled: true
+  become: true
+  when: "'importers' in group_names"
 
 - name: finally restart UI
   ansible.builtin.systemd:

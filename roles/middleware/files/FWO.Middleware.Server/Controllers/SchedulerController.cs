@@ -6,7 +6,6 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Quartz;
-using Quartz.Impl.Matchers;
 
 namespace FWO.Middleware.Server.Controllers
 {
@@ -39,21 +38,31 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<IEnumerable<SchedulerJobInfo>> GetJobs()
         {
             IScheduler scheduler = await schedulerFactory.GetScheduler();
-            IReadOnlyCollection<JobKey> jobKeys = await scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup());
+            PagedResult<JobHeader> jobHeaders = await scheduler.QueryJobs(new JobQuery { Group = GroupMatcher<JobKey>.AnyGroup() });
 
             List<SchedulerJobInfo> jobs = [];
-            foreach (JobKey jobKey in jobKeys.OrderBy(jk => jk.Name))
+            foreach (JobKey jobKey in jobHeaders.Items.Select(jobHeader => jobHeader.Key).OrderBy(jk => jk.Name))
             {
-                IReadOnlyCollection<ITrigger> triggers = await scheduler.GetTriggersOfJob(jobKey);
+                PagedResult<TriggerHeader> triggerHeaders = await scheduler.QueryTriggers(new TriggerQuery { Job = jobKey });
+                List<ITrigger> triggers = [];
+                foreach (TriggerHeader triggerHeader in triggerHeaders.Items)
+                {
+                    ITrigger? trigger = await scheduler.GetTrigger(triggerHeader.Key);
+                    if (trigger is not null)
+                    {
+                        triggers.Add(trigger);
+                    }
+                }
+
                 DateTimeOffset? nextFire = triggers
-                    .Select(trigger => trigger.GetNextFireTimeUtc())
+                    .Select(trigger => trigger.NextFireTimeUtc)
                     .Where(fireTime => fireTime.HasValue)
                     .Select(fireTime => (DateTimeOffset?)fireTime!.Value)
                     .OrderBy(fireTime => fireTime)
                     .FirstOrDefault();
 
                 DateTimeOffset? lastFire = triggers
-                    .Select(trigger => trigger.GetPreviousFireTimeUtc())
+                    .Select(trigger => trigger.PreviousFireTimeUtc)
                     .Where(fireTime => fireTime.HasValue)
                     .Select(fireTime => (DateTimeOffset?)fireTime!.Value)
                     .OrderByDescending(fireTime => fireTime)
@@ -106,7 +115,7 @@ namespace FWO.Middleware.Server.Controllers
             IScheduler scheduler = await schedulerFactory.GetScheduler();
             JobKey jobKey = new(parameters.JobName);
 
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 return NotFound("Job not found.");
             }

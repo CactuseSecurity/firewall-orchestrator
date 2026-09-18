@@ -14,7 +14,11 @@ namespace FWO.Services
         protected const int MaxPendingImportsBeforeFullReinit = 3;
         private const int kAlertSeverity = 1;
 
-        private static readonly List<RuleOwner> NoRuleOwners = [];
+        /// <summary>
+        /// The empty mapping result, shared because it is only ever read - a run recording no mapping at all
+        /// either found nothing to map or removed everything on purpose.
+        /// </summary>
+        protected static readonly List<RuleOwner> NoRuleOwners = [];
 
         private bool triggeredByChange;
         private List<RuleOwnerMappingChange> appliedChanges = [];

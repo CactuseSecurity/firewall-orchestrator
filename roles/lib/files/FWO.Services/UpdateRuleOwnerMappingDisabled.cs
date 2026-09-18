@@ -17,9 +17,6 @@ namespace FWO.Services
     {
         private const int kActiveRuleOwnerProbeLimit = 1;
 
-        /// <summary>Result of the disabled mapping source: it never produces a mapping.</summary>
-        private static readonly List<RuleOwner> NoRuleOwners = [];
-
         /// <inheritdoc/>
         public override OwnerMappingSourceStm Source => OwnerMappingSourceStm.Disabled;
 

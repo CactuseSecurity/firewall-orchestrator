@@ -676,11 +676,12 @@ namespace FWO.Test
             /// <summary>
             /// Replaces the rule base with a rule the custom field source cannot map, as a rule base whose
             /// custom fields disappeared leaves it: the mapping query comes back empty while rules exist.
+            /// The jsonb column is null in that case, which the non-nullable property carries at run time.
             /// </summary>
             /// <param name="ruleId">Id of the remaining rule.</param>
             public void ReplaceRulesWithUnmappableRule(long ruleId)
             {
-                rules = [new Rule { Id = ruleId, CustomFields = "", Metadata = new RuleMetadata { Id = ruleId + 1000 } }];
+                rules = [new Rule { Id = ruleId, CustomFields = null!, Metadata = new RuleMetadata { Id = ruleId + 1000 } }];
             }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -785,11 +786,12 @@ namespace FWO.Test
                     return true;
                 }
 
-                // mirrors rule_custom_fields: { _is_null: false } in the real query: a rule the source cannot
-                // map never reaches the mapper, which is what makes an empty result ambiguous by itself
+                // mirrors rule_custom_fields: { _is_null: false } in the real query, which drops the null of the
+                // jsonb column and nothing else: a rule the source cannot map never reaches the mapper, which
+                // is what makes an empty result ambiguous by itself
                 if (query == RuleQueries.getRulesForOwnerMappingCustomField)
                 {
-                    result = rules.Where(rule => !string.IsNullOrEmpty(rule.CustomFields)).ToList();
+                    result = rules.Where(rule => rule.CustomFields is not null).ToList();
                     return true;
                 }
 

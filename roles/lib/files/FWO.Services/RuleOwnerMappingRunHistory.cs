@@ -191,9 +191,21 @@ namespace FWO.Services
         /// Kept here rather than in the editor: the editor state lives in one browser circuit, while the
         /// rebuild that finally applies the change may run in the middleware.
         /// </para>
+        /// <para>
+        /// Bounded by <see cref="RuleOwnerMappingRunHistory.kPendingChangesMaxAge"/>: a note nobody ever
+        /// retried must not explain away a rebuild that runs much later for an unrelated reason.
+        /// </para>
         /// </summary>
         [JsonPropertyName("pendingChanges")]
         public List<RuleOwnerMappingChange> PendingChanges { get; set; } = [];
+
+        /// <summary>
+        /// When <see cref="PendingChanges"/> was last written. The note has to outlive the rebuild it was
+        /// written for, because that rebuild may fail - but not indefinitely, see
+        /// <see cref="RuleOwnerMappingRunHistory.kPendingChangesMaxAge"/>. Default while no note is stored.
+        /// </summary>
+        [JsonPropertyName("pendingChangesRecordedAt"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public DateTime PendingChangesRecordedAt { get; set; }
     }
 
     /// <summary>
@@ -223,6 +235,15 @@ namespace FWO.Services
 
         /// <summary>How many runs with a finding are kept. Shown on the page, so it stays in one place.</summary>
         public const int kMaxRuns = 10;
+
+        /// <summary>
+        /// How long a pending change is taken over by the next stored run. The rebuild a save triggers may
+        /// fail, so the note must survive it - the whole point of recording it. It must not survive forever
+        /// though: consumed by a rebuild that runs much later for an unrelated reason, it would mark that run
+        /// as intended and swallow the drift alert this history exists to raise. Generous enough that a
+        /// retried rebuild days later still counts as the one applying the change.
+        /// </summary>
+        public static readonly TimeSpan kPendingChangesMaxAge = TimeSpan.FromDays(7);
         private const int kMaxListedPairs = 500;
         private const string kLogMessageTitle = "Update rule_owner Notifier";
 
@@ -316,6 +337,7 @@ namespace FWO.Services
                 }
 
                 history.PendingChanges = [];
+                history.PendingChangesRecordedAt = default;
                 await Save(history);
             }
             catch (Exception ex)
@@ -336,6 +358,19 @@ namespace FWO.Services
         {
             if (history.PendingChanges.Count == 0)
             {
+                return;
+            }
+
+            // nothing else ties the note to the rebuild it was written for: it is cleared by a stored run, so
+            // after a rebuild that failed it waits for whichever comes next. Beyond kPendingChangesMaxAge that
+            // is no longer plausibly the rebuild applying the change, and taking it over would mark an
+            // unrelated run as intended - silencing exactly the drift alert this history exists to raise.
+            // The caller clears the note either way, so an expired one is dropped rather than carried on
+            if (DateTime.UtcNow - history.PendingChangesRecordedAt > kPendingChangesMaxAge)
+            {
+                Log.WriteWarning(kLogMessageTitle, "Dropping the rule_owner mapping change note of " +
+                    $"{history.PendingChangesRecordedAt:u}: no rebuild applied it within {kPendingChangesMaxAge.TotalDays} days, " +
+                    "so a difference of this run is judged on its own.");
                 return;
             }
 
@@ -379,7 +414,8 @@ namespace FWO.Services
         /// <summary>
         /// Remembers a mapping-relevant setting that was saved, before the rebuild applying it is triggered.
         /// The next stored run takes it over, so a rebuild that only happens after a failed attempt is still
-        /// recognized as following a deliberate change. Cleared by <see cref="Store"/>.
+        /// recognized as following a deliberate change. Cleared by <see cref="Store"/>, and taken over only
+        /// within <see cref="kPendingChangesMaxAge"/> of this call.
         /// </summary>
         /// <param name="changes">Settings that were changed, empty to record nothing.</param>
         public async Task RecordPendingChanges(List<RuleOwnerMappingChange> changes)
@@ -393,6 +429,10 @@ namespace FWO.Services
             {
                 RuleOwnerMappingRunHistoryData history = await Load();
                 history.PendingChanges = MergeChanges(history.PendingChanges, changes);
+
+                // the whole note is stamped, not the single change: every setting in it is still unapplied,
+                // so this save confirms the older entries as much as the one it adds
+                history.PendingChangesRecordedAt = DateTime.UtcNow;
                 await Save(history);
             }
             catch (Exception ex)

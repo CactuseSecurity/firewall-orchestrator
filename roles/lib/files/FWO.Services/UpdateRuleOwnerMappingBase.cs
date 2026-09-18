@@ -688,9 +688,13 @@ namespace FWO.Services
         /// the latest occurrence. Suppressing the insert instead would freeze that timestamp at the first
         /// occurrence, making "failed once last week" and "failing on every run since" indistinguishable.
         /// <para>
-        /// Every caller therefore has to raise only on a state change rather than once per run, or the alert
-        /// list fills up with one acknowledged row per run of a job that repeats every few seconds. See
-        /// <see cref="HandleFailedImports"/>, the only condition that can persist across runs.
+        /// A caller whose condition can persist across runs therefore has to raise only on a state change
+        /// rather than once per run, or the alert list fills up with one acknowledged row per run of a job
+        /// that repeats every few seconds. <see cref="HandleFailedImports"/> does that, keyed off the run
+        /// history. <see cref="AlertFullReinitFallback"/> cannot: it has no state of its own to key off, so
+        /// it repeats for as long as the rebuild it falls back to keeps failing and the backlog is never
+        /// drained. Its description is therefore kept constant, which at least keeps the open alert to one
+        /// row - the acknowledged ones still accumulate.
         /// </para>
         /// </summary>
         /// <param name="description">Description shown in the alert and the log entry.</param>

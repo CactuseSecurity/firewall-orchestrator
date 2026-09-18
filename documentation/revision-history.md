@@ -754,9 +754,11 @@ Not supported any longer are:
   the mapping query, because that query is narrowed to the rules its source can map. An installation
   without rules therefore no longer reports an empty mapping result on every run
 - rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
-  rebuild applies it. The configuration is written before the rebuild runs, so without this the next
-  rebuild - the manual recalculation, the backlog fallback or the repair of a failing import - reported
-  the intended effect of that setting as a deviation of the incremental mapping
+  rebuild applies it, at most for a week. The configuration is written before the rebuild runs, so without
+  this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -
+  reported the intended effect of that setting as a deviation of the incremental mapping. The note expires
+  because a save that was never retried would otherwise explain away a much later rebuild and suppress the
+  deviation that one found
 - rule owner mapping: a problem that is still present is reported again and replaces its own earlier
   alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
   repeatedly failing import is exempt, because it is reported once and then repaired

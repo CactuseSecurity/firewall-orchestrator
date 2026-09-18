@@ -539,6 +539,38 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldReportDrift_WhenTheSavedChangeWasNeverAppliedForTooLong()
+        {
+            // the note outlives the rebuild it was written for, because that rebuild may fail - but not
+            // forever. Left behind by a save nobody ever retried, it would mark an unrelated rebuild weeks
+            // later as intended and swallow its drift alert, which is the one signal this history exists for
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(999, kOwnerId, 50);
+            RuleOwnerMappingRunHistoryData staleHistory = new()
+            {
+                PendingChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }],
+                PendingChangesRecordedAt = DateTime.UtcNow - RuleOwnerMappingRunHistory.kPendingChangesMaxAge - TimeSpan.FromMinutes(1)
+            };
+            apiConnection.SeedStoredHistoryJson(JsonSerializer.Serialize(staleHistory));
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            RuleOwnerMappingRunHistoryData history = apiConnection.StoredHistory;
+            RuleOwnerMappingRun run = history.RunsWithFindings.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(run.TriggeredByChange, Is.False, "an expired note must not explain this run away");
+                Assert.That(run.Changes, Is.Empty, "and must not be named as the cause of its difference");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("incremental mapping missed"),
+                    "the drift the run actually found has to be reported");
+                Assert.That(history.PendingChanges, Is.Empty, "the expired note is dropped rather than carried on");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldDropThePairLists_WhenThePendingChangeSwitchedTheSource()
         {
             // same rule as in BuildRun: after a source switch every mapping differs, so the pairs say nothing

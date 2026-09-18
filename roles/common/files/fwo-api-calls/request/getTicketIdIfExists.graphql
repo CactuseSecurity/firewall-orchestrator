@@ -1,0 +1,14 @@
+# Existence probe for one workflow ticket, used by the audit proof critical changes endpoint to tell
+# a ticket without such changes apart from a ticket id that names no ticket at all.
+#
+# A where-filtered list is queried rather than request_ticket_by_pk because the by_pk form resolves to
+# JSON null for an unknown id, which the API connection cannot deserialize into a result type; an
+# empty list is the unambiguous "does not exist" answer.
+#
+# Only id is selected: nothing but the existence of the row is needed here, and the row itself must
+# not leak into an endpoint that reports change history.
+query getTicketIdIfExists($ticketId: bigint!) {
+  request_ticket(where: { id: { _eq: $ticketId } }, limit: 1) {
+    id
+  }
+}

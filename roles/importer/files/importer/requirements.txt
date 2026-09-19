@@ -10,7 +10,7 @@ cryptography==50.0.1
 
 # HTTP / GraphQL stack
 requests==2.34.2
-urllib3==2.7.0
+urllib3==2.8.0
 graphql-core==3.2.11
 
 # SSH

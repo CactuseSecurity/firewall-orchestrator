@@ -110,6 +110,7 @@ builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProv
 builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
 builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddSingleton<WorkflowChangeHistoryService>();
 builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
 
@@ -140,6 +141,7 @@ builder.Services.AddOpenApi("v1", options =>
     options.AddOperationTransformer<OpenApiOperationNameTransformer>();
     options.AddOperationTransformer<OpenApiAuthorizationOperationTransformer>();
     options.AddOperationTransformer<OpenApiApiExampleOperationTransformer>();
+    options.AddSchemaTransformer<OpenApiRequiredSchemaTransformer>();
     options.AddDocumentTransformer((document, context, cancellationToken) =>
     {
         document.Info = new OpenApiInfo

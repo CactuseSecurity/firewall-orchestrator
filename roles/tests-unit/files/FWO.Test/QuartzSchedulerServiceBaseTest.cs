@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Middleware.Server.Services;
+using FWO.Test.Helpers;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.SystemTextJson;
@@ -23,6 +24,12 @@ namespace FWO.Test
     [Parallelizable]
     internal class QuartzSchedulerServiceBaseTest
     {
+        /// <summary>
+        /// Generous upper bound for a polled condition. Only costs time when a test is failing
+        /// anyway, so a loaded runner delays the suite rather than failing it.
+        /// </summary>
+        private static readonly TimeSpan kConditionTimeout = TimeSpan.FromSeconds(10);
+
         private sealed class TestJob : IJob
         {
             public ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default) => default;
@@ -229,16 +236,8 @@ namespace FWO.Test
 
         private static async Task WaitUntil(Func<Task<bool>> condition)
         {
-            for (int i = 0; i < 50; i++)
-            {
-                if (await condition())
-                {
-                    return;
-                }
-                await Task.Delay(20);
-            }
-
-            Assert.Fail("Condition was not met in time.");
+            Assert.That(await PollingWait.UntilAsync(condition, kConditionTimeout), Is.True,
+                "Condition was not met in time.");
         }
 
         private sealed class CapturingApiConnection : SimulatedApiConnection

@@ -171,6 +171,27 @@ namespace FWO.Test
             await WaitUntil(async () => await ScheduleJobAndTriggerCallCount(scheduler) == 2);
         }
 
+        [Test]
+        public async Task ReportSchedulerService_StartsAndSchedulesRecurringTrigger()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            using TestApplicationLifetime appLifetime = new();
+
+            _ = new ReportSchedulerService(schedulerFactory, appLifetime);
+            appLifetime.Start();
+
+            await WaitUntil(async () => await ScheduleTriggerCallCount(scheduler) == 1);
+            await scheduler.Received(1).Exists(new JobKey("ReportJob"), Arg.Any<CancellationToken>());
+            await scheduler.Received(1).AddJob(
+                Arg.Is<IJobDetail>(job => job.Key == new JobKey("ReportJob") && job.Durable),
+                Arg.Any<AddJobOptions>(),
+                Arg.Any<CancellationToken>());
+            await scheduler.Received(1).UnscheduleJob(new TriggerKey("ReportTrigger"), Arg.Any<CancellationToken>());
+        }
+
         private static void ConfigureQuartzScheduler(IScheduler scheduler)
         {
             scheduler.Exists(Arg.Any<JobKey>(), Arg.Any<CancellationToken>()).Returns(_ => new ValueTask<bool>(false));

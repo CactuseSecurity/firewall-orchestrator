@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Assert = NUnit.Framework.Assert;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -30,9 +31,10 @@ namespace FWO.Test
         [OneTimeSetUp]
         public void WriteClientIdentity()
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest request = new(kClientCertificateSubject, key, HashAlgorithmName.SHA256);
-            using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 certificate = request.CreateSelfSigned(now.AddDays(-1), now.AddDays(1));
 
             File.WriteAllText(kCertificatePath, certificate.ExportCertificatePem());
             File.WriteAllText(kPrivateKeyPath, key.ExportPkcs8PrivateKeyPem());
@@ -108,92 +110,71 @@ namespace FWO.Test
         /// without validating the server, so it has to be able to say so.
         /// </summary>
         [Test]
-        public void UsesTls_WarnsOnceAboutAPlainHttpEndpoint()
+        public async Task UsesTls_WarnsOnceAboutAPlainHttpEndpoint()
         {
             const string endpoint = "http://api.warn-once.test:8080/v1/graphql";
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-
-            try
+            bool firstResult = false;
+            bool secondResult = false;
+            string logOutput = await ConsoleOutput.CaptureAsync(() =>
             {
-                Console.SetOut(logOutput);
+                firstResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+                secondResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+                return Task.CompletedTask;
+            });
 
-                bool firstResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
-                bool secondResult = GraphQlTlsCertificateSupport.UsesTls(endpoint);
-
-                Assert.Multiple(() =>
-                {
-                    Assert.That(firstResult, Is.False);
-                    Assert.That(secondResult, Is.False);
-                    // Counted rather than merely present: a connection creates a query and a
-                    // subscription client per user session, so warning per client would fill
-                    // the log with this one line.
-                    Assert.That(CountOccurrences(logOutput.ToString(), endpoint), Is.EqualTo(1),
-                        "the unsecured endpoint must be reported exactly once per process");
-                    Assert.That(logOutput.ToString(), Does.Contain("Warning"));
-                    Assert.That(logOutput.ToString(), Does.Contain("api_uri"),
-                        "the warning has to name the setting that has to be changed");
-                });
-            }
-            finally
+            Assert.Multiple(() =>
             {
-                Console.SetOut(originalConsoleOut);
-            }
+                Assert.That(firstResult, Is.False);
+                Assert.That(secondResult, Is.False);
+                // Counted rather than merely present: a connection creates a query and a
+                // subscription client per user session, so warning per client would fill
+                // the log with this one line.
+                Assert.That(CountOccurrences(logOutput, endpoint), Is.EqualTo(1),
+                    "the unsecured endpoint must be reported exactly once per process");
+                Assert.That(logOutput, Does.Contain("Warning"));
+                Assert.That(logOutput, Does.Contain("api_uri"),
+                    "the warning has to name the setting that has to be changed");
+            });
         }
 
         [Test]
-        public void UsesTls_ReportsEachUnsecuredEndpointSeparately()
+        public async Task UsesTls_ReportsEachUnsecuredEndpointSeparately()
         {
             const string firstEndpoint = "http://api.first-endpoint.test:8080/v1/graphql";
             const string secondEndpoint = "http://api.second-endpoint.test:8080/v1/graphql";
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-
-            try
+            string logOutput = await ConsoleOutput.CaptureAsync(() =>
             {
-                Console.SetOut(logOutput);
-
                 GraphQlTlsCertificateSupport.UsesTls(firstEndpoint);
                 GraphQlTlsCertificateSupport.UsesTls(secondEndpoint);
+                return Task.CompletedTask;
+            });
 
-                // A single "already warned" flag would hide the second endpoint entirely.
-                Assert.Multiple(() =>
-                {
-                    Assert.That(CountOccurrences(logOutput.ToString(), firstEndpoint), Is.EqualTo(1));
-                    Assert.That(CountOccurrences(logOutput.ToString(), secondEndpoint), Is.EqualTo(1));
-                });
-            }
-            finally
+            // A single "already warned" flag would hide the second endpoint entirely.
+            Assert.Multiple(() =>
             {
-                Console.SetOut(originalConsoleOut);
-            }
+                Assert.That(CountOccurrences(logOutput, firstEndpoint), Is.EqualTo(1));
+                Assert.That(CountOccurrences(logOutput, secondEndpoint), Is.EqualTo(1));
+            });
         }
 
         [Test]
-        public void UsesTls_SaysNothingAboutAnHttpsEndpoint()
+        public async Task UsesTls_SaysNothingAboutAnHttpsEndpoint()
         {
             const string endpoint = "https://api.secured-endpoint.test:9443/api/v1/graphql";
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-
-            try
+            bool result = false;
+            string logOutput = await ConsoleOutput.CaptureAsync(() =>
             {
-                Console.SetOut(logOutput);
+                result = GraphQlTlsCertificateSupport.UsesTls(endpoint);
+                return Task.CompletedTask;
+            });
 
-                bool result = GraphQlTlsCertificateSupport.UsesTls(endpoint);
-
-                Assert.Multiple(() =>
-                {
-                    Assert.That(result, Is.True);
-                    // Asserted on the endpoint rather than on empty output: another fixture
-                    // may log to the same redirected console.
-                    Assert.That(logOutput.ToString(), Does.Not.Contain(endpoint));
-                });
-            }
-            finally
+            Assert.Multiple(() =>
             {
-                Console.SetOut(originalConsoleOut);
-            }
+                Assert.That(result, Is.True);
+                // Asserted on the endpoint rather than on empty output: another fixture
+                // may log to the same redirected console.
+                Assert.That(logOutput, Does.Not.Contain(endpoint));
+            });
         }
 
         /// <summary>
@@ -295,9 +276,10 @@ namespace FWO.Test
             bool accepted = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateChainErrors);
             bool rejectedForWrongName = ValidateApiServerCertificate(apiServerCertificate!, SslPolicyErrors.RemoteCertificateNameMismatch);
 
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa otherKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest otherRequest = new("CN=untrusted-api", otherKey, HashAlgorithmName.SHA256);
-            using X509Certificate2 untrustedCertificate = otherRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 untrustedCertificate = otherRequest.CreateSelfSigned(now.AddDays(-1), now.AddDays(1));
             bool rejectedForWrongAuthority = ValidateApiServerCertificate(untrustedCertificate, SslPolicyErrors.RemoteCertificateChainErrors);
 
             // re-validating the good certificate last proves the rejections above came from
@@ -318,23 +300,28 @@ namespace FWO.Test
         [Test]
         public void ApiCertificate_AcceptsAChainWithAnIntermediateAuthority()
         {
+            // one clock read for the whole chain, and every issuer outlives what it signs:
+            // three separate DateTimeOffset.UtcNow calls let the leaf's notAfter land after
+            // its issuer's by however long the requests took, which X509Chain reports as an
+            // invalid chain rather than as the trust decision under test
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa rootKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest rootRequest = new("CN=fwo-api-root-test", rootKey, HashAlgorithmName.SHA256);
             rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             rootRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 root = rootRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(2));
+            using X509Certificate2 root = rootRequest.CreateSelfSigned(now.AddDays(-3), now.AddDays(3));
 
             using ECDsa intermediateKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest intermediateRequest = new("CN=fwo-api-intermediate-test", intermediateKey, HashAlgorithmName.SHA256);
             intermediateRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             intermediateRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 intermediate = intermediateRequest.Create(root, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            using X509Certificate2 intermediate = intermediateRequest.Create(root, now.AddDays(-2), now.AddDays(2), RandomNumberGenerator.GetBytes(16));
             using X509Certificate2 signingIntermediate = intermediate.CopyWithPrivateKey(intermediateKey);
 
             using ECDsa leafKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest leafRequest = new("CN=fwo-api-leaf-test", leafKey, HashAlgorithmName.SHA256);
             leafRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-            using X509Certificate2 leaf = leafRequest.Create(signingIntermediate, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            using X509Certificate2 leaf = leafRequest.Create(signingIntermediate, now.AddDays(-1), now.AddDays(1), RandomNumberGenerator.GetBytes(16));
 
             File.WriteAllText(kApiCaCertificatePath, root.ExportCertificatePem());
             ClearCachedCertificate();
@@ -405,11 +392,12 @@ namespace FWO.Test
 
         private static void CreateApiServerCertificate()
         {
+            DateTimeOffset now = DateTimeOffset.UtcNow;
             using ECDsa certificateAuthorityKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest certificateAuthorityRequest = new("CN=fwo-api-ca-test", certificateAuthorityKey, HashAlgorithmName.SHA256);
             certificateAuthorityRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
             certificateAuthorityRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign, true));
-            using X509Certificate2 certificateAuthority = certificateAuthorityRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+            using X509Certificate2 certificateAuthority = certificateAuthorityRequest.CreateSelfSigned(now.AddDays(-2), now.AddDays(2));
             apiCaCertificatePem = certificateAuthority.ExportCertificatePem();
             File.WriteAllText(kApiCaCertificatePath, apiCaCertificatePem);
 
@@ -417,7 +405,7 @@ namespace FWO.Test
             CertificateRequest serverRequest = new("CN=fwo-api-server-test", serverKey, HashAlgorithmName.SHA256);
             serverRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
             serverRequest.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
-            apiServerCertificate = serverRequest.Create(certificateAuthority, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), RandomNumberGenerator.GetBytes(16));
+            apiServerCertificate = serverRequest.Create(certificateAuthority, now.AddDays(-1), now.AddDays(1), RandomNumberGenerator.GetBytes(16));
         }
 
         /// <summary>

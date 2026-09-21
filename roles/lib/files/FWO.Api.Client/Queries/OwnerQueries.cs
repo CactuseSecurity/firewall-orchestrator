@@ -47,6 +47,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string newOwnerResponsibles;
         public static readonly string deleteOwnerResponsibles;
         public static readonly string deleteSpecificOwnerResponsibles;
+        public static readonly string getActiveRuleOwners;
         public static readonly string setAllActiveRuleOwnersRemoved;
         public static readonly string setAffectedRuleOwnersRemoved;
         public static readonly string insertRuleOwners;
@@ -107,6 +108,7 @@ namespace FWO.Api.Client.Queries
                 newOwnerResponsibles = GetQueryText("owner/newOwnerResponsibles.graphql");
                 deleteOwnerResponsibles = GetQueryText("owner/deleteOwnerResponsibles.graphql");
                 deleteSpecificOwnerResponsibles = GetQueryText("owner/deleteSpecificOwnerResponsibles.graphql");
+                getActiveRuleOwners = GetQueryText("owner/getActiveRuleOwners.graphql");
                 setAllActiveRuleOwnersRemoved = GetQueryText("owner/setAllActiveRuleOwnersRemoved.graphql");
                 setAffectedRuleOwnersRemoved = GetQueryText("owner/setAffectedRuleOwnersRemoved.graphql");
                 insertRuleOwners = GetQueryText("owner/insertRuleOwners.graphql");

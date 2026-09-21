@@ -8,6 +8,7 @@ using FWO.Logging;
 using FWO.Middleware.Server;
 using NUnit.Framework;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -168,7 +169,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void RunImportScriptReportsWhatATimedOutScriptWroteBeforeItGotStuck()
+        public async Task RunImportScriptReportsWhatATimedOutScriptWroteBeforeItGotStuck()
         {
             if (OperatingSystem.IsWindows())
             {
@@ -176,8 +177,6 @@ namespace FWO.Test
             }
 
             string tempDir = CreateScriptDirectory();
-            TextWriter originalConsoleOut = Console.Out;
-            using StringWriter logOutput = new();
             try
             {
                 // the scripts log to their error output, so the reason a script hangs - a git
@@ -187,17 +186,17 @@ namespace FWO.Test
                     + "print('[ERROR] waiting for git credentials', file=sys.stderr, flush=True)\n"
                     + "time.sleep(60)\n";
                 string scriptPath = WriteScript(tempDir, "stuck.py", scriptContent);
-                Console.SetOut(logOutput);
-
-                bool executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
-
-                Console.SetOut(originalConsoleOut);
+                bool executed = false;
+                string logOutput = await ConsoleOutput.CaptureAsync(() =>
+                {
+                    executed = CreateImporter(TimeSpan.FromSeconds(2)).ExecuteScript(scriptPath, null, validateImportFile: false);
+                    return Task.CompletedTask;
+                });
                 Assert.That(executed, Is.False);
-                Assert.That(logOutput.ToString(), Does.Contain("waiting for git credentials"));
+                Assert.That(logOutput, Does.Contain("waiting for git credentials"));
             }
             finally
             {
-                Console.SetOut(originalConsoleOut);
                 Directory.Delete(tempDir, true);
             }
         }

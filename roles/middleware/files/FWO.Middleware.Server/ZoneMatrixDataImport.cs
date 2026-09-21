@@ -276,6 +276,7 @@ namespace FWO.Middleware.Server
         private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importFileName, DeviceNameResolver deviceLookup)
         {
             counters = new() { AllZones = importedMatrix.NetworkZones.Count };
+            ZoneIds.Clear();
             if (MatrixId == 0)
             {
                 await CreateMatrix(importedMatrix.Name, importFileName, importedMatrix.Comment);
@@ -486,11 +487,6 @@ namespace FWO.Middleware.Server
         /// </summary>
         private async Task HandleIpRangePaths(ImportNwZoneMatrixData importedMatrix, DeviceNameResolver deviceLookup)
         {
-            counters.RemovePathRoot = (await apiConnection.SendQueryAsync<ReturnId>
-                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot, new { matrixId = MatrixId })).AffectedRows;
-            counters.RemovePathInternet = (await apiConnection.SendQueryAsync<ReturnId>
-                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId })).AffectedRows;
-
             List<NetworkZoneIpRange> ipRanges = await apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
                 NetworkZoneQueries.getIpRangesForMatrix, new { matrixId = MatrixId });
 
@@ -517,6 +513,11 @@ namespace FWO.Middleware.Server
                     internetPathInput.AddRange(BuildPathItems(subnet.PathToInternet, ipRangeId, deviceLookup, PathFieldNameInternet, subnet.Ip));
                 }
             }
+
+            counters.RemovePathRoot = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot, new { matrixId = MatrixId })).AffectedRows;
+            counters.RemovePathInternet = (await apiConnection.SendQueryAsync<ReturnId>
+                (NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet, new { matrixId = MatrixId })).AffectedRows;
 
             counters.InsertPathRoot = (await apiConnection.SendQueryAsync<ReturnId>
                 (NetworkZoneQueries.addPathItemsRoot,

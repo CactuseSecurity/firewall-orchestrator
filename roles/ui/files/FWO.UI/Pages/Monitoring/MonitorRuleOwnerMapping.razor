@@ -1,3 +1,4 @@
+@using FWO.Data.Enums
 @using FWO.Services
 @using FWO.Ui.Services
 
@@ -140,7 +141,7 @@ else
            what the person who just saved it needs to see - and a source switch, which replaces every mapping
            and therefore stores only the counts *@
         <div class="alert alert-secondary m-1">
-            @(userConfig.GetText(Handler.SelectedRun.AddedCount + Handler.SelectedRun.RemovedCount == 0 ? "U7555" : "U7554"))
+            @(userConfig.GetText(Handler.SelectedRun.HasNoFindings ? "U7555" : "U7554"))
         </div>
     }
     else
@@ -248,8 +249,9 @@ else
     }
 
     /// <summary>
-    /// Resolves the display text of a finding. After a deliberate change the difference is the intended
-    /// result, so it is named neutrally instead of as something the incremental mapping failed to do.
+    /// Resolves the display text of a finding. Only a deviation is named as something the incremental
+    /// mapping failed to do; every other state explains the difference by something else - a deliberate
+    /// change, an unprocessed backlog or a source that stopped matching - and is named neutrally.
     /// </summary>
     /// <param name="finding">Finding to display.</param>
     /// <returns>The localized text.</returns>
@@ -264,9 +266,9 @@ else
     /// <returns>The localized text.</returns>
     private string GetAddedLabel()
     {
-        return userConfig.GetText(State == RuleOwnerMappingRunState.ChangeApplied
-            ? "rule_owner_change_added"
-            : "rule_owner_finding_Missing");
+        return userConfig.GetText(State == RuleOwnerMappingRunState.Drift
+            ? "rule_owner_finding_Missing"
+            : "rule_owner_change_added");
     }
 
     /// <summary>
@@ -275,8 +277,8 @@ else
     /// <returns>The localized text.</returns>
     private string GetRemovedLabel()
     {
-        return userConfig.GetText(State == RuleOwnerMappingRunState.ChangeApplied
-            ? "rule_owner_change_removed"
-            : "rule_owner_finding_Superfluous");
+        return userConfig.GetText(State == RuleOwnerMappingRunState.Drift
+            ? "rule_owner_finding_Superfluous"
+            : "rule_owner_change_removed");
     }
 }

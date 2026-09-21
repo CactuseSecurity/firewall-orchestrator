@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Logging;
 using FWO.Services.EventMediator.Events;
 
@@ -202,12 +203,16 @@ namespace FWO.Services
         /// Decides whether a run result means the incremental mapping missed something. A deliberate change
         /// rebuilds a different state on purpose, a pending backlog explains the difference on its own, and an
         /// empty result has its own more precise alert - none of those is drift.
+        /// <para>
+        /// Read off <see cref="RuleOwnerMappingRun.State"/> rather than decided here, so this alert and the
+        /// monitoring page cannot disagree about the same run. They did while both spelled the rule out.
+        /// </para>
         /// </summary>
         /// <param name="run">Result of the full reinitialize.</param>
         /// <returns>True if the difference points at the incremental mapping.</returns>
         private static bool IndicatesDrift(RuleOwnerMappingRun run)
         {
-            return run.DiffMeaningful && !run.TriggeredByChange && run.MappingCount > 0 && run.AddedCount + run.RemovedCount > 0;
+            return run.State == RuleOwnerMappingRunState.Drift;
         }
 
         /// <summary>

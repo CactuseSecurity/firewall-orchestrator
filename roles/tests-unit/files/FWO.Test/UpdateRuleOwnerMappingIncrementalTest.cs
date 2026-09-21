@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Services;
 using FWO.Services.EventMediator.Events;
 using NUnit.Framework;
@@ -133,6 +134,29 @@ namespace FWO.Test
                 Assert.That(result, Is.True, "an empty result is valid and must not be reported as failure");
                 Assert.That(apiConnection.ActivePairs, Is.Empty, "the obsolete mappings must be removed");
                 Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("matched no rule"));
+                Assert.That(apiConnection.RaisedAlerts, Has.None.Contains("incremental mapping missed"),
+                    "the source matched nothing, which is its own problem and not one the incremental mapping caused");
+                Assert.That(apiConnection.StoredRuns.Single().State, Is.EqualTo(RuleOwnerMappingRunState.EmptyResult),
+                    "the monitoring page has to read the same verdict off the run as the alert did");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNotStoreDerivedFields_InTheRunHistoryConfigEntry()
+        {
+            // the entry is written with config_user = 0, which the anonymous role may read - so it is kept to
+            // what cannot be recomputed. State and HasNoFindings are derived from the counts and must stay out
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(999, kOwnerId, 50);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.StoredHistoryJson, Is.Not.Null, "the run has to have been written at all");
+                Assert.That(apiConnection.StoredHistoryJson, Does.Not.Contain("\"state\""), "State is derived, not stored");
+                Assert.That(apiConnection.StoredHistoryJson, Does.Not.Contain("hasNoFindings"), "HasNoFindings is derived, not stored");
             });
         }
 
@@ -423,6 +447,26 @@ namespace FWO.Test
 
             Assert.That(apiConnection.StoredHistory.LastRunWithoutFindings, Is.Null,
                 "a run taken over from the legacy format must pass the same check as a new one");
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldMigrateADeliberateChangeWithoutEffect_FromTheLegacyHistoryFormat()
+        {
+            // Store keeps a run that followed a deliberate change even when it changed nothing - that it had
+            // no effect is what the admin who edited the configuration needs to see. The migration has to
+            // apply the same rule, otherwise such a run is written on one run and dropped on the next read
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("""
+                [{"runTime":"2026-09-01T10:00:00Z","controlId":5,"mappingSource":"CustomField","mappingCount":3,
+                  "addedCount":0,"removedCount":0,"pendingImportsBefore":[],"diffMeaningful":true,
+                  "triggeredByChange":true}]
+                """);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.That(apiConnection.StoredHistory.RunsWithFindings.Select(run => run.ControlId), Does.Contain(5L),
+                "a deliberate change without effect must survive the migration, as it survives a store");
         }
 
         [Test]

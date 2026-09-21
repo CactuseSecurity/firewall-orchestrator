@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -164,6 +165,46 @@ namespace FWO.Services
         /// </summary>
         [JsonPropertyName("droppedChangeRecordedAt"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public DateTime? DroppedChangeRecordedAt { get; set; }
+
+        /// <summary>
+        /// True when the run found no difference at all. Not stored - it is derived from the counts, and the
+        /// config entry is kept to what cannot be recomputed.
+        /// </summary>
+        [JsonIgnore]
+        public bool HasNoFindings => AddedCount + RemovedCount == 0;
+
+        /// <summary>
+        /// How this run has to be read. The single place the question is decided: the middleware raises its
+        /// drift alert off this, the monitoring page colours and labels the run off this, and the run history
+        /// keeps its entries off it. Written out separately per caller before, which let the alert and the
+        /// page contradict each other about the same run.
+        /// <para>
+        /// Order matters. A backlog explains any difference on its own, so it is answered first; no
+        /// difference is the strongest statement there is, whatever triggered the run; a deliberate change is
+        /// expected to differ; and a source that matched nothing is a configuration problem with its own
+        /// alert rather than something the incremental mapping missed.
+        /// </para>
+        /// </summary>
+        [JsonIgnore]
+        public RuleOwnerMappingRunState State
+        {
+            get
+            {
+                if (!DiffMeaningful)
+                {
+                    return RuleOwnerMappingRunState.ImportsPending;
+                }
+                if (HasNoFindings)
+                {
+                    return RuleOwnerMappingRunState.InSync;
+                }
+                if (TriggeredByChange)
+                {
+                    return RuleOwnerMappingRunState.ChangeApplied;
+                }
+                return MappingCount == 0 ? RuleOwnerMappingRunState.EmptyResult : RuleOwnerMappingRunState.Drift;
+            }
+        }
     }
 
     /// <summary>
@@ -332,14 +373,12 @@ namespace FWO.Services
                 // a run without findings updates "last verified correct", so a repeated rebuild cannot push
                 // anything out of the limited history - but only when it could judge at all: with imports
                 // still pending it proves nothing and must not claim a verification
-                if (HasNoFindings(run) && run.DiffMeaningful)
+                if (run.HasNoFindings && run.DiffMeaningful)
                 {
                     history.LastRunWithoutFindings = run;
                 }
 
-                // a deliberate change is kept even when it changed nothing: that it had no effect is exactly
-                // what somebody who just edited the configuration needs to see
-                if (!HasNoFindings(run) || run.TriggeredByChange)
+                if (BelongsIntoRunsWithFindings(run))
                 {
                     history.RunsWithFindings.Insert(0, run);
                     history.RunsWithFindings = history.RunsWithFindings.Take(kMaxRuns).ToList();
@@ -556,21 +595,28 @@ namespace FWO.Services
             List<RuleOwnerMappingRun> storedRuns = JsonSerializer.Deserialize<List<RuleOwnerMappingRun>>(storedValue) ?? [];
             return new RuleOwnerMappingRunHistoryData
             {
-                // same condition as in Store: a run that found nothing while imports were still pending
-                // proves nothing and must not be migrated into "last verified correct"
-                LastRunWithoutFindings = storedRuns.FirstOrDefault(run => HasNoFindings(run) && run.DiffMeaningful),
-                RunsWithFindings = storedRuns.Where(run => !HasNoFindings(run)).Take(kMaxRuns).ToList()
+                // same conditions as in Store, through the same predicates: a run that found nothing while
+                // imports were still pending proves nothing and must not be migrated into "last verified
+                // correct", and a run kept only because it followed a deliberate change must survive here too
+                LastRunWithoutFindings = storedRuns.FirstOrDefault(run => run.HasNoFindings && run.DiffMeaningful),
+                RunsWithFindings = storedRuns.Where(BelongsIntoRunsWithFindings).Take(kMaxRuns).ToList()
             };
         }
 
         /// <summary>
-        /// Checks whether a run found any difference at all.
+        /// Decides whether a run is kept in the list of runs with findings. A deliberate change is kept even
+        /// when it changed nothing: that it had no effect is exactly what somebody who just edited the
+        /// configuration needs to see.
+        /// <para>
+        /// Shared by <see cref="Store"/> and <see cref="Deserialize"/> on purpose - the rule was written out
+        /// twice before and the two copies drifted apart, so a run kept on write was dropped again on read.
+        /// </para>
         /// </summary>
-        /// <param name="run">Run to check.</param>
-        /// <returns>True if nothing was added or removed.</returns>
-        private static bool HasNoFindings(RuleOwnerMappingRun run)
+        /// <param name="run">Run to judge.</param>
+        /// <returns>True if the run belongs into the kept list.</returns>
+        private static bool BelongsIntoRunsWithFindings(RuleOwnerMappingRun run)
         {
-            return run.AddedCount + run.RemovedCount == 0;
+            return !run.HasNoFindings || run.TriggeredByChange;
         }
 
         private static Dictionary<(long RuleId, int OwnerId), RuleOwner> ToPairMap(List<RuleOwner> ruleOwners)

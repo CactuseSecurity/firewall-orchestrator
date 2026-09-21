@@ -752,7 +752,9 @@ Not supported any longer are:
   a rule there is nothing to judge, so the stored mappings are kept, no run is recorded and no alert is
   raised. Which of the two it is, is decided by counting the active rules rather than by the result of
   the mapping query, because that query is narrowed to the rules its source can map. An installation
-  without rules therefore no longer reports an empty mapping result on every run
+  without rules therefore no longer reports an empty mapping result on every run. The monitoring page
+  names that result as its own state rather than as a deviation, so it no longer blames the incremental
+  mapping for a run the alert already attributed to the mapping source
 - rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
   rebuild applies it, at most for a week. The configuration is written before the rebuild runs, so without
   this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -

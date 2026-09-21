@@ -1,3 +1,4 @@
+using FWO.Data.Enums;
 using FWO.Services;
 using FWO.Ui.Services;
 using NUnit.Framework;
@@ -16,13 +17,13 @@ namespace FWO.Test
     internal class RuleOwnerMappingRunHandlerTest
     {
         private static RuleOwnerMappingRun Run(long controlId, int added = 0, int removed = 0,
-            bool diffMeaningful = true, bool triggeredByChange = false, int runMinute = 0)
+            bool diffMeaningful = true, bool triggeredByChange = false, int runMinute = 0, int mappingCount = 10)
         {
             return new RuleOwnerMappingRun
             {
                 RunTime = new DateTime(2026, 9, 16, 12, runMinute, 0, DateTimeKind.Utc),
                 ControlId = controlId,
-                MappingCount = 10,
+                MappingCount = mappingCount,
                 AddedCount = added,
                 RemovedCount = removed,
                 Added = Enumerable.Range(1, added).Select(i => new RuleOwnerPair { RuleId = 100 + i, OwnerId = 1 }).ToList(),
@@ -145,6 +146,18 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetSelectedState_DoesNotReportDrift_WhenTheSourceMatchedNothing()
+        {
+            // the source stopped matching and every mapping was removed. The middleware does not call that
+            // drift either - it raises its own, more precise alert - so the page must not contradict it
+            RuleOwnerMappingRunHandler handler = new();
+            handler.Init(History(Run(10, removed: 3, mappingCount: 0)));
+
+            Assert.That(handler.GetSelectedState(), Is.EqualTo(RuleOwnerMappingRunState.EmptyResult),
+                "a source that matched nothing is a configuration problem, not a missed incremental change");
+        }
+
+        [Test]
         public void GetSelectedEntries_LabelsAddedAsMissingAndRemovedAsLeftOver()
         {
             RuleOwnerMappingRunHandler handler = new();
@@ -194,11 +207,13 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GetStateStyle_MarksOnlyDriftAsCritical()
+        public void GetStateStyle_MarksWhatNeedsAttentionAsCritical()
         {
             Assert.Multiple(() =>
             {
                 Assert.That(RuleOwnerMappingRunHandler.GetStateStyle(RuleOwnerMappingRunState.Drift), Is.EqualTo("danger"));
+                Assert.That(RuleOwnerMappingRunHandler.GetStateStyle(RuleOwnerMappingRunState.EmptyResult), Is.EqualTo("danger"),
+                    "every mapping was removed, which needs the same attention as drift");
                 Assert.That(RuleOwnerMappingRunHandler.GetStateStyle(RuleOwnerMappingRunState.InSync), Is.EqualTo("success"));
                 Assert.That(RuleOwnerMappingRunHandler.GetStateStyle(RuleOwnerMappingRunState.ImportsPending), Is.EqualTo("warning"));
                 Assert.That(RuleOwnerMappingRunHandler.GetStateStyle(RuleOwnerMappingRunState.ChangeApplied), Is.EqualTo("secondary"));

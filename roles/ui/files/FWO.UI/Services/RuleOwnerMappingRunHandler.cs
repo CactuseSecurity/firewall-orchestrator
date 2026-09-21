@@ -1,3 +1,4 @@
+using FWO.Data.Enums;
 using FWO.Services;
 
 namespace FWO.Ui.Services
@@ -45,25 +46,6 @@ namespace FWO.Ui.Services
     }
 
     /// <summary>
-    /// How a recorded run has to be read. Only <see cref="Drift"/> points at a problem of the incremental
-    /// mapping; the other states explain the difference by something else.
-    /// </summary>
-    public enum RuleOwnerMappingRunState
-    {
-        /// <summary>Rebuilt state matches the stored one, nothing to do.</summary>
-        InSync,
-
-        /// <summary>Imports were still waiting to be mapped, so the difference is just the backlog.</summary>
-        ImportsPending,
-
-        /// <summary>The run followed a deliberate change, so a different result is expected.</summary>
-        ChangeApplied,
-
-        /// <summary>The incremental mapping missed the listed changes.</summary>
-        Drift
-    }
-
-    /// <summary>
     /// Editor state of the rule owner mapping run history: which of the stored runs is shown and how its
     /// result has to be read.
     /// </summary>
@@ -102,7 +84,7 @@ namespace FWO.Ui.Services
                 }
                 return LastRunWithoutFindings != null && LastRunWithoutFindings.RunTime >= Runs[0].RunTime
                     ? RuleOwnerMappingRunState.InSync
-                    : GetState(Runs[0]);
+                    : Runs[0].State;
             }
         }
 
@@ -184,8 +166,10 @@ namespace FWO.Ui.Services
         }
 
         /// <summary>
-        /// Decides how the result of the shown run has to be read. A pending backlog and a configuration
-        /// change both explain a difference on their own, so neither is reported as a problem.
+        /// Decides how the result of the shown run has to be read, by asking the run itself - the same
+        /// property the middleware raises its drift alert off, so page and alert cannot disagree. A pending
+        /// backlog, a configuration change and a source that matched nothing each explain a difference on
+        /// their own, so none of them is reported as drift.
         /// </summary>
         /// <returns>
         /// The state of the shown run, or <see langword="null"/> when no run is shown at all. "Nothing was
@@ -194,27 +178,7 @@ namespace FWO.Ui.Services
         /// </returns>
         public RuleOwnerMappingRunState? GetSelectedState()
         {
-            return SelectedRun == null ? null : GetState(SelectedRun);
-        }
-
-        /// <summary>
-        /// Decides how the result of one run has to be read.
-        /// </summary>
-        /// <param name="run">Run to judge.</param>
-        /// <returns>The state of that run.</returns>
-        private static RuleOwnerMappingRunState GetState(RuleOwnerMappingRun run)
-        {
-            if (!run.DiffMeaningful)
-            {
-                return RuleOwnerMappingRunState.ImportsPending;
-            }
-            // no difference is the strongest statement there is, whatever triggered the run - a change that
-            // turned out to have no effect is still a verification that the stored state was correct
-            if (run.AddedCount + run.RemovedCount == 0)
-            {
-                return RuleOwnerMappingRunState.InSync;
-            }
-            return run.TriggeredByChange ? RuleOwnerMappingRunState.ChangeApplied : RuleOwnerMappingRunState.Drift;
+            return SelectedRun?.State;
         }
 
         /// <summary>
@@ -228,6 +192,9 @@ namespace FWO.Ui.Services
             {
                 RuleOwnerMappingRunState.InSync => "success",
                 RuleOwnerMappingRunState.Drift => "danger",
+                // every mapping was removed because the source matched nothing, which needs the same
+                // attention as drift even though it is a different problem
+                RuleOwnerMappingRunState.EmptyResult => "danger",
                 RuleOwnerMappingRunState.ImportsPending => "warning",
                 _ => "secondary"
             };

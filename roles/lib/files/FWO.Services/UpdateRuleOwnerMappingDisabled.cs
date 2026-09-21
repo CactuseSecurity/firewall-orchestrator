@@ -58,6 +58,10 @@ namespace FWO.Services
             if (!await ActiveRuleOwnersExist())
             {
                 Log.WriteInfo(LogMessageTitle, "Owner mapping is disabled, no active rule_owner mapping left to remove.");
+
+                // the rebuild is done - the state it was asked to establish is already there - but it records
+                // no run, so nothing else would drop the change note of the save that triggered it
+                await DropPendingChangeNote();
                 return true;
             }
 

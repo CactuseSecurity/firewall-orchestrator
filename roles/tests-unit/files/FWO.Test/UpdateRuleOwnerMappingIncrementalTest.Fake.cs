@@ -84,6 +84,13 @@ namespace FWO.Test
                 StoredHistoryJson = json;
             }
 
+            /// <summary>
+            /// Lets the read of the history config entry fail, as a transient API error does. The stored
+            /// value stays readable through <see cref="StoredHistoryJson"/>, so a test can assert that a run
+            /// which could not read the entry did not write over it either.
+            /// </summary>
+            public bool FailHistoryRead { get; set; }
+
             public void AddPendingImport(long controlId, int importTypeId)
             {
                 pendingImports.Add(new ImportControl { ControlId = controlId, ImportTypeId = importTypeId });
@@ -305,6 +312,10 @@ namespace FWO.Test
 
                 if (query == ConfigQueries.getConfigItemByKey)
                 {
+                    if (FailHistoryRead)
+                    {
+                        throw new InvalidOperationException("Simulated failure while reading the rule_owner mapping run history.");
+                    }
                     result = StoredHistoryJson == null ? new List<ConfigItem>() : new List<ConfigItem> { new() { Value = StoredHistoryJson } };
                     return true;
                 }

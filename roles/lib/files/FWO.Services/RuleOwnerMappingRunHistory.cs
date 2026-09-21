@@ -368,13 +368,25 @@ namespace FWO.Services
         /// <param name="run">Run to store.</param>
         /// <returns>
         /// The stored run. It differs from the one passed in when a pending change was taken over, so the
-        /// caller has to decide about drift on the returned run rather than on its own.
+        /// caller has to decide about drift on the returned run rather than on its own. A run that could not
+        /// be stored - because the entry was unreadable and writing it would destroy what is in it - comes
+        /// back unchanged, and is then judged without whatever the entry would have said about it.
         /// </returns>
         public async Task<RuleOwnerMappingRun> Store(RuleOwnerMappingRun run)
         {
             try
             {
-                RuleOwnerMappingRunHistoryData history = await Load();
+                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                if (history == null)
+                {
+                    // saving now would replace the stored entry with a fresh one and lose every earlier run,
+                    // the failed import record and the pending change note. Dropping this one run is the
+                    // smaller loss. It is returned unchanged, so it is judged on its own - without the change
+                    // note that could not be read, which may cost a wrong drift alert once
+                    Log.WriteWarning(kLogMessageTitle, $"Full reinitialize {run.ControlId} is not recorded: the run history " +
+                        "could not be read, and writing over it would lose what is stored.");
+                    return run;
+                }
                 TakeOverPendingChanges(run, history);
 
                 // a run without findings updates "last verified correct", so a repeated rebuild cannot push
@@ -485,7 +497,14 @@ namespace FWO.Services
 
             try
             {
-                RuleOwnerMappingRunHistoryData history = await Load();
+                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                if (history == null)
+                {
+                    // without the note the next rebuild reports the intended change as drift - the same cost
+                    // the catch below accepts, and cheaper than saving over the stored entry
+                    Log.WriteError(kLogMessageTitle, "The pending rule_owner mapping changes are not recorded: the run history could not be read.");
+                    return;
+                }
                 history.PendingChanges = MergeChanges(history.PendingChanges, changes);
 
                 // the whole note is stamped, not the single change: every setting in it is still unapplied,
@@ -512,7 +531,14 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData history = await Load();
+                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                if (history == null)
+                {
+                    // same reasoning as the catch below, and the read is most likely to fail exactly here:
+                    // the imports this reports have just failed, often for the very reason the read does
+                    Log.WriteError(kLogMessageTitle, "The failed rule_owner mapping imports are not recorded: the run history could not be read.");
+                    return false;
+                }
                 bool failedBefore = failedImportControlIds.Exists(history.FailedImports.Contains);
 
                 history.FailedImports = failedImportControlIds;
@@ -537,8 +563,8 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData history = await Load();
-                if (history.FailedImports.Count == 0)
+                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                if (history == null || history.FailedImports.Count == 0)
                 {
                     return;
                 }
@@ -549,6 +575,37 @@ namespace FWO.Services
             catch (Exception ex)
             {
                 Log.WriteError(kLogMessageTitle, "Error while clearing the failed rule_owner mapping imports.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Drops the note of a saved change once the rebuild it was written for has completed.
+        /// <see cref="Store"/> does this for every rebuild that records a run; a rebuild that completes
+        /// without recording one has to call this, or the note waits for the next unrelated rebuild and
+        /// marks it as the intended change - silencing the drift alert this history exists to raise.
+        /// <para>
+        /// Dropping it has a price where such a rebuild left the stored mappings untouched: the saved
+        /// setting is then still unapplied, and a later rebuild reports its effect as drift. That is the
+        /// deliberate trade - an alert nobody needed costs less than a real deviation nobody hears about.
+        /// </para>
+        /// </summary>
+        public async Task ClearPendingChanges()
+        {
+            try
+            {
+                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                if (history == null || history.PendingChanges.Count == 0)
+                {
+                    return;
+                }
+
+                history.PendingChanges = [];
+                history.PendingChangesRecordedAt = default;
+                await Save(history);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kLogMessageTitle, "Error while clearing the pending rule_owner mapping changes.", ex);
             }
         }
 
@@ -567,10 +624,29 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Reads the stored history, runs with findings newest first.
+        /// Reads the stored history for a caller that only displays it, runs with findings newest first.
+        /// An entry that cannot be read degrades to an empty history, which is the right answer for the
+        /// monitoring page and the wrong one for anybody who writes it back - see <see cref="LoadForUpdate"/>.
         /// </summary>
         /// <returns>The stored history, empty when nothing is stored yet or the entry is unreadable.</returns>
         public async Task<RuleOwnerMappingRunHistoryData> Load()
+        {
+            return await LoadForUpdate() ?? new RuleOwnerMappingRunHistoryData();
+        }
+
+        /// <summary>
+        /// Reads the stored history for a caller that is going to write it back. <see cref="Save"/> replaces
+        /// the whole entry, so answering a read failure with an empty history would save that emptiness over
+        /// the recorded runs, the remembered failed imports and the pending change note. Telling "nothing is
+        /// stored" apart from "it could not be read" is what keeps a transient API error or an unreadable
+        /// value from destroying the entry - and the read fails most readily on the paths that run while
+        /// something is already going wrong.
+        /// </summary>
+        /// <returns>
+        /// The stored history, empty when nothing is stored yet, or <see langword="null"/> when it could not
+        /// be read - in which case the caller must not save.
+        /// </returns>
+        private async Task<RuleOwnerMappingRunHistoryData?> LoadForUpdate()
         {
             try
             {
@@ -582,7 +658,7 @@ namespace FWO.Services
             catch (Exception ex)
             {
                 Log.WriteError(kLogMessageTitle, "Error while reading the rule_owner mapping run history.", ex);
-                return new RuleOwnerMappingRunHistoryData();
+                return null;
             }
         }
 

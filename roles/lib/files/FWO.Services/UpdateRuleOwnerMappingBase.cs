@@ -126,7 +126,20 @@ namespace FWO.Services
 
             long importControlId = await CreateImportControl();
             await CompleteImportControlFullReInit(importControlId);
+            await DropPendingChangeNote();
             return true;
+        }
+
+        /// <summary>
+        /// Drops the note of a saved configuration change for a rebuild that completed without recording a
+        /// run. <see cref="RuleOwnerMappingRunHistory.Store"/> drops it for every rebuild that records one,
+        /// and the note is about the rebuild having completed rather than about it having found anything -
+        /// so a rebuild that completes and records nothing has to drop it here, or it is left for the next
+        /// unrelated rebuild to be read as the intended change.
+        /// </summary>
+        protected async Task DropPendingChangeNote()
+        {
+            await new RuleOwnerMappingRunHistory(apiConnection).ClearPendingChanges();
         }
 
         /// <summary>

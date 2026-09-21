@@ -756,12 +756,20 @@ Not supported any longer are:
   names that result as its own state rather than as a deviation, so it no longer blames the incremental
   mapping for a run the alert already attributed to the mapping source
 - rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
-  rebuild applies it, at most for a week. The configuration is written before the rebuild runs, so without
+  rebuild completes, at most for a week. The configuration is written before the rebuild runs, so without
   this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -
-  reported the intended effect of that setting as a deviation of the incremental mapping. The note expires
-  because a save that was never retried would otherwise explain away a much later rebuild and suppress the
-  deviation that one found. A run that drops an expired note says so, in its alert and on the monitoring
+  reported the intended effect of that setting as a deviation of the incremental mapping. Any completed
+  rebuild ends the note, including the two that complete without recording a run - a rebuild against an
+  empty rule base, and switching the mapping off while nothing is mapped - because a note left behind by
+  those would be read as the reason for the next unrelated rebuild and would swallow its deviation. The
+  note also expires, because a save that was never retried would otherwise explain away a much later
+  rebuild the same way. A run that drops an expired note says so, in its alert and on the monitoring
   page: the difference is reported as before, but is no longer attributed to the incremental mapping alone
+- rule owner mapping: the recorded run history is no longer lost when its config entry cannot be read.
+  The entry is written as a whole, so a read that failed - most likely on the very run that is reporting
+  a failed import - used to be answered with an empty history and then saved over the recorded runs, the
+  remembered failed imports and a pending change note. Such a run now writes nothing at all and leaves
+  the stored entry alone; the monitoring page still shows an empty history rather than an error
 - rule owner mapping: a problem that is still present is reported again and replaces its own earlier
   alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
   repeatedly failing import is exempt, because it is reported once and then repaired

@@ -474,6 +474,57 @@ namespace FWO.Test
 
         [Test]
         [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_IgnoresImmediateRequestNotification()
+        {
+            FwoNotification immediateNotification = CreateInterfaceRequestNotification(10);
+            immediateNotification.Deadline = NotificationDeadline.None;
+            DailyCheckInterfaceRequestsApiConnection apiConnection = new()
+            {
+                LdapConnections =
+                [
+                    CreateInternalTestLdap()
+                ],
+                Notifications =
+                [
+                    immediateNotification,
+                    CreateInterfaceRequestNotification(11)
+                ],
+                OpenTickets =
+                [
+                    CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }, DateTime.Now.AddDays(-1))
+                ]
+            };
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
+                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
         public async Task CheckUnansweredInterfaceRequests_LogsWarningWhenRecipientsCannotBeResolved()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = new()

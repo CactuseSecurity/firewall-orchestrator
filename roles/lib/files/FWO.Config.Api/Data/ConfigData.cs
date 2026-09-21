@@ -170,7 +170,7 @@ namespace FWO.Config.Api.Data
         public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
 
         [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
-        [Obsolete("Migrated to notification subjects in version 9.5.5.")]
+        [Obsolete("Migrated to notification subjects in version 9.5.3.")]
         public string RecCheckEmailSubject { get; set; } = "";
 
         [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
@@ -451,19 +451,19 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
         public string ModReqTaskTitle { get; set; } = "";
 
-        [Obsolete("Use notification entries with NotificationClient.AppDecomm instead.")]
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
         public string ModDecommEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
-        [Obsolete("Use notification entries with NotificationClient.AppDecomm instead.")]
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailOtherAddresses"), JsonPropertyName("modDecommEmailOtherAddresses")]
         public string ModDecommEmailOtherAddresses { get; set; } = "";
 
-        [Obsolete("Use notification entries with NotificationClient.AppDecomm instead.")]
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
         public string ModDecommEmailSubject { get; set; } = "";
 
-        [Obsolete("Use notification entries with NotificationClient.AppDecomm instead.")]
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
         public string ModDecommEmailBody { get; set; } = "";
 

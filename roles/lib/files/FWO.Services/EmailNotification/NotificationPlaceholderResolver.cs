@@ -1,6 +1,7 @@
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using System.Net;
 
 namespace FWO.Services
 {
@@ -167,12 +168,16 @@ namespace FWO.Services
                 return url;
             }
 
+            string encodedUrl = WebUtility.HtmlEncode(url);
+            string encodedDisplayText = WebUtility.HtmlEncode(displayText);
+            string encodedLinkName = WebUtility.HtmlEncode(linkName);
+
             if (string.IsNullOrWhiteSpace(linkName))
             {
-                return $"<a target=\"_blank\" href=\"{url}\">{displayText}</a>";
+                return $"<a target=\"_blank\" href=\"{encodedUrl}\">{encodedDisplayText}</a>";
             }
 
-            return $"<a target=\"_blank\" href=\"{url}\">{displayText}: {linkName}</a>";
+            return $"<a target=\"_blank\" href=\"{encodedUrl}\">{encodedDisplayText}: {encodedLinkName}</a>";
         }
     }
 }

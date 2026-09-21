@@ -231,9 +231,10 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
 
         string callerName = caller.FindFirstValue("unique_name") ?? caller.Identity?.Name ?? "";
         int callerId = JwtClaimParser.ExtractIntClaimValues(caller.Claims, "x-hasura-user-id").FirstOrDefault();
+        bool hasCallerName = !string.IsNullOrWhiteSpace(callerName);
         if (allowRequestCreator && ((callerId > 0 && ticket?.Requester?.DbId == callerId)
-            || string.Equals(ticket?.Requester?.Name, callerName, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(connection.Creator, callerName, StringComparison.OrdinalIgnoreCase)))
+            || (hasCallerName && string.Equals(ticket?.Requester?.Name, callerName, StringComparison.OrdinalIgnoreCase))
+            || (hasCallerName && string.Equals(connection.Creator, callerName, StringComparison.OrdinalIgnoreCase))))
         {
             return true;
         }

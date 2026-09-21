@@ -1136,6 +1136,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task CollectEmailAddressesFromScopedUserPrefersDnOverDuplicateUsername()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "uid=requester,ou=tenant-a,dc=test", Name = "requester", Email = "tenant-a@example.test" },
+                new() { Dn = "uid=requester,ou=tenant-b,dc=test", Name = "requester", Email = "tenant-b@example.test" }
+            });
+
+            List<string> recipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser",
+                new object?[] { "uid=requester,ou=tenant-b,dc=test", null, "requester" });
+            List<string> expectedRecipients = ["tenant-b@example.test"];
+
+            Assert.That(recipients, Is.EqualTo(expectedRecipients));
+        }
+
+        [Test]
         public async Task CollectEmailAddressesFromUserReturnsEmptyForMissingDn()
         {
             EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);

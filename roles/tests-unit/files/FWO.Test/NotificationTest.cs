@@ -36,6 +36,7 @@ namespace FWO.Test
         [Test]
         public async Task TestInterfaceRequestNotification()
         {
+            apiConnection.UpdatedNotificationIds.Clear();
             List<UserGroup> ownerGroups = [];
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new();
@@ -78,6 +79,7 @@ namespace FWO.Test
         [Test]
         public async Task UpdateNotificationsLastSent_MixedResultsUpdatesOnlyDeliveredNotification()
         {
+            apiConnection.UpdatedNotificationIds.Clear();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
             FwoNotification deliveredNotification = notificationService.Notifications[0];
@@ -517,6 +519,7 @@ namespace FWO.Test
             {
                 Assert.That(emailsSent, Is.Zero);
                 Assert.That(updatedNotifications, Is.Zero);
+                Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
             });
         }
 

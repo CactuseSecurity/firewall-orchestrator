@@ -1023,7 +1023,6 @@ namespace FWO.Test
             };
 
             await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
-
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));

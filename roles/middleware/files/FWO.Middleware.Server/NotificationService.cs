@@ -469,7 +469,8 @@ namespace FWO.Middleware.Server
             if (placeholderValues != null)
             {
                 subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
-                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues, renderHtmlLinks: true);
+                body = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(body, placeholderValues,
+                    renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
             }
             FormFile? attachment = report != null ? await BuildAttachment(notification, report, subject) : null;
             EmailHelper? emailHelper = GlobalConfig.UseDummyEmailAddress ? null : await CreateEmailHelper();

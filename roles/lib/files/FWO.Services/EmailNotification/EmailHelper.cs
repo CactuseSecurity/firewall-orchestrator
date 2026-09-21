@@ -148,7 +148,7 @@ namespace FWO.Services
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner, placeholderData);
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
-                placeholderData, renderHtmlLinks: true);
+                placeholderData, renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
             int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
@@ -547,6 +547,10 @@ namespace FWO.Services
             {
                 return [email];
             }
+            if (!string.IsNullOrWhiteSpace(dn))
+            {
+                return await CollectEmailAddressesFromUserOrGroup(dn);
+            }
             UiUser? cachedUser = uiUsers.FirstOrDefault(user =>
                 !string.IsNullOrWhiteSpace(userName)
                 && string.Equals(user.Name, userName, StringComparison.OrdinalIgnoreCase)
@@ -555,7 +559,7 @@ namespace FWO.Services
             {
                 return [cachedUser.Email!];
             }
-            return await CollectEmailAddressesFromUserOrGroup(dn);
+            return await CollectEmailAddressesFromUserOrGroup(null);
         }
 
         private async Task<List<string>> CollectEmailAddressesFromUser(UiUser? user)

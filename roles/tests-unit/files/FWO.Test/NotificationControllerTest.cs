@@ -121,6 +121,23 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task SendInterfaceRequest_RejectsEmptyCallerNameWhenStoredNamesAreEmpty()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket { Requester = new UiUser { Name = "" } }
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig(), Roles.Modeller);
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(result.Result, Is.TypeOf<ForbidResult>());
+    }
+
+    [Test]
     public async Task SendInterfaceRequest_ReturnsSuppressedWhenNoNotificationIsConfigured()
     {
         ControllerApiConnection apiConnection = new()

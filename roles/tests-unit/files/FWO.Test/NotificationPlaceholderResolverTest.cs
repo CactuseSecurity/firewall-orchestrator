@@ -55,5 +55,21 @@ namespace FWO.Test
 
             Assert.That(text, Is.EqualTo($"<a target=\"_blank\" href=\"{interfaceUrl}\">Interface Request</a>"));
         }
+
+        [Test]
+        public void ReplaceNotificationPlaceholders_EncodesHtmlLinkAttributesAndText()
+        {
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                INTERFACE_LINK,
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    InterfaceLinkText = "Interface",
+                    InterfaceLinkName = "x\"><script>alert(1)</script>",
+                    InterfaceLinkUrl = "https://example.test/interface?id=\"&mode=full"
+                },
+                renderHtmlLinks: true);
+
+            Assert.That(text, Is.EqualTo("<a target=\"_blank\" href=\"https://example.test/interface?id=&quot;&amp;mode=full\">Interface: x&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</a>"));
+        }
     }
 }

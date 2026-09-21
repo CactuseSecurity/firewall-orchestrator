@@ -22,6 +22,10 @@ namespace FWO.Test
     [Parallelizable]
     internal class ModellingConnectionHandlerDecommissionTest
     {
+        private static readonly Func<int, ReturnId[]> kInsertedConnectionReturnIds =
+            connectionId => [new ReturnId { InsertedId = connectionId }];
+        private static readonly ReturnId[] kHistoryReturnIds = [new ReturnId { AffectedRows = 1 }];
+
         [Test]
         public async Task DecommissionInterface_NotifiesAndAddsPermissionsAndSelections()
         {
@@ -183,7 +187,7 @@ namespace FWO.Test
                     int connId = GetIntVariable(variables, "connectionId");
                     AddedSelectedConnectionAppIds.Add(appId);
                     AddedSelectedConnections.Add((appId, connId));
-                    ReturnIdWrapper wrapper = new() { ReturnIds = new ReturnId[] { new ReturnId { InsertedId = connId } } };
+                    ReturnIdWrapper wrapper = new() { ReturnIds = kInsertedConnectionReturnIds(connId) };
                     return Task.FromResult((QueryResponseType)(object)wrapper);
                 }
                 if (query == ModellingQueries.removeSelectedConnection)
@@ -207,7 +211,7 @@ namespace FWO.Test
                 }
                 if (query == ModellingQueries.addHistoryEntry)
                 {
-                    ReturnIdWrapper wrapper = new() { ReturnIds = new ReturnId[] { new ReturnId { AffectedRows = 1 } } };
+                    ReturnIdWrapper wrapper = new() { ReturnIds = kHistoryReturnIds };
                     return Task.FromResult((QueryResponseType)(object)wrapper);
                 }
                 if (responseType == typeof(List<ModellingConnectionWrapper>) && query == ModellingQueries.getSelectedConnections)

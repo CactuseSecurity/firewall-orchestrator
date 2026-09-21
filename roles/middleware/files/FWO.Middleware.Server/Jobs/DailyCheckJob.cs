@@ -251,7 +251,8 @@ namespace FWO.Middleware.Server.Jobs
                 connectedLdaps,
                 OwnerGroups);
 
-            foreach (var notification in notificationService.Notifications)
+            foreach (var notification in notificationService.Notifications
+                .Where(notification => notification.Deadline == NotificationDeadline.RequestDate))
             {
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);

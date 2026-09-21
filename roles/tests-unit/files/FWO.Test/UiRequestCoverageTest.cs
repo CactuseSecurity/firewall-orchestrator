@@ -461,6 +461,52 @@ namespace FWO.Test
         }
 
         [Test]
+        public void DisplayImplTaskTable_CanActOnImplTaskInPhase_UsesInclusiveInputAndExclusiveEndBounds()
+        {
+            DisplayImplTaskTable component = new();
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, CreateMatrix(lowestInputState: 10, lowestStartedState: 12, lowestEndState: 20));
+            SetMember(component, nameof(DisplayImplTaskTable.WfHandler), handler);
+
+            MethodInfo method = GetPrivateMethod(typeof(DisplayImplTaskTable), "CanActOnImplTaskInPhase");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(method.Invoke(component, [new WfImplTask { TaskType = taskType, StateId = 9 }]), Is.EqualTo(false));
+                Assert.That(method.Invoke(component, [new WfImplTask { TaskType = taskType, StateId = 10 }]), Is.EqualTo(true));
+                Assert.That(method.Invoke(component, [new WfImplTask { TaskType = taskType, StateId = 19 }]), Is.EqualTo(true));
+                Assert.That(method.Invoke(component, [new WfImplTask { TaskType = taskType, StateId = 20 }]), Is.EqualTo(false));
+            });
+        }
+
+        [Test]
+        public void DisplayImplTaskTable_ResolveAndDisplayHelpers_HandleMissingReferences()
+        {
+            DisplayImplTaskTable component = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Implementer);
+            WfHandler handler = new() { Devices = [] };
+            SetMember(component, nameof(DisplayImplTaskTable.WfHandler), handler);
+            SetMember(component, "userConfig", userConfig);
+
+            WfImplTask implTask = new()
+            {
+                TaskType = WfTaskType.access.ToString(),
+                TicketId = 99,
+                ReqTaskId = 77,
+                DeviceId = 123
+            };
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, [implTask]), Is.Null);
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, [implTask]), Is.EqualTo(string.Empty));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, [implTask]), Is.EqualTo(string.Empty));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsAllDevicesImplTask").Invoke(component, [implTask]), Is.False);
+            });
+        }
+
+        [Test]
         public async Task DisplayImplTaskTable_CheckImplTasks_ShowsEmptyStateWhenNoDevicesAreFound()
         {
             DisplayImplTaskTable component = new();

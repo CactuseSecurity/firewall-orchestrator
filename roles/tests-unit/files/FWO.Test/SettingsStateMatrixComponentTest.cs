@@ -5,6 +5,7 @@ using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
+using System.Reflection;
 using static FWO.Test.WorkflowConfigurationComponentTestSupport;
 
 namespace FWO.Test
@@ -295,6 +296,26 @@ namespace FWO.Test
                 Assert.That(Invoke(component, "ConfigurationDisplayName", 99), Is.EqualTo(""));
                 Assert.That(Invoke(component, "TransitionGroupName", 77), Is.EqualTo(""));
             });
+        }
+
+        [Test]
+        public void StateDisplayName_CombinesStateNameAndId()
+        {
+            SettingsStateMatrix component = new();
+            SetField(component, "stateNames", new Dictionary<int, string> { [11] = "Open" });
+
+            Assert.That(Invoke(component, "StateDisplayName", 11), Is.EqualTo("Open (11)"));
+        }
+
+        [Test]
+        public void RenderExclusiveFlag_IsEmptyWithoutVisibilityGroup()
+        {
+            MethodInfo method = typeof(SettingsStateMatrix).GetMethod("RenderExclusiveFlag", BindingFlags.Static | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(typeof(SettingsStateMatrix).FullName, "RenderExclusiveFlag");
+
+            object? result = method.Invoke(null, [new StateMatrixTransitionGroup()]);
+
+            Assert.That(result?.ToString(), Is.Empty);
         }
 
         [Test]
@@ -591,6 +612,18 @@ namespace FWO.Test
 
             Assert.That(GetProperty<bool>(component, "HasUnsavedChanges"), Is.False);
             GetField<GlobalStateMatrix>(component, "actStateMatrix").GlobalMatrix[WorkflowPhases.request].Active = true;
+            Assert.That(GetProperty<bool>(component, "HasUnsavedChanges"), Is.True);
+        }
+
+        [Test]
+        public void HasUnsavedChanges_ReflectsPhaseVisibilityModeEdit()
+        {
+            SettingsStateMatrix component = ComponentWithSnapshot();
+            StateMatrix matrix = GetField<GlobalStateMatrix>(component, "actStateMatrix").GlobalMatrix[WorkflowPhases.request];
+
+            Assert.That(matrix.VisibilityMode, Is.EqualTo(PhaseVisibilityMode.AnyTask));
+            matrix.VisibilityMode = PhaseVisibilityMode.TicketState;
+
             Assert.That(GetProperty<bool>(component, "HasUnsavedChanges"), Is.True);
         }
 

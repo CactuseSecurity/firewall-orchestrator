@@ -38,6 +38,8 @@
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
+                        @if (CanActOnImplTaskInPhase(implTask))
+                        {
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
                                 @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
@@ -85,6 +87,7 @@
                                 }
                             }
                         </div>
+                        }
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -253,6 +256,11 @@
             return ticket != null && ticket.Editable;
         }
         return true;
+    }
+
+    private bool CanActOnImplTaskInPhase(WfImplTask implTask)
+    {
+        return WfHandler.CanActOnImplTaskInCurrentPhase(implTask);
     }
 
     private string GetOwnerName(WfImplTask implTask)

@@ -250,6 +250,20 @@ namespace FWO.Services.Workflow
             }
         }
 
+        public bool CanActOnReqTaskInCurrentPhase(WfReqTask reqTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(reqTask.TaskType);
+            return reqTask.StateId >= taskStateMatrix.LowestInputState
+                && reqTask.StateId < taskStateMatrix.LowestEndState;
+        }
+
+        public bool CanActOnImplTaskInCurrentPhase(WfImplTask implTask)
+        {
+            StateMatrix taskStateMatrix = StateMatrix(implTask.TaskType);
+            return implTask.StateId >= taskStateMatrix.LowestInputState
+                && implTask.StateId < taskStateMatrix.LowestEndState;
+        }
+
         public HashSet<int> GetWorkflowExclusiveVisibilityGroupIds()
         {
             HashSet<int> exclusiveVisibilityGroupIds = stateMatrixDict.Matrices.Values

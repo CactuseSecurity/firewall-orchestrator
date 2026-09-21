@@ -42,7 +42,8 @@
                                             TreeActionsTemplate="RuleTreeActionsTemplate"
                                             RowTemplate="SectionHeaderTemplate"
                                             RowTemplateSelector="context => context.Item.IsSectionHeader"
-                                             />
+                                            EnableColumnReordering="true"
+                                            EnableColumnResizing="true" />
                         </Collapse>
                     }
                 }
@@ -215,37 +216,43 @@
             "name",
             userConfig.GetText("name"),
             row => row.DisplayName,
-            row => row.DisplayName));
+            row => row.DisplayName,
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "source_zone",
             userConfig.GetText("source_zone"),
             row => RuleDisplayHtml.DisplaySourceZones(row.Rule),
-            row => string.Join(", ", row.Rule.RuleFromZones.Select(zone => zone.Content.Name))));
+            row => string.Join(", ", row.Rule.RuleFromZones.Select(zone => zone.Content.Name)),
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "source",
             userConfig.GetText("source"),
             row => _ruleDisplay?.DisplaySource(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
-            row => row.Rule.Source));
+            row => row.Rule.Source,
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "destination_zone",
             userConfig.GetText("destination_zone"),
             row => RuleDisplayHtml.DisplayDestinationZones(row.Rule),
-            row => string.Join(", ", row.Rule.RuleToZones.Select(zone => zone.Content.Name))));
+            row => string.Join(", ", row.Rule.RuleToZones.Select(zone => zone.Content.Name)),
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "destination",
             userConfig.GetText("destination"),
             row => _ruleDisplay?.DisplayDestination(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
-            row => row.Rule.Destination));
+            row => row.Rule.Destination,
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "services",
             userConfig.GetText("services"),
             row => _ruleDisplay?.DisplayServices(row.Rule, GetActLocation(), SelectedReportType) ?? string.Empty,
-            row => row.Rule.Service));
+            row => row.Rule.Service,
+            hideable: true, enableResizing: true, enableReordering: true));
 
         if (SelectedReportType == ReportType.NatRules)
         {
@@ -254,21 +261,24 @@
                 userConfig.GetText("trans_source"),
                 row => _ruleDisplay?.DisplayTranslatedSource(row.Rule, GetActLocation()) ?? string.Empty,
                 row => row.Rule.NatData.TranslatedSource ?? string.Empty,
-                "table-active"));
+                "table-active",
+                hideable: true, enableResizing: true, enableReordering: true));
 
             columns.Add(CreateMarkupColumn(
                 "trans_destination",
                 userConfig.GetText("trans_destination"),
                 row => _ruleDisplay?.DisplayTranslatedDestination(row.Rule, GetActLocation()) ?? string.Empty,
                 row => row.Rule.NatData.TranslatedDestination ?? string.Empty,
-                "table-active"));
+                "table-active",
+                hideable: true, enableResizing: true, enableReordering: true));
 
             columns.Add(CreateMarkupColumn(
                 "trans_services",
                 userConfig.GetText("trans_services"),
                 row => _ruleDisplay?.DisplayTranslatedService(row.Rule, GetActLocation()) ?? string.Empty,
                 row => row.Rule.NatData.TranslatedService ?? string.Empty,
-                "table-active"));
+                "table-active",
+                hideable: true, enableResizing: true, enableReordering: true));
         }
         else
         {
@@ -276,26 +286,30 @@
                 "action",
                 userConfig.GetText("action"),
                 row => row.Rule.Action,
-                row => row.Rule.Action));
+                row => row.Rule.Action,
+                hideable: true, enableResizing: true, enableReordering: true));
 
             columns.Add(CreateTextColumn(
                 "track",
                 userConfig.GetText("track"),
                 row => row.Rule.Track,
-                row => row.Rule.Track));
+                row => row.Rule.Track,
+                hideable: true, enableResizing: true, enableReordering: true));
         }
 
         columns.Add(CreateMarkupColumn(
             "enabled",
             userConfig.GetText("enabled"),
             row => RuleDisplayHtml.DisplayEnabled(row.Rule, GetActLocation()),
-            row => row.Rule.Disabled.ToString()));
+            row => row.Rule.Disabled.ToString(),
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateMarkupColumn(
             "enforcing_devices",
             userConfig.GetText("enforcing_devices"),
             row => RuleDisplayHtml.DisplayEnforcingGateways(row.Rule, GetActLocation(), SelectedReportType),
-            row => string.Join(", ", row.Rule.EnforcingGateways.Select(device => device.Content.Name))));
+            row => string.Join(", ", row.Rule.EnforcingGateways.Select(device => device.Content.Name)),
+            enableResizing: true, enableReordering: true));
 
         columns.Add(CreateTextColumn(
             "uid",
@@ -303,14 +317,14 @@
             row => row.Rule.Uid ?? string.Empty,
             row => row.Rule.Uid ?? string.Empty,
             "minw-200",
-            hideable: true));
+            hideable: true, enableResizing: true, enableReordering: true));
 
         columns.Add(CreateTextColumn(
             "comment",
             userConfig.GetText("comment"),
             row => row.Rule.Comment ?? string.Empty,
             row => row.Rule.Comment ?? string.Empty,
-            hideable: true));
+            hideable: true, enableResizing: true, enableReordering: true));
 
         if (!ShowLastModifiedAfterLastHit)
         {
@@ -319,7 +333,7 @@
                 LastModifiedTitle,
                 row => RuleDisplayBase.DisplayLastModified(row.Rule),
                 row => row.Rule.LastModified?.ToString("O") ?? string.Empty,
-                hideable: true));
+                hideable: true, enableResizing: true, enableReordering: true));
         }
 
         if (ShowLastHitColumn)
@@ -329,7 +343,7 @@
                 userConfig.GetText("last_hit"),
                 row => RuleDisplayHtml.DisplayLastHit(row.Rule.Metadata),
                 row => row.Rule.Metadata.LastHit?.ToString("O") ?? string.Empty,
-                "minw-80"));
+                "minw-80", enableResizing: true, enableReordering: true));
         }
 
         return columns;
@@ -341,7 +355,9 @@
         Func<RuleReportTreeRow, string> valueSelector,
         Func<RuleReportTreeRow, string> sortValueSelector,
         string? cellClass = null,
-        bool hideable = false)
+        bool hideable = false,
+        bool enableResizing = false,
+        bool enableReordering = false)
     {
         return new FancyColumn<RuleReportTreeRow>
         {
@@ -352,7 +368,10 @@
             Hideable = hideable,
             CellClass = cellClass,
             ValueSelector = valueSelector,
-            SortValueSelector = row => sortValueSelector(row)
+            SortValueSelector = row => sortValueSelector(row),
+            Resizable = enableResizing,
+            Reorderable = enableReordering,
+            MinWidth = 150
         };
     }
 
@@ -362,7 +381,9 @@
         Func<RuleReportTreeRow, string> markupSelector,
         Func<RuleReportTreeRow, string> sortValueSelector,
         string? cellClass = null,
-        bool hideable = false)
+        bool hideable = false,
+        bool enableResizing = false,
+        bool enableReordering = false)
     {
         return new FancyColumn<RuleReportTreeRow>
         {
@@ -375,7 +396,10 @@
             ValueSelector = sortValueSelector,
             SearchTextSelector = row => sortValueSelector(row),
             SortValueSelector = row => sortValueSelector(row),
-            CellTemplate = CreateMarkupCell(markupSelector)
+            CellTemplate = CreateMarkupCell(markupSelector),
+            Resizable = enableResizing,
+            Reorderable = enableReordering,
+            MinWidth = 150
         };
     }
 

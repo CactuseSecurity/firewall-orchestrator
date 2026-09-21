@@ -48,8 +48,20 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_provisioning_config_node_parent
     ON provisioning_config_node (parent_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_type_key
-    ON provisioning_config_node (node_type, object_key);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'provisioning_config_node_node_type_object_key_key'
+        AND conrelid = 'provisioning_config_node'::regclass
+    ) THEN
+        ALTER TABLE "provisioning_config_node"
+        ADD CONSTRAINT provisioning_config_node_node_type_object_key_key
+        UNIQUE ("node_type", "object_key");
+    END IF;
+END $$;
+
+DROP INDEX IF EXISTS idx_provisioning_config_node_type_key;
 
 CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key
     ON provisioning_config_value (config_key);

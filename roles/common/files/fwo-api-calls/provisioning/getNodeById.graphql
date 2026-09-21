@@ -1,0 +1,28 @@
+fragment provisioningConfigNodeScopeFields on provisioning_config_node {
+  id
+  node_type
+  object_key
+  parent_id
+  display_name
+  sort_order
+  values(order_by: {config_key: asc}) {
+    node_id
+    config_key
+    config_value
+  }
+}
+
+query getNodeById($nodeId: bigint!) {
+  provisioning_config_node(where: {id: {_eq: $nodeId}}) {
+    ...provisioningConfigNodeScopeFields
+    parent_node {
+      ...provisioningConfigNodeScopeFields
+      parent_node {
+        ...provisioningConfigNodeScopeFields
+        parent_node {
+          ...provisioningConfigNodeScopeFields
+        }
+      }
+    }
+  }
+}

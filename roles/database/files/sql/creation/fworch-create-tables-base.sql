@@ -381,7 +381,8 @@ Create table "provisioning_config_node"
 	"parent_id" BIGINT,
 	"display_name" Varchar NOT NULL Default '',
 	"sort_order" Integer,
-	primary key ("id")
+	primary key ("id"),
+	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key")
 );
 
 Create table "provisioning_config_value"

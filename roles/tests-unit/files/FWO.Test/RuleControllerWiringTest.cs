@@ -184,6 +184,39 @@ namespace FWO.Test
             ClassicAssert.AreEqual(445, service.GetProperty("portEnd").GetInt32());
         }
 
+        [TestCase(null)]
+        [TestCase(0)]
+        [TestCase(443)]
+        public void ConvertRuleList_ShouldOmitPortEndWithoutDistinctRange(int? destinationPortEnd)
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithPortAndProtocolService(destinationPortEnd: destinationPortEnd)]);
+
+            ClassicAssert.AreEqual(443, rules[0].Service[0].Port);
+            ClassicAssert.IsNull(rules[0].Service[0].PortEnd);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement service = document.RootElement.GetProperty("service")[0];
+            ClassicAssert.IsFalse(service.TryGetProperty("portEnd", out _));
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldKeepLegacyPortValueWhenServiceHasNoPort()
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithPortAndProtocolService(destinationPort: null, destinationPortEnd: 445)]);
+
+            ClassicAssert.AreEqual(-1, rules[0].Service[0].Port);
+            ClassicAssert.IsNull(rules[0].Service[0].PortEnd);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement service = document.RootElement.GetProperty("service")[0];
+            ClassicAssert.AreEqual(-1, service.GetProperty("port").GetInt32());
+            ClassicAssert.IsFalse(service.TryGetProperty("portEnd", out _));
+        }
+
         private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, UserConfig? userConfig = null)
         {
             UserConfig effectiveUserConfig = userConfig ?? CreateUserConfig();
@@ -303,7 +336,8 @@ namespace FWO.Test
             };
         }
 
-        private static Rule CreateRuleWithPortAndProtocolService()
+        private static Rule CreateRuleWithPortAndProtocolService(int? destinationPort = 443,
+            int? destinationPortEnd = 445)
         {
             return new Rule
             {
@@ -311,13 +345,13 @@ namespace FWO.Test
                 [
                     new ServiceWrapper
                     {
-                        Content = CreateServiceObject(401, "Ported Service", 443, 6, "TCP", 445)
+                        Content = CreateServiceObject(401, "Ported Service", destinationPort, 6, "TCP", destinationPortEnd)
                     }
                 ]
             };
         }
 
-        private static NetworkService CreateServiceObject(long id, string name, int destinationPort, int protocolId,
+        private static NetworkService CreateServiceObject(long id, string name, int? destinationPort, int protocolId,
             string protocol, int? destinationPortEnd = null)
         {
             return new NetworkService

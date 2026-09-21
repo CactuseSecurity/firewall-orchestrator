@@ -34,16 +34,16 @@ namespace FWO.Test
             ITrigger alphaTrigger = CreateSimpleTrigger();
             ITrigger betaTrigger = CreateCronTrigger();
             IScheduler scheduler = Substitute.For<IScheduler>();
-            scheduler.QueryJobs(Arg.Any<JobQuery>(), CancellationToken.None)
+            scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
                 .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateJobHeader(betaJob), CreateJobHeader(alphaJob))));
-            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob), CancellationToken.None)
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob && query.Take == PagedQuery.All), CancellationToken.None)
                 .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(alphaTrigger, alphaJob))));
-            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob), CancellationToken.None)
+            scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob && query.Take == PagedQuery.All), CancellationToken.None)
                 .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(betaTrigger, betaJob))));
-            scheduler.GetTrigger(alphaTrigger.Key, CancellationToken.None)
-                .Returns(_ => ValueTask.FromResult<ITrigger?>(alphaTrigger));
-            scheduler.GetTrigger(betaTrigger.Key, CancellationToken.None)
-                .Returns(_ => ValueTask.FromResult<ITrigger?>(betaTrigger));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { alphaTrigger.Key })), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([alphaTrigger]));
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { betaTrigger.Key })), CancellationToken.None)
+                .Returns(ValueTask.FromResult<List<ITrigger>>([betaTrigger]));
 
             SchedulerController controller = CreateController(scheduler, tracker);
 

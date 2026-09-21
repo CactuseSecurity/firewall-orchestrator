@@ -38,21 +38,12 @@ namespace FWO.Middleware.Server.Controllers
         public async Task<IEnumerable<SchedulerJobInfo>> GetJobs()
         {
             IScheduler scheduler = await schedulerFactory.GetScheduler();
-            PagedResult<JobHeader> jobHeaders = await scheduler.QueryJobs(new JobQuery { Group = GroupMatcher<JobKey>.AnyGroup() });
+            PagedResult<JobHeader> jobHeaders = await scheduler.QueryJobs(new JobQuery { Group = GroupMatcher<JobKey>.AnyGroup(), Take = PagedQuery.All });
 
             List<SchedulerJobInfo> jobs = [];
             foreach (JobKey jobKey in jobHeaders.Items.Select(jobHeader => jobHeader.Key).OrderBy(jk => jk.Name))
             {
-                PagedResult<TriggerHeader> triggerHeaders = await scheduler.QueryTriggers(new TriggerQuery { Job = jobKey });
-                List<ITrigger> triggers = [];
-                foreach (TriggerHeader triggerHeader in triggerHeaders.Items)
-                {
-                    ITrigger? trigger = await scheduler.GetTrigger(triggerHeader.Key);
-                    if (trigger is not null)
-                    {
-                        triggers.Add(trigger);
-                    }
-                }
+                IReadOnlyCollection<ITrigger> triggers = await scheduler.GetTriggersOfJob(jobKey);
 
                 DateTimeOffset? nextFire = triggers
                     .Select(trigger => trigger.NextFireTimeUtc)

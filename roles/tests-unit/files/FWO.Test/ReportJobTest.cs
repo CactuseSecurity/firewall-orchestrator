@@ -362,6 +362,48 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_CanceledTokenStopsBeforeProcessingSchedules()
+        {
+            ReportJobApiConnection apiConnection = new()
+            {
+                ReportSchedules =
+                [
+                    new()
+                    {
+                        Id = 17,
+                        Name = "scheduled-report",
+                        Active = true,
+                        StartTime = GetStableCurrentMinuteForTest(),
+                        RepeatInterval = SchedulerInterval.Days,
+                        RepeatOffset = 1,
+                        ScheduleOwningUser = new UiUser
+                        {
+                            DbId = 42,
+                            Name = "report-user"
+                        },
+                        Template = new ReportTemplate
+                        {
+                            Id = 7,
+                            ReportParams = new ReportParams
+                            {
+                                ReportType = (int)ReportType.TicketReport
+                            }
+                        }
+                    }
+                ],
+                LdapConnections = []
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection);
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await reportJob.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getReportSchedules));
+        }
+
+        [Test]
         public async Task GenerateReport_SwallowsInitUserEnvironmentFailure()
         {
             ReportJobApiConnection apiConnection = new()
@@ -508,6 +550,24 @@ namespace FWO.Test
         {
             return (T)(obj.GetType().GetProperty(propertyName)?.GetValue(obj)
                 ?? throw new MissingMemberException(obj.GetType().FullName, propertyName));
+        }
+
+        private static DateTime RoundDownForTest(DateTime dateTime)
+        {
+            long delta = dateTime.Ticks % TimeSpan.FromMinutes(1).Ticks;
+            return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
+        }
+
+        private static DateTime GetStableCurrentMinuteForTest()
+        {
+            DateTime now = DateTime.Now;
+            while (now.Second > 50)
+            {
+                Thread.Sleep(TimeSpan.FromMilliseconds(100));
+                now = DateTime.Now;
+            }
+
+            return RoundDownForTest(now);
         }
 
         private sealed class TestReport : ReportBase

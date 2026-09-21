@@ -255,30 +255,72 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
         foreach (var rule in result)
         {
-            var sourceObjects = FlattenRuleNetworkObjects(
-                rule.Froms.Select(source => source.Object).ToList());
-            var destObjects = FlattenRuleNetworkObjects(
-                rule.Tos.Select(dest => dest.Object).ToList());
-
-            bool isInRange = inField switch
-            {
-                FilterFields.Source => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects),
-                FilterFields.Destination => ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
-                FilterFields.Both => ipHelper.IsInRange(ipAddress, minPrefix, sourceObjects) ||
-                                     ipHelper.IsInRange(ipAddress, minPrefix, destObjects),
-                _ => throw new ArgumentException($"Invalid InField: {inField}")
-            };
-
-            bool hasPrefixViolation = ipHelper.ExceedsPrefixThreshold(minPrefix, sourceObjects) ||
-                                      ipHelper.ExceedsPrefixThreshold(minPrefix, destObjects);
-
-            if (isInRange && !hasPrefixViolation)
+            if (MatchesRuleIpFilter(rule, ipAddress, minPrefix, inField, ipHelper))
             {
                 ruleItems.Add(rule);
             }
         }
 
         return ConvertRuleList(ruleItems, userConfig);
+    }
+
+    /// <summary>
+    /// Checks the selected rule field for the IP address and both fields for minimum-prefix compliance.
+    /// </summary>
+    private static bool MatchesRuleIpFilter(Rule rule, IPAddress ipAddress, int minPrefix, string inField,
+        IpFilterHelper ipHelper)
+    {
+        switch (inField)
+        {
+            case FilterFields.Source:
+            {
+                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                    GetRuleNetworkObjects(rule, isSource: true));
+                if (sourceEvaluation != IpFilterEvaluation.Match)
+                {
+                    return false;
+                }
+
+                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
+            }
+            case FilterFields.Destination:
+            {
+                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                    GetRuleNetworkObjects(rule, isSource: false));
+                if (destinationEvaluation != IpFilterEvaluation.Match)
+                {
+                    return false;
+                }
+
+                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
+            }
+            case FilterFields.Both:
+            {
+                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                    GetRuleNetworkObjects(rule, isSource: true));
+                if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
+                {
+                    return false;
+                }
+
+                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                    GetRuleNetworkObjects(rule, isSource: false));
+                return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
+                       (sourceEvaluation == IpFilterEvaluation.Match ||
+                        destinationEvaluation == IpFilterEvaluation.Match);
+            }
+            default:
+                throw new ArgumentException($"Invalid InField: {inField}");
+        }
+    }
+
+    /// <summary>
+    /// Returns the flattened network objects with a known type from one side of a rule.
+    /// </summary>
+    private static List<NetworkObject> GetRuleNetworkObjects(Rule rule, bool isSource)
+    {
+        IEnumerable<NetworkLocation> locations = isSource ? rule.Froms : rule.Tos;
+        return FlattenRuleNetworkObjects(locations.Select(location => location.Object));
     }
 
     private static List<RuleDetail> ConvertRuleList(List<Rule> inputList, UserConfig userConfig)
@@ -430,7 +472,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         return result.ToString();
     }
 
-    private static List<NetworkObject> FlattenRuleNetworkObjects(List<NetworkObject> list)
+    private static List<NetworkObject> FlattenRuleNetworkObjects(IEnumerable<NetworkObject> list)
     {
         return NetworkObject.FlattenRuleNetworkObjects(list)
             .Where(HasType)
@@ -494,14 +536,14 @@ public sealed class IpFilterHelper
 {
     private readonly NetworkObjectRangeAnalyzer _rangeAnalyzer = new();
 
-    public bool IsInRange(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
+    public IpFilterEvaluation EvaluateField(IPAddress ipAddress, int minPrefix, List<NetworkObject> objects)
     {
-        return _rangeAnalyzer.MatchesIpFilter(ipAddress, minPrefix, objects);
+        return _rangeAnalyzer.EvaluateIpFilter(ipAddress, minPrefix, objects);
     }
 
-    public bool ExceedsPrefixThreshold(int minPrefix, List<NetworkObject> objects)
+    public bool MeetsMinimumPrefix(int minPrefix, List<NetworkObject> objects)
     {
-        return _rangeAnalyzer.ExceedsPrefixThreshold(minPrefix, objects);
+        return _rangeAnalyzer.MeetsMinimumPrefix(minPrefix, objects);
     }
 }
 

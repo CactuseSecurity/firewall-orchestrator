@@ -57,25 +57,47 @@ namespace FWO.Data.Networking
         }
 
         /// <summary>
-        /// Checks whether any supported IPv4 object contains the given IPv4 address and meets the minimum prefix length.
-        /// Unsupported objects are ignored.
+        /// Evaluates whether the supported IPv4 objects comply with the minimum prefix length and contain the given address.
+        /// A prefix violation takes precedence over an address match. Unsupported objects are ignored.
         /// </summary>
-        public bool MatchesIpFilter(IPAddress ipAddress, int minPrefix, IEnumerable<NetworkObject> objects)
+        public IpFilterEvaluation EvaluateIpFilter(IPAddress ipAddress, int minPrefix,
+            IEnumerable<NetworkObject> objects)
         {
-            return AnalyzeLazy(objects)
-                .Any(analysis =>
-                    analysis.IsSupported
-                    && analysis.PrefixLength >= minPrefix
-                    && IsIpInRange(ipAddress, analysis.Start, analysis.End));
+            return EvaluateField(ipAddress, minPrefix, objects);
         }
 
         /// <summary>
-        /// Checks whether any supported IPv4 object is broader than the supplied minimum prefix length.
+        /// Checks whether every supported IPv4 object meets the supplied minimum prefix length.
         /// </summary>
-        public bool ExceedsPrefixThreshold(int minPrefix, IEnumerable<NetworkObject> objects)
+        public bool MeetsMinimumPrefix(int minPrefix, IEnumerable<NetworkObject> objects)
         {
-            return AnalyzeLazy(objects)
-                .Any(analysis => analysis.IsSupported && analysis.PrefixLength < minPrefix);
+            return EvaluateField(null, minPrefix, objects) != IpFilterEvaluation.PrefixViolation;
+        }
+
+        private IpFilterEvaluation EvaluateField(IPAddress? ipAddress, int minPrefix,
+            IEnumerable<NetworkObject> objects)
+        {
+            bool containsIp = false;
+
+            foreach (NetworkObjectRangeAnalysis analysis in AnalyzeLazy(objects))
+            {
+                if (!analysis.IsSupported)
+                {
+                    continue;
+                }
+
+                if (analysis.PrefixLength < minPrefix)
+                {
+                    return IpFilterEvaluation.PrefixViolation;
+                }
+
+                if (ipAddress is not null && IsIpInRange(ipAddress, analysis.Start, analysis.End))
+                {
+                    containsIp = true;
+                }
+            }
+
+            return containsIp ? IpFilterEvaluation.Match : IpFilterEvaluation.NoIpMatch;
         }
 
         private IEnumerable<NetworkObjectRangeAnalysis> AnalyzeLazy(IEnumerable<NetworkObject> objects)
@@ -157,6 +179,27 @@ namespace FWO.Data.Networking
 
             return diff == 0 ? 32 : BitOperations.LeadingZeroCount(diff);
         }
+    }
+
+    /// <summary>
+    /// Describes the result of applying an IP and minimum-prefix filter to one rule field.
+    /// </summary>
+    public enum IpFilterEvaluation
+    {
+        /// <summary>
+        /// All supported objects meet the prefix requirement, but none contains the requested IP address.
+        /// </summary>
+        NoIpMatch,
+
+        /// <summary>
+        /// All supported objects meet the prefix requirement and at least one contains the requested IP address.
+        /// </summary>
+        Match,
+
+        /// <summary>
+        /// At least one supported object is broader than the minimum prefix length.
+        /// </summary>
+        PrefixViolation
     }
 
     /// <summary>

@@ -964,6 +964,13 @@ namespace FWO.Test
                     Is.LessThan(apiConnection.FirstCallIndex(NetworkZoneQueries.addPathItemsRoot)));
                 Assert.That(apiConnection.FirstCallIndex(NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeInternet),
                     Is.LessThan(apiConnection.FirstCallIndex(NetworkZoneQueries.addPathItemsInternet)));
+                // Both deletes are criterion wide, so between them and the inserts the matrix has no
+                // path data at all. HandleIpRangePaths therefore reads the ip ranges and builds both
+                // insert lists first and deletes only immediately before inserting, which keeps that
+                // round trip and the whole matching loop out of the exposed window. Nothing else states
+                // that ordering, so moving the deletes back to the top of the method has to fail here.
+                Assert.That(apiConnection.FirstCallIndex(NetworkZoneQueries.getIpRangesForMatrix),
+                    Is.LessThan(apiConnection.FirstCallIndex(NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot)));
                 Assert.That(result, Does.Contain("removed paths to root: 3"));
                 Assert.That(result, Does.Contain("removed paths to internet: 2"));
             });

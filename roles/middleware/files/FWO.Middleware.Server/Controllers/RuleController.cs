@@ -29,6 +29,7 @@ namespace FWO.Middleware.Server.Controllers;
 public class RuleController(ApiConnection apiConnection) : ControllerBase
 {
     private const int OwnerMappingIdCustomField = 2;
+    private const int UnsetPortEnd = 0;
 
     /// <summary>
     /// Returns firewall rules that match the specified filtering options.
@@ -362,7 +363,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                         Name = s.Name,
                         Protocol = s.Protocol?.Name ?? notFound,
                         Port = s.DestinationPort ?? -1,
-                        PortEnd = s.DestinationPortEnd
+                        PortEnd = NormalizePortEnd(s.DestinationPort, s.DestinationPortEnd)
                     })
                     .ToList(),
                 ServiceShort = DisplayServicesPlain(ruleServices, item.ServiceNegated, userConfig),
@@ -376,6 +377,16 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                 Time = item.RuleTimes.Where(ruleTimeObject => ruleTimeObject.TimeObj is not null).Select(ruleTimeObject => ruleTimeObject.TimeObj!.Name).ToList()
             };
         }).ToList();
+    }
+
+    /// <summary>
+    /// Returns a range end only when the service contains a distinct starting port and ending port.
+    /// </summary>
+    private static int? NormalizePortEnd(int? port, int? portEnd)
+    {
+        return port is null || portEnd is null || portEnd == UnsetPortEnd || portEnd == port
+            ? null
+            : portEnd;
     }
 
     private static string DisplaySourceOrDestinationPlain(Rule rule, bool isSource, UserConfig userConfig)

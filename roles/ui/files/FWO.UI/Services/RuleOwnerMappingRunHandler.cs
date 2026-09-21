@@ -199,5 +199,23 @@ namespace FWO.Ui.Services
                 _ => "secondary"
             };
         }
+
+        /// <summary>
+        /// Resolves the bootstrap context of one listed pair, off the state of the run rather than off the
+        /// finding alone - so a row cannot be marked as a problem while the label on it says the difference
+        /// was intended. Only a deviation is attributable to the incremental mapping; in every other state
+        /// the rows stay neutral and <see cref="GetStateStyle"/> carries whatever attention the run needs.
+        /// </summary>
+        /// <param name="state">State of the run the pair belongs to.</param>
+        /// <param name="finding">Finding to display.</param>
+        /// <returns>The bootstrap context name.</returns>
+        public static string GetFindingStyle(RuleOwnerMappingRunState state, RuleOwnerMappingFinding finding)
+        {
+            if (state != RuleOwnerMappingRunState.Drift)
+            {
+                return "secondary";
+            }
+            return finding == RuleOwnerMappingFinding.Missing ? "danger" : "warning";
+        }
     }
 }

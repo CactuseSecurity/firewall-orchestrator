@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -30,6 +31,22 @@ namespace FWO.Test
             customFieldService = new UpdateRuleOwnerMappingCustomField(null!, globalConfig);
             ipBasedService = new UpdateRuleOwnerMappingIpBased(null!, globalConfig);
             nameFieldService = new UpdateRuleOwnerMappingNameField(null!, globalConfig);
+        }
+
+        [Test]
+        public void BuildRunStartMessage_ShouldNameSourceModeAndTrigger()
+        {
+            // a scheduled run with an empty backlog logs nothing else, so this line is the only evidence
+            // that the job ran at all - it has to say which source and which mode, or it says nothing useful
+            Assert.Multiple(() =>
+            {
+                Assert.That(UpdateRuleOwnerMapping.BuildRunStartMessage(OwnerMappingSourceStm.NameField, false, false),
+                    Is.EqualTo("Starting rule_owner mapping run. Source: NameField, mode: incremental, triggered by: schedule."));
+                Assert.That(UpdateRuleOwnerMapping.BuildRunStartMessage(OwnerMappingSourceStm.IpBased, true, true),
+                    Is.EqualTo("Starting rule_owner mapping run. Source: IpBased, mode: full reinitialize, triggered by: configuration change."));
+                Assert.That(UpdateRuleOwnerMapping.BuildRunStartMessage(OwnerMappingSourceStm.Disabled, true, false),
+                    Is.EqualTo("Starting rule_owner mapping run. Source: Disabled, mode: full reinitialize, triggered by: schedule."));
+            });
         }
 
         [Test]

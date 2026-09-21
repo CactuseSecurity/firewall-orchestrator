@@ -174,10 +174,17 @@ namespace FWO.Services
         public bool HasNoFindings => AddedCount + RemovedCount == 0;
 
         /// <summary>
-        /// How this run has to be read. The single place the question is decided: the middleware raises its
-        /// drift alert off this, the monitoring page colours and labels the run off this, and the run history
-        /// keeps its entries off it. Written out separately per caller before, which let the alert and the
-        /// page contradict each other about the same run.
+        /// How this run has to be read. The single place that question is decided: the middleware raises its
+        /// drift alert off this, and the monitoring page colours and labels the run off this. Written out
+        /// separately per caller before, which let the alert and the page contradict each other about the
+        /// same run.
+        /// <para>
+        /// Whether a run is kept in the history is a different question and is deliberately not answered
+        /// here - see <see cref="RuleOwnerMappingRunHistory"/>, which asks <see cref="HasNoFindings"/> and
+        /// <see cref="TriggeredByChange"/> directly. A deliberate change without effect reads as
+        /// <see cref="RuleOwnerMappingRunState.InSync"/> and is kept all the same, so the two rules cannot
+        /// be folded into one.
+        /// </para>
         /// <para>
         /// Order matters. A backlog explains any difference on its own, so it is answered first; no
         /// difference is the strongest statement there is, whatever triggered the run; a deliberate change is

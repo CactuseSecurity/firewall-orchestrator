@@ -221,6 +221,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void GetFindingStyle_MarksThePairsOnlyOnADeviation()
+        {
+            // the label on the row reads neutrally in every state but Drift, so the badge has to as well -
+            // a red badge under "newly added" tells the operator the opposite of what the text says
+            Assert.Multiple(() =>
+            {
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.Drift,
+                    RuleOwnerMappingFinding.Missing), Is.EqualTo("danger"));
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.Drift,
+                    RuleOwnerMappingFinding.Superfluous), Is.EqualTo("warning"));
+
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.ChangeApplied,
+                    RuleOwnerMappingFinding.Missing), Is.EqualTo("secondary"),
+                    "the change was intended, so its pairs must not be marked as a problem");
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.ImportsPending,
+                    RuleOwnerMappingFinding.Missing), Is.EqualTo("secondary"),
+                    "the backlog explains the difference, so the pairs prove nothing");
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.EmptyResult,
+                    RuleOwnerMappingFinding.Superfluous), Is.EqualTo("secondary"),
+                    "the state badge already carries this problem, and it is not one of the pairs");
+                Assert.That(RuleOwnerMappingRunHandler.GetFindingStyle(RuleOwnerMappingRunState.InSync,
+                    RuleOwnerMappingFinding.Missing), Is.EqualTo("secondary"));
+            });
+        }
+
+        [Test]
         public void CurrentState_IsInSync_WhenTheNewestCheckFoundNothing()
         {
             // the listed runs are then already dealt with - without this the page would read as if the

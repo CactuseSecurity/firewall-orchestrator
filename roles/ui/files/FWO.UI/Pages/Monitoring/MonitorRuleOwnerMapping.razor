@@ -160,7 +160,7 @@ else
                 </Column>
                 <Column TableItem="RuleOwnerMappingRunEntry" Title="@(userConfig.GetText("finding"))" Field="@(x => x.Finding)" Sortable="true" Filterable="true">
                     <Template>
-                        <span class="badge text-bg-@(context.Finding == RuleOwnerMappingFinding.Missing ? "danger" : "warning")">
+                        <span class="badge text-bg-@(RuleOwnerMappingRunHandler.GetFindingStyle(State, context.Finding))">
                             @(GetFindingText(context.Finding))
                         </span>
                     </Template>

@@ -152,12 +152,48 @@ namespace FWO.Test
             UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
             await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
 
+            Assert.That(apiConnection.StoredHistoryJson, Is.Not.Null, "the run has to have been written at all");
+
+            // asserted over the property names the stored document actually carries, not over substrings of
+            // it: the derived properties have no JsonPropertyName, so dropping their JsonIgnore would write
+            // them under their CLR name and a lower-cased needle would never see them
+            using JsonDocument storedDocument = JsonDocument.Parse(apiConnection.StoredHistoryJson!);
+            List<string> propertyNames = CollectPropertyNames(storedDocument.RootElement);
+
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.StoredHistoryJson, Is.Not.Null, "the run has to have been written at all");
-                Assert.That(apiConnection.StoredHistoryJson, Does.Not.Contain("\"state\""), "State is derived, not stored");
-                Assert.That(apiConnection.StoredHistoryJson, Does.Not.Contain("hasNoFindings"), "HasNoFindings is derived, not stored");
+                Assert.That(propertyNames, Is.Not.Empty, "the stored document has to carry properties at all");
+                Assert.That(propertyNames, Has.None.EqualTo(nameof(RuleOwnerMappingRun.State)).IgnoreCase,
+                    "State is derived, not stored");
+                Assert.That(propertyNames, Has.None.EqualTo(nameof(RuleOwnerMappingRun.HasNoFindings)).IgnoreCase,
+                    "HasNoFindings is derived, not stored");
             });
+        }
+
+        /// <summary>
+        /// Collects every property name of a stored document, at any depth.
+        /// </summary>
+        /// <param name="element">Element to walk.</param>
+        /// <returns>All property names found below and including the element.</returns>
+        private static List<string> CollectPropertyNames(JsonElement element)
+        {
+            List<string> names = [];
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                foreach (JsonProperty property in element.EnumerateObject())
+                {
+                    names.Add(property.Name);
+                    names.AddRange(CollectPropertyNames(property.Value));
+                }
+            }
+            else if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement item in element.EnumerateArray())
+                {
+                    names.AddRange(CollectPropertyNames(item));
+                }
+            }
+            return names;
         }
 
         [Test]

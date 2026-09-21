@@ -151,7 +151,7 @@ namespace FWO.Middleware.Server
             // Later: Handle other channels here when implemented.
             NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText,
                 resolvedDeadline, placeholderValues);
-            if (deliveryResult == NotificationDeliveryResult.Delivered)
+            if (deliveryResult is NotificationDeliveryResult.Delivered or NotificationDeliveryResult.Suppressed)
             {
                 AddCheckedNotificationId(notification.Id);
             }
@@ -173,6 +173,11 @@ namespace FWO.Middleware.Server
             foreach (IGrouping<string, FwoNotification> notificationGroup in notifications.Where(notification => notification.Active).GroupBy(GetBundleGroupKey))
             {
                 List<FwoNotification> groupedNotifications = [.. notificationGroup];
+                List<FwoNotification> sendableNotifications = [.. groupedNotifications.Where(notification => NotificationLoggingMode.ShouldSend(notification.Logging))];
+                foreach (FwoNotification notification in groupedNotifications.Except(sendableNotifications))
+                {
+                    AddCheckedNotificationId(notification.Id);
+                }
                 if (groupedNotifications.Count == 1 || groupedNotifications[0].BundleType == null)
                 {
                     emailsSent += await SendNotification(groupedNotifications[0], owner, content, report, timeIntervalText);
@@ -184,7 +189,7 @@ namespace FWO.Middleware.Server
                 {
                     continue;
                 }
-                foreach (FwoNotification notification in groupedNotifications)
+                foreach (FwoNotification notification in sendableNotifications)
                 {
                     if (NotificationLoggingMode.ShouldSend(notification.Logging))
                     {

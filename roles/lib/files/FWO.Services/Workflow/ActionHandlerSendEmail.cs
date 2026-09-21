@@ -82,10 +82,13 @@ namespace FWO.Services.Workflow
                 {
                     ++failedEmailCount;
                 }
-                else if (deliveryResult == WorkflowEmailDeliveryResult.Delivered)
+                else if (deliveryResult is WorkflowEmailDeliveryResult.Delivered or WorkflowEmailDeliveryResult.Suppressed)
                 {
-                    ++sentEmailCount;
                     AddSentNotificationId(sentNotificationIds, actionNotification);
+                    if (deliveryResult == WorkflowEmailDeliveryResult.Delivered)
+                    {
+                        ++sentEmailCount;
+                    }
                 }
             }
             await UpdateSentNotificationTimestamps(sentNotificationIds);

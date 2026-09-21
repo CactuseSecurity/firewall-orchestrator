@@ -97,6 +97,25 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task SendInterfaceRequest_RejectsUnauthorizedCallerBeforeLifecycleValidation()
+    {
+        ModellingConnection connection = RequestedConnection();
+        connection.AddProperty(ConState.Rejected.ToString());
+        ControllerApiConnection apiConnection = new()
+        {
+            Connection = connection,
+            Ticket = new WfTicket()
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig(), Roles.Modeller,
+            "{ 7 }");
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(result.Result, Is.TypeOf<ForbidResult>());
+    }
+
+    [Test]
     public async Task SendInterfaceRequest_AllowsTheRequestCreatorWithoutTargetOwnerEditRights()
     {
         ModellingConnection connection = RequestedConnection();
@@ -128,6 +147,25 @@ internal class NotificationControllerTest
             NotificationExists = false,
             Connection = RequestedConnection(),
             Ticket = new WfTicket { Requester = new UiUser { Name = "" } }
+        };
+        NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig(), Roles.Modeller);
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(result.Result, Is.TypeOf<ForbidResult>());
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_RejectsSameUsernameWithoutMatchingUserId()
+    {
+        ModellingConnection connection = RequestedConnection();
+        connection.Creator = "modeller";
+        ControllerApiConnection apiConnection = new()
+        {
+            NotificationExists = false,
+            Connection = connection,
+            Ticket = new WfTicket { Requester = new UiUser { Name = "modeller" } }
         };
         NotificationController controller = CreateController(apiConnection, new SimulatedGlobalConfig(), Roles.Modeller);
 
@@ -435,6 +473,13 @@ internal class NotificationControllerTest
             if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketById)
             {
                 return Task.FromResult((QueryResponseType)(object)(Ticket ?? new WfTicket()));
+            }
+            if (typeof(QueryResponseType) == typeof(WfTicket) && query == RequestQueries.getTicketRequesterId)
+            {
+                return Task.FromResult((QueryResponseType)(object)new WfTicket
+                {
+                    Requester = Ticket?.Requester
+                });
             }
             if (typeof(QueryResponseType) == typeof(FwoOwner)
                 && (query == OwnerQueries.getOwnerById || query == OwnerQueries.getOwnerForNotification))

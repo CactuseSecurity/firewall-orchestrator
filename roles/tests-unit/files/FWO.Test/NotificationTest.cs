@@ -33,21 +33,26 @@ namespace FWO.Test
         private static readonly Type[] kCollectRecipientsParameterTypes =
             [typeof(FwoNotification), typeof(FwoOwner), typeof(UiUser), typeof(bool), typeof(bool)];
 
+        [SetUp]
+        public void ResetApiConnectionState()
+        {
+            apiConnection.UpdatedNotificationIds.Clear();
+        }
+
         [Test]
         public async Task TestInterfaceRequestNotification()
         {
-            apiConnection.UpdatedNotificationIds.Clear();
             List<UserGroup> ownerGroups = [];
             NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.InterfaceRequest, globalConfig, apiConnection, ownerGroups);
             FwoOwner owner = new();
             int emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
             ClassicAssert.AreEqual(0, emailsSent);
-            ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
+            ClassicAssert.AreEqual(2, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[0].LastSent = DateTime.Now.AddDays(-1);
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-8), EmailText);
             ClassicAssert.AreEqual(0, emailsSent);
-            ClassicAssert.AreEqual(0, await notificationService.UpdateNotificationsLastSent());
+            ClassicAssert.AreEqual(1, await notificationService.UpdateNotificationsLastSent());
 
             notificationService.Notifications[1].LastSent = DateTime.Now.AddDays(-8);
             emailsSent = await notificationService.SendNotificationsIfDue(owner, DateTime.Now.AddDays(-15), EmailText);
@@ -79,7 +84,6 @@ namespace FWO.Test
         [Test]
         public async Task UpdateNotificationsLastSent_MixedResultsUpdatesOnlyDeliveredNotification()
         {
-            apiConnection.UpdatedNotificationIds.Clear();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
             FwoNotification deliveredNotification = notificationService.Notifications[0];
@@ -488,19 +492,22 @@ namespace FWO.Test
         public async Task SendBundledNotifications_GroupsBundleAndTracksAllNotificationIds()
         {
             SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = true, DummyEmailAddress = "x@y.de" };
+            NotificationTestApiConn bundledApiConnection = new();
             NotificationService notificationService = await NotificationService.CreateAsync(
                 NotificationClient.InterfaceRequest,
                 localConfig,
-                new NotificationTestApiConn(),
+                bundledApiConnection,
                 new List<UserGroup>());
             FwoOwner owner = new() { Name = "Owner", ExtAppId = "1" };
 
             FwoNotification bundledA = notificationService.Notifications[0];
             bundledA.BundleType = BundleType.Attachments;
             bundledA.BundleId = "bundle-1";
+            bundledA.Logging = NotificationLoggingMode.LogOnly;
             FwoNotification bundledB = notificationService.Notifications[1];
             bundledB.BundleType = BundleType.Attachments;
             bundledB.BundleId = "bundle-1";
+            bundledB.Logging = NotificationLoggingMode.LogOnly;
             FwoNotification standalone = new()
             {
                 Id = 99,
@@ -514,12 +521,13 @@ namespace FWO.Test
             List<FwoNotification> bundledNotifications = new() { bundledA, bundledB, standalone };
             int emailsSent = await notificationService.SendBundledNotifications(bundledNotifications, owner, "body");
             int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+            List<int> expectedUpdatedNotificationIds = [bundledA.Id, bundledB.Id, standalone.Id];
 
             Assert.Multiple(() =>
             {
                 Assert.That(emailsSent, Is.Zero);
-                Assert.That(updatedNotifications, Is.Zero);
-                Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                Assert.That(updatedNotifications, Is.EqualTo(expectedUpdatedNotificationIds.Count));
+                Assert.That(bundledApiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
             });
         }
 

@@ -425,7 +425,7 @@ namespace FWO.Test
 
         [Test]
         [NonParallelizable]
-        public async Task CheckUnansweredInterfaceRequests_DoesNotUpdateLastSentForLogOnlyNotification()
+        public async Task CheckUnansweredInterfaceRequests_UpdatesLastSentForLogOnlyNotification()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = new()
             {
@@ -457,13 +457,14 @@ namespace FWO.Test
             {
                 await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                     ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                List<long> expectedUpdatedNotificationIds = [11];
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
                 });
             }
             finally
@@ -509,12 +510,13 @@ namespace FWO.Test
             {
                 await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                     ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                List<long> expectedUpdatedNotificationIds = [11];
 
                 Assert.Multiple(() =>
                 {
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
                 });
             }
             finally

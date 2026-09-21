@@ -51,7 +51,7 @@ namespace FWO.Test
             int sentEmails = await check.CheckRuleExpiry();
 
             ClassicAssert.AreEqual(0, sentEmails);
-            ClassicAssert.AreEqual(0, apiConnection.LastUpdatedNotificationIdCount);
+            ClassicAssert.AreEqual(1, apiConnection.LastUpdatedNotificationIdCount);
         }
 
         [Test]
@@ -154,7 +154,7 @@ namespace FWO.Test
             int sentEmails = await check.CheckRuleExpiry();
 
             ClassicAssert.AreEqual(0, sentEmails, "The configured rule-expiry notifications are log-only.");
-            ClassicAssert.AreEqual(0, apiConnection.LastUpdatedNotificationIdCount, "Log-only notifications must not be marked as sent.");
+            ClassicAssert.AreEqual(2, apiConnection.LastUpdatedNotificationIdCount, "Processed log-only notifications must advance last_sent.");
         }
 
         [Test]

@@ -66,7 +66,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CheckRecertifications_DoesNotCountOrMarkLogOnlyNotificationAsSent()
+        public async Task CheckRecertifications_DoesNotCountButMarksLogOnlyNotificationAsProcessed()
         {
             RecertCheckApiConnection apiConnection = new()
             {
@@ -104,7 +104,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(emailsSent, Is.Zero);
-                Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.Zero);
+                Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.EqualTo(1));
                 Assert.That(apiConnection.UpdatedOwnerIds, Is.Empty);
                 Assert.That(apiConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
             });

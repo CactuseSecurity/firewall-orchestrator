@@ -1033,7 +1033,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SendEmail_LogOnlyWritesLogWithoutUpdatingTimestampOrConfirmingSend()
+        public async Task SendEmail_LogOnlyWritesLogAndUpdatesTimestampWithoutConfirmingSend()
         {
             ActionHandlerTestApiConn apiConn = new()
             {
@@ -1067,13 +1067,14 @@ namespace FWO.Test
             };
 
             await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
+            List<int> expectedUpdatedNotificationIds = [42];
 
             Assert.Multiple(() =>
             {
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.insertNotificationLog), Is.EqualTo(1));
                 Assert.That(apiConn.Queries.Count(query => query == StmQueries.getIpProtocols), Is.EqualTo(1));
-                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.Empty);
+                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.EqualTo(expectedUpdatedNotificationIds));
                 Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.updateNotificationLog), Is.EqualTo(1));
                 Assert.That(messages, Is.Empty);
             });

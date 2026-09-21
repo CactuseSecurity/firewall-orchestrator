@@ -44,14 +44,13 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             }
 
             ModellingConnection? connection = await LoadConnection(parameters.ConnectionId);
-            if (connection is null || !connection.IsInterface || !connection.Removed || connection.AppId is not > 0)
-            {
-                return BadRequest("The decommissioned interface could not be found.");
-            }
-
-            if (!CanProcessModellingNotification(connection))
+            if (connection is null || !CanProcessModellingNotification(connection))
             {
                 return Forbid();
+            }
+            if (!connection.IsInterface || !connection.Removed || connection.AppId is not > 0)
+            {
+                return BadRequest("The decommissioned interface could not be found.");
             }
 
             ModellingConnection? replacement = null;
@@ -105,7 +104,11 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             }
 
             ModellingConnection? connection = await LoadConnection(parameters.ConnectionId);
-            if (connection is null || !connection.IsInterface || !connection.IsRequested || connection.Removed
+            if (connection is null || !await CanProcessInterfaceRequest(connection))
+            {
+                return Forbid();
+            }
+            if (!connection.IsInterface || !connection.IsRequested || connection.Removed
                 || connection.GetBoolProperty(ConState.Rejected.ToString()) || connection.TicketId is not > 0
                 || connection.ProposedAppId is not > 0)
             {
@@ -153,6 +156,23 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
             ModellingQueries.getConnectionForNotification, new { id = connectionId });
         return connections.SingleOrDefault();
+    }
+
+    private async Task<bool> CanProcessInterfaceRequest(ModellingConnection connection)
+    {
+        if (CanProcessModellingNotification(connection))
+        {
+            return true;
+        }
+
+        if (!connection.IsRequested || connection.TicketId is not > 0)
+        {
+            return false;
+        }
+
+        WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketRequesterId,
+            new { id = connection.TicketId.Value });
+        return CanProcessModellingNotification(connection, ticket, allowRequestCreator: true);
     }
 
     private static bool IsEligibleReplacement(ModellingConnection connection, ModellingConnection? replacement)
@@ -231,10 +251,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
 
         string callerName = caller.FindFirstValue("unique_name") ?? caller.Identity?.Name ?? "";
         int callerId = JwtClaimParser.ExtractIntClaimValues(caller.Claims, "x-hasura-user-id").FirstOrDefault();
-        bool hasCallerName = !string.IsNullOrWhiteSpace(callerName);
-        if (allowRequestCreator && ((callerId > 0 && ticket?.Requester?.DbId == callerId)
-            || (hasCallerName && string.Equals(ticket?.Requester?.Name, callerName, StringComparison.OrdinalIgnoreCase))
-            || (hasCallerName && string.Equals(connection.Creator, callerName, StringComparison.OrdinalIgnoreCase))))
+        if (allowRequestCreator && callerId > 0 && ticket?.Requester?.DbId == callerId)
         {
             return true;
         }

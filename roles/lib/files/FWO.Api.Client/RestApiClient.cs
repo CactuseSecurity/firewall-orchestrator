@@ -13,7 +13,19 @@ namespace FWO.Api.Client
         readonly TimeSpan? ResponseTimeout;
         readonly bool CheckCertificates;
 
-        protected RestApiClient(string baseUrl, double? timeout = null, bool checkCertificates = false)
+        /// <summary>
+        /// Creates a REST client for the given base url.
+        /// </summary>
+        /// <remarks>
+        /// Certificate checking defaults to on, so a new client is safe unless it opts out.
+        /// Clients talking to third party systems (CheckPoint, FortiManager, SecureChange)
+        /// pass false explicitly, because those appliances commonly present a self-signed
+        /// certificate that no FWO host has a reason to trust.
+        /// </remarks>
+        /// <param name="baseUrl">Base url of the REST api.</param>
+        /// <param name="timeout">Response timeout in seconds, null for the RestSharp default.</param>
+        /// <param name="checkCertificates">False accepts any server certificate.</param>
+        protected RestApiClient(string baseUrl, double? timeout = null, bool checkCertificates = true)
         {
             BaseUrl = baseUrl;
             ResponseTimeout = timeout != null ? TimeSpan.FromSeconds((double)timeout) : null;
@@ -29,9 +41,10 @@ namespace FWO.Api.Client
         private RestClient CreateRestClient(IAuthenticator? authenticator)
         {
             RestClientOptions restClientOptions = new() { Timeout = ResponseTimeout };
-            restClientOptions.RemoteCertificateValidationCallback += (requestMessage, cert, chain, sslErrors) =>
+            // Assigned, not combined: a multicast validation callback only ever returns the
+            // result of its last delegate, which silently discards a rejection made earlier.
+            restClientOptions.RemoteCertificateValidationCallback = (requestMessage, cert, chain, sslErrors) =>
             {
-                // Todo: further customization?
                 return !CheckCertificates || sslErrors == SslPolicyErrors.None;
             };
             restClientOptions.BaseUrl = new Uri(BaseUrl);

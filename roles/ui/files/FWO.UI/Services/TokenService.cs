@@ -21,6 +21,7 @@ namespace FWO.Ui.Services
         private readonly SemaphoreSlim refreshSemaphore = new(1, 1);
         private readonly SemaphoreSlim initializationSemaphore = new(1, 1);
         private const string TOKEN_PAIR_KEY = "token_pair";
+        private const int kServerErrorStatusFloor = 500;
         private bool initialized;
 
         /// <summary>
@@ -207,13 +208,26 @@ namespace FWO.Ui.Services
         /// <returns>The refreshed token pair, or the current pair if no refresh is required. Returns null on failure.</returns>
         public async Task<TokenPair?> RefreshTokenPair(bool force = false)
         {
+            return (await TryRefreshTokenPair(force)).Tokens;
+        }
+
+        /// <summary>
+        /// Refreshes the token pair and reports whether a failure settles the session.
+        /// </summary>
+        /// <param name="force">Refresh even when the current access token has not expired.</param>
+        /// <returns>
+        /// The refreshed pair, or a result whose <see cref="TokenRefreshResult.Retryable"/>
+        /// tells the caller whether the stored pair may still be good.
+        /// </returns>
+        public async Task<TokenRefreshResult> TryRefreshTokenPair(bool force = false)
+        {
             await EnsureInitializedAsync();
 
             if (currentTokenPair is null || !await HasRefreshToken())
             {
                 Log.WriteWarning("Token Refresh", "No refresh token available");
 
-                return null;
+                return TokenRefreshResult.Settled;
             }
 
             await refreshSemaphore.WaitAsync();
@@ -222,7 +236,7 @@ namespace FWO.Ui.Services
             {
                 if (!force && !await IsAccessTokenExpired())
                 {
-                    return currentTokenPair;
+                    return new TokenRefreshResult(currentTokenPair, false);
                 }
 
                 RefreshTokenRequest refreshRequest = new()
@@ -239,33 +253,50 @@ namespace FWO.Ui.Services
 
                     Log.WriteInfo("Token Refresh", "Successfully refreshed access token");
 
-                    return refreshedTokenPair;
+                    return new TokenRefreshResult(refreshedTokenPair, false);
                 }
-                else
-                {
-                    Log.WriteWarning("Token Refresh", $"Failed to refresh token: {response.ErrorMessage ?? response.Content}");
 
-                    return null;
-                }
+                bool retryable = IsRetryable(response);
+
+                Log.WriteWarning("Token Refresh", $"Failed to refresh token{(retryable ? " (retryable)" : "")}: " +
+                    $"{response.ErrorMessage ?? response.Content}");
+
+                return new TokenRefreshResult(null, retryable);
             }
             catch (TaskCanceledException)
             {
-                return null;
+                // Abandoned rather than answered, so nothing was learned about the token.
+                return TokenRefreshResult.Retry;
             }
             catch (OperationCanceledException)
             {
-                return null;
+                return TokenRefreshResult.Retry;
             }
             catch (Exception ex)
             {
                 Log.WriteError("Token Refresh", "Error refreshing access token", ex);
 
-                return null;
+                return TokenRefreshResult.Retry;
             }
             finally
             {
                 refreshSemaphore.Release();
             }
+        }
+
+        /// <summary>
+        /// Whether a failed refresh says nothing about the refresh token itself.
+        /// </summary>
+        /// <param name="response">Response the middleware returned.</param>
+        /// <returns>True when the attempt did not complete or the middleware could not carry it out.</returns>
+        private static bool IsRetryable(RestResponse response)
+        {
+            // ResponseStatus covers the cases where no HTTP answer arrived at all. A 5xx is
+            // an answer saying the middleware could not carry the request out - among them
+            // the 503 it returns when the API is unreachable. Anything else, 401 above all,
+            // is its verdict on this token and does settle the session.
+            return response.ResponseStatus != ResponseStatus.Completed
+                || (int)response.StatusCode >= kServerErrorStatusFloor;
         }
 
         private static DateTime? NormalizeTokenExpiration(DateTime expiration)

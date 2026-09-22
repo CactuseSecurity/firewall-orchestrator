@@ -312,16 +312,16 @@ class FwoApi:
             return None
 
     @staticmethod
-    def _contains_jwt_expired_error(response_body: dict[str, Any] | list[Any] | None) -> bool:
+    def _contains_jwt_expired_error(response_body: object) -> bool:
         """
         Detects a GraphQL-level "JWT expired" error, regardless of whether response_body
         is the usual {"errors": [...]} shape or a bare list of error objects.
         """
         errors: list[Any] | None
         if isinstance(response_body, dict):
-            errors = response_body.get("errors")
+            errors = cast("dict[str, Any]", response_body).get("errors")
         elif isinstance(response_body, list):
-            errors = response_body
+            errors = cast("list[Any]", response_body)
         else:
             errors = None
 
@@ -641,7 +641,9 @@ class FwoApi:
 
     def _post_query(self, session: requests.Session, query_payload: dict[str, Any]) -> dict[str, Any]:
         """
-        Posts the given payload to the api endpoint. Returns the response as json or None if the response object is None.
+        Posts the given payload to the api endpoint and returns the parsed JSON object.
+
+        Raises ValueError if the body is not JSON and FwoImporterError if it is JSON but not an object.
         """
         FWOLogger.debug(
             self.show_import_api_call_info(
@@ -659,18 +661,24 @@ class FwoApi:
         try:
             response_body = r.json()
         except ValueError:
-            response_body = None
-        if response_body is not None and self._contains_jwt_expired_error(response_body):
+            # not JSON at all - an HTTP error status explains that better than the parse failure,
+            # so report it first and only surface the ValueError for an otherwise successful response
+            r.raise_for_status()
+            raise
+
+        if self._contains_jwt_expired_error(response_body):
             raise _JwtExpiredResponseError
 
         r.raise_for_status()
 
-        if response_body is None:
-            # r.json() succeeded above only if response_body is not None; if it failed,
-            # raise_for_status() already passed, so re-attempt parsing to surface the same ValueError.
-            return r.json()
+        if not isinstance(response_body, dict):
+            # a body that parses but is not an object (a bare "null" or list, say) carries no
+            # data/errors this class can hand back - callers may only ever see a dict
+            error_txt = f"fwo_api: expected a JSON object as API response body, got {type(response_body).__name__}"
+            FWOLogger.error(error_txt)
+            raise FwoImporterError(error_txt)
 
-        return response_body
+        return cast("dict[str, Any]", response_body)
 
     def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], typ: str = "debug"):
         max_query_size_to_display = 1000

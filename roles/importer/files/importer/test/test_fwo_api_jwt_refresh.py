@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import pytest
 import requests
-from fwo_api import JWT_REFRESH_MARGIN_SECONDS, FwoApi
+from fwo_api import JWT_REFRESH_MARGIN_SECONDS, FwoApi, _JwtExpiredResponseError
 from fwo_exceptions import FwoApiLoginFailedError, FwoImporterError
 from services.enums import Lifetime, Services
 
@@ -26,14 +26,18 @@ def _make_jwt(exp: float | None) -> str:
     return f"header.{payload_b64}.signature"
 
 
+_NO_JSON_BODY = object()
+"""Marks a response whose body cannot be parsed as JSON - distinct from a body that is JSON 'null'."""
+
+
 class _FakeResponse:
-    def __init__(self, status_code: int = 200, json_data: Any = None, text: str = "") -> None:
+    def __init__(self, status_code: int = 200, json_data: Any = _NO_JSON_BODY, text: str = "") -> None:
         self.status_code = status_code
         self._json_data = json_data
         self.text = text
 
     def json(self) -> Any:
-        if self._json_data is None:
+        if self._json_data is _NO_JSON_BODY:
             raise ValueError("response has no JSON body")
         return self._json_data
 
@@ -114,11 +118,11 @@ class TestContainsJwtExpiredError:
         assert FwoApi._contains_jwt_expired_error(None) is False
 
 
-class TestPostQueryNonJsonBody:
-    """Covers _post_query()'s branch for a successful response with a non-JSON body."""
+class TestPostQueryUnusableBody:
+    """Covers _post_query()'s branches for a successful response whose body is not a JSON object."""
 
     def test_reraises_value_error_for_a_non_json_response_body(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        session = _FakeSession([_FakeResponse(200, json_data=None, text="not json")])
+        session = _FakeSession([_FakeResponse(200, text="not json")])
         _patch_session(monkeypatch, session)
         api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
 
@@ -126,6 +130,34 @@ class TestPostQueryNonJsonBody:
             api._post_query(session, {"query": "query { ok }"})
 
         assert session.calls == 1
+
+    @pytest.mark.parametrize(
+        ("json_data", "expected_type_name"),
+        [(None, "NoneType"), ([{"message": "boom"}], "list"), ("nope", "str")],
+        ids=["json_null", "bare_list", "bare_string"],
+    )
+    def test_raises_for_a_json_body_that_is_not_an_object(
+        self, monkeypatch: pytest.MonkeyPatch, json_data: Any, expected_type_name: str
+    ) -> None:
+        """A body that parses but is not a dict must not be returned - _post_query promises a dict."""
+        session = _FakeSession([_FakeResponse(200, json_data=json_data)])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+
+        with pytest.raises(
+            FwoImporterError, match=f"expected a JSON object as API response body, got {expected_type_name}"
+        ):
+            api._post_query(session, {"query": "query { ok }"})
+
+        assert session.calls == 1
+
+    def test_still_detects_an_expired_jwt_in_a_bare_list_body(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([_FakeResponse(200, json_data=[{"message": "Could not verify JWT: JWTExpired"}])])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
+
+        with pytest.raises(_JwtExpiredResponseError):
+            api._post_query(session, {"query": "query { ok }"})
 
 
 class TestRefreshJwt:

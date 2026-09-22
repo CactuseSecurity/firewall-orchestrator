@@ -149,11 +149,11 @@ Subtree deletion should not be part of the first version because the database ca
    - invalid parent/type combinations;
    - missing and duplicate nodes;
    - API failures propagating cleanly.
-6. [ ] Run an integration smoke test against Hasura to verify generated constraint names, permissions, and JSONB behavior.
+6. [x] Run an integration smoke test against Hasura to verify generated constraint names, permissions, and JSONB behavior.
 
    The opt-in test is implemented in [`ProvisioningSettingsManagerIntegrationTest.cs`](tests-unit/files/FWO.Test/ProvisioningSettingsManagerIntegrationTest.cs). It runs the same create/upsert/read/update/clear/delete lifecycle once as `fw-admin` and once as `middleware-server`, verifies enum/string/list JSONB round-trips, exercises the named node upsert constraint, and removes only its uniquely named test nodes in cleanup. It is gated by `FWO_RUN_INTEGRATION_TESTS=true`.
 
-   It could not be executed in the current session: no integration configuration was supplied, no Docker executable was available, and `127.0.0.1:9443` was not listening. This checkbox should only be marked complete after running against an installed Hasura schema.
+   It was executed successfully on 2026-09-22 against an installed Hasura schema. Both the `fw-admin` and `middleware-server` cases passed.
 
 ## Verification on 2026-09-21
 
@@ -162,6 +162,13 @@ Subtree deletion should not be part of the first version because the database ca
 - `git diff --check`: passed.
 - Static schema inspection confirms `provisioning_config_node_node_type_object_key_key` is identical in fresh-install SQL, the `9.5.99` migration, and the Hasura upsert mutation.
 - Static metadata inspection confirms full select/insert/update/delete permissions on both provisioning tables for `fw-admin` and `middleware-server`.
+
+## Live integration verification on 2026-09-22
+
+- Installed Hasura health check: **OK**; server version **v2.50.0**.
+- Focused provisioning integration test: **2 passed**, **0 failed**, **0 skipped**.
+- Both `fw-admin` and `middleware-server` completed the create/upsert/read/update/clear/delete lifecycle successfully.
+- The uniquely named smoke-test nodes were deleted by the test cleanup without error.
 
 ## Recommended initial assumptions
 

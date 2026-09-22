@@ -196,13 +196,13 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
-                if (query == ComplianceQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
+                if (query == NetworkZoneQueries.getNetworkZonesForMatrix && typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>))
                 {
                     NetworkZoneLoads++;
                     return Task.FromResult((QueryResponseType)(object)networkZones);
                 }
 
-                if (query == ComplianceQueries.addNetworkZone)
+                if (query == NetworkZoneQueries.addNetworkZone)
                 {
                     PropertyInfo? isInternetZoneProperty = variables?.GetType().GetProperty("isAutoCalculatedInternetZone");
                     PropertyInfo? isUndefinedInternalZoneProperty = variables?.GetType().GetProperty("isAutoCalculatedUndefinedInternalZone");
@@ -231,7 +231,7 @@ namespace FWO.Test
                     return Task.FromResult(default(QueryResponseType)!);
                 }
 
-                if (query == ComplianceQueries.removeNetworkZone)
+                if (query == NetworkZoneQueries.removeNetworkZone)
                 {
                     AutoCalculatedUndefinedInternalZoneRemovals++;
                     return Task.FromResult(default(QueryResponseType)!);

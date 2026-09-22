@@ -91,7 +91,7 @@ def main(
         FWOLogger.error("login response did not contain an AccessToken")
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token)
+    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token, user_management_api_base_url)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # suppress ssl warnings only

@@ -176,7 +176,7 @@ def main_loop(
         wait_with_shutdown_check(sleep_timer)
         return
 
-    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token)
+    fwo_api = FwoApi(fwo_api_base_url, jwt, refresh_token, user_management_api_base_url)
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]

@@ -48,15 +48,26 @@ class FwoApi:
     fwo_api_url: str
     fwo_jwt: str
     fwo_refresh_token: str | None
+    user_management_api_base_url: str | None
     query_info: dict[str, Any]
     query_analyzer: QueryAnalyzer
 
-    def __init__(self, api_uri: str, jwt: str, refresh_token: str | None = None) -> None:
+    def __init__(
+        self,
+        api_uri: str,
+        jwt: str,
+        refresh_token: str | None = None,
+        user_management_api_base_url: str | None = None,
+    ) -> None:
         self.fwo_api_url = api_uri
         self.fwo_jwt = jwt
         # optional: without it we can still proactively/reactively detect an expired JWT,
         # we just can't refresh it and the caller has to fall back to a full login
         self.fwo_refresh_token = refresh_token
+        # kept on the instance rather than resolved from the ServiceProvider on demand: a refresh
+        # can fall due while the container is empty (main_loop resets it after every management),
+        # and the caller that logged us in has the url anyway
+        self.user_management_api_base_url = user_management_api_base_url
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
 
@@ -264,12 +275,7 @@ class FwoApi:
             FWOLogger.debug("fwo_api: no refresh token available - cannot refresh JWT", 3)
             return False
         try:
-            service_provider = ServiceProvider()
-            # Not named fwo_config: that is the module this file imports for FWO_CONFIG_FILE,
-            # and a local of the same name would shadow it inside this method.
-            config = service_provider.get_fwo_config()
-            user_management_api_base_url = config["user_management_api_base_url"]
-            self.refresh_jwt(self.fwo_refresh_token, user_management_api_base_url)
+            self.refresh_jwt(self.fwo_refresh_token, self.user_management_api_base_url)
         except FwoApiLoginFailedError as e:
             FWOLogger.error(f"fwo_api: JWT refresh failed: {e.message}")
             return False

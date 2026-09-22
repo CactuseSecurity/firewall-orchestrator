@@ -207,29 +207,47 @@ class TestTryRefreshJwt:
         api = FwoApi(BASE_URL, "jwt", None)
         assert api._try_refresh_jwt() is False
 
-    def test_returns_true_and_updates_jwt_on_success(
-        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        _register_fwo_config(service_provider)
+    def test_returns_true_and_updates_jwt_on_success(self, monkeypatch: pytest.MonkeyPatch) -> None:
         session = _FakeSession(
             [_FakeResponse(200, text=json.dumps({"AccessToken": "new-jwt", "RefreshToken": "new-refresh"}))]
         )
         _patch_session(monkeypatch, session)
-        api = FwoApi(BASE_URL, "old-jwt", "old-refresh")
+        api = FwoApi(BASE_URL, "old-jwt", "old-refresh", BASE_URL)
+
+        assert api._try_refresh_jwt() is True
+        assert api.fwo_jwt == "new-jwt"
+        assert session.posted_urls == [REFRESH_ENDPOINT]
+
+    def test_returns_false_and_leaves_jwt_untouched_when_refresh_call_fails(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        session = _FakeSession([_FakeResponse(400, text="expired refresh token")])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "old-jwt", "old-refresh", BASE_URL)
+
+        assert api._try_refresh_jwt() is False
+        assert api.fwo_jwt == "old-jwt"
+
+    def test_refreshes_without_a_populated_service_provider(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        # main_loop resets the container after every management, so the refresh must not depend on it
+        service_provider.reset()
+        session = _FakeSession([_FakeResponse(200, text=json.dumps({"AccessToken": "new-jwt"}))])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "old-jwt", "old-refresh", BASE_URL)
 
         assert api._try_refresh_jwt() is True
         assert api.fwo_jwt == "new-jwt"
 
-    def test_returns_false_and_leaves_jwt_untouched_when_refresh_call_fails(
-        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
-    ) -> None:
-        _register_fwo_config(service_provider)
-        session = _FakeSession([_FakeResponse(400, text="expired refresh token")])
+    def test_returns_false_without_a_middleware_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        session = _FakeSession([])
         _patch_session(monkeypatch, session)
         api = FwoApi(BASE_URL, "old-jwt", "old-refresh")
 
         assert api._try_refresh_jwt() is False
         assert api.fwo_jwt == "old-jwt"
+        assert session.calls == 0
 
 
 class TestEnsureJwtFresh:

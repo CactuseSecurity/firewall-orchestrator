@@ -92,7 +92,9 @@ class TestMainRequiresAccessToken:
 
         import_mgm.main(MGM_ID)
 
-        mock_fwo_api.assert_called_once_with(FWO_CONFIG["fwo_api_base_url"], "jwt-value", None)
+        mock_fwo_api.assert_called_once_with(
+            FWO_CONFIG["fwo_api_base_url"], "jwt-value", None, FWO_CONFIG["user_management_api_base_url"]
+        )
         mock_import_management.assert_called_once()
 
     def test_constructs_fwo_api_with_both_tokens_when_present(
@@ -107,5 +109,7 @@ class TestMainRequiresAccessToken:
 
         import_mgm.main(MGM_ID)
 
-        mock_fwo_api.assert_called_once_with(FWO_CONFIG["fwo_api_base_url"], "jwt-value", "refresh-value")
+        mock_fwo_api.assert_called_once_with(
+            FWO_CONFIG["fwo_api_base_url"], "jwt-value", "refresh-value", FWO_CONFIG["user_management_api_base_url"]
+        )
         mock_import_management.assert_called_once()

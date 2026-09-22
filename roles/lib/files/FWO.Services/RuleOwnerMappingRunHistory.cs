@@ -266,6 +266,22 @@ namespace FWO.Services
     }
 
     /// <summary>
+    /// Outcome of reading the stored history: what was read, and when nothing was, why not.
+    /// </summary>
+    public class RuleOwnerMappingHistoryReadResult
+    {
+        /// <summary>
+        /// The stored history, empty when nothing is stored yet, or <see langword="null"/> when it could not
+        /// be read - in which case the caller must neither save it back nor present it as an empty history.
+        /// Set exactly when <see cref="State"/> is <see cref="RuleOwnerMappingHistoryReadState.Read"/>.
+        /// </summary>
+        public RuleOwnerMappingRunHistoryData? History { get; init; }
+
+        /// <summary>What came back, see <see cref="RuleOwnerMappingHistoryReadState"/>.</summary>
+        public RuleOwnerMappingHistoryReadState State { get; init; }
+    }
+
+    /// <summary>
     /// Keeps the results of the last full reinitialize runs in a config entry.
     /// A full reinitialize replaces every mapping, so the difference between the state before and the
     /// rebuilt state is what tells an actual change from a plain rebuild. With a healthy incremental
@@ -376,7 +392,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await Load();
+                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
                 if (history == null)
                 {
                     // saving now would replace the stored entry with a fresh one and lose every earlier run,
@@ -497,7 +513,7 @@ namespace FWO.Services
 
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await Load();
+                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
                 if (history == null)
                 {
                     // without the note the next rebuild reports the intended change as drift - the same cost
@@ -531,7 +547,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await Load();
+                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
                 if (history == null)
                 {
                     // same reasoning as the catch below, and the read is most likely to fail exactly here:
@@ -563,7 +579,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await Load();
+                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
                 if (history == null || history.FailedImports.Count == 0)
                 {
                     return;
@@ -593,7 +609,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await Load();
+                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
                 if (history == null || history.PendingChanges.Count == 0)
                 {
                     return;
@@ -627,33 +643,47 @@ namespace FWO.Services
         /// Reads the stored history, runs with findings newest first. <see cref="Save"/> replaces the whole
         /// entry, so answering a read failure with an empty history would save that emptiness over the
         /// recorded runs, the remembered failed imports and the pending change note. Telling "nothing is
-        /// stored" apart from "it could not be read" is what keeps a transient API error or an unreadable
-        /// value from destroying the entry - and the read fails most readily on the paths that run while
+        /// stored" apart from "it could not be read" is what keeps a failed fetch or an undecodable value
+        /// from destroying the entry - and the read fails most readily on the paths that run while
         /// something is already going wrong.
         /// <para>
-        /// A caller that only displays the history has to tell the two apart as well. Because no writer
-        /// saves over an entry it could not read, an unreadable one stays unreadable, and showing it as an
-        /// empty history would keep reporting "nothing was ever recorded" for as long as that lasts - on
-        /// the one page somebody would consult to find out whether the mapping is drifting.
+        /// A caller that only displays the history has to tell the two apart as well, and it needs the
+        /// finer distinction the writers do not: a fetch that failed leaves a healthy entry behind and may
+        /// succeed on the next try, while a value that cannot be decoded stays that way - no writer saves
+        /// over it - and stops the recording until somebody resets the entry. The two therefore call for
+        /// opposite responses, and telling a user to reset the entry is only right for the second.
         /// </para>
         /// </summary>
-        /// <returns>
-        /// The stored history, empty when nothing is stored yet, or <see langword="null"/> when it could not
-        /// be read - in which case the caller must neither save it back nor present it as an empty history.
-        /// </returns>
-        public async Task<RuleOwnerMappingRunHistoryData?> Load()
+        /// <returns>The outcome of the read, see <see cref="RuleOwnerMappingHistoryReadResult"/>.</returns>
+        public async Task<RuleOwnerMappingHistoryReadResult> Load()
         {
+            string? storedValue;
             try
             {
                 List<ConfigItem>? configItems = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey, new { key = kConfigKey });
-                string? storedValue = configItems?.FirstOrDefault()?.Value;
-
-                return string.IsNullOrWhiteSpace(storedValue) ? new RuleOwnerMappingRunHistoryData() : Deserialize(storedValue);
+                storedValue = configItems?.FirstOrDefault()?.Value;
             }
             catch (Exception ex)
             {
-                Log.WriteError(kLogMessageTitle, "Error while reading the rule_owner mapping run history.", ex);
-                return null;
+                Log.WriteError(kLogMessageTitle, "Error while fetching the rule_owner mapping run history. " +
+                    "The stored entry is untouched and the next read may succeed.", ex);
+                return new RuleOwnerMappingHistoryReadResult { State = RuleOwnerMappingHistoryReadState.NotFetched };
+            }
+
+            if (string.IsNullOrWhiteSpace(storedValue))
+            {
+                return new RuleOwnerMappingHistoryReadResult { History = new RuleOwnerMappingRunHistoryData(), State = RuleOwnerMappingHistoryReadState.Read };
+            }
+
+            try
+            {
+                return new RuleOwnerMappingHistoryReadResult { History = Deserialize(storedValue), State = RuleOwnerMappingHistoryReadState.Read };
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kLogMessageTitle, "Error while decoding the rule_owner mapping run history. Nothing is recorded " +
+                    $"until the config entry {kConfigKey} is reset.", ex);
+                return new RuleOwnerMappingHistoryReadResult { State = RuleOwnerMappingHistoryReadState.NotDecoded };
             }
         }
 

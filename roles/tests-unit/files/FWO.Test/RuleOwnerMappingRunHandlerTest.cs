@@ -33,9 +33,19 @@ namespace FWO.Test
             };
         }
 
-        private static RuleOwnerMappingRunHistoryData History(params RuleOwnerMappingRun[] runsWithFindings)
+        private static RuleOwnerMappingHistoryReadResult Read(RuleOwnerMappingRunHistoryData history)
         {
-            return new RuleOwnerMappingRunHistoryData { RunsWithFindings = runsWithFindings.ToList() };
+            return new RuleOwnerMappingHistoryReadResult { History = history, State = RuleOwnerMappingHistoryReadState.Read };
+        }
+
+        private static RuleOwnerMappingHistoryReadResult NotRead(RuleOwnerMappingHistoryReadState state)
+        {
+            return new RuleOwnerMappingHistoryReadResult { State = state };
+        }
+
+        private static RuleOwnerMappingHistoryReadResult History(params RuleOwnerMappingRun[] runsWithFindings)
+        {
+            return Read(new RuleOwnerMappingRunHistoryData { RunsWithFindings = runsWithFindings.ToList() });
         }
 
         [Test]
@@ -43,11 +53,11 @@ namespace FWO.Test
         {
             // the clean run must never be pushed out by newer findings - it answers "last verified correct"
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData
             {
                 LastRunWithoutFindings = Run(99),
                 RunsWithFindings = [Run(30, added: 1)]
-            });
+            }));
 
             Assert.Multiple(() =>
             {
@@ -61,7 +71,7 @@ namespace FWO.Test
         public void SelectedRun_IsNull_WhenNothingWasRecordedYet()
         {
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData());
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData()));
 
             Assert.Multiple(() =>
             {
@@ -252,11 +262,11 @@ namespace FWO.Test
             // the listed runs are then already dealt with - without this the page would read as if the
             // findings were current, because the history never shows the clean runs
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData
             {
                 LastRunWithoutFindings = Run(50, runMinute: 37),
                 RunsWithFindings = [Run(45, added: 13, runMinute: 36)]
-            });
+            }));
 
             Assert.Multiple(() =>
             {
@@ -269,11 +279,11 @@ namespace FWO.Test
         public void CurrentState_IsDrift_WhenAFindingFollowedTheLastCleanCheck()
         {
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData
             {
                 LastRunWithoutFindings = Run(50, runMinute: 30),
                 RunsWithFindings = [Run(55, added: 2, runMinute: 40)]
-            });
+            }));
 
             Assert.Multiple(() =>
             {
@@ -296,11 +306,11 @@ namespace FWO.Test
         {
             // a deliberate change makes the result differ on purpose, so the banner must not read as a problem
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData
             {
                 LastRunWithoutFindings = Run(50, runMinute: 30),
                 RunsWithFindings = [Run(55, added: 13, triggeredByChange: true, runMinute: 40)]
-            });
+            }));
 
             Assert.That(handler.CurrentState, Is.EqualTo(RuleOwnerMappingRunState.ChangeApplied));
         }
@@ -318,7 +328,7 @@ namespace FWO.Test
         public void CurrentState_IsNull_WhenNothingWasRecordedAtAll()
         {
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData());
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData()));
 
             Assert.That(handler.CurrentState, Is.Null);
         }
@@ -339,7 +349,7 @@ namespace FWO.Test
             // "nothing was recorded" is not a state of a run. Answering it with one - ImportsPending renders
             // as a warning - would report a problem that nobody observed
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData());
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData()));
 
             Assert.That(handler.GetSelectedState(), Is.Null);
         }
@@ -347,11 +357,11 @@ namespace FWO.Test
         [Test]
         public void Init_ReportsTheHistoryAsUnreadable_WhenItCouldNotBeRead()
         {
-            // an unreadable entry is never written over, so it stays unreadable and nothing is recorded
-            // meanwhile. Rendered as an empty history the page would keep answering "no deviation was ever
-            // found", which is the one answer it must not give
+            // an unreadable entry is never written over, so nothing is recorded meanwhile. Rendered as an
+            // empty history the page would keep answering "no deviation was ever found", which is the one
+            // answer it must not give
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(null);
+            handler.Init(NotRead(RuleOwnerMappingHistoryReadState.NotDecoded));
 
             Assert.Multiple(() =>
             {
@@ -364,12 +374,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void UnreadableHistoryText_AsksForAReset_OnlyWhenTheStoredValueIsTheProblem()
+        {
+            // a fetch that failed leaves a healthy entry behind, so telling the user to reset it would
+            // destroy the recorded history over a failure that may already be gone
+            RuleOwnerMappingRunHandler handler = new();
+
+            handler.Init(NotRead(RuleOwnerMappingHistoryReadState.NotFetched));
+            string unfetched = handler.UnreadableHistoryText;
+
+            handler.Init(NotRead(RuleOwnerMappingHistoryReadState.NotDecoded));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(unfetched, Is.EqualTo(RuleOwnerMappingRunHandler.kUnfetchedHistoryText));
+                Assert.That(handler.UnreadableHistoryText, Is.EqualTo(RuleOwnerMappingRunHandler.kUndecodedHistoryText));
+                Assert.That(handler.HistoryUnreadable, Is.True, "both are unreadable, they only differ in what to do about it");
+            });
+        }
+
+        [Test]
         public void Init_DoesNotReportTheHistoryAsUnreadable_WhenNothingWasRecordedYet()
         {
             // the state the page has to tell apart from the one above: readable, and empty because nothing
             // has run yet
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(new RuleOwnerMappingRunHistoryData());
+            handler.Init(Read(new RuleOwnerMappingRunHistoryData()));
 
             Assert.Multiple(() =>
             {
@@ -381,9 +411,10 @@ namespace FWO.Test
         [Test]
         public void Init_ClearsTheUnreadableFlag_WhenAReadSucceedsAfterAFailedOne()
         {
-            // the transient case: the page is reloaded and the entry comes back, so the notice has to go
+            // the case a failed fetch is expected to end in: the page is reloaded and the entry comes back,
+            // so the notice has to go
             RuleOwnerMappingRunHandler handler = new();
-            handler.Init(null);
+            handler.Init(NotRead(RuleOwnerMappingHistoryReadState.NotFetched));
 
             handler.Init(History(Run(10, added: 1)));
 

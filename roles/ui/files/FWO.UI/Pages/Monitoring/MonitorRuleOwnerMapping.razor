@@ -21,13 +21,14 @@
 }
 else
 {
-    @* an entry that could not be read is never written over, so it stays unreadable and nothing is
-       recorded meanwhile. Shown as the empty history it decodes to, this page would answer "no deviation
-       was ever found" for as long as that lasts *@
+    @* an entry that could not be read is never written over, so nothing is recorded meanwhile. Shown as the
+       empty history it would decode to, this page would answer "no deviation was ever found" for as long as
+       that lasts. A failed fetch and an undecodable value say that for different lengths of time and are
+       repaired by opposite means, so the handler picks the text *@
     @if (Handler.HistoryUnreadable)
     {
         <div class="alert alert-danger">
-            @(userConfig.GetText(RuleOwnerMappingRunHandler.kUnreadableHistoryText))
+            @(userConfig.GetText(Handler.UnreadableHistoryText))
         </div>
     }
 
@@ -182,9 +183,6 @@ else
 
 @code
 {
-    [CascadingParameter]
-    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
-
     private readonly RuleOwnerMappingRunHandler Handler = new();
     private bool InitComplete = false;
 
@@ -194,13 +192,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Load reports a failed read through its result rather than by throwing, and the banner above says
+        // what it came back with - so there is nothing here to catch
         try
         {
             Handler.Init(await new RuleOwnerMappingRunHistory(apiConnection).Load());
-        }
-        catch (Exception exception)
-        {
-            DisplayMessageInUi(exception, userConfig.GetText("rule_owner_mapping_runs"), "", true);
         }
         finally
         {

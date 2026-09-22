@@ -771,7 +771,10 @@ Not supported any longer are:
   remembered failed imports and a pending change note. Such a run now writes nothing at all and leaves
   the stored entry alone. Because nothing writes over it either, an entry that stays unreadable stops the
   recording altogether, so the monitoring page now says so instead of showing the empty history it would
-  otherwise decode to - which would read as "no deviation was ever found"
+  otherwise decode to - which would read as "no deviation was ever found". The page tells the two ways a
+  read can fail apart, because they are repaired by opposite means: an entry that could only not be
+  fetched is untouched and is often back on the next attempt, while a stored value that cannot be decoded
+  stays that way until it is reset - and only the latter says so
 - rule owner mapping: a problem that is still present is reported again and replaces its own earlier
   alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
   repeatedly failing import is exempt, because it is reported once and then repaired

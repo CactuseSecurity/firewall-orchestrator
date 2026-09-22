@@ -1,5 +1,6 @@
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Enums;
 using FWO.Services;
 using FWO.Services.EventMediator.Events;
 using NUnit.Framework;
@@ -117,33 +118,71 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Load_ShouldAnswerNull_WhenItCouldNotBeRead()
+        public async Task Load_ShouldReportAFailedFetch_WithoutTheHistory()
         {
             // an empty history would be indistinguishable from "nothing recorded yet" - and because no
-            // writer saves over an entry it could not read, that state lasts until somebody resets the entry
+            // writer saves over an entry it could not read, nothing is recorded meanwhile
             RuleOwnerMappingFake apiConnection = new();
             apiConnection.SeedStoredHistoryJson(SeededHistoryJson());
             apiConnection.FailHistoryRead = true;
 
-            RuleOwnerMappingRunHistoryData? history = await new RuleOwnerMappingRunHistory(apiConnection).Load();
+            RuleOwnerMappingHistoryReadResult readResult = await new RuleOwnerMappingRunHistory(apiConnection).Load();
 
-            Assert.That(history, Is.Null);
+            Assert.Multiple(() =>
+            {
+                Assert.That(readResult.History, Is.Null);
+                Assert.That(readResult.State, Is.EqualTo(RuleOwnerMappingHistoryReadState.NotFetched),
+                    "the stored value was never reached, so it is untouched and must not be reported as damaged");
+            });
+        }
+
+        [Test]
+        public async Task Load_ShouldReportAnUndecodableValue_ApartFromAFailedFetch()
+        {
+            // the two are repaired by opposite means: this one lasts until the entry is reset, a failed
+            // fetch may be gone on the next read - so only this one may ask a user to reset the entry
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("{\"runsWithFindings\": [ truncated");
+
+            RuleOwnerMappingHistoryReadResult readResult = await new RuleOwnerMappingRunHistory(apiConnection).Load();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(readResult.History, Is.Null);
+                Assert.That(readResult.State, Is.EqualTo(RuleOwnerMappingHistoryReadState.NotDecoded));
+                Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("{\"runsWithFindings\": [ truncated"),
+                    "a read must not repair the entry by overwriting it");
+            });
         }
 
         [Test]
         public async Task Load_ShouldAnswerAnEmptyHistory_WhenNothingIsStoredYet()
         {
-            // the counterpart of the test above: nothing stored is a readable answer and stays one
+            // the counterpart of the two tests above: nothing stored is a readable answer and stays one
             RuleOwnerMappingFake apiConnection = new();
 
-            RuleOwnerMappingRunHistoryData? history = await new RuleOwnerMappingRunHistory(apiConnection).Load();
+            RuleOwnerMappingHistoryReadResult readResult = await new RuleOwnerMappingRunHistory(apiConnection).Load();
 
             Assert.Multiple(() =>
             {
-                Assert.That(history, Is.Not.Null);
-                Assert.That(history!.RunsWithFindings, Is.Empty);
-                Assert.That(history.LastRunWithoutFindings, Is.Null);
+                Assert.That(readResult.State, Is.EqualTo(RuleOwnerMappingHistoryReadState.Read));
+                Assert.That(readResult.History, Is.Not.Null);
+                Assert.That(readResult.History!.RunsWithFindings, Is.Empty);
+                Assert.That(readResult.History.LastRunWithoutFindings, Is.Null);
             });
+        }
+
+        [Test]
+        public async Task Store_ShouldNotWriteOverTheEntry_WhenItsValueCouldNotBeDecoded()
+        {
+            // the F36 protection has to hold for the second read failure too: the entry that cannot be
+            // decoded is exactly the one a save would replace with a fresh, empty document
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("not json at all");
+
+            await new RuleOwnerMappingRunHistory(apiConnection).Store(new RuleOwnerMappingRun { ControlId = 9 });
+
+            Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("not json at all"));
         }
 
         [Test]

@@ -54,8 +54,11 @@ namespace FWO.Ui.Services
         /// <summary>Text key shown while no full reinitialize has been recorded yet.</summary>
         public const string kNoHistoryText = "U7551";
 
-        /// <summary>Text key shown when the stored history exists but could not be read.</summary>
-        public const string kUnreadableHistoryText = "E7550";
+        /// <summary>Text key shown when the stored history could not be fetched, which may pass by itself.</summary>
+        public const string kUnfetchedHistoryText = "E7550";
+
+        /// <summary>Text key shown when the stored history was fetched but its value could not be decoded.</summary>
+        public const string kUndecodedHistoryText = "E7551";
 
         /// <summary>Recorded runs that found a difference, newest first.</summary>
         public List<RuleOwnerMappingRun> Runs { get; private set; } = [];
@@ -70,12 +73,24 @@ namespace FWO.Ui.Services
         public int SelectedIndex { get; private set; }
 
         /// <summary>
-        /// True when the stored entry could not be read, as opposed to nothing having been recorded yet.
-        /// The two look identical on the page and mean the opposite: no writer saves over an entry it could
-        /// not read, so an unreadable one stays unreadable and nothing is recorded while it does. Presenting
-        /// that as "no deviation was ever found" is the one answer this page must not give.
+        /// What the read of the stored entry came back with. An entry that could not be read and one that is
+        /// empty because nothing has run yet look identical on the page and mean the opposite: no writer
+        /// saves over an entry it could not read, so nothing is recorded while that lasts. Presenting it as
+        /// "no deviation was ever found" is the one answer this page must not give.
         /// </summary>
-        public bool HistoryUnreadable { get; private set; }
+        public RuleOwnerMappingHistoryReadState ReadState { get; private set; } = RuleOwnerMappingHistoryReadState.Read;
+
+        /// <summary>True when the stored entry could not be read, whichever way it failed.</summary>
+        public bool HistoryUnreadable => ReadState != RuleOwnerMappingHistoryReadState.Read;
+
+        /// <summary>
+        /// Text key describing the read failure. A fetch that failed leaves a healthy entry behind and may
+        /// well succeed on the next attempt, while a value that cannot be decoded stays that way until the
+        /// entry is reset - so only the latter may tell the user to reset it.
+        /// </summary>
+        public string UnreadableHistoryText => ReadState == RuleOwnerMappingHistoryReadState.NotDecoded
+            ? kUndecodedHistoryText
+            : kUnfetchedHistoryText;
 
         /// <summary>Run currently shown, or <see langword="null"/> when nothing was recorded yet.</summary>
         public RuleOwnerMappingRun? SelectedRun => SelectedIndex < Runs.Count ? Runs[SelectedIndex] : null;
@@ -108,12 +123,12 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Takes over the recorded history and shows the newest run that found a difference.
         /// </summary>
-        /// <param name="history">History as it is stored, or <see langword="null"/> when it could not be read.</param>
-        public void Init(RuleOwnerMappingRunHistoryData? history)
+        /// <param name="readResult">What the read of the stored entry came back with.</param>
+        public void Init(RuleOwnerMappingHistoryReadResult readResult)
         {
-            HistoryUnreadable = history == null;
-            Runs = history?.RunsWithFindings ?? [];
-            LastRunWithoutFindings = history?.LastRunWithoutFindings;
+            ReadState = readResult.State;
+            Runs = readResult.History?.RunsWithFindings ?? [];
+            LastRunWithoutFindings = readResult.History?.LastRunWithoutFindings;
             SelectedIndex = 0;
         }
 

@@ -119,6 +119,8 @@ namespace FWO.Test
                 Assert.That(failures.FailedBefore, Is.False, "without the stored state a repeat cannot be asserted");
                 Assert.That(failures.RepairBlockedUntilReset, Is.False,
                     "the stored value was never reached, so the next read may well succeed and repair one run late");
+                Assert.That(failures.WriteFailed, Is.False,
+                    "no save was attempted, and this case keeps its own answer instead of being reported as a failed write");
             });
         }
 
@@ -137,6 +139,7 @@ namespace FWO.Test
             {
                 Assert.That(failures.FailedBefore, Is.False);
                 Assert.That(failures.RepairBlockedUntilReset, Is.True);
+                Assert.That(failures.WriteFailed, Is.False, "the entry is deliberately not written over, which is not a write that failed");
                 Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("{\"runsWithFindings\": [ truncated"),
                     "reporting the problem must not repair it by overwriting the entry");
             });
@@ -159,10 +162,31 @@ namespace FWO.Test
             {
                 Assert.That(failures.FailedBefore, Is.True, "the stored entry named this import and the failing save does not unsay it");
                 Assert.That(failures.RepairBlockedUntilReset, Is.False, "the entry is readable, so the repair is not waiting on a reset");
+                Assert.That(failures.WriteFailed, Is.True, "the save failed, and the caller has to know this run is not remembered");
                 Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo(storedBefore),
                     "the entry keeps the ids it had, which is what lets the next run read the same repeat");
             });
         }
+
+        [Test]
+        public async Task RecordFailedImports_ShouldReportTheFailedWrite_WhenNothingWasRememberedBefore()
+        {
+            // the entry holds nothing about this import, so the failing save leaves no repeat for any later
+            // run to read. Answering "not seen before" alone would look like an ordinary first failure
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.FailHistoryWrite = true;
+
+            List<long> failedImports = [kSeededFailedImportId];
+            RuleOwnerMappingFailedImportsResult failures = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures.WriteFailed, Is.True, "the save failed, so this failure never reaches the next run");
+                Assert.That(failures.FailedBefore, Is.False, "nothing was stored about this import before");
+                Assert.That(failures.RepairBlockedUntilReset, Is.False, "the entry is readable, so it does not have to be reset");
+            });
+        }
+
 
         [Test]
         public async Task Load_ShouldReportAFailedFetch_WithoutTheHistory()

@@ -300,6 +300,16 @@ namespace FWO.Services
         /// merely failed this once does not set this: there the repair is one run late, not unavailable.
         /// </summary>
         public bool RepairBlockedUntilReset { get; init; }
+
+        /// <summary>
+        /// True when the stored history was read but this run's ids could not be written back to it. The
+        /// next run therefore reads whatever was in the entry before, not what this run saw. That costs a
+        /// run where the entry already named these imports - <see cref="FailedBefore"/> is then true and
+        /// the repair runs anyway - but where it did not, the repeat can never be established: every run
+        /// reads the same entry, computes "not seen before" and repairs nothing. So the caller has to
+        /// report it rather than treat it as an ordinary first failure.
+        /// </summary>
+        public bool WriteFailed { get; init; }
     }
 
     /// <summary>
@@ -573,8 +583,15 @@ namespace FWO.Services
         /// A failing save is a third case. What this run read is still true, so a repeat it recognized is
         /// reported even though writing the ids back failed - the decision belongs to the read, not to the
         /// write. Dropping it would switch the repair off for as long as the writes keep failing, which is
-        /// the outage of an undecodable entry without anything reporting it. The entry that could not be
-        /// written keeps the ids it had, so the next run reads the same repeat.
+        /// the outage of an undecodable entry without anything reporting it.
+        /// </para>
+        /// <para>
+        /// That only carries a repeat the entry already held, though. Where the writes were already failing
+        /// when the first failure came in, the entry holds nothing about it and no later run can read one
+        /// either: every run computes "not seen before" and the repair never arms, exactly as it does for an
+        /// undecodable entry. A failed save is therefore reported as well, through
+        /// <see cref="RuleOwnerMappingFailedImportsResult.WriteFailed"/>, so the caller can say that this
+        /// run will not be remembered instead of presenting it as an ordinary first failure.
         /// </para>
         /// </summary>
         /// <param name="failedImportControlIds">Control ids of the imports that failed on this run.</param>
@@ -582,6 +599,7 @@ namespace FWO.Services
         public async Task<RuleOwnerMappingFailedImportsResult> RecordFailedImports(List<long> failedImportControlIds)
         {
             bool failedBefore = false;
+            bool writeFailed = false;
             try
             {
                 RuleOwnerMappingHistoryReadResult readResult = await Load();
@@ -605,10 +623,12 @@ namespace FWO.Services
             {
                 // this run's ids are not remembered, but what it read before the save still holds, so a
                 // repeat it recognized is reported rather than dropped. The entry keeps the ids it had,
-                // which is what lets the next run read the same repeat
+                // which is what lets the next run read the same repeat - where there was nothing to keep,
+                // no later run can read one either, which is what writeFailed tells the caller
+                writeFailed = true;
                 Log.WriteError(kLogMessageTitle, "Error while recording the failed rule_owner mapping imports.", ex);
             }
-            return new RuleOwnerMappingFailedImportsResult { FailedBefore = failedBefore };
+            return new RuleOwnerMappingFailedImportsResult { FailedBefore = failedBefore, WriteFailed = writeFailed };
         }
 
         /// <summary>

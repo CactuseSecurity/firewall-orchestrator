@@ -27,6 +27,14 @@ namespace FWO.Services
         protected const int RuleOwnerInsertBatchSize = 500;
 
         protected const string LogMessageTitle = "Update rule_owner Notifier";
+
+        /// <summary>
+        /// Where the run history actually lives. An alert that asks for the entry to be reset or for its
+        /// write access to be checked is only actionable if it says where to go, and there is no UI action
+        /// for either - so the alert has to carry the location itself.
+        /// </summary>
+        private const string kHistoryEntryLocation = "the row with config_user = 0 in table config.";
+
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
 
@@ -646,6 +654,14 @@ namespace FWO.Services
                 return await ReportUnrepairableImports(failedIds);
             }
 
+            if (failures.WriteFailed && !failures.FailedBefore)
+            {
+                // nothing about this failure reaches the next run, so the repeat below is never established.
+                // Checked after FailedBefore is known, because a repeat the entry already held survives a
+                // failing save and is repaired right here rather than reported as unrepairable
+                return await ReportUnrecordableImports(failedIds);
+            }
+
             if (!failures.FailedBefore)
             {
                 // raised on the state change only. This is the one condition that can repeat on every run, so
@@ -685,10 +701,42 @@ namespace FWO.Services
         {
             Log.WriteError(LogMessageTitle, $"Rule owner mapping failed for import_control {failedIds} and cannot be repaired: " +
                 $"the run history in config entry '{RuleOwnerMappingRunHistory.kConfigKey}' cannot be decoded, so a repeated " +
-                "failure is never recognized. Resetting the entry restores the repair.");
+                "failure is never recognized. Resetting the entry restores the repair: clear its config_value in " +
+                kHistoryEntryLocation);
             await RaiseAlert("Rule owner mapping cannot repair a failing import: the run history in config entry " +
-                $"'{RuleOwnerMappingRunHistory.kConfigKey}' cannot be decoded and has to be reset. " +
-                "The affected imports are named in the middleware log.");
+                $"'{RuleOwnerMappingRunHistory.kConfigKey}' cannot be decoded and has to be reset - clear its config_value in " +
+                kHistoryEntryLocation + " The affected imports are named in the middleware log.");
+            return false;
+        }
+
+        /// <summary>
+        /// Reports a failing import whose repeat can never be established, because this run's ids could not
+        /// be written to the run history. The next run reads whatever the entry held before, which says
+        /// nothing about this failure, so the repair keyed off a repeat is never reached - the same outage as
+        /// an undecodable entry, with the write side as its cause. Rebuilding on the first failure instead
+        /// would recompute every mapping on every run for as long as the writes keep failing, so the
+        /// condition is reported and left to the admin.
+        /// <para>
+        /// A repeat the entry already held is not this case: it survives the failing save, and
+        /// <see cref="HandleFailedImports"/> repairs on it before reaching here.
+        /// </para>
+        /// <para>
+        /// The description names neither the imports nor the write error, for the reason given on
+        /// <see cref="ReportUnrepairableImports"/>: <see cref="RaiseAlert"/> recognizes a repeat by the exact
+        /// text. The details go into the log instead.
+        /// </para>
+        /// </summary>
+        /// <param name="failedIds">Control ids of the failing imports, for the log.</param>
+        /// <returns>Always false - nothing was repaired.</returns>
+        private async Task<bool> ReportUnrecordableImports(string failedIds)
+        {
+            Log.WriteError(LogMessageTitle, $"Rule owner mapping failed for import_control {failedIds} and cannot be repaired: " +
+                $"the run history in config entry '{RuleOwnerMappingRunHistory.kConfigKey}' could not be written, so this failure " +
+                "is not remembered and a repeat is never recognized. See the error logged above for what the write failed on.");
+            await RaiseAlert("Rule owner mapping cannot repair a failing import: the run history in config entry " +
+                $"'{RuleOwnerMappingRunHistory.kConfigKey}' could not be written, so the failure is not remembered. " +
+                "Check the middleware's write access to " + kHistoryEntryLocation +
+                " The affected imports are named in the middleware log.");
             return false;
         }
 

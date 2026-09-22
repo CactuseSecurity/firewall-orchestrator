@@ -29,6 +29,9 @@ namespace FWO.Test
         private const long kRuleId = 101;
         private const int kOwnerId = 1;
 
+        /// <summary>Marks the alert raised when a failing import cannot be remembered, so no repeat is ever read.</summary>
+        private const string kUnrecordableAlertMarker = "could not be written";
+
         private static GlobalConfig CustomFieldConfig()
         {
             return new GlobalConfig { CustomFieldOwnerKey = kCustomFieldOwnerKey };
@@ -493,6 +496,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldReportThatItCannotRemember_WhenTheHistoryCannotBeWrittenAtAll()
+        {
+            // the writes fail before the first failure is recorded, so no run ever reads a repeat and the
+            // rebuild is never reached. Reporting it is what keeps that from being silent
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+            apiConnection.FailHistoryWrite = true;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(0),
+                    "no repeat can be established, so the rebuild the repair relies on is never reached");
+                Assert.That(apiConnection.RaisedAlerts.Count(description => description.Contains(kUnrecordableAlertMarker)), Is.EqualTo(2),
+                    "the condition persists, so each run reports it rather than passing as an ordinary first failure");
+                Assert.That(apiConnection.OpenAlerts.Count(description => description.Contains(kUnrecordableAlertMarker)), Is.EqualTo(1),
+                    "the description is constant, so the repeats do not pile up as open alerts");
+                Assert.That(apiConnection.RaisedAlerts, Has.Some.Contains("config_user = 0"),
+                    "the alert has to say where the entry is, because no screen offers to fix it");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldStillRepair_WhenTheRepeatCouldNotBeWrittenBack()
         {
             // the first failure was recorded, so the second run reads the repeat. Forfeiting it because
@@ -512,6 +543,8 @@ namespace FWO.Test
                 Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(1),
                     "the repeat came from the read, so the failing write does not disarm the repair");
                 Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
+                Assert.That(apiConnection.RaisedAlerts, Has.None.Contains(kUnrecordableAlertMarker),
+                    "the repair ran, so the failing write is not reported as one that prevented it");
             });
         }
 

@@ -736,63 +736,19 @@ Not supported any longer are:
 - new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries of that ticket which are marked as audit proof critical, meaning a content change made in a user session by someone other than the requester. It is available to admins and auditors and reports change time, change user name, change user id and the recorded change text, newest first. The change user id is the trustworthy attribution, as the change user name is free text supplied by the writer of the change; it stays empty for changes made by automation. Change times carry the wall clock of the installation and no offset, because the underlying column is timezone naive. A ticketId that names no workflow ticket is answered with 404 and the error message "Workflow ticket with 'ticketId' <id> does not exist." instead of an empty changes list, so a mistyped or already deleted ticket id cannot be read as a ticket without audit proof critical changes; an existing ticket without such changes, or one whose changes the supplied filter excludes, still answers 200 with an empty list.
 
 ## 9.5.3 - 17.09.2026
-- rule owner mapping: an owner import no longer blocks the incremental processing permanently. Rebuilding
-  the mappings of a newly created owner collided with the partial unique index on rule_owner, because the
-  on_conflict clause covers the primary key only; mappings that are still active are now skipped before
-  the insert. The resulting error is also no longer reported as a successful run
-- rule owner mapping: a failing import no longer holds up the imports behind it, and failures raise an
-  alert instead of only a log line
-- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize, which
-  recomputes every mapping and completes the stuck import. Without it a persistently failing import would
-  keep its changes unapplied indefinitely, because the healthy imports drain and the pending backlog never
-  reaches the threshold that triggers the fallback
-- rule owner mapping: that repair needs the previous failure to be remembered, so a run history whose
-  stored value cannot be decoded would switch it off silently - nothing saves over such an entry, so every
-  run is answered "not seen before" and the second failure never arrives. This is now told apart from a
-  read that merely failed once, where the repair is one run late rather than gone: the blocked repair is
-  reported as its own alert naming the entry to reset, instead of raising the ordinary failure alert and
-  waiting for a repeat that can no longer happen. Rebuilding on the first failure instead was rejected,
-  because it would recompute every mapping on every run for as long as both conditions last
-- rule owner mapping: the same repair also survives a run history that cannot be written. A run that read
-  a repeated failure now reports it even when writing the ids back fails, instead of answering "not seen
-  before" and forfeiting the rebuild for as long as the writes keep failing. The decision belongs to the
-  read: the entry that could not be written keeps the ids it had, so the next run reads the same repeat
-- rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
-  reports the empty result as an alert, instead of aborting and leaving the previous state in place.
-  This applies to a source that stops matching, not to a run that found no rule base at all: without
-  a rule there is nothing to judge, so the stored mappings are kept, no run is recorded and no alert is
-  raised. Which of the two it is, is decided by counting the active rules rather than by the result of
-  the mapping query, because that query is narrowed to the rules its source can map. An installation
-  without rules therefore no longer reports an empty mapping result on every run. The monitoring page
-  names that result as its own state rather than as a deviation, so it no longer blames the incremental
-  mapping for a run the alert already attributed to the mapping source
-- rule owner mapping: a mapping setting that was saved while its rebuild failed is remembered until a
-  rebuild completes, at most for a week. The configuration is written before the rebuild runs, so without
-  this the next rebuild - the manual recalculation, the backlog fallback or the repair of a failing import -
-  reported the intended effect of that setting as a deviation of the incremental mapping. Any completed
-  rebuild ends the note, including the two that complete without recording a run - a rebuild against an
-  empty rule base, and switching the mapping off while nothing is mapped - because a note left behind by
-  those would be read as the reason for the next unrelated rebuild and would swallow its deviation. The
-  note also expires, because a save that was never retried would otherwise explain away a much later
-  rebuild the same way. A run that drops an expired note says so, in its alert and on the monitoring
-  page: the difference is reported as before, but is no longer attributed to the incremental mapping alone
-- rule owner mapping: the recorded run history is no longer lost when its config entry cannot be read.
-  The entry is written as a whole, so a read that failed - most likely on the very run that is reporting
-  a failed import - used to be answered with an empty history and then saved over the recorded runs, the
-  remembered failed imports and a pending change note. Such a run now writes nothing at all and leaves
-  the stored entry alone. Because nothing writes over it either, an entry that stays unreadable stops the
-  recording altogether, so the monitoring page now says so instead of showing the empty history it would
-  otherwise decode to - which would read as "no deviation was ever found". The page tells the two ways a
-  read can fail apart, because they are repaired by opposite means: an entry that could only not be
-  fetched is untouched and is often back on the next attempt, while a stored value that cannot be decoded
-  stays that way until it is reset - and only the latter says so
-- rule owner mapping: a problem that is still present is reported again and replaces its own earlier
-  alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
-  repeatedly failing import is exempt, because it is reported once and then repaired
-- rule owner mapping: new setting for the log level of mapping issues, so installations with many
-  unmappable legacy rules no longer get one message per rule on every run
-- rule owner mapping: the result of the last full reinitialize runs is kept in the config entry
-  ruleOwnerMappingRunHistory and shown on the new page monitoring/rule_owner_mapping, including which
-  rules were affected and whether a deliberate change, a pending import backlog or a real deviation
-  caused the difference
+- rule owner mapping: an owner import no longer collides with the unique index on rule_owner and no longer
+  blocks the incremental processing; a failed run is no longer reported as a successful one
+- rule owner mapping: a failing import no longer holds up the imports behind it and raises an alert
+- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize. Where the run
+  history the repair relies on cannot be read or written, the blocked repair is reported as its own alert
+  naming the config entry and where to reset it
+- rule owner mapping: a full reinitialize that matches no rule removes the obsolete mappings and alerts,
+  instead of leaving the previous state in place. Without any rule base the stored mappings are kept
+- rule owner mapping: a mapping setting saved while its rebuild failed is remembered for up to a week, so
+  the next rebuild no longer reports its intended effect as a deviation
+- rule owner mapping: a run history entry that cannot be read is no longer written over, and the monitoring
+  page says so instead of showing it as an empty history
+- rule owner mapping: new page monitoring/rule_owner_mapping shows the last full reinitialize runs, the
+  affected rules and what caused a difference
+- rule owner mapping: new setting for the log level of mapping issues
 - rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area

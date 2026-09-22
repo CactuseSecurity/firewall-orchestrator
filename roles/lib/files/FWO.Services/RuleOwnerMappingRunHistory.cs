@@ -282,6 +282,25 @@ namespace FWO.Services
     }
 
     /// <summary>
+    /// Outcome of remembering the imports that failed on a run.
+    /// </summary>
+    public class RuleOwnerMappingFailedImportsResult
+    {
+        /// <summary>
+        /// True if at least one of the reported imports had already failed on the previous run. False when
+        /// nothing could be remembered at all, because the previous run is then simply unknown.
+        /// </summary>
+        public bool FailedBefore { get; init; }
+
+        /// <summary>
+        /// True when the history stays unreadable until its config entry is reset, so a repeated failure is
+        /// never recognized and the repair keyed off <see cref="FailedBefore"/> can never run. A read that
+        /// merely failed this once does not set this: there the repair is one run late, not unavailable.
+        /// </summary>
+        public bool RepairBlockedUntilReset { get; init; }
+    }
+
+    /// <summary>
     /// Keeps the results of the last full reinitialize runs in a config entry.
     /// A full reinitialize replaces every mapping, so the difference between the state before and the
     /// rebuilt state is what tells an actual change from a plain rebuild. With a healthy incremental
@@ -540,34 +559,45 @@ namespace FWO.Services
         /// Remembers which imports failed and reports whether any of them had already failed on the previous
         /// run. The repair path keys off this instead of an open alert, so acknowledging the alert - the
         /// normal response to one - cannot disarm the repair of a persistently failing import.
+        /// <para>
+        /// A read that failed only this time is answered with "not seen before": that delays the repair by
+        /// one run, while the opposite would rebuild everything on a single transient failure. A stored
+        /// value that cannot be decoded is not that case. No writer saves over it, so it stays undecodable,
+        /// every later run is answered the same way and the repair is switched off for good rather than
+        /// postponed. That one is reported separately, so the caller can say so instead of waiting for a
+        /// repeat it can never be told about.
+        /// </para>
         /// </summary>
         /// <param name="failedImportControlIds">Control ids of the imports that failed on this run.</param>
-        /// <returns>True if at least one of them had already failed on the previous run.</returns>
-        public async Task<bool> RecordFailedImports(List<long> failedImportControlIds)
+        /// <returns>What could be remembered, see <see cref="RuleOwnerMappingFailedImportsResult"/>.</returns>
+        public async Task<RuleOwnerMappingFailedImportsResult> RecordFailedImports(List<long> failedImportControlIds)
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = (await Load()).History;
-                if (history == null)
+                RuleOwnerMappingHistoryReadResult readResult = await Load();
+                if (readResult.History == null)
                 {
                     // same reasoning as the catch below, and the read is most likely to fail exactly here:
                     // the imports this reports have just failed, often for the very reason the read does
                     Log.WriteError(kLogMessageTitle, "The failed rule_owner mapping imports are not recorded: the run history could not be read.");
-                    return false;
+                    return new RuleOwnerMappingFailedImportsResult
+                    {
+                        RepairBlockedUntilReset = readResult.State == RuleOwnerMappingHistoryReadState.NotDecoded
+                    };
                 }
-                bool failedBefore = failedImportControlIds.Exists(history.FailedImports.Contains);
+                bool failedBefore = failedImportControlIds.Exists(readResult.History.FailedImports.Contains);
 
-                history.FailedImports = failedImportControlIds;
-                await Save(history);
-                return failedBefore;
+                readResult.History.FailedImports = failedImportControlIds;
+                await Save(readResult.History);
+                return new RuleOwnerMappingFailedImportsResult { FailedBefore = failedBefore };
             }
             catch (Exception ex)
             {
-                // without the stored state the run cannot tell a repeated failure from a first one. Reporting
+                // the save failed, so the next run cannot tell a repeated failure from a first one. Reporting
                 // "not seen before" only delays the repair by one run, while the opposite would rebuild
                 // everything on a single transient failure
                 Log.WriteError(kLogMessageTitle, "Error while recording the failed rule_owner mapping imports.", ex);
-                return false;
+                return new RuleOwnerMappingFailedImportsResult();
             }
         }
 

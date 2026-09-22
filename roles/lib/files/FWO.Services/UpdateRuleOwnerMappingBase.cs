@@ -639,9 +639,14 @@ namespace FWO.Services
 
             // the run history, not the alert, decides whether this is a repeat: an alert stops being open as
             // soon as somebody acknowledges it, which would leave a permanently failing import unrepaired
-            bool failedBefore = await history.RecordFailedImports(failedImportControlIds);
+            RuleOwnerMappingFailedImportsResult failures = await history.RecordFailedImports(failedImportControlIds);
 
-            if (!failedBefore)
+            if (failures.RepairBlockedUntilReset)
+            {
+                return await ReportUnrepairableImports(failedIds);
+            }
+
+            if (!failures.FailedBefore)
             {
                 // raised on the state change only. This is the one condition that can repeat on every run, so
                 // alerting per run would leave one acknowledged alert per run behind - see RaiseAlert
@@ -660,6 +665,31 @@ namespace FWO.Services
                 await history.ClearFailedImports();
             }
             return repaired;
+        }
+
+        /// <summary>
+        /// Reports a failing import that cannot be repaired because the stored run history cannot be decoded.
+        /// Nothing saves over such an entry, so the repeat the repair waits for is never recognized and the
+        /// rebuild below it is never reached. Rebuilding on the first failure instead would recompute every
+        /// mapping on every run for as long as both conditions last, which costs more than the stuck import,
+        /// so the condition is reported and left to the admin - resetting the entry restores the repair.
+        /// <para>
+        /// The description names neither the imports nor a count, because this repeats on every run and
+        /// <see cref="RaiseAlert"/> recognizes a repeat by the exact text: anything varying from run to run
+        /// would leave one acknowledged alert per run behind. The ids go into the log instead.
+        /// </para>
+        /// </summary>
+        /// <param name="failedIds">Control ids of the failing imports, for the log.</param>
+        /// <returns>Always false - nothing was repaired.</returns>
+        private async Task<bool> ReportUnrepairableImports(string failedIds)
+        {
+            Log.WriteError(LogMessageTitle, $"Rule owner mapping failed for import_control {failedIds} and cannot be repaired: " +
+                $"the run history in config entry '{RuleOwnerMappingRunHistory.kConfigKey}' cannot be decoded, so a repeated " +
+                "failure is never recognized. Resetting the entry restores the repair.");
+            await RaiseAlert("Rule owner mapping cannot repair a failing import: the run history in config entry " +
+                $"'{RuleOwnerMappingRunHistory.kConfigKey}' cannot be decoded and has to be reset. " +
+                "The affected imports are named in the middleware log.");
+            return false;
         }
 
         /// <summary>

@@ -103,7 +103,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task RecordFailedImports_ShouldReportNoRepeat_WhenTheHistoryCouldNotBeRead()
+        public async Task RecordFailedImports_ShouldReportNoRepeat_WhenTheHistoryCouldNotBeFetched()
         {
             // reporting "not seen before" delays the repair by one run; the opposite would rebuild
             // everything on a single transient failure
@@ -112,9 +112,34 @@ namespace FWO.Test
             apiConnection.FailHistoryRead = true;
 
             List<long> failedImports = [kSeededFailedImportId];
-            bool failedBefore = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
+            RuleOwnerMappingFailedImportsResult failures = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
 
-            Assert.That(failedBefore, Is.False, "without the stored state a repeat cannot be asserted");
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures.FailedBefore, Is.False, "without the stored state a repeat cannot be asserted");
+                Assert.That(failures.RepairBlockedUntilReset, Is.False,
+                    "the stored value was never reached, so the next read may well succeed and repair one run late");
+            });
+        }
+
+        [Test]
+        public async Task RecordFailedImports_ShouldReportTheRepairAsBlocked_WhenTheStoredValueCannotBeDecoded()
+        {
+            // nothing saves over an undecodable entry, so every later run would be answered "not seen
+            // before" too and the repair would never run at all - that is not a delay, it is an outage
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("{\"runsWithFindings\": [ truncated");
+
+            List<long> failedImports = [kSeededFailedImportId];
+            RuleOwnerMappingFailedImportsResult failures = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures.FailedBefore, Is.False);
+                Assert.That(failures.RepairBlockedUntilReset, Is.True);
+                Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("{\"runsWithFindings\": [ truncated"),
+                    "reporting the problem must not repair it by overwriting the entry");
+            });
         }
 
         [Test]

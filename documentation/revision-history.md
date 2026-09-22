@@ -746,6 +746,13 @@ Not supported any longer are:
   recomputes every mapping and completes the stuck import. Without it a persistently failing import would
   keep its changes unapplied indefinitely, because the healthy imports drain and the pending backlog never
   reaches the threshold that triggers the fallback
+- rule owner mapping: that repair needs the previous failure to be remembered, so a run history whose
+  stored value cannot be decoded would switch it off silently - nothing saves over such an entry, so every
+  run is answered "not seen before" and the second failure never arrives. This is now told apart from a
+  read that merely failed once, where the repair is one run late rather than gone: the blocked repair is
+  reported as its own alert naming the entry to reset, instead of raising the ordinary failure alert and
+  waiting for a repeat that can no longer happen. Rebuilding on the first failure instead was rejected,
+  because it would recompute every mapping on every run for as long as both conditions last
 - rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
   reports the empty result as an alert, instead of aborting and leaving the previous state in place.
   This applies to a source that stops matching, not to a run that found no rule base at all: without

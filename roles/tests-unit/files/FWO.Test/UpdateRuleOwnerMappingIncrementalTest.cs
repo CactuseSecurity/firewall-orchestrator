@@ -442,6 +442,57 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldReportTheBlockedRepair_WhenTheHistoryCannotBeDecoded()
+        {
+            // the repair above waits for a repeat that an undecodable entry can never report, because no
+            // writer saves over it. Without saying so the import would stay stuck for good behind an alert
+            // that only names the first failure
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("not json at all");
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(0),
+                    "rebuilding every run for as long as both conditions last costs more than the stuck import");
+                Assert.That(apiConnection.OpenAlerts, Has.Exactly(1).Contains("has to be reset"),
+                    "the admin is told what to do, and the constant text keeps it to one open alert per run");
+                Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("not json at all"),
+                    "reporting the problem must not repair it by overwriting the entry");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldRepairAgain_OnceTheUndecodableHistoryWasReset()
+        {
+            // the alert asks for a reset, so the run after one has to be back to the normal repair - the
+            // whole point of naming the remedy
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedStoredHistoryJson("not json at all");
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            apiConnection.SeedStoredHistoryJson("");
+            await service.RunAsync();
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(1), "the repeated failure triggers the rebuild again");
+                Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldStillRepair_WhenTheAlertWasAcknowledgedInBetween()
         {
             // acknowledging an alert is the normal response to it and must not disarm the repair: the run

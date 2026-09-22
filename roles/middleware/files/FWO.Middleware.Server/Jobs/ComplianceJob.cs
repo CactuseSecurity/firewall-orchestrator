@@ -35,11 +35,17 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
                 await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
+                cancellationToken.ThrowIfCancellationRequested();
                 await complianceCheck.PersistDataAsync();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ComplianceJob)} stopped.");
             }
             catch (Exception exc)
             {

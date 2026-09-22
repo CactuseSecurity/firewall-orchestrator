@@ -37,9 +37,11 @@ namespace FWO.Middleware.Server.Jobs
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using (ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig))
                 {
                     List<string> failedRequests = await externalRequestSender.Run();
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     if (failedRequests.Count > 0)
                     {
@@ -48,6 +50,10 @@ namespace FWO.Middleware.Server.Jobs
 
                     Log.WriteDebug(LogMessageTitle, "Job completed successfully");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ExternalRequestJob)} stopped.");
             }
             catch (Exception exc)
             {

@@ -44,36 +44,48 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 HashSet<DailyCheckModule> enabledModules = LoadEnabledModules();
 
                 if (enabledModules.Contains(DailyCheckModule.DemoData))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckDemoData();
                 }
                 if (enabledModules.Contains(DailyCheckModule.Imports))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckImports();
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertRefresh) && globalConfig.RecRefreshDaily)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await RefreshRecert();
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertCheck))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckRecerts();
                 }
                 if (enabledModules.Contains(DailyCheckModule.UnansweredInterfaceRequests))
                 {
-                    await CheckUnansweredInterfaceRequests();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckUnansweredInterfaceRequestsCore(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RuleExpiryCheck))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckRuleExpiry();
                 }
                 if (enabledModules.Contains(DailyCheckModule.OwnerActiveRules))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckOwnerActiveRules();
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(DailyCheckJob)} stopped.");
             }
             catch (Exception exc)
             {
@@ -234,7 +246,12 @@ namespace FWO.Middleware.Server.Jobs
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckUnansweredInterfaceRequests()
+        private Task CheckUnansweredInterfaceRequests()
+        {
+            return CheckUnansweredInterfaceRequestsCore(CancellationToken.None);
+        }
+
+        private async Task CheckUnansweredInterfaceRequestsCore(CancellationToken cancellationToken)
         {
             int emailsSent = 0;
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
@@ -253,6 +270,7 @@ namespace FWO.Middleware.Server.Jobs
 
             foreach (var notification in notificationService.Notifications)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
@@ -260,6 +278,7 @@ namespace FWO.Middleware.Server.Jobs
                     repeatInterval);
                 foreach (var ticket in unansweredTickets)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if (owner == null)
                     {

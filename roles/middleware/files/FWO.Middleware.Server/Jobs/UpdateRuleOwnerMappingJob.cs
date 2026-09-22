@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Services;
 using Quartz;
 
@@ -33,8 +34,13 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 UpdateRuleOwnerMapping updateRuleOwnerMapping = new(apiConnection, globalConfig);
                 await updateRuleOwnerMapping.Run();
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(UpdateRuleOwnerMappingJob)} stopped.");
             }
             catch (Exception exc)
             {

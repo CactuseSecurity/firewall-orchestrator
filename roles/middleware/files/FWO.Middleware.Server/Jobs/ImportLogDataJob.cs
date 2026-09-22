@@ -22,12 +22,18 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 LogDataImport import = new(apiConnection, globalConfig);
                 List<string> failedImports = await import.Run();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (failedImports.Count > 0)
                 {
                     throw new ProcessingFailedException($"{LogMessageTitle} failed for {string.Join(", ", failedImports)}.");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ImportLogDataJob)} stopped.");
             }
             catch (Exception exception)
             {

@@ -37,19 +37,21 @@ namespace FWO.Middleware.Server.Jobs
         /// <inheritdoc />
         public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            await VarianceAnalysis();
+            await VarianceAnalysis(cancellationToken);
         }
 
-        private async Task VarianceAnalysis()
+        private async Task VarianceAnalysis(CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 ExtStateHandler extStateHandler = new(apiConnection);
                 ModellingVarianceAnalysis? varianceAnalysis = null;
                 using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
 
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
-                ReportBase? report = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", new() { ReportType = (int)ReportType.Connections, ModellingFilter = new() { SelectedOwners = owners } }), apiConnection, userConfig, DefaultInit.DoNothing);
+                cancellationToken.ThrowIfCancellationRequested();
+                ReportBase? report = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", new() { ReportType = (int)ReportType.Connections, ModellingFilter = new() { SelectedOwners = owners } }), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
                 if (report == null || report.ReportData.OwnerData.Count == 0)
                 {
                     Log.WriteInfo(LogMessageTitle, "No data found.");
@@ -57,12 +59,17 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 foreach (OwnerConnectionReport owner in report.ReportData.OwnerData)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
                     if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))
                     {
                         Log.WriteError(LogMessageTitle, $"Variance Analysis failed for owner {owner.Name}.");
                     }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(VarianceAnalysisJob)} stopped.");
             }
             catch (Exception exc)
             {

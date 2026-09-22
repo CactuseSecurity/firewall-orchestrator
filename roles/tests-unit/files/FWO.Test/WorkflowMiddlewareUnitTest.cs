@@ -549,13 +549,15 @@ namespace FWO.Test
 
                 Assert.Multiple(() =>
                 {
-                    // reported as success: the transition did happen and its actions did run, so an
-                    // accidental double submit must not surface as a failed promote
+                    // the state change itself did happen, so the promote does not fail - throwing would
+                    // turn an accidental double submit into an error
                     Assert.That(executed.Success, Is.True);
                     Assert.That(executed.ErrorMessage, Is.Null.Or.Empty);
-                    Assert.That(executed.Messages.Select(message => message.Message),
-                        Has.Some.Contains("already been executed"));
-                    Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.False);
+                    // but the caller is told, because a refusal is not always a replay: a state change
+                    // that persisted without its actions leaves a record the next promote runs into,
+                    // and whoever asked for it has to see that its side effects did not run
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.True,
+                        "a refused claim must reach the caller rather than being swallowed");
                     Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.claimStateChangeExecution), Is.EqualTo(1),
                         "the claim is the single decision point and must be attempted exactly once");
                 });
@@ -585,7 +587,7 @@ namespace FWO.Test
             };
 
             bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
-                apiConnection, parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
 
             object variables = apiConnection.LastStateChangeClaimVariables!;
 
@@ -702,7 +704,7 @@ namespace FWO.Test
             };
 
             return await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
-                apiConnection, parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
         }
 
         /// <summary>
@@ -724,7 +726,7 @@ namespace FWO.Test
             };
 
             bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
-                apiConnection, parameters, WfObjectScopes.Ticket, new WfTicket { Id = 42 }, new WorkflowActionResult());
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, new WfTicket { Id = 42 }, new WorkflowActionResult());
 
             Assert.Multiple(() =>
             {

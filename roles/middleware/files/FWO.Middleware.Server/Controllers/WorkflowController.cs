@@ -203,7 +203,7 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
-            if (!await TryClaimStateChangeExecution(actionApiConnection, parameters, scope, ticket, result))
+            if (!await TryClaimStateChangeExecution(actionApiConnection, userConfig, parameters, scope, ticket, result))
             {
                 return result;
             }
@@ -397,21 +397,26 @@ namespace FWO.Middleware.Server.Controllers
         /// inside the middleware - the external request chain promotes request tasks without ever
         /// reaching this endpoint. A stale record would turn a legitimate move back into a state the
         /// object had left into a refusal, and this method reports a refusal as success.
-        /// An already claimed transition is reported as success rather than as an error: the
-        /// transition did happen and its actions did run, so the caller has the outcome it asked for,
-        /// and an accidental double submit must not surface as a failed promote.
+        /// A refused claim does not fail the promote - the state change itself did happen, and
+        /// throwing would turn an accidental double submit into an error - but it is reported to the
+        /// caller as a warning rather than swallowed. The claim compares the state the object stands
+        /// in, and a state change that persisted without running its actions (workflow monitoring
+        /// does this deliberately) leaves the record naming a state the object later returns to, so a
+        /// refusal is not always a replay. Whoever asked for the promote has to be able to see that
+        /// its mail, external request and flow creation did not run, and ask for them again.
         /// Only the persisted-transition path is claimed. A request naming an action explicitly
         /// carries no transition to key the claim on and is validated against the actions currently
         /// offered instead.
         /// </remarks>
         /// <param name="actionApiConnection">Api connection running under the middleware role.</param>
+        /// <param name="userConfig">User configuration, for the localized text of a refusal.</param>
         /// <param name="parameters">The requested action, holding the claimed transition.</param>
         /// <param name="scope">Scope of the stateful object.</param>
         /// <param name="ticket">The resolved ticket, which is the stateful object of the ticket scope.</param>
         /// <param name="result">Result of the action request, completed when the claim is refused.</param>
         /// <returns>True when the caller may execute the actions of this transition.</returns>
-        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, WorkflowActionParameters parameters,
-            WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
+        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, UserConfig userConfig,
+            WorkflowActionParameters parameters, WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
         {
             if (parameters.ActionId > 0)
             {
@@ -438,14 +443,16 @@ namespace FWO.Middleware.Server.Controllers
                 return true;
             }
 
-            Log.WriteAudit("Workflow Actions", $"State-change actions for {scope} {objectId} were already executed for the move into state " +
-                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.");
+            string refusal = $"State-change actions for {scope} {objectId} were already executed for the move into state " +
+                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.";
+            Log.WriteAudit("Workflow Actions", refusal);
+            Log.WriteWarning("Workflow Actions", refusal);
             result.Success = true;
             result.Messages.Add(new()
             {
-                Title = "Workflow Actions",
-                Message = $"The actions of this state change have already been executed for {scope} {objectId}.",
-                ErrorFlag = false
+                Title = userConfig.GetText("actions"),
+                Message = userConfig.GetText("E8018"),
+                ErrorFlag = true
             });
             return false;
         }

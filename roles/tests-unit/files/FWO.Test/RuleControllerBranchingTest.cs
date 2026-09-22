@@ -19,6 +19,7 @@ namespace FWO.Test
     internal class RuleControllerBranchingTest
     {
         private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
+        private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -194,7 +195,7 @@ namespace FWO.Test
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-zero-prefix", response.RequestId);
             ClassicAssert.AreEqual(2, response.Result.Count);
-            CollectionAssert.AreEquivalent(new[] { "Source", "AnySource" },
+            CollectionAssert.AreEquivalent(kExpectedZeroMinPrefixRuleNames,
                 response.Result.Rules.Select(rule => rule.Name));
         }
 
@@ -250,6 +251,66 @@ namespace FWO.Test
             ClassicAssert.AreEqual("req-both", response.RequestId);
             ClassicAssert.AreEqual(2, response.Result.Count);
             CollectionAssert.AreEquivalent(kExpectedBothRuleNames, response.Result.Rules.Select(rule => rule.Name));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectSourcePrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadSourceRule: true),
+                "req-both-source-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-source-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-source-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "DestinationWithBroadSource"));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectDestinationPrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadDestinationRule: true),
+                "req-both-destination-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-destination-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-destination-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "SourceWithBroadDestination"));
         }
 
         [Test]

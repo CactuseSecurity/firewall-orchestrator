@@ -562,6 +562,7 @@ namespace FWO.Test
                     await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
                         ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
                 });
+                List<long> expectedUpdatedNotificationIds = [11];
 
                 Assert.Multiple(() =>
                 {
@@ -571,7 +572,7 @@ namespace FWO.Test
                     Assert.That(output, Does.Contain("Unanswered Interface Requests Check: Sent 0 emails."));
                     Assert.That(apiConnection.NotificationLoadCount, Is.EqualTo(1));
                     Assert.That(apiConnection.OpenTicketQueryCount, Is.EqualTo(1));
-                    Assert.That(apiConnection.UpdatedNotificationIds, Is.Empty);
+                    Assert.That(apiConnection.UpdatedNotificationIds, Is.EqualTo(expectedUpdatedNotificationIds));
                 });
             }
             finally

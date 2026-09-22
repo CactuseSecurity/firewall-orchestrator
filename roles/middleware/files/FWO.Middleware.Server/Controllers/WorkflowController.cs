@@ -392,6 +392,11 @@ namespace FWO.Middleware.Server.Controllers
         /// established; the old state arrives in the request body and is recorded for the audit trail
         /// only. Letting it take part in the comparison would let a replay re-arm the guard by naming
         /// a different origin state for a transition that has already run.
+        /// Comparing the state alone holds only while the record keeps up with the object, which is
+        /// why ActionHandler.RecordStateChangeExecution writes it for every state change executed
+        /// inside the middleware - the external request chain promotes request tasks without ever
+        /// reaching this endpoint. A stale record would turn a legitimate move back into a state the
+        /// object had left into a refusal, and this method reports a refusal as success.
         /// An already claimed transition is reported as success rather than as an error: the
         /// transition did happen and its actions did run, so the caller has the outcome it asked for,
         /// and an accidental double submit must not surface as a failed promote.

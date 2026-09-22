@@ -26,11 +26,13 @@ namespace FWO.Services.Workflow
         /// never by the request module, and the requesting user cannot read the Flow group tables at all.
         /// </summary>
         /// <param name="reqtask">The request task whose elements are about to be written.</param>
+        /// <param name="taskIsBeingCreated">Whether the task is being created, which inserts every element
+        /// it carries, rather than updated, which inserts only the elements that have no id yet.</param>
         /// <returns>True when every attached Flow entry and protocol may be written.</returns>
-        private async Task<bool> FlowReferencesAreWritable(WfReqTask reqtask)
+        private async Task<bool> FlowReferencesAreWritable(WfReqTask reqtask, bool taskIsBeingCreated)
         {
-            List<WfReqElement> newElements = [.. reqtask.Elements.Where(IsNewlyAuthored)];
-            if (newElements.Exists(element => !FlowObjectEligibility.IsRequestableProtocolId(element.ProtoId)))
+            List<WfReqElement> insertedElements = ElementsBeingInserted(reqtask, taskIsBeingCreated);
+            if (insertedElements.Exists(element => !FlowObjectEligibility.IsRequestableProtocolId(element.ProtoId)))
             {
                 return RefuseIneligibleFlowReference();
             }
@@ -40,7 +42,22 @@ namespace FWO.Services.Workflow
                 return false;
             }
 
-            return await FlowSvcObjectsAreWritable(reqtask, newElements);
+            return await FlowSvcObjectsAreWritable(reqtask, insertedElements);
+        }
+
+        /// <summary>
+        /// The elements that will be written by an insert, and that therefore have to satisfy the stricter
+        /// insert check rather than only naming a live entry.
+        /// Which elements those are follows from the operation, not from the element id: creating a task
+        /// inserts every element it carries, whatever id the element happens to hold, while updating one
+        /// inserts the elements that have no id yet and writes the rest back with an update.
+        /// </summary>
+        /// <param name="reqtask">The request task whose elements are about to be written.</param>
+        /// <param name="taskIsBeingCreated">Whether the task is being created rather than updated.</param>
+        /// <returns>The elements an insert will write.</returns>
+        private static List<WfReqElement> ElementsBeingInserted(WfReqTask reqtask, bool taskIsBeingCreated)
+        {
+            return taskIsBeingCreated ? reqtask.Elements : [.. reqtask.Elements.Where(element => element.Id == 0)];
         }
 
         /// <summary>
@@ -58,14 +75,14 @@ namespace FWO.Services.Workflow
         }
 
         /// <summary>
-        /// Checks the Flow service object ids of the task. Every attached entry has to be live; an entry a
-        /// newly authored element names additionally has to be one the request module offers, which the
-        /// canonical ANY service is not.
+        /// Checks the Flow service object ids of the task. Every attached entry has to be live; an entry an
+        /// inserted element names additionally has to be one the request module offers, which the canonical
+        /// ANY service is not.
         /// </summary>
         /// <param name="reqtask">The request task whose elements are about to be written.</param>
-        /// <param name="newElements">The elements of that task that are being authored now.</param>
+        /// <param name="insertedElements">The elements of that task an insert will write.</param>
         /// <returns>True when every attached Flow service object may be written by its element.</returns>
-        private async Task<bool> FlowSvcObjectsAreWritable(WfReqTask reqtask, List<WfReqElement> newElements)
+        private async Task<bool> FlowSvcObjectsAreWritable(WfReqTask reqtask, List<WfReqElement> insertedElements)
         {
             List<long> svcObjectIds = CollectFlowIds(reqtask.Elements, element => element.FlowServiceObjectId);
             List<FlowSvcObject> liveObjects = await ReadLiveFlowObjects<FlowSvcObject>(FlowQueries.getLiveFlowSvcObjectIds, "svcObjIds", svcObjectIds);
@@ -74,22 +91,10 @@ namespace FWO.Services.Workflow
                 return RefuseIneligibleFlowReference();
             }
 
-            List<long> newSvcObjectIds = CollectFlowIds(newElements, element => element.FlowServiceObjectId);
-            bool newElementNamesInternalObject = liveObjects.Exists(flowObject => newSvcObjectIds.Contains(flowObject.Id)
+            List<long> insertedSvcObjectIds = CollectFlowIds(insertedElements, element => element.FlowServiceObjectId);
+            bool insertedElementNamesInternalObject = liveObjects.Exists(flowObject => insertedSvcObjectIds.Contains(flowObject.Id)
                 && FlowObjectEligibility.IsInternalProtocolId(flowObject.ProtoId));
-            return !newElementNamesInternalObject || RefuseIneligibleFlowReference();
-        }
-
-        /// <summary>
-        /// Whether the element is being authored now rather than written back from the database. A stored
-        /// element keeps its id; the request module replaces an element the user edits instead of changing
-        /// it in place, so an edited element arrives here without one.
-        /// </summary>
-        /// <param name="element">The request element about to be written.</param>
-        /// <returns>True when the element is new.</returns>
-        private static bool IsNewlyAuthored(WfReqElement element)
-        {
-            return element.Id == 0;
+            return !insertedElementNamesInternalObject || RefuseIneligibleFlowReference();
         }
 
         /// <summary>

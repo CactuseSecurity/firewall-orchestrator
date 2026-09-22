@@ -12,6 +12,11 @@
 # different origin state. to_state_id is the state the object is checked to stand in before the claim
 # is attempted, so it is the only half of the transition the server has established.
 #
+# Comparing the state alone is sound only while the recorded state keeps up with the object, so every
+# execution of state-change actions inside the middleware writes it - the ones that never reach this
+# endpoint through recordStateChangeExecution. Were the record allowed to go stale, a legitimate move
+# back into a state the object had since left would be taken for a replay and execute nothing.
+#
 # Postgres evaluates the conflict and the guard in one statement, so two requests arriving together
 # cannot both claim it. affected_rows is 1 when the caller may execute the actions and 0 when the
 # transition was already executed.

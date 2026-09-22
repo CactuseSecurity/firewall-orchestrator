@@ -106,6 +106,8 @@ namespace FWO.Services.Workflow
                 return;
             }
 
+            await RecordStateChangeExecution(statefulObject, scope);
+
             if (scope == WfObjectScopes.Ticket)
             {
                 await SetScope(statefulObject, scope);
@@ -349,6 +351,55 @@ namespace FWO.Services.Workflow
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
                 EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
+        }
+
+        /// <summary>
+        /// Records the state whose actions are about to run, for every state change executed inside the
+        /// middleware server.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: claimStateChangeExecution refuses a request naming the state an object's actions last
+        /// ran for, and that is what stops a replay. The comparison only holds while the recorded state
+        /// keeps up with the object. Not every state change passes through the action endpoint - the
+        /// external request chain promotes a request task from inside the middleware, for one - so
+        /// without this write the record would go on naming a state the object had long left, and the
+        /// next legitimate move back into that state would be taken for a replay and execute nothing.
+        /// Only executions inside the middleware server write here: a user role has no permission on the
+        /// table, and a client that delegates to the endpoint has its transition recorded by the claim
+        /// there. The write is unguarded, because it decides nothing - it only keeps the record current
+        /// for the claim that does.
+        /// A failure is logged and swallowed. The state is already persisted and the actions are about to
+        /// run, so aborting a state change over a bookkeeping write would turn a lost guard into a broken
+        /// promote. What is lost is one transition that could be executed twice, which is where this
+        /// stood before the record existed.
+        /// </remarks>
+        /// <param name="statefulObject">The object whose state changed, still carrying the state it left.</param>
+        /// <param name="scope">Scope of that object.</param>
+        private async Task RecordStateChangeExecution(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            long objectId = GetStatefulObjectId(statefulObject, scope);
+            if (!useInMwServer || objectId <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+                {
+                    objectScope = scope.ToString(),
+                    objectId,
+                    fromStateId = statefulObject.ChangedFrom(),
+                    toStateId = statefulObject.StateId,
+                    executedBy = wfHandler.userConfig.User.Dn,
+                    executedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Workflow Actions", $"The executed state change of {scope} {objectId} could not be recorded. " +
+                    "A later move back into this state may be taken for a replay and execute nothing.", exception);
+            }
         }
 
         private async Task ExecuteInMiddleware(WorkflowActionParameters parameters)

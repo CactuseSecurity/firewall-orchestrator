@@ -136,6 +136,12 @@ namespace FWO.Test
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = ClaimStateChangeExecution(variables) });
                 }
 
+                if (query == RequestQueries.recordStateChangeExecution)
+                {
+                    RecordStateChangeExecution(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+
                 if (query.Contains("getConfigItemsByUser", StringComparison.OrdinalIgnoreCase)
                     || query.Contains("getConfigItemByKey", StringComparison.OrdinalIgnoreCase))
                 {
@@ -178,6 +184,25 @@ namespace FWO.Test
 
                 claimedTransitions[key] = comparedTransition;
                 return 1;
+            }
+
+            /// <summary>
+            /// Writes the row the way recordStateChangeExecution does: unguarded, so the record keeps up
+            /// with a state change executed inside the middleware that never reaches the action endpoint.
+            /// </summary>
+            /// <param name="variables">The record variables.</param>
+            private void RecordStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                claimedTransitions[key] = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
             }
 
             public override void SetAuthHeader(string jwt)
@@ -618,6 +643,42 @@ namespace FWO.Test
                 Assert.That(replayedWithOtherOriginClaim, Is.False,
                     "varying the origin state must not re-arm the guard for a transition that already ran");
                 Assert.That(nextTransitionClaim, Is.True, "moving the object on is a transition of its own");
+            });
+        }
+
+        /// <summary>
+        /// Not every state change reaches this endpoint: the external request chain promotes a request
+        /// task from inside the middleware. Those executions record the state they ran for, so the guard
+        /// keeps up with the object and a later legitimate move back into an earlier state is still
+        /// claimable rather than being taken for a replay.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_ClaimsAfterAStateChangeExecutedInsideTheMiddleware()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 200 };
+
+            bool promoteClaim = await ClaimTransition(controller, apiConnection, ticket, 100, 200);
+            // the external request chain moves the object on without passing through the endpoint
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+            {
+                objectScope = WfObjectScopes.Ticket.ToString(),
+                objectId = 42L,
+                fromStateId = 200,
+                toStateId = 300,
+                executedBy = "",
+                executedAt = DateTime.UtcNow
+            });
+            bool moveBackClaim = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+            bool replayOfTheMoveBack = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(promoteClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(moveBackClaim, Is.True,
+                    "moving back into a state the object had left is a first execution, not a replay");
+                Assert.That(replayOfTheMoveBack, Is.False, "the replay of that move is still refused");
             });
         }
 

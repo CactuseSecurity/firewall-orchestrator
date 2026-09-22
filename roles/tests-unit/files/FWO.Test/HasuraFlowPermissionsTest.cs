@@ -19,6 +19,8 @@ namespace FWO.Test
     internal class HasuraFlowPermissionsTest
     {
         private static readonly List<string> kWorkflowRoles = ["approver", "implementer", "planner", "requester", "reviewer"];
+        private static readonly List<string> kReqElementInsertRoles = ["approver", "modeller", "requester"];
+        private static readonly List<string> kReqElementUpdateRoles = ["approver", "requester"];
         private static readonly List<string> kFlowCatalogTables = ["nwobject", "svcobject", "timeobject"];
         private static readonly List<string> kFlowRelationships = ["flow_nwobject", "flow_nwgroup", "flow_svcobject", "flow_svcgroup"];
         private const string kShownCondition = "\"show_in_request_module\":{\"_eq\":true}";
@@ -53,7 +55,7 @@ namespace FWO.Test
             foreach (string tableName in kFlowCatalogTables)
             {
                 JsonNode table = FindTable("flow", tableName);
-                foreach (string role in kWorkflowRoles)
+                foreach (string role in RolesWith(table, "select_permissions", kWorkflowRoles))
                 {
                     string filter = Serialize(FindPermission(table, "select_permissions", role)?["filter"]);
                     Assert.Multiple(() =>
@@ -89,7 +91,7 @@ namespace FWO.Test
         public void ReqElementInsertChecks_HoldEveryAttachedEntryToWhatTheRequestModuleOffers()
         {
             JsonNode table = FindTable("request", "reqelement");
-            foreach (string role in RolesWith(table, "insert_permissions"))
+            foreach (string role in RolesWith(table, "insert_permissions", kReqElementInsertRoles))
             {
                 string check = Serialize(FindPermission(table, "insert_permissions", role)?["check"]);
                 AssertLifecycleConditionsArePresent(check, $"insert / {role}");
@@ -114,7 +116,7 @@ namespace FWO.Test
         public void ReqElementUpdateChecks_HoldEveryAttachedEntryToBeingLive()
         {
             JsonNode table = FindTable("request", "reqelement");
-            foreach (string role in RolesWith(table, "update_permissions"))
+            foreach (string role in RolesWith(table, "update_permissions", kReqElementUpdateRoles))
             {
                 string check = Serialize(FindPermission(table, "update_permissions", role)?["check"]);
                 AssertLifecycleConditionsArePresent(check, $"update / {role}");
@@ -142,19 +144,24 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// The roles a table carries permissions of, without the middleware, which is unrestricted by
-        /// design and whose permissions are pinned separately.
+        /// Asserts that exactly the expected user roles hold the given permission, then hands them back.
+        /// The set is stated here rather than read out of the metadata: a list derived from the file under
+        /// test would still pass when a role's permission is deleted outright, and would not notice a new
+        /// role added without one - the two regressions most worth catching.
+        /// The middleware is left out, it is unrestricted by design and pinned separately.
         /// </summary>
         /// <param name="table">The table node to read.</param>
         /// <param name="permissionKind">Name of the permission list.</param>
-        /// <returns>The user roles holding such a permission.</returns>
-        private static List<string> RolesWith(JsonNode table, string permissionKind)
+        /// <param name="expectedRoles">The user roles that must hold such a permission, and no others.</param>
+        /// <returns>The expected roles, so the caller can check each permission in turn.</returns>
+        private static List<string> RolesWith(JsonNode table, string permissionKind, List<string> expectedRoles)
         {
             List<string> roles = [.. (table[permissionKind]?.AsArray() ?? [])
                 .Select(permission => permission?["role"]?.GetValue<string>() ?? "")
                 .Where(role => role.Length > 0 && role != "middleware-server")];
-            Assert.That(roles, Is.Not.Empty, $"no {permissionKind} found to check");
-            return roles;
+            Assert.That(roles, Is.EquivalentTo(expectedRoles),
+                $"the roles holding a {permissionKind} on this table changed - every one of them needs the eligibility predicate");
+            return expectedRoles;
         }
 
         private JsonNode FindTable(string schema, string name)

@@ -1463,6 +1463,87 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Creating a task inserts every element it carries, whatever id the element happens to hold, so
+        /// the request-module strictness has to follow the operation rather than the element id. An
+        /// element arriving with an id from somewhere else must not slip past it (SEC-09).
+        /// </summary>
+        [Test]
+        public async Task AddReqTaskToDb_RefusesTaskCarryingAnInternalProtocolIdOnAnElementWithAnId()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+
+            WfReqTask reqTask = new()
+            {
+                TicketId = 77,
+                StateId = 1,
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        Id = 4711,
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        ProtoId = GlobalConst.kAnyIpProtocolId
+                    }
+                },
+                Owners = new List<FwoOwnerDataHelper>()
+            };
+
+            long newId = await dbAccess.AddReqTaskToDb(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.EqualTo(0));
+                Assert.That(apiConn.NewReqTaskCallCount, Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
+        /// The same for a Flow service entry the request module does not offer.
+        /// </summary>
+        [Test]
+        public async Task AddReqTaskToDb_RefusesTaskAttachingTheCanonicalAnyServiceOnAnElementWithAnId()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 42, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            apiConn.LiveFlowSvcObjects = [new FlowSvcObject { Id = 4712, ProtoId = GlobalConst.kAnyIpProtocolId }];
+
+            WfReqTask reqTask = new()
+            {
+                TicketId = 77,
+                StateId = 1,
+                Elements = new List<WfReqElement>
+                {
+                    new()
+                    {
+                        Id = 302,
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.create.ToString(),
+                        FlowServiceObjectId = 4712
+                    }
+                },
+                Owners = new List<FwoOwnerDataHelper>()
+            };
+
+            long newId = await dbAccess.AddReqTaskToDb(reqTask);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(newId, Is.EqualTo(0));
+                Assert.That(apiConn.NewReqTaskCallCount, Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
         /// A task whose Flow ids all name requestable entries passes the check and is written.
         /// </summary>
         [Test]

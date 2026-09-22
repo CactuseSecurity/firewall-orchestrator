@@ -305,7 +305,10 @@ create table request.impltask
 -- different origin state.
 -- One row per object is enough: a replay repeats the state the object was last moved into, while
 -- legitimately entering a state again requires leaving it first, which records the state it was
--- left for here in between.
+-- left for here in between. That holds because every execution of state-change actions inside the
+-- middleware writes this row, not only the ones requested through the action endpoint - a request
+-- task promoted by the external request chain writes it too. A row that lagged behind the object
+-- would turn the next legitimate move back into a refusal.
 create table request.state_change_execution
 (
     object_scope Varchar NOT NULL,

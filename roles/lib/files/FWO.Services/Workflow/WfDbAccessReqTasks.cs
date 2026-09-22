@@ -25,7 +25,7 @@ namespace FWO.Services.Workflow
             {
                 // inside the try: the check asks the API, so a transient failure has to reach the user
                 // as a message like every other failure of this method rather than as an exception
-                if (!await FlowReferencesAreWritable(reqtask))
+                if (!await FlowReferencesAreWritable(reqtask, taskIsBeingCreated: true))
                 {
                     return returnId;
                 }
@@ -85,7 +85,7 @@ namespace FWO.Services.Workflow
             {
                 // inside the try: the check asks the API, so a transient failure has to reach the user
                 // as a message like every other failure of this method rather than as an exception
-                if (!await FlowReferencesAreWritable(reqtask))
+                if (!await FlowReferencesAreWritable(reqtask, taskIsBeingCreated: false))
                 {
                     return;
                 }

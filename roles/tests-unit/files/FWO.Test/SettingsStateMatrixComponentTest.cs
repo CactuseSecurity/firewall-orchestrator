@@ -704,6 +704,201 @@ namespace FWO.Test
             });
         }
 
+        [Test]
+        public async Task RefreshConfigurations_SelectsRequestedConfigurationAndSortsIds()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            apiConnection.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 3, Name = "Gamma" },
+                new() { Id = 2, Name = "Beta", IsActive = true },
+                new() { Id = 1, Name = "Alpha" }
+            });
+            SetProperty(component, "apiConnection", apiConnection);
+
+            await InvokeAsync(component, "RefreshConfigurations", 3);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<int>(component, "selectedConfigurationId"), Is.EqualTo(3));
+                Assert.That(GetField<List<int>>(component, "configurationIds"), Is.EqualTo([2, 1, 3]));
+            });
+        }
+
+        [Test]
+        public async Task RefreshConfigurations_LeavesSelectionAndReportsWhenNoActiveConfigurationExists()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            List<(Exception? Exception, string Title, bool IsError)> messages = [];
+            apiConnection.Respond(RequestQueries.getWorkflowConfigurations, new List<WorkflowConfiguration>
+            {
+                new() { Id = 1, Name = "Alpha" }
+            });
+            SetProperty(component, "apiConnection", apiConnection);
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, _, isError) =>
+                messages.Add((exception, title, isError))));
+
+            await InvokeAsync(component, "RefreshConfigurations", new object?[] { null });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<int>(component, "selectedConfigurationId"), Is.Zero);
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Exception, Is.TypeOf<InvalidOperationException>());
+                Assert.That(messages[0].IsError, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task RefreshStates_PopulatesNamesAndReportsApiFailures()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            List<Exception?> errors = [];
+            apiConnection.Respond(RequestQueries.getStates, new List<WfState>
+            {
+                new() { Id = 4, Name = "Open" }
+            });
+            SetProperty(component, "apiConnection", apiConnection);
+            await InvokeAsync(component, "RefreshStates");
+            Assert.That(GetField<Dictionary<int, string>>(component, "stateNames")[4], Is.EqualTo("Open"));
+
+            SettingsStateMatrix failingComponent = new();
+            RecordingWorkflowApiConnection failingApi = new();
+            SetProperty(failingComponent, "apiConnection", failingApi);
+            SetProperty(failingComponent, "userConfig", new SimulatedUserConfig());
+            SetProperty(failingComponent, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, _, _, _) => errors.Add(exception)));
+
+            await InvokeAsync(failingComponent, "RefreshStates");
+
+            Assert.That(errors, Has.Count.EqualTo(1));
+            Assert.That(errors[0], Is.TypeOf<InvalidOperationException>());
+        }
+
+        [Test]
+        public async Task InitMatrix_UsesUnconfiguredMatrixWhenNoConfigurationIsSelected()
+        {
+            SettingsStateMatrix component = new();
+            RecordingGlobalStateMatrix matrix = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            apiConnection.Respond(RequestQueries.getStateMatrixTransitionGroups, new List<StateMatrixTransitionGroup>());
+            SetField(component, "actStateMatrix", matrix);
+            SetProperty(component, "apiConnection", apiConnection);
+
+            await InvokeAsync(component, "InitMatrix");
+
+            (WfTaskType TaskType, string? ConfigurationName) initCall = matrix.InitCalls.Single();
+            Assert.Multiple(() =>
+            {
+                Assert.That(initCall.TaskType, Is.EqualTo(WfTaskType.master));
+                Assert.That(initCall.ConfigurationName, Is.Null);
+            });
+        }
+
+        [Test]
+        public async Task NoOpActions_DoNotCallApiOrOpenDialogs()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            SetProperty(component, "apiConnection", apiConnection);
+            SetField(component, "selectedConfigurationId", 1);
+            SetField(component, "workflowConfigurations", new List<WorkflowConfiguration>
+            {
+                new() { Id = 1, IsActive = true }
+            });
+
+            await InvokeAsync(component, "ChangeConfiguration", 1);
+            await InvokeAsync(component, "ChangeTaskType", WfTaskType.master);
+            await InvokeAsync(component, "SetSelectedConfigurationActive");
+            await InvokeAsync(component, "DeleteSelectedConfiguration");
+
+            Assert.That(apiConnection.Calls, Is.Empty);
+            Assert.That(GetField<bool>(component, "DeleteConfigurationMode"), Is.False);
+        }
+
+        [Test]
+        public async Task OpenAddConfiguration_WhenDirty_DefersOpeningUntilDiscardConfirmed()
+        {
+            SettingsStateMatrix component = ComponentWithSnapshot();
+            GetField<GlobalStateMatrix>(component, "actStateMatrix").GlobalMatrix[WorkflowPhases.request].Active = true;
+
+            await InvokeAsync(component, "OpenAddConfiguration");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<bool>(component, "DiscardChangesMode"), Is.True);
+                Assert.That(GetField<bool>(component, "AddConfigurationMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task OpenConfigurationTransfer_WhenDirty_DefersOpeningAndPreservesImportMode()
+        {
+            SettingsStateMatrix component = ComponentWithSnapshot();
+            GetField<GlobalStateMatrix>(component, "actStateMatrix").GlobalMatrix[WorkflowPhases.request].Active = true;
+
+            await InvokeAsync(component, "OpenConfigurationTransfer", true);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetField<bool>(component, "DiscardChangesMode"), Is.True);
+                Assert.That(GetField<bool>(component, "TransferConfigurationMode"), Is.False);
+                Assert.That(GetField<bool>(component, "transferImportMode"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task DeleteSelectedConfiguration_WhenMutationDoesNotDeleteOneRow_ReportsFailure()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            List<bool> errors = [];
+            SetProperty(component, "apiConnection", apiConnection);
+            SetProperty(component, "userConfig", new SimulatedUserConfig());
+            SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((_, _, _, isError) => errors.Add(isError)));
+            SetField(component, "selectedConfigurationId", 2);
+            SetField(component, "workflowConfigurations", new List<WorkflowConfiguration>
+            {
+                new() { Id = 2, Name = "Beta" }
+            });
+            apiConnection.Respond(RequestQueries.getWorkflowConfigurationPhaseMappings, new List<WorkflowConfigurationPhase>());
+            apiConnection.Respond(RequestQueries.deleteWorkflowConfiguration, new ReturnId { AffectedRows = 0 });
+
+            await InvokeAsync(component, "DeleteSelectedConfiguration");
+
+            Assert.That(errors, Is.EqualTo([true]));
+            Assert.That(apiConnection.Calls.Count(call => call.Query == RequestQueries.getWorkflowConfigurations), Is.Zero);
+        }
+
+        [Test]
+        public async Task LinkTransitionGroup_WithNoSelectionDoesNothing()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            SetProperty(component, "apiConnection", apiConnection);
+            SetField(component, "selectedTransitionGroupId", 0);
+
+            await InvokeAsync(component, "LinkTransitionGroup");
+
+            Assert.That(apiConnection.Calls, Is.Empty);
+        }
+
+        [Test]
+        public async Task UnlinkTransitionGroup_WithoutPhaseBindingDoesNothing()
+        {
+            SettingsStateMatrix component = new();
+            RecordingWorkflowApiConnection apiConnection = new();
+            SetProperty(component, "apiConnection", apiConnection);
+            SetField(component, "unlinkTransitionGroupPhase", WorkflowPhases.request);
+
+            await InvokeAsync(component, "UnlinkSelectedTransitionGroup");
+
+            Assert.That(apiConnection.Calls, Is.Empty);
+        }
+
         private static SettingsStateMatrix ComponentWithStates(List<int> stateIds, Dictionary<int, int> derivedStates)
         {
             SettingsStateMatrix component = new();

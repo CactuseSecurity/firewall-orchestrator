@@ -70,6 +70,7 @@ namespace FWO.Test
             public object? LastHistoryVariables { get; private set; }
             public string? LastHistoryQuery { get; private set; }
             public string? LastTicketQuery { get; private set; }
+            public object? LastTicketQueryVariables { get; private set; }
             public long NewApprovalId { get; set; } = 301;
             public int GetTicketByIdCallCount { get; private set; }
             public bool ThrowOnGetTicketById { get; set; }
@@ -269,6 +270,7 @@ namespace FWO.Test
                     || query == RequestQueries.getFullTickets || query == RequestQueries.getTicketsByParameters)
                 {
                     LastTicketQuery = query;
+                    LastTicketQueryVariables = variables;
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -297,7 +299,13 @@ namespace FWO.Test
 
             await dbAccess.FetchTickets(matrix);
 
-            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByTicketState));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByTicketState));
+                Assert.That(apiConn.LastTicketQueryVariables, Is.Not.Null);
+                Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("fromState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(1));
+                Assert.That(apiConn.LastTicketQueryVariables.GetType().GetProperty("toState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(10));
+            });
         }
 
         [Test]

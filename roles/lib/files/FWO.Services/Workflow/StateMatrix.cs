@@ -60,6 +60,7 @@ namespace FWO.Services.Workflow
             LowestStartedState = glbStateMatrix.GlobalMatrix[phase].LowestStartedState;
             LowestEndState = glbStateMatrix.GlobalMatrix[phase].LowestEndState;
             Active = glbStateMatrix.GlobalMatrix[phase].Active;
+            VisibilityMode = glbStateMatrix.GlobalMatrix[phase].VisibilityMode;
             StateVisibilityGroupIds = glbStateMatrix.GlobalMatrix[phase].StateVisibilityGroupIds.ToDictionary(entry => entry.Key, entry => entry.Value.ToList());
             ExclusiveVisibilityGroupIds = [.. glbStateMatrix.GlobalMatrix[phase].ExclusiveVisibilityGroupIds];
             AutomaticOnlyStates = preloadedStates.Where(state => state.AutomaticOnly).Select(state => state.Id).ToHashSet();

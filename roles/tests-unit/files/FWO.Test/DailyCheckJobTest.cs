@@ -425,15 +425,12 @@ namespace FWO.Test
                 ModUnansweredReqEmailBody = "body"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
             try
             {
-                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 Assert.Multiple(() =>
                 {
                     Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
@@ -474,15 +471,12 @@ namespace FWO.Test
                 ModUnansweredReqEmailBody = "body"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
             try
             {
-                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
 
                 Assert.Multiple(() =>
                 {
@@ -524,8 +518,6 @@ namespace FWO.Test
                 ModUnansweredReqEmailBody = "body"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
@@ -533,8 +525,7 @@ namespace FWO.Test
             {
                 string output = await ConsoleOutput.CaptureAsync(async () =>
                 {
-                    await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                        ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                    await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 });
 
                 Assert.Multiple(() =>
@@ -737,6 +728,15 @@ namespace FWO.Test
 
             return (HashSet<DailyCheckModule>)(loadEnabledModules.Invoke(dailyCheckJob, null)
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
+        }
+
+        private static Task InvokeCheckUnansweredInterfaceRequests(DailyCheckJob dailyCheckJob)
+        {
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequestsCore", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore method not found.");
+
+            return (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, [CancellationToken.None])
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore returned null task."));
         }
 
         private static FwoNotification CreateInterfaceRequestNotification(int id)

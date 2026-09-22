@@ -489,6 +489,12 @@ namespace FWO.Middleware.Server
         {
             List<NetworkZoneIpRange> ipRanges = await apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
                 NetworkZoneQueries.getIpRangesForMatrix, new { matrixId = MatrixId });
+            Dictionary<(int ZoneId, IPAddressRange Range), int> ipRangeIds = [];
+            foreach (NetworkZoneIpRange range in ipRanges)
+            {
+                ipRangeIds[(range.NetworkZoneId,
+                    new IPAddressRange(ParseAddress(range.IpRangeStart), ParseAddress(range.IpRangeEnd)))] = range.Id;
+            }
 
             List<NetworkZoneDeviceIpRangeInsertInput> rootPathInput = [];
             List<NetworkZoneDeviceIpRangeInsertInput> internetPathInput = [];
@@ -503,7 +509,7 @@ namespace FWO.Middleware.Server
                 }
                 foreach (ZoneIpRangeData subnet in zone.IpData)
                 {
-                    if (FindIpRangeId(subnet, ipRanges, zoneId) is not int ipRangeId)
+                    if (!ipRangeIds.TryGetValue((zoneId, ConvertIpDataToAddressRange(subnet)), out int ipRangeId))
                     {
                         Log.WriteWarning(LogMessageTitle,
                             $"Could not resolve ip range with start IP {subnet.Ip} in zone {zone.IdString}, skipping its paths.");
@@ -556,27 +562,6 @@ namespace FWO.Middleware.Server
                     ChunkSize = kPathInsertBatchSize,
                     MergeMode = ChunkMergeMode.MutationAffectedRowsOnly
                 })).AffectedRows;
-        }
-
-        /// <summary>
-        /// Finds database ip range id for a given subnet.
-        /// </summary>
-        private static int? FindIpRangeId(ZoneIpRangeData subnet, List<NetworkZoneIpRange> ipRanges, int zoneId)
-        {
-            IPAddressRange subnetRange = ConvertIpDataToAddressRange(subnet);
-            foreach (NetworkZoneIpRange ipRange in ipRanges)
-            {
-                if (ipRange.NetworkZoneId != zoneId)
-                {
-                    continue;
-                }
-                IPAddressRange storedRange = new(ParseAddress(ipRange.IpRangeStart), ParseAddress(ipRange.IpRangeEnd));
-                if (storedRange.Equals(subnetRange))
-                {
-                    return ipRange.Id;
-                }
-            }
-            return null;
         }
 
         /// <summary>

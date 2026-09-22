@@ -971,6 +971,9 @@ namespace FWO.Test
                 // that ordering, so moving the deletes back to the top of the method has to fail here.
                 Assert.That(apiConnection.FirstCallIndex(NetworkZoneQueries.getIpRangesForMatrix),
                     Is.LessThan(apiConnection.FirstCallIndex(NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot)));
+                // The ip ranges are read once for the whole matrix and matched from memory afterwards.
+                // Resolving them per zone or per subnet would be a round trip inside the loop.
+                Assert.That(apiConnection.Count(NetworkZoneQueries.getIpRangesForMatrix), Is.EqualTo(1));
                 Assert.That(result, Does.Contain("removed paths to root: 3"));
                 Assert.That(result, Does.Contain("removed paths to internet: 2"));
             });
@@ -1115,6 +1118,40 @@ namespace FWO.Test
                 Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.deleteNetworkZoneDeviceIpRangeRoot), Is.EqualTo(0));
                 Assert.That(apiConnection.InsertedRootPaths, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Run_UsesTheLastIpRangeWhenTheApiReportsDuplicates()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            // Two rows of the same zone covering the same addresses. CheckDuplicateSubnet refuses an
+            // import file that would create them, but rows written before that check existed are still
+            // in the database, so the lookup has to survive them rather than abort the import.
+            apiConnection.IpRangesResponse =
+            [
+                CreateIpRange(kZoneAIpRangeId, kZoneAId, kZoneASubnetStart, kZoneASubnetEnd),
+                CreateIpRange(kZoneASecondIpRangeId, kZoneAId, kZoneASubnetStart, kZoneASubnetEnd)
+            ];
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "duplicate-range-rows.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kSingleCoreDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from duplicate-range-rows.json"));
+                // Last one wins: the lookup is filled with the indexer, which overwrites. Filling it
+                // with Add would throw here and abort an import that has already written its zones.
+                Assert.That(apiConnection.InsertedRootPaths, Is.EqualTo(new List<PathItemCall>
+                {
+                    new(kFwCoreId, kZoneASecondIpRangeId, 1)
+                }));
             });
         }
 

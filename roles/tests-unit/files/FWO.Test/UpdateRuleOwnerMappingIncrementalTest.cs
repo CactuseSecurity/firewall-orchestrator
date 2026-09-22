@@ -29,8 +29,15 @@ namespace FWO.Test
         private const long kRuleId = 101;
         private const int kOwnerId = 1;
 
-        /// <summary>Marks the alert raised when a failing import cannot be remembered, so no repeat is ever read.</summary>
-        private const string kUnrecordableAlertMarker = "could not be written";
+        /// <summary>
+        /// Marks the alert raised when a failing import cannot be remembered, so no repeat is ever read.
+        /// Matched on the clause that only this alert carries: the same failing write is also reported for a
+        /// run that could not be recorded, and both name the write in their first sentence.
+        /// </summary>
+        private const string kUnrecordableAlertMarker = "so the failure is not remembered";
+
+        /// <summary>Marks the alert raised when a completed run cannot be recorded, so the page keeps showing an older one.</summary>
+        private const string kUnrecordedRunAlertMarker = "cannot record its runs";
 
         private static GlobalConfig CustomFieldConfig()
         {
@@ -145,6 +152,52 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldReportThatItCannotRecordItsRuns_WhenTheHistoryCannotBeWritten()
+        {
+            // the rebuild itself completes every time, so nothing else reports a problem - and the entry
+            // stays readable, so the monitoring page keeps rendering the last run that was written as if it
+            // were the current state. The alert is the only thing that tells the two apart
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
+            apiConnection.FailHistoryWrite = true;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            bool firstRun = await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstRun, Is.True, "the history is a diagnostic aid and must not fail the mapping itself");
+                Assert.That(apiConnection.RaisedAlerts.Count(description => description.Contains(kUnrecordedRunAlertMarker)), Is.EqualTo(2),
+                    "the condition persists, so every run reports that its result was not recorded");
+                Assert.That(apiConnection.OpenAlerts.Count(description => description.Contains(kUnrecordedRunAlertMarker)), Is.EqualTo(1),
+                    "the description is constant, so the repeats do not pile up as open alerts");
+                Assert.That(apiConnection.RaisedAlerts, Has.Some.Contains("config_user = 0"),
+                    "the alert has to say where the entry is, because no screen offers to fix it");
+                Assert.That(apiConnection.StoredHistoryJson, Is.Null, "nothing was written, which is what the alert is about");
+            });
+        }
+
+        [Test]
+        public async Task RunAsync_ShouldNotReportAnUnrecordedRun_WhenTheHistoryWasWritten()
+        {
+            // the marker must not fire on the ordinary path, or it would say "not recorded" about every run
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync(new UpdateRuleOwnerMappingEventArgs { isFullReInitialize = true });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.RaisedAlerts, Has.None.Contains(kUnrecordedRunAlertMarker));
+                Assert.That(apiConnection.StoredHistoryJson, Is.Not.Null, "the run was recorded, so there is nothing to report");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldNotStoreDerivedFields_InTheRunHistoryConfigEntry()
         {
             // the entry is written with config_user = 0, which the anonymous role may read - so it is kept to
@@ -222,6 +275,8 @@ namespace FWO.Test
                 Assert.That(runs[0].RemovedCount, Is.EqualTo(1));
                 Assert.That(runs[0].Removed.Single().RuleId, Is.EqualTo(999));
                 Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains("incremental mapping missed"));
+                Assert.That(apiConnection.RaisedAlerts, Has.Some.Contains("monitoring/rule_owner_mapping"),
+                    "the affected rules are on that page; the raw config entry is not something an admin can read");
             });
         }
 
@@ -545,6 +600,8 @@ namespace FWO.Test
                 Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
                 Assert.That(apiConnection.RaisedAlerts, Has.None.Contains(kUnrecordableAlertMarker),
                     "the repair ran, so the failing write is not reported as one that prevented it");
+                Assert.That(apiConnection.RaisedAlerts, Has.Exactly(1).Contains(kUnrecordedRunAlertMarker),
+                    "the rebuild itself could not be recorded either, and that is reported on its own");
             });
         }
 

@@ -187,7 +187,6 @@ namespace FWO.Test
             });
         }
 
-
         [Test]
         public async Task Load_ShouldReportAFailedFetch_WithoutTheHistory()
         {
@@ -251,9 +250,31 @@ namespace FWO.Test
             RuleOwnerMappingFake apiConnection = new();
             apiConnection.SeedStoredHistoryJson("not json at all");
 
-            await new RuleOwnerMappingRunHistory(apiConnection).Store(new RuleOwnerMappingRun { ControlId = 9 });
+            RuleOwnerMappingStoreResult stored = await new RuleOwnerMappingRunHistory(apiConnection).Store(new RuleOwnerMappingRun { ControlId = 9 });
 
-            Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("not json at all"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo("not json at all"));
+                Assert.That(stored.WriteFailed, Is.False,
+                    "no save was attempted, and the unreadable entry reports itself to the page instead");
+            });
+        }
+
+        [Test]
+        public async Task Store_ShouldReportTheFailedWrite_SoTheStaleEntryIsNotReadAsCurrent()
+        {
+            // the entry stays readable and keeps its earlier runs, so nothing in it marks the gap. Without
+            // this flag the monitoring page shows the last recorded run as if it were the current state
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.FailHistoryWrite = true;
+
+            RuleOwnerMappingStoreResult stored = await new RuleOwnerMappingRunHistory(apiConnection).Store(new RuleOwnerMappingRun { ControlId = 9 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(stored.WriteFailed, Is.True, "the save failed, so this run is not recorded anywhere");
+                Assert.That(stored.Run.ControlId, Is.EqualTo(9), "the run still has to be judged for drift on its own");
+            });
         }
 
         [Test]

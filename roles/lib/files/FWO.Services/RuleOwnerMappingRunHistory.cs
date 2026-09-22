@@ -313,6 +313,32 @@ namespace FWO.Services
     }
 
     /// <summary>
+    /// Outcome of recording the result of a full reinitialize.
+    /// </summary>
+    public class RuleOwnerMappingStoreResult
+    {
+        /// <summary>
+        /// The run as it has to be judged. It differs from the one passed in when a pending change was
+        /// taken over from the stored history, so the caller has to decide about drift on this one rather
+        /// than on what it knew by itself.
+        /// </summary>
+        public required RuleOwnerMappingRun Run { get; init; }
+
+        /// <summary>
+        /// True when the run could not be written to the stored history. The entry then keeps the runs it
+        /// had, and nothing in it says that the recording stopped - a reader of the history sees a healthy
+        /// entry whose newest run is simply older than it should be, which is indistinguishable from an
+        /// installation whose last rebuild was that long ago. So the caller has to report it; the history
+        /// itself cannot, because the very write that would record the problem is the one failing.
+        /// <para>
+        /// A history that could not be read is not this case. There the entry is deliberately left alone,
+        /// nothing is written over, and the reader is told through <see cref="RuleOwnerMappingHistoryReadState"/>.
+        /// </para>
+        /// </summary>
+        public bool WriteFailed { get; init; }
+    }
+
+    /// <summary>
     /// Keeps the results of the last full reinitialize runs in a config entry.
     /// A full reinitialize replaces every mapping, so the difference between the state before and the
     /// rebuilt state is what tells an actual change from a plain rebuild. With a healthy incremental
@@ -411,16 +437,20 @@ namespace FWO.Services
         /// Prepends the run to the stored history and drops everything beyond the newest entries. A change
         /// that was saved but not yet applied is taken over onto the run first, see
         /// <see cref="RuleOwnerMappingRunHistoryData.PendingChanges"/>.
+        /// <para>
+        /// A run that could not be stored comes back unchanged and is then judged without whatever the entry
+        /// would have said about it. The two ways that happens are told apart, because they leave the reader
+        /// of the history in opposite positions: an entry that could not be read is left alone on purpose and
+        /// reports itself through <see cref="RuleOwnerMappingHistoryReadState"/>, while a failing write leaves
+        /// a perfectly readable entry behind whose newest run is silently out of date. Only the second is
+        /// reported through <see cref="RuleOwnerMappingStoreResult.WriteFailed"/>.
+        /// </para>
         /// </summary>
         /// <param name="run">Run to store.</param>
-        /// <returns>
-        /// The stored run. It differs from the one passed in when a pending change was taken over, so the
-        /// caller has to decide about drift on the returned run rather than on its own. A run that could not
-        /// be stored - because the entry was unreadable and writing it would destroy what is in it - comes
-        /// back unchanged, and is then judged without whatever the entry would have said about it.
-        /// </returns>
-        public async Task<RuleOwnerMappingRun> Store(RuleOwnerMappingRun run)
+        /// <returns>What could be remembered, see <see cref="RuleOwnerMappingStoreResult"/>.</returns>
+        public async Task<RuleOwnerMappingStoreResult> Store(RuleOwnerMappingRun run)
         {
+            bool writeFailed = false;
             try
             {
                 RuleOwnerMappingRunHistoryData? history = (await Load()).History;
@@ -432,7 +462,7 @@ namespace FWO.Services
                     // note that could not be read, which may cost a wrong drift alert once
                     Log.WriteWarning(kLogMessageTitle, $"Full reinitialize {run.ControlId} is not recorded: the run history " +
                         "could not be read, and writing over it would lose what is stored.");
-                    return run;
+                    return new RuleOwnerMappingStoreResult { Run = run };
                 }
                 TakeOverPendingChanges(run, history);
 
@@ -456,10 +486,13 @@ namespace FWO.Services
             }
             catch (Exception ex)
             {
-                // the history is a diagnostic aid, it must never break the mapping itself
+                // the history is a diagnostic aid, it must never break the mapping itself - but it must say
+                // that it stopped recording, because a readable entry whose newest run is simply old looks
+                // exactly like an installation that has not rebuilt for a while
+                writeFailed = true;
                 Log.WriteError(kLogMessageTitle, "Error while storing the rule_owner mapping run history.", ex);
             }
-            return run;
+            return new RuleOwnerMappingStoreResult { Run = run, WriteFailed = writeFailed };
         }
 
         /// <summary>

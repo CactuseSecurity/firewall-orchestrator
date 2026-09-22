@@ -740,14 +740,20 @@ Not supported any longer are:
   blocks the incremental processing; a failed run is no longer reported as a successful one
 - rule owner mapping: a failing import no longer holds up the imports behind it and raises an alert
 - rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize. Where the run
-  history the repair relies on cannot be read or written, the blocked repair is reported as its own alert
-  naming the config entry and where to reset it
+  history the repair relies on cannot be decoded or cannot be written, the repeat is never established and
+  the blocked repair is reported as its own alert, naming the config entry and saying whether it has to be
+  reset or whether the middleware is missing write access. A run history that could only not be fetched is
+  left as the transient case it usually is: the repair is one run late rather than gone
 - rule owner mapping: a full reinitialize that matches no rule removes the obsolete mappings and alerts,
   instead of leaving the previous state in place. Without any rule base the stored mappings are kept
 - rule owner mapping: a mapping setting saved while its rebuild failed is remembered for up to a week, so
   the next rebuild no longer reports its intended effect as a deviation
 - rule owner mapping: a run history entry that cannot be read is no longer written over, and the monitoring
-  page says so instead of showing it as an empty history
+  page says so instead of showing it as an empty history. An entry that cannot be written raises an alert,
+  because it stays perfectly readable while the recording has stopped - the page would keep showing the last
+  run that was written as if it were the current state
+- rule owner mapping: a problem that is still present is reported again and replaces its own earlier alert,
+  so the open alert carries the time of the latest occurrence rather than the first one
 - rule owner mapping: new page monitoring/rule_owner_mapping shows the last full reinitialize runs, the
   affected rules and what caused a difference
 - rule owner mapping: new setting for the log level of mapping issues

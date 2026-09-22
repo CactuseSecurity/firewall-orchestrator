@@ -35,6 +35,14 @@ namespace FWO.Services
         /// </summary>
         private const string kHistoryEntryLocation = "the row with config_user = 0 in table config.";
 
+        /// <summary>
+        /// Where the recorded runs can be read. The alert about a difference points here rather than at the
+        /// config entry that holds them: the page lists the affected rules and owners and names the cause of
+        /// each run, which is what the alert asks the admin to look at - the entry itself is a JSON value in
+        /// a database row. The entry is named only where it has to be repaired by hand.
+        /// </summary>
+        private const string kMonitoringPageLocation = "Monitoring - Rule owner mapping runs (monitoring/rule_owner_mapping)";
+
         protected readonly ApiConnection apiConnection;
         protected readonly GlobalConfig globalConfig;
 
@@ -209,15 +217,47 @@ namespace FWO.Services
 
             // Store takes over a change that was saved but whose rebuild never completed, so the drift
             // decision below has to be made on what was stored, not on what this run knew by itself
-            run = await new RuleOwnerMappingRunHistory(apiConnection).Store(run);
+            RuleOwnerMappingStoreResult stored = await new RuleOwnerMappingRunHistory(apiConnection).Store(run);
+            run = stored.Run;
 
             Log.WriteInfo(LogMessageTitle, $"Full reinitialize {importControlId}: {run.AddedCount} mappings added, {run.RemovedCount} removed, " +
                 $"{run.PendingImportsBefore.Count} imports were still pending.");
 
+            if (stored.WriteFailed)
+            {
+                await ReportUnrecordedRun(importControlId);
+            }
+
+            // reported even when the run itself was not recorded: the difference is real either way, and
+            // the alert above says why it will not show up on the monitoring page
             if (IndicatesDrift(run))
             {
                 await AlertMappingDrift(run);
             }
+        }
+
+        /// <summary>
+        /// Reports a full reinitialize whose result could not be written to the run history. The stored entry
+        /// stays readable and keeps its earlier runs, so nothing in it marks the gap - the monitoring page
+        /// shows the last run that was written as if it were the current state, and an old timestamp there is
+        /// indistinguishable from an installation that legitimately has not rebuilt since. The alert is the
+        /// only thing that separates the two.
+        /// <para>
+        /// The description names neither the import nor the write error, for the reason given on
+        /// <see cref="ReportUnrepairableImports"/>: <see cref="RaiseAlert"/> recognizes a repeat by the exact
+        /// text, and a write that fails for a standing reason fails on every run. The details go into the log.
+        /// </para>
+        /// </summary>
+        /// <param name="importControlId">Import control of the run that was not recorded, for the log.</param>
+        private async Task ReportUnrecordedRun(long importControlId)
+        {
+            Log.WriteError(LogMessageTitle, $"Full reinitialize {importControlId} is not recorded: the run history in config entry " +
+                $"'{RuleOwnerMappingRunHistory.kConfigKey}' could not be written. See the error logged above for what the write " +
+                "failed on.");
+            await RaiseAlert("Rule owner mapping cannot record its runs: the run history in config entry " +
+                $"'{RuleOwnerMappingRunHistory.kConfigKey}' could not be written, so the monitoring page keeps showing the last run " +
+                "that was recorded and cannot say whether the running update is deviating now. Check the middleware's write access to " +
+                kHistoryEntryLocation + " The affected runs are named in the middleware log.");
         }
 
         /// <summary>
@@ -776,7 +816,7 @@ namespace FWO.Services
         {
             await RaiseAlert($"Full rule_owner reinitialize {run.ControlId} added {run.AddedCount} and removed {run.RemovedCount} mappings " +
                 $"although no import was pending. {DescribeDriftCause(run)} " +
-                $"See config key '{RuleOwnerMappingRunHistory.kConfigKey}' for the affected rules and owners.");
+                $"See {kMonitoringPageLocation} for the affected rules and owners.");
         }
 
         /// <summary>
@@ -803,11 +843,16 @@ namespace FWO.Services
         /// <para>
         /// A caller whose condition can persist across runs therefore has to raise only on a state change
         /// rather than once per run, or the alert list fills up with one acknowledged row per run of a job
-        /// that repeats every few seconds. <see cref="HandleFailedImports"/> does that, keyed off the run
-        /// history. <see cref="AlertFullReinitFallback"/> cannot: it has no state of its own to key off, so
-        /// it repeats for as long as the rebuild it falls back to keeps failing and the backlog is never
-        /// drained. Its description is therefore kept constant, which at least keeps the open alert to one
-        /// row - the acknowledged ones still accumulate.
+        /// that repeats every few seconds. <see cref="HandleFailedImports"/> does that for an ordinary
+        /// repeated failure, keyed off the run history.
+        /// </para>
+        /// <para>
+        /// The callers that cannot are the ones whose condition is the run history itself being unusable -
+        /// <see cref="ReportUnrepairableImports"/>, <see cref="ReportUnrecordableImports"/> and
+        /// <see cref="ReportUnrecordedRun"/> - plus <see cref="AlertFullReinitFallback"/>, which has no state
+        /// of its own to key off and repeats for as long as the rebuild it falls back to keeps failing. All
+        /// four keep their description constant, which holds the open alert to one row - the acknowledged
+        /// ones still accumulate.
         /// </para>
         /// </summary>
         /// <param name="description">Description shown in the alert and the log entry.</param>

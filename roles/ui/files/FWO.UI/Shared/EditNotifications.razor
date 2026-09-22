@@ -371,6 +371,9 @@
         ToRecipientSelection = ParseRecipientSelection(actNotification.RecipientTo, actNotification.EmailAddressTo, ToAddresses);
         CcRecipientSelection = ParseRecipientSelection(actNotification.RecipientCc, actNotification.EmailAddressCc, CcAddresses);
         BccRecipientSelection = ParseRecipientSelection(actNotification.RecipientBcc, actNotification.EmailAddressBcc, BccAddresses);
+        ToAddresses = ToRecipientSelection.OtherAddressList.ToList();
+        CcAddresses = CcRecipientSelection.OtherAddressList.ToList();
+        BccAddresses = BccRecipientSelection.OtherAddressList.ToList();
         EditNotifMode = true;
     }
 
@@ -690,40 +693,29 @@
             return;
         }
         NormalizeRequesterSelections();
-        (actNotification.RecipientTo, actNotification.EmailAddressTo) = RecipientFieldsFromSelection(ToRecipientSelection, ToAddresses);
-        (actNotification.RecipientCc, actNotification.EmailAddressCc) = RecipientFieldsFromSelection(CcRecipientSelection, CcAddresses);
-        (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = RecipientFieldsFromSelection(BccRecipientSelection, BccAddresses);
+        (actNotification.RecipientTo, actNotification.EmailAddressTo) = RecipientFieldsFromSelection(ToRecipientSelection);
+        (actNotification.RecipientCc, actNotification.EmailAddressCc) = RecipientFieldsFromSelection(CcRecipientSelection);
+        (actNotification.RecipientBcc, actNotification.EmailAddressBcc) = RecipientFieldsFromSelection(BccRecipientSelection);
     }
 
-    private (EmailRecipientOption recipientOption, string recipientValue) RecipientFieldsFromSelection(EmailRecipientSelection selection, List<string> legacyAddresses)
+    private (EmailRecipientOption recipientOption, string recipientValue) RecipientFieldsFromSelection(EmailRecipientSelection selection)
     {
-        EmailRecipientSelection effectiveSelection = EffectiveSelection(selection, legacyAddresses);
-        if (!HasEffectiveRecipient(effectiveSelection, []))
+        if (!HasEffectiveRecipient(selection))
         {
             return (EmailRecipientOption.None, "");
         }
 
-        string recipientValue = effectiveSelection.ToConfigValue(ActiveOwnerResponsibleTypeIds());
-        return effectiveSelection.OwnerResponsibleTypeIds.Count > 0 || effectiveSelection.Requester
+        string recipientValue = selection.ToConfigValue(ActiveOwnerResponsibleTypeIds());
+        return selection.OwnerResponsibleTypeIds.Count > 0 || selection.Requester
             ? (EmailRecipientOption.ConfiguredResponsibles, recipientValue)
             : (EmailRecipientOption.OtherAddresses, recipientValue);
     }
 
-    private static EmailRecipientSelection EffectiveSelection(EmailRecipientSelection selection, List<string> legacyAddresses)
-    {
-        if (selection.HasAnyRecipientOption() || legacyAddresses.Count == 0)
-        {
-            return selection;
-        }
-        return CreateOtherAddressSelection(legacyAddresses);
-    }
-
-    private static bool HasEffectiveRecipient(EmailRecipientSelection selection, List<string> legacyAddresses)
+    private static bool HasEffectiveRecipient(EmailRecipientSelection selection)
     {
         return selection.OwnerResponsibleTypeIds.Count > 0
             || selection.Requester
-            || selection.OtherAddresses && selection.OtherAddressList.Count > 0
-            || legacyAddresses.Count > 0;
+            || selection.OtherAddresses && selection.OtherAddressList.Count > 0;
     }
 
     private void NormalizeRequesterSelections()
@@ -759,7 +751,7 @@
             return false;
         }
         if(Client.IsWorkflowRecipientClient() && IsWorkflowRecipientEmpty(actNotification.RecipientTo, actNotification.EmailAddressTo)
-            || Client.IsModellingRecipientClient() && IsRecipientEmpty(ToRecipientSelection, ToAddresses)
+            || Client.IsModellingRecipientClient() && IsRecipientEmpty(ToRecipientSelection)
             || !Client.IsWorkflowRecipientClient() && !Client.IsModellingRecipientClient() && EmailHelper.SplitAddresses(actNotification.EmailAddressTo).Count == 0)
         {
             DisplayMessageInUi(null, userConfig.GetText(EditNotifString), userConfig.GetText("E4011"), true);
@@ -794,9 +786,9 @@
         return true;
     }
 
-    private static bool IsRecipientEmpty(EmailRecipientSelection selection, List<string> legacyAddresses)
+    private static bool IsRecipientEmpty(EmailRecipientSelection selection)
     {
-        return !HasEffectiveRecipient(selection, legacyAddresses);
+        return !HasEffectiveRecipient(selection);
     }
 
     private static bool IsWorkflowRecipientEmpty(EmailRecipientOption recipientOption, string addresses)

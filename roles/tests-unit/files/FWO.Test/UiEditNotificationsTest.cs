@@ -470,6 +470,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public void EditNotification_UsesParsedSelectionAsSourceOfAddressList()
+        {
+            EditNotifications component = new();
+            SetClient(component, NotificationClient.RuleTimer);
+            EmailRecipientSelection persistedSelection = new()
+            {
+                None = false,
+                OtherAddresses = true,
+                OtherAddressList = ["configured@example.org"]
+            };
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = persistedSelection.ToConfigValue()
+            };
+            object?[] editArguments = [notification];
+
+            GetPrivateMethod("EditNotification").Invoke(component, editArguments);
+
+            List<string> addresses = GetPrivateField<List<string>>(component, "ToAddresses");
+            Assert.That(addresses, Is.EqualTo(new List<string> { "configured@example.org" }));
+
+            SetPrivateField(component, "ToRecipientSelection", new EmailRecipientSelection());
+            GetPrivateMethod("SyncAddresses").Invoke(component, null);
+
+            FwoNotification editedNotification = GetPrivateField<FwoNotification>(component, "actNotification");
+            Assert.That(editedNotification.RecipientTo, Is.EqualTo(EmailRecipientOption.None));
+            Assert.That(editedNotification.EmailAddressTo, Is.Empty);
+        }
+
+        [Test]
         public void SyncAddresses_ClearsRequesterSelectionWhenRequesterOptionIsNotAvailable()
         {
             EditNotifications component = new();

@@ -1,0 +1,24 @@
+query getNoRecipientNotificationLogs($notificationId: Int!, $status: String!, $error: String!, $subject: String!) {
+  notification_log(
+    where: {
+      notification_id: { _eq: $notificationId }
+      status: { _eq: $status }
+      error: { _eq: $error }
+      subject: { _eq: $subject }
+    }
+    order_by: [{ timestamp: desc }, { id: desc }]
+  ) {
+    id
+    timestamp
+    notification_id
+    notification_type
+    to
+    cc
+    bcc
+    subject
+    deadline_type
+    deadline
+    status
+    error
+  }
+}

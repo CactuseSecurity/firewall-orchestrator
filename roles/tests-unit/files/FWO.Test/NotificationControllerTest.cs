@@ -226,7 +226,7 @@ internal class NotificationControllerTest
     }
 
     [Test]
-    public async Task SendInterfaceRequest_ReturnsNoRecipientsAndCompletesLog()
+    public async Task SendInterfaceRequest_ReturnsNoRecipientsAndLogsFailure()
     {
         ControllerApiConnection apiConnection = ConfiguredNoRecipientConnection();
         NotificationController controller = CreateController(apiConnection, new GlobalConfig());
@@ -236,7 +236,7 @@ internal class NotificationControllerTest
 
         Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.NoRecipients));
         Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
-        Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
+        Assert.That(apiConnection.LastSentUpdateCount, Is.EqualTo(1));
     }
 
     [Test]
@@ -295,7 +295,7 @@ internal class NotificationControllerTest
     }
 
     [Test]
-    public async Task SendInterfaceDecommission_ReturnsNoRecipientsAndCompletesLog()
+    public async Task SendInterfaceDecommission_ReturnsNoRecipientsAndLogsFailure()
     {
         ControllerApiConnection apiConnection = ConfiguredNoRecipientConnection();
         apiConnection.Connection = DecommissionedConnection();
@@ -313,7 +313,7 @@ internal class NotificationControllerTest
 
         Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.NoRecipients));
         Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
-        Assert.That(apiConnection.UpdateCount, Is.EqualTo(1));
+        Assert.That(apiConnection.LastSentUpdateCount, Is.EqualTo(1));
     }
 
     [TestCase(10, false, true, "Public", false, null)]
@@ -453,6 +453,7 @@ internal class NotificationControllerTest
         public int OwnerQueryCount { get; private set; }
         public int InsertCount { get; private set; }
         public int UpdateCount { get; private set; }
+        public int LastSentUpdateCount { get; private set; }
 
         public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
             string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
@@ -507,6 +508,12 @@ internal class NotificationControllerTest
                     ReturnIds = [new ReturnId { Id = InsertedId }]
                 });
             }
+            if (typeof(QueryResponseType) == typeof(ReturnId)
+                && query == NotificationQueries.updateNotificationsLastSent)
+            {
+                LastSentUpdateCount++;
+                return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+            }
             if (typeof(QueryResponseType) == typeof(ReturnId))
             {
                 UpdateCount++;
@@ -534,6 +541,11 @@ internal class NotificationControllerTest
                 });
                 List<FwoNotification> notifications = JsonConvert.DeserializeObject<List<FwoNotification>>($"[{response}]")!;
                 return Task.FromResult((QueryResponseType)(object)notifications);
+            }
+            if (typeof(QueryResponseType) == typeof(List<NotificationLogEntry>)
+                && query == NotificationQueries.getNoRecipientNotificationLogs)
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<NotificationLogEntry>());
             }
             throw new InvalidOperationException($"Unexpected query: {query}");
         }

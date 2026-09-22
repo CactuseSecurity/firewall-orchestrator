@@ -13897,7 +13897,18 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "id"
+                      "id",
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
                     ],
                     "filter": {}
                   },

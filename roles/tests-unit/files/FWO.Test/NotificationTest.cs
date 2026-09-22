@@ -37,6 +37,8 @@ namespace FWO.Test
         public void ResetApiConnectionState()
         {
             apiConnection.UpdatedNotificationIds.Clear();
+            apiConnection.NotificationLogEntries.Clear();
+            apiConnection.NotificationLogUpdates.Clear();
         }
 
         [Test]
@@ -574,6 +576,32 @@ namespace FWO.Test
             Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
             Assert.That(apiConnection.NotificationLogUpdates.Select(update => update.Status),
                 Is.EqualTo(expectedStatuses));
+        }
+
+        [Test]
+        public async Task SendNotification_NoRecipientsLogsFailureOnceAndAdvancesLastSent()
+        {
+            apiConnection.NotificationLogUpdates.Clear();
+            SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = false };
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, localConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendAndLog;
+            notification.RecipientTo = EmailRecipientOption.None;
+
+            NotificationDeliveryResult result = await notificationService.SendNotificationWithResult(
+                notification, new FwoOwner(), "body");
+            int updatedNotifications = await notificationService.UpdateNotificationsLastSent();
+            NotificationDeliveryResult repeatedResult = await notificationService.SendNotificationWithResult(
+                notification, new FwoOwner(), "body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+                Assert.That(repeatedResult, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+                Assert.That(updatedNotifications, Is.EqualTo(1));
+                Assert.That(apiConnection.NotificationLogUpdates, Has.Count.EqualTo(1));
+            });
         }
 
         [Test]

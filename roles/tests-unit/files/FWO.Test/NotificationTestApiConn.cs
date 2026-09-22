@@ -9,6 +9,7 @@ namespace FWO.Test
     internal class NotificationTestApiConn : SimulatedApiConnection
     {
         public List<(int Id, NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+        public List<NotificationLogEntry> NotificationLogEntries { get; } = [];
         public List<int> UpdatedNotificationIds { get; } = [];
 
         readonly FwoNotification NotifReq1 = new()
@@ -112,6 +113,12 @@ namespace FWO.Test
                     NotificationLogStatus status = Enum.Parse<NotificationLogStatus>(GetVariable<string>(variables, "status"));
                     string error = GetVariable<string>(variables, "error");
                     NotificationLogUpdates.Add((id, status, error));
+                    NotificationLogEntry? entry = NotificationLogEntries.FirstOrDefault(logEntry => logEntry.Id == id);
+                    if (entry != null)
+                    {
+                        entry.Status = status;
+                        entry.Error = error;
+                    }
                     GraphQLResponse<dynamic> updateResponse = new() { Data = new ReturnId() { AffectedRows = 1 } };
                     return updateResponse.Data;
                 }
@@ -131,11 +138,39 @@ namespace FWO.Test
             }
             if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
             {
+                if (variables?.GetType().GetProperty("entries")?.GetValue(variables)
+                    is IEnumerable<NotificationLogInsertEntry> entries)
+                {
+                    foreach (NotificationLogInsertEntry entry in entries)
+                    {
+                        NotificationLogEntries.Add(new NotificationLogEntry
+                        {
+                            Id = NotificationLogEntries.Count + 1,
+                            NotificationId = entry.NotificationId,
+                            Subject = entry.Subject,
+                            DeadlineType = entry.DeadlineType,
+                            Deadline = entry.Deadline,
+                            Status = NotificationLogStatus.Pending
+                        });
+                    }
+                }
                 GraphQLResponse<dynamic> response = new()
                 {
-                    Data = new ReturnIdWrapper { ReturnIds = [new ReturnId { Id = 1 }] }
+                    Data = new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = NotificationLogEntries.LastOrDefault()?.Id ?? 1 }]
+                    }
                 };
                 return response.Data;
+            }
+            if (responseType == typeof(List<NotificationLogEntry>) && query == NotificationQueries.getNoRecipientNotificationLogs)
+            {
+                int notificationId = GetVariable<int>(variables, "notificationId");
+                return (QueryResponseType)(object)NotificationLogEntries
+                    .Where(entry => entry.NotificationId == notificationId
+                        && entry.Status == NotificationLogStatus.Failed
+                        && entry.Error == "No recipients resolved.")
+                    .ToList();
             }
             if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
             {

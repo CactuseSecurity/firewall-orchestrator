@@ -151,7 +151,9 @@ namespace FWO.Middleware.Server
             // Later: Handle other channels here when implemented.
             NotificationDeliveryResult deliveryResult = await SendEmail(notification, content, owner, report, timeIntervalText,
                 resolvedDeadline, placeholderValues);
-            if (deliveryResult is NotificationDeliveryResult.Delivered or NotificationDeliveryResult.Suppressed)
+            if (deliveryResult is NotificationDeliveryResult.Delivered
+                or NotificationDeliveryResult.Suppressed
+                or NotificationDeliveryResult.NoRecipients)
             {
                 AddCheckedNotificationId(notification.Id);
             }
@@ -174,10 +176,6 @@ namespace FWO.Middleware.Server
             {
                 List<FwoNotification> groupedNotifications = [.. notificationGroup];
                 List<FwoNotification> sendableNotifications = [.. groupedNotifications.Where(notification => NotificationLoggingMode.ShouldSend(notification.Logging))];
-                foreach (FwoNotification notification in groupedNotifications.Except(sendableNotifications))
-                {
-                    AddCheckedNotificationId(notification.Id);
-                }
                 if (groupedNotifications.Count == 1 || groupedNotifications[0].BundleType == null)
                 {
                     emailsSent += await SendNotification(groupedNotifications[0], owner, content, report, timeIntervalText);
@@ -185,6 +183,13 @@ namespace FWO.Middleware.Server
                 }
 
                 NotificationDeliveryResult deliveryResult = await SendBundledEmail(groupedNotifications, content, owner, report, timeIntervalText);
+                if (deliveryResult == NotificationDeliveryResult.NoRecipients)
+                {
+                    foreach (FwoNotification notification in groupedNotifications)
+                    {
+                        AddCheckedNotificationId(notification.Id);
+                    }
+                }
                 if (deliveryResult != NotificationDeliveryResult.Delivered)
                 {
                     continue;
@@ -335,19 +340,19 @@ namespace FWO.Middleware.Server
             NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null)
         {
             MailData? mail = await PrepareEmail(notification, content, owner, report, timeIntervalText, placeholderValues);
+            if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
+            {
+                Log.WriteWarning("Notifications",
+                    $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
+                await LogNoRecipientFailureIfConfigured(notification, mail.Subject, resolvedDeadline);
+                return NotificationDeliveryResult.NoRecipients;
+            }
+
             int logId = 0;
             if (NotificationLoggingMode.ShouldLog(notification.Logging))
             {
                 DateTimeOffset? deadline = resolvedDeadline.HasValue ? new DateTimeOffset(resolvedDeadline.Value) : null;
                 logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, mail.To, mail.Cc, mail.Bcc, mail.Subject, deadline);
-            }
-
-            if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
-            {
-                Log.WriteWarning("Notifications",
-                    $"No recipients resolved for notification client {notification.NotificationClient} while preparing notification {notification.Id}. Skipping send.");
-                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
-                return NotificationDeliveryResult.NoRecipients;
             }
 
             if (!NotificationLoggingMode.ShouldSend(notification.Logging))
@@ -382,6 +387,35 @@ namespace FWO.Middleware.Server
             }
         }
 
+        private async Task LogNoRecipientFailureIfConfigured(FwoNotification notification, string subject, DateTime? deadline)
+        {
+            if (!NotificationLoggingMode.ShouldLog(notification.Logging)
+                || await HasMatchingNoRecipientFailure(notification, subject, deadline))
+            {
+                return;
+            }
+
+            DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
+            int logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, [], [], [], subject, resolvedDeadline);
+            await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
+        }
+
+        private async Task<bool> HasMatchingNoRecipientFailure(FwoNotification notification, string subject, DateTime? deadline)
+        {
+            List<NotificationLogEntry> entries = await ApiConnection.SendQueryAsync<List<NotificationLogEntry>>(
+                NotificationQueries.getNoRecipientNotificationLogs, new
+                {
+                    notificationId = notification.Id,
+                    status = NotificationLogStatus.Failed.ToString(),
+                    error = "No recipients resolved.",
+                    subject
+                });
+            DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
+            return entries.Any(entry => entry.Subject == subject
+                && entry.DeadlineType == notification.Deadline
+                && entry.Deadline == resolvedDeadline);
+        }
+
         /// <summary>
         /// Sends a bundled notification email for a group of notifications.
         /// </summary>
@@ -395,21 +429,47 @@ namespace FWO.Middleware.Server
         {
             List<FwoNotification> sendableNotifications = [.. notifications.Where(notification => NotificationLoggingMode.ShouldSend(notification.Logging))];
             List<FwoNotification> suppressedNotifications = [.. notifications.Where(notification => !NotificationLoggingMode.ShouldSend(notification.Logging))];
-            MailData preparedMail = await PrepareBundledEmail(notifications, content, owner, report, timeIntervalText);
-            MailData mail = preparedMail;
-            if (sendableNotifications.Count > 0 && suppressedNotifications.Count > 0)
+            MailData? suppressedMail = suppressedNotifications.Count > 0
+                ? await PrepareBundledEmail(suppressedNotifications, content, owner, report, timeIntervalText)
+                : null;
+            MailData? sendableMail = sendableNotifications.Count > 0
+                ? await PrepareBundledEmail(sendableNotifications, content, owner, report, timeIntervalText)
+                : null;
+            bool hasSuppressedRecipients = suppressedMail != null && HasRecipients(suppressedMail);
+            bool hasSendableRecipients = sendableMail != null && HasRecipients(sendableMail);
+            List<int> suppressedLogIds = hasSuppressedRecipients
+                ? await LogBundledNotifications(suppressedNotifications, suppressedMail!)
+                : [];
+            if (hasSuppressedRecipients)
             {
-                mail = await PrepareBundledEmail(sendableNotifications, content, owner, report, timeIntervalText);
+                foreach (FwoNotification notification in suppressedNotifications)
+                {
+                    AddCheckedNotificationId(notification.Id);
+                }
             }
-            List<int> suppressedLogIds = await LogBundledNotifications(suppressedNotifications, preparedMail);
-            List<int> sendableLogIds = await LogBundledNotifications(sendableNotifications, mail);
             await CompleteNotificationLogs(suppressedLogIds, NotificationLogStatus.Suppressed);
-            if (mail.To.Count == 0 && mail.Cc.Count == 0 && mail.Bcc.Count == 0)
+
+            bool noRecipientsForSendableNotifications = sendableNotifications.Count > 0 && !hasSendableRecipients;
+            bool noRecipientsForSuppressedNotifications = sendableNotifications.Count == 0 && !hasSuppressedRecipients;
+            if (noRecipientsForSendableNotifications || noRecipientsForSuppressedNotifications)
             {
+                if (noRecipientsForSendableNotifications)
+                {
+                    foreach (FwoNotification notification in sendableNotifications)
+                    {
+                        await LogNoRecipientFailureIfConfigured(notification, sendableMail!.Subject, null);
+                    }
+                }
+                if (noRecipientsForSuppressedNotifications)
+                {
+                    foreach (FwoNotification notification in suppressedNotifications)
+                    {
+                        await LogNoRecipientFailureIfConfigured(notification, suppressedMail!.Subject, null);
+                    }
+                }
                 FwoNotification baseNotification = notifications.First();
                 Log.WriteWarning("Notifications",
                     $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
-                await CompleteNotificationLogs(sendableLogIds, NotificationLogStatus.Failed, "No recipients resolved.");
                 return NotificationDeliveryResult.NoRecipients;
             }
 
@@ -418,13 +478,15 @@ namespace FWO.Middleware.Server
                 return NotificationDeliveryResult.Suppressed;
             }
 
+            List<int> sendableLogIds = await LogBundledNotifications(sendableNotifications, sendableMail!);
+
             try
             {
                 string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
                 EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
                     GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
 
-                bool sent = await MailKitMailer.SendAsync(mail, emailConnection, false, new());
+                bool sent = await MailKitMailer.SendAsync(sendableMail!, emailConnection, false, new());
                 await CompleteNotificationLogs(sendableLogIds, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
                     sent ? "" : "SMTP delivery failed.");
                 return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
@@ -434,6 +496,11 @@ namespace FWO.Middleware.Server
                 await CompleteNotificationLogs(sendableLogIds, NotificationLogStatus.Failed, exception.Message);
                 throw;
             }
+        }
+
+        private static bool HasRecipients(MailData mail)
+        {
+            return mail.To.Count > 0 || mail.Cc.Count > 0 || mail.Bcc.Count > 0;
         }
 
         private void AddCheckedNotificationId(int notificationId)

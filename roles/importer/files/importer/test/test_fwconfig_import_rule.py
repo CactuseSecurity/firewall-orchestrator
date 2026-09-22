@@ -1,3 +1,4 @@
+import pytest
 from model_controllers.fwconfig_import_rule import FwConfigImportRule
 from models.rule import RuleAction, RuleNormalized, RuleTrack, RuleType
 from models.rulebase import Rulebase
@@ -109,28 +110,49 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
 
-    def test_is_change_security_relevant_ignores_comment_change(
+    @pytest.mark.parametrize(
+        ("changed_field", "changed_value"),
+        [
+            ("rule_comment", "new comment"),
+            ("rule_name", "new name"),
+            ("rule_custom_fields", '{"owner": "new owner"}'),
+        ],
+    )
+    def test_is_change_security_relevant_ignores_documentation_fields(
         self,
         fwconfig_import_rule: FwConfigImportRule,
+        changed_field: str,
+        changed_value: str,
     ):
-        # A change that only differs in the rule comment is not security-relevant
-        # (it still has to be written to the changelog, see the tests below).
+        # Changes that only differ in a documentation field are not security-relevant
+        # (they still have to be written to the changelog, see the tests below).
         old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
         new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
-        new_rule.rule_comment = "new comment"
+        setattr(new_rule, changed_field, changed_value)
 
         assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule) is False
 
+    @pytest.mark.parametrize(
+        ("changed_field", "changed_value"),
+        [
+            ("rule_comment", "new comment"),
+            ("rule_name", "new name"),
+            ("rule_custom_fields", '{"owner": "new owner"}'),
+        ],
+    )
     def test_write_changelog_rules_writes_entry_for_non_security_relevant_change(
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
+        changed_field: str,
+        changed_value: str,
     ):
-        # A comment-only change creates a new rule version and therefore must also create a
-        # changelog entry - flagged as not security-relevant so change reports can skip it.
+        # A change of a documentation field creates a new rule version and therefore must also
+        # create a changelog entry - flagged as not security-relevant so change reports skip it,
+        # while the incremental rule owner mapping still sees the new rule version.
         mock_get_graphql_code(mocker, "mutation { dummy }")
 
-        rule_uid = "comment-changed-rule-uid"
+        rule_uid = "doc-changed-rule-uid"
         old_rule_id = 101
         new_rule_id = 202
 
@@ -142,7 +164,7 @@ class TestFwConfigImportRule:
 
         old_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
         new_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
-        new_rule.rule_comment = "new comment"
+        setattr(new_rule, changed_field, changed_value)
 
         fwconfig_import_rule.write_changelog_rules(
             added_rules=[],

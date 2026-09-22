@@ -246,10 +246,16 @@ namespace FWO.Middleware.Server.Jobs
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
+#pragma warning disable IDE0051
+        /// <summary>
+        /// Invokes the unanswered interface request check without cancellation for reflection-based tests.
+        /// </summary>
+        /// <returns>The unanswered interface request check task.</returns>
         private Task CheckUnansweredInterfaceRequests()
         {
             return CheckUnansweredInterfaceRequestsCore(CancellationToken.None);
         }
+#pragma warning restore IDE0051
 
         private async Task CheckUnansweredInterfaceRequestsCore(CancellationToken cancellationToken)
         {

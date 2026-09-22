@@ -40,9 +40,9 @@ namespace FWO.Test
                 .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(alphaTrigger, alphaJob)])));
             scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob && query.Take == PagedQuery.All), CancellationToken.None)
                 .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(betaTrigger, betaJob)])));
-            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { alphaTrigger.Key })), CancellationToken.None)
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(alphaTrigger.Key)), CancellationToken.None)
                 .Returns(ValueTask.FromResult<List<ITrigger>>([alphaTrigger]));
-            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { betaTrigger.Key })), CancellationToken.None)
+            scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.Count == 1 && keys.Contains(betaTrigger.Key)), CancellationToken.None)
                 .Returns(ValueTask.FromResult<List<ITrigger>>([betaTrigger]));
 
             SchedulerController controller = CreateController(scheduler, tracker);

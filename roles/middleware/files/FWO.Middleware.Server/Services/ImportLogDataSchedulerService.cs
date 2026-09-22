@@ -3,6 +3,7 @@ using FWO.Api.Client.Queries;
 using FWO.Config.Api;
 using FWO.Middleware.Server.Jobs;
 using Quartz;
+using FwoSchedulerOptions = FWO.Middleware.Server.Services.QuartzSchedulerOptions;
 
 namespace FWO.Middleware.Server.Services
 {
@@ -28,7 +29,7 @@ namespace FWO.Middleware.Server.Services
                 apiConnection,
                 globalConfig,
                 appLifetime,
-                new QuartzSchedulerOptions(
+                new FwoSchedulerOptions(
                     SchedulerName,
                     JobKeyName,
                     TriggerKeyName,

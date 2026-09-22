@@ -13,6 +13,7 @@ using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using Quartz;
 using System.Globalization;
+using FwoSchedulerOptions = FWO.Middleware.Server.Services.QuartzSchedulerOptions;
 
 // Quartz 4 returns ValueTask from IScheduler/ISchedulerFactory. The NSubstitute arrange calls below
 // only record the invocation - the returned instance is never awaited, so CA2012 does not apply.
@@ -43,7 +44,7 @@ namespace FWO.Test
                     null!,
                     null!,
                     null!,
-                    new FWO.Middleware.Server.Services.QuartzSchedulerOptions("Test", "Test", "Test", "Test"))
+                    new FwoSchedulerOptions("Test", "Test", "Test", "Test"))
             { }
 
             protected override int SleepTime => 1;
@@ -70,7 +71,7 @@ namespace FWO.Test
                     apiConnection,
                     globalConfig,
                     appLifetime,
-                    new FWO.Middleware.Server.Services.QuartzSchedulerOptions(
+                    new FwoSchedulerOptions(
                         "TestScheduler",
                         "TestJob",
                         "TestTrigger",

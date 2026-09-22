@@ -174,6 +174,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            CountingApiConnection apiConnection = new();
+            DailyCheckJob dailyCheckJob = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await dailyCheckJob.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task Execute_SkipsRecertChecks_WhenDisabled()
         {
             CountingApiConnection apiConnection = new();

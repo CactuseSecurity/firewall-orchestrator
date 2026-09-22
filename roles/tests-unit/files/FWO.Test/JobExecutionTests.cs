@@ -14,6 +14,19 @@ namespace FWO.Test
     internal class AutoDiscoverJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            AutoDiscoverJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoManagementsAreAvailable()
         {
             EmptyListJobApiConnection apiConnection = new();
@@ -44,6 +57,19 @@ namespace FWO.Test
     internal class ComplianceJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ComplianceJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_HandlesFailuresWithoutThrowing()
         {
             ThrowingJobApiConnection apiConnection = new();
@@ -61,6 +87,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportAppDataJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportAppDataJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_WithEmptyPathInitializesAndReturns()
         {
@@ -105,6 +144,19 @@ namespace FWO.Test
     internal class ExternalRequestJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ExternalRequestJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoOpenRequestsExist()
         {
             ExternalRequestNoOpApiConnection apiConnection = new();
@@ -133,6 +185,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportChangeNotifyJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportChangeNotifyJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoImportsNeedNotification()
         {
@@ -167,6 +232,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportIpDataJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportIpDataJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoImportPathsAreConfigured()
         {
@@ -203,6 +281,19 @@ namespace FWO.Test
     internal class VarianceAnalysisJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            VarianceAnalysisJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoOwnersAreAvailable()
         {
             EmptyListJobApiConnection apiConnection = new();
@@ -217,6 +308,22 @@ namespace FWO.Test
     [TestFixture]
     internal class UpdateRuleOwnerMappingJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            UpdateRuleOwnerMappingJob job = new(apiConnection, new SimulatedGlobalConfig
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField
+            });
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoOwnerMappingSourceIsConfigured()
         {

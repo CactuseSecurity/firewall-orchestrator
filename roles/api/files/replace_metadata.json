@@ -2675,11 +2675,6 @@
                               "implemented"
                             ]
                           }
-                        },
-                        {
-                          "ip_proto_id": {
-                            "_gte": 0
-                          }
                         }
                       ]
                     }
@@ -2718,11 +2713,6 @@
                               "requested",
                               "implemented"
                             ]
-                          }
-                        },
-                        {
-                          "ip_proto_id": {
-                            "_gte": 0
                           }
                         }
                       ]
@@ -2781,11 +2771,6 @@
                               "implemented"
                             ]
                           }
-                        },
-                        {
-                          "ip_proto_id": {
-                            "_gte": 0
-                          }
                         }
                       ]
                     }
@@ -2825,11 +2810,6 @@
                               "implemented"
                             ]
                           }
-                        },
-                        {
-                          "ip_proto_id": {
-                            "_gte": 0
-                          }
                         }
                       ]
                     }
@@ -2868,11 +2848,6 @@
                               "requested",
                               "implemented"
                             ]
-                          }
-                        },
-                        {
-                          "ip_proto_id": {
-                            "_gte": 0
                           }
                         }
                       ]
@@ -35077,20 +35052,6 @@
                         {
                           "_or": [
                             {
-                              "ip_proto_id": {
-                                "_is_null": true
-                              }
-                            },
-                            {
-                              "ip_proto_id": {
-                                "_gte": 0
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "_or": [
-                            {
                               "flow_nwobj_id": {
                                 "_is_null": true
                               }
@@ -35180,11 +35141,6 @@
                                         "requested",
                                         "implemented"
                                       ]
-                                    }
-                                  },
-                                  {
-                                    "ip_proto_id": {
-                                      "_gte": 0
                                     }
                                   }
                                 ]
@@ -35275,20 +35231,6 @@
                         {
                           "_or": [
                             {
-                              "ip_proto_id": {
-                                "_is_null": true
-                              }
-                            },
-                            {
-                              "ip_proto_id": {
-                                "_gte": 0
-                              }
-                            }
-                          ]
-                        },
-                        {
-                          "_or": [
-                            {
                               "flow_nwobj_id": {
                                 "_is_null": true
                               }
@@ -35378,11 +35320,6 @@
                                         "requested",
                                         "implemented"
                                       ]
-                                    }
-                                  },
-                                  {
-                                    "ip_proto_id": {
-                                      "_gte": 0
                                     }
                                   }
                                 ]

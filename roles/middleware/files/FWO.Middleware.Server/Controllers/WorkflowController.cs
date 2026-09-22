@@ -384,9 +384,14 @@ namespace FWO.Middleware.Server.Controllers
         /// SEC-06: the state of the object is persisted by the caller before its actions are
         /// requested, so "the object stands in the requested state" stays true once the transition
         /// happened and cannot tell a first request apart from a replay. The claim is what makes the
-        /// difference: request.state_change_execution holds the transition the actions of this object
-        /// last ran for, and the mutation records the new one only when it differs, in a single
-        /// statement. A repeated request therefore executes nothing.
+        /// difference: request.state_change_execution holds the state the actions of this object last
+        /// ran for, and the mutation records the new one only when it differs, in a single statement.
+        /// A repeated request therefore executes nothing.
+        /// The claim is keyed on the new state alone. The object is checked to stand in it before the
+        /// claim is attempted, which makes it the only half of the transition the server has
+        /// established; the old state arrives in the request body and is recorded for the audit trail
+        /// only. Letting it take part in the comparison would let a replay re-arm the guard by naming
+        /// a different origin state for a transition that has already run.
         /// An already claimed transition is reported as success rather than as an error: the
         /// transition did happen and its actions did run, so the caller has the outcome it asked for,
         /// and an accidental double submit must not surface as a failed promote.
@@ -428,8 +433,8 @@ namespace FWO.Middleware.Server.Controllers
                 return true;
             }
 
-            Log.WriteAudit("Workflow Actions", $"State-change actions for {scope} {objectId} were already executed for the transition " +
-                $"{parameters.OldStateId}->{parameters.NewStateId}, so this request executed nothing.");
+            Log.WriteAudit("Workflow Actions", $"State-change actions for {scope} {objectId} were already executed for the move into state " +
+                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.");
             result.Success = true;
             result.Messages.Add(new()
             {

@@ -1,9 +1,17 @@
 # Claims the execution of the workflow actions belonging to one state transition.
 #
 # The insert succeeds for an object whose actions have not run yet. For an object that already has a
-# row, the transition is only claimed when it differs from the one recorded there: a replay repeats
-# the transition that was executed last and is therefore refused, while entering a state again after
-# leaving it carries a different transition and is claimed normally.
+# row, the claim is granted only when the object is being moved into a different state than the one
+# its actions last ran for: a replay repeats the state the object was last moved into and is
+# therefore refused, while entering a state again after leaving it records the state it was left for
+# in between and is claimed normally.
+#
+# The guard reads to_state_id alone. from_state_id is recorded for the audit trail but must not take
+# part in the comparison: it comes from the request body and nothing establishes it against the state
+# the object actually held, so keying the guard on it would let a replay re-arm itself by naming a
+# different origin state. to_state_id is the state the object is checked to stand in before the claim
+# is attempted, so it is the only half of the transition the server has established.
+#
 # Postgres evaluates the conflict and the guard in one statement, so two requests arriving together
 # cannot both claim it. affected_rows is 1 when the caller may execute the actions and 0 when the
 # transition was already executed.
@@ -28,12 +36,7 @@ mutation claimStateChangeExecution(
     on_conflict: {
       constraint: state_change_execution_pkey
       update_columns: [from_state_id, to_state_id, executed_at, executed_by]
-      where: {
-        _or: [
-          { from_state_id: { _neq: $fromStateId } }
-          { to_state_id: { _neq: $toStateId } }
-        ]
-      }
+      where: { to_state_id: { _neq: $toStateId } }
     }
   ) {
     affected_rows

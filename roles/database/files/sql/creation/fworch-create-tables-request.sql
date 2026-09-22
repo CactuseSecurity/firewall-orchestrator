@@ -294,14 +294,18 @@ create table request.impltask
 	target_end_date Timestamp
 );
 
--- Records which state transition the workflow actions of an object were last executed for, so that
+-- Records which state the workflow actions of an object were last executed for, so that
 -- re-submitting an already executed transition cannot fire its side effects (mail, external
 -- request, flow creation) a second time. The object's state is persisted by the caller before the
 -- actions are requested, so the request alone cannot say whether it is the first one for that
 -- transition; this row is what makes the execution claimable exactly once.
--- One row per object is enough: a replay repeats the transition that was executed last, while
--- legitimately entering a state again requires leaving it first, which writes a different
--- transition here in between.
+-- The guard compares to_state_id only. from_state_id is kept for the audit trail but is taken from
+-- the request body and never established against the state the object actually held, so it must not
+-- decide whether a claim is granted - otherwise a replay could re-arm the guard by naming a
+-- different origin state.
+-- One row per object is enough: a replay repeats the state the object was last moved into, while
+-- legitimately entering a state again requires leaving it first, which records the state it was
+-- left for here in between.
 create table request.state_change_execution
 (
     object_scope Varchar NOT NULL,

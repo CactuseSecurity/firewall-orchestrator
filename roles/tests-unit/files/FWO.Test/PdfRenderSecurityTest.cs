@@ -14,7 +14,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class PdfRenderSecurityTest
     {
-        private const string kDnsBlockArgument = "--host-resolver-rules=MAP * ~NOTFOUND";
+        private const string kBackgroundNetworkingArgument = "--disable-background-networking";
 
         [Test]
         [TestCase("about:blank")]
@@ -42,9 +42,20 @@ namespace FWO.Test
         }
 
         [Test]
-        public void HardenedBrowserArgs_MakeEveryHostNameUnresolvable()
+        public void HardenedBrowserArgs_TurnOffTheBackgroundChannelsOfTheBrowser()
         {
-            Assert.That(PdfRenderSecurity.GetHardenedBrowserArgs(), Does.Contain(kDnsBlockArgument));
+            Assert.That(PdfRenderSecurity.GetHardenedBrowserArgs(), Does.Contain(kBackgroundNetworkingArgument));
+        }
+
+        /// <summary>
+        /// PuppeteerSharp does not hand an argument containing a space to Chrome as one argv entry, so
+        /// Chrome refuses to start and every pdf export fails at launch. An argument list that cannot be
+        /// passed is worse than no hardening at all, because it takes the whole feature down with it.
+        /// </summary>
+        [Test]
+        public void HardenedBrowserArgs_CarryNothingThatStopsTheBrowserFromStarting()
+        {
+            Assert.That(PdfRenderSecurity.GetHardenedBrowserArgs(), Has.None.Contains(" "));
         }
 
         /// <summary>
@@ -57,7 +68,7 @@ namespace FWO.Test
             string[] firstCall = PdfRenderSecurity.GetHardenedBrowserArgs();
             firstCall[0] = "--something-else";
 
-            Assert.That(PdfRenderSecurity.GetHardenedBrowserArgs(), Does.Contain(kDnsBlockArgument));
+            Assert.That(PdfRenderSecurity.GetHardenedBrowserArgs(), Does.Contain(kBackgroundNetworkingArgument));
         }
 
         [Test]

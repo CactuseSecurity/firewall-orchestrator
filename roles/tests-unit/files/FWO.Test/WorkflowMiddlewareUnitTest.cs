@@ -97,6 +97,19 @@ namespace FWO.Test
             /// </summary>
             public object? LastStateChangeClaimVariables { get; private set; }
 
+            /// <summary>
+            /// When set, the claim is answered from <see cref="claimedStates"/> the way
+            /// request.state_change_execution answers it, instead of from the fixed
+            /// <see cref="StateChangeClaimAffectedRows"/>. That lets a test submit several requests in
+            /// a row and see which of them the guard actually grants.
+            /// </summary>
+            public bool EmulateStateChangeExecutionTable { get; set; }
+
+            /// <summary>
+            /// The transition each object's actions last ran for, keyed as the table's primary key is.
+            /// </summary>
+            private readonly Dictionary<string, string> claimedTransitions = [];
+
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
                 GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null,
                 string? operationName = null)
@@ -120,7 +133,7 @@ namespace FWO.Test
                 if (query == RequestQueries.claimStateChangeExecution)
                 {
                     LastStateChangeClaimVariables = variables;
-                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = StateChangeClaimAffectedRows });
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = ClaimStateChangeExecution(variables) });
                 }
 
                 if (query.Contains("getConfigItemsByUser", StringComparison.OrdinalIgnoreCase)
@@ -135,6 +148,36 @@ namespace FWO.Test
             public override Task<ApiResponse<T>> SendQuerySafeAsync<T>(string query, object? variables = null, string? operationName = null)
             {
                 throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// Answers a claim the way request.state_change_execution does: one row per object, and the
+            /// row is rewritten only when the guard of the mutation holds against what is recorded there.
+            /// The guard is read out of the mutation itself rather than restated here, so that a guard
+            /// which brings the caller-supplied origin state back into the comparison is emulated as
+            /// such and the test that varies it fails.
+            /// </summary>
+            /// <param name="variables">The claim variables the controller sent.</param>
+            /// <returns>The number of rows the claim reports as written.</returns>
+            private int ClaimStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return StateChangeClaimAffectedRows;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                string comparedTransition = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
+                if (claimedTransitions.TryGetValue(key, out string? claimedTransition) && claimedTransition == comparedTransition)
+                {
+                    return 0;
+                }
+
+                claimedTransitions[key] = comparedTransition;
+                return 1;
             }
 
             public override void SetAuthHeader(string jwt)
@@ -530,6 +573,75 @@ namespace FWO.Test
                 Assert.That(ReadVariable(variables, "fromStateId"), Is.EqualTo(5));
                 Assert.That(ReadVariable(variables, "toStateId"), Is.EqualTo(8));
             });
+        }
+
+        /// <summary>
+        /// The origin state of the transition arrives in the request body and is never established
+        /// against the state the object actually held, so the guard must not compare it. A guard that
+        /// did would be re-armed by a replay that simply names a different origin state.
+        /// </summary>
+        [Test]
+        public void ClaimStateChangeExecution_GuardsOnTheStateTheServerVerified()
+        {
+            string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(guard, Does.Contain("to_state_id"));
+                Assert.That(guard, Does.Not.Contain("from_state_id"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+                Assert.That(guard, Does.Not.Contain("$fromStateId"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+            });
+        }
+
+        /// <summary>
+        /// A replay that varies only the origin state must stay refused: the object still stands in
+        /// the state its actions already ran for, so nothing may be executed a second time.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_StaysRefusedWhenTheOriginStateIsVaried()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+
+            bool firstClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedWithOtherOriginClaim = await ClaimTransition(controller, apiConnection, ticket, 6, 8);
+            bool nextTransitionClaim = await ClaimTransition(controller, apiConnection, ticket, 8, 9);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(replayedClaim, Is.False, "the identical replay is refused");
+                Assert.That(replayedWithOtherOriginClaim, Is.False,
+                    "varying the origin state must not re-arm the guard for a transition that already ran");
+                Assert.That(nextTransitionClaim, Is.True, "moving the object on is a transition of its own");
+            });
+        }
+
+        /// <summary>
+        /// Attempts one claim for the given transition of the given ticket.
+        /// </summary>
+        /// <param name="controller">The controller under test.</param>
+        /// <param name="apiConnection">Api connection answering the claim.</param>
+        /// <param name="ticket">The resolved ticket the claim is keyed on.</param>
+        /// <param name="oldStateId">Origin state as the request names it.</param>
+        /// <param name="newStateId">State the object is being moved into.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private static async Task<bool> ClaimTransition(WorkflowController controller, WorkflowExecutionApiConn apiConnection,
+            WfTicket ticket, int oldStateId, int newStateId)
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                OldStateId = oldStateId,
+                NewStateId = newStateId
+            };
+
+            return await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
         }
 
         /// <summary>

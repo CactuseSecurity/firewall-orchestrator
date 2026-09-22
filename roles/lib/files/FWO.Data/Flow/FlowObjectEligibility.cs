@@ -3,12 +3,19 @@ namespace FWO.Data.Flow
     /// <summary>
     /// Decides whether a Flow catalog entry may be offered in the request module and attached to a
     /// workflow element.
-    /// The same predicate is expressed as a Hasura select filter on the flow catalog tables and as a
-    /// Hasura insert/update check on request.reqelement, so that an entry which is hidden, retired or
-    /// reserved for internal use cannot be reached by a direct API call that bypasses the UI either.
+    /// The same predicate is expressed in Hasura, so that an entry which is hidden, retired or reserved
+    /// for internal use cannot be reached by a direct API call that bypasses the UI either.
     /// Two strengths are distinguished: <see cref="IsLive"/> asks whether an entry is still usable at
     /// all, <see cref="IsRequestable(FlowSvcObject)"/> additionally rejects the internal representations
     /// that only the platform itself may reference.
+    /// Which of the two a Hasura permission carries follows from what it decides. The select filters on
+    /// the flow catalog tables and the update check on request.reqelement carry <see cref="IsLive"/>,
+    /// because both also have to cover the values the platform itself wrote: an update rewrites the whole
+    /// row, including the canonical ANY service the flow creation attached and the ANY IP protocol of a
+    /// protocol-agnostic external request, and Hasura evaluates the check against the resulting row
+    /// whether or not those columns were touched. The insert check carries the full strength, because
+    /// there the row is authored by the user. Picking an entry is therefore refused, while a ticket that
+    /// already carries one stays editable.
     /// </summary>
     public static class FlowObjectEligibility
     {
@@ -54,8 +61,9 @@ namespace FWO.Data.Flow
         /// <summary>
         /// Whether a Flow service object is still offered and live, so that it may be attached to a
         /// workflow element. The canonical ANY service passes here: the platform attaches it itself when
-        /// it turns a protocol-agnostic request into a flow, and only user roles are barred from
-        /// referencing it - by the Hasura permissions rather than by this predicate.
+        /// it turns a protocol-agnostic request into a flow, and only picking it in a request module is
+        /// barred - by <see cref="IsRequestable(FlowSvcObject)"/> and the reqelement insert check rather
+        /// than by this predicate.
         /// </summary>
         /// <param name="svcObject">The Flow service object to check.</param>
         /// <returns>True when the object is visible and live.</returns>

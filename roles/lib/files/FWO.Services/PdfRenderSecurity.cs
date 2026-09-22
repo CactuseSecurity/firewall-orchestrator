@@ -26,12 +26,15 @@ namespace FWO.Services
 
         /// <summary>
         /// Command line of the render browser. It turns off every background channel Chrome opens on its
-        /// own, and makes host name resolution fail for every name, so a request that is somehow issued
-        /// outside the interception below still cannot reach a host.
+        /// own, so nothing except the render itself has a reason to issue a request.
+        /// No name resolution argument is used here. "--host-resolver-rules=MAP * ~NOTFOUND" would express
+        /// the same intent, but its value contains a space and PuppeteerSharp does not hand it to Chrome as
+        /// a single argv entry, so the browser refuses to start and every export fails at launch. The
+        /// request interception in HardenPageAsync covers the same ground and covers it earlier: it aborts
+        /// a request before it is issued, whether its target is a host name or a literal address.
         /// </summary>
         private static readonly string[] kHardenedBrowserArgs =
         [
-            "--host-resolver-rules=MAP * ~NOTFOUND",
             "--disable-background-networking",
             "--disable-component-update",
             "--disable-default-apps",

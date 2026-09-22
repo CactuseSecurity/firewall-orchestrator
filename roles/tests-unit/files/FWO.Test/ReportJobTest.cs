@@ -362,45 +362,40 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Execute_CanceledTokenStopsBeforeProcessingSchedules()
+        public async Task ProcessScheduledReport_CanceledTokenStopsBeforeGeneratingReport()
         {
-            ReportJobApiConnection apiConnection = new()
-            {
-                ReportSchedules =
-                [
-                    new()
-                    {
-                        Id = 17,
-                        Name = "scheduled-report",
-                        Active = true,
-                        StartTime = GetStableCurrentMinuteForTest(),
-                        RepeatInterval = SchedulerInterval.Days,
-                        RepeatOffset = 1,
-                        ScheduleOwningUser = new UiUser
-                        {
-                            DbId = 42,
-                            Name = "report-user"
-                        },
-                        Template = new ReportTemplate
-                        {
-                            Id = 7,
-                            ReportParams = new ReportParams
-                            {
-                                ReportType = (int)ReportType.TicketReport
-                            }
-                        }
-                    }
-                ],
-                LdapConnections = []
-            };
+            ReportJobApiConnection apiConnection = new();
             ReportJob reportJob = CreateReportJob(apiConnection);
+            MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
+            DateTime currentTimeRounded = new(2026, 4, 21, 10, 0, 0);
+            ReportSchedule reportSchedule = new()
+            {
+                Id = 17,
+                Name = "scheduled-report",
+                Active = true,
+                StartTime = currentTimeRounded,
+                RepeatInterval = SchedulerInterval.Days,
+                RepeatOffset = 1,
+                ScheduleOwningUser = new UiUser
+                {
+                    DbId = 42,
+                    Name = "report-user"
+                },
+                Template = new ReportTemplate
+                {
+                    Id = 7,
+                    ReportParams = new ReportParams
+                    {
+                        ReportType = (int)ReportType.TicketReport
+                    }
+                }
+            };
             using CancellationTokenSource cancellationTokenSource = new();
             await cancellationTokenSource.CancelAsync();
 
-            await reportJob.Execute(null!, cancellationTokenSource.Token);
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, currentTimeRounded, cancellationTokenSource.Token])!;
 
-            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
-            Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getReportSchedules));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -550,24 +545,6 @@ namespace FWO.Test
         {
             return (T)(obj.GetType().GetProperty(propertyName)?.GetValue(obj)
                 ?? throw new MissingMemberException(obj.GetType().FullName, propertyName));
-        }
-
-        private static DateTime RoundDownForTest(DateTime dateTime)
-        {
-            long delta = dateTime.Ticks % TimeSpan.FromMinutes(1).Ticks;
-            return new DateTime(dateTime.Ticks - delta, dateTime.Kind);
-        }
-
-        private static DateTime GetStableCurrentMinuteForTest()
-        {
-            DateTime now = DateTime.Now;
-            while (now.Second > 50)
-            {
-                Thread.Sleep(TimeSpan.FromMilliseconds(100));
-                now = DateTime.Now;
-            }
-
-            return RoundDownForTest(now);
         }
 
         private sealed class TestReport : ReportBase

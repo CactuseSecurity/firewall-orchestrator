@@ -91,6 +91,7 @@ namespace FWO.Middleware.Server.Jobs
 
                     if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                     {
+                        ct.ThrowIfCancellationRequested();
                         await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
                     }
                 }

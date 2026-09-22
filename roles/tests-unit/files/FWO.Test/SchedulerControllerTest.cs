@@ -35,11 +35,11 @@ namespace FWO.Test
             ITrigger betaTrigger = CreateCronTrigger();
             IScheduler scheduler = Substitute.For<IScheduler>();
             scheduler.QueryJobs(Arg.Is<JobQuery>(query => query.Take == PagedQuery.All), CancellationToken.None)
-                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateJobHeader(betaJob), CreateJobHeader(alphaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateJobHeader(betaJob), CreateJobHeader(alphaJob)])));
             scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == alphaJob && query.Take == PagedQuery.All), CancellationToken.None)
-                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(alphaTrigger, alphaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(alphaTrigger, alphaJob)])));
             scheduler.QueryTriggers(Arg.Is<TriggerQuery>(query => query.Job == betaJob && query.Take == PagedQuery.All), CancellationToken.None)
-                .Returns(_ => ValueTask.FromResult(CreatePagedResult(CreateTriggerHeader(betaTrigger, betaJob))));
+                .Returns(_ => ValueTask.FromResult(CreatePagedResult([CreateTriggerHeader(betaTrigger, betaJob)])));
             scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { alphaTrigger.Key })), CancellationToken.None)
                 .Returns(ValueTask.FromResult<List<ITrigger>>([alphaTrigger]));
             scheduler.GetTriggers(Arg.Is<IReadOnlyCollection<TriggerKey>>(keys => keys.SequenceEqual(new[] { betaTrigger.Key })), CancellationToken.None)
@@ -129,9 +129,9 @@ namespace FWO.Test
             return new JobHeader(jobKey, "", nameof(IJob), false, false, false, false);
         }
 
-        private static PagedResult<T> CreatePagedResult<T>(params T[] items)
+        private static PagedResult<T> CreatePagedResult<T>(List<T> items)
         {
-            return new PagedResult<T>(items, false, items.Length);
+            return new PagedResult<T>(items, false, items.Count);
         }
 
         private static TriggerHeader CreateTriggerHeader(ITrigger trigger, JobKey jobKey)

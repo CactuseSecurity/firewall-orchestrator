@@ -70,7 +70,7 @@ namespace FWO.Ui.Services
         {
             try
             {
-                ConnectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
+                ConnectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnectionsWithoutSecrets);
                 WritableLdaps = ConnectedLdaps.FindAll(x => x.IsWritable());
                 InternalLdap = ConnectedLdaps.FirstOrDefault(x => x.IsInternal()) ?? throw new KeyNotFoundException(userConfig.GetText("E5207"));
 

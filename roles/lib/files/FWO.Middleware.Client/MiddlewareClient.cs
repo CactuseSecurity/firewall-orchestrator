@@ -8,7 +8,19 @@ namespace FWO.Middleware.Client
     {
         private bool disposed = false;
 
-        public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/")
+        /// <summary>
+        /// Creates a client for the middleware REST API.
+        /// </summary>
+        /// <remarks>
+        /// Certificate checking is on: this connection carries the user's password on
+        /// its way to being exchanged for a JWT, so accepting any server certificate
+        /// would hand those credentials to anything answering on the port. Platform
+        /// validation is enough because the installer adds the internal CA to the
+        /// operating system trust store on every FWO host (internalCA/install-trust.yml),
+        /// and a customer-managed certificate is validated against its own issuer.
+        /// </remarks>
+        /// <param name="middlewareServerUri">Base uri of the middleware server.</param>
+        public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/", checkCertificates: true)
         { }
 
         public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)

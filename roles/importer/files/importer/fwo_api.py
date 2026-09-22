@@ -8,8 +8,9 @@ import traceback
 from pprint import pformat
 from typing import TYPE_CHECKING, Any, cast
 
-import fwo_globals
+import fwo_config
 import requests
+from fwo_config import read_tls_identity
 from fwo_const import FWO_API_HTTP_IMPORT_TIMEOUT, FWO_HTTP_TIMEOUT
 from fwo_exceptions import FwoApiLoginFailedError, FwoApiServiceUnavailableError, FwoApiTimeoutError, FwoImporterError
 from fwo_log import FWOLogger
@@ -58,6 +59,22 @@ class FwoApi:
         self.fwo_refresh_token = refresh_token
         self.query_info = {}
         self.query_analyzer = QueryAnalyzer()
+
+    @staticmethod
+    def _configure_internal_api_session(session: requests.Session) -> None:
+        """
+        Present the local FWO client identity and verify the peer against the internal CA.
+
+        requests resolves verify=True to the certifi bundle, which does not contain
+        the internal CA, so the CA file installed by the installer is named explicitly.
+
+        The identity is read from the config file rather than the ServiceProvider: login
+        runs before the container is populated and again after every management, where
+        main_loop has reset it.
+        """
+        tls_identity = read_tls_identity(fwo_config.FWO_CONFIG_FILE)
+        session.cert = (tls_identity.client_certificate, tls_identity.client_private_key)
+        session.verify = tls_identity.ca_certificate
 
     def call(
         self,
@@ -114,8 +131,7 @@ class FwoApi:
         analyze_payload: bool,
     ) -> dict[str, Any]:
         with requests.Session() as session:
-            # session.verify is None only for the first FWO API call (getting info on cert verification)
-            session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
+            self._configure_internal_api_session(session)
             session.headers.update(request_headers)
 
             if analyze_payload and self.query_info["chunking_info"]["needs_chunking"]:
@@ -176,8 +192,7 @@ class FwoApi:
         user_suffix = f" with user {user}" if user is not None else ""
 
         with requests.Session() as session:
-            # session.verify is None only for the first FWO API call (getting info on cert verification)
-            session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
+            FwoApi._configure_internal_api_session(session)
             session.headers.update({"Content-Type": JSON_CONTENT_TYPE})
 
             try:
@@ -201,7 +216,7 @@ class FwoApi:
                 f"{f', user: {user}' if user is not None else ''}"
                 f", http_status: {response.status_code}"
                 f", response: {response.text[:MAX_LOGIN_ERROR_RESPONSE_LEN]}"
-                f", ssl_verification: {fwo_globals.verify_certs}"
+                f", ssl_verification: {session.verify}"
             )
             raise FwoApiLoginFailedError(error_txt)
 
@@ -250,8 +265,10 @@ class FwoApi:
             return False
         try:
             service_provider = ServiceProvider()
-            fwo_config = service_provider.get_fwo_config()
-            user_management_api_base_url = fwo_config["user_management_api_base_url"]
+            # Not named fwo_config: that is the module this file imports for FWO_CONFIG_FILE,
+            # and a local of the same name would shadow it inside this method.
+            config = service_provider.get_fwo_config()
+            user_management_api_base_url = config["user_management_api_base_url"]
             self.refresh_jwt(self.fwo_refresh_token, user_management_api_base_url)
         except FwoApiLoginFailedError as e:
             FWOLogger.error(f"fwo_api: JWT refresh failed: {e.message}")
@@ -374,11 +391,13 @@ class FwoApi:
 
     @staticmethod
     def _build_endpoint_url(endpoint: str) -> str:
-        fwo_config = ServiceProvider().get_fwo_config()
-        return fwo_config["user_management_api_base_url"] + endpoint.lstrip("/")
+        # Not named fwo_config: that is the module this file imports for FWO_CONFIG_FILE,
+        # and a local of the same name would shadow it inside this method.
+        config = ServiceProvider().get_fwo_config()
+        return config["user_management_api_base_url"] + endpoint.lstrip("/")
 
     def _configure_endpoint_session(self, session: requests.Session) -> None:
-        session.verify = False if fwo_globals.verify_certs is None else fwo_globals.verify_certs
+        self._configure_internal_api_session(session)
         session.headers.update({"Authorization": f"Bearer {self.fwo_jwt}", "Content-Type": JSON_CONTENT_TYPE})
 
     @staticmethod

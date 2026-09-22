@@ -649,7 +649,7 @@ namespace FWO.Test
         private static void SetDbAccess(WfHandler handler, SimulatedApiConnection apiConnection)
         {
             ActionHandler actionHandler = new(apiConnection, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false, WorkflowPhases.request);
             FieldInfo? field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(handler, dbAccess);
         }

@@ -66,6 +66,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<ITokenRefreshCoordinator, TokenRefreshCoordinator>();
 builder.Services.AddSingleton<IPeriodicTaskRunnerFactory, PeriodicTaskRunnerFactory>();
 builder.Services.AddScoped<ExecutionModeStorage>();
+builder.Services.AddSingleton<IInternalCaCertificateProvider, InternalCaCertificateProvider>();
 
 // system usage monitoring: track the open circuits and sample the resource usage of this UI server
 builder.Services.AddSingleton<UiSessionTracker>();

@@ -90,7 +90,8 @@ namespace FWO.Services
         /// <summary>
         /// Sends an immediate workflow action email using notification recipient fields.
         /// </summary>
-        public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
+        /// <returns>Whether the email was delivered, had no recipients, or failed to send</returns>
+        public async Task<WorkflowEmailDeliveryResult> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
             WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
         {
             List<string> tos = await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo, ScopedUserEmailTo, userGrpDn);
@@ -104,7 +105,7 @@ namespace FWO.Services
             string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
             string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
-            return await SendEmail(tos, subject, body, ccs, bccs,
+            return await SendEmailWithResult(tos, subject, body, ccs, bccs,
                 notification.Layout == NotificationLayout.HtmlInBody, attachment);
         }
 
@@ -138,6 +139,17 @@ namespace FWO.Services
         private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
             bool mailFormatHtml = true, FormFile? attachment = null)
         {
+            return await SendEmailWithResult(tos, subject, body, ccs, bccs, mailFormatHtml, attachment) == WorkflowEmailDeliveryResult.Delivered;
+        }
+
+        /// <summary>
+        /// Sends one email and reports the outcome in the detail a workflow action needs: a failed send has
+        /// to be surfaced, while an email with no resolvable recipient is a property of the configuration.
+        /// </summary>
+        /// <returns>Whether the email was delivered, had no recipients, or failed to send</returns>
+        private async Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
+            bool mailFormatHtml = true, FormFile? attachment = null)
+        {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
                 userConfig.EmailTls, userConfig.EmailUser, userConfig.EmailPassword, userConfig.EmailSenderAddress);
             ApplyDummyRecipientOverride(ref tos, ref ccs, ref bccs);
@@ -145,7 +157,7 @@ namespace FWO.Services
             if (tos.Count == 0)
             {
                 Log.WriteWarning("SendEmail", $"No email sent because no To recipients could be resolved. Subject: '{subject}'.");
-                return false;
+                return WorkflowEmailDeliveryResult.NoRecipients;
             }
             ccs = ccs?.Where(c => c != "").ToList();
             bccs = bccs?.Where(bcc => bcc != "").ToList();
@@ -159,8 +171,9 @@ namespace FWO.Services
             if (!sent)
             {
                 Log.WriteWarning("SendEmail", $"MailKit returned false while sending workflow email. To recipients: {tos.Count}, subject: '{subject}'.");
+                return WorkflowEmailDeliveryResult.Failed;
             }
-            return sent;
+            return WorkflowEmailDeliveryResult.Delivered;
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser,

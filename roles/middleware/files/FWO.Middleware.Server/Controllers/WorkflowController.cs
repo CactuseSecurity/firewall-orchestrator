@@ -395,8 +395,14 @@ namespace FWO.Middleware.Server.Controllers
         /// Comparing the state alone holds only while the record keeps up with the object, which is
         /// why ActionHandler.RecordStateChangeExecution writes it for every state change executed
         /// inside the middleware - the external request chain promotes request tasks without ever
-        /// reaching this endpoint. A stale record would turn a legitimate move back into a state the
-        /// object had left into a refusal, and this method reports a refusal as success.
+        /// reaching this endpoint.
+        /// One path stays uncovered by decision, not by oversight: workflow monitoring persists a
+        /// state change while suppressing its actions, so nothing records it and a later legitimate
+        /// return to that state is refused. Covering it would take either a counter the ui's own role
+        /// can write - which a caller could then move to re-arm this guard and replay - or a database
+        /// trigger. Both were weighed and rejected, and the refusal is made visible instead, so the
+        /// remaining cost is that the actions have to be asked for again rather than being lost
+        /// unnoticed. Do not treat this as a defect to fix silently; it is a known limitation.
         /// A refused claim does not fail the promote - the state change itself did happen, and
         /// throwing would turn an accidental double submit into an error - but it is reported to the
         /// caller as a warning rather than swallowed. The claim compares the state the object stands

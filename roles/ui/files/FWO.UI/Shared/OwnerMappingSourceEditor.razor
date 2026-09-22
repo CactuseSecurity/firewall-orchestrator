@@ -1,3 +1,5 @@
+@using FWO.Data.Enums
+
 @inject UserConfig userConfig
 
 @* editor for the rule owner mapping source settings, shared by every settings page offering them *@
@@ -49,6 +51,21 @@
         </div>
     </div>
 }
+@if (Handler.SelectedSource != OwnerMappingSourceStm.Disabled)
+{
+    <div class="form-group row mt-2 align-items-center" data-toggle="tooltip" title="@(userConfig.PureLine("H5916"))">
+        <label class="col-sm-4 col-form-label me-2" for="ruleOwnerMappingLogLevelDropdown">@(userConfig.GetText("ruleOwnerMappingLogLevel")):</label>
+        <div class="col-sm-5">
+            <Dropdown ElementType="RuleOwnerMappingLogLevel?" ElementToString="GetLogLevelText" SelectedElement="@Handler.LogLevel"
+                      SelectedElementChanged="@(level => { Handler.LogLevel = level ?? RuleOwnerMappingLogLevel.Warning; StateHasChanged(); })"
+                      Elements="Handler.LogLevels" Nullable="false" id="ruleOwnerMappingLogLevelDropdown">
+                <ElementTemplate Context="level">
+                    @GetLogLevelText(level)
+                </ElementTemplate>
+            </Dropdown>
+        </div>
+    </div>
+}
 
 @code
 {
@@ -77,5 +94,15 @@
     private string GetOwnerMappingSourceText(OwnerMappingSourceStm? source)
     {
         return userConfig.GetText(source?.ToString() ?? "");
+    }
+
+    /// <summary>
+    /// Resolves the display text of a log level.
+    /// </summary>
+    /// <param name="level">Log level to display.</param>
+    /// <returns>The localized text.</returns>
+    private string GetLogLevelText(RuleOwnerMappingLogLevel? level)
+    {
+        return userConfig.GetText(level?.ToString() ?? "");
     }
 }

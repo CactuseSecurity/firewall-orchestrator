@@ -216,7 +216,7 @@ namespace FWO.Test
                         ? compliantPolicy
                         : policyId == matrixPolicy.Id ? matrixPolicy : nonCompliantPolicy));
                 }
-                if (query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     return Task.FromResult((T)(object)MatrixNetworkZones);
                 }
@@ -2943,7 +2943,7 @@ namespace FWO.Test
             await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
 
             Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
-            Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConn.Queries, Has.Member(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
             Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.EqualTo("bundle-1-2"));
             Assert.That(differentZone.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
@@ -2974,7 +2974,7 @@ namespace FWO.Test
             await handler.BundleTasks(action, ticket, WfObjectScopes.Ticket, null, null);
 
             Assert.That(apiConn.Queries, Has.Member(ComplianceQueries.getPolicyById));
-            Assert.That(apiConn.Queries, Has.No.Member(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConn.Queries, Has.No.Member(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(first.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
             Assert.That(second.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId), Is.Empty);
         }

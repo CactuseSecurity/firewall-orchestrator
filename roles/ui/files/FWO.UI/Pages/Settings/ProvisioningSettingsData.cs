@@ -1,21 +1,7 @@
-using System.Collections.Generic;
-using System.Linq;
+using FWO.Data.Provisioning;
 
 namespace FWO.Ui.Pages.Settings
 {
-    /// <summary>
-    /// The four levels of the provisioning-settings hierarchy, from most general (Global)
-    /// to most specific (Gateway). A setting resolves by walking from the selected node
-    /// upward until a level defines a value.
-    /// </summary>
-    public enum ProvisioningLevel
-    {
-        Global = 0,
-        DeviceType = 1,
-        Manager = 2,
-        Gateway = 3
-    }
-
     /// <summary>
     /// The three device-type groups the hierarchy currently distinguishes at the
     /// "Per Device Type" level.
@@ -47,7 +33,8 @@ namespace FWO.Ui.Pages.Settings
     }
 
     /// <summary>
-    /// One selectable option for a SingleSelect/MultiSelectTags field.
+    /// One selectable option for a SingleSelect/MultiSelectTags field. Value is the name of the
+    /// underlying data-layer enum member.
     /// </summary>
     public sealed class ProvisioningFieldOption(string value, string displayName)
     {
@@ -56,9 +43,9 @@ namespace FWO.Ui.Pages.Settings
     }
 
     /// <summary>
-    /// Definition (schema) of a single provisioning-settings key: what kind of value it holds,
-    /// which hierarchy levels it may be set at, and - for the FortiManager-only fields -
-    /// which device-type group it is restricted to.
+    /// Definition (schema) of a single provisioning-settings key: how it is edited, which scopes it
+    /// may be set at, and how it is read from / written to a <see cref="GlobalProvisioningSettings"/>
+    /// instance of the data layer.
     /// </summary>
     public sealed class ProvisioningFieldDefinition
     {
@@ -69,49 +56,65 @@ namespace FWO.Ui.Pages.Settings
         public List<ProvisioningFieldOption> Options { get; init; } = [];
         public string DefaultValue { get; init; } = "";
 
-        /// <summary>Lowest (most general) level at which this field may be configured.</summary>
-        public ProvisioningLevel MinLevel { get; init; } = ProvisioningLevel.Global;
+        /// <summary>Lowest (most general) scope at which this field may be configured.</summary>
+        public ProvisioningScopeType MinLevel { get; init; } = ProvisioningScopeType.Global;
 
-        /// <summary>Highest (most specific) level at which this field may be configured.</summary>
-        public ProvisioningLevel MaxLevel { get; init; } = ProvisioningLevel.Gateway;
+        /// <summary>Highest (most specific) scope at which this field may be configured.</summary>
+        public ProvisioningScopeType MaxLevel { get; init; } = ProvisioningScopeType.Gateway;
 
         /// <summary>Only relevant/shown below (and including) DeviceType for FortiManager device types.</summary>
         public bool FortiManagerOnly { get; init; } = false;
 
-        public bool AppliesToLevel(ProvisioningLevel level) => level >= MinLevel && level <= MaxLevel;
+        /// <summary>Reads the field off a settings object; "" means the field is not set at that scope.</summary>
+        public required Func<GlobalProvisioningSettings, string> Read { get; init; }
+
+        /// <summary>Writes the field into a settings object; "" clears it.</summary>
+        public required Action<GlobalProvisioningSettings, string> Write { get; init; }
+
+        /// <summary>Clears the field so the scope inherits it from its parent again.</summary>
+        public required Action<GlobalProvisioningSettings> Clear { get; init; }
+
+        /// <summary>True when this scope defines the field itself rather than inheriting it.</summary>
+        public bool IsSetOn(GlobalProvisioningSettings settings) => Read(settings).Length > 0;
+
+        public bool AppliesToLevel(ProvisioningScopeType level) => level >= MinLevel && level <= MaxLevel;
     }
 
     /// <summary>
-    /// One node of the provisioning-settings hierarchy tree (Global / a device type /
-    /// a manager / a gateway), plus whatever field overrides are explicitly set at this node.
-    /// An empty/missing entry in <see cref="Overrides"/> means "inherit from the parent node".
+    /// One node of the provisioning-settings hierarchy tree. Settings is the data-layer object for
+    /// this scope - a <see cref="GlobalProvisioningSettings"/> at the root and one of its subclasses
+    /// further down. A field left at its unset value there means "inherit from the parent scope".
     /// </summary>
     public sealed class ProvisioningNode
     {
-        public required string Id { get; init; }
-        public required string Name { get; init; }
-        public required ProvisioningLevel Level { get; init; }
-        public string? ParentId { get; init; }
+        public required GlobalProvisioningSettings Settings { get; init; }
 
         /// <summary>Device-type group this node belongs to (set on DeviceType nodes and inherited down); empty for Global.</summary>
         public string DeviceTypeGroup { get; init; } = "";
 
-        public Dictionary<string, string> Overrides { get; init; } = [];
+        public string Id => Settings.Scope.ObjectKey;
+        public string Name => Settings.Scope.DisplayName ?? Settings.Scope.ObjectKey;
+        public ProvisioningScopeType Level => Settings.Scope.ScopeType;
+        public long NodeId => Settings.Scope.NodeId;
+        public long? ParentNodeId => Settings.Scope.ParentNodeId;
     }
 
     /// <summary>
     /// Where an effective field value came from, for display ("inherited from ..." vs "set here").
-    /// SourceNode is null when no node in the chain (including Global) overrides the field,
+    /// SourceNode is null when no node in the chain (including Global) sets the field,
     /// i.e. the value is just the field's schema default with nothing to link to.
     /// </summary>
     public sealed record ProvisioningResolvedValue(string Value, ProvisioningNode? SourceNode, bool IsOverriddenHere);
 
     /// <summary>
-    /// Field schema plus an in-memory mock hierarchy, standing in for the not-yet-built
-    /// getAllProvisioningSettings backend. Only used to drive the settings/fwconfigprovisioning UI.
+    /// Field schema over the FWO.Data.Provisioning settings classes, plus an in-memory hierarchy
+    /// standing in for the not-yet-built getAllProvisioningSettings backend. Only used to drive the
+    /// settings/fwconfigprovisioning UI.
     /// </summary>
-    public static class ProvisioningSettingsMockData
+    public static class ProvisioningSettingsData
     {
+        public const string GlobalNodeKey = "global";
+
         public const string FieldImplementationMode = "implementation_mode";
         public const string FieldInstallOn = "install_on";
         public const string FieldPathAnalysisAlgorithm = "path_analysis_algorithm";
@@ -126,10 +129,13 @@ namespace FWO.Ui.Pages.Settings
         public const string FieldZoneFrom = "zone_from";
         public const string FieldZoneTo = "zone_to";
 
+        private const char kListSeparator = ',';
+
         /// <summary>
         /// Field definitions. Two source keys (path_analysis_algorithm, service/address_object_creation)
         /// were listed under both "all levels" and a more specific level range in the spec;
         /// the more specific range (global-only / all-but-gateway) is treated as authoritative here.
+        /// Default values mirror the constructor defaults of the data-layer settings classes.
         /// </summary>
         public static readonly IReadOnlyList<ProvisioningFieldDefinition> Fields =
         [
@@ -139,16 +145,17 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_implementation_mode",
                 HelpTextKey = "prov_implementation_mode_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("FWO_auto", "FWO automatic"),
-                    new("manual", "Manual"),
-                    new("tufin_SC", "Tufin SecureChange"),
-                    new("none", "None (no implementation task)")
-                ],
-                DefaultValue = "FWO_auto",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Gateway
+                Options = EnumOptions(
+                    (ProvisioningImplementationMode.FwoAuto, "FWO automatic"),
+                    (ProvisioningImplementationMode.Manual, "Manual"),
+                    (ProvisioningImplementationMode.TufinSc, "Tufin SecureChange"),
+                    (ProvisioningImplementationMode.None, "None (no implementation task)")),
+                DefaultValue = nameof(ProvisioningImplementationMode.FwoAuto),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = ReadEnum(s => s.ImplementationMode),
+                Write = WriteEnum<ProvisioningImplementationMode>((s, v) => s.ImplementationMode = v),
+                Clear = ClearEnum<ProvisioningImplementationMode>((s, v) => s.ImplementationMode = v)
             },
             new()
             {
@@ -157,8 +164,11 @@ namespace FWO.Ui.Pages.Settings
                 HelpTextKey = "prov_install_on_help",
                 Kind = ProvisioningFieldKind.Text,
                 DefaultValue = "ANY",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Gateway
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = s => s.InstallOn,
+                Write = (s, v) => s.InstallOn = v,
+                Clear = s => s.InstallOn = ""
             },
             new()
             {
@@ -166,15 +176,16 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_path_analysis_algorithm",
                 HelpTextKey = "prov_path_analysis_algorithm_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("static_lists_per_subnet", "Static lists per subnet"),
-                    new("manual_planning", "Manual planning"),
-                    new("ask_external_api", "Ask external API")
-                ],
-                DefaultValue = "static_lists_per_subnet",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Global
+                Options = EnumOptions(
+                    (ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet, "Static lists per subnet"),
+                    (ProvisioningPathAnalysisAlgorithm.ManualPlanning, "Manual planning"),
+                    (ProvisioningPathAnalysisAlgorithm.AskExternalApi, "Ask external API")),
+                DefaultValue = nameof(ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Global,
+                Read = ReadEnum(s => s.PathAnalysisAlgorithm),
+                Write = WriteEnum<ProvisioningPathAnalysisAlgorithm>((s, v) => s.PathAnalysisAlgorithm = v),
+                Clear = ClearEnum<ProvisioningPathAnalysisAlgorithm>((s, v) => s.PathAnalysisAlgorithm = v)
             },
             new()
             {
@@ -182,15 +193,16 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_logging",
                 HelpTextKey = "prov_logging_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("log", "Log"),
-                    new("log_track", "Log & track"),
-                    new("none", "None")
-                ],
-                DefaultValue = "log",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Gateway
+                Options = EnumOptions(
+                    (ProvisioningLoggingMode.Log, "Log"),
+                    (ProvisioningLoggingMode.LogTrack, "Log and track"),
+                    (ProvisioningLoggingMode.None, "None")),
+                DefaultValue = nameof(ProvisioningLoggingMode.Log),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = ReadEnum(s => s.Logging),
+                Write = WriteEnum<ProvisioningLoggingMode>((s, v) => s.Logging = v),
+                Clear = ClearEnum<ProvisioningLoggingMode>((s, v) => s.Logging = v)
             },
             new()
             {
@@ -198,14 +210,15 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_service_object_creation",
                 HelpTextKey = "prov_service_object_creation_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("supermanager", "Supermanager"),
-                    new("submanager", "Submanager")
-                ],
-                DefaultValue = "submanager",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Manager
+                Options = EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "Supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "Submanager")),
+                DefaultValue = nameof(ProvisioningObjectCreationMode.Supermanager),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Management,
+                Read = ReadEnum(s => s.ServiceObjectCreation),
+                Write = WriteEnum<ProvisioningObjectCreationMode>((s, v) => s.ServiceObjectCreation = v),
+                Clear = ClearEnum<ProvisioningObjectCreationMode>((s, v) => s.ServiceObjectCreation = v)
             },
             new()
             {
@@ -213,14 +226,15 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_address_object_creation",
                 HelpTextKey = "prov_address_object_creation_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("supermanager", "Supermanager"),
-                    new("submanager", "Submanager")
-                ],
-                DefaultValue = "submanager",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Manager
+                Options = EnumOptions(
+                    (ProvisioningObjectCreationMode.Supermanager, "Supermanager"),
+                    (ProvisioningObjectCreationMode.Submanager, "Submanager")),
+                DefaultValue = nameof(ProvisioningObjectCreationMode.Supermanager),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Management,
+                Read = ReadEnum(s => s.AddressObjectCreation),
+                Write = WriteEnum<ProvisioningObjectCreationMode>((s, v) => s.AddressObjectCreation = v),
+                Clear = ClearEnum<ProvisioningObjectCreationMode>((s, v) => s.AddressObjectCreation = v)
             },
             new()
             {
@@ -228,16 +242,17 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_rule_type",
                 HelpTextKey = "prov_rule_type_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("always_access", "Always access (standard)"),
-                    new("handle_access_and_nat", "Handle access and NAT"),
-                    new("handle_access_and_IPS", "Handle access and IPS"),
-                    new("handle_access_nat_IPS", "Handle access, NAT and IPS")
-                ],
-                DefaultValue = "always_access",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Gateway
+                Options = EnumOptions(
+                    (ProvisioningRuleType.AlwaysAccess, "Always access (standard)"),
+                    (ProvisioningRuleType.HandleAccessAndNat, "Handle access and NAT"),
+                    (ProvisioningRuleType.HandleAccessAndIps, "Handle access and IPS"),
+                    (ProvisioningRuleType.HandleAccessNatIps, "Handle access, NAT and IPS")),
+                DefaultValue = nameof(ProvisioningRuleType.AlwaysAccess),
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = ReadEnum(s => s.RuleType),
+                Write = WriteEnum<ProvisioningRuleType>((s, v) => s.RuleType = v),
+                Clear = ClearEnum<ProvisioningRuleType>((s, v) => s.RuleType = v)
             },
             new()
             {
@@ -246,8 +261,11 @@ namespace FWO.Ui.Pages.Settings
                 HelpTextKey = "prov_templates_help",
                 Kind = ProvisioningFieldKind.TemplateText,
                 DefaultValue = "",
-                MinLevel = ProvisioningLevel.Global,
-                MaxLevel = ProvisioningLevel.Gateway
+                MinLevel = ProvisioningScopeType.Global,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = s => s.Templates,
+                Write = (s, v) => s.Templates = v,
+                Clear = s => s.Templates = ""
             },
             new()
             {
@@ -255,17 +273,18 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_positioning_algorithm",
                 HelpTextKey = "prov_positioning_algorithm_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("cp_inline_layer_per_zone_pair", "Check Point: inline layer per zone pair"),
-                    new("fortinet_end_of_zone", "Fortinet: end of zone"),
-                    new("cp_end_of_app_section", "Check Point: end of app section"),
-                    new("cp_end_of_app_section_distinguish_common_services", "Check Point: end of app section, distinguish common services"),
-                    new("default_end_of_rulebase", "Default: end of rulebase")
-                ],
-                DefaultValue = "default_end_of_rulebase",
-                MinLevel = ProvisioningLevel.DeviceType,
-                MaxLevel = ProvisioningLevel.Gateway
+                Options = EnumOptions(
+                    (ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair, "Check Point: inline layer per zone pair"),
+                    (ProvisioningPositioningAlgorithm.FortinetEndOfZone, "Fortinet: end of zone"),
+                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "Check Point: end of app section"),
+                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "Check Point: end of app section, distinguish common services"),
+                    (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "Default: end of rulebase")),
+                DefaultValue = nameof(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase),
+                MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = ReadEnum(OnDeviceType(d => d.PositioningAlgorithm)),
+                Write = WriteEnum(OnDeviceType<ProvisioningPositioningAlgorithm>((d, v) => d.PositioningAlgorithm = v)),
+                Clear = ClearOnDeviceType(d => d.PositioningAlgorithm = ProvisioningPositioningAlgorithm.Undefined)
             },
             new()
             {
@@ -273,14 +292,15 @@ namespace FWO.Ui.Pages.Settings
                 LabelTextKey = "prov_rule_category",
                 HelpTextKey = "prov_rule_category_help",
                 Kind = ProvisioningFieldKind.SingleSelect,
-                Options =
-                [
-                    new("app", "Application"),
-                    new("common_service", "Common service")
-                ],
-                DefaultValue = "app",
-                MinLevel = ProvisioningLevel.DeviceType,
-                MaxLevel = ProvisioningLevel.Gateway
+                Options = EnumOptions(
+                    (ProvisioningRuleCategory.App, "Application"),
+                    (ProvisioningRuleCategory.CommonService, "Common service")),
+                DefaultValue = nameof(ProvisioningRuleCategory.App),
+                MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                Read = ReadEnum(OnDeviceType(d => d.RuleCategory)),
+                Write = WriteEnum(OnDeviceType<ProvisioningRuleCategory>((d, v) => d.RuleCategory = v)),
+                Clear = ClearOnDeviceType(d => d.RuleCategory = ProvisioningRuleCategory.Undefined)
             },
             new()
             {
@@ -289,9 +309,12 @@ namespace FWO.Ui.Pages.Settings
                 HelpTextKey = "prov_security_profiles_help",
                 Kind = ProvisioningFieldKind.StringList,
                 DefaultValue = "",
-                MinLevel = ProvisioningLevel.DeviceType,
-                MaxLevel = ProvisioningLevel.Gateway,
-                FortiManagerOnly = true
+                MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                FortiManagerOnly = true,
+                Read = ReadOnDeviceType(d => string.Join(kListSeparator, d.SecurityProfiles)),
+                Write = OnDeviceType<string>((d, v) => d.SecurityProfiles = ParseStringList(v)),
+                Clear = ClearOnDeviceType(d => d.SecurityProfiles = [])
             },
             new()
             {
@@ -300,9 +323,12 @@ namespace FWO.Ui.Pages.Settings
                 HelpTextKey = "prov_zone_from_help",
                 Kind = ProvisioningFieldKind.Text,
                 DefaultValue = "ANY",
-                MinLevel = ProvisioningLevel.DeviceType,
-                MaxLevel = ProvisioningLevel.Gateway,
-                FortiManagerOnly = true
+                MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                FortiManagerOnly = true,
+                Read = ReadOnDeviceType(d => d.ZoneFrom),
+                Write = OnDeviceType<string>((d, v) => d.ZoneFrom = v),
+                Clear = ClearOnDeviceType(d => d.ZoneFrom = "")
             },
             new()
             {
@@ -311,122 +337,192 @@ namespace FWO.Ui.Pages.Settings
                 HelpTextKey = "prov_zone_to_help",
                 Kind = ProvisioningFieldKind.Text,
                 DefaultValue = "ANY",
-                MinLevel = ProvisioningLevel.DeviceType,
-                MaxLevel = ProvisioningLevel.Gateway,
-                FortiManagerOnly = true
+                MinLevel = ProvisioningScopeType.DeviceType,
+                MaxLevel = ProvisioningScopeType.Gateway,
+                FortiManagerOnly = true,
+                Read = ReadOnDeviceType(d => d.ZoneTo),
+                Write = OnDeviceType<string>((d, v) => d.ZoneTo = v),
+                Clear = ClearOnDeviceType(d => d.ZoneTo = "")
             }
         ];
 
         public static ProvisioningFieldDefinition? FindField(string key) => Fields.FirstOrDefault(f => f.Key == key);
 
+        /// <summary>Splits a comma separated list, keeping empty entries so half-filled editor rows survive a re-render.</summary>
+        public static List<string> ParseStringList(string value) =>
+            value.Length == 0 ? [] : [.. value.Split(kListSeparator, StringSplitOptions.TrimEntries)];
+
+        /// <summary>Builds the option list of a select field from the real data-layer enum members.</summary>
+        private static List<ProvisioningFieldOption> EnumOptions<TEnum>(params (TEnum Value, string DisplayName)[] entries) where TEnum : struct, Enum =>
+            [.. entries.Select(e => new ProvisioningFieldOption(e.Value.ToString(), e.DisplayName))];
+
+        /// <summary>Reads an enum property, mapping its Undefined member to "" (= not set at this scope).</summary>
+        private static Func<GlobalProvisioningSettings, string> ReadEnum<TEnum>(Func<GlobalProvisioningSettings, TEnum> get) where TEnum : struct, Enum =>
+            s => EqualityComparer<TEnum>.Default.Equals(get(s), default) ? "" : get(s).ToString();
+
+        /// <summary>Writes an enum property from its member name; anything unparsable clears the property.</summary>
+        private static Action<GlobalProvisioningSettings, string> WriteEnum<TEnum>(Action<GlobalProvisioningSettings, TEnum> set) where TEnum : struct, Enum =>
+            (s, v) => set(s, Enum.TryParse(v, out TEnum parsed) ? parsed : default);
+
+        /// <summary>Resets an enum property to its Undefined member, so the scope inherits it again.</summary>
+        private static Action<GlobalProvisioningSettings> ClearEnum<TEnum>(Action<GlobalProvisioningSettings, TEnum> set) where TEnum : struct, Enum =>
+            s => set(s, default);
+
         /// <summary>
-        /// Builds a small, illustrative Global &gt; DeviceType &gt; Manager &gt; Gateway tree
-        /// with a handful of overrides already set, so the inheritance behaviour is visible
-        /// as soon as the page opens.
+        /// Lifts an enum getter declared on <see cref="DeviceTypeProvisioningSettings"/> to the base type
+        /// the tree stores, yielding Undefined for scopes above device type, which do not carry the field.
         /// </summary>
-        public static List<ProvisioningNode> BuildMockHierarchy()
+        private static Func<GlobalProvisioningSettings, TEnum> OnDeviceType<TEnum>(Func<DeviceTypeProvisioningSettings, TEnum> get) where TEnum : struct, Enum =>
+            s => s is DeviceTypeProvisioningSettings d ? get(d) : default;
+
+        /// <summary>
+        /// Lifts a text getter declared on <see cref="DeviceTypeProvisioningSettings"/>, yielding "" for
+        /// scopes above device type, which do not carry the field and therefore never set it.
+        /// </summary>
+        private static Func<GlobalProvisioningSettings, string> ReadOnDeviceType(Func<DeviceTypeProvisioningSettings, string> get) =>
+            s => s is DeviceTypeProvisioningSettings d ? get(d) : "";
+
+        /// <summary>Lifts a setter declared on <see cref="DeviceTypeProvisioningSettings"/>, ignoring scopes above device type.</summary>
+        private static Action<GlobalProvisioningSettings, T> OnDeviceType<T>(Action<DeviceTypeProvisioningSettings, T> set) =>
+            (s, v) =>
+            {
+                if (s is DeviceTypeProvisioningSettings d)
+                {
+                    set(d, v);
+                }
+            };
+
+        /// <summary>Lifts a reset declared on <see cref="DeviceTypeProvisioningSettings"/>, ignoring scopes above device type.</summary>
+        private static Action<GlobalProvisioningSettings> ClearOnDeviceType(Action<DeviceTypeProvisioningSettings> clear) =>
+            s =>
+            {
+                if (s is DeviceTypeProvisioningSettings d)
+                {
+                    clear(d);
+                }
+            };
+
+        /// <summary>
+        /// Creates the settings object of a scope below Global with every field cleared, so it inherits
+        /// everything from its parent. The data-layer constructors seed concrete defaults, which below
+        /// Global would read as "explicitly set here", so they are cleared through the field definitions.
+        /// </summary>
+        private static T NewInheriting<T>(string objectKey, string displayName, long nodeId, long parentNodeId) where T : GlobalProvisioningSettings, new()
+        {
+            T settings = new();
+            foreach (ProvisioningFieldDefinition field in Fields)
+            {
+                field.Clear(settings);
+            }
+            settings.Scope.ObjectKey = objectKey;
+            settings.Scope.DisplayName = displayName;
+            settings.Scope.NodeId = nodeId;
+            settings.Scope.ParentNodeId = parentNodeId;
+            return settings;
+        }
+
+        /// <summary>
+        /// Builds a small, illustrative Global / DeviceType / Management / Gateway tree with a handful
+        /// of values already set below Global, so the inheritance behaviour is visible as soon as the
+        /// page opens. Stands in for the not-yet-built backend query.
+        /// </summary>
+        public static List<ProvisioningNode> BuildSampleHierarchy()
         {
             List<ProvisioningNode> nodes = [];
+            long nextNodeId = 1;
 
-            ProvisioningNode global = new()
-            {
-                Id = "global",
-                Name = "Global",
-                Level = ProvisioningLevel.Global,
-                ParentId = null,
-                Overrides = Fields
-                    .Where(f => f.AppliesToLevel(ProvisioningLevel.Global))
-                    .ToDictionary(f => f.Key, f => f.DefaultValue)
-            };
+            GlobalProvisioningSettings globalSettings = new();
+            globalSettings.Scope.ObjectKey = GlobalNodeKey;
+            globalSettings.Scope.DisplayName = "Global";
+            globalSettings.Scope.NodeId = nextNodeId++;
+            ProvisioningNode global = new() { Settings = globalSettings };
             nodes.Add(global);
 
-            AddDeviceTypeBranch(nodes, global, "dt-checkpoint", "Check Point", ProvisioningDeviceTypeGroups.CheckPoint,
-                managers:
+            AddDeviceTypeBranch(nodes, global, ref nextNodeId, "dt-checkpoint", "Check Point", ProvisioningDeviceTypeGroups.CheckPoint,
+                managements:
                 [
-                    ("mgr-cp-mgr1", "cp-mgr1", new[] { "cp-gw-1", "cp-gw-2" }),
-                    ("mgr-cp-mgr2", "cp-mgr2", new[] { "cp-gw-3" })
+                    ("mgr-cp-mgr1", "cp-mgr1", ["cp-gw-1", "cp-gw-2"]),
+                    ("mgr-cp-mgr2", "cp-mgr2", ["cp-gw-3"])
                 ]);
 
-            AddDeviceTypeBranch(nodes, global, "dt-fortimanager", "FortiManager", ProvisioningDeviceTypeGroups.FortiManager,
-                managers:
+            AddDeviceTypeBranch(nodes, global, ref nextNodeId, "dt-fortimanager", "FortiManager", ProvisioningDeviceTypeGroups.FortiManager,
+                managements:
                 [
-                    ("mgr-forti-mgr1", "forti-mgr1", new[] { "forti-gw-1" }),
-                    ("mgr-forti-mgr2", "forti-mgr2", new[] { "forti-gw-2", "forti-gw-3" })
+                    ("mgr-forti-mgr1", "forti-mgr1", ["forti-gw-1"]),
+                    ("mgr-forti-mgr2", "forti-mgr2", ["forti-gw-2", "forti-gw-3"])
                 ]);
 
-            AddDeviceTypeBranch(nodes, global, "dt-tufinsc", "Tufin SecureChange", ProvisioningDeviceTypeGroups.TufinSC,
-                managers:
+            AddDeviceTypeBranch(nodes, global, ref nextNodeId, "dt-tufinsc", "Tufin SecureChange", ProvisioningDeviceTypeGroups.TufinSC,
+                managements:
                 [
-                    ("mgr-tufin-mgr1", "tufin-mgr1", new[] { "tufin-gw-1" })
+                    ("mgr-tufin-mgr1", "tufin-mgr1", ["tufin-gw-1"])
                 ]);
 
-            // A few illustrative overrides so the tree doesn't look flat on first load.
-            NodeById(nodes, "dt-fortimanager")!.Overrides[FieldSecurityProfiles] = "default,strict-web";
-            NodeById(nodes, "dt-fortimanager")!.Overrides[FieldZoneFrom] = "trust";
-            NodeById(nodes, "dt-fortimanager")!.Overrides[FieldZoneTo] = "untrust";
-            NodeById(nodes, "mgr-forti-mgr2")!.Overrides[FieldSecurityProfiles] = "default,strict-web,ips-high";
-            NodeById(nodes, "mgr-cp-mgr1")!.Overrides[FieldPositioningAlgorithm] = "cp_inline_layer_per_zone_pair";
-            NodeById(nodes, "gw-cp-gw-1")!.Overrides[FieldLogging] = "log_track";
-            NodeById(nodes, "gw-forti-gw-2")!.Overrides[FieldImplementationMode] = "manual";
-
+            ApplySampleValues(nodes);
             return nodes;
+        }
+
+        /// <summary>A few illustrative values set below Global so the tree doesn't look flat on first load.</summary>
+        private static void ApplySampleValues(List<ProvisioningNode> nodes)
+        {
+            DeviceTypeProvisioningSettings fortiDeviceType = (DeviceTypeProvisioningSettings)NodeById(nodes, "dt-fortimanager")!.Settings;
+            fortiDeviceType.SecurityProfiles = ["default", "strict-web"];
+            fortiDeviceType.ZoneFrom = "trust";
+            fortiDeviceType.ZoneTo = "untrust";
+
+            ((DeviceTypeProvisioningSettings)NodeById(nodes, "mgr-forti-mgr2")!.Settings).SecurityProfiles = ["default", "strict-web", "ips-high"];
+            ((DeviceTypeProvisioningSettings)NodeById(nodes, "mgr-cp-mgr1")!.Settings).PositioningAlgorithm = ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair;
+            NodeById(nodes, "gw-cp-gw-1")!.Settings.Logging = ProvisioningLoggingMode.LogTrack;
+            NodeById(nodes, "gw-forti-gw-2")!.Settings.ImplementationMode = ProvisioningImplementationMode.Manual;
         }
 
         private static void AddDeviceTypeBranch(
             List<ProvisioningNode> nodes,
             ProvisioningNode global,
+            ref long nextNodeId,
             string deviceTypeId,
             string deviceTypeName,
             string deviceTypeGroup,
-            (string id, string name, string[] gateways)[] managers)
+            (string Id, string Name, string[] Gateways)[] managements)
         {
             ProvisioningNode deviceType = new()
             {
-                Id = deviceTypeId,
-                Name = deviceTypeName,
-                Level = ProvisioningLevel.DeviceType,
-                ParentId = global.Id,
+                Settings = NewInheriting<DeviceTypeProvisioningSettings>(deviceTypeId, deviceTypeName, nextNodeId++, global.NodeId),
                 DeviceTypeGroup = deviceTypeGroup
             };
             nodes.Add(deviceType);
 
-            foreach ((string managerId, string managerName, string[] gateways) in managers)
+            foreach ((string managementId, string managementName, string[] gateways) in managements)
             {
-                ProvisioningNode manager = new()
+                ProvisioningNode management = new()
                 {
-                    Id = managerId,
-                    Name = managerName,
-                    Level = ProvisioningLevel.Manager,
-                    ParentId = deviceType.Id,
+                    Settings = NewInheriting<ManagementProvisioningSettings>(managementId, managementName, nextNodeId++, deviceType.NodeId),
                     DeviceTypeGroup = deviceTypeGroup
                 };
-                nodes.Add(manager);
+                nodes.Add(management);
 
                 foreach (string gatewayName in gateways)
                 {
                     nodes.Add(new ProvisioningNode
                     {
-                        Id = $"gw-{gatewayName}",
-                        Name = gatewayName,
-                        Level = ProvisioningLevel.Gateway,
-                        ParentId = manager.Id,
+                        Settings = NewInheriting<GatewayProvisioningSettings>($"gw-{gatewayName}", gatewayName, nextNodeId++, management.NodeId),
                         DeviceTypeGroup = deviceTypeGroup
                     });
                 }
             }
         }
 
-        private static ProvisioningNode? NodeById(List<ProvisioningNode> nodes, string id) =>
-            nodes.FirstOrDefault(n => n.Id == id);
+        public static ProvisioningNode? NodeById(List<ProvisioningNode> allNodes, string id) =>
+            allNodes.FirstOrDefault(n => n.Id == id);
 
         /// <summary>Walks from <paramref name="node"/> up to Global, node itself first.</summary>
         public static List<ProvisioningNode> GetAncestryChain(List<ProvisioningNode> allNodes, ProvisioningNode node)
         {
             List<ProvisioningNode> chain = [node];
             ProvisioningNode? current = node;
-            while (current?.ParentId != null)
+            while (current?.ParentNodeId != null)
             {
-                current = allNodes.FirstOrDefault(n => n.Id == current.ParentId);
+                current = allNodes.FirstOrDefault(n => n.NodeId == current.ParentNodeId);
                 if (current != null)
                 {
                     chain.Add(current);
@@ -437,22 +533,24 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>
         /// Resolves the effective value of a field for the given node by searching from the
-        /// node itself up to Global and returning the first level that has it set.
+        /// node itself up to Global and returning the first scope that sets it.
         /// </summary>
         public static ProvisioningResolvedValue Resolve(List<ProvisioningNode> allNodes, ProvisioningNode node, ProvisioningFieldDefinition field)
         {
-            List<ProvisioningNode> chain = GetAncestryChain(allNodes, node);
-            foreach (ProvisioningNode candidate in chain)
+            foreach (ProvisioningNode candidate in GetAncestryChain(allNodes, node))
             {
-                if (candidate.Overrides.TryGetValue(field.Key, out string? value))
+                if (field.IsSetOn(candidate.Settings))
                 {
-                    return new ProvisioningResolvedValue(value, candidate, candidate.Id == node.Id);
+                    return new ProvisioningResolvedValue(field.Read(candidate.Settings), candidate, candidate.NodeId == node.NodeId);
                 }
             }
             return new ProvisioningResolvedValue(field.DefaultValue, null, false);
         }
 
-        public static List<ProvisioningNode> GetChildren(List<ProvisioningNode> allNodes, string? parentId) =>
-            allNodes.Where(n => n.ParentId == parentId).ToList();
+        public static List<ProvisioningNode> GetChildren(List<ProvisioningNode> allNodes, string? parentId)
+        {
+            ProvisioningNode? parent = parentId == null ? null : NodeById(allNodes, parentId);
+            return parent == null ? [] : [.. allNodes.Where(n => n.ParentNodeId == parent.NodeId)];
+        }
     }
 }

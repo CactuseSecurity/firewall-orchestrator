@@ -1,4 +1,5 @@
 @using FWO.Ui.Pages.Settings
+@using FWO.Data.Provisioning
 
 @page "/settings/fwconfigprovisioning"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -22,7 +23,7 @@
                     <span class="@Icons.Settings"></span> @(userConfig.GetText("prov_global"))
                 </button>
             </li>
-            @foreach (ProvisioningNode deviceType in ProvisioningSettingsMockData.GetChildren(allNodes, "global"))
+            @foreach (ProvisioningNode deviceType in ProvisioningSettingsData.GetChildren(allNodes, ProvisioningSettingsData.GlobalNodeKey))
             {
                 <li class="nav-item ms-2">
                     <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == deviceType.Id ? "btn-primary" : "btn-light")"
@@ -31,7 +32,7 @@
                     </button>
                     @if (expandedDeviceTypeIds.Contains(deviceType.Id))
                     {
-                        @foreach (ProvisioningNode manager in ProvisioningSettingsMockData.GetChildren(allNodes, deviceType.Id))
+                        @foreach (ProvisioningNode manager in ProvisioningSettingsData.GetChildren(allNodes, deviceType.Id))
                         {
                             <ul class="list-unstyled ms-3">
                                 <li>
@@ -42,7 +43,7 @@
                                     @if (expandedManagerIds.Contains(manager.Id))
                                     {
                                         <ul class="list-unstyled ms-3">
-                                            @foreach (ProvisioningNode gateway in ProvisioningSettingsMockData.GetChildren(allNodes, manager.Id))
+                                            @foreach (ProvisioningNode gateway in ProvisioningSettingsData.GetChildren(allNodes, manager.Id))
                                             {
                                                 <li>
                                                     <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == gateway.Id ? "btn-primary" : "btn-outline-light text-dark")"
@@ -82,7 +83,7 @@
             <form onsubmit="return false">
                 @foreach (ProvisioningFieldDefinition field in VisibleFields())
                 {
-                    ProvisioningResolvedValue resolved = ProvisioningSettingsMockData.Resolve(allNodes, SelectedNode, field);
+                    ProvisioningResolvedValue resolved = ProvisioningSettingsData.Resolve(allNodes, SelectedNode, field);
                     bool overriddenHere = resolved.IsOverriddenHere;
                     ProvisioningNode? sourceNode = resolved.SourceNode;
 
@@ -93,7 +94,7 @@
                                 <span class="badge rounded-pill fw-bold @(overriddenHere ? "bg-success" : "bg-secondary")">
                                     @(overriddenHere ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
                                 </span>
-                                @if (overriddenHere && SelectedNode.Level != ProvisioningLevel.Global)
+                                @if (overriddenHere && SelectedNode.Level != ProvisioningScopeType.Global)
                                 {
                                     <button type="button" class="btn btn-sm btn-outline-secondary" title="@(userConfig.GetText("prov_reset_to_inherited"))"
                                             @onclick="() => ResetOverride(field)">
@@ -148,8 +149,8 @@
 
     protected override void OnInitialized()
     {
-        allNodes = ProvisioningSettingsMockData.BuildMockHierarchy();
-        SelectedNode = NodeById("global");
+        allNodes = ProvisioningSettingsData.BuildSampleHierarchy();
+        SelectedNode = NodeById(ProvisioningSettingsData.GlobalNodeKey);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -176,9 +177,11 @@
         pendingHighlightFieldKey = field.Key;
     }
 
-    private ProvisioningNode? NodeById(string id) => allNodes.FirstOrDefault(n => n.Id == id);
+    private ProvisioningNode? NodeById(string id) => ProvisioningSettingsData.NodeById(allNodes, id);
 
-    private void SelectGlobal() => SelectNode(NodeById("global"));
+    private ProvisioningNode? ParentOf(ProvisioningNode node) => allNodes.FirstOrDefault(n => n.NodeId == node.ParentNodeId);
+
+    private void SelectGlobal() => SelectNode(NodeById(ProvisioningSettingsData.GlobalNodeKey));
 
     private void SelectNode(ProvisioningNode? node)
     {
@@ -189,22 +192,30 @@
 
         SelectedNode = node;
 
-        if (node.Level == ProvisioningLevel.DeviceType)
+        if (node.Level == ProvisioningScopeType.DeviceType)
         {
             expandedDeviceTypeIds.Add(node.Id);
         }
-        else if (node.Level == ProvisioningLevel.Manager)
+        else if (node.Level == ProvisioningScopeType.Management)
         {
-            expandedDeviceTypeIds.Add(node.ParentId!);
+            ProvisioningNode? deviceType = ParentOf(node);
+            if (deviceType != null)
+            {
+                expandedDeviceTypeIds.Add(deviceType.Id);
+            }
             expandedManagerIds.Add(node.Id);
         }
-        else if (node.Level == ProvisioningLevel.Gateway)
+        else if (node.Level == ProvisioningScopeType.Gateway)
         {
-            ProvisioningNode? manager = NodeById(node.ParentId!);
-            expandedManagerIds.Add(node.ParentId!);
+            ProvisioningNode? manager = ParentOf(node);
             if (manager != null)
             {
-                expandedDeviceTypeIds.Add(manager.ParentId!);
+                expandedManagerIds.Add(manager.Id);
+                ProvisioningNode? deviceType = ParentOf(manager);
+                if (deviceType != null)
+                {
+                    expandedDeviceTypeIds.Add(deviceType.Id);
+                }
             }
         }
     }
@@ -216,7 +227,7 @@
             yield break;
         }
 
-        List<ProvisioningNode> chain = ProvisioningSettingsMockData.GetAncestryChain(allNodes, SelectedNode);
+        List<ProvisioningNode> chain = ProvisioningSettingsData.GetAncestryChain(allNodes, SelectedNode);
         chain.Reverse();
         for (int i = 0; i < chain.Count; i++)
         {
@@ -231,7 +242,7 @@
             yield break;
         }
 
-        foreach (ProvisioningFieldDefinition field in ProvisioningSettingsMockData.Fields)
+        foreach (ProvisioningFieldDefinition field in ProvisioningSettingsData.Fields)
         {
             if (!field.AppliesToLevel(SelectedNode.Level))
             {
@@ -247,36 +258,36 @@
         }
     }
 
-    /// <summary>Removes the override at the selected node, reverting the field back to its inherited value.</summary>
+    /// <summary>Clears the field on the selected scope, reverting it back to its inherited value.</summary>
     private void ResetOverride(ProvisioningFieldDefinition field)
     {
-        if (SelectedNode == null || SelectedNode.Level == ProvisioningLevel.Global)
+        if (SelectedNode == null || SelectedNode.Level == ProvisioningScopeType.Global)
         {
             return;
         }
 
-        SelectedNode.Overrides.Remove(field.Key);
+        field.Clear(SelectedNode.Settings);
     }
 
     private string GetOverrideValue(ProvisioningFieldDefinition field)
     {
-        return SelectedNode != null && SelectedNode.Overrides.TryGetValue(field.Key, out string? value) ? value : field.DefaultValue;
+        return SelectedNode != null && field.IsSetOn(SelectedNode.Settings) ? field.Read(SelectedNode.Settings) : field.DefaultValue;
     }
 
     private void SetOverrideValue(ProvisioningFieldDefinition field, string value)
     {
         if (SelectedNode != null)
         {
-            SelectedNode.Overrides[field.Key] = value;
+            field.Write(SelectedNode.Settings, value);
         }
     }
 
-    private string LevelLabel(ProvisioningLevel level) => level switch
+    private string LevelLabel(ProvisioningScopeType level) => level switch
     {
-        ProvisioningLevel.Global => userConfig.GetText("prov_global"),
-        ProvisioningLevel.DeviceType => userConfig.GetText("prov_device_type"),
-        ProvisioningLevel.Manager => userConfig.GetText("prov_manager"),
-        ProvisioningLevel.Gateway => userConfig.GetText("prov_gateway"),
+        ProvisioningScopeType.Global => userConfig.GetText("prov_global"),
+        ProvisioningScopeType.DeviceType => userConfig.GetText("prov_device_type"),
+        ProvisioningScopeType.Management => userConfig.GetText("prov_manager"),
+        ProvisioningScopeType.Gateway => userConfig.GetText("prov_gateway"),
         _ => level.ToString()
     };
 

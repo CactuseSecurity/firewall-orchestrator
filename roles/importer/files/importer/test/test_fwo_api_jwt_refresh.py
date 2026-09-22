@@ -57,11 +57,14 @@ class _FakeSession(requests.Session):
         self._responses = list(responses)
         self.calls = 0
         self.posted_urls: list[str] = []
+        self.sent_headers: list[dict[str, str]] = []
 
     def _next_response(self, url: str | bytes | None = None) -> _FakeResponse:
         self.calls += 1
         if url is not None:
             self.posted_urls.append(str(url))
+        # snapshot, not a reference: callers may re-stamp the session's headers between requests
+        self.sent_headers.append(dict(self.headers))
         return self._responses.pop(0)
 
     def post(self, url: str | bytes | None = None, *_args: Any, **_kwargs: Any) -> requests.Response:
@@ -366,8 +369,21 @@ class TestCallChunkedRetriesOnJwtExpiry:
             json_data={"data": {"insert_item": {"affected_rows": affected_rows, "returning": [{"id": affected_rows}]}}},
         )
 
+    @staticmethod
+    def _query_info() -> dict[str, Any]:
+        """1500 elements over a chunk size of 1000 => two chunks (1000, then 500)."""
+        # built fresh per test: _call_chunked() writes back into chunking_info while it runs
+        return {
+            "query_name": "insertItems",
+            "chunking_info": {
+                "needs_chunking": True,
+                "adjusted_chunk_size": 1000,
+                "chunkable_variables": ["items"],
+                "total_elements": 1500,
+            },
+        }
+
     def test_resumes_the_loop_and_processes_every_remaining_chunk(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        # 1500 elements over a chunk size of 1000 => two chunks (1000, then 500).
         # The JWT expires on the very first chunk; the retry must still process the second chunk.
         session = _FakeSession(
             [
@@ -379,15 +395,7 @@ class TestCallChunkedRetriesOnJwtExpiry:
         _patch_session(monkeypatch, session)
         api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
         monkeypatch.setattr(api, "_try_refresh_jwt", lambda: True)
-        api.query_info = {
-            "query_name": "insertItems",
-            "chunking_info": {
-                "needs_chunking": True,
-                "adjusted_chunk_size": 1000,
-                "chunkable_variables": ["items"],
-                "total_elements": 1500,
-            },
-        }
+        api.query_info = self._query_info()
         query_variables = {"items": list(range(1500))}
 
         result = api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
@@ -402,15 +410,7 @@ class TestCallChunkedRetriesOnJwtExpiry:
         _patch_session(monkeypatch, session)
         api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
         monkeypatch.setattr(api, "_try_refresh_jwt", lambda: False)
-        api.query_info = {
-            "query_name": "insertItems",
-            "chunking_info": {
-                "needs_chunking": True,
-                "adjusted_chunk_size": 1000,
-                "chunkable_variables": ["items"],
-                "total_elements": 1500,
-            },
-        }
+        api.query_info = self._query_info()
         query_variables = {"items": list(range(1500))}
 
         with pytest.raises(FwoImporterError, match="JWT expired during chunked call"):
@@ -437,15 +437,7 @@ class TestCallChunkedRetriesOnJwtExpiry:
         _patch_session(monkeypatch, session)
         api = FwoApi(BASE_URL, "jwt-secret", "refresh-token")
         monkeypatch.setattr(api, "_try_refresh_jwt", lambda: True)
-        api.query_info = {
-            "query_name": "insertItems",
-            "chunking_info": {
-                "needs_chunking": True,
-                "adjusted_chunk_size": 1000,
-                "chunkable_variables": ["items"],
-                "total_elements": 1500,
-            },
-        }
+        api.query_info = self._query_info()
         query_variables = {"items": list(range(1500))}
 
         with pytest.raises(FwoImporterError, match="JWT expired again immediately after refresh"):
@@ -453,3 +445,37 @@ class TestCallChunkedRetriesOnJwtExpiry:
 
         # no fourth post: the failure must not trigger call()'s whole-call retry
         assert session.calls == 3
+
+    def test_stamps_the_refreshed_jwt_onto_the_session_before_retrying_the_chunk(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Unlike call() and call_endpoint(), which rebuild their headers by recursing into
+        # themselves, the chunked retry reuses the session _send_query already stamped with the
+        # now-stale Authorization header. Re-stamping it is therefore the only thing that puts the
+        # refreshed token on the retried POST - without it the retry is rejected as expired again.
+        session = _FakeSession(
+            [
+                _FakeResponse(200, json_data=self._EXPIRED_BODY),  # chunk 1, first attempt: expired
+                self._chunk_response(1000),  # chunk 1, retry: succeeds
+                self._chunk_response(500),  # chunk 2: succeeds
+            ]
+        )
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "stale-jwt", "refresh-token")
+        # mirrors _send_query, which stamps the session before handing it to _call_chunked
+        session.headers.update(api._build_request_headers())
+
+        def _refresh_jwt() -> bool:
+            api.fwo_jwt = "fresh-jwt"
+            return True
+
+        monkeypatch.setattr(api, "_try_refresh_jwt", _refresh_jwt)
+        api.query_info = self._query_info()
+        query_variables = {"items": list(range(1500))}
+
+        api._call_chunked(session, "mutation insertItems($items: [Int!]) { ... }", query_variables)
+
+        assert session.sent_headers[0]["Authorization"] == "Bearer stale-jwt"
+        # the retried chunk, and every chunk after it, must go out with the refreshed token
+        assert session.sent_headers[1]["Authorization"] == "Bearer fresh-jwt"
+        assert session.sent_headers[2]["Authorization"] == "Bearer fresh-jwt"

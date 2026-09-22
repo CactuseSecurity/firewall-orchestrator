@@ -733,3 +733,7 @@ Not supported any longer are:
 - changes to workflow tickets are recorded in the same table after ticket creation, with the workflow phase and the previous and new values. Content changes made in the user interface by a user other than the requester are marked as audit proof critical. The recording is available to auditors via the API and is not shown in the user interface.
 - change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.
 - change history entries written through the REST workflow endpoints name the authenticated caller instead of the middleware server, and carry that caller's user id in changer_id. changer_id therefore stays empty only for changes made by automation - background jobs and unauthenticated internal callers - so an audit can tell an automated change from a human one and resolve the human one to a user record even after a directory rename.
+
+## 9.5.3 - 16.09.2026
+- add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
+- add DTOs for hierarchical provisioning configuration

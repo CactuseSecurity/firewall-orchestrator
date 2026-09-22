@@ -91,6 +91,13 @@ namespace FWO.Test
             /// </summary>
             public bool FailHistoryRead { get; set; }
 
+            /// <summary>
+            /// Lets the write of the history config entry fail while the read keeps working, as a permission
+            /// change on the config table or a lock on the row does. A repeat the run already read has to
+            /// survive that, so a test can assert the repair still runs.
+            /// </summary>
+            public bool FailHistoryWrite { get; set; }
+
             public void AddPendingImport(long controlId, int importTypeId)
             {
                 pendingImports.Add(new ImportControl { ControlId = controlId, ImportTypeId = importTypeId });
@@ -322,6 +329,10 @@ namespace FWO.Test
 
                 if (query == ConfigQueries.upsertConfigItem)
                 {
+                    if (FailHistoryWrite)
+                    {
+                        throw new InvalidOperationException("Simulated failure while writing the rule_owner mapping run history.");
+                    }
                     StoredHistoryJson = ReadString(variables, "config_value");
                     result = new object();
                     return true;

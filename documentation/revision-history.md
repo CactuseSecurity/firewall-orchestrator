@@ -753,6 +753,10 @@ Not supported any longer are:
   reported as its own alert naming the entry to reset, instead of raising the ordinary failure alert and
   waiting for a repeat that can no longer happen. Rebuilding on the first failure instead was rejected,
   because it would recompute every mapping on every run for as long as both conditions last
+- rule owner mapping: the same repair also survives a run history that cannot be written. A run that read
+  a repeated failure now reports it even when writing the ids back fails, instead of answering "not seen
+  before" and forfeiting the rebuild for as long as the writes keep failing. The decision belongs to the
+  read: the entry that could not be written keeps the ids it had, so the next run reads the same repeat
 - rule owner mapping: a full reinitialize that matches no rule now removes the obsolete mappings and
   reports the empty result as an alert, instead of aborting and leaving the previous state in place.
   This applies to a source that stops matching, not to a run that found no rule base at all: without

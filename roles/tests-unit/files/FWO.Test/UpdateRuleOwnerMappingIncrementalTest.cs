@@ -493,6 +493,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunAsync_ShouldStillRepair_WhenTheRepeatCouldNotBeWrittenBack()
+        {
+            // the first failure was recorded, so the second run reads the repeat. Forfeiting it because
+            // writing the same ids back failed would leave the import stuck for as long as that lasts
+            RuleOwnerMappingFake apiConnection = new();
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.FailRuleChangeLookupForImport = 1;
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            await service.RunAsync();
+            apiConnection.FailHistoryWrite = true;
+            await service.RunAsync();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.FullReinitializeCount, Is.EqualTo(1),
+                    "the repeat came from the read, so the failing write does not disarm the repair");
+                Assert.That(apiConnection.CompletedImports, Does.Contain(1L), "the rebuild completes the stuck import");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldStillRepair_WhenTheAlertWasAcknowledgedInBetween()
         {
             // acknowledging an alert is the normal response to it and must not disarm the repair: the run

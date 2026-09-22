@@ -143,6 +143,28 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RecordFailedImports_ShouldStillReportTheRepeat_WhenTheSaveFailed()
+        {
+            // the read succeeded, so the repeat is known. Dropping it because writing it back failed would
+            // switch the repair off for as long as the writes keep failing, with nothing reporting that
+            RuleOwnerMappingFake apiConnection = new();
+            string storedBefore = SeededHistoryJson();
+            apiConnection.SeedStoredHistoryJson(storedBefore);
+            apiConnection.FailHistoryWrite = true;
+
+            List<long> failedImports = [kSeededFailedImportId];
+            RuleOwnerMappingFailedImportsResult failures = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(failures.FailedBefore, Is.True, "the stored entry named this import and the failing save does not unsay it");
+                Assert.That(failures.RepairBlockedUntilReset, Is.False, "the entry is readable, so the repair is not waiting on a reset");
+                Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo(storedBefore),
+                    "the entry keeps the ids it had, which is what lets the next run read the same repeat");
+            });
+        }
+
+        [Test]
         public async Task Load_ShouldReportAFailedFetch_WithoutTheHistory()
         {
             // an empty history would be indistinguishable from "nothing recorded yet" - and because no

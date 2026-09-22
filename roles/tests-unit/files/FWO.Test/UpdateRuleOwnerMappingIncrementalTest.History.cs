@@ -17,6 +17,9 @@ namespace FWO.Test
     /// </summary>
     public partial class UpdateRuleOwnerMappingIncrementalTest
     {
+        /// <summary>Import remembered as failed in the seeded entry, so a test can report the same one again.</summary>
+        private const long kSeededFailedImportId = 77;
+
         /// <summary>
         /// A stored entry carrying all three kinds of state the history holds, so a test can tell a
         /// preserved entry from one that was replaced by an empty document.
@@ -28,7 +31,7 @@ namespace FWO.Test
             {
                 LastRunWithoutFindings = new RuleOwnerMappingRun { ControlId = 11, MappingCount = 3, DiffMeaningful = true },
                 RunsWithFindings = [new RuleOwnerMappingRun { ControlId = 12, AddedCount = 2, DiffMeaningful = true }],
-                FailedImports = [77],
+                FailedImports = [kSeededFailedImportId],
                 PendingChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }],
                 PendingChangesRecordedAt = DateTime.UtcNow
             };
@@ -91,8 +94,8 @@ namespace FWO.Test
             apiConnection.SeedStoredHistoryJson(storedBefore);
             apiConnection.FailHistoryRead = true;
 
-            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(
-                [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "IpBased", To = "NameField" }]);
+            List<RuleOwnerMappingChange> savedChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "IpBased", To = "NameField" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(savedChanges);
 
             Assert.That(apiConnection.StoredHistoryJson, Is.EqualTo(storedBefore),
                 "not recording the note costs a wrong drift alert, writing over the entry costs the entry");
@@ -107,24 +110,38 @@ namespace FWO.Test
             apiConnection.SeedStoredHistoryJson(SeededHistoryJson());
             apiConnection.FailHistoryRead = true;
 
-            bool failedBefore = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports([77]);
+            List<long> failedImports = [kSeededFailedImportId];
+            bool failedBefore = await new RuleOwnerMappingRunHistory(apiConnection).RecordFailedImports(failedImports);
 
             Assert.That(failedBefore, Is.False, "without the stored state a repeat cannot be asserted");
         }
 
         [Test]
-        public async Task Load_ShouldAnswerAnEmptyHistory_WhenItCouldNotBeRead()
+        public async Task Load_ShouldAnswerNull_WhenItCouldNotBeRead()
         {
-            // the monitoring page only displays the value, so degrading to an empty history stays right there
+            // an empty history would be indistinguishable from "nothing recorded yet" - and because no
+            // writer saves over an entry it could not read, that state lasts until somebody resets the entry
             RuleOwnerMappingFake apiConnection = new();
             apiConnection.SeedStoredHistoryJson(SeededHistoryJson());
             apiConnection.FailHistoryRead = true;
 
-            RuleOwnerMappingRunHistoryData history = await new RuleOwnerMappingRunHistory(apiConnection).Load();
+            RuleOwnerMappingRunHistoryData? history = await new RuleOwnerMappingRunHistory(apiConnection).Load();
+
+            Assert.That(history, Is.Null);
+        }
+
+        [Test]
+        public async Task Load_ShouldAnswerAnEmptyHistory_WhenNothingIsStoredYet()
+        {
+            // the counterpart of the test above: nothing stored is a readable answer and stays one
+            RuleOwnerMappingFake apiConnection = new();
+
+            RuleOwnerMappingRunHistoryData? history = await new RuleOwnerMappingRunHistory(apiConnection).Load();
 
             Assert.Multiple(() =>
             {
-                Assert.That(history.RunsWithFindings, Is.Empty);
+                Assert.That(history, Is.Not.Null);
+                Assert.That(history!.RunsWithFindings, Is.Empty);
                 Assert.That(history.LastRunWithoutFindings, Is.Null);
             });
         }
@@ -137,8 +154,8 @@ namespace FWO.Test
             RuleOwnerMappingFake apiConnection = new();
             apiConnection.SeedActiveMapping(kRuleId, kOwnerId, 50);
             apiConnection.ClearRules();
-            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(
-                [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }]);
+            List<RuleOwnerMappingChange> savedChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kMarker, From = "FWOC", To = "APP" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(savedChanges);
 
             UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
 
@@ -159,8 +176,8 @@ namespace FWO.Test
             // switching the mapping off while no mapping is active establishes the requested state without
             // recording a run, so nothing else would drop the note of the save that triggered it
             RuleOwnerMappingFake apiConnection = new();
-            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(
-                [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "NameField", To = "Disabled" }]);
+            List<RuleOwnerMappingChange> savedChanges = [new RuleOwnerMappingChange { Setting = RuleOwnerMappingChangeSetting.kSource, From = "NameField", To = "Disabled" }];
+            await new RuleOwnerMappingRunHistory(apiConnection).RecordPendingChanges(savedChanges);
 
             UpdateRuleOwnerMappingDisabled service = new(apiConnection, CustomFieldConfig());
 

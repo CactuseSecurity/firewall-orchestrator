@@ -54,6 +54,9 @@ namespace FWO.Ui.Services
         /// <summary>Text key shown while no full reinitialize has been recorded yet.</summary>
         public const string kNoHistoryText = "U7551";
 
+        /// <summary>Text key shown when the stored history exists but could not be read.</summary>
+        public const string kUnreadableHistoryText = "E7550";
+
         /// <summary>Recorded runs that found a difference, newest first.</summary>
         public List<RuleOwnerMappingRun> Runs { get; private set; } = [];
 
@@ -65,6 +68,14 @@ namespace FWO.Ui.Services
 
         /// <summary>Position of the shown run, 0 being the newest.</summary>
         public int SelectedIndex { get; private set; }
+
+        /// <summary>
+        /// True when the stored entry could not be read, as opposed to nothing having been recorded yet.
+        /// The two look identical on the page and mean the opposite: no writer saves over an entry it could
+        /// not read, so an unreadable one stays unreadable and nothing is recorded while it does. Presenting
+        /// that as "no deviation was ever found" is the one answer this page must not give.
+        /// </summary>
+        public bool HistoryUnreadable { get; private set; }
 
         /// <summary>Run currently shown, or <see langword="null"/> when nothing was recorded yet.</summary>
         public RuleOwnerMappingRun? SelectedRun => SelectedIndex < Runs.Count ? Runs[SelectedIndex] : null;
@@ -97,11 +108,12 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Takes over the recorded history and shows the newest run that found a difference.
         /// </summary>
-        /// <param name="history">History as it is stored.</param>
-        public void Init(RuleOwnerMappingRunHistoryData history)
+        /// <param name="history">History as it is stored, or <see langword="null"/> when it could not be read.</param>
+        public void Init(RuleOwnerMappingRunHistoryData? history)
         {
-            Runs = history.RunsWithFindings;
-            LastRunWithoutFindings = history.LastRunWithoutFindings;
+            HistoryUnreadable = history == null;
+            Runs = history?.RunsWithFindings ?? [];
+            LastRunWithoutFindings = history?.LastRunWithoutFindings;
             SelectedIndex = 0;
         }
 

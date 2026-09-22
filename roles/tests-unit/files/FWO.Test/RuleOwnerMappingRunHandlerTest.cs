@@ -343,5 +343,55 @@ namespace FWO.Test
 
             Assert.That(handler.GetSelectedState(), Is.Null);
         }
+
+        [Test]
+        public void Init_ReportsTheHistoryAsUnreadable_WhenItCouldNotBeRead()
+        {
+            // an unreadable entry is never written over, so it stays unreadable and nothing is recorded
+            // meanwhile. Rendered as an empty history the page would keep answering "no deviation was ever
+            // found", which is the one answer it must not give
+            RuleOwnerMappingRunHandler handler = new();
+            handler.Init(null);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.HistoryUnreadable, Is.True);
+                Assert.That(handler.Runs, Is.Empty);
+                Assert.That(handler.LastRunWithoutFindings, Is.Null);
+                Assert.That(handler.CurrentState, Is.Null, "no run was read, so nothing can be said about the current state");
+                Assert.That(handler.SelectedRun, Is.Null);
+            });
+        }
+
+        [Test]
+        public void Init_DoesNotReportTheHistoryAsUnreadable_WhenNothingWasRecordedYet()
+        {
+            // the state the page has to tell apart from the one above: readable, and empty because nothing
+            // has run yet
+            RuleOwnerMappingRunHandler handler = new();
+            handler.Init(new RuleOwnerMappingRunHistoryData());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.HistoryUnreadable, Is.False);
+                Assert.That(handler.Runs, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void Init_ClearsTheUnreadableFlag_WhenAReadSucceedsAfterAFailedOne()
+        {
+            // the transient case: the page is reloaded and the entry comes back, so the notice has to go
+            RuleOwnerMappingRunHandler handler = new();
+            handler.Init(null);
+
+            handler.Init(History(Run(10, added: 1)));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.HistoryUnreadable, Is.False);
+                Assert.That(handler.SelectedRun!.ControlId, Is.EqualTo(10));
+            });
+        }
     }
 }

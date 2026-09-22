@@ -769,7 +769,9 @@ Not supported any longer are:
   The entry is written as a whole, so a read that failed - most likely on the very run that is reporting
   a failed import - used to be answered with an empty history and then saved over the recorded runs, the
   remembered failed imports and a pending change note. Such a run now writes nothing at all and leaves
-  the stored entry alone; the monitoring page still shows an empty history rather than an error
+  the stored entry alone. Because nothing writes over it either, an entry that stays unreadable stops the
+  recording altogether, so the monitoring page now says so instead of showing the empty history it would
+  otherwise decode to - which would read as "no deviation was ever found"
 - rule owner mapping: a problem that is still present is reported again and replaces its own earlier
   alert, so the open alert carries the time of the latest occurrence rather than the first one. Only a
   repeatedly failing import is exempt, because it is reported once and then repaired

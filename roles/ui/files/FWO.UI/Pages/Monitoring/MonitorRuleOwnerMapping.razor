@@ -21,6 +21,16 @@
 }
 else
 {
+    @* an entry that could not be read is never written over, so it stays unreadable and nothing is
+       recorded meanwhile. Shown as the empty history it decodes to, this page would answer "no deviation
+       was ever found" for as long as that lasts *@
+    @if (Handler.HistoryUnreadable)
+    {
+        <div class="alert alert-danger">
+            @(userConfig.GetText(RuleOwnerMappingRunHandler.kUnreadableHistoryText))
+        </div>
+    }
+
     @* the history below only holds runs that found something, so it cannot show how the mapping stands
        right now - that is what this banner is for, in the colour of the newest run's own state *@
     @if (Handler.CurrentState != null)
@@ -37,7 +47,7 @@ else
         </div>
     }
 
-    @if (Handler.SelectedRun == null)
+    @if (Handler.SelectedRun == null && !Handler.HistoryUnreadable)
     {
         @* nothing recorded at all reads differently from recorded and never found anything *@
         <div class="alert alert-secondary">

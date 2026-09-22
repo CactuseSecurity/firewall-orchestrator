@@ -376,7 +376,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                RuleOwnerMappingRunHistoryData? history = await Load();
                 if (history == null)
                 {
                     // saving now would replace the stored entry with a fresh one and lose every earlier run,
@@ -497,7 +497,7 @@ namespace FWO.Services
 
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                RuleOwnerMappingRunHistoryData? history = await Load();
                 if (history == null)
                 {
                     // without the note the next rebuild reports the intended change as drift - the same cost
@@ -531,7 +531,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                RuleOwnerMappingRunHistoryData? history = await Load();
                 if (history == null)
                 {
                     // same reasoning as the catch below, and the read is most likely to fail exactly here:
@@ -563,7 +563,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                RuleOwnerMappingRunHistoryData? history = await Load();
                 if (history == null || history.FailedImports.Count == 0)
                 {
                     return;
@@ -593,7 +593,7 @@ namespace FWO.Services
         {
             try
             {
-                RuleOwnerMappingRunHistoryData? history = await LoadForUpdate();
+                RuleOwnerMappingRunHistoryData? history = await Load();
                 if (history == null || history.PendingChanges.Count == 0)
                 {
                     return;
@@ -624,29 +624,24 @@ namespace FWO.Services
         }
 
         /// <summary>
-        /// Reads the stored history for a caller that only displays it, runs with findings newest first.
-        /// An entry that cannot be read degrades to an empty history, which is the right answer for the
-        /// monitoring page and the wrong one for anybody who writes it back - see <see cref="LoadForUpdate"/>.
-        /// </summary>
-        /// <returns>The stored history, empty when nothing is stored yet or the entry is unreadable.</returns>
-        public async Task<RuleOwnerMappingRunHistoryData> Load()
-        {
-            return await LoadForUpdate() ?? new RuleOwnerMappingRunHistoryData();
-        }
-
-        /// <summary>
-        /// Reads the stored history for a caller that is going to write it back. <see cref="Save"/> replaces
-        /// the whole entry, so answering a read failure with an empty history would save that emptiness over
-        /// the recorded runs, the remembered failed imports and the pending change note. Telling "nothing is
+        /// Reads the stored history, runs with findings newest first. <see cref="Save"/> replaces the whole
+        /// entry, so answering a read failure with an empty history would save that emptiness over the
+        /// recorded runs, the remembered failed imports and the pending change note. Telling "nothing is
         /// stored" apart from "it could not be read" is what keeps a transient API error or an unreadable
         /// value from destroying the entry - and the read fails most readily on the paths that run while
         /// something is already going wrong.
+        /// <para>
+        /// A caller that only displays the history has to tell the two apart as well. Because no writer
+        /// saves over an entry it could not read, an unreadable one stays unreadable, and showing it as an
+        /// empty history would keep reporting "nothing was ever recorded" for as long as that lasts - on
+        /// the one page somebody would consult to find out whether the mapping is drifting.
+        /// </para>
         /// </summary>
         /// <returns>
         /// The stored history, empty when nothing is stored yet, or <see langword="null"/> when it could not
-        /// be read - in which case the caller must not save.
+        /// be read - in which case the caller must neither save it back nor present it as an empty history.
         /// </returns>
-        private async Task<RuleOwnerMappingRunHistoryData?> LoadForUpdate()
+        public async Task<RuleOwnerMappingRunHistoryData?> Load()
         {
             try
             {

@@ -633,7 +633,7 @@ namespace FWO.Services.Workflow
                 return [];
             }
 
-            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
+            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)

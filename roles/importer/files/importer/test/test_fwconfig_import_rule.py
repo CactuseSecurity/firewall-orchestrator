@@ -109,6 +109,83 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
 
+    def test_is_change_security_relevant_ignores_comment_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+    ):
+        # A change that only differs in the rule comment is not security-relevant
+        # (it still has to be written to the changelog, see the tests below).
+        old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
+        new_rule.rule_comment = "new comment"
+
+        assert fwconfig_import_rule.is_change_security_relevant(old_rule, new_rule) is False
+
+    def test_write_changelog_rules_writes_entry_for_non_security_relevant_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        # A comment-only change creates a new rule version and therefore must also create a
+        # changelog entry - flagged as not security-relevant so change reports can skip it.
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        rule_uid = "comment-changed-rule-uid"
+        old_rule_id = 101
+        new_rule_id = 202
+
+        def get_rule_id_side_effect(_uid: str, before_update: bool = False) -> int:
+            return old_rule_id if before_update else new_rule_id
+
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(side_effect=get_rule_id_side_effect)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
+        new_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
+        new_rule.rule_comment = "new comment"
+
+        fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        fwconfig_import_rule.import_details.api_call.call.assert_called_once()
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        rule_changes = query_variables["rule_changes"]
+
+        assert len(rule_changes) == 1
+        assert rule_changes[0]["change_action"] == "C"
+        assert rule_changes[0]["new_rule_id"] == new_rule_id
+        assert rule_changes[0]["old_rule_id"] == old_rule_id
+        assert rule_changes[0]["security_relevant"] is False
+
+    def test_write_changelog_rules_flags_security_relevant_change(
+        self,
+        fwconfig_import_rule: FwConfigImportRule,
+        mocker: MockerFixture,
+    ):
+        mock_get_graphql_code(mocker, "mutation { dummy }")
+
+        rule_uid = "zone-changed-rule-uid"
+        fwconfig_import_rule.uid2id_mapper.get_rule_id = mocker.Mock(return_value=202)
+        fwconfig_import_rule.import_details.api_call.call = mocker.Mock(return_value={"data": {}})
+
+        old_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneA", rule_dst_zone="zoneB")
+        new_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneC", rule_dst_zone="zoneB")
+
+        fwconfig_import_rule.write_changelog_rules(
+            added_rules=[],
+            removed_rules=[],
+            changed_rules=[(old_rule, new_rule)],
+        )
+
+        query_variables = fwconfig_import_rule.import_details.api_call.call.call_args.kwargs["query_variables"]
+        rule_changes = query_variables["rule_changes"]
+
+        assert len(rule_changes) == 1
+        assert rule_changes[0]["security_relevant"] is True
+
     def test_write_changelog_rules_uses_current_mgm_id_for_sub_management(
         self,
         fwconfig_import_rule: FwConfigImportRule,

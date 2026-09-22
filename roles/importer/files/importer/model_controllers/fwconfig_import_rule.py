@@ -1287,18 +1287,15 @@ class FwConfigImportRule:
         removed_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in removed_rules if rule.rule_uid is not None
         ]
-        changed_rules_ids: list[tuple[int, int]] = []  # (new_rule_id, old_rule_id)
+        changed_rules_ids: list[tuple[int, int, bool]] = []  # (new_rule_id, old_rule_id, security_relevant)
         for old_rule, new_rule in changed_rules:
-            if (
-                new_rule.rule_uid is not None
-                and old_rule.rule_uid is not None
-                and self.is_change_security_relevant(old_rule, new_rule)
-            ):
+            if new_rule.rule_uid is not None and old_rule.rule_uid is not None:
                 rule_uid = new_rule.rule_uid
                 changed_rules_ids.append(
                     (
                         self.uid2id_mapper.get_rule_id(rule_uid),
                         self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
+                        self.is_change_security_relevant(old_rule, new_rule),
                     )
                 )
 
@@ -1332,7 +1329,7 @@ class FwConfigImportRule:
         self,
         added_rules_ids: list[int],
         removed_rules_ids: list[int],
-        changed_rules_ids: list[tuple[int, int]],
+        changed_rules_ids: list[tuple[int, int, bool]],
     ) -> list[dict[str, Any]]:
         """
         Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
@@ -1382,8 +1379,9 @@ class FwConfigImportRule:
                     import_time,
                     new_rule_id,
                     old_rule_id,
+                    security_relevant,
                 )
-                for new_rule_id, old_rule_id in changed_rules_ids
+                for new_rule_id, old_rule_id, security_relevant in changed_rules_ids
             ]
         )
 
@@ -1392,7 +1390,8 @@ class FwConfigImportRule:
     def is_change_security_relevant(self, old_rule: RuleNormalized, new_rule: RuleNormalized) -> bool:
         """
         Checks if a change between an old and a new version of a rule is security-relevant,
-        meaning it should be included in the changelog and change reports.
+        meaning it should be included in the change reports. Non-security-relevant changes are
+        still written to the changelog, but flagged with security_relevant=False.
         """
         exclude = {
             "last_hit",

@@ -8,20 +8,27 @@ namespace FWO.Test
     internal class ProvisioningSettingsTest
     {
         [Test]
-        public void NewSettings_DefaultControlledValuesAreUndefined()
+        public void NewSettings_UseExpectedDefaults()
         {
-            GlobalProvisioningSettings settings = new();
+            GlobalProvisioningSettings globalSettings = new();
+            DeviceTypeProvisioningSettings deviceTypeSettings = new();
 
-            Assert.That(settings.Scope.ScopeType, Is.EqualTo(ProvisioningScopeType.Undefined));
-            Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Undefined));
-            Assert.That(settings.PathAnalysisAlgorithm, Is.EqualTo(ProvisioningPathAnalysisAlgorithm.Undefined));
-            Assert.That(settings.Logging, Is.EqualTo(ProvisioningLoggingMode.Undefined));
-            Assert.That(settings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
-            Assert.That(settings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
-            Assert.That(settings.RuleType, Is.EqualTo(ProvisioningRuleType.Undefined));
-            Assert.That(settings.PositioningAlgorithm, Is.EqualTo(ProvisioningPositioningAlgorithm.Undefined));
-            Assert.That(settings.RuleCategory, Is.EqualTo(ProvisioningRuleCategory.Undefined));
-            Assert.That(settings.SecurityProfiles, Is.Empty);
+            Assert.That(globalSettings.Scope.ScopeType, Is.EqualTo(ProvisioningScopeType.Global));
+            Assert.That(globalSettings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.FwoAuto));
+            Assert.That(globalSettings.InstallOn, Is.EqualTo("ANY"));
+            Assert.That(globalSettings.PathAnalysisAlgorithm, Is.EqualTo(ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet));
+            Assert.That(globalSettings.Logging, Is.EqualTo(ProvisioningLoggingMode.Log));
+            Assert.That(globalSettings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
+            Assert.That(globalSettings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
+            Assert.That(globalSettings.RuleType, Is.EqualTo(ProvisioningRuleType.AlwaysAccess));
+            Assert.That(globalSettings.Templates, Is.Empty);
+
+            Assert.That(deviceTypeSettings.Scope.ScopeType, Is.EqualTo(ProvisioningScopeType.DeviceType));
+            Assert.That(deviceTypeSettings.PositioningAlgorithm, Is.EqualTo(ProvisioningPositioningAlgorithm.DefaultEndOfRulebase));
+            Assert.That(deviceTypeSettings.RuleCategory, Is.EqualTo(ProvisioningRuleCategory.App));
+            Assert.That(deviceTypeSettings.SecurityProfiles, Is.Empty);
+            Assert.That(deviceTypeSettings.ZoneFrom, Is.EqualTo("ANY"));
+            Assert.That(deviceTypeSettings.ZoneTo, Is.EqualTo("ANY"));
         }
 
         [Test]
@@ -33,7 +40,7 @@ namespace FWO.Test
                 "ScanAll"
             };
 
-            GlobalProvisioningSettings settings = new()
+            GatewayProvisioningSettings settings = new()
             {
                 Scope = new ProvisioningSettingsScope
                 {

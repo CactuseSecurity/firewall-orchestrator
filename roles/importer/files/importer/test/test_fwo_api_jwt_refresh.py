@@ -271,6 +271,89 @@ class TestEnsureJwtFresh:
         assert refresh_calls == [True]
 
 
+class TestProactiveJwtRefreshWiring:
+    """
+    Covers that the entry points really do ask for a proactive refresh before sending anything.
+
+    TestEnsureJwtFresh exercises the helper in isolation; these pin the call sites, without which
+    the proactive half of the JWT handling could be dropped while every other JWT test still
+    passed - the reactive retry covers expiry-after-the-fact entirely on its own.
+    """
+
+    @staticmethod
+    def _stub_refresh(monkeypatch: pytest.MonkeyPatch, api: FwoApi, session: _FakeSession) -> list[int]:
+        """Records the session's request count at refresh time, so the ordering can be asserted."""
+        refreshed_at_request: list[int] = []
+
+        def _refresh_jwt() -> bool:
+            refreshed_at_request.append(session.calls)
+            api.fwo_jwt = "fresh-jwt"
+            return True
+
+        monkeypatch.setattr(api, "_try_refresh_jwt", _refresh_jwt)
+        return refreshed_at_request
+
+    def test_call_refreshes_an_almost_expired_jwt_before_sending_the_query(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        session = _FakeSession([_FakeResponse(200, json_data={"data": {"ok": True}})])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, _make_jwt(exp=time.time() + (JWT_REFRESH_MARGIN_SECONDS / 2)), "refresh-token")
+        refreshed_at_request = self._stub_refresh(monkeypatch, api, session)
+
+        api.call("query { ok }")
+
+        # refreshed before the query went out - not reactively, after it came back rejected
+        assert refreshed_at_request == [0]
+        assert session.calls == 1
+        assert session.sent_headers[0]["Authorization"] == "Bearer fresh-jwt"
+
+    def test_call_leaves_a_jwt_far_from_expiry_alone(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        jwt = _make_jwt(exp=time.time() + 10_000)
+        session = _FakeSession([_FakeResponse(200, json_data={"data": {"ok": True}})])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, jwt, "refresh-token")
+        refreshed_at_request = self._stub_refresh(monkeypatch, api, session)
+
+        api.call("query { ok }")
+
+        # the call site must go through _ensure_jwt_fresh(), not refresh on every single call
+        assert refreshed_at_request == []
+        assert session.sent_headers[0]["Authorization"] == f"Bearer {jwt}"
+
+    def test_call_endpoint_refreshes_an_almost_expired_jwt_before_sending_the_request(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        _register_fwo_config(service_provider)
+        session = _FakeSession([_FakeResponse(200, json_data={"ok": True})])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, _make_jwt(exp=time.time() + (JWT_REFRESH_MARGIN_SECONDS / 2)), "refresh-token")
+        refreshed_at_request = self._stub_refresh(monkeypatch, api, session)
+
+        api.call_endpoint("GET", "SomeEndpoint")
+
+        # refreshed before the request went out - not reactively, after it came back as a 401
+        assert refreshed_at_request == [0]
+        assert session.calls == 1
+        assert session.sent_headers[0]["Authorization"] == "Bearer fresh-jwt"
+
+    def test_call_endpoint_leaves_a_jwt_far_from_expiry_alone(
+        self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider
+    ) -> None:
+        _register_fwo_config(service_provider)
+        jwt = _make_jwt(exp=time.time() + 10_000)
+        session = _FakeSession([_FakeResponse(200, json_data={"ok": True})])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, jwt, "refresh-token")
+        refreshed_at_request = self._stub_refresh(monkeypatch, api, session)
+
+        api.call_endpoint("GET", "SomeEndpoint")
+
+        # the call site must go through _ensure_jwt_fresh(), not refresh on every single call
+        assert refreshed_at_request == []
+        assert session.sent_headers[0]["Authorization"] == f"Bearer {jwt}"
+
+
 class TestCallRetriesOnJwtExpiry:
     """Covers call()'s reactive retry when Hasura reports an expired JWT as a GraphQL-level error."""
 

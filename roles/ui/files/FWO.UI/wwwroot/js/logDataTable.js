@@ -32,16 +32,20 @@ function measureLogDataTableRows(containerId, fallbackRowHeight) {
     // row and the pager below the table. Taken as the difference to the rows instead of adding the
     // parts up, so it stays correct when a header wraps or the pager grows. It does not depend on
     // the number of rows, so applying the result does not change the next measurement.
-    const containerHeight = container.getBoundingClientRect().height;
+    const containerRect = container.getBoundingClientRect();
+    const containerHeight = containerRect.height;
     const rowsHeight = container.querySelector("tbody")?.getBoundingClientRect().height ?? 0;
     const overhead = Math.max(0, containerHeight - rowsHeight);
 
-    // the navbar is sticky at the top of the window (NavigationMenu.razor), so it keeps covering
-    // the window while the user scrolls through the table
-    const navbarHeight = document.getElementById("navbar")?.getBoundingClientRect().height ?? 0;
+    // The table can appear after a large connection-edit form. Its top edge is therefore the
+    // actual start of the space available to its rows, rather than the bottom of the navbar.
+    // When the document has been scrolled far enough for the table to be underneath the sticky
+    // navbar, the navbar's bottom edge is the effective start instead.
+    const navbarBottom = document.getElementById("navbar")?.getBoundingClientRect().bottom ?? 0;
+    const availableTop = Math.max(containerRect.top, navbarBottom);
 
     // a window too short for a single row answers zero, which is a measurement and not a failure:
     // the caller raises it to the smallest page it is willing to show
-    const available = window.innerHeight - navbarHeight - overhead - kLogDataTableReserve;
+    const available = window.innerHeight - availableTop - overhead - kLogDataTableReserve;
     return Math.max(0, Math.floor(available / rowHeight));
 }

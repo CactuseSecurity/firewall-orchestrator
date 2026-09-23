@@ -1,32 +1,419 @@
--- SEC-06: the workflow action endpoint executes the side effects of a state change (mail, external
--- request, flow creation) for a transition the caller describes. The object's state is persisted by
--- the caller before the actions are requested, so the only check available was that the object
--- already stands in the requested new state - which stays true once the transition happened, and
--- therefore let the same request be submitted again to fire the side effects a second time.
--- This table records which state the actions of an object were last executed for. The middleware
--- claims it in one statement before it runs anything, so the execution can be claimed exactly once.
--- The guard compares to_state_id only. from_state_id is kept for the audit trail but is taken from
--- the request body and never established against the state the object actually held, so it must not
--- decide whether a claim is granted - otherwise a replay could re-arm the guard by naming a
--- different origin state.
--- One row per object is enough: a replay repeats the state the object was last moved into, while
--- legitimately entering a state again requires leaving it first, which records the state it was
--- left for here in between. That holds because every execution of state-change actions inside the
--- middleware writes this row, not only the ones requested through the action endpoint - a request
--- task promoted by the external request chain writes it too. A row that lagged behind the object
--- would turn the next legitimate move back into a refusal.
-CREATE TABLE IF NOT EXISTS request.state_change_execution
+-- migrate interface request notification text from legacy config to notification rows
+WITH request_config AS
 (
-    object_scope VARCHAR NOT NULL,
-    object_id BIGINT NOT NULL,
-    from_state_id INT NOT NULL,
-    to_state_id INT NOT NULL,
-    executed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    executed_by VARCHAR,
-    CONSTRAINT state_change_execution_pkey PRIMARY KEY (object_scope, object_id)
+    SELECT
+        MAX(CASE WHEN config_key = 'modReqEmailReceiver' THEN BTRIM(COALESCE(config_value, '')) END) AS recipients,
+        MAX(CASE WHEN config_key = 'modReqEmailOtherAddresses' THEN COALESCE(config_value, '') END) AS other_addresses,
+        MAX(CASE WHEN config_key = 'modReqEmailRequesterInCc' THEN LOWER(BTRIM(COALESCE(config_value, ''))) END) AS requester_in_cc,
+        MAX(CASE WHEN config_key = 'modReqEmailSubject' THEN COALESCE(config_value, '') END) AS subject,
+        MAX(CASE WHEN config_key = 'modReqEmailBody' THEN COALESCE(config_value, '') END) AS body,
+        MAX(CASE WHEN config_key = 'modUnansweredReqEmailBody' THEN COALESCE(config_value, '') END) AS reminder_body
+    FROM config
+    WHERE config_user = 0
+      AND config_key IN ('modReqEmailReceiver', 'modReqEmailOtherAddresses', 'modReqEmailRequesterInCc', 'modReqEmailSubject', 'modReqEmailBody', 'modUnansweredReqEmailBody')
+),
+request_recipient AS
+(
+    SELECT
+        request_config.*,
+        CASE
+            WHEN recipients = 'OwnerMainResponsible' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[1]}'
+            WHEN recipients = 'OwnerGroupOnly' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[2]}'
+            WHEN recipients = 'FallbackToMainResponsibleIfOwnerGroupEmpty' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":true,"owner_responsible_type_ids":[2,1]}'
+            WHEN recipients = 'AllOwnerResponsibles' THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', false,
+                    'other_address_list', '[]'::json,
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', COALESCE((
+                        SELECT json_agg(id ORDER BY sort_order DESC)
+                        FROM owner_responsible_type
+                        WHERE active = true
+                    ), '[]'::json)
+                )::text
+            WHEN recipients = 'OtherAddresses' OR (recipients = '' AND other_addresses <> '') THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', true,
+                    'other_address_list', COALESCE((
+                        SELECT json_agg(btrim(address))
+                        FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                        WHERE btrim(address) <> ''
+                    ), '[]'::json),
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', '[]'::json
+                )::text
+            WHEN recipients LIKE '{%' AND other_addresses <> '' AND recipients NOT LIKE '%"other_address_list"%'
+                THEN jsonb_set(recipients::jsonb, '{other_address_list}', COALESCE((
+                    SELECT jsonb_agg(btrim(address))
+                    FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                    WHERE btrim(address) <> ''
+                ), '[]'::jsonb), true)::text
+            WHEN recipients LIKE '{%' THEN recipients
+            ELSE ''
+        END AS recipient_selection
+    FROM request_config
+),
+initial_notification_seed AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'InterfaceRequest'
+      AND (deadline = 'None' OR deadline IS NULL)
+),
+reminder_notification_seed AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'InterfaceRequest'
+      AND deadline = 'RequestDate'
+),
+insert_initial_notification AS
+(
+    INSERT INTO notification
+    (
+        notification_client,
+        name,
+        channel,
+        recipient_to,
+        email_address_to,
+        recipient_cc,
+        email_address_cc,
+        recipient_bcc,
+        email_address_bcc,
+        email_subject,
+        email_body,
+        layout,
+        deadline,
+        interval_before_deadline,
+        offset_before_deadline,
+        repeat_interval_after_deadline,
+        initial_offset_after_deadline,
+        repeat_offset_after_deadline,
+        repetitions_after_deadline
+    )
+    SELECT
+        'InterfaceRequest',
+        'Interface requested',
+        'Email',
+        CASE
+            WHEN recipient_selection ~ '"requester"[[:space:]]*:[[:space:]]*true'
+              OR recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]' THEN 'ConfiguredResponsibles'
+            WHEN recipient_selection ~ '"other_addresses"[[:space:]]*:[[:space:]]*true'
+              AND recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"' THEN 'OtherAddresses'
+            ELSE 'None'
+        END,
+        CASE
+            WHEN recipient_selection = '' THEN ''
+            ELSE recipient_selection
+        END,
+        CASE WHEN requester_in_cc = 'true' THEN 'Requester' ELSE 'None' END,
+        '',
+        'None',
+        '',
+        CASE
+            WHEN LENGTH(subject) = 0 THEN 'Interface requested'
+            ELSE subject
+        END,
+        body,
+        'SimpleText',
+        'None',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    FROM request_recipient
+    CROSS JOIN initial_notification_seed
+    WHERE notification_count = 0
+      AND (COALESCE(recipients, '') <> '' OR COALESCE(other_addresses, '') <> '')
+    RETURNING 1
+),
+update_initial_bodies AS
+(
+    UPDATE notification n
+    SET email_body = CASE
+        WHEN COALESCE(n.email_body, '') = '' THEN request_config.body
+        ELSE n.email_body
+    END
+    FROM request_config
+    CROSS JOIN initial_notification_seed
+    WHERE n.notification_client = 'InterfaceRequest'
+      AND (n.deadline = 'None' OR n.deadline IS NULL)
+      AND initial_notification_seed.notification_count > 0
+    RETURNING 1
+),
+update_reminder_bodies AS
+(
+    UPDATE notification n
+    SET email_body = CASE
+        WHEN COALESCE(n.email_body, '') = '' THEN request_config.reminder_body
+        ELSE n.email_body
+    END
+    FROM request_config
+    CROSS JOIN reminder_notification_seed
+    WHERE n.notification_client = 'InterfaceRequest'
+      AND n.deadline = 'RequestDate'
+      AND reminder_notification_seed.notification_count > 0
+    RETURNING 1
+)
+SELECT 1;
+
+-- migrate rule-by-rule recertification delivery to notifications
+WITH recert_config AS
+(
+    SELECT
+        MAX(CASE WHEN config_key = 'recCheckEmailSubject' THEN COALESCE(config_value, '') END) AS subject
+    FROM config
+    WHERE config_user = 0
+      AND config_key = 'recCheckEmailSubject'
+),
+recert_notification_seed AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'RuleRecertification'
+),
+insert_rule_recertification_notification AS
+(
+    INSERT INTO notification
+    (
+        notification_client,
+        name,
+        channel,
+        recipient_to,
+        email_address_to,
+        recipient_cc,
+        email_address_cc,
+        recipient_bcc,
+        email_address_bcc,
+        email_subject,
+        email_body,
+        layout,
+        deadline,
+        interval_before_deadline,
+        offset_before_deadline,
+        repeat_interval_after_deadline,
+        initial_offset_after_deadline,
+        repeat_offset_after_deadline,
+        repetitions_after_deadline
+    )
+    SELECT
+        'RuleRecertification',
+        'Rule recertification',
+        'Email',
+        'AllOwnerResponsibles',
+        '',
+        'None',
+        '',
+        'None',
+        '',
+        CASE
+            WHEN COALESCE(recert_config.subject, '') = '' THEN 'Rule recertification @@APPNAME@@'
+            ELSE recert_config.subject || ' @@APPNAME@@'
+        END,
+        '@@CONTENT@@',
+        'SimpleText',
+        'None',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    FROM recert_config
+    CROSS JOIN recert_notification_seed
+    WHERE notification_count = 0
+    RETURNING 1
+)
+SELECT 1;
+
+ALTER TABLE notification
+    ADD COLUMN IF NOT EXISTS logging Varchar NOT NULL DEFAULT 'send_only';
+
+ALTER TABLE notification
+    ADD COLUMN IF NOT EXISTS active Boolean NOT NULL DEFAULT TRUE;
+
+UPDATE notification
+SET logging = 'send_only'
+WHERE NULLIF(logging, '') IS NULL;
+
+CREATE TABLE IF NOT EXISTS notification_log
+(
+    id SERIAL PRIMARY KEY,
+    "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notification_id INTEGER NOT NULL,
+    notification_type Varchar NOT NULL,
+    "to" Varchar NOT NULL DEFAULT '',
+    cc Varchar NOT NULL DEFAULT '',
+    bcc Varchar NOT NULL DEFAULT '',
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
 );
 
--- Existing objects have no recorded execution, so the first transition after this upgrade is
--- claimable for each of them. That is the safe direction: it can let one already executed
--- transition be re-requested once, exactly as before this upgrade, rather than blocking a
--- legitimate promote of every ticket that is currently in flight.
+CREATE INDEX IF NOT EXISTS notification_log_timestamp_id_idx
+    ON notification_log ("timestamp" DESC, id DESC);
+
+WITH decomm_config AS
+(
+    SELECT
+        MAX(CASE WHEN config_key = 'modDecommEmailReceiver' THEN BTRIM(COALESCE(config_value, '')) END) AS recipients,
+        MAX(CASE WHEN config_key = 'modDecommEmailOtherAddresses' THEN COALESCE(config_value, '') END) AS other_addresses,
+        MAX(CASE WHEN config_key = 'modDecommEmailSubject' THEN COALESCE(config_value, '') END) AS subject,
+        MAX(CASE WHEN config_key = 'modDecommEmailBody' THEN COALESCE(config_value, '') END) AS body
+    FROM config
+    WHERE config_user = 0
+      AND config_key IN ('modDecommEmailReceiver', 'modDecommEmailOtherAddresses', 'modDecommEmailSubject', 'modDecommEmailBody')
+),
+decomm_recipient AS
+(
+    SELECT
+        decomm_config.*,
+        CASE
+            WHEN recipients = 'OwnerMainResponsible' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[1]}'
+            WHEN recipients = 'OwnerGroupOnly' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":false,"owner_responsible_type_ids":[2]}'
+            WHEN recipients = 'FallbackToMainResponsibleIfOwnerGroupEmpty' THEN
+                '{"none":false,"other_addresses":false,"other_address_list":[],"requester":false,"ensure_at_least_one_notification":true,"owner_responsible_type_ids":[2,1]}'
+            WHEN recipients = 'AllOwnerResponsibles' THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', false,
+                    'other_address_list', '[]'::json,
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', COALESCE((
+                        SELECT json_agg(id ORDER BY sort_order DESC)
+                        FROM owner_responsible_type
+                        WHERE active = true
+                    ), '[]'::json)
+                )::text
+            WHEN recipients = 'OtherAddresses' OR (recipients = '' AND other_addresses <> '') THEN
+                json_build_object(
+                    'none', false,
+                    'other_addresses', true,
+                    'other_address_list', COALESCE((
+                        SELECT json_agg(btrim(address))
+                        FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                        WHERE btrim(address) <> ''
+                    ), '[]'::json),
+                    'requester', false,
+                    'ensure_at_least_one_notification', false,
+                    'owner_responsible_type_ids', '[]'::json
+                )::text
+            WHEN recipients LIKE '{%' AND other_addresses <> '' AND recipients NOT LIKE '%"other_address_list"%'
+                THEN jsonb_set(recipients::jsonb, '{other_address_list}', COALESCE((
+                    SELECT jsonb_agg(btrim(address))
+                    FROM regexp_split_to_table(other_addresses, '[,;|]') AS address
+                    WHERE btrim(address) <> ''
+                ), '[]'::jsonb), true)::text
+            WHEN recipients LIKE '{%' THEN recipients
+            ELSE ''
+        END AS recipient_selection
+    FROM decomm_config
+),
+decomm_notification_seed AS
+(
+    SELECT COUNT(*) AS notification_count
+    FROM notification
+    WHERE notification_client = 'InterfaceDecomm'
+      AND (deadline = 'None' OR deadline IS NULL)
+),
+insert_decomm_notification AS
+(
+    INSERT INTO notification
+    (
+        notification_client,
+        name,
+        channel,
+        recipient_to,
+        email_address_to,
+        recipient_cc,
+        email_address_cc,
+        recipient_bcc,
+        email_address_bcc,
+        email_subject,
+        email_body,
+        layout,
+        deadline,
+        interval_before_deadline,
+        offset_before_deadline,
+        repeat_interval_after_deadline,
+        initial_offset_after_deadline,
+        repeat_offset_after_deadline,
+        repetitions_after_deadline
+    )
+    SELECT
+        'InterfaceDecomm',
+        'Interface decommissioned',
+        'Email',
+        CASE
+            WHEN recipient_selection ~ '"requester"[[:space:]]*:[[:space:]]*true'
+              OR recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]' THEN 'ConfiguredResponsibles'
+            WHEN recipient_selection ~ '"other_addresses"[[:space:]]*:[[:space:]]*true'
+              AND recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"' THEN 'OtherAddresses'
+            ELSE 'None'
+        END,
+        CASE
+            WHEN recipient_selection = '' THEN ''
+            ELSE recipient_selection
+        END,
+        'None',
+        '',
+        'None',
+        '',
+        CASE
+            WHEN LENGTH(subject) = 0 THEN 'Interface decommissioned'
+            ELSE subject
+        END,
+        body,
+        'SimpleText',
+        'None',
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL
+    FROM decomm_recipient
+    CROSS JOIN decomm_notification_seed
+    WHERE notification_count = 0
+      AND (
+          recipient_selection ~ '"owner_responsible_type_ids"[[:space:]]*:[[:space:]]*\[[[:space:]]*[0-9]'
+          OR recipient_selection ~ '"other_address_list"[[:space:]]*:[[:space:]]*\[[[:space:]]*"'
+          OR LENGTH(subject) > 0
+          OR LENGTH(body) > 0
+      )
+    RETURNING 1
+),
+update_decomm_subject_bodies AS
+(
+    UPDATE notification n
+    SET
+        email_subject = CASE
+            WHEN COALESCE(n.email_subject, '') = '' THEN CASE WHEN LENGTH(decomm_config.subject) = 0 THEN 'Interface decommissioned' ELSE decomm_config.subject END
+            ELSE n.email_subject
+        END,
+        email_body = CASE
+            WHEN COALESCE(n.email_body, '') = '' THEN decomm_config.body
+            ELSE n.email_body
+        END
+    FROM decomm_config
+    CROSS JOIN decomm_notification_seed
+    WHERE n.notification_client = 'InterfaceDecomm'
+      AND (n.deadline = 'None' OR n.deadline IS NULL)
+      AND decomm_notification_seed.notification_count > 0
+    RETURNING 1
+)
+SELECT 1;

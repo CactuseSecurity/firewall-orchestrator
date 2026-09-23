@@ -85,7 +85,8 @@ namespace FWO.Services.Workflow
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -97,7 +98,7 @@ namespace FWO.Services.Workflow
             {
                 try
                 {
-                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, placeholderData: placeholderData));
                 }
                 finally
                 {
@@ -117,8 +118,9 @@ namespace FWO.Services.Workflow
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
 
-            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
-            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+            StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
         }
 
         /// <summary>
@@ -200,8 +202,11 @@ namespace FWO.Services.Workflow
             return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
         }
 
+        private sealed record StateActionExecutionContext(FwoOwner? Owner, long? TicketId, string? UserGrpDn,
+            NotificationPlaceholderData? PlaceholderData);
+
         private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn)
+            WfObjectScopes scope, StateActionExecutionContext context)
         {
             foreach (var action in actions.Where(IsActionInCurrentPhase))
             {
@@ -209,7 +214,7 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
                 try
                 {
-                    await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                    await PerformAction(action, statefulObject, scope, context.Owner, context.TicketId, context.UserGrpDn, context.PlaceholderData);
                 }
                 catch (Exception exc)
                 {
@@ -256,12 +261,12 @@ namespace FWO.Services.Workflow
         }
 
         public async Task PerformAction(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             if (scope != WfObjectScopes.None && !useInMwServer && wfHandler.MiddlewareClient != null && !WfStateAction.IsReadonlyType(action.ActionType))
             {
                 Log.WriteDebug("PerformAction", $"Delegating action '{action.Name}' ({action.ActionType}) to middleware.");
-                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id));
+                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id, placeholderData));
                 return;
             }
 
@@ -289,7 +294,7 @@ namespace FWO.Services.Workflow
                     await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    await SendEmail(action, statefulObject, scope, owner, userGrpDn);
+                    await SendEmail(action, statefulObject, scope, owner, userGrpDn, placeholderData);
                     break;
                 case nameof(StateActionTypes.CreateFlow):
                     await CreateFlow(action, statefulObject, scope, owner, ticketId);
@@ -324,7 +329,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task<bool> PerformActionById(int actionId, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             WfStateAction? action = GetOfferedActions(statefulObject, scope, wfHandler.Phase).FirstOrDefault(action => action.Id == actionId);
             if (action == null)
@@ -332,11 +337,12 @@ namespace FWO.Services.Workflow
                 Log.WriteError("Workflow Actions", $"Action id {actionId} is not offered for {scope} in state {statefulObject.StateId} and phase {wfHandler.Phase}.");
                 return false;
             }
-            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
             return true;
         }
 
-        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0)
+        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0,
+            NotificationPlaceholderData? placeholderData = null)
         {
             return new()
             {
@@ -349,6 +355,7 @@ namespace FWO.Services.Workflow
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                NotificationPlaceholders = placeholderData,
                 EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
         }

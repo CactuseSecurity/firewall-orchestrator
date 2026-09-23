@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.5.4 - 24.09.2026
+## 9.5.5 - 24.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.
   A login and a token refresh derive the roles of a user by resolving uiuser.uuid against LDAP, so
@@ -44,6 +44,10 @@
   the object, service and user tables of a rules report encode every imported field they show - name, uid,
   comment and group members. Report output changes in two visible ways: object anchor names are now quoted,
   and exported documents carry the extra policy element
+
+## 9.5.4 - 23.09.2026
+- rework modelling notifications and move interface-request notifications to centralized notification entries
+- interface-request notifications now support separate request and reminder bodies plus optional CC to the requester
 
 ## 9.5.3 - 17.09.2026
 - rule owner mapping: an owner import no longer collides with the unique index on rule_owner and no longer

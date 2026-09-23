@@ -557,6 +557,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
     <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
     <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
+    <li>&Auml;nderungen an den Dokumentationsfeldern einer Regel (Name, Kommentar, Zusatzfelder, letzter Treffer) werden nun ebenfalls in der Regel-&Auml;nderungshistorie protokolliert, dort aber als nicht sicherheitsrelevant gekennzeichnet. Die &Auml;nderungsreports und der Z&auml;hler der sicherheitsrelevanten &Auml;nderungen in der Import&uuml;bersicht ber&uuml;cksichtigen weiterhin nur sicherheitsrelevante &Auml;nderungen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -578,6 +579,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
     <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
     <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
+    <li>Changes to the documentation fields of a rule (name, comment, custom fields, last hit) are now recorded in the rule change history as well, but flagged as not security-relevant. The change reports and the counter of security-relevant changes in the import overview still cover security-relevant changes only.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

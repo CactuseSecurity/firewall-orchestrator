@@ -11,6 +11,7 @@ namespace FWO.Test
         public List<(int Id, NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
         public List<NotificationLogEntry> NotificationLogEntries { get; } = [];
         public List<int> UpdatedNotificationIds { get; } = [];
+        public List<int> RefreshedNotificationLogIds { get; } = [];
 
         readonly FwoNotification NotifReq1 = new()
         {
@@ -159,6 +160,24 @@ namespace FWO.Test
                     Data = new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { Id = NotificationLogEntries.LastOrDefault()?.Id ?? 1 }]
+                    }
+                };
+                return response.Data;
+            }
+            if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.refreshNotificationLog)
+            {
+                int id = GetVariable<int>(variables, "id");
+                NotificationLogEntry? entry = NotificationLogEntries.FirstOrDefault(logEntry => logEntry.Id == id);
+                if (entry != null)
+                {
+                    entry.Timestamp = DateTimeOffset.UtcNow;
+                }
+                RefreshedNotificationLogIds.Add(id);
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = id }]
                     }
                 };
                 return response.Data;

@@ -64,5 +64,16 @@ namespace FWO.Services
             await apiConnection.SendQueryAsync<ReturnId>(NotificationQueries.updateNotificationLog,
                 new { id = logId, status = status.ToString(), error });
         }
+
+        /// <summary>
+        /// Refreshes the timestamp of an existing notification log entry.
+        /// </summary>
+        /// <param name="apiConnection">API connection used to persist the refresh.</param>
+        /// <param name="logId">Identifier of the existing log entry.</param>
+        public static async Task RefreshAsync(ApiConnection apiConnection, int logId)
+        {
+            await apiConnection.SendQueryAsync<ReturnIdWrapper>(NotificationQueries.refreshNotificationLog,
+                new { id = logId, timestamp = DateTimeOffset.UtcNow });
+        }
     }
 }

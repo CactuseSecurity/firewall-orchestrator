@@ -13834,7 +13834,7 @@
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "columns": ["status", "error"],
+                    "columns": ["status", "error", "timestamp"],
                     "filter": {},
                     "check": {}
                   },
@@ -13843,7 +13843,7 @@
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "columns": ["status", "error"],
+                    "columns": ["status", "error", "timestamp"],
                     "filter": {},
                     "check": {}
                   },

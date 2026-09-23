@@ -39,6 +39,7 @@ namespace FWO.Test
             apiConnection.UpdatedNotificationIds.Clear();
             apiConnection.NotificationLogEntries.Clear();
             apiConnection.NotificationLogUpdates.Clear();
+            apiConnection.RefreshedNotificationLogIds.Clear();
         }
 
         [Test]
@@ -601,6 +602,7 @@ namespace FWO.Test
                 Assert.That(repeatedResult, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
                 Assert.That(updatedNotifications, Is.EqualTo(1));
                 Assert.That(apiConnection.NotificationLogUpdates, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.RefreshedNotificationLogIds, Has.Count.EqualTo(1));
             });
         }
 

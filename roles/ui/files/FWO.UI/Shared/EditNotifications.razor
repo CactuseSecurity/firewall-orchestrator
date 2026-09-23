@@ -371,9 +371,6 @@
         ToRecipientSelection = ParseRecipientSelection(actNotification.RecipientTo, actNotification.EmailAddressTo, ToAddresses);
         CcRecipientSelection = ParseRecipientSelection(actNotification.RecipientCc, actNotification.EmailAddressCc, CcAddresses);
         BccRecipientSelection = ParseRecipientSelection(actNotification.RecipientBcc, actNotification.EmailAddressBcc, BccAddresses);
-        ToAddresses = ToRecipientSelection.OtherAddressList.ToList();
-        CcAddresses = CcRecipientSelection.OtherAddressList.ToList();
-        BccAddresses = BccRecipientSelection.OtherAddressList.ToList();
         EditNotifMode = true;
     }
 

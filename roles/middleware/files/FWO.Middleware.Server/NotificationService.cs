@@ -17,6 +17,7 @@ namespace FWO.Middleware.Server
     /// </summary>
     public class NotificationService
     {
+        private const string kNoRecipientFailureMessage = "No recipients resolved.";
         /// <summary>
         /// Notifications for current NotificationClient
         /// </summary>
@@ -397,30 +398,40 @@ namespace FWO.Middleware.Server
         private async Task LogNoRecipientFailureIfConfigured(FwoNotification notification, string subject, DateTime? deadline)
         {
             if (!NotificationLoggingMode.ShouldLog(notification.Logging)
-                || await HasMatchingNoRecipientFailure(notification, subject, deadline))
+                || await RefreshMatchingNoRecipientFailure(notification, subject, deadline))
             {
                 return;
             }
 
             DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
             int logId = await NotificationLogHelper.InsertAsync(ApiConnection, notification, [], [], [], subject, resolvedDeadline);
-            await CompleteNotificationLog(logId, NotificationLogStatus.Failed, "No recipients resolved.");
+            await CompleteNotificationLog(logId, NotificationLogStatus.Failed, kNoRecipientFailureMessage);
         }
 
-        private async Task<bool> HasMatchingNoRecipientFailure(FwoNotification notification, string subject, DateTime? deadline)
+        private async Task<bool> RefreshMatchingNoRecipientFailure(FwoNotification notification, string subject, DateTime? deadline)
         {
+            DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
             List<NotificationLogEntry> entries = await ApiConnection.SendQueryAsync<List<NotificationLogEntry>>(
                 NotificationQueries.getNoRecipientNotificationLogs, new
                 {
                     notificationId = notification.Id,
                     status = NotificationLogStatus.Failed.ToString(),
-                    error = "No recipients resolved.",
-                    subject
+                    error = kNoRecipientFailureMessage,
+                    subject,
+                    deadlineType = notification.Deadline.ToString(),
+                    deadline = resolvedDeadline,
+                    deadlineIsNull = resolvedDeadline == null
                 });
-            DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
-            return entries.Any(entry => entry.Subject == subject
+            NotificationLogEntry? matchingEntry = entries.FirstOrDefault(entry => entry.Subject == subject
                 && entry.DeadlineType == notification.Deadline
                 && entry.Deadline == resolvedDeadline);
+            if (matchingEntry == null)
+            {
+                return false;
+            }
+
+            await NotificationLogHelper.RefreshAsync(ApiConnection, matchingEntry.Id);
+            return true;
         }
 
         /// <summary>
@@ -488,21 +499,18 @@ namespace FWO.Middleware.Server
             PreparedBundleMails preparedMails)
         {
             bool noSendableRecipients = sendableNotifications.Count > 0 && !preparedMails.HasSendableRecipients;
-            bool noSuppressedRecipients = sendableNotifications.Count == 0 && !preparedMails.HasSuppressedRecipients;
-            if (!noSendableRecipients && !noSuppressedRecipients)
-            {
-                return false;
-            }
-
-            if (noSendableRecipients)
-            {
-                await LogNoRecipientFailures(sendableNotifications, preparedMails.SendableMail!.Subject);
-            }
+            bool noSuppressedRecipients = suppressedNotifications.Count > 0 && !preparedMails.HasSuppressedRecipients;
             if (noSuppressedRecipients)
             {
                 await LogNoRecipientFailures(suppressedNotifications, preparedMails.SuppressedMail!.Subject);
             }
 
+            if (!noSendableRecipients)
+            {
+                return false;
+            }
+
+            await LogNoRecipientFailures(sendableNotifications, preparedMails.SendableMail!.Subject);
             FwoNotification baseNotification = allNotifications.First();
             Log.WriteWarning("Notifications",
                 $"No recipients resolved for notification client {baseNotification.NotificationClient} while preparing bundled notification {baseNotification.Id}. Skipping send.");
@@ -513,6 +521,7 @@ namespace FWO.Middleware.Server
         {
             foreach (FwoNotification notification in notifications)
             {
+                AddCheckedNotificationId(notification.Id);
                 await LogNoRecipientFailureIfConfigured(notification, subject, null);
             }
         }

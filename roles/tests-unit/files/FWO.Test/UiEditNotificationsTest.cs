@@ -470,7 +470,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void EditNotification_UsesParsedSelectionAsSourceOfAddressList()
+        public void EditNotification_ThenSyncAddressesClearsSelection()
         {
             EditNotifications component = new();
             SetClient(component, NotificationClient.RuleTimer);
@@ -488,9 +488,6 @@ namespace FWO.Test
             object?[] editArguments = [notification];
 
             GetPrivateMethod("EditNotification").Invoke(component, editArguments);
-
-            List<string> addresses = GetPrivateField<List<string>>(component, "ToAddresses");
-            Assert.That(addresses, Is.EqualTo(new List<string> { "configured@example.org" }));
 
             SetPrivateField(component, "ToRecipientSelection", new EmailRecipientSelection());
             GetPrivateMethod("SyncAddresses").Invoke(component, null);

@@ -11,6 +11,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateNotificationsLastSent;
         public static readonly string insertNotificationLog;
         public static readonly string updateNotificationLog;
+        public static readonly string refreshNotificationLog;
         public static readonly string getNoRecipientNotificationLogs;
 
         public static readonly string deleteNotification;
@@ -27,6 +28,7 @@ namespace FWO.Api.Client.Queries
                 updateNotificationsLastSent = File.ReadAllText(QueryPath + "notification/updateNotificationsLastSent.graphql");
                 insertNotificationLog = File.ReadAllText(QueryPath + "notification_log/insertNotificationLog.graphql");
                 updateNotificationLog = File.ReadAllText(QueryPath + "notification_log/updateNotificationLog.graphql");
+                refreshNotificationLog = File.ReadAllText(QueryPath + "notification_log/refreshNotificationLog.graphql");
                 getNoRecipientNotificationLogs = File.ReadAllText(QueryPath + "notification_log/getNoRecipientNotificationLogs.graphql");
                 deleteNotification = File.ReadAllText(QueryPath + "notification/deleteNotification.graphql");
             }

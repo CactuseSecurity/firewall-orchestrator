@@ -743,8 +743,9 @@ namespace FWO.Test
             SetProperty(component, "userConfig", new SimulatedUserConfig());
             SetProperty(component, "DisplayMessageInUi", (Action<Exception?, string, string, bool>)((exception, title, _, isError) =>
                 messages.Add((exception, title, isError))));
+            object?[] noConfigurationSelectionArguments = [null];
 
-            await InvokeAsync(component, "RefreshConfigurations", new object?[] { null });
+            await InvokeAsync(component, "RefreshConfigurations", noConfigurationSelectionArguments);
 
             Assert.Multiple(() =>
             {

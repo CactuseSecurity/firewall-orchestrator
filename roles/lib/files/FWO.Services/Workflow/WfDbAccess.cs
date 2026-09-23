@@ -435,7 +435,8 @@ namespace FWO.Services.Workflow
 
         // State changes
 
-        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null)
+        public async Task UpdateTicketStateInDb(WfTicket ticket, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(ticket.Id);
             try
@@ -462,7 +463,7 @@ namespace FWO.Services.Workflow
                     }
                     if (triggerActions)
                     {
-                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket));
+                        await ActionHandler.DoStateChangeActions(ticket, WfObjectScopes.Ticket, null, ticket.Id, GetRequesterDn(ticket), placeholderData);
                     }
                 }
             }
@@ -472,7 +473,8 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null)
+        public async Task UpdateReqTaskStateInDb(WfReqTask reqtask, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
             WfReqTask? previousTask = storedTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
@@ -502,7 +504,8 @@ namespace FWO.Services.Workflow
                     }
                     if (triggerActions)
                     {
-                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId);
+                        await ActionHandler.DoStateChangeActions(reqtask, WfObjectScopes.RequestTask, reqtask.Owners.Count > 0 ? reqtask.Owners.First().Owner : null, reqtask.TicketId,
+                            placeholderData: placeholderData);
                     }
                 }
             }
@@ -517,7 +520,8 @@ namespace FWO.Services.Workflow
             return !string.IsNullOrWhiteSpace(ticket.Requester?.Dn) ? ticket.Requester.Dn : ticket.RequesterDn;
         }
 
-        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true, WfTicket? previousTicket = null)
+        public async Task UpdateImplTaskStateInDb(WfImplTask impltask, bool triggerActions = true, WfTicket? previousTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(impltask.TicketId);
             WfImplTask? previousTask = storedTicket?.Tasks
@@ -549,7 +553,7 @@ namespace FWO.Services.Workflow
                     }
                     if (triggerActions)
                     {
-                        await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask);
+                        await ActionHandler.DoStateChangeActions(impltask, WfObjectScopes.ImplementationTask, placeholderData: placeholderData);
                     }
                 }
             }

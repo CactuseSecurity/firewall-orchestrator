@@ -318,7 +318,8 @@
 
     private bool IsVisibleToOwner(ModellingConnection interf)
     {
-        if(interf.InterfacePermission == InterfacePermissions.Public.ToString() || interf.App.Id == Application.Id)
+        if(interf.InterfacePermission == InterfacePermissions.Public.ToString()
+            || (interf.App != null && Application != null && interf.App.Id == Application.Id))
         {
             return true;
         }
@@ -326,7 +327,8 @@
         {
             return false;
         }
-        return interf.PermittedOwnerWrappers.Any(wrapper => wrapper.Owner != null && wrapper.Owner.Id == Application.Id);
+        return interf.PermittedOwnerWrappers?.Any(wrapper =>
+            wrapper.Owner != null && Application != null && wrapper.Owner.Id == Application.Id) == true;
     }
 
     private List<string> CollectModellingProps(ModellingConnection connection)

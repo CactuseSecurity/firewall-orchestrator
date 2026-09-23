@@ -118,6 +118,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task StateMatrixInit_UsesLastActiveWorkflowPhaseRegardlessOfDatabaseOrder()
+        {
+            GlobalStateMatrix source = new()
+            {
+                GlobalMatrix = Enum.GetValues<WorkflowPhases>().ToDictionary(phase => phase, phase => new StateMatrix
+                {
+                    LowestInputState = (int)phase,
+                    LowestStartedState = (int)phase + 1,
+                    LowestEndState = (int)phase + 10,
+                    Active = phase is WorkflowPhases.request or WorkflowPhases.implementation or WorkflowPhases.review
+                })
+            };
+            List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromGlobalMatrix(source);
+            configurations[0].Phases.Reverse();
+            StateMatrixApiConnection apiConnection = new(configurations);
+            StateMatrix matrix = new();
+
+            await matrix.Init(WorkflowPhases.request, apiConnection, new List<WfState>(), WfTaskType.new_interface);
+
+            Assert.That(matrix.MinTicketCompleted, Is.EqualTo(15));
+        }
+
+        [Test]
         public async Task GlobalStateMatrixSave_WritesOnlyNonIdentityDerivedStates()
         {
             GlobalStateMatrix source = new()

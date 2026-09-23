@@ -74,12 +74,17 @@ namespace FWO.Services.Workflow
                 }
             }
             MinImplTasksNeeded = glbStateMatrix.GlobalMatrix[WorkflowPhases.implementation].LowestInputState;
-            MinTicketCompleted = glbStateMatrix.GlobalMatrix[PhaseActive.LastOrDefault(p => p.Value == true).Key].LowestEndState;
+            WorkflowPhases lastActivePhase = PhaseActive
+                .Where(entry => entry.Value)
+                .Select(entry => entry.Key)
+                .DefaultIfEmpty(phase)
+                .Max();
+            MinTicketCompleted = glbStateMatrix.GlobalMatrix[lastActivePhase].LowestEndState;
         }
 
         public bool getNextActivePhase(ref WorkflowPhases phase)
         {
-            foreach (var tmpPhase in PhaseActive)
+            foreach (var tmpPhase in PhaseActive.OrderBy(entry => entry.Key))
             {
                 if (tmpPhase.Key > phase && tmpPhase.Value)
                 {

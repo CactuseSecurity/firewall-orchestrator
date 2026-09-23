@@ -41,7 +41,7 @@
                         @{
                             var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
                             bool canActOnTask = CanActOnImplTaskInPhase(implTask);
-                            bool showReadOnlyActions = implTaskMatrix.VisibilityMode == PhaseVisibilityMode.AnyTask;
+                            bool showReadOnlyActions = WfHandler.MasterStateMatrix.VisibilityMode == PhaseVisibilityMode.AnyTask;
                         }
                         @if (canActOnTask || showReadOnlyActions)
                         {

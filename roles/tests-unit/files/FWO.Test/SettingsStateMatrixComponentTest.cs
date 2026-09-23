@@ -23,6 +23,8 @@ namespace FWO.Test
         private static readonly int[] kLinkableTransitionGroupIds23 = [2, 3];
         private static readonly int[] kDerivedStateKeys23 = [2, 3];
         private static readonly int[] kTransitionGroupIds21 = [2, 1];
+        private static readonly int[] kConfigurationIds213 = [2, 1, 3];
+        private static readonly bool[] kSingleError = [true];
         private static readonly object[] kEmptyVisibilityGroupArguments = [new StateMatrixTransitionGroup()];
 
         [Test]
@@ -723,7 +725,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(GetField<int>(component, "selectedConfigurationId"), Is.EqualTo(3));
-                Assert.That(GetField<List<int>>(component, "configurationIds"), Is.EqualTo([2, 1, 3]));
+                Assert.That(GetField<List<int>>(component, "configurationIds"), Is.EqualTo(kConfigurationIds213));
             });
         }
 
@@ -870,7 +872,7 @@ namespace FWO.Test
 
             await InvokeAsync(component, "DeleteSelectedConfiguration");
 
-            Assert.That(errors, Is.EqualTo([true]));
+            Assert.That(errors, Is.EqualTo(kSingleError));
             Assert.That(apiConnection.Calls.Count(call => call.Query == RequestQueries.getWorkflowConfigurations), Is.Zero);
         }
 

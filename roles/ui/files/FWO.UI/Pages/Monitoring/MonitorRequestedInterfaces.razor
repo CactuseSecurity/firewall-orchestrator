@@ -153,7 +153,7 @@ else
 }
 
 <EditConnPopup @bind-Display="ShowDisplayPopup" ConnHandler="DisplayConnHandler" />
-<RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
+<RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RequestingApp="RejectRequestingApp" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
 <OrphanedRequestedInterfaceTicketsPopup @bind-Display="ShowOrphanedTicketsPopup" OpenTicket="DisplayTicketById" />
 <PopUp Title="@(userConfig.GetText("reject_tickets"))" Show="@ConfirmRejectRemovedTickets" Size=PopupSize.Medium OnClose="CloseRejectRemovedTicketsConfirm">
     <Body>
@@ -212,6 +212,7 @@ else
     private ModellingConnectionHandler? DisplayConnHandler { get; set; }
     private bool ShowDisplayPopup { get; set; } = false;
     private ModellingConnectionHandler? RejectConnHandler { get; set; }
+    private FwoOwner? RejectRequestingApp { get; set; }
     private bool ShowRejectPopup { get; set; } = false;
     private bool ShowOrphanedTicketsPopup { get; set; } = false;
     private bool ConfirmRejectRemovedTickets { get; set; } = false;
@@ -575,6 +576,7 @@ else
 
     private async Task RejectInterface(ModellingConnection connection)
     {
+        RejectRequestingApp = GetRequestingApp(connection);
         FwoOwner? application = connection.App;
         if ((application == null || application.Id <= 0) && connection.AppId != null &&
             OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))

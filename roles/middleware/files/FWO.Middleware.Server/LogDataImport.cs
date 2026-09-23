@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Logging;
+using NetTools;
 using System.Net;
 using System.Text.Json;
 
@@ -12,13 +13,18 @@ namespace FWO.Middleware.Server
     /// <summary>
     /// Imports normalized logging data produced by customization scripts.
     /// </summary>
-    public class LogDataImport(ApiConnection apiConnection, GlobalConfig globalConfig) : DataImportBase(apiConnection, globalConfig)
+    public class LogDataImport(ApiConnection apiConnection, GlobalConfig globalConfig,
+        Func<IPAddress, Task<string>>? reverseDnsLookup = null) : DataImportBase(apiConnection, globalConfig)
     {
         private const string LogMessageTitle = "Import Log Data";
         private const string LevelFile = "Import File";
         private const int TcpProtocol = 6;
         private const int UdpProtocol = 17;
         private const int LoggedEntriesPerMessage = 50;
+        // An unresolvable address only answers after the resolver timed out, so the lookups of a
+        // batch overlap. The bound keeps the import from opening thousands of sockets at once.
+        private const int ReverseLookupParallelism = 16;
+        private readonly Func<IPAddress, Task<string>> reverseDnsLookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUp;
 
         /// <summary>
         /// Runs configured log data imports and removes expired entries.
@@ -177,7 +183,8 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            await RunAsImport(() => WriteEntries(entries, sourceOwnerIds));
+            List<IpMetadata> metadata = await BuildIpMetadata(entries);
+            await RunAsImport(() => WriteEntries(entries, metadata, sourceOwnerIds));
 
             string message = $"Imported {entries.Count} log entries from {sourcePath}.json";
             if (discardedEntries > 0)
@@ -273,15 +280,101 @@ namespace FWO.Middleware.Server
         /// application is a misconfiguration - the source imported later replaces the rows of the
         /// one imported before instead of adding to them, also within the same run.
         /// </summary>
-        private async Task WriteEntries(List<FirewallLogEntryInput> entries, List<int> sourceOwnerIds)
+        private async Task WriteEntries(List<FirewallLogEntryInput> entries, List<IpMetadata> metadata, List<int> sourceOwnerIds)
         {
             if (globalConfig.ReplaceExistingLogData)
             {
-                await apiConnection.SendQueryAsync<object>(LogDataQueries.replaceLogEntries, new { ownerIds = sourceOwnerIds, entries });
+                await apiConnection.SendQueryAsync<object>(LogDataQueries.replaceLogEntries, new { ownerIds = sourceOwnerIds, entries, metadata });
                 return;
             }
-            await apiConnection.SendQueryAsync<object>(LogDataQueries.insertLogEntries, new { entries });
+            await apiConnection.SendQueryAsync<object>(LogDataQueries.insertLogEntries, new { entries, metadata });
         }
+
+        /// <summary>
+        /// Calculates application, network-area and DNS information once for every address kept
+        /// by this import batch. Empty values are persisted as well, so the UI can distinguish a
+        /// completed lookup without a result from a missing metadata row.
+        /// The address ranges are read once and matched in memory, see
+        /// <see cref="LogDataQueries.getIpMetadataSources"/>, and the reverse lookups of the batch
+        /// run with a bounded parallelism, because an address without a PTR record only answers
+        /// after the resolver timed out and a batch holds thousands of addresses.
+        /// </summary>
+        private async Task<List<IpMetadata>> BuildIpMetadata(List<FirewallLogEntryInput> entries)
+        {
+            List<string> addresses = entries
+                .SelectMany(entry => new List<string> { entry.Source, entry.Destination })
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            List<IpMetadataSource> allSources = await apiConnection.SendQueryAsync<List<IpMetadataSource>>(
+                LogDataQueries.getIpMetadataSources);
+            List<PreparedMetadataSource> preparedSources = PrepareMetadataSources(allSources);
+            IpMetadata[] metadata = new IpMetadata[addresses.Count];
+            await Parallel.ForAsync(0, addresses.Count,
+                new ParallelOptions { MaxDegreeOfParallelism = ReverseLookupParallelism },
+                async (index, _) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources));
+            return [.. metadata];
+        }
+
+        /// <summary>
+        /// Converts the address ranges into a form which can be matched against a logged address
+        /// without parsing them again for every address. A range which cannot be parsed is skipped
+        /// instead of failing the import; it would contribute no metadata in any case.
+        /// </summary>
+        private static List<PreparedMetadataSource> PrepareMetadataSources(List<IpMetadataSource> sources)
+        {
+            List<PreparedMetadataSource> preparedSources = [];
+            foreach (IpMetadataSource source in sources)
+            {
+                if (!IPAddress.TryParse(source.Ip.StripOffNetmask(), out IPAddress? begin)
+                    || !IPAddress.TryParse(source.IpEnd.StripOffNetmask(), out IPAddress? end)
+                    || begin.AddressFamily != end.AddressFamily)
+                {
+                    Log.WriteWarning(LogMessageTitle, $"Ignoring address range '{source.Ip}-{source.IpEnd}' which is not a valid IP range.");
+                    continue;
+                }
+                preparedSources.Add(new PreparedMetadataSource(new IPAddressRange(begin, end), source));
+            }
+            return preparedSources;
+        }
+
+        /// <summary>
+        /// Collects the applications and network areas of every range containing the address and
+        /// resolves its name. The values are sorted, so repeated imports of the same address write
+        /// the same row and the display order does not depend on the order of the ranges.
+        /// </summary>
+        private async Task<IpMetadata> BuildAddressMetadata(string address, List<PreparedMetadataSource> preparedSources)
+        {
+            IPAddress ipAddress = IPAddress.Parse(address.StripOffNetmask());
+            IPAddressRange addressRange = new(ipAddress, ipAddress);
+            List<IpMetadataSource> matchingSources = preparedSources
+                .Where(source => IpOperations.RangeOverlapExists(source.Range, addressRange))
+                .Select(source => source.Source)
+                .ToList();
+            return new IpMetadata
+            {
+                IpAddress = address,
+                AppIds = SortedDistinctValues(matchingSources.Select(source => source.Owner?.ExtAppId)),
+                AreaIds = SortedDistinctValues(matchingSources
+                    .SelectMany(source => source.AreaMemberships)
+                    .Select(membership => membership.Area?.IdString)),
+                Dns = await reverseDnsLookup(ipAddress)
+            };
+        }
+
+        private static List<string> SortedDistinctValues(IEnumerable<string?> values)
+        {
+            return values
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .ToList();
+        }
+
+        /// <summary>
+        /// An address range of <see cref="LogDataQueries.getIpMetadataSources"/> with its parsed bounds.
+        /// </summary>
+        private sealed record PreparedMetadataSource(IPAddressRange Range, IpMetadataSource Source);
 
         /// <summary>
         /// Warns about the entries which are not imported although their source file is
@@ -402,6 +495,9 @@ namespace FWO.Middleware.Server
             int retentionDays = Math.Max(0, globalConfig.LogDataRetentionDays);
             DateTimeOffset expiryTime = DateTimeOffset.UtcNow.AddDays(-retentionDays);
             await apiConnection.SendQueryAsync<object>(LogDataQueries.deleteExpiredLogEntries, new { expiryTime });
+            // after the expired entries, so the metadata of an address which just lost its last
+            // entry is removed in the same run instead of surviving until the next import
+            await apiConnection.SendQueryAsync<object>(LogDataQueries.deleteOrphanedIpMetadata);
         }
 
         /// <summary>

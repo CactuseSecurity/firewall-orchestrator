@@ -151,3 +151,10 @@ CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON change_history (mod
 CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (change_time DESC) WHERE audit_proof_critical;
+
+--- logging ---
+-- support the orphan check of logging.ip_metadata, which asks for every metadata row whether any
+-- log entry still uses that address as source or destination. The unique constraint of log_entry
+-- leads with owner_id and cannot answer it.
+CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
+CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);

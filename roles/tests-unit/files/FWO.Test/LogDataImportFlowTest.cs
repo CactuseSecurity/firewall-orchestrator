@@ -4,6 +4,7 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.File;
 using FWO.Data;
+using FWO.Data.Modelling;
 using FWO.Middleware.Server;
 using NUnit.Framework;
 using FWO.Test.Helpers;
@@ -36,6 +37,30 @@ namespace FWO.Test
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("delete_logging_log_entry"));
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Contain("owner_id: {_in: $ownerIds}"));
                 Assert.That(LogDataQueries.deleteLogEntriesOfOwners, Does.Not.Contain("insert_logging_log_entry"));
+            });
+        }
+
+        [Test]
+        public void DeleteOrphanedIpMetadataMutation_OnlyRemovesRowsWithoutAnyLogEntry()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataQueries.deleteOrphanedIpMetadata, Does.Contain("delete_logging_ip_metadata"));
+                Assert.That(LogDataQueries.deleteOrphanedIpMetadata, Does.Contain("_not: {source_log_entries: {}}"));
+                Assert.That(LogDataQueries.deleteOrphanedIpMetadata, Does.Contain("_not: {destination_log_entries: {}}"),
+                    "an address used only as destination still needs its metadata");
+            });
+        }
+
+        [Test]
+        public void GetIpMetadataSourcesQuery_ReadsAllRangesAtOnce()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataQueries.getIpMetadataSources, Does.Not.Contain("$"),
+                    "the ranges are matched in memory, a query per logged address would not scale");
+                Assert.That(LogDataQueries.getIpMetadataSources, Does.Contain("is_deleted: {_eq: false}"));
+                Assert.That(LogDataQueries.getIpMetadataSources, Does.Contain($"group_type: {{_eq: {(int)ModellingTypes.ModObjectType.NetworkArea}}}"));
             });
         }
 
@@ -120,6 +145,8 @@ namespace FWO.Test
             {
                 Assert.That(failedImports, Is.Empty);
                 Assert.That(apiConnection.DeleteExpiredCalls, Is.EqualTo(1));
+                Assert.That(apiConnection.OrphanedMetadataPurges, Is.EqualTo(1),
+                    "metadata of addresses without a log entry does not outlive the retention");
                 Assert.That(apiConnection.LastExpiryTime, Is.Not.Null);
                 Assert.That(apiConnection.LastExpiryTime!.Value, Is.EqualTo(DateTimeOffset.UtcNow.AddDays(-30)).Within(TimeSpan.FromMinutes(1)));
             });
@@ -183,6 +210,69 @@ namespace FWO.Test
                 Assert.That(apiConnection.CreateImportControlCalls, Is.EqualTo(1));
                 Assert.That(apiConnection.ReplacementOwnerIds, Is.EqualTo(new List<int> { 11 }),
                     "replacement is enabled by default so absent flows do not remain current");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_StoresDistinctAddressMetadataWithTheLogEntries()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.MetadataSources.AddRange(
+            [
+                // the ranges overlap and repeat the same values, so the merge of several ranges
+                // covering one address is exercised as well
+                NewMetadataSource("192.0.2.0", "192.0.2.255", "APP-B", "AREA-2"),
+                NewMetadataSource("192.0.2.1", "192.0.2.1", "APP-A", "AREA-1"),
+                NewMetadataSource("192.0.2.1", "192.0.2.1", "APP-A", "AREA-1"),
+                NewMetadataSource("203.0.113.0", "203.0.113.255", "APP-C", "AREA-3")
+            ]);
+            LogDataImport import = CreateImport(apiConnection, reverseDnsLookup: address =>
+                Task.FromResult(address.ToString() == "192.0.2.1" ? "source.example.test" : ""));
+            List<LogDataImportEntry> sourceEntries =
+            [
+                NewSourceEntry("APP-1", 5, "192.0.2.1", "198.51.100.1"),
+                NewSourceEntry("APP-1", 4, "192.0.2.1", "198.51.100.2")
+            ];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            IpMetadata sourceMetadata = apiConnection.InsertedMetadata.Single(metadata => metadata.IpAddress == "192.0.2.1/32");
+            IpMetadata destinationMetadata = apiConnection.InsertedMetadata.Single(metadata => metadata.IpAddress == "198.51.100.1/32");
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertedMetadata, Has.Count.EqualTo(3), "repeated addresses are enriched once");
+                Assert.That(sourceMetadata.AppIds, Is.EqualTo(new List<string> { "APP-A", "APP-B" }));
+                Assert.That(sourceMetadata.AreaIds, Is.EqualTo(new List<string> { "AREA-1", "AREA-2" }));
+                Assert.That(sourceMetadata.Dns, Is.EqualTo("source.example.test"));
+                Assert.That(destinationMetadata.AppIds, Is.Empty, "an address outside every range keeps empty metadata");
+                Assert.That(destinationMetadata.AreaIds, Is.Empty);
+                Assert.That(destinationMetadata.Dns, Is.Empty);
+                Assert.That(apiConnection.MetadataLookups, Is.EqualTo(1), "the ranges are read once per batch");
+            });
+        }
+
+        [Test]
+        public async Task SaveEntries_SkipsMetadataSourcesWithAnUnusableRange()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.MetadataSources.AddRange(
+            [
+                NewMetadataSource("not-an-ip", "192.0.2.255", "APP-BROKEN", "AREA-BROKEN"),
+                NewMetadataSource("192.0.2.1", "2001:db8::1", "APP-MIXED", "AREA-MIXED"),
+                NewMetadataSource("192.0.2.1", "192.0.2.1", "APP-A", "AREA-1")
+            ]);
+            LogDataImport import = CreateImport(apiConnection);
+            List<LogDataImportEntry> sourceEntries = [NewSourceEntry("APP-1", 5, "192.0.2.1", "198.51.100.1")];
+
+            await InvokeSaveEntries(import, sourceEntries);
+
+            IpMetadata sourceMetadata = apiConnection.InsertedMetadata.Single(metadata => metadata.IpAddress == "192.0.2.1/32");
+            Assert.Multiple(() =>
+            {
+                Assert.That(sourceMetadata.AppIds, Is.EqualTo(new List<string> { "APP-A" }));
+                Assert.That(sourceMetadata.AreaIds, Is.EqualTo(new List<string> { "AREA-1" }));
             });
         }
 
@@ -544,7 +634,8 @@ namespace FWO.Test
         }
 
         private static LogDataImport CreateImport(ApiConnection apiConnection, string importPath = "[]",
-            int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = true)
+            int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = true,
+            Func<System.Net.IPAddress, Task<string>>? reverseDnsLookup = null)
         {
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -553,7 +644,21 @@ namespace FWO.Test
                 LogDataRetentionDays = retentionDays,
                 ReplaceExistingLogData = replaceExisting
             };
-            return new LogDataImport(apiConnection, globalConfig);
+            return new LogDataImport(apiConnection, globalConfig, reverseDnsLookup ?? (_ => Task.FromResult("")));
+        }
+
+        private static IpMetadataSource NewMetadataSource(string ip, string ipEnd, string appId, string areaId)
+        {
+            return new IpMetadataSource
+            {
+                Ip = ip,
+                IpEnd = ipEnd,
+                Owner = new FwoOwnerBase { ExtAppId = appId },
+                AreaMemberships =
+                [
+                    new IpMetadataAreaMembership { Area = new IpMetadataArea { IdString = areaId } }
+                ]
+            };
         }
 
         private static LogDataImportEntry NewSourceEntry(string appId, int logCount, string source, string destination)
@@ -627,13 +732,17 @@ namespace FWO.Test
             // getOwnerId matches app_id_external case sensitively
             public Dictionary<string, int> OwnerIdsByAppId { get; } = new(StringComparer.Ordinal);
             public List<FirewallLogEntryInput> InsertedEntries { get; } = [];
+            public List<IpMetadata> InsertedMetadata { get; } = [];
+            public List<IpMetadataSource> MetadataSources { get; } = [];
             public List<int> ReplacementOwnerIds { get; } = [];
             public List<int> RemovedOwnerIds { get; } = [];
             public List<bool> CompletedImports { get; } = [];
             public List<string> LogEntryDescriptions { get; } = [];
             public int DeleteExpiredCalls { get; private set; }
+            public int OrphanedMetadataPurges { get; private set; }
             public int CreateImportControlCalls { get; private set; }
             public int OwnerLookups { get; private set; }
+            public int MetadataLookups { get; private set; }
             public DateTimeOffset? LastExpiryTime { get; private set; }
             public bool FailInsert { get; init; }
             public bool CreateEmptyImportControl { get; init; }
@@ -649,6 +758,11 @@ namespace FWO.Test
                 {
                     CreateImportControlCalls++;
                     return Task.FromResult((QueryResponseType)(object)CreateImportControl());
+                }
+                if (query == LogDataQueries.getIpMetadataSources)
+                {
+                    MetadataLookups++;
+                    return Task.FromResult((QueryResponseType)(object)MetadataSources.ToList());
                 }
                 if (query == ImportQueries.completeLogImport)
                 {
@@ -673,6 +787,11 @@ namespace FWO.Test
                 {
                     DeleteExpiredCalls++;
                     LastExpiryTime = GetVariable<DateTimeOffset>(variables, "expiryTime");
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
+                if (query == LogDataQueries.deleteOrphanedIpMetadata)
+                {
+                    OrphanedMetadataPurges++;
                     return Task.FromResult(default(QueryResponseType)!);
                 }
                 if (query == MonitorQueries.addDataImportLogEntry)
@@ -704,6 +823,7 @@ namespace FWO.Test
                     throw new InvalidOperationException("insert failed");
                 }
                 InsertedEntries.AddRange(GetVariable<List<FirewallLogEntryInput>>(variables, "entries") ?? []);
+                InsertedMetadata.AddRange(GetVariable<List<IpMetadata>>(variables, "metadata") ?? []);
                 return new object();
             }
 

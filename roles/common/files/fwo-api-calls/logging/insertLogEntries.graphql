@@ -2,7 +2,19 @@
 # imported period, so the display shows the current traffic of a flow instead of a total which
 # would only ever grow. Repeated entries of one import batch are summed before the insert
 # (see MergeDuplicateEntries in LogDataImport.cs).
-mutation insertLogEntries($entries: [logging_log_entry_insert_input!]!) {
+mutation insertLogEntries(
+  $entries: [logging_log_entry_insert_input!]!
+  $metadata: [logging_ip_metadata_insert_input!]!
+) {
+  insert_logging_ip_metadata(
+    objects: $metadata
+    on_conflict: {
+      constraint: ip_metadata_pkey
+      update_columns: [app_ids, area_ids, dns]
+    }
+  ) {
+    affected_rows
+  }
   insert_logging_log_entry(
     objects: $entries
     on_conflict: {

@@ -545,6 +545,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
     <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
+    <li>Importierte Logdaten zeigen nun f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -562,6 +563,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
     <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
+    <li>Imported log data now shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3113,6 +3115,18 @@ INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbi
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
 INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('source_app_ids', 'German', 'Quell-App-IDs');
+INSERT INTO txt VALUES ('source_app_ids', 'English', 'Source App IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'German', 'Ziel-App-IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'English', 'Destination App IDs');
+INSERT INTO txt VALUES ('source_network_areas', 'German', 'Quell-Netzwerk-Areas');
+INSERT INTO txt VALUES ('source_network_areas', 'English', 'Source Network Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'German', 'Ziel-Netzwerk-Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'English', 'Destination Network Areas');
+INSERT INTO txt VALUES ('source_name', 'German', 'Quellname');
+INSERT INTO txt VALUES ('source_name', 'English', 'Source Name');
+INSERT INTO txt VALUES ('destination_name', 'German', 'Zielname');
+INSERT INTO txt VALUES ('destination_name', 'English', 'Destination Name');
 INSERT INTO txt VALUES ('log_count', 'German', 'Anzahl');
 INSERT INTO txt VALUES ('log_count', 'English', 'Log count');
 INSERT INTO txt VALUES ('log_time', 'German', 'Zeitpunkt');
@@ -7066,8 +7080,8 @@ INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest,
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation: Aus jeder Importdatei werden f&uuml;r jede bekannte Applikation nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per application: From each import file, only this many entries with the highest log counts are taken for each known application; the remaining entries are discarded.');
-INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
-INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
+INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein. F&uuml;r Quell- und Zieladresse werden zus&auml;tzlich zugeh&ouml;rige externe App-IDs, Netzwerk-Areas und der per Reverse-DNS ermittelte Name angezeigt, sofern diese Informationen verf&uuml;gbar sind.');
+INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog. For source and destination, matching external application IDs, network areas, and the name found by reverse DNS are also shown when available.');
 INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');
 INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
 INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');

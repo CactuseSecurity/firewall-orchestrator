@@ -8,6 +8,8 @@ readonly kUpgradeDirectory="roles/database/files/upgrade"
 # This sorts after every released FWO version, so installer upgrade tests execute
 # a candidate migration after all existing migrations before it is allocated.
 readonly kPlaceholderVersion="999.0.0"
+readonly kPlaceholderHeadingPattern="( |$)"
+readonly kAllocatedHeadingPattern=" - [0-9]{2}\\.[0-9]{2}\\.[0-9]{4}( |$)"
 
 usage() {
     echo "Usage: $0 --allocate --target VERSION | --check --base-version VERSION" >&2
@@ -15,7 +17,9 @@ usage() {
 }
 
 version_is_valid() {
-    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+    local version="$1"
+
+    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
 }
 
 version_is_greater_than() {
@@ -58,6 +62,7 @@ read_product_version() {
 
 require_versioned_files() {
     local version="$1"
+    local heading_pattern="$2"
     local upgrade_file="$kUpgradeDirectory/$version.sql"
     local history_entries
 
@@ -66,11 +71,35 @@ require_versioned_files() {
         exit 1
     fi
 
-    history_entries="$(grep -Ec "^## ${version//./\\.} - " "$kRevisionHistoryFile" || true)"
+    history_entries="$(grep -Ec "^## ${version//./\\.}$heading_pattern" "$kRevisionHistoryFile" || true)"
     if [[ "$history_entries" -ne 1 ]]; then
         echo "Expected exactly one revision-history heading for $version." >&2
         exit 1
     fi
+}
+
+# Rewrites the placeholder heading to "## TARGET - DATE", accepting it with or
+# without a date and keeping any suffix such as MAIN.
+replace_placeholder_heading() {
+    local target_version="$1"
+    local allocation_date="$2"
+    local heading
+    local line_number
+    local suffix
+
+    heading="$(grep -nE "^## ${kPlaceholderVersion//./\\.}$kPlaceholderHeadingPattern" "$kRevisionHistoryFile")"
+    line_number="${heading%%:*}"
+    suffix="${heading#*:"## $kPlaceholderVersion"}"
+    suffix="${suffix# -}"
+    if [[ "$suffix" =~ ^\ [0-9]{2}\.[0-9]{2}\.[0-9]{4}(.*)$ ]]; then
+        suffix="${BASH_REMATCH[1]}"
+    fi
+    suffix="${suffix%"${suffix##*[![:space:]]}"}"
+
+    FWO_HEADING="## $target_version - $allocation_date$suffix" \
+        awk -v line_number="$line_number" 'NR == line_number { $0 = ENVIRON["FWO_HEADING"] } { print }' \
+        "$kRevisionHistoryFile" > "$kRevisionHistoryFile.tmp"
+    mv "$kRevisionHistoryFile.tmp" "$kRevisionHistoryFile"
 }
 
 mode="${1:-}"
@@ -85,17 +114,13 @@ case "$mode" in
             echo "Allocation requires the $kPlaceholderVersion placeholder, found $source_version." >&2
             exit 1
         fi
-        require_versioned_files "$source_version"
+        require_versioned_files "$source_version" "$kPlaceholderHeadingPattern"
         [[ "$target_version" != "$kPlaceholderVersion" ]] || usage
         allocation_date="$(read_allocation_date)"
-        if ! grep -Eq "^## ${source_version//./\\.} - [0-9]{2}\\.[0-9]{2}\\.[0-9]{4}" "$kRevisionHistoryFile"; then
-            echo "The placeholder revision-history heading must contain a DD.MM.YYYY date." >&2
-            exit 1
-        fi
 
         sed -i "s/^product_version:.*/product_version: \"$target_version\"/" "$kProductVersionFile"
         mv "$kUpgradeDirectory/$source_version.sql" "$kUpgradeDirectory/$target_version.sql"
-        sed -i -E "s/^## ${source_version//./\\.} - [0-9]{2}\\.[0-9]{2}\\.[0-9]{4}(.*)$/## $target_version - $allocation_date\\1/" "$kRevisionHistoryFile"
+        replace_placeholder_heading "$target_version" "$allocation_date"
         echo "Allocated FWO version $target_version."
         ;;
     --check)
@@ -116,7 +141,7 @@ case "$mode" in
             echo "PR version $product_version must use the same major.minor release line as $base_version." >&2
             exit 1
         }
-        require_versioned_files "$product_version"
+        require_versioned_files "$product_version" "$kAllocatedHeadingPattern"
         echo "Versioned files consistently reserve $product_version."
         ;;
     *) usage ;;

@@ -82,8 +82,9 @@ required status check for versioned pull requests so merge order is enforced.
    - `inventory/group_vars/all.yml` contains `product_version: "999.0.0"`.
    - The new, idempotent migration is
      `roles/database/files/upgrade/999.0.0.sql`.
-   - `documentation/revision-history.md` contains one heading starting
-     `## 999.0.0 - ` followed by a valid `DD.MM.YYYY` date.
+   - `documentation/revision-history.md` contains one heading `## 999.0.0`.
+     A date is optional; for example, `## 999.0.0`, `## 999.0.0 MAIN`, and
+     `## 999.0.0 - 01.01.1970 MAIN` are all accepted.
 3. Ask a repository maintainer to comment `/allocate-fwo-version` on the pull
    request.
 4. Wait for **Allocate FWO PR version** to commit the allocated patch. The
@@ -105,9 +106,10 @@ after all real migrations, rather than being skipped as a low placeholder
 would be. The allocation workflow replaces it before the PR can pass version
 validation or merge.
 
-The allocator replaces the date in the placeholder revision-history heading
-with the allocation date in the `Europe/Berlin` time zone. Any suffix after
-the date, such as `MAIN`, is preserved.
+The allocator rewrites the placeholder revision-history heading to
+`## <version> - <allocation date>`, using the allocation date in the
+`Europe/Berlin` time zone. A date already in the placeholder heading is
+replaced, and any suffix such as `MAIN` is preserved.
 
 ### Example
 
@@ -117,7 +119,7 @@ Assume `develop` is `9.5.4` and another labelled open PR has already reserved
 ```text
 inventory/group_vars/all.yml                    product_version: "999.0.0"
 roles/database/files/upgrade/999.0.0.sql        idempotent SQL for this PR
-documentation/revision-history.md               ## 999.0.0 - 01.01.1970
+documentation/revision-history.md               ## 999.0.0
 ```
 
 After a maintainer comments `/allocate-fwo-version`, the workflow commits:

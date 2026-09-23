@@ -9,6 +9,15 @@ from scripts.customizing.app_data_import import generate_owner_data as generator
 from scripts.customizing.log_data_import import generate_log_data as log_generator
 
 
+def test_command_line_annotations_are_postponed_for_python_39() -> None:
+    """Keep CLI annotations from being evaluated while importing on Python 3.9."""
+    parse_arguments_hints: dict[str, object] = generator.parse_arguments.__annotations__
+    main_hints: dict[str, object] = generator.main.__annotations__
+
+    assert parse_arguments_hints["argv"] == "list[str] | None"
+    assert main_hints["argv"] == "list[str] | None"
+
+
 def test_main_generates_owner_data_usable_by_the_log_data_generator(tmp_path: Path) -> None:
     output_file: Path = tmp_path / "owners.json"
 

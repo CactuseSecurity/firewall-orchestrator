@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 """Generate normalized owner data for local testing and log-data generation."""
 
+from __future__ import annotations
+
 import argparse
 import ipaddress
 import json

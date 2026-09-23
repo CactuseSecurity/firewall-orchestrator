@@ -19,3 +19,28 @@ class TestImportStatisticsController:
 
         assert stats.get_rule_change_number() == 1
         assert stats.get_total_change_number() == 1
+
+    def test_collect_rule_change_details_reports_security_relevant_changes(self):
+        # The import overview reads rule_change_count_security_relevant from the import details,
+        # so the counter has to be collected there once it is set.
+        stats = ImportStatisticsController()
+        stats.increment_rule_change_count(3)
+        stats.increment_rule_change_count_security_relevant(2)
+
+        result: dict[str, int] = {}
+        stats.collect_rule_change_details(result)
+
+        assert result["rule_change_count"] == 3
+        assert result["rule_change_count_security_relevant"] == 2
+
+    def test_collect_rule_change_details_omits_security_relevant_changes_when_zero(self):
+        # An import with documentation-only rule changes must not report a security-relevant
+        # change counter at all.
+        stats = ImportStatisticsController()
+        stats.increment_rule_change_count()
+
+        result: dict[str, int] = {}
+        stats.collect_rule_change_details(result)
+
+        assert result["rule_change_count"] == 1
+        assert "rule_change_count_security_relevant" not in result

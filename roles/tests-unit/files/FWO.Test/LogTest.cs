@@ -51,5 +51,25 @@ namespace FWO.Test
             Assert.That(writtenLog, Does.Contain("prefixCN=Jane Doe,OU=Firewall Team,DC=example,DC=comsuffix"));
             Assert.That(writtenLog.Any(ch => char.GetUnicodeCategory(ch) == System.Globalization.UnicodeCategory.Format), Is.False);
         }
+
+        [Test]
+        public async Task WriteError_IncludesInnerExceptionDetails()
+        {
+            Exception innerException = new IOException("socket closed during TLS handshake");
+            Exception outerException = new HttpRequestException("An error occurred while sending the request.", innerException);
+
+            string writtenLog = await ConsoleOutput.CaptureAsync(() =>
+            {
+                Log.WriteError("Transport", "API request failed.", outerException);
+                return Task.CompletedTask;
+            });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(writtenLog, Does.Contain(nameof(HttpRequestException)));
+                Assert.That(writtenLog, Does.Contain(nameof(IOException)));
+                Assert.That(writtenLog, Does.Contain("socket closed during TLS handshake"));
+            });
+        }
     }
 }

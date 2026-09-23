@@ -21,7 +21,7 @@ namespace FWO.Test
     internal class AuthenticationTokenIntegrationTest
     {
         // High enough that the requests genuinely overlap on the single-use token.
-        private const int kConcurrentRefreshRequests = 18;
+        private const int kConcurrentRefreshRequests = 40;
         // A burst this size can lose a call to a transport blip, which is a failure to
         // complete rather than a second token being spent. Tolerated, but bounded: without
         // a ceiling the test would also pass when every loser failed to reach the API, and

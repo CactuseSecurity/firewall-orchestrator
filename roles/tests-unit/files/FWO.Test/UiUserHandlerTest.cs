@@ -266,6 +266,27 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SynchronizeUiUserContext_WhenApiCannotBeReached_PropagatesAndDoesNotUpsert()
+        {
+            ThrowingUserLookupApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "api-down-user",
+                Dn = "uid=api-down-user,ou=users,dc=example,dc=com"
+            };
+
+            HttpRequestException exception = Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: true))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.Contain("connection reset by peer"));
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getUserByDn));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        [Test]
         public async Task SynchronizeUiUserContext_WhenUserIsMissingAndCreateIfMissingIsTrue_UpsertsUser()
         {
             UiUserContextApiConnection apiConnection = new()
@@ -425,6 +446,23 @@ namespace FWO.Test
                 }
 
                 throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
+        private sealed class ThrowingUserLookupApiConnection : SimulatedApiConnection
+        {
+            public List<string> Queries { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                Queries.Add(query);
+
+                if (query == AuthQueries.getUserByDn)
+                {
+                    throw new HttpRequestException("connection reset by peer");
+                }
+
+                throw new AssertionException($"Unexpected query after unreachable API: {query}");
             }
         }
 

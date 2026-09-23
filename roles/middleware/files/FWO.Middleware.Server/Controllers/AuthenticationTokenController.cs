@@ -9,6 +9,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Novell.Directory.Ldap;
+using System.Collections.Concurrent;
 using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Authentication;
@@ -28,6 +29,8 @@ namespace FWO.Middleware.Server.Controllers
         private readonly List<Ldap> ldaps;
         private readonly ApiConnection apiConnection;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+
+        private static readonly ConcurrentDictionary<string, RefreshTokenLockState> RefreshTokenLocks = new();
 
         private const string kRefreshLogCategory = "Token Refresh";
         private const string kRevokeLogCategory = "Token Revoke";
@@ -260,6 +263,25 @@ namespace FWO.Middleware.Server.Controllers
         [HttpPost("Refresh")]
         public async Task<ActionResult<TokenPair>> RefreshToken([FromBody] RefreshTokenRequest request)
         {
+            try
+            {
+                if (string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    return BadRequest("Refresh token is required");
+                }
+
+                using RefreshTokenLockLease refreshTokenLock = await AcquireRefreshTokenLock(request.RefreshToken);
+                return await RefreshTokenCore(request.RefreshToken);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
+                return BadRequest("The refresh could not be completed.");
+            }
+        }
+
+        private async Task<ActionResult<TokenPair>> RefreshTokenCore(string refreshToken)
+        {
             // Track the consuming call separately from confirmed consumption because a
             // connection failure during the mutation cannot reveal whether it committed.
             RefreshTokenConsumptionState consumptionState = RefreshTokenConsumptionState.NotAttempted;
@@ -271,15 +293,10 @@ namespace FWO.Middleware.Server.Controllers
 
             try
             {
-                if (string.IsNullOrEmpty(request.RefreshToken))
-                {
-                    return BadRequest("Refresh token is required");
-                }
-
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
                 // Validate refresh token
-                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(request.RefreshToken);
+                RefreshTokenInfo? tokenInfo = await authManager.ValidateRefreshToken(refreshToken);
 
                 if (tokenInfo == null)
                 {
@@ -305,7 +322,7 @@ namespace FWO.Middleware.Server.Controllers
 
                 // Consume the old refresh token exactly once before minting a new pair.
                 consumptionState = RefreshTokenConsumptionState.MayBeConsumed;
-                int revokedTokens = await authManager.RevokeRefreshToken(request.RefreshToken);
+                int revokedTokens = await authManager.RevokeRefreshToken(refreshToken);
 
                 if (revokedTokens != 1)
                 {
@@ -355,6 +372,91 @@ namespace FWO.Middleware.Server.Controllers
             {
                 Log.WriteError(kRefreshLogCategory, "Failed to refresh token", ex);
                 return BadRequest("The refresh could not be completed.");
+            }
+        }
+
+        /// <summary>
+        /// Acquires the in-process mutex for a refresh token.
+        /// </summary>
+        /// <param name="refreshToken">Raw refresh token supplied by the caller.</param>
+        /// <returns>A lease that releases and unregisters the mutex when disposed.</returns>
+        private static async Task<RefreshTokenLockLease> AcquireRefreshTokenLock(string refreshToken)
+        {
+            string lockKey = GenerateTokenHash(refreshToken);
+
+            while (true)
+            {
+                RefreshTokenLockState lockState = RefreshTokenLocks.GetOrAdd(lockKey, _ => new RefreshTokenLockState());
+                bool lockReserved = false;
+
+                lock (lockState.SyncRoot)
+                {
+                    if (!lockState.Removed)
+                    {
+                        lockState.ReferenceCount++;
+                        lockReserved = true;
+                    }
+                }
+
+                if (lockReserved)
+                {
+                    await lockState.Semaphore.WaitAsync();
+                    return new RefreshTokenLockLease(lockKey, lockState);
+                }
+            }
+        }
+
+        private static string GenerateTokenHash(string token)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(hash);
+        }
+
+        private sealed class RefreshTokenLockState
+        {
+            public object SyncRoot { get; } = new();
+            public SemaphoreSlim Semaphore { get; } = new(1, 1);
+            public int ReferenceCount { get; set; }
+            public bool Removed { get; set; }
+        }
+
+        private sealed class RefreshTokenLockLease : IDisposable
+        {
+            private readonly string lockKey;
+            private readonly RefreshTokenLockState lockState;
+            private bool disposed;
+
+            public RefreshTokenLockLease(string lockKey, RefreshTokenLockState lockState)
+            {
+                this.lockKey = lockKey;
+                this.lockState = lockState;
+            }
+
+            public void Dispose()
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                disposed = true;
+                lockState.Semaphore.Release();
+
+                bool removeLock = false;
+                lock (lockState.SyncRoot)
+                {
+                    lockState.ReferenceCount--;
+                    if (lockState.ReferenceCount == 0)
+                    {
+                        lockState.Removed = true;
+                        removeLock = true;
+                    }
+                }
+
+                if (removeLock)
+                {
+                    RefreshTokenLocks.TryRemove(new KeyValuePair<string, RefreshTokenLockState>(lockKey, lockState));
+                }
             }
         }
 

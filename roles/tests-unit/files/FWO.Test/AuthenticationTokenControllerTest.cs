@@ -21,6 +21,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Threading;
 using FWO.Test.Helpers;
 
 namespace FWO.Test
@@ -239,6 +240,82 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
             Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("User not found"));
+        }
+
+        [Test]
+        public async Task RefreshToken_WithConcurrentRequestsForSameToken_OnlyOneRebuildsAndRotates()
+        {
+            const int requestCount = 40;
+            int tokenIsLive = 1;
+            int userQueryCount = 0;
+            int revokeCount = 0;
+            int storeCount = 0;
+            int activeUserQueries = 0;
+            int maxActiveUserQueries = 0;
+
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) =>
+                {
+                    if (query == AuthQueries.getRefreshToken)
+                    {
+                        return Volatile.Read(ref tokenIsLive) == 1
+                            ? kRefreshTokenUserId7
+                            : Array.Empty<RefreshTokenInfo>();
+                    }
+
+                    if (query == AuthQueries.getUserByDbId)
+                    {
+                        Interlocked.Increment(ref userQueryCount);
+                        int activeQueries = Interlocked.Increment(ref activeUserQueries);
+                        RecordMaximum(ref maxActiveUserQueries, activeQueries);
+                        try
+                        {
+                            Thread.Sleep(25);
+                            return kLoginUserResult;
+                        }
+                        finally
+                        {
+                            Interlocked.Decrement(ref activeUserQueries);
+                        }
+                    }
+
+                    if (query == AuthQueries.revokeRefreshToken)
+                    {
+                        Interlocked.Increment(ref revokeCount);
+                        return new ReturnId { AffectedRows = Interlocked.Exchange(ref tokenIsLive, 0) };
+                    }
+
+                    if (query == AuthQueries.storeRefreshToken)
+                    {
+                        Interlocked.Increment(ref storeCount);
+                        return new ReturnIdWrapper();
+                    }
+
+                    return QueryResponse(query, resultType);
+                }
+            };
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+            RefreshTokenRequest refreshRequest = new() { RefreshToken = "shared-refresh-token" };
+
+            ActionResult<TokenPair>[] results = await Task.WhenAll(Enumerable
+                .Range(0, requestCount)
+                .Select(_ => Task.Run(() => controller.RefreshToken(refreshRequest))));
+
+            int successCount = results.Count(result => result.Result is OkObjectResult);
+            int unauthorizedCount = results.Count(result => result.Result is UnauthorizedObjectResult);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(successCount, Is.EqualTo(1));
+                Assert.That(unauthorizedCount, Is.EqualTo(requestCount - 1));
+                Assert.That(userQueryCount, Is.EqualTo(1));
+                Assert.That(revokeCount, Is.EqualTo(1));
+                Assert.That(storeCount, Is.EqualTo(1));
+                Assert.That(maxActiveUserQueries, Is.EqualTo(1));
+            });
         }
 
         /// <summary>
@@ -988,6 +1065,20 @@ namespace FWO.Test
         {
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
             return (TokenPair)((OkObjectResult)result.Result!).Value!;
+        }
+
+        private static void RecordMaximum(ref int target, int candidate)
+        {
+            int current;
+            do
+            {
+                current = Volatile.Read(ref target);
+                if (candidate <= current)
+                {
+                    return;
+                }
+            }
+            while (Interlocked.CompareExchange(ref target, candidate, current) != current);
         }
 
         private sealed class RecordingApiConnection : SimulatedApiConnection

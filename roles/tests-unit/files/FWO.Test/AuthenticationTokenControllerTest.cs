@@ -21,6 +21,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using FWO.Test.Helpers;
 
@@ -315,6 +316,85 @@ namespace FWO.Test
                 Assert.That(revokeCount, Is.EqualTo(1));
                 Assert.That(storeCount, Is.EqualTo(1));
                 Assert.That(maxActiveUserQueries, Is.EqualTo(1));
+            });
+        }
+
+        [Test]
+        public async Task RefreshToken_WithConcurrentRequestsForDifferentTokens_DoesNotSerializeThem()
+        {
+            string firstRefreshToken = "first-refresh-token";
+            string secondRefreshToken = "second-refresh-token";
+            HashSet<string> liveTokenHashes =
+            [
+                GenerateTokenHash(firstRefreshToken),
+                GenerateTokenHash(secondRefreshToken)
+            ];
+            object tokenLock = new();
+            int activeUserQueries = 0;
+            int maxActiveUserQueries = 0;
+            ManualResetEventSlim bothUserQueriesActive = new(false);
+
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) =>
+                {
+                    if (query == AuthQueries.getRefreshToken)
+                    {
+                        string tokenHash = GetVariableValue<string>(variables, "tokenHash");
+                        lock (tokenLock)
+                        {
+                            return liveTokenHashes.Contains(tokenHash)
+                                ? kRefreshTokenUserId7
+                                : Array.Empty<RefreshTokenInfo>();
+                        }
+                    }
+
+                    if (query == AuthQueries.getUserByDbId)
+                    {
+                        int activeQueries = Interlocked.Increment(ref activeUserQueries);
+                        RecordMaximum(ref maxActiveUserQueries, activeQueries);
+                        if (activeQueries == 2)
+                        {
+                            bothUserQueriesActive.Set();
+                        }
+                        else
+                        {
+                            bothUserQueriesActive.Wait(TimeSpan.FromSeconds(2));
+                        }
+
+                        Interlocked.Decrement(ref activeUserQueries);
+                        return kLoginUserResult;
+                    }
+
+                    if (query == AuthQueries.revokeRefreshToken)
+                    {
+                        string tokenHash = GetVariableValue<string>(variables, "tokenHash");
+                        lock (tokenLock)
+                        {
+                            return new ReturnId { AffectedRows = liveTokenHashes.Remove(tokenHash) ? 1 : 0 };
+                        }
+                    }
+
+                    if (query == AuthQueries.storeRefreshToken)
+                    {
+                        return new ReturnIdWrapper();
+                    }
+
+                    return QueryResponse(query, resultType);
+                }
+            };
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair>[] results = await Task.WhenAll(
+                Task.Run(() => controller.RefreshToken(new RefreshTokenRequest { RefreshToken = firstRefreshToken })),
+                Task.Run(() => controller.RefreshToken(new RefreshTokenRequest { RefreshToken = secondRefreshToken })));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(results.Count(result => result.Result is OkObjectResult), Is.EqualTo(2));
+                Assert.That(maxActiveUserQueries, Is.EqualTo(2));
             });
         }
 
@@ -1079,6 +1159,20 @@ namespace FWO.Test
                 }
             }
             while (Interlocked.CompareExchange(ref target, candidate, current) != current);
+        }
+
+        private static string GenerateTokenHash(string token)
+        {
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToBase64String(hash);
+        }
+
+        private static T GetVariableValue<T>(object? variables, string propertyName)
+        {
+            Assert.That(variables, Is.Not.Null);
+            object? value = variables!.GetType().GetProperty(propertyName)!.GetValue(variables);
+            Assert.That(value, Is.TypeOf<T>());
+            return (T)value!;
         }
 
         private sealed class RecordingApiConnection : SimulatedApiConnection

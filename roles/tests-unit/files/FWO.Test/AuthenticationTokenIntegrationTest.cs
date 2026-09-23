@@ -22,6 +22,7 @@ namespace FWO.Test
     {
         // High enough that the requests genuinely overlap on the single-use token.
         private const int kConcurrentRefreshRequests = 40;
+        private const int kConcurrentDistinctRefreshRequests = 8;
         // A burst this size can lose a call to a transport blip, which is a failure to
         // complete rather than a second token being spent. Tolerated, but bounded: without
         // a ceiling the test would also pass when every loser failed to reach the API, and
@@ -268,6 +269,44 @@ namespace FWO.Test
             }
         }
 
+        /// <summary>
+        /// Different refresh tokens must not be serialized behind one another by the
+        /// in-process refresh-token lock. Each request has its own single-use token, so every
+        /// concurrent refresh should complete successfully; any 503 here exposes the
+        /// middleware-to-API transport issue that same-token races are allowed to report for
+        /// losing requests.
+        /// </summary>
+        [Test]
+        [Category("Authentication")]
+        [Category("TokenRefresh")]
+        public async Task RefreshToken_WithConcurrentDifferentTokens_AllSucceed()
+        {
+            TokenPair[] initialTokenPairs = await Task.WhenAll(Enumerable
+                .Range(0, kConcurrentDistinctRefreshRequests)
+                .Select(_ => GetValidTokenPair()));
+
+            HttpResponseMessage[] responses = await Task.WhenAll(initialTokenPairs
+                .Select(tokenPair => client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh",
+                    new RefreshTokenRequest { RefreshToken = tokenPair.RefreshToken })));
+
+            string[] responseBodies = await Task.WhenAll(responses
+                .Select(response => response.Content.ReadAsStringAsync()));
+            string report = string.Join(Environment.NewLine, responses.Zip(responseBodies)
+                .Select(pair => $"{(int)pair.First.StatusCode} {pair.First.StatusCode}: {pair.Second.Trim()}"));
+
+            try
+            {
+                Assert.That(responses.All(response => response.IsSuccessStatusCode), Is.True,
+                    $"Every concurrent refresh with a distinct refresh token must succeed. Responses:{Environment.NewLine}{report}");
+            }
+            finally
+            {
+                await Task.WhenAll(responses.Zip(responseBodies)
+                    .Where(pair => pair.First.IsSuccessStatusCode)
+                    .Select(pair => RevokeTokenPairFromResponseBody(pair.Second)));
+            }
+        }
+
         #endregion
 
         #region Token Revocation Tests
@@ -395,6 +434,18 @@ namespace FWO.Test
             }
 
             return (await response.Content.ReadFromJsonAsync<TokenPair>())!;
+        }
+
+        private async Task RevokeTokenPairFromResponseBody(string responseBody)
+        {
+            TokenPair? tokenPair = System.Text.Json.JsonSerializer.Deserialize<TokenPair>(responseBody);
+            if (tokenPair == null || string.IsNullOrWhiteSpace(tokenPair.RefreshToken))
+            {
+                return;
+            }
+
+            await client!.PostAsJsonAsync("/api/AuthenticationToken/Revoke",
+                new RefreshTokenRequest { RefreshToken = tokenPair.RefreshToken });
         }
 
         #endregion

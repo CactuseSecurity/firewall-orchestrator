@@ -1,0 +1,11 @@
+query getOwnerForNotification ($id: Int!) {
+  owner_by_pk (id: $id) {
+    id
+    name
+    app_id_external
+    owner_responsibles {
+      dn
+      responsible_type
+    }
+  }
+}

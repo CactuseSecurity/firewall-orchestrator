@@ -848,7 +848,12 @@
         }
 
         TaskCompletionSource<bool> tcs = new();
-        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, Completion = tcs };
+
+        // HasRelevantOwnerMappingChanges above is true exactly when the rebuilt mapping will differ from the
+        // stored one, so without this flag the difference this rebuild produces on purpose is reported as
+        // drift of the incremental mapping - see IndicatesDrift. No Changes are passed: an owner edit has no
+        // scalar from/to the run history could name, and the page omits the cause row when the list is empty
+        UpdateRuleOwnerMappingEventArgs args = new() { isFullReInitialize = true, TriggeredByChange = true, Completion = tcs };
         EventMediator.Publish("UpdateOwnerRuleMappings", new UpdateRuleOwnerMappingEvent(args));
 
         bool success = await tcs.Task;

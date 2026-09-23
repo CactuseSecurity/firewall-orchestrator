@@ -12,7 +12,7 @@
         @{
             IReadOnlyList<SettingsNavSection> navSections = SettingsNavigationService.GetSections(userConfig, searchTerm);
         }
-        <div class="settings-search bg-blue py-3">
+        <div class="settings-search py-3">
             <input id="settingsSearch" type="search" class="form-control" placeholder="@userConfig.GetText("search")"
                    aria-label="@userConfig.GetText("search")" @bind="searchTerm" @bind:event="oninput" />
         </div>

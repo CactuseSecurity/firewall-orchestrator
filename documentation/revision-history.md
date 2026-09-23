@@ -728,11 +728,36 @@ Not supported any longer are:
 - new import matrix format with path_to_root and path_to_internet, while old format is still supported
 - validation checks for matrix import
 
-## 9.5.2 - 11.09.2026
+## 9.5.2 - 21.09.2026
 - centralize modelling and workflow change history in the public schema. The modelling change history table moves from modelling.change_history to public.change_history, so the GraphQL root field is renamed from modelling_change_history to change_history. Scripts and external integrations querying the old field name have to be adapted. Existing entries are migrated, the modelling history views are unaffected and continue to show modelling changes only.
 - changes to workflow tickets are recorded in the same table after ticket creation, with the workflow phase and the previous and new values. Content changes made in the user interface by a user other than the requester are marked as audit proof critical. The recording is available to auditors via the API and is not shown in the user interface.
 - change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.
 - change history entries written through the REST workflow endpoints name the authenticated caller instead of the middleware server, and carry that caller's user id in changer_id. changer_id therefore stays empty only for changes made by automation - background jobs and unauthenticated internal callers - so an audit can tell an automated change from a human one and resolve the human one to a user record even after a directory rename.
 - new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries of that ticket which are marked as audit proof critical, meaning a content change made in a user session by someone other than the requester. It is available to admins and auditors and reports change time, change user name, change user id and the recorded change text, newest first. The change user id is the trustworthy attribution, as the change user name is free text supplied by the writer of the change; it stays empty for changes made by automation. Change times carry the wall clock of the installation and no offset, because the underlying column is timezone naive. A ticketId that names no workflow ticket is answered with 404 and the error message "Workflow ticket with 'ticketId' <id> does not exist." instead of an empty changes list, so a mistyped or already deleted ticket id cannot be read as a ticket without audit proof critical changes; an existing ticket without such changes, or one whose changes the supplied filter excludes, still answers 200 with an empty list.
+- matrix import now stores the network zone tree paths it already validated: for every subnet of a zone, the firewalls on its path to root and to the internet are written to network_zone.device_ip_range_root and network_zone.device_ip_range_internet, in the order the import file lists them. An import replaces all paths of the matrix it imports. A subnet listed twice within one zone is now rejected instead of imported.
+
+## 9.5.3 - 17.09.2026
+- rule owner mapping: an owner import no longer collides with the unique index on rule_owner and no longer
+  blocks the incremental processing; a failed run is no longer reported as a successful one
+- rule owner mapping: a failing import no longer holds up the imports behind it and raises an alert
+- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize. Where the run
+  history the repair relies on cannot be decoded or cannot be written, the repeat is never established and
+  the blocked repair is reported as its own alert, naming the config entry and saying whether it has to be
+  reset or whether the middleware is missing write access. A run history that could only not be fetched is
+  left as the transient case it usually is: the repair is one run late rather than gone
+- rule owner mapping: a full reinitialize that matches no rule removes the obsolete mappings and alerts,
+  instead of leaving the previous state in place. Without any rule base the stored mappings are kept
+- rule owner mapping: a mapping setting saved while its rebuild failed is remembered for up to a week, so
+  the next rebuild no longer reports its intended effect as a deviation
+- rule owner mapping: a run history entry that cannot be read is no longer written over, and the monitoring
+  page says so instead of showing it as an empty history. An entry that cannot be written raises an alert,
+  because it stays perfectly readable while the recording has stopped - the page would keep showing the last
+  run that was written as if it were the current state
+- rule owner mapping: a problem that is still present is reported again and replaces its own earlier alert,
+  so the open alert carries the time of the latest occurrence rather than the first one
+- rule owner mapping: new page monitoring/rule_owner_mapping shows the last full reinitialize runs, the
+  affected rules and what caused a difference
+- rule owner mapping: new setting for the log level of mapping issues
+- rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area
 - UI: the log data shown with a modelling connection now fills the browser window. The table takes as many rows per page as the window allows instead of a fixed 25 and follows a window resize, so a maximised window no longer shows a quarter-filled table with a pager below it. A new page size reaches the table only while the first page is shown, so it never moves the user to a different part of the log.
 - UI: auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.

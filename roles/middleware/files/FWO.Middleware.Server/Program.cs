@@ -80,6 +80,7 @@ builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
+builder.Services.AddSingleton<INotificationEmailSender, NotificationEmailSender>();
 builder.Services.AddHostedService<InternalApiTokenRefreshService>();
 
 // Register config listeners as singletons (activated at startup)

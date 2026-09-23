@@ -46,6 +46,18 @@ Owner row import can be filtered via CLI parameters:
 Example:
 `--filterColumn "Aktive Firewallregel" --includeValues "Ja" "Ausnahme" --filterColumn "Importieren" --includeValues "Ja"`
 
+## Generate test owner data
+
+`generate_owner_data.py` creates normalized owner JSON for local testing. Each generated owner has
+a unique `APP-` application ID and a unique server address, so the output can be used directly as
+input to `log_data_import/generate_log_data.py`.
+
+```bash
+python3 generate_owner_data.py 500 /path/to/app-data.json
+```
+
+The script refuses to replace an existing output file unless `--overwrite` is supplied.
+
 #### Settings via UI
 
 In the FWORCH Web UI, go to Settings - Further Settings - Modelling and enter the full path to the script (leave out the extension) in "Path and Name of App data import", e.g.:

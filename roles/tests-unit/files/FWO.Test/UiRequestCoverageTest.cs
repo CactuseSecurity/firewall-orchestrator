@@ -422,27 +422,28 @@ namespace FWO.Test
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "OnParametersSetAsync");
 
             WfImplTask implTask = handler.ActReqTask.ImplementationTasks[0];
+            object[] implTaskArguments = [implTask];
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, [implTask]), Is.EqualTo(ticket));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, [implTask]), Is.EqualTo("Owner A"));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, [implTask]), Is.EqualTo("gw-55"));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, [implTask]), Is.True);
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, implTaskArguments), Is.EqualTo(ticket));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, implTaskArguments), Is.EqualTo("Owner A"));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, implTaskArguments), Is.EqualTo("gw-55"));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, implTaskArguments), Is.True);
             });
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.EditImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayDeleteImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayApprovalImplMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayAssignImplTaskMode, Is.True);
 
             GetPrivateMethod(typeof(DisplayImplTaskTable), "CleanupImplTasks").Invoke(component, []);
@@ -458,6 +459,93 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(NetworkAnalysisQueries.pathAnalysis));
 
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "ContinueImplPhase", implTask);
+        }
+
+        [Test]
+        public void DisplayReqTaskTable_RendersReadOnlyActionsForMixedStateAnyTaskTicket()
+        {
+            using BunitContext context = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Requester);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Requester));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig);
+            handler.InitDone = true;
+            SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
+            handler.ActTicket = new WfTicket
+            {
+                Tasks =
+                [
+                    new WfReqTask { Id = 1, Title = "Outside phase", TaskType = WfTaskType.access.ToString(), StateId = 0 },
+                    new WfReqTask { Id = 2, Title = "Inside phase", TaskType = WfTaskType.access.ToString(), StateId = 2 }
+                ]
+            };
+
+            IRenderedComponent<DisplayReqTaskTable> rendered = context.Render<DisplayReqTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, WorkflowPhases.request)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler));
+
+            var outsideRow = rendered.FindAll("tr").Single(row => row.TextContent.Contains("Outside phase"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-primary"), Has.Count.EqualTo(2));
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-warning, button.btn-danger"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public void DisplayImplTaskTable_RendersReadOnlyActionsForMixedStateAnyTaskTicket()
+        {
+            using BunitContext context = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Implementer);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Implementer));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig, WorkflowPhases.implementation);
+            handler.InitDone = true;
+            StateMatrix matrix = CreateMatrix();
+            matrix.PhaseActive[WorkflowPhases.planning] = false;
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            WfReqTask reqTask = new() { Id = 20, Title = "Outside implementation", TaskType = WfTaskType.access.ToString() };
+            WfTicket ticket = new() { Id = 10, Title = "Mixed ticket", StateId = 2, Tasks = [reqTask] };
+            handler.ActReqTask = reqTask;
+            handler.ActTicket = ticket;
+            handler.TicketList = [ticket];
+
+            List<WfImplTask> implementationTasks =
+            [
+                new() { Id = 1, TaskType = WfTaskType.access.ToString(), StateId = 0, TicketId = 10, ReqTaskId = 20 },
+                new() { Id = 2, TaskType = WfTaskType.access.ToString(), StateId = 2, TicketId = 10, ReqTaskId = 20 }
+            ];
+
+            IRenderedComponent<DisplayImplTaskTable> rendered = context.Render<DisplayImplTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, WorkflowPhases.implementation)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler)
+                .Add(parameter => parameter.AllImplTasks, implementationTasks)
+                .Add(parameter => parameter.ImplTaskView, true));
+
+            var mixedStateRows = rendered.FindAll("tr")
+                .Where(row => row.TextContent.Contains("Outside implementation"))
+                .ToList();
+            Assert.That(mixedStateRows, Has.Count.EqualTo(2));
+            var outsideRow = mixedStateRows[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-primary"), Has.Count.EqualTo(2));
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-warning, button.btn-danger"), Is.Empty);
+            });
         }
 
         [Test]

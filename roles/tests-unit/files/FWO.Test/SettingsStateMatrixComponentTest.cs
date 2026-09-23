@@ -23,6 +23,7 @@ namespace FWO.Test
         private static readonly int[] kLinkableTransitionGroupIds23 = [2, 3];
         private static readonly int[] kDerivedStateKeys23 = [2, 3];
         private static readonly int[] kTransitionGroupIds21 = [2, 1];
+        private static readonly object[] kEmptyVisibilityGroupArguments = [new StateMatrixTransitionGroup()];
 
         [Test]
         public void HasCompleteMatrix_RequiresEveryWorkflowPhase()
@@ -313,7 +314,7 @@ namespace FWO.Test
             MethodInfo method = typeof(SettingsStateMatrix).GetMethod("RenderExclusiveFlag", BindingFlags.Static | BindingFlags.NonPublic)
                 ?? throw new MissingMethodException(typeof(SettingsStateMatrix).FullName, "RenderExclusiveFlag");
 
-            object? result = method.Invoke(null, [new StateMatrixTransitionGroup()]);
+            object? result = method.Invoke(null, kEmptyVisibilityGroupArguments);
 
             Assert.That(result?.ToString(), Is.Empty);
         }

@@ -267,7 +267,8 @@ namespace FWO.Test
                     return Task.FromResult((T)(object)new ReturnId { DeletedIdLong = DeletedReqElementId });
                 }
                 if (query == RequestQueries.getTickets || query == RequestQueries.getTicketsByTicketState
-                    || query == RequestQueries.getFullTickets || query == RequestQueries.getTicketsByParameters)
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState
+                    || query == RequestQueries.getTicketsByParameters)
                 {
                     LastTicketQuery = query;
                     LastTicketQueryVariables = variables;
@@ -322,6 +323,22 @@ namespace FWO.Test
             await dbAccess.FetchTickets(matrix);
 
             Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTickets));
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesFullTicketStateQuery_WhenFullTicketsAndTicketStateAreRequested()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10, VisibilityMode = PhaseVisibilityMode.TicketState };
+
+            await dbAccess.FetchTickets(matrix, null, false, true);
+
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getFullTicketsByTicketState));
         }
 
         [Test]

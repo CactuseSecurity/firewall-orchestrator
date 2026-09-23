@@ -10,6 +10,9 @@ namespace FWO.Test
     [TestFixture]
     internal class TransferWorkflowConfigurationComponentTest
     {
+        private static readonly object[] kFileNameArguments = ["Shared:Config"];
+        private static readonly object[] kControlCharacterFileNameArguments = ["Shared\u0001Config"];
+
         [Test]
         public void CanImport_RequiresUniqueNonEmptyNameAndLoadedPackage()
         {
@@ -57,7 +60,7 @@ namespace FWO.Test
             MethodInfo method = typeof(TransferWorkflowConfiguration).GetMethod("FileName", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingMethodException(typeof(TransferWorkflowConfiguration).FullName, "FileName");
 
-            Assert.That(method.Invoke(null, ["Shared:Config"]), Is.EqualTo("Shared_Config.fwo-workflow.json"));
+            Assert.That(method.Invoke(null, kFileNameArguments), Is.EqualTo("Shared_Config.fwo-workflow.json"));
         }
 
         [Test]
@@ -66,7 +69,7 @@ namespace FWO.Test
             MethodInfo method = typeof(TransferWorkflowConfiguration).GetMethod("FileName", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingMethodException(typeof(TransferWorkflowConfiguration).FullName, "FileName");
 
-            Assert.That(method.Invoke(null, ["Shared\u0001Config"]), Is.EqualTo("Shared_Config.fwo-workflow.json"));
+            Assert.That(method.Invoke(null, kControlCharacterFileNameArguments), Is.EqualTo("Shared_Config.fwo-workflow.json"));
         }
 
         [Test]

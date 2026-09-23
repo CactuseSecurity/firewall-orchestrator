@@ -32,7 +32,14 @@ namespace FWO.Services.Workflow
                 string ticketQuery;
                 if (fullTickets)
                 {
-                    ticketQuery = RequestQueries.getFullTickets;
+                    if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
+                    {
+                        ticketQuery = RequestQueries.getFullTicketsByTicketState;
+                    }
+                    else
+                    {
+                        ticketQuery = RequestQueries.getFullTickets;
+                    }
                 }
                 else if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
                 {

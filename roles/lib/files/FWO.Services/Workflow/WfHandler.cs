@@ -250,6 +250,11 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Determines whether a request task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="reqTask">The request task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
         public bool CanActOnReqTaskInCurrentPhase(WfReqTask reqTask)
         {
             StateMatrix taskStateMatrix = StateMatrix(reqTask.TaskType);
@@ -257,6 +262,11 @@ namespace FWO.Services.Workflow
                 && reqTask.StateId < taskStateMatrix.LowestEndState;
         }
 
+        /// <summary>
+        /// Determines whether an implementation task is within the actionable state range of its current phase.
+        /// </summary>
+        /// <param name="implTask">The implementation task to evaluate.</param>
+        /// <returns><c>true</c> when the task has reached the phase input state and has not reached the phase end state; otherwise, <c>false</c>.</returns>
         public bool CanActOnImplTaskInCurrentPhase(WfImplTask implTask)
         {
             StateMatrix taskStateMatrix = StateMatrix(implTask.TaskType);

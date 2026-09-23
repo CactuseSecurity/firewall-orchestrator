@@ -3318,7 +3318,12 @@
                       "change_time",
                       "ticket_id",
                       "module",
-                      "audit_proof_critical"
+                      "audit_proof_critical",
+                      "change_type",
+                      "object_type",
+                      "object_id",
+                      "old_data",
+                      "new_data"
                     ],
                     "filter": {}
                   },

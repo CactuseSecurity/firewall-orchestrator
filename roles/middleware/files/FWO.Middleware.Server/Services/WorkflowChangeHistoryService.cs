@@ -1,9 +1,12 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -53,10 +56,152 @@ public sealed class WorkflowChangeHistoryService
             return null;
         }
 
+        List<AuditProofCriticalChangeResponse> changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList();
+        AuditProofTaskDiffResponse? taskDiff = changes.Count == 0
+            ? null
+            : await GetTaskDiffAsync(ticketId);
+
         return new GetAuditProofCriticalChangesResponse
         {
-            Changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList()
+            Changes = changes,
+            TaskDiff = taskDiff
         };
+    }
+
+    /// <summary>
+    /// Builds the task-state evidence attached to a non-empty audit-proof trail.
+    /// </summary>
+    /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <returns>The request-task diff and the manual implementation-task history entries.</returns>
+    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId)
+    {
+        List<ModellingHistoryEntry> history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(
+            RequestQueries.getWorkflowTaskHistoryForTicket, new { ticketId });
+        WfTicket currentTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+
+        return new AuditProofTaskDiffResponse
+        {
+            RequestTaskDiffs = BuildRequestTaskDiffs(history, currentTicket.Tasks),
+            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history)
+        };
+    }
+
+    /// <summary>
+    /// Compares each request task's creation snapshot with its current database state.
+    /// </summary>
+    /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <param name="currentTasks">Current request tasks loaded from the ticket.</param>
+    /// <returns>Only request tasks whose current state has changed since creation.</returns>
+    private static List<RequestTaskDiffResponse> BuildRequestTaskDiffs(List<ModellingHistoryEntry> history, List<WfReqTask> currentTasks)
+    {
+        return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.RequestTask)
+            .GroupBy(entry => entry.ObjectId)
+            .Select(entries => BuildRequestTaskDiff(entries, currentTasks.FirstOrDefault(task => task.Id == entries.Key)))
+            .Where(diff => diff != null)
+            .Select(diff => diff!)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Builds one request-task diff when its history includes a creation snapshot and a change.
+    /// </summary>
+    /// <param name="entries">Chronologically ordered history entries for one request task.</param>
+    /// <param name="currentTask">Current request-task state, or null when the task was deleted.</param>
+    /// <returns>The diff, or null when the original state is unavailable or unchanged.</returns>
+    private static RequestTaskDiffResponse? BuildRequestTaskDiff(IGrouping<long, ModellingHistoryEntry> entries, WfReqTask? currentTask)
+    {
+        ModellingHistoryEntry? creation = entries.FirstOrDefault(entry => entry.ChangeType == (int)ModellingTypes.ChangeType.Insert);
+        object? currentData = currentTask == null ? null : RequestTaskSnapshot(currentTask);
+        if (creation?.NewData == null || JToken.DeepEquals(ToJsonToken(creation.NewData), ToJsonToken(currentData)))
+        {
+            return null;
+        }
+
+        return new RequestTaskDiffResponse
+        {
+            RequestTaskId = entries.Key,
+            Original = ToJsonElement(creation.NewData),
+            Current = currentData == null ? null : ToJsonElement(currentData)
+        };
+    }
+
+    /// <summary>
+    /// Selects the request-task fields captured by workflow change history from the current database state.
+    /// </summary>
+    private static object RequestTaskSnapshot(WfReqTask task)
+    {
+        return new
+        {
+            task.Title,
+            task.TaskType,
+            task.RequestAction,
+            task.RuleAction,
+            task.Tracking,
+            task.Start,
+            task.Stop,
+            task.FreeText,
+            task.Reason,
+            task.AdditionalInfo,
+            task.ManagementId,
+            task.SelectedDevices,
+            Owners = task.Owners.Select(owner => owner.Owner.Id),
+            Elements = task.Elements.Select(element => new
+            {
+                element.Id,
+                element.Field,
+                element.RequestAction,
+                element.IpString,
+                element.IpEnd,
+                element.Port,
+                element.PortEnd,
+                element.ProtoId,
+                element.NetworkId,
+                element.ServiceId,
+                element.Name,
+                element.GroupName
+            })
+        };
+    }
+
+    /// <summary>
+    /// Projects all audit-proof-critical implementation-task history entries as manual changes.
+    /// </summary>
+    /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <returns>The recorded manual implementation-task changes.</returns>
+    private static List<ManualImplementationTaskChangeResponse> BuildManualImplementationTaskChanges(List<ModellingHistoryEntry> history)
+    {
+        return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.ImplementationTask && entry.AuditProofCritical)
+            .Select(entry => new ManualImplementationTaskChangeResponse
+            {
+                ImplementationTaskId = entry.ObjectId,
+                ChangeTime = NormalizeStoredTime(entry.ChangeTime),
+                ChangeUserId = entry.ChangerId,
+                ChangeUserName = entry.Changer ?? string.Empty,
+                Original = entry.OldData == null ? null : ToJsonElement(entry.OldData),
+                Current = entry.NewData == null ? null : ToJsonElement(entry.NewData)
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Converts the Newtonsoft value returned for a jsonb field to the response serializer's JSON type.
+    /// </summary>
+    /// <param name="value">A non-null jsonb value from the API response.</param>
+    /// <returns>An independent JSON element preserving the stored snapshot.</returns>
+    private static System.Text.Json.JsonElement ToJsonElement(object value)
+    {
+        using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(ToJsonToken(value).ToString(Formatting.None));
+        return document.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Normalizes a jsonb value to a token so snapshots can be compared structurally.
+    /// </summary>
+    /// <param name="value">A jsonb value returned by Newtonsoft or created by a test fixture.</param>
+    /// <returns>The equivalent JSON token.</returns>
+    private static JToken ToJsonToken(object? value)
+    {
+        return value as JToken ?? JToken.FromObject(value!);
     }
 
     /// <summary>

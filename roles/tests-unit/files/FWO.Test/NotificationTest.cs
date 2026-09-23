@@ -607,6 +607,56 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SendNotification_NoRecipientsMatchesExactNonNullDeadline()
+        {
+            SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = false };
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, localConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendAndLog;
+            notification.RecipientTo = EmailRecipientOption.None;
+            DateTime targetDeadline = DateTime.Now.AddDays(3);
+            DateTimeOffset targetDeadlineOffset = new(targetDeadline);
+            List<NotificationLogEntry> existingEntries =
+            [
+                new NotificationLogEntry
+                {
+                    Id = 40,
+                    NotificationId = notification.Id,
+                    Subject = notification.EmailSubject,
+                    DeadlineType = notification.Deadline,
+                    Deadline = targetDeadlineOffset,
+                    Timestamp = DateTimeOffset.UtcNow.AddMinutes(-2),
+                    Status = NotificationLogStatus.Failed,
+                    Error = "No recipients resolved."
+                },
+                new NotificationLogEntry
+                {
+                    Id = 41,
+                    NotificationId = notification.Id,
+                    Subject = notification.EmailSubject,
+                    DeadlineType = notification.Deadline,
+                    Deadline = targetDeadlineOffset.AddDays(1),
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Status = NotificationLogStatus.Failed,
+                    Error = "No recipients resolved."
+                }
+            ];
+            apiConnection.NotificationLogEntries.AddRange(existingEntries);
+
+            NotificationDeliveryResult result = await notificationService.SendNotificationWithResult(
+                notification, new FwoOwner(), "body", resolvedDeadline: targetDeadline);
+            List<int> expectedRefreshedLogIds = [40];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Is.EqualTo(NotificationDeliveryResult.NoRecipients));
+                Assert.That(apiConnection.RefreshedNotificationLogIds, Is.EqualTo(expectedRefreshedLogIds));
+                Assert.That(apiConnection.NotificationLogEntries, Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task SendBundledNotifications_ReturnsZeroForEmptyNotificationList()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(

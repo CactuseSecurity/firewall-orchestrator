@@ -543,7 +543,8 @@ internal class NotificationControllerTest
                 return Task.FromResult((QueryResponseType)(object)notifications);
             }
             if (typeof(QueryResponseType) == typeof(List<NotificationLogEntry>)
-                && query == NotificationQueries.getNoRecipientNotificationLogs)
+                && (query == NotificationQueries.getNoRecipientNotificationLogs
+                    || query == NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline))
             {
                 return Task.FromResult((QueryResponseType)(object)new List<NotificationLogEntry>());
             }

@@ -411,17 +411,29 @@ namespace FWO.Middleware.Server
         private async Task<bool> RefreshMatchingNoRecipientFailure(FwoNotification notification, string subject, DateTime? deadline)
         {
             DateTimeOffset? resolvedDeadline = deadline.HasValue ? new DateTimeOffset(deadline.Value) : null;
-            List<NotificationLogEntry> entries = await ApiConnection.SendQueryAsync<List<NotificationLogEntry>>(
-                NotificationQueries.getNoRecipientNotificationLogs, new
+            string query = resolvedDeadline.HasValue
+                ? NotificationQueries.getNoRecipientNotificationLogs
+                : NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline;
+            object variables = resolvedDeadline.HasValue
+                ? new
                 {
                     notificationId = notification.Id,
                     status = NotificationLogStatus.Failed.ToString(),
                     error = kNoRecipientFailureMessage,
                     subject,
                     deadlineType = notification.Deadline.ToString(),
-                    deadline = resolvedDeadline,
-                    deadlineIsNull = resolvedDeadline == null
-                });
+                    deadline = resolvedDeadline.Value
+                }
+                : new
+                {
+                    notificationId = notification.Id,
+                    status = NotificationLogStatus.Failed.ToString(),
+                    error = kNoRecipientFailureMessage,
+                    subject,
+                    deadlineType = notification.Deadline.ToString()
+                };
+            List<NotificationLogEntry> entries = await ApiConnection.SendQueryAsync<List<NotificationLogEntry>>(
+                query, variables);
             NotificationLogEntry? matchingEntry = entries.FirstOrDefault(entry => entry.Subject == subject
                 && entry.DeadlineType == notification.Deadline
                 && entry.Deadline == resolvedDeadline);

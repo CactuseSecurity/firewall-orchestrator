@@ -182,13 +182,25 @@ namespace FWO.Test
                 };
                 return response.Data;
             }
-            if (responseType == typeof(List<NotificationLogEntry>) && query == NotificationQueries.getNoRecipientNotificationLogs)
+            if (responseType == typeof(List<NotificationLogEntry>)
+                && (query == NotificationQueries.getNoRecipientNotificationLogs
+                    || query == NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline))
             {
                 int notificationId = GetVariable<int>(variables, "notificationId");
+                string subject = GetVariable<string>(variables, "subject");
+                string deadlineType = GetVariable<string>(variables, "deadlineType");
+                bool withoutDeadline = query == NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline;
+                DateTimeOffset? deadline = withoutDeadline ? null : GetVariable<DateTimeOffset>(variables, "deadline");
                 return (QueryResponseType)(object)NotificationLogEntries
                     .Where(entry => entry.NotificationId == notificationId
                         && entry.Status == NotificationLogStatus.Failed
-                        && entry.Error == "No recipients resolved.")
+                        && entry.Error == "No recipients resolved."
+                        && entry.Subject == subject
+                        && entry.DeadlineType.ToString() == deadlineType
+                        && entry.Deadline == deadline)
+                    .OrderByDescending(entry => entry.Timestamp)
+                    .ThenByDescending(entry => entry.Id)
+                    .Take(1)
                     .ToList();
             }
             if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)

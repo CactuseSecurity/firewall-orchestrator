@@ -1,4 +1,4 @@
-query getNoRecipientNotificationLogs($notificationId: Int!, $status: String!, $error: String!, $subject: String!, $deadlineType: String!, $deadline: timestamp!) {
+query getNoRecipientNotificationLogsWithoutDeadline($notificationId: Int!, $status: String!, $error: String!, $subject: String!, $deadlineType: String!) {
   notification_log(
     where: {
       notification_id: { _eq: $notificationId }
@@ -6,7 +6,7 @@ query getNoRecipientNotificationLogs($notificationId: Int!, $status: String!, $e
       error: { _eq: $error }
       subject: { _eq: $subject }
       deadline_type: { _eq: $deadlineType }
-      deadline: { _eq: $deadline }
+      deadline: { _is_null: true }
     }
     order_by: [{ timestamp: desc }, { id: desc }]
     limit: 1

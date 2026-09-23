@@ -253,6 +253,8 @@ namespace FWO.Test
             int storeCount = 0;
             int activeUserQueries = 0;
             int maxActiveUserQueries = 0;
+            TaskCompletionSource userQueryEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource releaseUserQuery = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             RecordingApiConnection apiConnection = new()
             {
@@ -270,9 +272,10 @@ namespace FWO.Test
                         Interlocked.Increment(ref userQueryCount);
                         int activeQueries = Interlocked.Increment(ref activeUserQueries);
                         RecordMaximum(ref maxActiveUserQueries, activeQueries);
+                        userQueryEntered.TrySetResult();
                         try
                         {
-                            Thread.Sleep(25);
+                            releaseUserQuery.Task.GetAwaiter().GetResult();
                             return kLoginUserResult;
                         }
                         finally
@@ -301,9 +304,19 @@ namespace FWO.Test
                 apiConnection);
             RefreshTokenRequest refreshRequest = new() { RefreshToken = "shared-refresh-token" };
 
-            ActionResult<TokenPair>[] results = await Task.WhenAll(Enumerable
+            Task<ActionResult<TokenPair>>[] refreshTasks = Enumerable
                 .Range(0, requestCount)
-                .Select(_ => Task.Run(() => controller.RefreshToken(refreshRequest))));
+                .Select(_ => Task.Run(() => controller.RefreshToken(refreshRequest)))
+                .ToArray();
+            try
+            {
+                await userQueryEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            finally
+            {
+                releaseUserQuery.TrySetResult();
+            }
+            ActionResult<TokenPair>[] results = await Task.WhenAll(refreshTasks);
 
             int successCount = results.Count(result => result.Result is OkObjectResult);
             int unauthorizedCount = results.Count(result => result.Result is UnauthorizedObjectResult);
@@ -332,7 +345,7 @@ namespace FWO.Test
             object tokenLock = new();
             int activeUserQueries = 0;
             int maxActiveUserQueries = 0;
-            ManualResetEventSlim bothUserQueriesActive = new(false);
+            TaskCompletionSource bothUserQueriesActive = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
             RecordingApiConnection apiConnection = new()
             {
@@ -355,11 +368,11 @@ namespace FWO.Test
                         RecordMaximum(ref maxActiveUserQueries, activeQueries);
                         if (activeQueries == 2)
                         {
-                            bothUserQueriesActive.Set();
+                            bothUserQueriesActive.SetResult();
                         }
                         else
                         {
-                            bothUserQueriesActive.Wait(TimeSpan.FromSeconds(2));
+                            bothUserQueriesActive.Task.Wait(TimeSpan.FromSeconds(2));
                         }
 
                         Interlocked.Decrement(ref activeUserQueries);

@@ -123,7 +123,7 @@ class TestFwConfigImportRule:
         fwconfig_import_rule: FwConfigImportRule,
         changed_field: str,
         changed_value: str,
-    ):
+    ) -> None:
         # Changes that only differ in a documentation field are not security-relevant
         # (they still have to be written to the changelog, see the tests below).
         old_rule = build_normalized_rule("rule-uid", rule_src_zone=None, rule_dst_zone=None)
@@ -146,7 +146,7 @@ class TestFwConfigImportRule:
         mocker: MockerFixture,
         changed_field: str,
         changed_value: str,
-    ):
+    ) -> None:
         # A change of a documentation field creates a new rule version and therefore must also
         # create a changelog entry - flagged as not security-relevant so change reports skip it,
         # while the incremental rule owner mapping still sees the new rule version.
@@ -188,7 +188,7 @@ class TestFwConfigImportRule:
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
-    ):
+    ) -> None:
         mock_get_graphql_code(mocker, "mutation { dummy }")
 
         rule_uid = "zone-changed-rule-uid"
@@ -215,7 +215,7 @@ class TestFwConfigImportRule:
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
-    ):
+    ) -> None:
         # Rule inserts and deletes are always security-relevant - only changes of an existing
         # rule can be documentation-only - so they must carry the flag and keep showing up in
         # change reports.
@@ -260,7 +260,7 @@ class TestFwConfigImportRule:
         self,
         fwconfig_import_rule: FwConfigImportRule,
         mocker: MockerFixture,
-    ):
+    ) -> None:
         # A rule without a uid cannot be mapped to a rule_id, so it has to be skipped instead
         # of producing a changelog entry pointing at the wrong rule.
         mock_get_graphql_code(mocker, "mutation { dummy }")

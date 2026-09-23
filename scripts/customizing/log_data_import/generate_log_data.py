@@ -10,7 +10,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeAlias, cast
+from typing import cast
 
 CSV_COLUMNS: tuple[str, ...] = ("App ID", "Log count", "Src IP", "Dst IP", "Port", "Protocol", "Action")
 DEFAULT_LOG_COUNT: int = 1
@@ -21,7 +21,7 @@ TEST_SOURCE_IPV4_NETWORK: ipaddress.IPv4Network = ipaddress.IPv4Network("198.18.
 TEST_SOURCE_IPV6_NETWORK: ipaddress.IPv6Network = ipaddress.IPv6Network("2001:2::/48")
 MAX_GENERATED_LOGS: int = TEST_SOURCE_IPV4_NETWORK.num_addresses - 2
 IPV4_VERSION: int = 4
-JsonObject: TypeAlias = dict[str, object]
+JsonObject = dict[str, object]
 
 
 @dataclass(frozen=True)

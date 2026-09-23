@@ -368,6 +368,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("CustomFieldOwnerKey"), JsonPropertyName("CustomFieldOwnerKey")]
         public string CustomFieldOwnerKey { get; set; } = "";
 
+        [JsonProperty("ruleOwnerMappingLogLevel"), JsonPropertyName("ruleOwnerMappingLogLevel")]
+        public RuleOwnerMappingLogLevel RuleOwnerMappingLogLevel { get; set; } = RuleOwnerMappingLogLevel.Warning;
+
         [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
         public string CustomFieldChangeIdKey { get; set; } = GlobalConst.kDefaultChangeIdKeys;
 

@@ -1,8 +1,17 @@
+# returning delivers the state before the full reinitialize, which is what the run history diffs
+# against the rebuilt mappings - no separate query needed, the where clause already selects exactly
+# the mappings that were active.
 mutation setAllActiveRuleOwnersRemoved($controlId: bigint!) {
   update_rule_owner(
     where: { removed: { _is_null: true } },
     _set: { removed: $controlId }
   ) {
     affected_rows
+    returning {
+      rule_id
+      owner_id
+      created
+      rule_metadata_id
+    }
   }
 }

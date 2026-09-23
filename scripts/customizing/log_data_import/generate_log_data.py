@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 """Generate importer-compatible log data for applications in normalized app-data JSON."""
 
+from __future__ import annotations
+
 import argparse
 import csv
 import ipaddress

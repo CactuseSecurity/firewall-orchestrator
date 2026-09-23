@@ -58,6 +58,30 @@ python3 generate_owner_data.py 500 /path/to/app-data.json
 
 The script refuses to replace an existing output file unless `--overwrite` is supplied.
 
+## Generate matching app and log data
+
+`../generate_app_and_log_data.py` generates both normalized app-data JSON and compatible log-data
+JSON in one command. By default it creates one log flow per generated application; every log
+`app_id` and `destination` matches that application's `app_id_external` and server IP in the app-data output.
+
+```bash
+python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json
+```
+
+Use `--log-count` to create a different number of flows. Additional flows are assigned round-robin
+across the generated applications. The script refuses to overwrite either output file unless
+`--overwrite` is supplied.
+
+Use `--log-format csv` to write the log data as CSV instead:
+
+```bash
+python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.csv --log-format csv
+```
+
+The default JSON output has a `logs` array. Each entry contains the matching `app_id` and
+`destination`, plus `log_count`, `source`, `protocol`, `port`, and `action` fields accepted by the
+log-data importer.
+
 #### Settings via UI
 
 In the FWORCH Web UI, go to Settings - Further Settings - Modelling and enter the full path to the script (leave out the extension) in "Path and Name of App data import", e.g.:

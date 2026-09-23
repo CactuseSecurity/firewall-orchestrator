@@ -284,6 +284,9 @@ namespace FWO.Test
             TokenPair[] initialTokenPairs = await Task.WhenAll(Enumerable
                 .Range(0, kConcurrentDistinctRefreshRequests)
                 .Select(_ => GetValidTokenPair()));
+            Assert.That(initialTokenPairs.Select(tokenPair => tokenPair.RefreshToken).Distinct().Count(),
+                Is.EqualTo(kConcurrentDistinctRefreshRequests),
+                "The test requires distinct initial refresh tokens; otherwise it would exercise same-token contention.");
 
             HttpResponseMessage[] responses = await Task.WhenAll(initialTokenPairs
                 .Select(tokenPair => client!.PostAsJsonAsync("/api/AuthenticationToken/Refresh",
@@ -298,6 +301,13 @@ namespace FWO.Test
             {
                 Assert.That(responses.All(response => response.IsSuccessStatusCode), Is.True,
                     $"Every concurrent refresh with a distinct refresh token must succeed. Responses:{Environment.NewLine}{report}");
+
+                TokenPair[] refreshedTokenPairs = responseBodies
+                    .Select(body => System.Text.Json.JsonSerializer.Deserialize<TokenPair>(body)!)
+                    .ToArray();
+                Assert.That(refreshedTokenPairs.Select(tokenPair => tokenPair.RefreshToken).Distinct().Count(),
+                    Is.EqualTo(kConcurrentDistinctRefreshRequests),
+                    "Every successful concurrent refresh must return a distinct replacement refresh token.");
             }
             finally
             {

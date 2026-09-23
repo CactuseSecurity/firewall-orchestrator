@@ -1340,7 +1340,7 @@ class FwConfigImportRule:
         changed_rules_ids: list[tuple[int, int, bool]],
     ) -> list[dict[str, Any]]:
         """
-        Creates two lists of insert arguments for the changelog_rules db table, one for new rules, one for deleted.
+        Creates a list of insert arguments for the changelog_rules db table, covering added, removed and changed rules.
         """
         change_logger = ChangeLogger()
         changelog_rule_insert_objects: list[dict[str, Any]] = []

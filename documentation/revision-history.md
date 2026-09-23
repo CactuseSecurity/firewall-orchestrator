@@ -764,3 +764,5 @@ Not supported any longer are:
 ## 9.5.4 - 23.09.2026
 - rework modelling notifications and move interface-request notifications to centralized notification entries
 - interface-request notifications now support separate request and reminder bodies plus optional CC to the requester
+- UI: the log data shown with a modelling connection now fills the browser window. The table takes as many rows per page as the window allows instead of a fixed 25 and follows a window resize, so a maximised window no longer shows a quarter-filled table with a pager below it. A new page size reaches the table only while the first page is shown, so it never moves the user to a different part of the log.
+- UI: auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.

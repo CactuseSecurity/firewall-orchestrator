@@ -388,6 +388,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public void OwnerRecertificationExportShowsConfiguredInitialRecertifierText()
+        {
+            ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)
+            {
+                ReportData = ConstructOwnerRecertReport()
+            };
+            report.ReportData.OwnerData.Single(ownerReport => ownerReport.Owner.ExtAppId == "EXT-OVERDUE").Owner.LastRecertifierDn = "Initial Recertifier";
+
+            string csv = report.ExportToCsv();
+            string html = RemoveLinebreaks(report.ExportToHtml());
+
+            StringAssert.Contains(",\"Initial Recertifier\",", csv);
+            StringAssert.Contains("<td>Overdue Owner</td><td>overdue.main, overdue.second</td><td>", html);
+            StringAssert.Contains("<td>Initial Recertifier</td>", html);
+        }
+
+        [Test]
         public void OwnerRecertificationGenerateCsvMergesDisplayedTables()
         {
             ReportOwnerRecerts report = new(query, userConfig, ReportType.OwnerRecertification)

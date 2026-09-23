@@ -167,7 +167,7 @@ class FwConfigImportRule:
             changed_rule_uids | xlate_fk_repoint_uids
         )
 
-        self.write_changelog_rules(
+        num_security_relevant_rule_changes = self.write_changelog_rules(
             [curr_rules[rule_uid] for rule_uid in added_rule_uids],
             [prev_rules[rule_uid] for rule_uid in removed_rule_uids],
             [(prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids],
@@ -187,6 +187,9 @@ class FwConfigImportRule:
         self.import_details.state.stats.increment_rule_delete_count(num_removed_rules)
         self.import_details.state.stats.increment_rule_move_count(num_moved_rules)
         self.import_details.state.stats.increment_rule_change_count(num_changed_rules)
+        self.import_details.state.stats.increment_rule_change_count_security_relevant(
+            num_security_relevant_rule_changes
+        )
         self.import_details.state.stats.increment_rule_ref_add_count(refs_added + rule_to_gw_refs_added)
         self.import_details.state.stats.increment_rule_ref_delete_count(refs_removed + rule_to_gw_refs_removed)
 
@@ -1271,7 +1274,7 @@ class FwConfigImportRule:
         added_rules: list[RuleNormalized],
         removed_rules: list[RuleNormalized],
         changed_rules: list[tuple[RuleNormalized, RuleNormalized]],
-    ) -> None:
+    ) -> int:
         """
         Writes changelog entries for added, removed, and changed rules.
 
@@ -1279,6 +1282,9 @@ class FwConfigImportRule:
             new_rules (list[RuleNormalized]): List of newly added rules.
             removed_rules (list[RuleNormalized]): List of removed rules.
             changed_rules (list[tuple[RuleNormalized, RuleNormalized]]): List of tuples containing old and new versions of changed rules.
+
+        Returns:
+            int: The number of changed rules whose change is security-relevant.
 
         """
         added_rules_ids = [
@@ -1324,6 +1330,8 @@ class FwConfigImportRule:
                 FWOLogger.exception(
                     f"fatal error while adding changelog entries for objects: {traceback.format_exc()!s}"
                 )
+
+        return sum(1 for _, _, security_relevant in changed_rules_ids if security_relevant)
 
     def prepare_changelog_rules_insert_objects(
         self,

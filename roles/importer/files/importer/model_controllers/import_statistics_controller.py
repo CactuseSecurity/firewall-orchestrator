@@ -36,10 +36,15 @@ class ImportStatisticsController:
         )
 
     def get_rule_change_number(self):
+        """
+        Number of security-relevant rule changes, used for policy_changes_found and
+        security_relevant_changes_counter. Rule changes that are not security-relevant
+        (e.g. comment-only changes) are excluded, as they do not show up in change reports.
+        """
         return (
             self.statistics.rule_add_count
             + self.statistics.rule_delete_count
-            + self.statistics.rule_change_count
+            + self.statistics.rule_change_count_security_relevant
             + self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
@@ -103,6 +108,8 @@ class ImportStatisticsController:
             result["rule_delete_count"] = self.statistics.rule_delete_count
         if self.statistics.rule_change_count > 0:
             result["rule_change_count"] = self.statistics.rule_change_count
+        if self.statistics.rule_change_count_security_relevant > 0:
+            result["rule_change_count_security_relevant"] = self.statistics.rule_change_count_security_relevant
         if self.statistics.rule_move_count > 0:
             result["rule_move_count"] = self.statistics.rule_move_count
         if self.statistics.rule_ref_add_count > 0:
@@ -166,6 +173,9 @@ class ImportStatisticsController:
 
     def increment_rule_change_count(self, increment: int = 1):
         self.statistics.rule_change_count += increment
+
+    def increment_rule_change_count_security_relevant(self, increment: int = 1):
+        self.statistics.rule_change_count_security_relevant += increment
 
     def increment_rule_move_count(self, increment: int = 1):
         self.statistics.rule_move_count += increment

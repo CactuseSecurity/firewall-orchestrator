@@ -166,7 +166,7 @@ class TestFwConfigImportRule:
         new_rule = build_normalized_rule(rule_uid, rule_src_zone=None, rule_dst_zone=None)
         setattr(new_rule, changed_field, changed_value)
 
-        fwconfig_import_rule.write_changelog_rules(
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
             added_rules=[],
             removed_rules=[],
             changed_rules=[(old_rule, new_rule)],
@@ -181,6 +181,8 @@ class TestFwConfigImportRule:
         assert rule_changes[0]["new_rule_id"] == new_rule_id
         assert rule_changes[0]["old_rule_id"] == old_rule_id
         assert rule_changes[0]["security_relevant"] is False
+        # must not be counted into security_relevant_changes_counter / policy_changes_found
+        assert num_security_relevant_changes == 0
 
     def test_write_changelog_rules_flags_security_relevant_change(
         self,
@@ -196,7 +198,7 @@ class TestFwConfigImportRule:
         old_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneA", rule_dst_zone="zoneB")
         new_rule = build_normalized_rule(rule_uid, rule_src_zone="zoneC", rule_dst_zone="zoneB")
 
-        fwconfig_import_rule.write_changelog_rules(
+        num_security_relevant_changes = fwconfig_import_rule.write_changelog_rules(
             added_rules=[],
             removed_rules=[],
             changed_rules=[(old_rule, new_rule)],
@@ -207,6 +209,7 @@ class TestFwConfigImportRule:
 
         assert len(rule_changes) == 1
         assert rule_changes[0]["security_relevant"] is True
+        assert num_security_relevant_changes == 1
 
     def test_write_changelog_rules_uses_current_mgm_id_for_sub_management(
         self,

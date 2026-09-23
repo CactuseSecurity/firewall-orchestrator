@@ -44,14 +44,9 @@
     private string searchTerm = "";
 
     /// <summary>
-    /// True while the current user is kept in the internal ldap and may therefore change their own password.
-    /// </summary>
-    private bool IsInternalUser => userConfig.User.Dn.EndsWith(GlobalConst.kLdapInternalPostfix);
-
-    /// <summary>
     /// Renders one navigation section, gating the heading and every entry by the roles they require.
     /// </summary>
-    /// <param name="navSection">Section to render, already narrowed down to its matching entries.</param>
+    /// <param name="navSection">Section to render, already narrowed down to its visible matching entries.</param>
     /// <param name="withSeparator">True to draw a separator ahead of the heading.</param>
     private RenderFragment RenderSection(SettingsNavSection navSection, bool withSeparator)
     {
@@ -66,7 +61,7 @@
                     @RenderHeading(navSection, withSeparator)
                 </ExecutionModeAuthorizeView>
             }
-            @foreach (SettingsNavEntry entry in VisibleEntries(navSection))
+            @foreach (SettingsNavEntry entry in navSection.Entries)
             {
                 if (entry.Roles.Length == 0)
                 {
@@ -111,14 +106,6 @@
                 <span class="@entry.Icon"></span> @(userConfig.GetText(entry.TextKey))
             </NavLink>
         </li>;
-    }
-
-    /// <summary>
-    /// Drops the entries the current user may not see for reasons other than their roles.
-    /// </summary>
-    private IEnumerable<SettingsNavEntry> VisibleEntries(SettingsNavSection navSection)
-    {
-        return navSection.Entries.Where(entry => !entry.InternalUsersOnly || IsInternalUser);
     }
 
     /// <summary>

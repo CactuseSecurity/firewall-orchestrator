@@ -210,6 +210,37 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsLayout_SearchInput_LeavesNoHeadingWithoutPages_ForFwAdmin()
+        {
+            await using BunitContext context = CreateContext(SingleRole(Roles.FwAdmin), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.FwAdmin);
+
+            // Only admins and auditors may see the user pages, fw admins just the heading above them.
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "user" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(layout.FindAll("h5"), Is.Empty);
+                Assert.That(layout.Find("[role='status']").TextContent.Trim(), Is.EqualTo("no_search_results"));
+            });
+        }
+
+        [Test]
+        public async Task SettingsLayout_SearchInput_ReportsWhenAllMatchesAreRoleHidden_ForImporter()
+        {
+            await using BunitContext context = CreateContext(SingleRole(Roles.Importer), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.Importer);
+
+            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "manage" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(NavigationHrefs(layout), Is.Empty);
+                Assert.That(layout.Find("[role='status']").TextContent.Trim(), Is.EqualTo("no_search_results"));
+            });
+        }
+
+        [Test]
         public async Task SettingsLayout_SearchInput_SurvivesAConfigTriggeredRerender()
         {
             await using BunitContext context = CreateContext(PrivilegedRoles, CreateInternalDn());

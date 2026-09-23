@@ -36,8 +36,9 @@ namespace FWO.Ui.Services
         string TooltipKey = "");
 
     /// <summary>
-    /// Holds the settings sidebar navigation and narrows it down to the entries matching a search term.
-    /// Role visibility is deliberately not decided here, it stays with ExecutionModeAuthorizeView in the markup.
+    /// Holds the settings sidebar navigation and narrows it down to the entries the current user may see
+    /// and that match a search term. ExecutionModeAuthorizeView in the markup still guards every rendered
+    /// element, the filtering here keeps the result consistent with what actually gets rendered.
     /// </summary>
     public static class SettingsNavigationService
     {
@@ -147,34 +148,48 @@ namespace FWO.Ui.Services
         };
 
         /// <summary>
-        /// Returns the sidebar sections whose localized heading or entry labels match the given search term.
-        /// A matching heading keeps all of its entries, so that a section can be found by its own name.
-        /// An empty or whitespace only term returns the complete navigation.
+        /// Returns the sidebar sections holding entries the current user may see and whose localized heading
+        /// or entry labels match the given search term. A matching heading keeps all of its visible entries,
+        /// so that a section can be found by its own name. A section without any visible matching entry is
+        /// dropped, so that no heading is left without pages. An empty or whitespace only term matches everything.
         /// </summary>
-        /// <param name="userConfig">Config used to resolve the labels into the language of the current user.</param>
+        /// <param name="userConfig">Config used to resolve the labels and to decide the visibility of the entries.</param>
         /// <param name="searchTerm">Term typed by the user, matched case and diacritic insensitively.</param>
-        /// <returns>The matching sections in display order, each holding only its matching entries.</returns>
+        /// <returns>The matching sections in display order, each holding only its visible matching entries.</returns>
         public static IReadOnlyList<SettingsNavSection> GetSections(UserConfig userConfig, string? searchTerm)
         {
             string normalizedTerm = NormalizeForSearch(searchTerm ?? string.Empty);
-            if (normalizedTerm.Length == 0)
-            {
-                return kSections;
-            }
-
             List<SettingsNavSection> matching = new();
             foreach (SettingsNavSection section in kSections)
             {
-                bool headingMatches = Matches(userConfig, section.TextKey, normalizedTerm);
-                IReadOnlyList<SettingsNavEntry> entries = headingMatches
-                    ? section.Entries
-                    : section.Entries.Where(entry => Matches(userConfig, entry.TextKey, normalizedTerm)).ToList();
-                if (headingMatches || entries.Count > 0)
+                List<SettingsNavEntry> visibleEntries = section.Entries.Where(entry => IsVisible(userConfig, entry)).ToList();
+                bool headingMatches = normalizedTerm.Length == 0 || Matches(userConfig, section.TextKey, normalizedTerm);
+                List<SettingsNavEntry> entries = headingMatches
+                    ? visibleEntries
+                    : visibleEntries.Where(entry => Matches(userConfig, entry.TextKey, normalizedTerm)).ToList();
+                if (entries.Count > 0)
                 {
                     matching.Add(section with { Entries = entries });
                 }
             }
             return matching;
+        }
+
+        /// <summary>
+        /// Checks whether the current user may see the given entry, applying the same execution mode role check
+        /// as ExecutionModeAuthorizeView and restricting internal only entries to users of the internal ldap.
+        /// </summary>
+        /// <param name="userConfig">Config holding the current user and the selected execution mode.</param>
+        /// <param name="entry">Navigation entry to check.</param>
+        /// <returns>True when the entry is shown to the current user.</returns>
+        public static bool IsVisible(UserConfig userConfig, SettingsNavEntry entry)
+        {
+            if (entry.InternalUsersOnly && !IsInternalUser(userConfig))
+            {
+                return false;
+            }
+            return entry.Roles.Length == 0
+                || userConfig.CanUseAnyRole(entry.Roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         }
 
         /// <summary>
@@ -202,6 +217,14 @@ namespace FWO.Ui.Services
         private static bool Matches(UserConfig userConfig, string textKey, string normalizedTerm)
         {
             return NormalizeForSearch(userConfig.GetText(textKey)).Contains(normalizedTerm);
+        }
+
+        /// <summary>
+        /// Checks whether the current user is kept in the internal ldap and may therefore change their own password.
+        /// </summary>
+        private static bool IsInternalUser(UserConfig userConfig)
+        {
+            return userConfig.User.Dn.EndsWith(GlobalConst.kLdapInternalPostfix);
         }
     }
 }

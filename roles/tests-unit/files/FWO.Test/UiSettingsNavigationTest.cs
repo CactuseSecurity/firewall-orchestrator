@@ -1,3 +1,4 @@
+using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Ui.Services;
 using NUnit.Framework;
@@ -11,9 +12,17 @@ namespace FWO.Test
         private const int kSectionCount = 11;
         private const string kUnmatchableTerm = "qqzzxx";
 
-        private static readonly List<string> TopologyHrefs = new() { "/settings/matrix", "/settings/internet" };
+        private const string kExternalDn = "uid=tester,ou=people,dc=example,dc=org";
 
-        private readonly SimulatedUserConfig userConfig = new();
+        private static readonly List<string> TopologyHrefs = new() { "/settings/matrix", "/settings/internet" };
+        private static readonly List<string> AdminRoles = new() { Roles.Admin };
+        private static readonly List<string> FwAdminRoles = new() { Roles.FwAdmin };
+        private static readonly List<string> ImporterRoles = new() { Roles.Importer };
+        private static readonly List<string> PersonalOnly = new() { "personal" };
+        private static readonly List<string> PasswordPolicyOnly = new() { "settings/passwordpolicy" };
+        private static readonly List<string> TenantsOnly = new() { "settings/tenants" };
+
+        private readonly SimulatedUserConfig userConfig = CreateUserConfig(AdminRoles, InternalDn());
 
         [Test]
         public void GetSections_EmptyTerm_ReturnsCompleteNavigation()
@@ -142,6 +151,131 @@ namespace FWO.Test
                 Assert.That(entries.Count(entry => entry.MatchAll), Is.EqualTo(1),
                     "only the owners overview needs an exact route match");
             });
+        }
+
+
+        [Test]
+        public void GetSections_DropsSectionsWithoutVisibleEntries()
+        {
+            IReadOnlyList<SettingsNavSection> sections = SettingsNavigationService.GetSections(
+                CreateUserConfig(ImporterRoles, InternalDn()), "");
+
+            Assert.That(sections.Select(section => section.TextKey), Is.EqualTo(PersonalOnly));
+        }
+
+        [Test]
+        public void GetSections_MatchOnlyInRoleHiddenEntries_ReturnsNoSection()
+        {
+            // The heading "authorization" is visible to fw admins, but none of the matching entries is.
+            Assert.That(SettingsNavigationService.GetSections(CreateUserConfig(FwAdminRoles, InternalDn()), "user"), Is.Empty);
+        }
+
+        [Test]
+        public void GetSections_MatchingHeading_KeepsOnlyTheVisibleEntries()
+        {
+            IReadOnlyList<SettingsNavSection> sections = SettingsNavigationService.GetSections(
+                CreateUserConfig(FwAdminRoles, InternalDn()), "authorization");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sections, Has.Count.EqualTo(1));
+                Assert.That(sections[0].Entries.Select(entry => entry.Href), Is.EqualTo(TenantsOnly));
+            });
+        }
+
+        [Test]
+        public void GetSections_ExternalUser_DoesNotFindTheOwnPasswordPage()
+        {
+            IReadOnlyList<SettingsNavSection> sections = SettingsNavigationService.GetSections(
+                CreateUserConfig(AdminRoles, kExternalDn), "password");
+
+            Assert.That(sections.SelectMany(section => section.Entries).Select(entry => entry.Href),
+                Is.EqualTo(PasswordPolicyOnly));
+        }
+
+        [Test]
+        public void GetSections_MatchesTheLocalizedLabelInsteadOfTheTextKey()
+        {
+            LabelledUserConfig labelledConfig = new(AdminRoles, InternalDn());
+            labelledConfig.Labels["devices"] = "Geräte";
+            labelledConfig.Labels["managements"] = "Verwaltungen";
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsNavigationService.GetSections(labelledConfig, "manage"), Is.Empty,
+                    "the text key must not be searched");
+                Assert.That(SettingsNavigationService.GetSections(labelledConfig, "verwalt").Single().Entries.Single().Href,
+                    Is.EqualTo("settings/managements"));
+            });
+        }
+
+        [Test]
+        public void GetSections_FoldsDiacriticsInTheLocalizedLabel()
+        {
+            LabelledUserConfig labelledConfig = new(AdminRoles, InternalDn());
+            labelledConfig.Labels["devices"] = "Geräte";
+
+            IReadOnlyList<SettingsNavSection> sections = SettingsNavigationService.GetSections(labelledConfig, "gerate");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sections, Has.Count.EqualTo(1));
+                Assert.That(sections[0].TextKey, Is.EqualTo("devices"));
+                Assert.That(sections[0].Entries, Has.Count.EqualTo(3));
+            });
+        }
+
+        [Test]
+        public void IsVisible_AppliesExecutionModeRolesAndInternalUserRestriction()
+        {
+            SettingsNavEntry adminEntry = new("users", "settings/users", Icons.User, Roles.Admin);
+            SettingsNavEntry internalEntry = new("password", "settings/password", Icons.Login, InternalUsersOnly: true);
+            SimulatedUserConfig fwAdminConfig = CreateUserConfig(FwAdminRoles, InternalDn());
+            SimulatedUserConfig externalConfig = CreateUserConfig(AdminRoles, kExternalDn);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(SettingsNavigationService.IsVisible(userConfig, adminEntry), Is.True);
+                Assert.That(SettingsNavigationService.IsVisible(fwAdminConfig, adminEntry), Is.False);
+                Assert.That(SettingsNavigationService.IsVisible(userConfig, internalEntry), Is.True);
+                Assert.That(SettingsNavigationService.IsVisible(externalConfig, internalEntry), Is.False);
+            });
+        }
+
+        private static SimulatedUserConfig CreateUserConfig(List<string> roles, string userDn)
+        {
+            return new SimulatedUserConfig
+            {
+                User =
+                {
+                    Dn = userDn,
+                    Roles = new(roles)
+                }
+            };
+        }
+
+        private static string InternalDn()
+        {
+            return $"uid=tester,ou=people,{GlobalConst.kLdapInternalPostfix}";
+        }
+
+        /// <summary>
+        /// User config resolving selected text keys into real labels, so that tests can tell labels and keys apart.
+        /// </summary>
+        private sealed class LabelledUserConfig : SimulatedUserConfig
+        {
+            public Dictionary<string, string> Labels { get; } = new();
+
+            public LabelledUserConfig(List<string> roles, string userDn)
+            {
+                User.Dn = userDn;
+                User.Roles = new(roles);
+            }
+
+            public override string GetText(string key)
+            {
+                return Labels.TryGetValue(key, out string? label) ? label : base.GetText(key);
+            }
         }
     }
 }

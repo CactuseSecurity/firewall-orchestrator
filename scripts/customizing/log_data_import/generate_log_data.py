@@ -8,7 +8,7 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import TypeAlias, cast
 
 CSV_COLUMNS: tuple[str, ...] = ("App ID", "Log count", "Src IP", "Dst IP", "Port", "Protocol", "Action")
 DEFAULT_LOG_COUNT: int = 1
@@ -19,6 +19,7 @@ TEST_SOURCE_IPV4_NETWORK: ipaddress.IPv4Network = ipaddress.IPv4Network("198.18.
 TEST_SOURCE_IPV6_NETWORK: ipaddress.IPv6Network = ipaddress.IPv6Network("2001:2::/48")
 MAX_GENERATED_LOGS: int = TEST_SOURCE_IPV4_NETWORK.num_addresses - 2
 IPV4_VERSION: int = 4
+JsonObject: TypeAlias = dict[str, object]
 
 
 @dataclass(frozen=True)
@@ -55,7 +56,7 @@ def load_applications(app_data_file: Path) -> list[Application]:
     raw_data: object = json.loads(app_data_file.read_text(encoding="utf-8"))
     if not isinstance(raw_data, dict):
         raise TypeError("app data must be an object containing an owners list")
-    owner_values: object = cast("dict[str, object]", raw_data).get("owners")
+    owner_values: object = cast("JsonObject", raw_data).get("owners")
     if not isinstance(owner_values, list):
         raise TypeError("app data must contain an owners list")
 
@@ -74,7 +75,7 @@ def parse_application(owner_value: object) -> Application | None:
     """Read one app-data owner, skipping it when it has no usable server address."""
     if not isinstance(owner_value, dict):
         raise TypeError("each owner must be an object")
-    owner: dict[str, object] = cast("dict[str, object]", owner_value)
+    owner: JsonObject = cast("JsonObject", owner_value)
     app_id_value: object = owner.get("app_id_external")
     if not isinstance(app_id_value, str) or not app_id_value.strip():
         raise ValueError("each owner must contain a non-empty app_id_external")
@@ -94,7 +95,7 @@ def parse_server_address(server_value: object) -> ipaddress.IPv4Address | ipaddr
     """Extract a valid address from an app-server object."""
     if not isinstance(server_value, dict):
         return None
-    ip_value: object = cast("dict[str, object]", server_value).get("ip")
+    ip_value: object = cast("JsonObject", server_value).get("ip")
     return parse_ip_address(ip_value) if isinstance(ip_value, str) else None
 
 

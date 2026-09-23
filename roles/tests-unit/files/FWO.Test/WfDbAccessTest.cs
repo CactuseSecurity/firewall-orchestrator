@@ -2437,7 +2437,11 @@ namespace FWO.Test
 
             // the user roles fill changer_id from the session preset, which removes the column from their
             // insert input - naming it in the mutation would make every UI history insert fail
-            Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntry));
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastHistoryQuery, Is.EqualTo(ModellingQueries.addHistoryEntry));
+                Assert.That(apiConn.LastHistoryVariables?.GetType().GetProperty("changerId"), Is.Null);
+            });
         }
 
         private static WfState CreatePromotingState(int stateId)

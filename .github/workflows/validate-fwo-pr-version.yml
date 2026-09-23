@@ -1,0 +1,91 @@
+name: Validate FWO PR version
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, reopened, synchronize, labeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    if: contains(github.event.pull_request.labels.*.name, 'versioned-change')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 1
+
+      - name: Read base product version
+        id: base-version
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { data } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'inventory/group_vars/all.yml',
+              ref: context.payload.pull_request.base.sha,
+            });
+            const match = Buffer.from(data.content, 'base64').toString('utf8')
+              .match(/^product_version:\s*"?([0-9]+\.[0-9]+\.[0-9]+)"?\s*$/m);
+            if (!match) core.setFailed('Base branch does not contain a valid product_version.');
+            else core.setOutput('value', match[1]);
+
+      - name: Validate versioned files
+        env:
+          BASE_VERSION: ${{ steps.base-version.outputs.value }}
+        run: scripts/allocate-fwo-version.sh --check --base-version "$BASE_VERSION"
+
+      - name: Enforce the next reserved version
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          BASE_VERSION: ${{ steps.base-version.outputs.value }}
+        with:
+          script: |
+            const versionPattern = /^product_version:\s*"?([0-9]+\.[0-9]+\.[0-9]+)"?\s*$/m;
+            const compareVersions = (left, right) => {
+              const leftParts = left.split('.').map(Number);
+              const rightParts = right.split('.').map(Number);
+              for (let index = 0; index < leftParts.length; index += 1) {
+                if (leftParts[index] !== rightParts[index]) return leftParts[index] < rightParts[index] ? -1 : 1;
+              }
+              return 0;
+            };
+            const readVersion = async (ref) => {
+              const { data } = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: 'inventory/group_vars/all.yml',
+                ref,
+              });
+              const match = Buffer.from(data.content, 'base64').toString('utf8').match(versionPattern);
+              if (!match) throw new Error(`No valid product_version on ${ref}.`);
+              return match[1];
+            };
+            const currentVersion = await readVersion(context.payload.pull_request.head.sha);
+            const baseVersion = process.env.BASE_VERSION;
+            const pullRequests = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              base: 'develop',
+              per_page: 100,
+            });
+            for (const pullRequest of pullRequests) {
+              if (pullRequest.number === context.payload.pull_request.number ||
+                  !pullRequest.labels.some((label) => label.name === 'versioned-change')) continue;
+              const reservedVersion = await readVersion(pullRequest.head.sha);
+              if (reservedVersion === currentVersion) {
+                core.setFailed(`Version ${currentVersion} is already reserved by PR #${pullRequest.number}.`);
+                return;
+              }
+              if (reservedVersion !== '999.0.0' &&
+                  compareVersions(reservedVersion, baseVersion) > 0 &&
+                  compareVersions(reservedVersion, currentVersion) < 0) {
+                core.setFailed(`PR #${pullRequest.number} reserves ${reservedVersion} and must merge before ${currentVersion}.`);
+                return;
+              }
+            }

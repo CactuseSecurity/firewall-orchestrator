@@ -55,32 +55,51 @@ namespace FWO.Services.Workflow
                 return;
             }
 
-            var variables = new
-            {
-                appId = (int?)null,
-                module = GlobalConst.kModuleWorkflow,
-                ticketId = target.TicketId,
-                changeType = (int)target.ChangeType,
-                objectType = (int)target.ObjectType,
-                objectId = target.ObjectId,
-                changeText,
-                changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? Roles.MiddlewareServer : UserConfig.User.Name,
-                changerId = ChangerId > 0 ? ChangerId : null,
-                changeSource = GlobalConst.kModuleWorkflow,
-                workflowPhase = (int)WorkflowPhase,
-                oldData = oldValue,
-                newData = newValue,
-                auditProofCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId
-            };
             try
             {
-                // In the UI the connection runs with a user role, whose changer_id insert preset fills the
-                // column from the session and is therefore not part of that role's insert input. Only the
-                // middleware-server role writes changer_id itself, so only that path may name it in the
-                // mutation. changerId stays in the variables of both: a variable value the operation does
-                // not declare is not coerced and is ignored.
-                await ApiConnection.SendQueryAsync<ReturnIdWrapper>(
-                    IsUiContext ? ModellingQueries.addHistoryEntry : ModellingQueries.addHistoryEntryAsService, variables);
+                string changer = string.IsNullOrWhiteSpace(UserConfig.User.Name) ? Roles.MiddlewareServer : UserConfig.User.Name;
+                bool auditProofCritical = contentChange && IsUiContext && requester != null && requester.DbId != UserConfig.UserId;
+                if (IsUiContext)
+                {
+                    var variables = new
+                    {
+                        appId = (int?)null,
+                        module = GlobalConst.kModuleWorkflow,
+                        ticketId = target.TicketId,
+                        changeType = (int)target.ChangeType,
+                        objectType = (int)target.ObjectType,
+                        objectId = target.ObjectId,
+                        changeText,
+                        changer,
+                        changeSource = GlobalConst.kModuleWorkflow,
+                        workflowPhase = (int)WorkflowPhase,
+                        oldData = oldValue,
+                        newData = newValue,
+                        auditProofCritical
+                    };
+                    await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntry, variables);
+                }
+                else
+                {
+                    var variables = new
+                    {
+                        appId = (int?)null,
+                        module = GlobalConst.kModuleWorkflow,
+                        ticketId = target.TicketId,
+                        changeType = (int)target.ChangeType,
+                        objectType = (int)target.ObjectType,
+                        objectId = target.ObjectId,
+                        changeText,
+                        changer,
+                        changerId = ChangerId > 0 ? ChangerId : null,
+                        changeSource = GlobalConst.kModuleWorkflow,
+                        workflowPhase = (int)WorkflowPhase,
+                        oldData = oldValue,
+                        newData = newValue,
+                        auditProofCritical
+                    };
+                    await ApiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addHistoryEntryAsService, variables);
+                }
             }
             catch (Exception exception)
             {

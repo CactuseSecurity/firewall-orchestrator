@@ -1,0 +1,20 @@
+query getNoRecipientNotificationLogsWithoutDeadline($notificationId: Int!, $status: String!, $error: String!, $subject: String!, $deadlineType: String!) {
+  notification_log(
+    where: {
+      notification_id: { _eq: $notificationId }
+      status: { _eq: $status }
+      error: { _eq: $error }
+      subject: { _eq: $subject }
+      deadline_type: { _eq: $deadlineType }
+      deadline: { _is_null: true }
+    }
+    order_by: [{ timestamp: desc }, { id: desc }]
+    limit: 1
+  ) {
+    id
+    timestamp
+    subject
+    deadline_type
+    deadline
+  }
+}

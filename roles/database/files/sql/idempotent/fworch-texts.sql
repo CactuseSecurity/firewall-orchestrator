@@ -75,6 +75,14 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('Pending',              'German',   'Ausstehend');
+INSERT INTO txt VALUES ('Pending',              'English',  'Pending');
+INSERT INTO txt VALUES ('Sent',                 'German',   'Gesendet');
+INSERT INTO txt VALUES ('Sent',                 'English',  'Sent');
+INSERT INTO txt VALUES ('Failed',               'German',   'Fehlgeschlagen');
+INSERT INTO txt VALUES ('Failed',               'English',  'Failed');
+INSERT INTO txt VALUES ('Suppressed',            'German',   'Unterdr&uuml;ckt');
+INSERT INTO txt VALUES ('Suppressed',            'English',  'Suppressed');
 INSERT INTO txt VALUES ('note_prefix',           'German',   'Hinweis');
 INSERT INTO txt VALUES ('note_prefix',           'English',  'Note');
 INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
@@ -113,6 +121,22 @@ INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
 INSERT INTO txt VALUES ('WfAction',	            'German', 	'Workflow-Aktion');
 INSERT INTO txt VALUES ('WfAction',		        'English', 	'Workflow action');
+INSERT INTO txt VALUES ('ImportChange',          'German',   'Import&auml;nderung');
+INSERT INTO txt VALUES ('ImportChange',          'English',  'Import change');
+INSERT INTO txt VALUES ('Compliance',            'German',   'Compliance');
+INSERT INTO txt VALUES ('Compliance',            'English',  'Compliance');
+INSERT INTO txt VALUES ('InterfaceRequest',      'German',   'Schnittstellenanfrage');
+INSERT INTO txt VALUES ('InterfaceRequest',      'English',  'Interface request');
+INSERT INTO txt VALUES ('RuleTimer',              'German',   'Regelablauf');
+INSERT INTO txt VALUES ('RuleTimer',              'English',  'Rule expiry');
+INSERT INTO txt VALUES ('AppDecomm',              'German',   'Applikationsstilllegung');
+INSERT INTO txt VALUES ('AppDecomm',              'English',  'Application decommissioning');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'German',   'Schnittstellenstilllegung');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'English',  'Interface decommissioning');
+INSERT INTO txt VALUES ('RuleRecertification',    'German',   'Regelweise Rezertifizierung');
+INSERT INTO txt VALUES ('RuleRecertification',    'English',  'Rule-by-rule recertification');
+INSERT INTO txt VALUES ('Report',                 'German',   'Bericht');
+INSERT INTO txt VALUES ('Report',                 'English',  'Report');
 INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
 INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
 INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben b&uuml;ndeln');
@@ -552,6 +576,9 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
     <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree und speichert sie in der Datenbank.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Die Log-Daten einer Verbindung in der Modellierung f&uuml;llen nun das Browser-Fenster: die Tabelle zeigt so viele Zeilen pro Seite, wie das Fenster zul&auml;sst, und folgt einer &Auml;nderung der Fenstergr&ouml;&szlig;e. Eine neue Seitengr&ouml;&szlig;e wird nur auf der ersten Seite &uuml;bernommen und springt damit nie an eine andere Stelle der Log-Daten.</li>
+    <li>Auditoren k&ouml;nnen die Modellierungs-Formulare aller Applikationen - Verbindungen, bereitgestellte Schnittstellen und Common Services - nun &ouml;ffnen und die dort angezeigten Log-Daten einsehen. Speichern, L&ouml;schen und das Beantragen von Firewall-&Auml;nderungen bleiben den Verantwortlichen mit der Rolle Modellierer vorbehalten.</li>
+    <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
     <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
     <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
     <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
@@ -573,6 +600,9 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
     <li>Matrix import takes and validates new fields for Network Zone Tree and stores them in the database.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>The log data shown with a connection in the modelling ui now fills the browser window: the table takes as many rows per page as the window allows and follows a window resize. A new page size is only applied while the first page is shown, so it never moves you to a different part of the log.</li>
+    <li>Auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.</li>
+    <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
     <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
     <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
     <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
@@ -1241,6 +1271,8 @@ INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
 INSERT INTO txt VALUES ('opened',               'English',  'Opened');
 INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
 INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
+INSERT INTO txt VALUES ('deadline_type',        'German',  	'Deadline-Typ');
+INSERT INTO txt VALUES ('deadline_type',        'English',  'Deadline type');
 INSERT INTO txt VALUES ('assign1', 			    'German',	'Zuweisen');
 INSERT INTO txt VALUES ('assign1', 			    'English',	'Assign');
 INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
@@ -1791,6 +1823,8 @@ INSERT INTO txt VALUES ('display_interface',    'German',	'Schnittstelle darstel
 INSERT INTO txt VALUES ('display_interface',    'English',	'Display Interface');
 INSERT INTO txt VALUES ('interface_permission',	'German', 	'Berechtigung');
 INSERT INTO txt VALUES ('interface_permission',	'English', 	'Permission');
+INSERT INTO txt VALUES ('initial_request',      'German',	'Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('initial_request',      'English',	'Initial request');
 INSERT INTO txt VALUES ('request_interface',    'German',	'Schnittstelle anfordern');
 INSERT INTO txt VALUES ('request_interface',    'English',	'Request Interface');
 INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnittstelle');
@@ -1991,6 +2025,8 @@ INSERT INTO txt VALUES ('decommission',         'German',   'Stilllegen');
 INSERT INTO txt VALUES ('decommission',         'English',  'Decommission');
 INSERT INTO txt VALUES ('decomm_interface',     'German',   'Schnittstelle stilllegen');
 INSERT INTO txt VALUES ('decomm_interface',     'English',  'Decommission interface');
+INSERT INTO txt VALUES ('decomm_owner',         'German',   'Eigent&uuml;mer stilllegen');
+INSERT INTO txt VALUES ('decomm_owner',         'English',  'Decommission Owner');
 INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
 INSERT INTO txt VALUES ('on',                   'English',  ' on ');
 INSERT INTO txt VALUES ('create_rule',          'German',   'Regeln anlegen');
@@ -3211,8 +3247,6 @@ INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragte
 INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
-INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');
-INSERT INTO txt VALUES ('modReqEmailRequesterInCc','English','Requester in CC');
 INSERT INTO txt VALUES ('modReqEmailOtherAddresses','German','Weitere Email-Adressen');
 INSERT INTO txt VALUES ('modReqEmailOtherAddresses','English','Additional email addresses');
 INSERT INTO txt VALUES ('modEnsureAtLeastOneEmailNotification','German','Mindestens eine Email-Benachrichtigung sicherstellen');
@@ -3351,6 +3385,8 @@ INSERT INTO txt VALUES ('use_in_dst',           'German', 	'in Ziel');
 INSERT INTO txt VALUES ('use_in_dst',           'English', 	'in Destination');
 INSERT INTO txt VALUES ('email_subject',        'German', 	'Email-Betreff');
 INSERT INTO txt VALUES ('email_subject',        'English', 	'Email subject');
+INSERT INTO txt VALUES ('email_log',            'German', 	'Email-Protokoll');
+INSERT INTO txt VALUES ('email_log',            'English', 	'Email log');
 INSERT INTO txt VALUES ('email_body',           'German', 	'Email-Inhalt');
 INSERT INTO txt VALUES ('email_body',           'English', 	'Email body');
 INSERT INTO txt VALUES ('email_to',				'German', 	'An');
@@ -3462,42 +3498,52 @@ INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices re
 INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
 INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
 
-INSERT INTO txt VALUES ('availableModules',         'German', 	'Verf&uuml;gbare Module');
-INSERT INTO txt VALUES ('availableModules',         'English', 	'Available Modules');
-INSERT INTO txt VALUES ('notification',   		    'German', 	'Benachrichtigung');
-INSERT INTO txt VALUES ('notification',   		    'English', 	'Notification');
-INSERT INTO txt VALUES ('notifications',   		    'German', 	'Benachrichtigungen');
-INSERT INTO txt VALUES ('notifications',   		    'English', 	'Notifications');
-INSERT INTO txt VALUES ('reminders',                'German', 	'Erinnerungsbenachrichtigungen');
-INSERT INTO txt VALUES ('reminders',                'English',  'Reminders');
-INSERT INTO txt VALUES ('edit_notification',        'German', 	'Benachrichtigung bearbeiten');
-INSERT INTO txt VALUES ('edit_notification',        'English', 	'Edit Notification');
-INSERT INTO txt VALUES ('delete_notification',      'German', 	'Benachrichtigung l&ouml;schen');
-INSERT INTO txt VALUES ('delete_notification',      'English', 	'Delete Notification');
-INSERT INTO txt VALUES ('color_scheme',             'German', 	'Farbschema');
-INSERT INTO txt VALUES ('color_scheme',             'English', 	'Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_blue',        'German', 	'Blaues Farbschema');
-INSERT INTO txt VALUES ('color_scheme_blue',        'English', 	'Blue Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_green',       'German', 	'Gr&uuml;nes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_green',       'English', 	'Green Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_red',         'German', 	'Rotes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_red',         'English', 	'Red Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_purple',      'German', 	'Violettes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_purple',      'English', 	'Purple Color Scheme');
-INSERT INTO txt VALUES ('last_sent',   		        'German', 	'Zuletzt gesendet');
-INSERT INTO txt VALUES ('last_sent',   		        'English', 	'Last sent');
-INSERT INTO txt VALUES ('reset_notification',       'German', 	'Zur&uuml;cksetzen');
-INSERT INTO txt VALUES ('reset_notification',       'English', 	'Reset');
-INSERT INTO txt VALUES ('set_roles_with_import',    'German', 	'Beim Import zu setzende Rollen');
-INSERT INTO txt VALUES ('set_roles_with_import',    'English', 	'Set Roles with import');
-INSERT INTO txt VALUES ('no_owners',			    'German', 	'Keine Eigent&uuml;mer zur Auswahl');
-INSERT INTO txt VALUES ('no_owners',			    'English', 	'No owners to be selected');
-INSERT INTO txt VALUES ('accesstoken_lifetime',     'German', 	'Access Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('accesstoken_lifetime',     'English',  'Access Token Lifetime');
-INSERT INTO txt VALUES ('refreshtoken_lifetime',    'German',   'Refresh Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('refreshtoken_lifetime',    'English',  'Refresh Token Lifetime');
-INSERT INTO txt VALUES ('path_analysis_algorithm',  'German',   'Pfadanalyse Algorithmus');
-INSERT INTO txt VALUES ('path_analysis_algorithm',  'English',  'Path Analysis Algorithm');
+INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
+INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
+INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
+INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
+INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
+INSERT INTO txt VALUES ('reminder',             'German', 	'Erinnerung');
+INSERT INTO txt VALUES ('reminder',             'English',  'Reminder');
+INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
+INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
+INSERT INTO txt VALUES ('logging_mode',         'German', 	'Protokollierungsmodus');
+INSERT INTO txt VALUES ('logging_mode',         'English',  'Logging mode');
+INSERT INTO txt VALUES ('send_only',            'German', 	'Nur senden');
+INSERT INTO txt VALUES ('send_only',            'English',  'Send only');
+INSERT INTO txt VALUES ('send_and_log',         'German', 	'Senden und protokollieren');
+INSERT INTO txt VALUES ('send_and_log',         'English',  'Send and log');
+INSERT INTO txt VALUES ('log_only',             'German', 	'Nur protokollieren');
+INSERT INTO txt VALUES ('log_only',             'English',  'Log only');
+INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
+INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
+INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('color_scheme',         'German', 	'Farbschema');
+INSERT INTO txt VALUES ('color_scheme',         'English', 	'Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_blue',    'German', 	'Blaues Farbschema');
+INSERT INTO txt VALUES ('color_scheme_blue',    'English', 	'Blue Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_green',   'German', 	'Gr&uuml;nes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_green',   'English', 	'Green Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_red',     'German', 	'Rotes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_red',     'English', 	'Red Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_purple',  'German', 	'Violettes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_purple',  'English', 	'Purple Color Scheme');
+INSERT INTO txt VALUES ('last_sent',   		    'German', 	'Zuletzt gesendet');
+INSERT INTO txt VALUES ('last_sent',   		    'English', 	'Last sent');
+INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_notification',   'English', 	'Reset');
+INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
+INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
+INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
+INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
+INSERT INTO txt VALUES ('path_analysis_algorithm','German', 'Pfadanalyse Algorithmus');
+INSERT INTO txt VALUES ('path_analysis_algorithm','English','Path Analysis Algorithm');
 
 -- monitoring
 INSERT INTO txt VALUES ('system',               'German', 	'System');
@@ -3810,6 +3856,8 @@ INSERT INTO txt VALUES ('network_area',         'German',   'Netzwerk-Area');
 INSERT INTO txt VALUES ('network_area',         'English',  'Network Area');
 INSERT INTO txt VALUES ('network_areas',        'German',   'Netzwerk-Areas');
 INSERT INTO txt VALUES ('network_areas',        'English',  'Network Areas');
+INSERT INTO txt VALUES ('error',                'German',   'Fehler');
+INSERT INTO txt VALUES ('error',                'English',  'Error');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -4002,6 +4050,10 @@ INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich z
 INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 INSERT INTO txt VALUES ('empty_response',       'German', 	'Leere Antwort');
 INSERT INTO txt VALUES ('empty_response',       'English',  'Empty Response');
+INSERT INTO txt VALUES ('interface_ticket',     'German',   'Schnittstellenticket');
+INSERT INTO txt VALUES ('interface_ticket',     'English',  'Interface ticket');
+INSERT INTO txt VALUES ('common_notification_settings', 'German', 'Gemeinsame Einstellungen f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('common_notification_settings', 'English', 'Common notification settings');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -4374,6 +4426,8 @@ INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforder
 INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht modellierte Verbindungen vorhanden.');
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
+INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
+INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4781,6 +4835,8 @@ INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforde
 INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
 INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uuml;rfen nur von deren Verantwortlichen mit der Rolle Modellierer ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
+INSERT INTO txt VALUES ('E9031', 'German',  'Nicht alle Benachrichtigungen an App-Verantwortliche konnten gesendet werden.');
+INSERT INTO txt VALUES ('E9031', 'English', 'Not all notifications could be sent to App responsibles.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -5921,8 +5977,8 @@ INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Def
 INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.
     The initial offset is added only to the first interval (also negative numbers possible).
 ');
-INSERT INTO txt VALUES ('H4106', 'German',  'Email-Betreff: Betreff der Benachrichtigung. Verf&uuml;gbare Platzhalter: @@APPNAME@@, @@APPID@@.');
-INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification. Available placeholders:  @@APPNAME@@, @@APPID@@.');
+INSERT INTO txt VALUES ('H4106', 'German',  'Email-Betreff: Betreff der Benachrichtigung. Verf&uuml;gbare Platzhalter: @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@, @@REQUESTDATE@@.');
+INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification. Available placeholders: @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@, @@REQUESTDATE@@.');
 INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden verschiedene Rollen (je nach Kontext) als Empf&auml;nger angeboten, zu denen dann automatisch die entsprechenden Adressen ermittelt werden. Bei "Andere Adressen" k&ouml;nnen manuell Adressen eingegeben werden.');
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
@@ -5931,8 +5987,10 @@ INSERT INTO txt VALUES ('H4108a','German',  'Empf&auml;nger (Bcc). Wie "Empf&aum
 INSERT INTO txt VALUES ('H4108a','English', 'Recipient (Bcc). As "Recipient (To)" for blind-copy recipients.');
 INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur f&uuml;r Darstellungszwecke.');
 INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
-INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichtigung. Bei Layouts ohne Anhang kann der Platzhalter @@CONTENT@@ verwendet werden, um den erzeugten Inhalt an dieser Stelle einzuf&uuml;gen. Wenn ein App-Kontext vorhanden ist, werden auch @@APPNAME@@ und @@APPID@@ ersetzt. In Workflow-Aktionsmails wird zus&auml;tzlich @@REQUESTER@@ ersetzt, wenn das Ticket bekannt ist.');
-INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert the generated content at this position. If an app context is available, @@APPNAME@@ and @@APPID@@ are replaced as well. In workflow action emails, @@REQUESTER@@ is also replaced when the ticket is known.');
+INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichtigung. Bei Layouts ohne Anhang kann der Platzhalter @@CONTENT@@ verwendet werden, um vom Aufrufer bereitgestellten Inhalt, z.B. einen Ablehnungsgrund, an dieser Stelle einzuf&uuml;gen. Die Platzhalter @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ und @@REQUESTDATE@@ werden ersetzt, wenn der jeweilige Kontext vom Aufrufer bereitgestellt wird.');
+INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert caller-provided content, for example a rejection reason. The placeholders @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ and @@REQUESTDATE@@ are replaced when the caller provides the respective context.');
+INSERT INTO txt VALUES ('H4111', 'German',  'Protokollierungsmodus: Legt fest, ob eine Benachrichtigung nur gesendet, nur protokolliert oder beides gemacht wird.');
+INSERT INTO txt VALUES ('H4111', 'English', 'Logging mode: Defines whether a notification is sent only, logged only, or both.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -6586,8 +6644,8 @@ INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Betreff: Betre
 INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
 INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
 INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
-INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
-INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
+INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Text f&uuml;r &uuml;berf&auml;llige Rezertifizierungen (Eskalation). Dieser Text wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt.');
+INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Text for overdue recertifications (escalation). This text is inserted as @@CONTENT@@ into the notification body.');
 
 INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
 INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
@@ -6616,8 +6674,8 @@ INSERT INTO txt VALUES ('H5444', 'German',  'Ziffern enthalten: Das Passwort mus
 INSERT INTO txt VALUES ('H5444', 'English', 'Number Required: There has to be at least one number in the password.');
 INSERT INTO txt VALUES ('H5445', 'German',  'Sonderzeichen enthalten: Das Passwort muss mindestens ein Sonderzeichen enthalten. M&ouml;gliche Werte: !?(){}=~$%&amp;#*-+.,_');
 INSERT INTO txt VALUES ('H5445', 'English', 'Special Characters Required: There has to be at least one special character in the password. Possible values are: !?(){}=~$%&amp;#*-+.,_');
-INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
-INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Text f&uuml;r demn&auml;chst anstehende Rezertifizierungen. Dieser Text wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Text for upcoming recertifications. This text is inserted as @@CONTENT@@ into the notification body.');
 INSERT INTO txt VALUES ('H5447', 'German',  'Als unbenutzt gewertet nach (in Tagen): Gibt den Zeitpunkt an, vor dem die letzte Nutzung der Regel f&uuml;r den Unbenutzte-Regel-Report in der Vergangenheit liegen muss.');
 INSERT INTO txt VALUES ('H5447', 'English', 'Regarded as unused from (in days): Defines the point in time, before which the last usage has to be in the past for the Unused Rules Report.');
 INSERT INTO txt VALUES ('H5448', 'German',  'Toleranz ab Erzeugungsdatum (in Tagen): Noch niemals benutzte Regeln werden im Unbenutzte-Regel-Report nur ber&uuml;cksichtigt, wenn sie vor dem durch den hier definierten Toleranzwert festgelegten Zeitpunkt erzeugt wurden.');
@@ -6650,8 +6708,8 @@ INSERT INTO txt VALUES ('H5457', 'German',  'Verf&uuml;gbare Module: Es kann aus
 INSERT INTO txt VALUES ('H5457', 'English', 'Available Modules: It can be selected, which of the technically available modules should be offered for use in the UI. The number of offered modules to the user can be smaller depending on the respective role.');
 INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der Rezertifizierung.');
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
-INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt fest, wer in welchem Zeitintervall vor dem Rezert-Termin benachrichtigt wird.');
-INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines who will be notified in which time interval before the recert deadline.');
+INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt Empf&auml;nger und Zeitplan der Benachrichtigungen fest. Der Text aus den Einstellungen f&uuml;r anstehende bzw. &uuml;berf&auml;llige Rezertifizierungen wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt. Die Eigent&uuml;mer-Rezertifizierungstabelle wird unabh&auml;ngig davon erzeugt: Bei HtmlInBody wird sie an den Emailtext angeh&auml;ngt, bei einem Anhang-Layout als Datei angeh&auml;ngt.');
+INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines the recipients and schedule of the notifications. The text from the upcoming or overdue recertification settings is inserted as @@CONTENT@@ into the notification body. The owner recertification table is generated independently: HtmlInBody appends it to the email body; an attachment layout sends it as a file.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -7211,24 +7269,28 @@ INSERT INTO txt VALUES ('H5621', 'English', 'A modeller can overwrite some perso
 ');
 INSERT INTO txt VALUES ('H5622', 'German',  'Name der beantragten Schnittstelle: Namensvorschlag bei der Beantragung einer Schnittstelle. Kann vom Antragsteller noch ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('H5622', 'English', 'Name of requested interface: Proposed name of the requested interface. Can be changed by the requester.');
-INSERT INTO txt VALUES ('H5623', 'German',  'Titel der Antragsbenachrichtigung: Betreff der Email-Benachrichtigung an die Beauftragten.');
-INSERT INTO txt VALUES ('H5623', 'English', 'Subject of request emails: Subject of the email to the addressed owners.');
-INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Wird noch durch Antragsteller (zu Beginn) und Beauftragtem (am Ende) erg&auml;nzt.
-    Hinzu kommt noch jeweils ein Link auf den Auftrag im Workflowmodul und auf die beauftragte Schnittstelle im Modellierungsmodul.
-');
-INSERT INTO txt VALUES ('H5624', 'English', 'Body of request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
-    Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
-');
-INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Verf&uuml;gbare Platzhalter:
+INSERT INTO txt VALUES ('H5623', 'German',  'Titel der Antragsbenachrichtigung: Betreff der Email-Benachrichtigung f&uuml;r die initiale Schnittstellenanfrage.');
+INSERT INTO txt VALUES ('H5623', 'English', 'Subject of initial request emails: Subject of the email notification for the initial interface request.');
+INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r die initiale Schnittstellenanfrage. Sie wird sofort ohne Frist versendet.
+    Verf&uuml;gbare Platzhalter:
     @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
-INSERT INTO txt VALUES ('H5624a', 'English', 'Body of unanswered request emails: Text of the email notification to the addressed owners. Available placeholders:
+INSERT INTO txt VALUES ('H5624', 'English', 'Body of initial request emails: Text of the email notification for the initial interface request. It is sent immediately without a deadline.
+    Available placeholders:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
+INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r Erinnerungen an offene Schnittstellenanfragen.
+    Verf&uuml;gbare Platzhalter:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
+INSERT INTO txt VALUES ('H5624a', 'English', 'Body of reminder emails: Text of the email notification for reminders about open interface requests.
+    Available placeholders:
     @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
 INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Titel, mit dem ein neues Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
 INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
-INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request ticket: Title used for the Task in the new interface request ticket.');
+INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request task: Title used for the task in the new interface request ticket.');
 INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen mit Namen und Id definiert werden. Bitte jeweils neue Id vergeben. Vorsicht beim L&ouml;schen bereits verwendeter Typen!
     Der Standard-typ ist immer vorhanden und wird beim Datenimport verwendet. Hier kann nur der dargestellte Name gesetzt werden. Zur manuellen Zuweisung zu einem App-Server kann er nicht verwendet werden.
 ');
@@ -7241,17 +7303,17 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
 ');
-INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
-INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines who will be notified how often and in which time interval about open interface requests.');
-INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, welche Erinnerungsbenachrichtigungen f&uuml;r offene Schnittstellenanfragen mit der Frist RequestDate versendet werden.');
+INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines which reminder notifications are sent for open interface requests with deadline RequestDate.');
+INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Mehrfachauswahl, an wen die initiale Benachrichtigung als To, Cc oder Bcc geschickt werden soll.
     Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
     Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.
-    Zus&auml;tzlich kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
+    Der Antragsteller kann dabei als Empf&auml;nger in der gew&uuml;nschten Spalte ausgew&auml;hlt werden.
 ');
-INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Multi-select list defining who receives the request notification email.
+INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of initial request emails: Multi-select list defining who receives the initial notification in To, Cc or Bcc.
     Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
     If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.
-    It can also be configured whether the requester receives the email in Cc (default: yes).
+    The requester can also be selected as recipient in the desired column.
 ');
 INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Ersetze beim Erzeugen eines externen Auftrags die Servicegruppen durch die einzelnen Mitglieder.');
 INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
@@ -7277,6 +7339,12 @@ INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
+INSERT INTO txt VALUES ('H5640', 'German',  'Antragsbenachrichtigung: Benachrichtigt die konfigurierten Empf&auml;nger sofort, wenn ein neues Schnittstellenticket angelegt wurde. Sie verwendet die Frist &quot;None&quot;; deshalb werden keine Vor- oder Nachfrist-Offsets ausgewertet.');
+INSERT INTO txt VALUES ('H5640', 'English', 'Initial request: Notifies the configured recipients immediately when a new interface request ticket is created. It uses deadline &quot;None&quot;, so no before- or after-deadline offsets are evaluated.');
+INSERT INTO txt VALUES ('H5641', 'German',  'Erinnerung: Benachrichtigt &uuml;ber offene Schnittstellenanfragen. Sie verwendet die Frist &quot;RequestDate&quot;; die Vorfrist, Nachfrist und Wiederholungen bestimmen, wann Erinnerungen gesendet werden.');
+INSERT INTO txt VALUES ('H5641', 'English', 'Reminder: Notifies about open interface requests. It uses deadline &quot;RequestDate&quot;; the before-deadline, after-deadline and repetition settings determine when reminders are sent.');
+INSERT INTO txt VALUES ('H5642', 'German',  'Schnittstellenstilllegung: Benachrichtigt die Verantwortlichen der Anwendungen, die eine stillgelegte Schnittstelle verwenden. Sie wird sofort mit der Frist &quot;None&quot; gesendet. Falls eine Ersatzschnittstelle angegeben ist, werden deren Name und Link eingesetzt, gefolgt von den betroffenen Verbindungen.');
+INSERT INTO txt VALUES ('H5642', 'English', 'Interface decommission: Notifies the responsible users of applications using a decommissioned interface. It is sent immediately with deadline &quot;None&quot;. If a replacement interface is provided, its name and link are inserted, followed by the affected connections.');
 INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App-Server-Namen aus dem DNS erg&auml;nzt und sind nicht manuell editierbar. Falls kein Name aufgel&ouml;st werden kann, wird er aus Pr&auml;fix und IP-Adresse konstruiert.');
 INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
 INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');
@@ -7331,19 +7399,19 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
-INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Stilllegungsbenachrichtigung als To, Cc oder Bcc geschickt werden soll.
     Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
     Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.');
-INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Multi-select list defining who receives the decommission notification email.
+INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Multi-select list defining who receives the decommission notification in To, Cc or Bcc.
     Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
     If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.');
-INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
-INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
-INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
+INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung f&uuml;r die Stilllegung eines Eigent&uuml;mers. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der stillzulegenden Schnittstelle ersetzt.');
+INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email notification for decommissioning an owner. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
+INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r die Stilllegung eines Eigent&uuml;mers, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
     @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese,
-    @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
+    @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stilllegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stilllegung veranlasst hat.
 ');
-INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
+INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification for decommissioning an owner, followed by a list of the affected connections. Some placeholders can be used:
     @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface,
     @@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
 ');
@@ -8189,6 +8257,11 @@ INSERT INTO txt VALUES ('H7412', 'English', 'With "Show orphaned only" all orpha
 INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegliedert. &Uuml;ber die Aktionsspalte k&ouml;nnen verwaiste Eintr&auml;ge aus der Verbindung entfernt werden.
 ');
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
+');
+
+INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff.
+');
+INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject.
 ');
 
 INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.

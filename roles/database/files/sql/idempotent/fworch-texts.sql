@@ -75,6 +75,14 @@ INSERT INTO txt VALUES ('AnyActivity',          'German',   'Beliebige Aktivit&a
 INSERT INTO txt VALUES ('AnyActivity',          'English',  'Any Activity');
 INSERT INTO txt VALUES ('None',			        'German', 	'Keine(r/s)');
 INSERT INTO txt VALUES ('None',			        'English', 	'None');
+INSERT INTO txt VALUES ('Pending',              'German',   'Ausstehend');
+INSERT INTO txt VALUES ('Pending',              'English',  'Pending');
+INSERT INTO txt VALUES ('Sent',                 'German',   'Gesendet');
+INSERT INTO txt VALUES ('Sent',                 'English',  'Sent');
+INSERT INTO txt VALUES ('Failed',               'German',   'Fehlgeschlagen');
+INSERT INTO txt VALUES ('Failed',               'English',  'Failed');
+INSERT INTO txt VALUES ('Suppressed',            'German',   'Unterdr&uuml;ckt');
+INSERT INTO txt VALUES ('Suppressed',            'English',  'Suppressed');
 INSERT INTO txt VALUES ('note_prefix',           'German',   'Hinweis');
 INSERT INTO txt VALUES ('note_prefix',           'English',  'Note');
 INSERT INTO txt VALUES ('FromFlowDb',            'German',   'aus Flow DB');
@@ -113,6 +121,22 @@ INSERT INTO txt VALUES ('SendEmail',	        'German', 	'Email verschicken');
 INSERT INTO txt VALUES ('SendEmail',		    'English', 	'Send email');
 INSERT INTO txt VALUES ('WfAction',	            'German', 	'Workflow-Aktion');
 INSERT INTO txt VALUES ('WfAction',		        'English', 	'Workflow action');
+INSERT INTO txt VALUES ('ImportChange',          'German',   'Import&auml;nderung');
+INSERT INTO txt VALUES ('ImportChange',          'English',  'Import change');
+INSERT INTO txt VALUES ('Compliance',            'German',   'Compliance');
+INSERT INTO txt VALUES ('Compliance',            'English',  'Compliance');
+INSERT INTO txt VALUES ('InterfaceRequest',      'German',   'Schnittstellenanfrage');
+INSERT INTO txt VALUES ('InterfaceRequest',      'English',  'Interface request');
+INSERT INTO txt VALUES ('RuleTimer',              'German',   'Regelablauf');
+INSERT INTO txt VALUES ('RuleTimer',              'English',  'Rule expiry');
+INSERT INTO txt VALUES ('AppDecomm',              'German',   'Applikationsstilllegung');
+INSERT INTO txt VALUES ('AppDecomm',              'English',  'Application decommissioning');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'German',   'Schnittstellenstilllegung');
+INSERT INTO txt VALUES ('InterfaceDecomm',        'English',  'Interface decommissioning');
+INSERT INTO txt VALUES ('RuleRecertification',    'German',   'Regelweise Rezertifizierung');
+INSERT INTO txt VALUES ('RuleRecertification',    'English',  'Rule-by-rule recertification');
+INSERT INTO txt VALUES ('Report',                 'German',   'Bericht');
+INSERT INTO txt VALUES ('Report',                 'English',  'Report');
 INSERT INTO txt VALUES ('CreateFlow',	        'German', 	'Flow erzeugen');
 INSERT INTO txt VALUES ('CreateFlow',		    'English', 	'Create flow');
 INSERT INTO txt VALUES ('BundleTasks',	        'German', 	'Aufgaben b&uuml;ndeln');
@@ -345,6 +369,14 @@ INSERT INTO txt VALUES ('CustomField',          'German',   'Custom-Feld');
 INSERT INTO txt VALUES ('CustomField',          'English',  'Custom field');
 INSERT INTO txt VALUES ('NameField',            'German',   'Namensfeld');
 INSERT INTO txt VALUES ('NameField',            'English',  'Name field');
+INSERT INTO txt VALUES ('Error',                'German',   'Fehler');
+INSERT INTO txt VALUES ('Error',                'English',  'Error');
+INSERT INTO txt VALUES ('Warning',              'German',   'Warnung');
+INSERT INTO txt VALUES ('Warning',              'English',  'Warning');
+INSERT INTO txt VALUES ('Info',                 'German',   'Info');
+INSERT INTO txt VALUES ('Info',                 'English',  'Info');
+INSERT INTO txt VALUES ('Debug',                'German',   'Debug');
+INSERT INTO txt VALUES ('Debug',                'English',  'Debug');
 INSERT INTO txt VALUES ('Manual',               'German',   'Manuell');
 INSERT INTO txt VALUES ('Manual',               'English',  'Manual');
 INSERT INTO txt VALUES ('DemoData',             'German', 	'Demo-Daten');
@@ -399,6 +431,8 @@ INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
 INSERT INTO txt VALUES ('search', 			    'English',	'Search');
+INSERT INTO txt VALUES ('no_search_results', 	'German',	'Keine Treffer.');
+INSERT INTO txt VALUES ('no_search_results', 	'English',	'No matches.');
 INSERT INTO txt VALUES ('load', 				'German',	'Laden');
 INSERT INTO txt VALUES ('load', 			    'English',	'Load');
 INSERT INTO txt VALUES ('ok', 				    'German',	'Ok');
@@ -533,6 +567,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Die Sichtbarkeit von Workflow-Tickets kann pro Phase auf "Beliebige Aufgabe" oder "Ticketstatus" eingestellt werden; "Beliebige Aufgabe" erhält das bisherige Verhalten.</li>
     <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
     <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
@@ -542,14 +577,23 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
     <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
     <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
-    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree, ohne sie bisher zu speichern.</li>
+    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree und speichert sie in der Datenbank.</li>
     <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
+    <li>Die Log-Daten einer Verbindung in der Modellierung f&uuml;llen nun das Browser-Fenster: die Tabelle zeigt so viele Zeilen pro Seite, wie das Fenster zul&auml;sst, und folgt einer &Auml;nderung der Fenstergr&ouml;&szlig;e. Eine neue Seitengr&ouml;&szlig;e wird nur auf der ersten Seite &uuml;bernommen und springt damit nie an eine andere Stelle der Log-Daten.</li>
+    <li>Auditoren k&ouml;nnen die Modellierungs-Formulare aller Applikationen - Verbindungen, bereitgestellte Schnittstellen und Common Services - nun &ouml;ffnen und die dort angezeigten Log-Daten einsehen. Speichern, L&ouml;schen und das Beantragen von Firewall-&Auml;nderungen bleiben den Verantwortlichen mit der Rolle Modellierer vorbehalten.</li>
+    <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
     <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
+    <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
+    <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
+    <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
+    <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
+    <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Workflow ticket visibility can be configured per phase as "Any task" or "Ticket state"; "Any task" preserves the previous behavior.</li>
     <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
     <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
@@ -559,9 +603,17 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
     <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
     <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
-    <li>Matrix import takes and validates new fields for Network Zone Tree, but does not store them yet.</li>
+    <li>Matrix import takes and validates new fields for Network Zone Tree and stores them in the database.</li>
     <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
+    <li>The log data shown with a connection in the modelling ui now fills the browser window: the table takes as many rows per page as the window allows and follows a window resize. A new page size is only applied while the first page is shown, so it never moves you to a different part of the log.</li>
+    <li>Auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.</li>
+    <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
     <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
+    <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
+    <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
+    <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
+    <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
+    <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -1225,6 +1277,8 @@ INSERT INTO txt VALUES ('opened',               'German', 	'Ge&ouml;ffnet');
 INSERT INTO txt VALUES ('opened',               'English',  'Opened');
 INSERT INTO txt VALUES ('deadline',             'German', 	'Deadline');
 INSERT INTO txt VALUES ('deadline',             'English',  'Deadline');
+INSERT INTO txt VALUES ('deadline_type',        'German',  	'Deadline-Typ');
+INSERT INTO txt VALUES ('deadline_type',        'English',  'Deadline type');
 INSERT INTO txt VALUES ('assign1', 			    'German',	'Zuweisen');
 INSERT INTO txt VALUES ('assign1', 			    'English',	'Assign');
 INSERT INTO txt VALUES ('assign_to', 			'German',	'Weiterleiten an');
@@ -1775,6 +1829,8 @@ INSERT INTO txt VALUES ('display_interface',    'German',	'Schnittstelle darstel
 INSERT INTO txt VALUES ('display_interface',    'English',	'Display Interface');
 INSERT INTO txt VALUES ('interface_permission',	'German', 	'Berechtigung');
 INSERT INTO txt VALUES ('interface_permission',	'English', 	'Permission');
+INSERT INTO txt VALUES ('initial_request',      'German',	'Antragsbenachrichtigung');
+INSERT INTO txt VALUES ('initial_request',      'English',	'Initial request');
 INSERT INTO txt VALUES ('request_interface',    'German',	'Schnittstelle anfordern');
 INSERT INTO txt VALUES ('request_interface',    'English',	'Request Interface');
 INSERT INTO txt VALUES ('requested_interface',  'German',	'Angeforderte Schnittstelle');
@@ -1975,6 +2031,8 @@ INSERT INTO txt VALUES ('decommission',         'German',   'Stilllegen');
 INSERT INTO txt VALUES ('decommission',         'English',  'Decommission');
 INSERT INTO txt VALUES ('decomm_interface',     'German',   'Schnittstelle stilllegen');
 INSERT INTO txt VALUES ('decomm_interface',     'English',  'Decommission interface');
+INSERT INTO txt VALUES ('decomm_owner',         'German',   'Eigent&uuml;mer stilllegen');
+INSERT INTO txt VALUES ('decomm_owner',         'English',  'Decommission Owner');
 INSERT INTO txt VALUES ('on',                   'German',   ' auf ');
 INSERT INTO txt VALUES ('on',                   'English',  ' on ');
 INSERT INTO txt VALUES ('create_rule',          'German',   'Regeln anlegen');
@@ -2297,6 +2355,8 @@ INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden
 INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
 INSERT INTO txt VALUES ('H5026',				'German', 	'Die Zonen-Gruppen-Erkennung legt fest, welche Flow-Netzwerkgruppen als Zonen gelten. Es k&ouml;nnen mehrere Muster kombiniert werden, jeweils mit Vergleichsart (Endet mit, Beginnt mit, Enth&auml;lt, Exakt) und optionaler Beachtung der Gro&szlig;- und Kleinschreibung. Eine Gruppe gilt als Zone, sobald ihr Name auf mindestens ein Muster passt. Die Muster werden vom REST-Endpunkt <code>flow/getAddressGroups</code> mit <code>option.separateZoneGroups=true</code> ausgewertet. Muster ohne Wert und doppelte Muster werden beim Speichern abgelehnt.');
 INSERT INTO txt VALUES ('H5026',				'English', 	'Zone group detection defines which flow network groups count as zones. Multiple patterns can be combined, each with a match type (suffix, prefix, contains, exact) and optional case sensitivity. A group is a zone as soon as its name matches at least one pattern. The patterns are evaluated by the REST endpoint <code>flow/getAddressGroups</code> with <code>option.separateZoneGroups=true</code>. Patterns without a value and duplicate patterns are rejected when saving.');
+INSERT INTO txt VALUES ('H5027',				'German', 	'&Uuml;ber das Suchfeld oberhalb der Navigation k&ouml;nnen die Einstellungsseiten gefiltert werden. Gesucht wird in den angezeigten Bezeichnungen der Kapitel und Seiten, Gro&szlig;- und Kleinschreibung sowie Umlaute werden dabei ignoriert. Passt ein Kapitelname, werden alle Seiten dieses Kapitels angezeigt. Seiten, f&uuml;r die die eigene Rolle keine Berechtigung hat, bleiben auch bei einem Treffer ausgeblendet, ebenso Kapitel ohne sichtbare Seiten.');
+INSERT INTO txt VALUES ('H5027',				'English', 	'The search field above the navigation filters the settings pages. It matches the displayed labels of the chapters and pages, ignoring case and diacritics. When a chapter name matches, all pages of that chapter are shown. Pages the own role is not permitted to see stay hidden even when they match, and so do chapters without any visible page.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
 INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts k&ouml;nnen Management-Zuordnungen wieder abgew&auml;hlt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');
@@ -2353,6 +2413,60 @@ INSERT INTO txt VALUES ('owner_mapping',        'German',   'Eigent&uuml;merzuor
 INSERT INTO txt VALUES ('owner_mapping',        'English',  'Owner Mapping');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'German',   'Custom-Feld-Eigent&uuml;mer-Schl&uuml;ssel');
 INSERT INTO txt VALUES ('custom_field_Owner_key',     'English',  'Custom Field Owner key');
+INSERT INTO txt VALUES ('ruleOwnerMappingLogLevel', 'German',   'Protokollierung Zuordnungsprobleme');
+INSERT INTO txt VALUES ('ruleOwnerMappingLogLevel', 'English',  'Logging of mapping issues');
+INSERT INTO txt VALUES ('rule_owner_mapping_runs',   'German',   'Eigent&uuml;merzuordnung: L&auml;ufe');
+INSERT INTO txt VALUES ('rule_owner_mapping_runs',   'English',  'Owner mapping runs');
+INSERT INTO txt VALUES ('rule_owner_mappings_total', 'German',   'Zuordnungen gesamt');
+INSERT INTO txt VALUES ('rule_owner_mappings_total', 'English',  'Mappings in total');
+INSERT INTO txt VALUES ('rule_owner_pending_imports','German',   'Offene Importe');
+INSERT INTO txt VALUES ('rule_owner_pending_imports','English',  'Pending imports');
+INSERT INTO txt VALUES ('rule_owner_run_InSync',     'German',   'Unver&auml;ndert');
+INSERT INTO txt VALUES ('rule_owner_run_InSync',     'English',  'In sync');
+INSERT INTO txt VALUES ('rule_owner_run_Drift',      'German',   'Abweichung');
+INSERT INTO txt VALUES ('rule_owner_run_Drift',      'English',  'Deviation');
+INSERT INTO txt VALUES ('rule_owner_run_ImportsPending',       'German',   'Importe offen');
+INSERT INTO txt VALUES ('rule_owner_run_ImportsPending',       'English',  'Imports pending');
+INSERT INTO txt VALUES ('rule_owner_run_ChangeApplied',        'German',   '&Auml;nderung vorgenommen');
+INSERT INTO txt VALUES ('rule_owner_run_ChangeApplied',        'English',  'Change applied');
+INSERT INTO txt VALUES ('rule_owner_run_EmptyResult',          'German',   'Kein Treffer');
+INSERT INTO txt VALUES ('rule_owner_run_EmptyResult',          'English',  'No match');
+INSERT INTO txt VALUES ('rule_owner_finding_Missing',     'German',   'Nicht angelegt');
+INSERT INTO txt VALUES ('rule_owner_finding_Missing',     'English',  'Not created');
+INSERT INTO txt VALUES ('rule_owner_finding_Superfluous', 'German',   'Nicht entfernt');
+INSERT INTO txt VALUES ('rule_owner_finding_Superfluous', 'English',  'Not removed');
+INSERT INTO txt VALUES ('rule_owner_change_added',        'German',   'Neu hinzugekommen');
+INSERT INTO txt VALUES ('rule_owner_change_added',        'English',  'Newly added');
+INSERT INTO txt VALUES ('rule_owner_change_removed',      'German',   'Weggefallen');
+INSERT INTO txt VALUES ('rule_owner_change_removed',      'English',  'No longer applies');
+INSERT INTO txt VALUES ('run',                       'German',   'Lauf');
+INSERT INTO txt VALUES ('run',                       'English',  'Run');
+INSERT INTO txt VALUES ('newer',                     'German',   'Neuer');
+INSERT INTO txt VALUES ('newer',                     'English',  'Newer');
+INSERT INTO txt VALUES ('older',                     'German',   '&Auml;lter');
+INSERT INTO txt VALUES ('older',                     'English',  'Older');
+INSERT INTO txt VALUES ('finding',                   'German',   'Art der Abweichung');
+INSERT INTO txt VALUES ('finding',                   'English',  'Type of deviation');
+INSERT INTO txt VALUES ('rule_metadata_id',           'German',   'Regel-Metadaten-ID');
+INSERT INTO txt VALUES ('rule_metadata_id',           'English',  'Rule metadata ID');
+INSERT INTO txt VALUES ('rule_owner_applied_changes', 'German',   'Ge&auml;nderte Einstellung');
+INSERT INTO txt VALUES ('rule_owner_applied_changes', 'English',  'Changed setting');
+INSERT INTO txt VALUES ('rule_owner_last_clean_run',  'German',   'Zuletzt ohne Abweichung gepr&uuml;ft');
+INSERT INTO txt VALUES ('rule_owner_last_clean_run',  'English',  'Last verified without deviation');
+INSERT INTO txt VALUES ('rule_owner_current_InSync',          'German',   'Aktuell keine Abweichung');
+INSERT INTO txt VALUES ('rule_owner_current_InSync',          'English',  'Currently no deviation');
+INSERT INTO txt VALUES ('rule_owner_current_Drift',           'German',   'Die letzte Pr&uuml;fung hat Abweichungen gefunden');
+INSERT INTO txt VALUES ('rule_owner_current_Drift',           'English',  'The last check found deviations');
+INSERT INTO txt VALUES ('rule_owner_current_ChangeApplied',   'German',   '&Auml;nderung angewendet, seither nicht gepr&uuml;ft');
+INSERT INTO txt VALUES ('rule_owner_current_ChangeApplied',   'English',  'Change applied, not verified since');
+INSERT INTO txt VALUES ('rule_owner_current_EmptyResult',     'German',   'Die Zuordnungsquelle trifft keine Regel mehr - alle Zuordnungen wurden entfernt');
+INSERT INTO txt VALUES ('rule_owner_current_EmptyResult',     'English',  'The mapping source no longer matches any rule - all mappings were removed');
+INSERT INTO txt VALUES ('rule_owner_current_ImportsPending',  'German',   'Letzte Pr&uuml;fung nicht aussagekr&auml;ftig, es waren Importe offen');
+INSERT INTO txt VALUES ('rule_owner_current_ImportsPending',  'English',  'Last check inconclusive, imports were pending');
+INSERT INTO txt VALUES ('rule_owner_runs_with_findings', 'German',   'Aufgezeichnete L&auml;ufe');
+INSERT INTO txt VALUES ('rule_owner_runs_with_findings', 'English',  'Recorded runs');
+INSERT INTO txt VALUES ('removed',                   'German',   'Entfernt');
+INSERT INTO txt VALUES ('removed',                   'English',  'Removed');
 INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'German',   'Custom-Feld-&Auml;nderungs-ID-Schl&uuml;ssel');
 INSERT INTO txt VALUES ('custom_field_ChangeID_key',     'English',  'Custom field change-ID keys');
 INSERT INTO txt VALUES ('custom_field_import_Settings',    'German', 	'Custom-Feld-Einstellungen');
@@ -2945,6 +3059,12 @@ INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Status');
 INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
 INSERT INTO txt VALUES ('lowest_input_state',   'German',   'Niedrigster Eingangsstatus');
 INSERT INTO txt VALUES ('lowest_input_state',   'English',  'Lowest input state');
+INSERT INTO txt VALUES ('phase_visibility_mode', 'German',   'Phasensichtbarkeit');
+INSERT INTO txt VALUES ('phase_visibility_mode', 'English',  'Phase visibility');
+INSERT INTO txt VALUES ('AnyTask',               'German',   'Beliebige Aufgabe');
+INSERT INTO txt VALUES ('AnyTask',               'English',  'Any task');
+INSERT INTO txt VALUES ('TicketState',           'German',   'Ticketstatus');
+INSERT INTO txt VALUES ('TicketState',           'English',  'Ticket state');
 INSERT INTO txt VALUES ('lowest_started_state', 'German',   'Niedrigster Bearbeitungsstatus');
 INSERT INTO txt VALUES ('lowest_started_state', 'English',  'Lowest started state');
 INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgangsstatus');
@@ -3141,8 +3261,6 @@ INSERT INTO txt VALUES ('modReqInterfaceName',  'German',   'Name der beantragte
 INSERT INTO txt VALUES ('modReqInterfaceName',  'English',  'Name of requested interface');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'German',   'Empf&auml;nger der Antragsbenachrichtigung');
 INSERT INTO txt VALUES ('modReqEmailReceiver',  'English',  'Receiver of request email');
-INSERT INTO txt VALUES ('modReqEmailRequesterInCc','German','Antragssteller in CC');
-INSERT INTO txt VALUES ('modReqEmailRequesterInCc','English','Requester in CC');
 INSERT INTO txt VALUES ('modReqEmailOtherAddresses','German','Weitere Email-Adressen');
 INSERT INTO txt VALUES ('modReqEmailOtherAddresses','English','Additional email addresses');
 INSERT INTO txt VALUES ('modEnsureAtLeastOneEmailNotification','German','Mindestens eine Email-Benachrichtigung sicherstellen');
@@ -3281,6 +3399,8 @@ INSERT INTO txt VALUES ('use_in_dst',           'German', 	'in Ziel');
 INSERT INTO txt VALUES ('use_in_dst',           'English', 	'in Destination');
 INSERT INTO txt VALUES ('email_subject',        'German', 	'Email-Betreff');
 INSERT INTO txt VALUES ('email_subject',        'English', 	'Email subject');
+INSERT INTO txt VALUES ('email_log',            'German', 	'Email-Protokoll');
+INSERT INTO txt VALUES ('email_log',            'English', 	'Email log');
 INSERT INTO txt VALUES ('email_body',           'German', 	'Email-Inhalt');
 INSERT INTO txt VALUES ('email_body',           'English', 	'Email body');
 INSERT INTO txt VALUES ('email_to',				'German', 	'An');
@@ -3392,42 +3512,52 @@ INSERT INTO txt VALUES ('importedMatrixReadOnly','English','Imported matrices re
 INSERT INTO txt VALUES ('filterOutInitialViolations','German', 'Filtere initiale Violations raus');
 INSERT INTO txt VALUES ('filterOutInitialViolations','English','Filter out initial violations');
 
-INSERT INTO txt VALUES ('availableModules',         'German', 	'Verf&uuml;gbare Module');
-INSERT INTO txt VALUES ('availableModules',         'English', 	'Available Modules');
-INSERT INTO txt VALUES ('notification',   		    'German', 	'Benachrichtigung');
-INSERT INTO txt VALUES ('notification',   		    'English', 	'Notification');
-INSERT INTO txt VALUES ('notifications',   		    'German', 	'Benachrichtigungen');
-INSERT INTO txt VALUES ('notifications',   		    'English', 	'Notifications');
-INSERT INTO txt VALUES ('reminders',                'German', 	'Erinnerungsbenachrichtigungen');
-INSERT INTO txt VALUES ('reminders',                'English',  'Reminders');
-INSERT INTO txt VALUES ('edit_notification',        'German', 	'Benachrichtigung bearbeiten');
-INSERT INTO txt VALUES ('edit_notification',        'English', 	'Edit Notification');
-INSERT INTO txt VALUES ('delete_notification',      'German', 	'Benachrichtigung l&ouml;schen');
-INSERT INTO txt VALUES ('delete_notification',      'English', 	'Delete Notification');
-INSERT INTO txt VALUES ('color_scheme',             'German', 	'Farbschema');
-INSERT INTO txt VALUES ('color_scheme',             'English', 	'Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_blue',        'German', 	'Blaues Farbschema');
-INSERT INTO txt VALUES ('color_scheme_blue',        'English', 	'Blue Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_green',       'German', 	'Gr&uuml;nes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_green',       'English', 	'Green Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_red',         'German', 	'Rotes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_red',         'English', 	'Red Color Scheme');
-INSERT INTO txt VALUES ('color_scheme_purple',      'German', 	'Violettes Farbschema');
-INSERT INTO txt VALUES ('color_scheme_purple',      'English', 	'Purple Color Scheme');
-INSERT INTO txt VALUES ('last_sent',   		        'German', 	'Zuletzt gesendet');
-INSERT INTO txt VALUES ('last_sent',   		        'English', 	'Last sent');
-INSERT INTO txt VALUES ('reset_notification',       'German', 	'Zur&uuml;cksetzen');
-INSERT INTO txt VALUES ('reset_notification',       'English', 	'Reset');
-INSERT INTO txt VALUES ('set_roles_with_import',    'German', 	'Beim Import zu setzende Rollen');
-INSERT INTO txt VALUES ('set_roles_with_import',    'English', 	'Set Roles with import');
-INSERT INTO txt VALUES ('no_owners',			    'German', 	'Keine Eigent&uuml;mer zur Auswahl');
-INSERT INTO txt VALUES ('no_owners',			    'English', 	'No owners to be selected');
-INSERT INTO txt VALUES ('accesstoken_lifetime',     'German', 	'Access Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('accesstoken_lifetime',     'English',  'Access Token Lifetime');
-INSERT INTO txt VALUES ('refreshtoken_lifetime',    'German',   'Refresh Token G&uuml;ltigkeitsdauer');
-INSERT INTO txt VALUES ('refreshtoken_lifetime',    'English',  'Refresh Token Lifetime');
-INSERT INTO txt VALUES ('path_analysis_algorithm',  'German',   'Pfadanalyse Algorithmus');
-INSERT INTO txt VALUES ('path_analysis_algorithm',  'English',  'Path Analysis Algorithm');
+INSERT INTO txt VALUES ('availableModules',     'German', 	'Verf&uuml;gbare Module');
+INSERT INTO txt VALUES ('availableModules',     'English', 	'Available Modules');
+INSERT INTO txt VALUES ('notification',   		'German', 	'Benachrichtigung');
+INSERT INTO txt VALUES ('notification',   		'English', 	'Notification');
+INSERT INTO txt VALUES ('notifications',   		'German', 	'Benachrichtigungen');
+INSERT INTO txt VALUES ('notifications',   		'English', 	'Notifications');
+INSERT INTO txt VALUES ('reminder',             'German', 	'Erinnerung');
+INSERT INTO txt VALUES ('reminder',             'English',  'Reminder');
+INSERT INTO txt VALUES ('reminders',            'German', 	'Erinnerungsbenachrichtigungen');
+INSERT INTO txt VALUES ('reminders',            'English',  'Reminders');
+INSERT INTO txt VALUES ('logging_mode',         'German', 	'Protokollierungsmodus');
+INSERT INTO txt VALUES ('logging_mode',         'English',  'Logging mode');
+INSERT INTO txt VALUES ('send_only',            'German', 	'Nur senden');
+INSERT INTO txt VALUES ('send_only',            'English',  'Send only');
+INSERT INTO txt VALUES ('send_and_log',         'German', 	'Senden und protokollieren');
+INSERT INTO txt VALUES ('send_and_log',         'English',  'Send and log');
+INSERT INTO txt VALUES ('log_only',             'German', 	'Nur protokollieren');
+INSERT INTO txt VALUES ('log_only',             'English',  'Log only');
+INSERT INTO txt VALUES ('edit_notification',    'German', 	'Benachrichtigung bearbeiten');
+INSERT INTO txt VALUES ('edit_notification',    'English', 	'Edit Notification');
+INSERT INTO txt VALUES ('delete_notification',  'German', 	'Benachrichtigung l&ouml;schen');
+INSERT INTO txt VALUES ('delete_notification',  'English', 	'Delete Notification');
+INSERT INTO txt VALUES ('color_scheme',         'German', 	'Farbschema');
+INSERT INTO txt VALUES ('color_scheme',         'English', 	'Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_blue',    'German', 	'Blaues Farbschema');
+INSERT INTO txt VALUES ('color_scheme_blue',    'English', 	'Blue Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_green',   'German', 	'Gr&uuml;nes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_green',   'English', 	'Green Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_red',     'German', 	'Rotes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_red',     'English', 	'Red Color Scheme');
+INSERT INTO txt VALUES ('color_scheme_purple',  'German', 	'Violettes Farbschema');
+INSERT INTO txt VALUES ('color_scheme_purple',  'English', 	'Purple Color Scheme');
+INSERT INTO txt VALUES ('last_sent',   		    'German', 	'Zuletzt gesendet');
+INSERT INTO txt VALUES ('last_sent',   		    'English', 	'Last sent');
+INSERT INTO txt VALUES ('reset_notification',   'German', 	'Zur&uuml;cksetzen');
+INSERT INTO txt VALUES ('reset_notification',   'English', 	'Reset');
+INSERT INTO txt VALUES ('set_roles_with_import','German', 	'Beim Import zu setzende Rollen');
+INSERT INTO txt VALUES ('set_roles_with_import','English', 	'Set Roles with import');
+INSERT INTO txt VALUES ('no_owners',			'German', 	'Keine Eigent&uuml;mer zur Auswahl');
+INSERT INTO txt VALUES ('no_owners',			'English', 	'No owners to be selected');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'German', 	'Access Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('accesstoken_lifetime', 'English',  'Access Token Lifetime');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','German',   'Refresh Token G&uuml;ltigkeitsdauer');
+INSERT INTO txt VALUES ('refreshtoken_lifetime','English',  'Refresh Token Lifetime');
+INSERT INTO txt VALUES ('path_analysis_algorithm','German', 'Pfadanalyse Algorithmus');
+INSERT INTO txt VALUES ('path_analysis_algorithm','English','Path Analysis Algorithm');
 
 -- monitoring
 INSERT INTO txt VALUES ('system',               'German', 	'System');
@@ -3740,6 +3870,8 @@ INSERT INTO txt VALUES ('network_area',         'German',   'Netzwerk-Area');
 INSERT INTO txt VALUES ('network_area',         'English',  'Network Area');
 INSERT INTO txt VALUES ('network_areas',        'German',   'Netzwerk-Areas');
 INSERT INTO txt VALUES ('network_areas',        'English',  'Network Areas');
+INSERT INTO txt VALUES ('error',                'German',   'Fehler');
+INSERT INTO txt VALUES ('error',                'English',  'Error');
 
 -- help pages
 INSERT INTO txt VALUES ('report_types',         'German', 	'Report-Typen');
@@ -3932,6 +4064,10 @@ INSERT INTO txt VALUES ('token_revoke_success', 'German',   'Token erfolgreich z
 INSERT INTO txt VALUES ('token_revoke_success', 'English',  'Successful Token Revocation');
 INSERT INTO txt VALUES ('empty_response',       'German', 	'Leere Antwort');
 INSERT INTO txt VALUES ('empty_response',       'English',  'Empty Response');
+INSERT INTO txt VALUES ('interface_ticket',     'German',   'Schnittstellenticket');
+INSERT INTO txt VALUES ('interface_ticket',     'English',  'Interface ticket');
+INSERT INTO txt VALUES ('common_notification_settings', 'German', 'Gemeinsame Einstellungen f&uuml;r Benachrichtigungen');
+INSERT INTO txt VALUES ('common_notification_settings', 'English', 'Common notification settings');
 
 -- user messages
 INSERT INTO txt VALUES ('U0001', 'German',  'Eingabetext wurde um nicht erlaubte Zeichen gek&uuml;rzt');
@@ -4168,8 +4304,8 @@ INSERT INTO txt VALUES ('U5501', 'German',  'Sind sie sicher, dass sie folgenden
 INSERT INTO txt VALUES ('U5501', 'English', 'Are you sure you want to delete state: ');
 INSERT INTO txt VALUES ('U5502', 'German',  'Sind sie sicher, dass sie folgende Aktion l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U5502', 'English', 'Are you sure you want to delete action: ');
-INSERT INTO txt VALUES ('U5503', 'German',  'Import erfolgreich.');
-INSERT INTO txt VALUES ('U5503', 'English', 'Import successful.');
+INSERT INTO txt VALUES ('U5503', 'German',  'Eigent&uuml;merzuordnung neu berechnet.');
+INSERT INTO txt VALUES ('U5503', 'English', 'Owner mapping recalculated.');
 
 INSERT INTO txt VALUES ('U5601', 'German',  'Sind sie sicher, dass sie das letzte Senden f&uuml;r folgende Benachrichtigung zur&uuml;cksetzen wollen: ');
 INSERT INTO txt VALUES ('U5601', 'English', 'Are you sure you want to reset the last sending for following notification: ');
@@ -4198,6 +4334,20 @@ INSERT INTO txt VALUES ('U7401', 'German',  'Archiv der Autodiscovery-Nachrichte
 INSERT INTO txt VALUES ('U7401', 'English', 'View the past autodiscovery messages');
 INSERT INTO txt VALUES ('U7501', 'German',  'Archiv der Nachrichten der t&auml;glichen Checks');
 INSERT INTO txt VALUES ('U7501', 'English', 'View the past daily check messages');
+INSERT INTO txt VALUES ('U7550', 'German', 'Ergebnis der letzten <b>vollst&auml;ndigen Neuberechnungen</b> der Eigent&uuml;merzuordnung. Ein vollst&auml;ndiger Neuaufbau berechnet alle Zuordnungen neu; weicht das Ergebnis vom gespeicherten Stand ab, obwohl kein Import offen war, hat die laufende Aktualisierung etwas &uuml;bersehen. Aufgelistet werden nur L&auml;ufe mit Abweichung; wann zuletzt ohne Befund gepr&uuml;ft wurde, steht oben.');
+INSERT INTO txt VALUES ('U7550', 'English', 'Result of the last <b>full recalculations</b> of the owner mapping. A full rebuild recalculates every mapping; if the result differs from the stored state although no import was pending, the running update missed something. Only runs with a deviation are listed; when it was last verified without findings is shown above.');
+INSERT INTO txt VALUES ('U7551', 'German', 'Bisher wurde keine vollst&auml;ndige Neuberechnung aufgezeichnet. Sie wird unter Einstellungen - Eigent&uuml;mer - Eigent&uuml;merzuordnung ausgel&ouml;st.');
+INSERT INTO txt VALUES ('U7551', 'English', 'No full recalculation has been recorded yet. It is triggered under Settings - Owners - Owner Mapping.');
+INSERT INTO txt VALUES ('U7552', 'German', 'Es wurden mehr Abweichungen gefunden, als hier aufgelistet sind. Die Anzahl oben ist vollst&auml;ndig, die Liste zeigt nur die ersten Eintr&auml;ge.');
+INSERT INTO txt VALUES ('U7552', 'English', 'More deviations were found than are listed here. The counts above are complete, the list only shows the first entries.');
+INSERT INTO txt VALUES ('U7553', 'German', 'Keine Abweichung: die laufende Aktualisierung hat denselben Stand erzeugt wie die vollst&auml;ndige Neuberechnung.');
+INSERT INTO txt VALUES ('U7553', 'English', 'No deviation: the running update produced the same state as the full recalculation.');
+INSERT INTO txt VALUES ('U7554', 'German', 'Bei einem Wechsel der Mapping-Quelle &auml;ndert sich jede Zuordnung. Die Einzelliste wird deshalb nicht gespeichert, die Zahlen oben sind vollst&auml;ndig.');
+INSERT INTO txt VALUES ('U7554', 'English', 'Switching the mapping source changes every mapping. The individual list is therefore not stored; the counts above are complete.');
+INSERT INTO txt VALUES ('U7555', 'German', 'Die &Auml;nderung hat keine Zuordnung ver&auml;ndert: die vollst&auml;ndige Neuberechnung hat denselben Stand ergeben wie der gespeicherte.');
+INSERT INTO txt VALUES ('U7555', 'English', 'The change did not alter any mapping: the full recalculation produced the same state as the stored one.');
+INSERT INTO txt VALUES ('U7556', 'German', 'Eine am @@DATE@@ gespeicherte &Auml;nderung der Zuordnungseinstellungen wurde von keiner Neuberechnung angewendet und wird nicht mehr ber&uuml;cksichtigt. Der hier gezeigte Unterschied kann ihre beabsichtigte Wirkung sein und muss kein Versehen der laufenden Aktualisierung sein.');
+INSERT INTO txt VALUES ('U7556', 'English', 'A change to the mapping settings saved on @@DATE@@ was never applied by a recalculation and is no longer taken into account. The difference shown here may be its intended effect rather than something the running update missed.');
 
 INSERT INTO txt VALUES ('U8001', 'German',  'Sind sie sicher, dass sie Folgendes l&ouml;schen wollen: ');
 INSERT INTO txt VALUES ('U8001', 'English', 'Are you sure you want to delete: ');
@@ -4290,6 +4440,8 @@ INSERT INTO txt VALUES ('U9042', 'German',  'Bitte beschreiben Sie Ihre Anforder
 INSERT INTO txt VALUES ('U9042', 'English', 'Please describe your requirement as completely and clearly as possible so that the application owners can understand the need and provide the appropriate interface. If known, please include relevant technical details such as IP addresses, ports, or protocols.');
 INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht modellierte Verbindungen vorhanden.');
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
+INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
+INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4564,8 +4716,8 @@ INSERT INTO txt VALUES ('E5431', 'English', 'Uploaded File exceeds the allowed m
 
 INSERT INTO txt VALUES ('E5501', 'German',  'Die Regel kann nicht doppelt zugewiesen werden.');
 INSERT INTO txt VALUES ('E5501', 'English', 'Rule cannot be assigned twice.');
-INSERT INTO txt VALUES ('E5502', 'German',  'Keine Regeln/Eigent&uuml;mer gefunden oder falsches Schl&uuml;sselfeld.');
-INSERT INTO txt VALUES ('E5502', 'English', 'No Rules/Owner or wrong Key-Field.');
+INSERT INTO txt VALUES ('E5502', 'German',  'Die Neuberechnung der Eigent&uuml;merzuordnung ist fehlgeschlagen. Einzelheiten stehen im Middleware-Log.');
+INSERT INTO txt VALUES ('E5502', 'English', 'Recalculating the owner mapping failed. See the middleware log for details.');
 INSERT INTO txt VALUES ('E5503', 'German',  'Fehler beim Import.');
 INSERT INTO txt VALUES ('E5503', 'English', 'Import error.');
 INSERT INTO txt VALUES ('E5504', 'German',  'Bitte eine Eigent&uuml;merzuordnungsquelle ausw&auml;hlen.');
@@ -4596,6 +4748,10 @@ INSERT INTO txt VALUES ('E7014', 'German',  'Es sind nur CSV Dateien erlaubt.');
 INSERT INTO txt VALUES ('E7014', 'English', 'Only CSV Files allowed.');
 INSERT INTO txt VALUES ('E7015', 'German',  'Fehler beim Best&auml;tigen aller offenen Alarme.');
 INSERT INTO txt VALUES ('E7015', 'English', 'Error acknowledging all open alerts.');
+INSERT INTO txt VALUES ('E7550', 'German',  'Die aufgezeichneten L&auml;ufe konnten nicht abgerufen werden, daher kann diese Seite nicht sagen, ob die laufende Aktualisierung abweicht. Der gespeicherte Eintrag ist davon unber&uuml;hrt; ein erneutes Laden der Seite kann bereits gen&uuml;gen. Einzelheiten stehen im Log.');
+INSERT INTO txt VALUES ('E7550', 'English', 'The recorded runs could not be fetched, so this page cannot say whether the running update is deviating. The stored entry itself is untouched; reloading the page may already be enough. Details are in the log.');
+INSERT INTO txt VALUES ('E7551', 'German',  'Die aufgezeichneten L&auml;ufe konnten nicht gelesen werden: der gespeicherte Eintrag ist besch&auml;digt. Er wird bewusst nicht &uuml;berschrieben, damit nichts verloren geht &ndash; solange wird aber auch nichts Neues aufgezeichnet, und diese Seite kann nicht sagen, ob die laufende Aktualisierung abweicht. Einzelheiten stehen im Log; der Konfigurationseintrag ruleOwnerMappingRunHistory muss zur&uuml;ckgesetzt werden &ndash; dazu wird config_value in der Zeile mit config_user = 0 der Tabelle config geleert.');
+INSERT INTO txt VALUES ('E7551', 'English', 'The recorded runs could not be read: the stored entry is damaged. It is deliberately not overwritten so nothing is lost &ndash; but nothing new is recorded while that lasts, and this page cannot say whether the running update is deviating. Details are in the log; the configuration entry ruleOwnerMappingRunHistory has to be reset &ndash; clear its config_value in the row with config_user = 0 of table config.');
 
 INSERT INTO txt VALUES ('E8001', 'German',  'Antrag konnte nicht angelegt werden');
 INSERT INTO txt VALUES ('E8001', 'English', 'Request could not be created');
@@ -4693,6 +4849,8 @@ INSERT INTO txt VALUES ('E9029', 'German',  'Ticket enth&auml;lt mehrere Anforde
 INSERT INTO txt VALUES ('E9029', 'English', 'Ticket has multiple request tasks');
 INSERT INTO txt VALUES ('E9030', 'German',  'App Rollen dieser Applikation d&uuml;rfen nur von deren Verantwortlichen mit der Rolle Modellierer ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('E9030', 'English', 'Application roles of this application may only be changed by its owners with the modeller role.');
+INSERT INTO txt VALUES ('E9031', 'German',  'Nicht alle Benachrichtigungen an App-Verantwortliche konnten gesendet werden.');
+INSERT INTO txt VALUES ('E9031', 'English', 'Not all notifications could be sent to App responsibles.');
 INSERT INTO txt VALUES ('E9101', 'German',  'Fehler bei externer Auftragserzeugung.');
 INSERT INTO txt VALUES ('E9101', 'English', 'Error at external ticket creation.');
 INSERT INTO txt VALUES ('E9102', 'German',  'Fehler beim &Auml;ndern des externen Auftragsstatus.');
@@ -5833,8 +5991,8 @@ INSERT INTO txt VALUES ('H4105', 'German',  'Benachrichtigungen nach Termin: Def
 INSERT INTO txt VALUES ('H4105', 'English', 'Notifications after Deadline: Defines a time interval for recurring notifications after reaching the reference date with a maximum number of repetitions.
     The initial offset is added only to the first interval (also negative numbers possible).
 ');
-INSERT INTO txt VALUES ('H4106', 'German',  'Email-Betreff: Betreff der Benachrichtigung. Verf&uuml;gbare Platzhalter: @@APPNAME@@, @@APPID@@.');
-INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification. Available placeholders:  @@APPNAME@@, @@APPID@@.');
+INSERT INTO txt VALUES ('H4106', 'German',  'Email-Betreff: Betreff der Benachrichtigung. Verf&uuml;gbare Platzhalter: @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@, @@REQUESTDATE@@.');
+INSERT INTO txt VALUES ('H4106', 'English', 'Email subject: Subject line of the notification. Available placeholders: @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@, @@REQUESTDATE@@.');
 INSERT INTO txt VALUES ('H4107', 'German',  'Empf&auml;nger (To): Es werden verschiedene Rollen (je nach Kontext) als Empf&auml;nger angeboten, zu denen dann automatisch die entsprechenden Adressen ermittelt werden. Bei "Andere Adressen" k&ouml;nnen manuell Adressen eingegeben werden.');
 INSERT INTO txt VALUES ('H4107', 'English', 'Recipient (To): Different roles are offered as recipients (depending on context), for which the addresses are determined automatically. With "Other Addresses" addreesses can be inserted manually.');
 INSERT INTO txt VALUES ('H4108', 'German',  'Empf&auml;nger (Cc). Wie "Empf&auml;nger (To)" f&uuml;r Empf&auml;nger im CC.');
@@ -5843,8 +6001,10 @@ INSERT INTO txt VALUES ('H4108a','German',  'Empf&auml;nger (Bcc). Wie "Empf&aum
 INSERT INTO txt VALUES ('H4108a','English', 'Recipient (Bcc). As "Recipient (To)" for blind-copy recipients.');
 INSERT INTO txt VALUES ('H4109', 'German',  'Name: Name der Benachrichtigung, nur f&uuml;r Darstellungszwecke.');
 INSERT INTO txt VALUES ('H4109', 'English', 'Name: Name of notification, only for display purposes.');
-INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichtigung. Bei Layouts ohne Anhang kann der Platzhalter @@CONTENT@@ verwendet werden, um den erzeugten Inhalt an dieser Stelle einzuf&uuml;gen. Wenn ein App-Kontext vorhanden ist, werden auch @@APPNAME@@ und @@APPID@@ ersetzt. In Workflow-Aktionsmails wird zus&auml;tzlich @@REQUESTER@@ ersetzt, wenn das Ticket bekannt ist.');
-INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert the generated content at this position. If an app context is available, @@APPNAME@@ and @@APPID@@ are replaced as well. In workflow action emails, @@REQUESTER@@ is also replaced when the ticket is known.');
+INSERT INTO txt VALUES ('H4110', 'German',  'Email-Inhalt: Text der Benachrichtigung. Bei Layouts ohne Anhang kann der Platzhalter @@CONTENT@@ verwendet werden, um vom Aufrufer bereitgestellten Inhalt, z.B. einen Ablehnungsgrund, an dieser Stelle einzuf&uuml;gen. Die Platzhalter @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ und @@REQUESTDATE@@ werden ersetzt, wenn der jeweilige Kontext vom Aufrufer bereitgestellt wird.');
+INSERT INTO txt VALUES ('H4110', 'English', 'Email body: Text of the notification. For layouts without attachment, the @@CONTENT@@ placeholder can be used to insert caller-provided content, for example a rejection reason. The placeholders @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_NAME@@, @@INTERFACE_LINK@@, @@NEW_INTERFACE_NAME@@, @@NEW_INTERFACE_LINK@@, @@REASON@@, @@USER_NAME@@ and @@REQUESTDATE@@ are replaced when the caller provides the respective context.');
+INSERT INTO txt VALUES ('H4111', 'German',  'Protokollierungsmodus: Legt fest, ob eine Benachrichtigung nur gesendet, nur protokolliert oder beides gemacht wird.');
+INSERT INTO txt VALUES ('H4111', 'English', 'Logging mode: Defines whether a notification is sent only, logged only, or both.');
 
 INSERT INTO txt VALUES ('H5001', 'German',  'In diesem Abschnitt werden die Setup- und Verwaltungseinstellungen behandelt.
     Die meisten Einstellungen k&ouml;nnen nur von Nutzern mit der Administrator-Rolle gesehen und ge&auml;ndert werden.
@@ -6498,8 +6658,8 @@ INSERT INTO txt VALUES ('H5430', 'German',  'Rezert Check - Email Betreff: Betre
 INSERT INTO txt VALUES ('H5430', 'English', 'Recert Check - Email subject: Subject line of the notification email.');
 INSERT INTO txt VALUES ('H5431', 'German',  'Der Administrator kann Vorgaben f&uuml;r Passw&ouml;rter definieren, gegen die alle neuen Passw&ouml;rter aller (internen) Nutzer gepr&uuml;ft werden.');
 INSERT INTO txt VALUES ('H5431', 'English', 'The admin user can define a password policy, against which all new passwords of all (internal) users are checked.');
-INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Textinhalt der Benachrichtigungsmail bei &uuml;berf&auml;lligen Rezertifizierungen (Eskalation).');
-INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Email body of the notification email for overdue recertifications (escalation).');
+INSERT INTO txt VALUES ('H5432', 'German',  'Rezert Check - Text &uuml;berf&auml;llig: Text f&uuml;r &uuml;berf&auml;llige Rezertifizierungen (Eskalation). Dieser Text wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt.');
+INSERT INTO txt VALUES ('H5432', 'English', 'Recert Check - text overdue: Text for overdue recertifications (escalation). This text is inserted as @@CONTENT@@ into the notification body.');
 
 INSERT INTO txt VALUES ('H5433', 'German',  'Autom. Anlegen L&ouml;schantrag: Soll automatisch ein L&ouml;sch-Ticket erzeugt werden, wenn eine Regel vollst&auml;ndig dezertifiziert wurde?');
 INSERT INTO txt VALUES ('H5433', 'English', 'Autocreate delete rule ticket: When a rule has been fully de-certified, should a delete ticket be automatically generated?');
@@ -6528,8 +6688,8 @@ INSERT INTO txt VALUES ('H5444', 'German',  'Ziffern enthalten: Das Passwort mus
 INSERT INTO txt VALUES ('H5444', 'English', 'Number Required: There has to be at least one number in the password.');
 INSERT INTO txt VALUES ('H5445', 'German',  'Sonderzeichen enthalten: Das Passwort muss mindestens ein Sonderzeichen enthalten. M&ouml;gliche Werte: !?(){}=~$%&amp;#*-+.,_');
 INSERT INTO txt VALUES ('H5445', 'English', 'Special Characters Required: There has to be at least one special character in the password. Possible values are: !?(){}=~$%&amp;#*-+.,_');
-INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Textinhalt der Benachrichtigungsmail bei demn&auml;chst anstehenden Rezertifizierungen.');
-INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Email body of the notification email for upcoming recertifications.');
+INSERT INTO txt VALUES ('H5446', 'German',  'Rezert Check - Text anstehend: Text f&uuml;r demn&auml;chst anstehende Rezertifizierungen. Dieser Text wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt.');
+INSERT INTO txt VALUES ('H5446', 'English', 'Recert Check - text upcoming: Text for upcoming recertifications. This text is inserted as @@CONTENT@@ into the notification body.');
 INSERT INTO txt VALUES ('H5447', 'German',  'Als unbenutzt gewertet nach (in Tagen): Gibt den Zeitpunkt an, vor dem die letzte Nutzung der Regel f&uuml;r den Unbenutzte-Regel-Report in der Vergangenheit liegen muss.');
 INSERT INTO txt VALUES ('H5447', 'English', 'Regarded as unused from (in days): Defines the point in time, before which the last usage has to be in the past for the Unused Rules Report.');
 INSERT INTO txt VALUES ('H5448', 'German',  'Toleranz ab Erzeugungsdatum (in Tagen): Noch niemals benutzte Regeln werden im Unbenutzte-Regel-Report nur ber&uuml;cksichtigt, wenn sie vor dem durch den hier definierten Toleranzwert festgelegten Zeitpunkt erzeugt wurden.');
@@ -6562,8 +6722,8 @@ INSERT INTO txt VALUES ('H5457', 'German',  'Verf&uuml;gbare Module: Es kann aus
 INSERT INTO txt VALUES ('H5457', 'English', 'Available Modules: It can be selected, which of the technically available modules should be offered for use in the UI. The number of offered modules to the user can be smaller depending on the respective role.');
 INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der Rezertifizierung.');
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
-INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt fest, wer in welchem Zeitintervall vor dem Rezert-Termin benachrichtigt wird.');
-INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines who will be notified in which time interval before the recert deadline.');
+INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt Empf&auml;nger und Zeitplan der Benachrichtigungen fest. Der Text aus den Einstellungen f&uuml;r anstehende bzw. &uuml;berf&auml;llige Rezertifizierungen wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt. Die Eigent&uuml;mer-Rezertifizierungstabelle wird unabh&auml;ngig davon erzeugt: Bei HtmlInBody wird sie an den Emailtext angeh&auml;ngt, bei einem Anhang-Layout als Datei angeh&auml;ngt.');
+INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines the recipients and schedule of the notifications. The text from the upcoming or overdue recertification settings is inserted as @@CONTENT@@ into the notification body. The owner recertification table is generated independently: HtmlInBody appends it to the email body; an attachment layout sends it as a file.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -6847,6 +7007,8 @@ INSERT INTO txt VALUES ('H5552', 'German',  '"Niedrigster Bearbeitungsstatus": A
 INSERT INTO txt VALUES ('H5552', 'English', '"Lowest started state": From this state the ticket counts as in work. Phase specific changes can be done.');
 INSERT INTO txt VALUES ('H5553', 'German',  '"Niedrigster Ausgangsstatus": Ab diesem Status k&ouml;nnen vom Bearbeiter dieser Phase keine &Auml;nderungen mehr vorgenommen werden. Ein Antrag in diesem Status ist nicht mehr sichtbar.');
 INSERT INTO txt VALUES ('H5553', 'English', '"Lowest exit state": From this state the handler of the current phase can not do any changes anymore. A ticket in this state is not visible anymore.');
+INSERT INTO txt VALUES ('H5554', 'German',  'Nur in der Ticket-Matrix: Beliebige Aufgabe macht das Ticket sichtbar, sobald mindestens eine Aufgabe die Eingangsphase erreicht. Ticketstatus macht das Ticket anhand seines eigenen Status sichtbar.');
+INSERT INTO txt VALUES ('H5554', 'English', 'Ticket matrix only: Any task makes the ticket visible when at least one task reaches the input phase. Ticket state makes the ticket visible according to its own state.');
 INSERT INTO txt VALUES ('H5561', 'German',  'In diesem Abschnitt k&ouml;nnen allgemeine Einstellungen zur Konfiguration der Workflows vorgenommen werden.');
 INSERT INTO txt VALUES ('H5561', 'English', 'In this chapter general settings for workflow configuration can be done.');
 INSERT INTO txt VALUES ('H5562', 'German',  'Verf&uuml;gbare Auftragstypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Auftragstypen zur Verwendung in den Workflows angeboten werden sollen.');
@@ -7123,24 +7285,28 @@ INSERT INTO txt VALUES ('H5621', 'English', 'A modeller can overwrite some perso
 ');
 INSERT INTO txt VALUES ('H5622', 'German',  'Name der beantragten Schnittstelle: Namensvorschlag bei der Beantragung einer Schnittstelle. Kann vom Antragsteller noch ge&auml;ndert werden.');
 INSERT INTO txt VALUES ('H5622', 'English', 'Name of requested interface: Proposed name of the requested interface. Can be changed by the requester.');
-INSERT INTO txt VALUES ('H5623', 'German',  'Titel der Antragsbenachrichtigung: Betreff der Email-Benachrichtigung an die Beauftragten.');
-INSERT INTO txt VALUES ('H5623', 'English', 'Subject of request emails: Subject of the email to the addressed owners.');
-INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Wird noch durch Antragsteller (zu Beginn) und Beauftragtem (am Ende) erg&auml;nzt.
-    Hinzu kommt noch jeweils ein Link auf den Auftrag im Workflowmodul und auf die beauftragte Schnittstelle im Modellierungsmodul.
-');
-INSERT INTO txt VALUES ('H5624', 'English', 'Body of request emails: Text of the email notification to the addressed owners. Will be appended by the requester (at the beginning) and the addressed owner (at the end).
-    Additionally links to the request in the Workflow module and the requested interface in the Modelling module are added.
-');
-INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung an die Beauftragten. Verf&uuml;gbare Platzhalter:
+INSERT INTO txt VALUES ('H5623', 'German',  'Titel der Antragsbenachrichtigung: Betreff der Email-Benachrichtigung f&uuml;r die initiale Schnittstellenanfrage.');
+INSERT INTO txt VALUES ('H5623', 'English', 'Subject of initial request emails: Subject of the email notification for the initial interface request.');
+INSERT INTO txt VALUES ('H5624', 'German',  'Text der Antragsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r die initiale Schnittstellenanfrage. Sie wird sofort ohne Frist versendet.
+    Verf&uuml;gbare Platzhalter:
     @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
-INSERT INTO txt VALUES ('H5624a', 'English', 'Body of unanswered request emails: Text of the email notification to the addressed owners. Available placeholders:
+INSERT INTO txt VALUES ('H5624', 'English', 'Body of initial request emails: Text of the email notification for the initial interface request. It is sent immediately without a deadline.
+    Available placeholders:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
+INSERT INTO txt VALUES ('H5624a', 'German',  'Text der Erinnerungsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r Erinnerungen an offene Schnittstellenanfragen.
+    Verf&uuml;gbare Platzhalter:
+    @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
+');
+INSERT INTO txt VALUES ('H5624a', 'English', 'Body of reminder emails: Text of the email notification for reminders about open interface requests.
+    Available placeholders:
     @@APPNAME@@, @@APPID@@, @@REQUESTER@@, @@REQUESTDATE@@, @@REQUESTING_APPNAME@@, @@REQUESTING_APPID@@, @@INTERFACE_LINK@@.
 ');
 INSERT INTO txt VALUES ('H5625', 'German',  'Titel des Schnittstellentickets: Titel, mit dem ein neues Ticket zur Beantragung einer Schnittstelle angelegt wird.');
 INSERT INTO txt VALUES ('H5625', 'English', 'Title of interface request ticket: Title used for the new interface request ticket.');
 INSERT INTO txt VALUES ('H5626', 'German',  'Titel des Schnittstellenauftrags: Titel, mit dem ein neuer Auftrag im Ticket zur Beantragung einer Schnittstelle angelegt wird.');
-INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request ticket: Title used for the Task in the new interface request ticket.');
+INSERT INTO txt VALUES ('H5626', 'English', 'Title of interface request task: Title used for the task in the new interface request ticket.');
 INSERT INTO txt VALUES ('H5627', 'German',  'App-Server-Typen: Hier k&ouml;nnen beliebige App-Server-Typen mit Namen und Id definiert werden. Bitte jeweils neue Id vergeben. Vorsicht beim L&ouml;schen bereits verwendeter Typen!
     Der Standard-typ ist immer vorhanden und wird beim Datenimport verwendet. Hier kann nur der dargestellte Name gesetzt werden. Zur manuellen Zuweisung zu einem App-Server kann er nicht verwendet werden.
 ');
@@ -7153,17 +7319,17 @@ INSERT INTO txt VALUES ('H5628', 'German',  'Vordefinierte Dienste: Hier wird de
 INSERT INTO txt VALUES ('H5628', 'English', 'Predefined Services: Offers a menu to the administrator to define, change or delete predefined services or service groups.
     These services are available for all applications.
 ');
-INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, wer wie oft in welchem Zeitintervall &uuml;ber offene Schnittstellenantr&auml;ge benachrichtigt wird.');
-INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines who will be notified how often and in which time interval about open interface requests.');
-INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+INSERT INTO txt VALUES ('H5629', 'German',  'Erinnerungsbenachrichtigungen: Legt fest, welche Erinnerungsbenachrichtigungen f&uuml;r offene Schnittstellenanfragen mit der Frist RequestDate versendet werden.');
+INSERT INTO txt VALUES ('H5629', 'English', 'Reminders: Defines which reminder notifications are sent for open interface requests with deadline RequestDate.');
+INSERT INTO txt VALUES ('H5630', 'German',  'Empf&auml;nger der Antragsbenachrichtigung: Mehrfachauswahl, an wen die initiale Benachrichtigung als To, Cc oder Bcc geschickt werden soll.
     Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
     Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.
-    Zus&auml;tzlich kann festgelegt werden, ob der Antragsteller die Nachricht im Cc bekommen soll (Default: ja).
+    Der Antragsteller kann dabei als Empf&auml;nger in der gew&uuml;nschten Spalte ausgew&auml;hlt werden.
 ');
-INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of request emails: Multi-select list defining who receives the request notification email.
+INSERT INTO txt VALUES ('H5630', 'English', 'Receiver of initial request emails: Multi-select list defining who receives the initial notification in To, Cc or Bcc.
     Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
     If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.
-    It can also be configured whether the requester receives the email in Cc (default: yes).
+    The requester can also be selected as recipient in the desired column.
 ');
 INSERT INTO txt VALUES ('H5631', 'German',  'Servicegruppen aufl&ouml;sen: Ersetze beim Erzeugen eines externen Auftrags die Servicegruppen durch die einzelnen Mitglieder.');
 INSERT INTO txt VALUES ('H5631', 'English', 'Resolve service groups: Replace service groups by its members when creating an external request.');
@@ -7189,6 +7355,12 @@ INSERT INTO txt VALUES ('H5638', 'German',  'Hier wird der Anweisungstext f&uuml
 INSERT INTO txt VALUES ('H5638', 'English', 'Insert text for extra configurations.');
 INSERT INTO txt VALUES ('H5639', 'German',  'Hier wird der Meldungstext f&uuml;r Fehler im externen Beantragungsprozess eingetragen.');
 INSERT INTO txt VALUES ('H5639', 'English', 'Insert customized text for errors in requests to external ticket system.');
+INSERT INTO txt VALUES ('H5640', 'German',  'Antragsbenachrichtigung: Benachrichtigt die konfigurierten Empf&auml;nger sofort, wenn ein neues Schnittstellenticket angelegt wurde. Sie verwendet die Frist &quot;None&quot;; deshalb werden keine Vor- oder Nachfrist-Offsets ausgewertet.');
+INSERT INTO txt VALUES ('H5640', 'English', 'Initial request: Notifies the configured recipients immediately when a new interface request ticket is created. It uses deadline &quot;None&quot;, so no before- or after-deadline offsets are evaluated.');
+INSERT INTO txt VALUES ('H5641', 'German',  'Erinnerung: Benachrichtigt &uuml;ber offene Schnittstellenanfragen. Sie verwendet die Frist &quot;RequestDate&quot;; die Vorfrist, Nachfrist und Wiederholungen bestimmen, wann Erinnerungen gesendet werden.');
+INSERT INTO txt VALUES ('H5641', 'English', 'Reminder: Notifies about open interface requests. It uses deadline &quot;RequestDate&quot;; the before-deadline, after-deadline and repetition settings determine when reminders are sent.');
+INSERT INTO txt VALUES ('H5642', 'German',  'Schnittstellenstilllegung: Benachrichtigt die Verantwortlichen der Anwendungen, die eine stillgelegte Schnittstelle verwenden. Sie wird sofort mit der Frist &quot;None&quot; gesendet. Falls eine Ersatzschnittstelle angegeben ist, werden deren Name und Link eingesetzt, gefolgt von den betroffenen Verbindungen.');
+INSERT INTO txt VALUES ('H5642', 'English', 'Interface decommission: Notifies the responsible users of applications using a decommissioned interface. It is sent immediately with deadline &quot;None&quot;. If a replacement interface is provided, its name and link are inserted, followed by the affected connections.');
 INSERT INTO txt VALUES ('H5643', 'German',  'DNS-Suche: Wenn gesetzt, werden App-Server-Namen aus dem DNS erg&auml;nzt und sind nicht manuell editierbar. Falls kein Name aufgel&ouml;st werden kann, wird er aus Pr&auml;fix und IP-Adresse konstruiert.');
 INSERT INTO txt VALUES ('H5643', 'English', 'DNS Look-up: When set, App Server names are resolved from DNS and are not manually editable. If no name can be resolved, it is constructed from prefix and IP address.');
 INSERT INTO txt VALUES ('H5644', 'German',  'Existierende Namen &uuml;berschreiben: Wenn gesetzt, werden bereits existierende Namen auch &uuml;berschrieben, wenn sie nicht im DNS aufgel&ouml;st werden k&ouml;nnen.');
@@ -7243,19 +7415,19 @@ INSERT INTO txt VALUES ('H5658', 'German',  'Rezertifizierungstext: Text, der zu
 INSERT INTO txt VALUES ('H5658', 'English', 'Recertification Text: Text to be shown to confirm recertification. If the text contains a placeholder "@@APPNAME@@", it is replaced by the app name.');
 INSERT INTO txt VALUES ('H5659', 'German',  'Netzwerkareas f&uuml;r Updatable Objects: Vom Administrator vorgegebene Netzwerkareas, welche f&uuml;r die Zuordnung &uuml;ber die Sonderkonfiguration "Updatable Objects" genutzt werden d&uuml;rfen. Die beiden Auswahlfelder "in Quelle" und "in Ziel" legen fest, wo die Netzwerkarea genutzt werden darf.');
 INSERT INTO txt VALUES ('H5659', 'English', 'Network Areas for Updatable Objects: Network areas defined by the administrator, which are permitted to be used for assignment via the Extra Configurations "Updatable Objects". The flags "in Source" and "in Destination" determine, where the Network Areas are allowed to be used.');
-INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Email geschickt werden soll.
+INSERT INTO txt VALUES ('H5660', 'German',  'Empf&auml;nger der Stilllegungsbenachrichtigung: Mehrfachauswahl, an wen die Stilllegungsbenachrichtigung als To, Cc oder Bcc geschickt werden soll.
     Verf&uuml;gbare Optionen sind Keine, Andere Adressen, die Option "Mindestens eine Email-Benachrichtigung sicherstellen" und alle aktiven Verantwortlichkeitsstufen.
     Ist "Keine" gesetzt, sind alle anderen Optionen deaktiviert. Wenn "Mindestens eine Email-Benachrichtigung sicherstellen" aktiv ist, werden zuerst die ausgew&auml;hlten Optionen verwendet. Nur falls daraus keine Empf&auml;nger entstehen, werden nicht ausgew&auml;hlte Verantwortlichkeitsstufen von hoher zu niedriger Sortierreihenfolge durchsucht, bis eine Stufe mit Empf&auml;ngern gefunden wird.');
-INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Multi-select list defining who receives the decommission notification email.
+INSERT INTO txt VALUES ('H5660', 'English', 'Receiver of decommission emails: Multi-select list defining who receives the decommission notification in To, Cc or Bcc.
     Available options are None, Other addresses, the option "Ensure at least one email notification can be sent", and all active responsible levels.
     If "None" is selected, all other options are disabled. If "Ensure at least one email notification can be sent" is active, selected options are used first. Only if they yield no recipients, non-selected responsible levels are checked from highest to lowest sort order until a level with recipients is found.');
-INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung an die betroffenen Eigent&uuml;mer. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der zu l&ouml;schenden Schnittstelle ersetzt.');
-INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email to the addressed owners. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
-INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung an die Nutzer der Schnittstelle, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
+INSERT INTO txt VALUES ('H5661', 'German',  'Titel der Stilllegungsbenachrichtigung: Betreff der Email-Benachrichtigung f&uuml;r die Stilllegung eines Eigent&uuml;mers. Platzhalter @@INTERFACE_NAME@@ werden mit dem Namen der stillzulegenden Schnittstelle ersetzt.');
+INSERT INTO txt VALUES ('H5661', 'English', 'Subject of decommission emails: Subject of the email notification for decommissioning an owner. Placeholders @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned.');
+INSERT INTO txt VALUES ('H5662', 'German',  'Text der Stilllegungsbenachrichtigung: Text der Email-Benachrichtigung f&uuml;r die Stilllegung eines Eigent&uuml;mers, gefolgt von der Liste der betroffenen Verbindungen. Es k&ouml;nnen folgende Platzhalter genutzt werden:
     @@INTERFACE_NAME@@ wird durch den Namen der stillzulegenden Schnittstelle ersetzt, @@NEW_INTERFACE_NAME@@ mit dem Namen der vorgeschlagenen Ersatzschnittstelle, @@NEW_INTERFACE_LINK@@ mit einem Link auf diese,
-    @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stillegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stillegung veranlasst hat.
+    @@REASON@@ mit dem Begr&uuml;ndungstext, der im Stilllegungsformular eingegeben wurde, @@USER_NAME@@ mit dem Nutzer, der die Stilllegung veranlasst hat.
 ');
-INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification to the addressed owners, followed by a list of the affected connections. Some placeholders can be used:
+INSERT INTO txt VALUES ('H5662', 'English', 'Body of decommission emails: Text of the email notification for decommissioning an owner, followed by a list of the affected connections. Some placeholders can be used:
     @@INTERFACE_NAME@@ will be replaced by the name of the interface to be decommissioned, @@NEW_INTERFACE_NAME@@ by the name of the proposed new interface, @@NEW_INTERFACE_LINK@@ by a link to this interface,
     @@REASON@@ by the reason text filled in the decommission form, @@USER_NAME@@ by the user initiating the decommissioning.
 ');
@@ -8008,6 +8180,40 @@ INSERT INTO txt VALUES ('H7253', 'German', 'Die Ergebnisse der Pr&uuml;fung des 
 INSERT INTO txt VALUES ('H7253', 'English', 'Results of the Import status checks of the active managements are recorded here. If anomalies as overdue or missing imports are found,
     separate alerts are raised, which can be analysed and handled at <a href="/help/monitoring/open_alerts">Open Alerts</a>.
 ');
+INSERT INTO txt VALUES ('H7261', 'German', 'Ein vollst&auml;ndiger Neuaufbau berechnet alle Zuordnungen von Grund auf und vergleicht das Ergebnis mit dem gespeicherten Stand. Der Balken oben sagt, wie die Zuordnung <b>aktuell</b> steht; er nimmt den zuletzt gelaufenen Neuaufbau. Darunter stehen die aufgezeichneten L&auml;ufe, zwischen denen mit <i>Neuer</i> und <i>&Auml;lter</i> gewechselt wird.');
+INSERT INTO txt VALUES ('H7261', 'English', 'A full rebuild recalculates every mapping from scratch and compares the result with the stored state. The banner at the top says how the mapping stands <b>right now</b>, taken from the rebuild that ran last. Below it are the recorded runs; use <i>Newer</i> and <i>Older</i> to move between them.');
+INSERT INTO txt VALUES ('H7262', 'German', 'Die f&uuml;nf Zust&auml;nde: <b>Unver&auml;ndert</b> &ndash; der Lauf fand keinen Unterschied, die laufende Aktualisierung ist auf dem richtigen Stand. <b>&Auml;nderung angewendet</b> &ndash; eine Einstellung wurde ge&auml;ndert, das Ergebnis weicht deshalb bewusst ab. <b>Importe offen</b> &ndash; es war noch etwas unverarbeitet, der Lauf kann nichts aussagen. <b>Kein Treffer</b> &ndash; die Zuordnungsquelle trifft keine Regel mehr, alle Zuordnungen wurden entfernt; das ist fast immer eine falsch konfigurierte Quelle und nicht die laufende Aktualisierung. <b>Abweichung</b> &ndash; Unterschied ohne offene Importe und ohne &Auml;nderung; nur dieser Zustand weist auf die laufende Aktualisierung. Steht beim Lauf ein Hinweis auf eine gespeicherte, nie angewendete &Auml;nderung, kann der Unterschied auch von dieser stammen.');
+INSERT INTO txt VALUES ('H7262', 'English', 'The five states: <b>In sync</b> &ndash; the run found no difference, the running update is up to date. <b>Change applied</b> &ndash; a setting was changed, so the result deliberately differs. <b>Imports pending</b> &ndash; something was still unprocessed, the run cannot judge. <b>No match</b> &ndash; the mapping source no longer matches any rule, so all mappings were removed; that is almost always a misconfigured source rather than the running update. <b>Deviation</b> &ndash; a difference without pending imports and without a change; only this state points at the running update. If the run carries a note about a saved change that was never applied, the difference may come from that instead.');
+INSERT INTO txt VALUES ('H7263', 'German', 'Aufgezeichnet werden L&auml;ufe mit Unterschied und L&auml;ufe, die eine ge&auml;nderte Einstellung angewendet haben &ndash; letztere auch dann, wenn sie nichts bewirkt haben, denn genau das will man sehen. Ein Neuaufbau ohne Unterschied belegt keinen Platz, er frischt nur den Zeitstempel oben auf. Es werden bis zu zehn L&auml;ufe behalten.');
+INSERT INTO txt VALUES ('H7263', 'English', 'Recorded are runs with a difference and runs that applied a changed setting &ndash; the latter even when they had no effect, because that is exactly what you want to see. A rebuild without a difference takes no slot, it only refreshes the timestamp above. Up to ten runs are kept.');
+INSERT INTO txt VALUES ('H7264', 'German', 'In der Tabelle h&auml;ngt die Bezeichnung vom Zustand des Laufs ab. Nur bei einer <b>Abweichung</b> hei&szlig;t es <b>Nicht angelegt</b> beziehungsweise <b>Nicht entfernt</b> &ndash; die laufende Aktualisierung h&auml;tte das tun m&uuml;ssen. In jedem anderen Zustand &ndash; bewusste &Auml;nderung, offene Importe oder kein Treffer &ndash; hei&szlig;t dasselbe <b>Neu hinzugekommen</b> und <b>Weggefallen</b>, denn dort ist der Unterschied entweder gewollt oder nicht der laufenden Aktualisierung zuzurechnen. Regel, Eigent&uuml;mer und Metadaten sind als IDs angegeben; &uuml;ber <i>Erstellt</i> und <i>Entfernt</i> l&auml;sst sich die Zeile in der Tabelle rule_owner wiederfinden.');
+INSERT INTO txt VALUES ('H7264', 'English', 'In the table the wording depends on the state of the run. Only for a <b>deviation</b> does it read <b>Not created</b> or <b>Not removed</b> &ndash; the running update should have done that. In every other state &ndash; a deliberate change, pending imports or no match &ndash; the same thing reads <b>Newly added</b> and <b>No longer applies</b>, because there the difference is either intended or not attributable to the running update. Rule, owner and metadata are given as IDs; <i>Created</i> and <i>Removed</i> let you find the row again in the rule_owner table.');
+INSERT INTO txt VALUES ('H7265', 'German', 'Beim Wechsel der Mapping-Quelle &auml;ndert sich jede Zuordnung. Die Einzelliste wird dann nicht gespeichert, weil sie nichts aussagen w&uuml;rde; die Z&auml;hler bleiben vollst&auml;ndig. Waren Importe offen, stehen deren Nummern dabei und der Lauf frischt den Zeitstempel oben nicht auf &ndash; er hat ja nichts nachgewiesen. Ein Import, der zweimal hintereinander nicht verarbeitet werden konnte, l&ouml;st selbst einen vollst&auml;ndigen Neuaufbau aus; der erscheint dann hier mit dieser Import-Nummer und zeigt, welche Zuordnungen dadurch gefehlt haben.');
+INSERT INTO txt VALUES ('H7265', 'English', 'Switching the mapping source changes every mapping. The individual list is then not stored because it would say nothing; the counts stay complete. If imports were pending, their numbers are listed and the run does not refresh the timestamp above &ndash; it proved nothing. An import that could not be processed twice in a row triggers a full rebuild itself; that run then appears here with the import number and shows which mappings had been missing because of it.');
+INSERT INTO txt VALUES ('H7276', 'German', 'Ein Alarm wird gemeldet, wenn ein Import nicht verarbeitet werden konnte, wenn wegen zu vieler offener Importe auf einen vollst&auml;ndigen Neuaufbau ausgewichen wurde, wenn die Mapping-Quelle &uuml;berhaupt keine Regel mehr trifft, und bei einer echten Abweichung. Scheitert derselbe Import erneut, wird normalerweise kein zweiter Alarm gemeldet &ndash; der erste steht ja noch offen &ndash; sondern der Zustand durch einen vollst&auml;ndigen Neuaufbau repariert. Kann die Wiederholung aber gar nicht erst festgehalten werden, weil der gespeicherte Eintrag besch&auml;digt ist oder nicht geschrieben werden kann, findet dieser Neuaufbau nie statt: dann meldet stattdessen jeder Lauf einen eigenen Alarm, der den Eintrag nennt und sagt, ob er zur&uuml;ckgesetzt werden muss oder der Schreibzugriff fehlt. Aus demselben Grund wird auch dann gemeldet, wenn die L&auml;ufe selbst nicht mehr aufgezeichnet werden k&ouml;nnen. Eine bewusste &Auml;nderung und offene Importe l&ouml;sen keinen Alarm aus. Alarme stehen unter Monitoring &ndash; Alarme.');
+INSERT INTO txt VALUES ('H7276', 'English', 'An alert is raised when an import could not be processed, when too many pending imports forced a full rebuild, when the mapping source no longer matches any rule at all, and on a real deviation. If the same import fails again, normally no second alert is raised &ndash; the first one is still open &ndash; and the state is repaired by a full rebuild instead. But if the repeat cannot be remembered at all, because the stored entry is damaged or cannot be written, that rebuild never happens: every run then raises an alert of its own, naming the entry and saying whether it has to be reset or whether write access is missing. For the same reason an alert is raised when the runs themselves can no longer be recorded. A deliberate change and pending imports raise no alert. Alerts are listed under Monitoring &ndash; Alerts.');
+INSERT INTO txt VALUES ('H7277', 'German', 'Kann der gespeicherte Eintrag nicht gelesen werden, steht statt der Liste ein roter Hinweis. Das ist nicht dasselbe wie <i>noch nichts aufgezeichnet</i>. Der Hinweis unterscheidet zwei F&auml;lle: konnte der Eintrag nur nicht <i>abgerufen</i> werden, ist er selbst unber&uuml;hrt und ein erneutes Laden gen&uuml;gt oft. Ist er <i>besch&auml;digt</i>, wird er bewusst nicht &uuml;berschrieben, damit nichts verloren geht &ndash; solange wird dann auch nichts Neues aufgezeichnet, und der Eintrag muss zur&uuml;ckgesetzt werden: dazu wird config_value in der Zeile mit config_user = 0 der Tabelle config geleert. In beiden F&auml;llen kann die Seite keine Aussage &uuml;ber Abweichungen treffen.');
+INSERT INTO txt VALUES ('H7277', 'English', 'If the stored entry cannot be read, a red notice replaces the list. That is not the same as <i>nothing recorded yet</i>. The notice tells two cases apart: if the entry merely could not be <i>fetched</i>, it is itself untouched and reloading often suffices. If it is <i>damaged</i>, it is deliberately not overwritten so nothing is lost &ndash; nothing new is recorded while that lasts, and the entry has to be reset: clear its config_value in the row with config_user = 0 of table config. In both cases the page can say nothing about deviations.');
+INSERT INTO txt VALUES ('H7266', 'German', 'Wie das Ergebnis dieses Laufs zu lesen ist. Nur <i>Abweichung</i> weist auf ein Problem hin; die anderen Zust&auml;nde erkl&auml;ren den Unterschied von selbst.');
+INSERT INTO txt VALUES ('H7266', 'English', 'How the result of this run has to be read. Only <i>Deviation</i> points at a problem; the other states explain the difference themselves.');
+INSERT INTO txt VALUES ('H7267', 'German', 'Zeitpunkt, zu dem die vollst&auml;ndige Neuberechnung abgeschlossen und ihr Ergebnis festgehalten wurde.');
+INSERT INTO txt VALUES ('H7267', 'English', 'Point in time at which the full recalculation finished and its result was recorded.');
+INSERT INTO txt VALUES ('H7268', 'German', 'Nummer des Imports, unter dem die Neuberechnung verbucht wurde. Alle unten aufgef&uuml;hrten Zeilen sind in der Tabelle rule_owner &uuml;ber diese Nummer auffindbar.');
+INSERT INTO txt VALUES ('H7268', 'English', 'Number of the import the recalculation was recorded under. Every row listed below can be found in the rule_owner table by this number.');
+INSERT INTO txt VALUES ('H7269', 'German', 'Verfahren, nach dem die Zuordnungen berechnet wurden, also IP-basiert, Custom-Feld oder Namensfeld.');
+INSERT INTO txt VALUES ('H7269', 'English', 'Method the mappings were calculated with, that is IP based, custom field or name field.');
+INSERT INTO txt VALUES ('H7270', 'German', 'Anzahl der Zuordnungen nach diesem Lauf.');
+INSERT INTO txt VALUES ('H7270', 'English', 'Number of mappings after this run.');
+INSERT INTO txt VALUES ('H7271', 'German', 'Zuordnungen, die dieser Lauf angelegt hat, weil es sie vorher nicht gab. Die laufende Aktualisierung h&auml;tte sie erzeugen m&uuml;ssen.');
+INSERT INTO txt VALUES ('H7271', 'English', 'Mappings this run created because they did not exist before. The running update should have created them.');
+INSERT INTO txt VALUES ('H7272', 'German', 'Zuordnungen, die dieser Lauf entfernt hat, weil sie nicht mehr zutreffen. Die laufende Aktualisierung h&auml;tte sie abr&auml;umen m&uuml;ssen.');
+INSERT INTO txt VALUES ('H7272', 'English', 'Mappings this run removed because they no longer apply. The running update should have cleared them.');
+INSERT INTO txt VALUES ('H7273', 'German', 'Importe, die zu Beginn des Laufs noch nicht verarbeitet waren. Sind hier Nummern eingetragen, erkl&auml;rt der Rückstand den Unterschied und der Lauf sagt nichts &uuml;ber die Qualit&auml;t der laufenden Aktualisierung.');
+INSERT INTO txt VALUES ('H7273', 'English', 'Imports that had not been processed when the run started. If numbers are listed here, the backlog explains the difference and the run says nothing about the quality of the running update.');
+INSERT INTO txt VALUES ('H7274', 'German', 'Was vor diesem Lauf ge&auml;ndert wurde. Deshalb weicht das Ergebnis bewusst vom vorherigen Stand ab, und der Unterschied wird nicht als Problem gemeldet.');
+INSERT INTO txt VALUES ('H7274', 'English', 'What was changed before this run. That is why the result deliberately differs from the previous state, and the difference is not reported as a problem.');
+INSERT INTO txt VALUES ('H7275', 'German', 'Wie die Eigent&uuml;merzuordnung aktuell steht, abgeleitet aus dem zuletzt gelaufenen Neuaufbau. Nur <i>Die letzte Pr&uuml;fung hat Abweichungen gefunden</i> weist auf ein Problem hin. Die unten aufgelisteten L&auml;ufe sind Historie: jeder Neuaufbau schreibt selbst den korrekten Stand, der Befund berichtet also, was vorher falsch war. Der Zeitstempel der letzten Pr&uuml;fung ohne Befund wird nie verdr&auml;ngt.');
+INSERT INTO txt VALUES ('H7275', 'English', 'How the owner mapping stands right now, taken from the rebuild that ran last. Only <i>The last check found deviations</i> points at a problem. The runs listed below are history: every rebuild writes the correct state itself, so a finding reports what was wrong before it ran. The timestamp of the last check without findings is never pushed out.');
 INSERT INTO txt VALUES ('H7301', 'German', 'Hier werden die Ausgaben der verschiedenen Importe protokolliert.
 ');
 INSERT INTO txt VALUES ('H7301', 'English', 'Here the output of the different imports are documented.
@@ -8067,6 +8273,11 @@ INSERT INTO txt VALUES ('H7412', 'English', 'With "Show orphaned only" all orpha
 INSERT INTO txt VALUES ('H7413', 'German', 'Die Tabellen sind in Abschnitte gegliedert. &Uuml;ber die Aktionsspalte k&ouml;nnen verwaiste Eintr&auml;ge aus der Verbindung entfernt werden.
 ');
 INSERT INTO txt VALUES ('H7413', 'English', 'The tables are grouped in sections. Use the action column to remove orphaned entries from the connection.
+');
+
+INSERT INTO txt VALUES ('H7414', 'German', 'Email-Protokoll: Zeigt alle protokollierten Benachrichtigungs-Emails mit Zeitstempel, Benachrichtigungstyp, Empf&auml;ngern und Betreff.
+');
+INSERT INTO txt VALUES ('H7414', 'English', 'Email log: Shows all logged notification emails with timestamp, notification type, recipients and subject.
 ');
 
 INSERT INTO txt VALUES ('H7421', 'German', 'Diese Seite zeigt alle angeforderten Schnittstellen mit beantragender und angefragter Applikation, Ticket, Status und Erstellungsdatum.
@@ -9157,3 +9368,7 @@ INSERT INTO txt VALUES ('H5914', 'German', 'Standardm&auml;&szlig;ig zeigt der C
 INSERT INTO txt VALUES ('H5914', 'English', 'By default, the compliance diff report shows all violations found in the selected interval, including violations for rules that were already non-compliant at the start of the interval and violations that have since been resolved. When enabled, it shows only rules that were compliant at the start of the interval and subsequently became non-compliant. Resolved violations continue to be shown.');
 INSERT INTO txt VALUES ('H5915', 'German',  'Deaktiviert: Es wird keine automatische Eigent&uuml;merzuordnung berechnet. Dies ist die Voreinstellung. Beim Speichern dieser Quelle und beim Neuberechnen werden bereits berechnete Zuordnungen entfernt.');
 INSERT INTO txt VALUES ('H5915', 'English', 'Disabled: No automatic owner mapping is calculated. This is the default. Saving this source and recalculating remove the mappings calculated so far.');
+INSERT INTO txt VALUES ('H5916', 'German', 'Legt fest, wie ausf&uuml;hrlich einzelne nicht zuordenbare Regeln und ung&uuml;ltige Eigent&uuml;mer-Netze im Middleware-Log protokolliert werden. Bei vielen Altregeln ohne Zuordnung erzeugt jeder Lauf sonst eine Meldung pro Regel. Die Zusammenfassung pro Lauf und fehlgeschlagene Importe werden immer protokolliert.');
+INSERT INTO txt VALUES ('H5916', 'English', 'Controls how much detail about single unmappable rules and invalid owner networks is written to the middleware log. With many legacy rules that can never be mapped, every run would otherwise produce one message per rule. The per-run summary and failed imports are always logged.');
+INSERT INTO txt VALUES ('H5917', 'German', '<b>Protokollierung Zuordnungsprobleme</b>: bestimmt, wie ausf&uuml;hrlich einzelne Regeln und Objekte im Middleware-Log auftauchen, die nicht zugeordnet werden konnten. Die Zusammenfassung jedes Laufs, fehlgeschlagene Importe und Alarme werden unabh&auml;ngig davon immer protokolliert. Die Einstellung gilt nur f&uuml;r die Eigent&uuml;merzuordnung und &auml;ndert die Protokollierung anderer Komponenten nicht. Die Stufen bauen aufeinander auf:<ul><li><i>Keine(r/s)</i>: keine Meldungen zu einzelnen Regeln oder Objekten.</li><li><i>Fehler</i>: die Konfiguration selbst ist unbrauchbar, z. B. ein Eigent&uuml;mer-Netz mit ung&uuml;ltigem IP-Bereich oder eine fehlende Markierung. Wenige Meldungen, immer zu pr&uuml;fen.</li><li><i>Warnung</i>: zus&auml;tzlich Regeln, die trotz Modellierung ohne Eigent&uuml;mer bleiben, z. B. wenn die Markierung auf eine Verbindung ohne aktiven Eigent&uuml;mer zeigt. Voreinstellung.</li><li><i>Info</i>: zus&auml;tzlich im Normalbetrieb erwartbare F&auml;lle, z. B. Regeln ganz ohne Netzwerkobjekt.</li><li><i>Debug</i>: zus&auml;tzlich alle nie modellierten Altregeln. Mit Abstand die gr&ouml;&szlig;te Menge.</li></ul>');
+INSERT INTO txt VALUES ('H5917', 'English', '<b>Logging of mapping issues</b>: sets how much detail about single rules and objects that could not be mapped appears in the middleware log. The summary of every run, failed imports and alerts are always logged regardless. The setting applies to the owner mapping only and does not change the logging of any other component. The levels build on each other:<ul><li><i>None</i>: no messages about single rules or objects.</li><li><i>Error</i>: the configuration itself is unusable, for instance an owner network with an invalid IP range or a missing marker. Few messages, always worth checking.</li><li><i>Warning</i>: additionally rules that stay without an owner although they were modelled, for instance when the marker points to a connection without an active owner. Default.</li><li><i>Info</i>: additionally cases that are plausible in normal operation, such as rules without any network object.</li><li><i>Debug</i>: additionally every rule that was never modelled. By far the largest volume.</li></ul>');

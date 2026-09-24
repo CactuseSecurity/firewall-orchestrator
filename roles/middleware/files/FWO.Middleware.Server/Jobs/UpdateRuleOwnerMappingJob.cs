@@ -14,6 +14,7 @@ namespace FWO.Middleware.Server.Jobs
     public class UpdateRuleOwnerMappingJob : IJob
     {
         private const string LogMessageTitle = "Update rule_owner Notify";
+        private const int kAlertSeverity = 1;
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
 
@@ -38,7 +39,7 @@ namespace FWO.Middleware.Server.Jobs
             }
             catch (Exception exc)
             {
-                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, 1, LogMessageTitle, GlobalConst.kImportChangeNotify, AlertCode.ImportChangeNotify, exc);
+                await AlertHelper.LogErrorsWithAlert(apiConnection, globalConfig, kAlertSeverity, LogMessageTitle, GlobalConst.kRuleOwnerMapping, AlertCode.RuleOwnerMapping, exc);
             }
         }
     }

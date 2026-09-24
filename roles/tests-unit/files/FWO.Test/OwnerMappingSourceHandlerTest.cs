@@ -1,5 +1,8 @@
 using FWO.Basics;
 using FWO.Config.Api.Data;
+using FWO.Services;
+using System.Collections.Generic;
+using System.Linq;
 using FWO.Ui.Services;
 using NUnit.Framework;
 
@@ -655,6 +658,106 @@ namespace FWO.Test
                 // the marker is only evaluated and only written by the name field mapping
                 Assert.That(handler.ApplyTo(configData), Is.False);
                 Assert.That(configData.ModModelledMarker, Is.EqualTo("OLD"));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_RecordsAChangedMarker_SoTheRebuildResultCanBeUnderstood()
+        {
+            OwnerMappingSourceHandler handler = new();
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField, ModModelledMarker = "FWOC" };
+            handler.Init(configData);
+
+            handler.ModelledMarker = "APP";
+            handler.ApplyTo(configData);
+
+            RuleOwnerMappingChange change = handler.AppliedChanges.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(change.Setting, Is.EqualTo(RuleOwnerMappingChangeSetting.kMarker));
+                Assert.That(change.From, Is.EqualTo("FWOC"));
+                Assert.That(change.To, Is.EqualTo("APP"));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_RecordsASwitchedSourceByItsName()
+        {
+            OwnerMappingSourceHandler handler = new();
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.IpBased };
+            handler.Init(configData);
+
+            handler.SelectSource(OwnerMappingSourceStm.NameField);
+            handler.ApplyTo(configData);
+
+            RuleOwnerMappingChange change = handler.AppliedChanges.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(change.Setting, Is.EqualTo(RuleOwnerMappingChangeSetting.kSource));
+                // the names resolve to localized texts in the display
+                Assert.That(change.From, Is.EqualTo(nameof(OwnerMappingSourceStm.IpBased)));
+                Assert.That(change.To, Is.EqualTo(nameof(OwnerMappingSourceStm.NameField)));
+            });
+        }
+
+        [Test]
+        public void ApplyTo_RecordsNothing_WhenNoMappingRelevantSettingChanged()
+        {
+            OwnerMappingSourceHandler handler = new();
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField, ModModelledMarker = "FWOC" };
+            handler.Init(configData);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.ApplyTo(configData), Is.False);
+                Assert.That(handler.AppliedChanges, Is.Empty);
+            });
+        }
+
+        [Test]
+        public void AppliedChanges_SurviveAFailedSaveAndAreDroppedOnceTheRebuildIsDone()
+        {
+            OwnerMappingSourceHandler handler = new();
+            ConfigData configData = new() { OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField, ModModelledMarker = "FWOC" };
+            handler.Init(configData);
+
+            handler.ModelledMarker = "APP";
+            handler.ApplyTo(configData);
+            // a retry after a failed write must still name what was changed
+            handler.ApplyTo(configData);
+
+            Assert.That(handler.AppliedChanges, Has.Count.EqualTo(1));
+
+            handler.ConfirmRuleOwnerRebuild();
+
+            Assert.That(handler.AppliedChanges, Is.Empty);
+        }
+
+        [Test]
+        public void ApplyTo_RecordsChangedCustomFieldKeys()
+        {
+            OwnerMappingSourceHandler handler = new();
+            ConfigData configData = new()
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.CustomField,
+                CustomFieldOwnerKey = @"[""owner""]"
+            };
+            handler.Init(configData);
+
+            handler.ActiveOwnerKey = "app_id";
+            handler.AddOwnerKey();
+            handler.Validate();
+            handler.ApplyTo(configData);
+
+            RuleOwnerMappingChange change = handler.AppliedChanges.Single();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(change.Setting, Is.EqualTo(RuleOwnerMappingChangeSetting.kCustomFieldKeys));
+                Assert.That(change.From, Is.EqualTo(@"[""owner""]"));
+                Assert.That(change.To, Does.Contain("app_id"));
             });
         }
     }

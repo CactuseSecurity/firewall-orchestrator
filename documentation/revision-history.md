@@ -769,6 +769,8 @@ Not supported any longer are:
 
 ## 9.5.5 - 23.09.2026
 - workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
+
+## 9.5.6 - 24.09.2026
 - variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import
   without policy changes cannot have changed a marker and is ignored, and where somebody is waiting for the
   result the analysis waits briefly for the mapping run instead of falling back to the much slower marker

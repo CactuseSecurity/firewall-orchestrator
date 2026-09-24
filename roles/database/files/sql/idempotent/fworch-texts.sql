@@ -4446,8 +4446,8 @@ INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht model
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
-INSERT INTO txt VALUES ('U9044', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
-INSERT INTO txt VALUES ('U9044', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
+INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
+INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');

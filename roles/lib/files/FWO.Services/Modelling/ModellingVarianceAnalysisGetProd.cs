@@ -1,4 +1,4 @@
-﻿using FWO.Api.Client.Queries;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -430,7 +430,7 @@ namespace FWO.Services.Modelling
                 return;
             }
             preFilterFallbackReported = true;
-            displayMessageInUi(null, userConfig.GetText("variance_analysis"), userConfig.GetText("U9044"), true);
+            displayMessageInUi(null, userConfig.GetText("variance_analysis"), userConfig.GetText("U9045"), true);
         }
 
         private async Task<HashSet<long>> GetNameFieldRuleOwnerConnectionIds()

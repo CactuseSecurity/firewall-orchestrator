@@ -65,7 +65,8 @@ namespace FWO.Test
                 ISchedulerFactory schedulerFactory,
                 ApiConnection apiConnection,
                 GlobalConfig globalConfig,
-                IHostApplicationLifetime appLifetime)
+                IHostApplicationLifetime appLifetime,
+                TimeProvider? timeProvider = null)
                 : base(
                     schedulerFactory,
                     apiConnection,
@@ -75,7 +76,8 @@ namespace FWO.Test
                         "TestScheduler",
                         "TestJob",
                         "TestTrigger",
-                        ConfigQueries.subscribeExternalRequestConfigChanges))
+                        ConfigQueries.subscribeExternalRequestConfigChanges),
+                    timeProvider)
             { }
 
             protected override int SleepTime => globalConfig.ExternalRequestSleepTime;
@@ -144,6 +146,60 @@ namespace FWO.Test
 
             apiConnection.Emit(CreateExternalRequestConfig(90, firstStart));
             await WaitUntil(async () => await ScheduleTriggerCallCount(scheduler) == 2);
+        }
+
+        [Test]
+        public async Task ConfigEmission_SchedulesTriggerRelativeToTimeProvider()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+            DateTime configuredStart = new(2026, 1, 1, 12, 0, 0);
+            FixedTimeProvider timeProvider = new(new DateTime(2026, 1, 1, 12, 2, 30));
+
+            _ = new SubscriptionDrivenTestSchedulerService(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime, timeProvider);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.ConfigUpdateHandler != null);
+
+            apiConnection.Emit(CreateExternalRequestConfig(60, configuredStart));
+            await WaitUntil(async () => await ScheduleTriggerCallCount(scheduler) == 1);
+
+            ITrigger scheduledTrigger = scheduler.ReceivedCalls()
+                .Where(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob))
+                .Select(call => call.GetArguments()[0])
+                .OfType<ITrigger>()
+                .Single();
+            Assert.That(scheduledTrigger.StartTimeUtc, Is.EqualTo(new DateTimeOffset(new DateTime(2026, 1, 1, 12, 3, 0))));
+        }
+
+        [Test]
+        public async Task DailyCheckScheduler_SchedulesNextRunRelativeToTimeProvider()
+        {
+            IScheduler scheduler = Substitute.For<IScheduler>();
+            ConfigureQuartzScheduler(scheduler);
+            ISchedulerFactory schedulerFactory = Substitute.For<ISchedulerFactory>();
+            schedulerFactory.GetScheduler().Returns(_ => new ValueTask<IScheduler>(scheduler));
+            CapturingApiConnection apiConnection = new();
+            using TestApplicationLifetime appLifetime = new();
+            DateTime configuredStart = new(2026, 1, 1, 3, 0, 0);
+            FixedTimeProvider timeProvider = new(new DateTime(2026, 1, 5, 8, 0, 0));
+
+            _ = new DailyCheckSchedulerService(schedulerFactory, apiConnection, new SimulatedGlobalConfig(), appLifetime, timeProvider);
+            appLifetime.Start();
+            await WaitUntil(() => apiConnection.ConfigUpdateHandler != null);
+
+            apiConnection.Emit(CreateDailyCheckConfig(configuredStart));
+            await WaitUntil(async () => await ScheduleJobAndTriggerCallCount(scheduler) == 1);
+
+            ITrigger scheduledTrigger = scheduler.ReceivedCalls()
+                .Where(call => call.GetMethodInfo().Name == nameof(IScheduler.ScheduleJob))
+                .Select(call => call.GetArguments().ElementAtOrDefault(1))
+                .OfType<ITrigger>()
+                .Single();
+            Assert.That(scheduledTrigger.StartTimeUtc, Is.EqualTo(new DateTimeOffset(new DateTime(2026, 1, 6, 3, 0, 0))));
         }
 
         [Test]

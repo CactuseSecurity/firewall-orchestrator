@@ -1,4 +1,5 @@
 using FWO.Middleware.Server.Services;
+using FWO.Test.Helpers;
 using NSubstitute;
 using NUnit.Framework;
 using Quartz;
@@ -38,6 +39,19 @@ namespace FWO.Test
             Assert.That(result!.Success, Is.True);
             Assert.That(result.ErrorMessage, Is.Empty);
             Assert.That(result.ExecutedAt, Is.GreaterThanOrEqualTo(beforeExecution));
+        }
+
+        [Test]
+        public async Task JobWasExecuted_UsesTimeProviderForExecutionTimestamp()
+        {
+            DateTimeOffset executionTime = new(2026, 4, 21, 10, 0, 0, TimeSpan.Zero);
+            JobExecutionTracker tracker = new(new FixedTimeProvider(executionTime));
+
+            await tracker.JobWasExecuted(CreateExecutionContext(new JobKey("timed-job")), null);
+
+            JobExecutionResult? result = tracker.GetLastResult("timed-job");
+            Assert.That(result, Is.Not.Null);
+            Assert.That(result!.ExecutedAt, Is.EqualTo(executionTime));
         }
 
         [Test]

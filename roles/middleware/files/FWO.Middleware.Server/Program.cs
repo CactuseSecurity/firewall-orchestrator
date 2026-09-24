@@ -66,7 +66,15 @@ Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdap
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
-builder.Services.AddQuartz();
+// Shared clock for Quartz and jobs, replaceable in tests
+TimeProvider timeProvider = TimeProvider.System;
+builder.Services.AddSingleton(timeProvider);
+
+builder.Services.AddQuartz(q =>
+{
+    q.UseTimeProvider(timeProvider);
+    q.AddJobListener(serviceProvider => serviceProvider.GetRequiredService<JobExecutionTracker>(), [GroupMatcher<JobKey>.AnyGroup()]);
+});
 builder.Services.AddQuartzHostedService(options =>
 {
     options.WaitForJobsToComplete = true;
@@ -220,12 +228,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-//Register JobExecutionTracker with scheduler
-ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
-JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
-IScheduler scheduler = await schedulerFactory.GetScheduler();
-scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup
 app.Services.GetRequiredService<ExternalRequestSchedulerService>();

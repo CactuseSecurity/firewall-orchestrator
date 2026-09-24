@@ -10,6 +10,16 @@ namespace FWO.Middleware.Server.Services
     public class JobExecutionTracker : IJobListener
     {
         private readonly ConcurrentDictionary<string, JobExecutionResult> executionResults = new();
+        private readonly TimeProvider timeProvider;
+
+        /// <summary>
+        /// Initializes the job execution tracker.
+        /// </summary>
+        /// <param name="timeProvider">Clock used for execution timestamps.</param>
+        public JobExecutionTracker(TimeProvider? timeProvider = null)
+        {
+            this.timeProvider = timeProvider ?? TimeProvider.System;
+        }
 
         /// <summary>
         /// Gets the name of the job listener.
@@ -55,7 +65,7 @@ namespace FWO.Middleware.Server.Services
             {
                 Success = success,
                 ErrorMessage = errorMessage ?? "",
-                ExecutedAt = DateTimeOffset.Now
+                ExecutedAt = timeProvider.GetLocalNow()
             };
 
             if (!success)

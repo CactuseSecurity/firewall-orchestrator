@@ -25,6 +25,7 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly TimeProvider timeProvider;
 
         /// <summary>
         /// Creates a new daily check job.
@@ -32,11 +33,13 @@ namespace FWO.Middleware.Server.Jobs
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="tokenLifetimeProvider">Provider for internal token lifetime defaults.</param>
-        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        /// <param name="timeProvider">Clock used for import age checks.</param>
+        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null, TimeProvider? timeProvider = null)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
+            this.timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         /// <inheritdoc />
@@ -222,7 +225,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0)
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))
+                    if (imp.LastIncompleteImport[0].StartTime < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportDuration))
                     {
                         jsonData = imp.LastIncompleteImport;
                         await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
@@ -235,7 +238,7 @@ namespace FWO.Middleware.Server.Jobs
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
-                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportInterval))
                 {
                     jsonData = imp;
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });

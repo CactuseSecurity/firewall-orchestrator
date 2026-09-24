@@ -15,8 +15,6 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.8" />
     <PackageReference Include="PuppeteerSharp" Version="25.11.0" />
     <PackageReference Include="Quartz" Version="4.1.1" />
-    <PackageReference Include="Quartz.Extensions.Hosting" Version="4.1.1" />
-    <PackageReference Include="Quartz.Serialization.Json" Version="4.1.1" />
   </ItemGroup>
 
   <ItemGroup>

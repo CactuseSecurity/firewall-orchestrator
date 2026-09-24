@@ -80,7 +80,7 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5515"))">
             <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("scope")):</label>
             <div class="col-sm-8">
-                <Dropdown ElementType="string" @bind-SelectedElement="ActAction.Scope" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(WfObjectScopes))">
+                <Dropdown ElementType="string" SelectedElement="ActAction.Scope" SelectedElementChanged="OnScopeChanged" ElementToString="@(s => userConfig.GetText(s))" Elements="Enum.GetNames(typeof(WfObjectScopes))">
                     <ElementTemplate Context="scope">
                         @(userConfig.GetText(scope))
                     </ElementTemplate>
@@ -121,6 +121,9 @@
     [Parameter]
     public EventCallback<string?> ActionTypeChanged { get; set; }
 
+    [Parameter]
+    public EventCallback<string?> ScopeChanged { get; set; }
+
     private string? selectedPhase;
     private WfTaskType? selectedTaskType;
 
@@ -142,6 +145,17 @@
         selectedPhase = phase;
         ActAction.Phase = phase ?? "";
         return Task.CompletedTask;
+    }
+
+    private async Task OnScopeChanged(string? scope)
+    {
+        ActAction.Scope = scope ?? "";
+        if (ActAction.Scope != WfObjectScopes.RequestTask.ToString() && ActAction.Scope != WfObjectScopes.ImplementationTask.ToString())
+        {
+            selectedTaskType = null;
+            ActAction.TaskType = "";
+        }
+        await ScopeChanged.InvokeAsync(scope);
     }
 
     private Task OnTaskTypeChanged(WfTaskType? taskType)

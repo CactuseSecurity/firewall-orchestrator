@@ -1,0 +1,7 @@
+mutation deleteNetworkZoneDeviceIpRangeInternet($matrixId: Int!) {
+  delete_network_zone_device_ip_range_internet(
+    where: {ip_range: {criterion_id: {_eq: $matrixId}}}
+  ) {
+    affected_rows
+  }
+}

@@ -7,6 +7,7 @@ using FWO.Ui.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
+using System.Linq;
 
 namespace FWO.Test
 {
@@ -46,6 +47,87 @@ namespace FWO.Test
                 "Other addresses",
                 "Ensure at least one notification"
             }));
+        }
+
+        [Test]
+        public void Render_ShowsRequesterOptionWhenEnabled()
+        {
+            SimulatedUserConfig userConfig = new();
+            Services.AddSingleton<UserConfig>(userConfig);
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, new EmailRecipientSelection())
+                .Add(p => p.ShowRequesterOption, true));
+
+            Assert.That(component.FindAll("label.form-check-label").Select(label => label.TextContent), Does.Contain(userConfig.GetText(nameof(EmailRecipientOption.Requester))));
+        }
+
+        [Test]
+        public void RequesterCheckbox_TogglesRequesterSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.ShowRequesterOption, true)
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_requester").Change(true);
+
+            Assert.That(selection.Requester, Is.True);
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_requester").Change(false);
+
+            Assert.That(selection.Requester, Is.False);
+            Assert.That(selection.None, Is.True);
+        }
+
+        [Test]
+        public void OtherAddressesCheckbox_TogglesSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_other").Change(true);
+
+            Assert.That(selection.OtherAddresses, Is.True);
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_other").Change(false);
+
+            Assert.That(selection.OtherAddresses, Is.False);
+            Assert.That(selection.None, Is.True);
+        }
+
+        [Test]
+        public void OwnerResponsibleTypeCheckbox_TogglesSelectionAndDerivedNone()
+        {
+            Services.AddSingleton<UserConfig>(new SimulatedUserConfig());
+            EmailRecipientSelection selection = new();
+
+            IRenderedComponent<EmailRecipientSelectionEditor> component = Render<EmailRecipientSelectionEditor>(parameters => parameters
+                .Add(p => p.Selection, selection)
+                .Add(p => p.OwnerResponsibleTypes, new List<OwnerResponsibleType>
+                {
+                    new() { Id = 7, Name = "Main responsible", Active = true, SortOrder = 10 }
+                })
+                .Add(p => p.CheckboxIdPrefix, "test_recipients"));
+
+            component.Find("#test_recipients_ort_7").Change(true);
+
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.EqualTo(new List<int> { 7 }));
+            Assert.That(selection.None, Is.False);
+
+            component.Find("#test_recipients_ort_7").Change(false);
+
+            Assert.That(selection.OwnerResponsibleTypeIds, Is.Empty);
+            Assert.That(selection.None, Is.True);
         }
 
         [Test]

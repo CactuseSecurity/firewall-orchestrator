@@ -51,6 +51,11 @@
                         <span class="@Icons.Schedule"></span> Scheduler
                     </NavLink>
                 </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/rule_owner_mapping">
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("rule_owner_mapping_runs"))
+                    </NavLink>
+                </li>
                 <hr />
                 <li class="nav-item px-2" data-toggle="tooltip" title="@(userConfig.GetText("U5011"))">
                     <h5>@(userConfig.GetText("import"))</h5>
@@ -120,6 +125,15 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/workflow">
                         <span class="@Icons.Workflow"></span> @(userConfig.GetText("tickets"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("notifications"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/email_log">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_log"))
                     </NavLink>
                 </li>
                 <hr />

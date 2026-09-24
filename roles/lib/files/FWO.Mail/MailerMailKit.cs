@@ -48,15 +48,12 @@ namespace FWO.Mail
             CancellationToken ct = default
         )
         {
+            MailData pendingMail = CopyMailData(mailData);
+            using var smtp = new SmtpClient();
+            smtp.Timeout = 5000;
+
             try
             {
-                var mail = new MimeMessage();
-                AddRecipients(emailConn, mailData, mail);
-                await AddContent(mailData, mail, mailFormatHtml);
-
-                using var smtp = new SmtpClient();
-                smtp.Timeout = 5000;
-
                 switch (emailConn.Encryption)
                 {
                     case EmailEncryptionMethod.None:
@@ -90,16 +87,97 @@ namespace FWO.Mail
                 {
                     await smtp.AuthenticateAsync(emailConn.User, AesEnc.TryDecrypt(emailConn.Password ?? "", true), ct);
                 }
-                await smtp.SendAsync(mail, ct);
-                await smtp.DisconnectAsync(true, ct);
 
-                return true;
+                while (HasRecipients(pendingMail))
+                {
+                    var mail = new MimeMessage();
+                    AddRecipients(emailConn, pendingMail, mail);
+                    await AddContent(pendingMail, mail, mailFormatHtml);
+
+                    try
+                    {
+                        await smtp.SendAsync(mail, ct);
+                        await smtp.DisconnectAsync(true, ct);
+                        return true;
+                    }
+                    catch (SmtpCommandException exception) when (exception.Mailbox != null)
+                    {
+                        string rejectedAddress = exception.Mailbox.Address;
+                        if (!RemoveRecipient(pendingMail, rejectedAddress))
+                        {
+                            throw;
+                        }
+
+                        Log.WriteWarning(
+                            "Send Email",
+                            $"SMTP rejected recipient '{rejectedAddress}'. Retrying with the remaining recipients."
+                        );
+                    }
+                }
+
+                await smtp.DisconnectAsync(true, ct);
+                Log.WriteWarning("Send Email", "SMTP rejected all recipients. No email was sent.");
+                return false;
             }
             catch (Exception exception)
             {
                 Log.WriteError("Send Email", $"MailKit could not send email via {emailConn.ServerAddress}:{emailConn.Port}.", exception);
                 return false;
             }
+        }
+
+        private static MailData CopyMailData(MailData source)
+        {
+            List<string> toRecipients = [.. source.To];
+            List<string> bccRecipients = [.. source.Bcc];
+            List<string> ccRecipients = [.. source.Cc];
+
+            return new MailData(toRecipients, source.Subject)
+            {
+                Bcc = bccRecipients,
+                Cc = ccRecipients,
+                From = source.From,
+                DisplayName = source.DisplayName,
+                ReplyTo = source.ReplyTo,
+                ReplyToName = source.ReplyToName,
+                Body = source.Body,
+                Attachments = source.Attachments
+            };
+        }
+
+        private static bool HasRecipients(MailData mailData)
+        {
+            return mailData.To.Any(IsAddressPresent)
+                || mailData.Cc.Any(IsAddressPresent)
+                || mailData.Bcc.Any(IsAddressPresent);
+        }
+
+        private static bool IsAddressPresent(string address)
+        {
+            return !string.IsNullOrWhiteSpace(address);
+        }
+
+        private static bool RemoveRecipient(MailData mailData, string rejectedAddress)
+        {
+            return RemoveRecipient(mailData.To, rejectedAddress)
+                || RemoveRecipient(mailData.Cc, rejectedAddress)
+                || RemoveRecipient(mailData.Bcc, rejectedAddress);
+        }
+
+        private static bool RemoveRecipient(List<string> recipients, string rejectedAddress)
+        {
+            int index = recipients.FindIndex(address => string.Equals(
+                address.Trim(),
+                rejectedAddress,
+                StringComparison.OrdinalIgnoreCase
+            ));
+            if (index < 0)
+            {
+                return false;
+            }
+
+            recipients.RemoveAt(index);
+            return true;
         }
 
         private static void AddRecipients(EmailConnection emailConn, MailData mailData, MimeMessage mail)

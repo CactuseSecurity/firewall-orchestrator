@@ -172,6 +172,30 @@ jobs:
           cd ${{ github.workspace }}
           ./scripts/run-playbook-with-sudo.sh site.yml -e force_install=true --tags integrationtests
 
+      # A full run rather than "--tags integrationtests", because roles/tests-integration
+      # asserts on facts the reset itself produces - the retired CA names, which identities
+      # were reissued, which customer-managed pairs were left untouched - and those exist
+      # only inside the invocation that performed the rotation. This is also the only run
+      # that exercises the force-regeneration paths in create-ca.yml and
+      # issue-certificates.yml, and that proves every service still comes up against a CA
+      # anchor that changed underneath it.
+      - name: Run Ansible certificate reset upgrade with integration tests
+        if: ${{ matrix.integration && success() }}
+        run: |
+          cd ${{ github.workspace }}
+          ./scripts/run-playbook-with-sudo.sh site.yml \
+            -e force_install=true \
+            -e "installation_mode=upgrade internalca_reset_certificates=true"
+
+      - name: Collect certificate diagnostics after a failed reset upgrade
+        if: ${{ matrix.integration && failure() }}
+        run: |
+          sudo ls -la /usr/local/fworch/etc/secrets/ca/ || true
+          sudo cat /usr/local/fworch/etc/secrets/ca/retired-ca-names || true
+          sudo openssl x509 -in /usr/local/fworch/etc/fworch-internal-ca.crt -noout -subject -dates || true
+          sudo apachectl configtest || true
+          sudo tail -n 100 /var/log/apache2/error.log || true
+
 
   launcher-guard-tests:
     name: Launcher guard regression tests

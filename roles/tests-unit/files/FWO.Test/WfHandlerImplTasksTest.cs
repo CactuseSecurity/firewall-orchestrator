@@ -613,6 +613,25 @@ namespace FWO.Test
             Assert.That(requestTasks, Is.Empty);
         }
 
+        [Test]
+        public async Task RequestTasksForInitialImplCreation_DoesNotReloadNewInterfaceTasksWithoutElements()
+        {
+            WfReqTask newInterfaceTask = new()
+            {
+                Id = 11,
+                TicketId = 7,
+                TaskType = WfTaskType.new_interface.ToString()
+            };
+            WfHandler handler = CreateBundlingHandler(considerBundling: false, newInterfaceTask);
+            SetDbAccess(handler, new RequestTaskDetailsApiConn(new WfTicket { Id = 7 }));
+
+            List<WfReqTask> requestTasks = await InvokeRequestTasksForInitialImplCreation(handler,
+                new List<WfReqTask> { newInterfaceTask });
+
+            Assert.That(requestTasks, Has.Count.EqualTo(1));
+            Assert.That(requestTasks[0], Is.SameAs(newInterfaceTask));
+        }
+
         private static async Task InvokeAutoCreateImplTasks(WfHandler handler, WfReqTask reqTask)
         {
             MethodInfo method = typeof(WfHandler).GetMethod("AutoCreateImplTasks", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -649,7 +668,7 @@ namespace FWO.Test
         private static void SetDbAccess(WfHandler handler, SimulatedApiConnection apiConnection)
         {
             ActionHandler actionHandler = new(apiConnection, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, false, WorkflowPhases.request);
             FieldInfo? field = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             field?.SetValue(handler, dbAccess);
         }

@@ -229,7 +229,9 @@ else
     {
         return stateId == null
             ? userConfig.GetText("use_default")
-            : states.FirstOrDefault(state => state.Id == stateId.Value)?.Name ?? stateId.Value.ToString();
+            : states.FirstOrDefault(state => state.Id == stateId.Value) is WfState state
+                ? $"{state.Name} ({state.Id})"
+                : stateId.Value.ToString();
     }
 
     private async Task Save()

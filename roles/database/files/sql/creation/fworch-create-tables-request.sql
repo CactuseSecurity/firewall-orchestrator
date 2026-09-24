@@ -187,7 +187,8 @@ create table request.state_matrix_phase
     active boolean NOT NULL DEFAULT FALSE,
     lowest_input_state int NOT NULL,
     lowest_start_state int NOT NULL,
-    lowest_end_state int NOT NULL
+    lowest_end_state int NOT NULL,
+    phase_visibility_mode varchar NOT NULL DEFAULT 'AnyTask'
 );
 
 create table request.workflow_configuration_phase

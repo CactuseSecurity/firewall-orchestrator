@@ -222,6 +222,32 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SettingsCustomizing_StateDisplayNameIncludesStateId()
+        {
+            SettingsCustomizing component = new();
+            SimulatedUserConfig userConfig = new();
+            List<WfState> states =
+            [
+                new WfState { Id = 17, Name = "requested" }
+            ];
+
+            SetMember(component, "userConfig", userConfig);
+            SetMember(component, "states", states);
+            MethodInfo stateDisplayName = GetPrivateMethod(typeof(SettingsCustomizing), "StateDisplayName");
+
+            string defaultText = (string)stateDisplayName.Invoke(component, new List<object?> { null }.ToArray())!;
+            string knownStateText = (string)stateDisplayName.Invoke(component, new List<object?> { 17 }.ToArray())!;
+            string unknownStateText = (string)stateDisplayName.Invoke(component, new List<object?> { 99 }.ToArray())!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(defaultText, Is.EqualTo(userConfig.GetText("use_default")));
+                Assert.That(knownStateText, Is.EqualTo("requested (17)"));
+                Assert.That(unknownStateText, Is.EqualTo("99"));
+            });
+        }
+
+        [Test]
         public async Task Save_PersistsReqConsiderBundling()
         {
             SettingsCustomizing component = new();

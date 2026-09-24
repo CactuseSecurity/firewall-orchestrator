@@ -227,11 +227,18 @@ else
 
     private string StateDisplayName(int? stateId)
     {
-        return stateId == null
-            ? userConfig.GetText("use_default")
-            : states.FirstOrDefault(state => state.Id == stateId.Value) is WfState state
-                ? $"{state.Name} ({state.Id})"
-                : stateId.Value.ToString();
+        if (stateId == null)
+        {
+            return userConfig.GetText("use_default");
+        }
+
+        WfState? state = states.FirstOrDefault(candidate => candidate.Id == stateId.Value);
+        if (state == null)
+        {
+            return stateId.Value.ToString();
+        }
+
+        return $"{state.Name} ({state.Id})";
     }
 
     private async Task Save()

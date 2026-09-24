@@ -29,9 +29,29 @@ namespace FWO.Services.Workflow
             {
                 int fromState = allStates ? 0 : stateMatrix.LowestInputState;
                 int toState = allStates ? 999 : stateMatrix.LowestEndState;
+                string ticketQuery;
+                if (fullTickets)
+                {
+                    if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
+                    {
+                        ticketQuery = RequestQueries.getFullTicketsByTicketState;
+                    }
+                    else
+                    {
+                        ticketQuery = RequestQueries.getFullTickets;
+                    }
+                }
+                else if (stateMatrix.VisibilityMode == PhaseVisibilityMode.TicketState)
+                {
+                    ticketQuery = RequestQueries.getTicketsByTicketState;
+                }
+                else
+                {
+                    ticketQuery = RequestQueries.getTickets;
+                }
 
                 tickets = await ApiConnection.SendQueryAsync<List<WfTicket>>(
-                    fullTickets ? RequestQueries.getFullTickets : RequestQueries.getTickets,
+                    ticketQuery,
                     new { fromState, toState });
                 if (UserConfig.ReqOwnerBased && !AsAdmin)
                 {

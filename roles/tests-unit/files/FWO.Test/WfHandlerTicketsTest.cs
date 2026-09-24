@@ -51,7 +51,8 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Ticket);
                 }
-                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets || query == RequestQueries.getFullTickets)
+                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState)
                 {
                     if (query == RequestQueries.getTicketsByParameters)
                     {

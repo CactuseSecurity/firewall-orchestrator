@@ -431,6 +431,8 @@ INSERT INTO txt VALUES ('assign', 				'German',	'Zuordnen');
 INSERT INTO txt VALUES ('assign', 				'English',	'Assign');
 INSERT INTO txt VALUES ('search', 				'German',	'Suchen');
 INSERT INTO txt VALUES ('search', 			    'English',	'Search');
+INSERT INTO txt VALUES ('no_search_results', 	'German',	'Keine Treffer.');
+INSERT INTO txt VALUES ('no_search_results', 	'English',	'No matches.');
 INSERT INTO txt VALUES ('load', 				'German',	'Laden');
 INSERT INTO txt VALUES ('load', 			    'English',	'Load');
 INSERT INTO txt VALUES ('ok', 				    'German',	'Ok');
@@ -565,6 +567,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Die Sichtbarkeit von Workflow-Tickets kann pro Phase auf "Beliebige Aufgabe" oder "Ticketstatus" eingestellt werden; "Beliebige Aufgabe" erhält das bisherige Verhalten.</li>
     <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
     <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
     <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
@@ -584,11 +587,13 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
     <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
     <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
+    <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Workflow ticket visibility can be configured per phase as "Any task" or "Ticket state"; "Any task" preserves the previous behavior.</li>
     <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
     <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
     <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
@@ -608,6 +613,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
     <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
     <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
+    <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2349,6 +2355,8 @@ INSERT INTO txt VALUES ('H5025',				'German', 	'Bei doppelten Zuordnungen werden
 INSERT INTO txt VALUES ('H5025',				'English', 	'For duplicate mappings, the catalog and resolver dialog also show the technical details of the flow object. In the catalog view, long lists are shortened and finished with a note about additional objects.');
 INSERT INTO txt VALUES ('H5026',				'German', 	'Die Zonen-Gruppen-Erkennung legt fest, welche Flow-Netzwerkgruppen als Zonen gelten. Es k&ouml;nnen mehrere Muster kombiniert werden, jeweils mit Vergleichsart (Endet mit, Beginnt mit, Enth&auml;lt, Exakt) und optionaler Beachtung der Gro&szlig;- und Kleinschreibung. Eine Gruppe gilt als Zone, sobald ihr Name auf mindestens ein Muster passt. Die Muster werden vom REST-Endpunkt <code>flow/getAddressGroups</code> mit <code>option.separateZoneGroups=true</code> ausgewertet. Muster ohne Wert und doppelte Muster werden beim Speichern abgelehnt.');
 INSERT INTO txt VALUES ('H5026',				'English', 	'Zone group detection defines which flow network groups count as zones. Multiple patterns can be combined, each with a match type (suffix, prefix, contains, exact) and optional case sensitivity. A group is a zone as soon as its name matches at least one pattern. The patterns are evaluated by the REST endpoint <code>flow/getAddressGroups</code> with <code>option.separateZoneGroups=true</code>. Patterns without a value and duplicate patterns are rejected when saving.');
+INSERT INTO txt VALUES ('H5027',				'German', 	'&Uuml;ber das Suchfeld oberhalb der Navigation k&ouml;nnen die Einstellungsseiten gefiltert werden. Gesucht wird in den angezeigten Bezeichnungen der Kapitel und Seiten, Gro&szlig;- und Kleinschreibung sowie Umlaute werden dabei ignoriert. Passt ein Kapitelname, werden alle Seiten dieses Kapitels angezeigt. Seiten, f&uuml;r die die eigene Rolle keine Berechtigung hat, bleiben auch bei einem Treffer ausgeblendet, ebenso Kapitel ohne sichtbare Seiten.');
+INSERT INTO txt VALUES ('H5027',				'English', 	'The search field above the navigation filters the settings pages. It matches the displayed labels of the chapters and pages, ignoring case and diacritics. When a chapter name matches, all pages of that chapter are shown. Pages the own role is not permitted to see stay hidden even when they match, and so do chapters without any visible page.');
 INSERT INTO txt VALUES ('H5021',				'German', 	'Diese Seite verwaltet Flow-Netzwerkgruppen und zeigt die doppelten Zuordnungen der zugrunde liegenden Netzwerkobjekte.');
 INSERT INTO txt VALUES ('H5021',				'English', 	'This page manages flow network groups and shows duplicate mappings for the underlying network objects.');
 INSERT INTO txt VALUES ('H5022',				'German', 	'Diese Seite verwaltet Flow-Serviceobjekte, zeigt doppelte Zuordnungen der zugrunde liegenden Services und erlaubt das Anlegen eigener Serviceobjekte. Beim Anlegen eines eigenen Objekts k&ouml;nnen Management-Zuordnungen wieder abgew&auml;hlt werden; angezeigt werden nur noch nicht zugeordnete protokollbasierte Services ohne Port.');
@@ -3051,6 +3059,12 @@ INSERT INTO txt VALUES ('special_states',       'German',   'Spezielle Status');
 INSERT INTO txt VALUES ('special_states',       'English',  'Special states');
 INSERT INTO txt VALUES ('lowest_input_state',   'German',   'Niedrigster Eingangsstatus');
 INSERT INTO txt VALUES ('lowest_input_state',   'English',  'Lowest input state');
+INSERT INTO txt VALUES ('phase_visibility_mode', 'German',   'Phasensichtbarkeit');
+INSERT INTO txt VALUES ('phase_visibility_mode', 'English',  'Phase visibility');
+INSERT INTO txt VALUES ('AnyTask',               'German',   'Beliebige Aufgabe');
+INSERT INTO txt VALUES ('AnyTask',               'English',  'Any task');
+INSERT INTO txt VALUES ('TicketState',           'German',   'Ticketstatus');
+INSERT INTO txt VALUES ('TicketState',           'English',  'Ticket state');
 INSERT INTO txt VALUES ('lowest_started_state', 'German',   'Niedrigster Bearbeitungsstatus');
 INSERT INTO txt VALUES ('lowest_started_state', 'English',  'Lowest started state');
 INSERT INTO txt VALUES ('lowest_end_state',     'German',   'Niedrigster Ausgangsstatus');
@@ -6993,6 +7007,8 @@ INSERT INTO txt VALUES ('H5552', 'German',  '"Niedrigster Bearbeitungsstatus": A
 INSERT INTO txt VALUES ('H5552', 'English', '"Lowest started state": From this state the ticket counts as in work. Phase specific changes can be done.');
 INSERT INTO txt VALUES ('H5553', 'German',  '"Niedrigster Ausgangsstatus": Ab diesem Status k&ouml;nnen vom Bearbeiter dieser Phase keine &Auml;nderungen mehr vorgenommen werden. Ein Antrag in diesem Status ist nicht mehr sichtbar.');
 INSERT INTO txt VALUES ('H5553', 'English', '"Lowest exit state": From this state the handler of the current phase can not do any changes anymore. A ticket in this state is not visible anymore.');
+INSERT INTO txt VALUES ('H5554', 'German',  'Nur in der Ticket-Matrix: Beliebige Aufgabe macht das Ticket sichtbar, sobald mindestens eine Aufgabe die Eingangsphase erreicht. Ticketstatus macht das Ticket anhand seines eigenen Status sichtbar.');
+INSERT INTO txt VALUES ('H5554', 'English', 'Ticket matrix only: Any task makes the ticket visible when at least one task reaches the input phase. Ticket state makes the ticket visible according to its own state.');
 INSERT INTO txt VALUES ('H5561', 'German',  'In diesem Abschnitt k&ouml;nnen allgemeine Einstellungen zur Konfiguration der Workflows vorgenommen werden.');
 INSERT INTO txt VALUES ('H5561', 'English', 'In this chapter general settings for workflow configuration can be done.');
 INSERT INTO txt VALUES ('H5562', 'German',  'Verf&uuml;gbare Auftragstypen: Es kann ausgew&auml;hlt werden, welche der technisch vorhandenen Auftragstypen zur Verwendung in den Workflows angeboten werden sollen.');

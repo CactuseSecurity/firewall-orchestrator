@@ -24,12 +24,57 @@ Product versions use three numeric components:
 major.minor.patch
 ```
 
-For example, `9.3.0` is stored as the product version. Stable release tags may
+For example, `9.3.0` is stored as the product version. Release tags may
 optionally have a `v` prefix, for example `v9.3.0` or `9.3.0`. The established
 repository convention is to use the `v` prefix.
 
-Pre-release suffixes such as `-dev`, `-rc1`, or `-beta` are not stable release
-tags and do not advance `main`.
+Each component must be `0` or start with a non-zero digit. Leading zeros are not
+valid, so use `9.4.6`, never `9.04.6`, in `product_version`, release tags, and
+revision-history headings.
+
+## Version lifecycle
+
+A version is **open** while it is the version in
+[`inventory/group_vars/all.yml`](../../inventory/group_vars/all.yml) and no sealing
+tag for it exists. Work merges into an open version. Creating a sealing tag closes
+the version: from that moment on nothing may merge onto it any more, and the next
+change must raise `product_version`.
+
+| Tag | Seals the version | Advances `main` | Meaning |
+| --- | --- | --- | --- |
+| `vX.Y.Z-dev` | yes | no | the version is finished on `develop` but was not released to a customer |
+| `vX.Y.Z` | yes | yes | stable release |
+| `vX.Y.Z-rc1`, `-beta`, `-alpha` | no | no | snapshot of an open version |
+
+A snapshot tag is a marker, not a seal. Work keeps merging into `X.Y.Z` after
+`vX.Y.Z-rc1`, so the final `X.Y.Z` will normally differ from its release candidate.
+
+Because a sealing tag closes the version, a later stable `vX.Y.Z` can only be created
+on the same commit as an earlier `vX.Y.Z-dev`: no other commit carries that version.
+
+This lifecycle is enforced by the **Version gate** workflow, see
+[Automated enforcement](#automated-enforcement) below. The typical sequence is:
+
+1. The latest sealing tag is `v1.2.3-dev` and `all.yml` is on the open version `1.2.4`.
+2. A small change merges: `all.yml` stays `1.2.4`, the revision history is extended.
+   Optionally tag `v1.2.4-rc1` to mark a release candidate; `1.2.4` stays open.
+3. Seal `1.2.4` by creating `v1.2.4-dev`, or `v1.2.4` when the version is released to a
+   customer, as described in [Sealing a version](#sealing-a-version). Every open pull request
+   still on `1.2.4` is now blocked and must raise the version.
+4. The next change raises `all.yml` to `1.2.5` (or `1.3.0`, or `2.0.0`) and adds the
+   matching revision history section. That bump is only accepted because `1.2.4` is
+   sealed.
+5. Every other open pull request is then re-evaluated against `1.2.5`. Its merge result
+   inherits the new product version, so the pull request does not need its own version bump.
+   However, because its change will now be part of `1.2.5`, its revision-history entry must
+   be moved from the previous version section into the final `1.2.5` section before it can
+   merge. This reclassification is intentional.
+
+### Hotfixes
+
+The model keeps a single linear version line on `develop`. A fix for a released `1.2.4`
+therefore becomes `1.2.5`; maintaining a `1.2.4.x` line in parallel would require
+release branches and additional rules and is currently not supported.
 
 ## Preparing a version
 
@@ -53,19 +98,73 @@ Before creating the release tag:
 Never reuse a released version number or modify an existing release tag to
 point to another commit.
 
+## Sealing a version
+
+Sealing is the one step of this lifecycle that no workflow performs. A human decides that a
+version is finished and creates its tag, normally by publishing a GitHub Release. Only the
+release maintainers who may bypass the tag-creation ruleset can do that - if you are not one of
+them and your pull request is blocked because the previous version is still open, ask one of them
+to seal it. The **Version gate** points here in that case.
+
+First decide what the version is:
+
+- **Finished on `develop`, not released to anyone** - seal it as a `-dev` version.
+- **Released to customers** - seal it as a stable version. This also fast-forwards `main`, so
+  follow [Creating a stable release](#creating-a-stable-release) rather than this section alone.
+- **Not finished** - do not seal it. Mark the state with a release candidate instead; the version
+  stays open and work keeps merging into it.
+
+Then create the release on the release commit, with the tag, label and title of its row:
+
+| Intent | Tag | Release label | Release title |
+| --- | --- | --- | --- |
+| finished on `develop`, unreleased | `vX.Y.Z-dev` | none | `vX.Y.Z-dev` |
+| released to customers | `vX.Y.Z` | latest | `Hotfix Release`, `Feature Release - <new feature>`, or `Stabilizing Release` |
+| snapshot, version stays open | `vX.Y.Z-rc<N>` | pre-release | `vX.Y.Z-rc<N>` |
+
+Always let GitHub auto-generate the release notes.
+
+The tag must sit on a commit whose `product_version` is `X.Y.Z`; the **Version tag guard**
+workflow rejects a tag that seals a different version than the commit carries. Only the stable
+form advances `main`, and only the two sealing forms close the version - after either of them,
+every open pull request on `X.Y.Z` must raise `product_version`, see
+[Version lifecycle](#version-lifecycle).
+
 ## Upgrade scripts
 
 Add a new database upgrade script under `roles/database/files/upgrade/` when a
 release changes the database or its stored data. Use the full product version
-as the file name, including the patch component:
+as the file name, including the patch component and without zero-padded
+components, directly in that directory rather than in a subdirectory. The
+version gate refuses any other name for a script a pull request adds or
+modifies, because the upgrade play globs that one directory and compares every
+`*.sql` name with the installed version: `9.4.07.sql` is read as `9.4.7` there
+and as no version at all by the gate, and a name such as `readme.sql` makes the
+comparison fail:
 
 ```text
 roles/database/files/upgrade/9.3.0.sql
 ```
 
-Do not modify upgrade scripts belonging to older versions. Every new upgrade
-operation must be safe to execute repeatedly. Use guards such as
+Do not modify or delete upgrade scripts belonging to older versions - the version gate refuses a
+pull request that adds or modifies a script named below the version the base branch carries, and
+refuses one that removes an upgrade script, because every installation older than that script
+would lose its operations - a script of the still open version included, which a colleague's
+installation may already have run. The single exception is a script named above the current
+`product_version`, which no installation can ever have run and which would otherwise block every
+pull request until removed. Restore what was removed, then undo the current version's change by
+emptying the body of its script, or correct an older script from the current version's one.
+Every new upgrade operation must be safe to execute repeatedly. Use guards such as
 `IF NOT EXISTS` or `ON CONFLICT DO NOTHING` where appropriate.
+
+The file name decides whether the script ever runs.
+[`roles/database/tasks/upgrade-database.yml`](../../roles/database/tasks/upgrade-database.yml)
+selects a script when its version is at least the version installed on the system and at most
+`product_version`, so a script named above `product_version` is never selected, and one named
+below a version an installation has already taken is skipped by that installation. Neither case
+reports anything: the upgrade play succeeds and the changes simply never arrive. This is why the
+name has to be renumbered together with `product_version` whenever another pull request opens a
+higher version first - the version gate checks both directions.
 
 For example:
 
@@ -83,6 +182,74 @@ idempotent upgrade step without changing the behavior of older upgrade steps.
 
 For instructions on running an upgrade on an existing installation, see
 [Upgrading FWO](installer/upgrading.md).
+
+## Automated enforcement
+
+The **Version gate** workflow
+([`.github/workflows/version-gate.yml`](../../.github/workflows/version-gate.yml))
+runs on every pull request that targets `develop`. Its single job,
+`Gate pull request version`, is the required check, and it fails when:
+
+- the version its merge result carries is already sealed by a release tag,
+- it raises `product_version` while the previous version has no sealing tag yet,
+- it raises `product_version` to an already sealed version, or lowers it,
+- for non-automated pull requests, the final level-two heading in
+  [`documentation/revision-history.md`](../revision-history.md)
+  does not match the merged `product_version`,
+- for non-automated pull requests, it adds no text below that final revision-history heading, or
+  leaves that section empty when the pull request is the one that opens it,
+- an upgrade script under `roles/database/files/upgrade/` carries a version above the merged
+  `product_version`, or the pull request adds one below the version of the base branch.
+
+A non-automated pull request that keeps the current version must add at least one non-empty,
+non-heading line to the final revision-history section. One that opens a new final section must
+leave that section non-empty. The final heading must contain the full `major.minor.patch`
+version; a date or other trailing heading text may be included but is not required.
+
+For a pull request that extends an existing section, the addition is read from the pull request's
+own diff of the file, so a new section may repeat the wording of an earlier one, while merely
+reordering or re-indenting entries of that section does not count as an addition. Moving an entry
+into it from an earlier section does count, including the reclassification a version bump by
+someone else forces on an open pull request. Renaming the final heading is not opening a section,
+so a bump that only rewrites the heading does not count either.
+
+For a pull request that opens the final section, the gate requires only that the section is not
+empty, and its entries may be lines that were already in the file. Moving an entry under a newly
+inserted heading and splitting an existing section in two are the same edit to git — the entry is
+a context line either way — so the gate cannot tell them apart. It accepts the reclassification
+this lifecycle requires, and therefore also accepts a bump that only re-files existing entries.
+
+Upstream Dependabot pull requests and the repository's automated `.agents` pointer-only pull
+requests are exempt from the revision-history requirements. The exemption verifies the expected
+automation author, internal head repository and branch; `.agents` updates must also change no
+other path. Automated pull requests still have to satisfy every product-version lifecycle rule.
+
+The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
+`all.yml` inherits the base branch version and is never blocked for being out of date.
+
+The **Version gate refresh** workflow
+([`.github/workflows/version-gate-refresh.yml`](../../.github/workflows/version-gate-refresh.yml))
+re-runs that gate for every open pull request whenever `develop` advances or a sealing tag
+is pushed. The `develop` trigger clears stale failures when a version bump merges, while the
+tag trigger makes step 3 of the lifecycle bite: pull requests that were green on the now
+sealed version turn red immediately. Neither case needs a push to the pull request. The tag
+list and merge result are read when the gate runs, so a re-run reaches the current verdict.
+The workflow warns if its query reaches the limit of 200 open pull requests because any
+additional pull requests may retain stale gates.
+
+The **Version tag guard** workflow
+([`.github/workflows/version-tag-guard.yml`](../../.github/workflows/version-tag-guard.yml))
+reports, after the fact, a version tag created on a commit carrying a different
+`product_version`, a sealing tag outside the `develop`/`main` line, and a push to
+`develop` that landed on an already sealed version.
+
+One gap remains by design: a merge completed in the same moment a sealing tag is pushed
+can still land on the version being sealed. The `develop` audit job reports it within
+minutes; it cannot prevent it.
+
+The rules live in [`scripts/ci/version_gate.py`](../../scripts/ci/version_gate.py) and are
+unit tested in `scripts/ci/test_version_gate.py`. For the workflow mechanics see
+[the version gate workflow documentation](github/version-gate-workflow.md).
 
 ## Repository release configuration
 
@@ -130,8 +297,37 @@ Create an active repository tag ruleset with the following configuration:
 - Enable `Restrict creations`
 - Allow only trusted release maintainers to bypass the creation restriction
 
-Restricting tag updates and deletions is also recommended so that published
-release tags remain immutable.
+This ruleset is mandatory for the **Version gate refresh** workflow as well as for release
+authority. A tag-push run uses the workflow definition from the tagged commit, and the refresh
+workflow has `actions: write` permission so that it can re-run gates. The ruleset must therefore
+cover every tag (`*`), not only version-shaped tags: otherwise a repository writer could tag a
+commit containing a modified refresh workflow and execute it with that permission before the
+workflow's tag-name check takes effect.
+
+A **second** tag ruleset, also targeting `*`, must block tag deletion, update and
+non-fast-forward, with no bypass actors, so that a sealing tag stays the immutable record that a
+version is closed. It has to be a separate ruleset because GitHub grants bypass actors per
+ruleset, not per rule: adding these rules to the creation ruleset would hand its bypass actors
+the authority to delete tags as well.
+
+### Required status check
+
+Configure branch protection for `develop` to require the check
+`Gate pull request version`. That is the job name; the `Version gate` shown in front of
+it in the pull request is only the workflow name. Without this, the Version gate reports
+its verdict but does not prevent a merge.
+
+Enable the required check only after completing the ordered
+[version-gate rollout](github/version-gate-workflow.md#rollout). In particular, every pull
+request that was already open when the workflow reached the default branch `main` must first be
+re-triggered so it has a gate run for its current head SHA. This normally happens after the next
+stable release tag fast-forwards `main`; merging the workflow only into `develop` does not
+activate its `pull_request_target` trigger. The refresh workflow can re-run existing checks but
+cannot create their first run.
+
+Do not enable "Require branches to be up to date before merging" for the sake of the
+gate. The gate already evaluates the merge result, so an out-of-date pull request is
+judged by what merging it would actually produce.
 
 The environment pattern and the tag ruleset are separate controls. The
 environment prevents branch workflows from reading the private key. The tag
@@ -144,11 +340,16 @@ the environment.
    revision history, upgrade steps, and documentation.
 2. Confirm that all required validation has passed.
 3. Confirm that the release commit descends from `main`.
-4. Create the stable tag on the release commit using the repository convention,
+4. Confirm that the release commit's `product_version` equals the version you are
+   about to tag. A tag on a commit carrying a different version seals the wrong
+   version and is rejected by the **Version tag guard** workflow.
+5. Create the stable tag on the release commit using the repository convention,
    for example `v9.3.0`.
-5. Push the tag, or publish a GitHub Release that creates the tag.
-6. Monitor the **Fast-forward main to release tag** Actions workflow.
-7. Confirm that `main` and the stable release tag resolve to the same commit.
+6. Push the tag, or publish a GitHub Release that creates the tag - with the label and
+   title [Sealing a version](#sealing-a-version) gives for a stable release.
+7. Monitor the **Fast-forward main to release tag** Actions workflow.
+8. Confirm that `main` and the stable release tag resolve to the same commit.
+9. Confirm that the **Version gate** workflow re-evaluated the open pull requests.
 
 Do not manually force-push `main`. If the workflow refuses the update, correct
 the release ancestry or repository configuration instead of bypassing its

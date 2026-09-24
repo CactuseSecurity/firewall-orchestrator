@@ -1,0 +1,59 @@
+name: Version gate
+# NOTE: this workflow's behavior is documented in
+# documentation/developer-docs/github/version-gate-workflow.md and the policy it enforces
+# in documentation/developer-docs/versioning.md - please keep both in sync when changing
+# triggers or job logic here.
+#
+# This workflow contains exactly one job on purpose. Its check run IS the gate result and
+# the check that branch protection requires, so a pull request shows one gate entry and
+# nothing else. A later develop update or sealing tag does not leave that entry stale: the
+# separate version-gate-refresh workflow re-runs this workflow for every open pull request,
+# which rewrites this same check run with a freshly evaluated result.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - edited
+    branches:
+      - develop
+
+# Read-only. The gate reports through its own job status and publishes nothing. Pull request
+# access is used only to diagnose a missing merge ref, so no write permission is needed.
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: version-gate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate-pull-request:
+    name: Gate pull request version
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out the base branch, never the pull request head. The gate reads pull
+      # request content through git as inert data and never executes it, so no fork code
+      # runs in the pull_request_target context.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          # Keep this on the base branch. Checking out the pull request head ref or sha
+          # here would execute fork code in a privileged context, and would also let a
+          # pull request rewrite the very gate logic that is meant to judge it.
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+
+      - name: Evaluate version gate
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: scripts/ci/evaluate_version_gate.sh "$PR_NUMBER" "$PR_BASE_REF"

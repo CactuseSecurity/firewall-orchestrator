@@ -256,6 +256,8 @@ public sealed class WorkflowTicketService : IDisposable
         return await apiConnection.SendQueryAsync<List<T>>(query, new { where }) ?? [];
     }
 
+    private sealed record RuleTaskLookups(Dictionary<int, FwoOwner> OwnersById, Dictionary<string, int> RuleActionIds);
+
     private sealed class FlowReferenceCatalog
     {
         public Dictionary<long, FlowNwObject> NetworkObjects { get; }
@@ -276,55 +278,60 @@ public sealed class WorkflowTicketService : IDisposable
 
         public WfReqElement BuildElement(long id, ElemFieldType field)
         {
-            if (field == ElemFieldType.source || field == ElemFieldType.destination)
+            return field switch
             {
-                bool hasObject = NetworkObjects.TryGetValue(id, out FlowNwObject? networkObject);
-                bool hasGroup = NetworkGroups.TryGetValue(id, out FlowNwGroup? networkGroup);
-                if (hasObject == hasGroup)
+                ElemFieldType.source or ElemFieldType.destination => BuildNetworkElement(id, field),
+                ElemFieldType.service => BuildServiceElement(id, field),
+                _ => throw new ArgumentException($"Flow reference id {id} is not valid for field '{field}'.")
+            };
+        }
+
+        private WfReqElement BuildNetworkElement(long id, ElemFieldType field)
+        {
+            bool hasObject = NetworkObjects.TryGetValue(id, out FlowNwObject? networkObject);
+            bool hasGroup = NetworkGroups.TryGetValue(id, out FlowNwGroup? networkGroup);
+            EnsureSingleReference(hasObject, hasGroup, id, "network", "network object or group");
+
+            return hasObject
+                ? new WfReqElement
                 {
-                    throw new ArgumentException(hasObject
-                        ? $"Flow network id {id} is ambiguous between an object and a group."
-                        : $"Unknown Flow network object or group id {id}.");
+                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkObject!.Name,
+                    IpString = networkObject.IpStart, IpEnd = networkObject.IpEnd, FlowNetworkObjectId = id
                 }
+                : new WfReqElement
+                {
+                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkGroup!.Name,
+                    GroupName = networkGroup.Name, FlowNetworkGroupId = id
+                };
+        }
 
-                return hasObject
-                    ? new WfReqElement
-                    {
-                        Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkObject!.Name,
-                        IpString = networkObject.IpStart, IpEnd = networkObject.IpEnd, FlowNetworkObjectId = id
-                    }
-                    : new WfReqElement
-                    {
-                        Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkGroup!.Name,
-                        GroupName = networkGroup.Name, FlowNetworkGroupId = id
-                    };
-            }
+        private WfReqElement BuildServiceElement(long id, ElemFieldType field)
+        {
+            bool hasObject = ServiceObjects.TryGetValue(id, out FlowSvcObject? serviceObject);
+            bool hasGroup = ServiceGroups.TryGetValue(id, out FlowSvcGroup? serviceGroup);
+            EnsureSingleReference(hasObject, hasGroup, id, "service", "service object or group");
 
-            if (field == ElemFieldType.service)
+            return hasObject
+                ? new WfReqElement
+                {
+                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceObject!.Name,
+                    Port = serviceObject.PortStart, PortEnd = serviceObject.PortEnd, ProtoId = serviceObject.ProtoId, FlowServiceObjectId = id
+                }
+                : new WfReqElement
+                {
+                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceGroup!.Name,
+                    GroupName = serviceGroup.Name, FlowServiceGroupId = id
+                };
+        }
+
+        private static void EnsureSingleReference(bool hasObject, bool hasGroup, long id, string referenceType, string referenceDescription)
+        {
+            if (hasObject == hasGroup)
             {
-                bool hasObject = ServiceObjects.TryGetValue(id, out FlowSvcObject? serviceObject);
-                bool hasGroup = ServiceGroups.TryGetValue(id, out FlowSvcGroup? serviceGroup);
-                if (hasObject == hasGroup)
-                {
-                    throw new ArgumentException(hasObject
-                        ? $"Flow service id {id} is ambiguous between an object and a group."
-                        : $"Unknown Flow service object or group id {id}.");
-                }
-
-                return hasObject
-                    ? new WfReqElement
-                    {
-                        Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceObject!.Name,
-                        Port = serviceObject.PortStart, PortEnd = serviceObject.PortEnd, ProtoId = serviceObject.ProtoId, FlowServiceObjectId = id
-                    }
-                    : new WfReqElement
-                    {
-                        Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceGroup!.Name,
-                        GroupName = serviceGroup.Name, FlowServiceGroupId = id
-                    };
+                throw new ArgumentException(hasObject
+                    ? $"Flow {referenceType} id {id} is ambiguous between an object and a group."
+                    : $"Unknown Flow {referenceDescription} id {id}.");
             }
-
-            throw new ArgumentException($"Flow reference id {id} is not valid for field '{field}'.");
         }
     }
 
@@ -422,9 +429,10 @@ public sealed class WorkflowTicketService : IDisposable
         int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds, FlowReferenceCatalog flowReferences, ref int taskNumber)
     {
         List<WfReqTask> tasks = [];
+        RuleTaskLookups lookups = new(ownersById, ruleActionIds);
         foreach (CreateTicketRequest.CreateTicketRuleRequest rule in request.Rules)
         {
-            tasks.Add(BuildRuleTask(request, rule, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, taskNumber++));
+            tasks.Add(BuildRuleTask(request, rule, entities, ticketStateId, lookups, flowReferences, taskNumber++));
         }
         return tasks;
     }
@@ -494,7 +502,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// Creates an access task for one request rule.
     /// </summary>
     private static WfReqTask BuildRuleTask(CreateTicketRequest request, CreateTicketRequest.CreateTicketRuleRequest rule,
-        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
+        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, RuleTaskLookups lookups,
         FlowReferenceCatalog flowReferences, int taskNumber)
     {
         List<WfReqElement> elements =
@@ -504,8 +512,8 @@ public sealed class WorkflowTicketService : IDisposable
             .. BuildReferencedElements(rule.ServiceObjects, entities, ElemFieldType.service, flowReferences)
         ];
 
-        int ruleActionId = ResolveRuleActionId(rule.Action, ruleActionIds);
-        FwoOwner? taskOwner = ResolveRuleOwner(rule.OwnerId, ownersById);
+        int ruleActionId = ResolveRuleActionId(rule.Action, lookups.RuleActionIds);
+        FwoOwner? taskOwner = ResolveRuleOwner(rule.OwnerId, lookups.OwnersById);
 
         CreateTicketEntity? timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
 

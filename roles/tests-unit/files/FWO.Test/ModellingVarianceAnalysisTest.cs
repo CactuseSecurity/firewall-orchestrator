@@ -1,4 +1,4 @@
-using FWO.Api.Client;
+﻿using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
@@ -1198,13 +1198,14 @@ namespace FWO.Test
             Assert.That(apiWithRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiWithRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
 
+            // an empty result is the correct answer once a mapping exists, so no marker query follows
             RuleOwnerPreFilterRoutingApiConn apiWithoutRules = new() { ReturnRuleOwnerRules = false };
             ModellingVarianceAnalysis analysisWithoutRules = new(apiWithoutRules, extStateHandler, config, Application, DefaultInit.DoNothing);
 
             await analysisWithoutRules.AnalyseRulesVsModelledConnections([], new(), false);
 
             Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiWithoutRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]
@@ -1278,7 +1279,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1296,7 +1297,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1314,7 +1315,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1333,7 +1334,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1347,7 +1348,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1382,6 +1383,157 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedWhileRebuildRunning()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getRunningRuleOwnerRebuild));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterFallsBackWhenNoMappingExists()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ReturnRuleOwnerRules = false,
+                HasAnyActiveRuleOwnerMapping = false
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterWaitsForPendingMappingWhenAllowed()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.GreaterThan(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWithoutPermission()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWhenWaitTimeIsZero()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 0;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStopsWaitingWhenCancelled()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            using CancellationTokenSource tokenSource = new();
+            tokenSource.Cancel();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask,
+                CancellationToken = tokenSource.Token
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        private static readonly List<int> kNonNameFieldMappingSources =
+        [
+            (int)OwnerMappingSourceStm.IpBased,
+            (int)OwnerMappingSourceStm.CustomField,
+            (int)OwnerMappingSourceStm.Disabled
+        ];
+
+        [Test]
+        public async Task TestRuleOwnerPrefilterStateNotReadForOtherMappingSources()
+        {
+            foreach (int source in kNonNameFieldMappingSources)
+            {
+                SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+                config.OwnerSoruceMappingID = source;
+                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+                Assert.That(apiConnection.Queries, Does.Not.Contain(ImportQueries.getPendingRuleAffectingImports));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+                Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            }
+        }
+
+        [Test]
+        public void TestRuleOwnerPrefilterStateQueriesCheckRebuildAgeAndPolicyChanges()
+        {
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("stop_time: {_is_null: true}"));
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("start_time: {_gt: $rebuildCutoff}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("policy_changes_found: {_eq: true}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("rule_owner_mapping_done: {_eq: false}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("removed: {_is_null: true}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("limit: 1"));
+        }
+
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
         {
             return new()
@@ -1403,6 +1555,10 @@ namespace FWO.Test
             public int? PendingRuleOwnerMappingMgmId { get; init; }
             public List<int> RelevantImportSubManagementIds { get; init; } = [];
             public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
+            public bool HasRunningRuleOwnerRebuild { get; init; } = false;
+            public bool HasAnyActiveRuleOwnerMapping { get; init; } = true;
+            public int PrefilterStateReads { get; private set; }
+            public int ClearPendingAfterStateReads { get; init; } = int.MaxValue;
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1474,9 +1630,32 @@ namespace FWO.Test
 
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
+                if (responseType == typeof(List<RuleOwner>) && query == OwnerQueries.getAnyActiveRuleOwnerMapping)
+                {
+                    List<RuleOwner> mapping = HasAnyActiveRuleOwnerMapping ? [new() { RuleId = 1 }] : [];
+                    return (QueryResponseType)(object)mapping;
+                }
+
+                if (responseType == typeof(ReturnIdWrapper))
+                {
+                    return (QueryResponseType)(object)new ReturnIdWrapper();
+                }
+
+                if (responseType == typeof(List<ImportControl>) && query == ImportQueries.getRunningRuleOwnerRebuild)
+                {
+                    List<ImportControl> rebuild = HasRunningRuleOwnerRebuild ? [new() { ControlId = 9 }] : [];
+                    return (QueryResponseType)(object)rebuild;
+                }
+
                 if (responseType == typeof(List<ImportControl>))
                 {
-                    List<ImportControl> imports = HasPendingRuleOwnerMappingImport
+                    if (query == ImportQueries.getPendingRuleAffectingImports)
+                    {
+                        PrefilterStateReads++;
+                    }
+
+                    bool stillPending = HasPendingRuleOwnerMappingImport && PrefilterStateReads <= ClearPendingAfterStateReads;
+                    List<ImportControl> imports = stillPending
                         ? [new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId }]
                         : [];
                     return (QueryResponseType)(object)imports;

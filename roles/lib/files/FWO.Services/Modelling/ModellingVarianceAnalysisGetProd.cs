@@ -1,4 +1,4 @@
-using FWO.Api.Client.Queries;
+﻿using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Modelling;
@@ -14,8 +14,13 @@ namespace FWO.Services.Modelling
     /// </summary>
     public partial class ModellingVarianceAnalysis
     {
-        private List<ImportControl>? PendingRuleOwnerMappingImports { get; set; }
+        private const int kRuleOwnerPollIntervalSeconds = 2;
+        private const int kRuleOwnerRebuildMaxAgeHours = 2;
+
+        private RuleOwnerPrefilterState? ruleOwnerPrefilterState;
         private HashSet<long>? NameFieldRuleOwnerConnectionIds { get; set; }
+        private bool ruleOwnerWaitDone;
+        private bool preFilterFallbackReported;
         private sealed record RelevantImportContext(long? ImportId, HashSet<int> ManagementIds);
 
         private async Task InitManagements()
@@ -147,51 +152,56 @@ namespace FWO.Services.Modelling
             long? relImpId = importContext.ImportId;
             await GetRuleDevices(mgtId, modellingFilter);
 
-            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter) && await IsRuleOwnerMappingCurrent(importContext.ManagementIds)
-                && await IsRuleOwnerPreFilterCompletenessVerified(mgtId, relImpId.Value, modellingFilter))
+            if (relImpId != null && ShouldUseNameFieldRuleOwnerPreFilter(modellingFilter))
             {
-                List<Rule>? preFilteredRules = await TryGetNameFieldRuleOwnerPrefilteredRules(mgtId, relImpId);
-                if (preFilteredRules?.Count > 0)
+                List<Rule>? preFilteredRules = await TryGetPreFilteredRules(mgtId, relImpId.Value, importContext.ManagementIds, modellingFilter);
+                if (preFilteredRules != null)
                 {
                     return preFilteredRules;
                 }
-
-                if (preFilteredRules != null)
-                {
-                    Log.WriteDebug("Variance Rule Loading",
-                        $"NameField rule_owner prefilter returned no rules for owner {owner.Id}, management {mgtId}. Falling back to marker query.");
-                }
             }
 
+            return await GetRulesViaMarker(mgtId, relImpId, modellingFilter);
+        }
+
+        /// <summary>
+        /// Loads the rules the way the analysis always did: by marker, or by loading every rule of the
+        /// management when remaining rules are analysed. This is the standard path for every mapping
+        /// source except NameField, and the fallback within it.
+        /// </summary>
+        /// <param name="mgtId">Management to load from.</param>
+        /// <param name="relImpId">Import that defines the state to read.</param>
+        /// <param name="modellingFilter">Filter of the running analysis.</param>
+        /// <returns>The loaded rules.</returns>
+        private async Task<List<Rule>?> GetRulesViaMarker(int mgtId, long? relImpId, ModellingFilter modellingFilter)
+        {
             if (modellingFilter.AnalyseRemainingRules)
             {
-                var RuleVariables = new
+                var allRuleVariables = new
                 {
                     mgmId = mgtId,
                     import_id_start = relImpId,
                     import_id_end = relImpId
                 };
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, RuleVariables);
+                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, allRuleVariables);
             }
-            else
+
+            var markerVariables = new
             {
-                var RuleVariables = new
-                {
-                    mgmId = mgtId,
-                    import_id_start = relImpId,
-                    import_id_end = relImpId,
-                    marker = $"%{userConfig.ModModelledMarker}%"
-                };
+                mgmId = mgtId,
+                import_id_start = relImpId,
+                import_id_end = relImpId,
+                marker = $"%{userConfig.ModModelledMarker}%"
+            };
 
-                string query = userConfig.ModModelledMarkerLocation switch
-                {
-                    MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
-                    MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
-                    _ => throw new NotSupportedException("invalid or undefined Marker Location")
-                };
+            string query = userConfig.ModModelledMarkerLocation switch
+            {
+                MarkerLocation.Rulename => RuleQueries.getModelledRulesByManagementName,
+                MarkerLocation.Comment => RuleQueries.getModelledRulesByManagementComment,
+                _ => throw new NotSupportedException("invalid or undefined Marker Location")
+            };
 
-                return await apiConnection.SendQueryAsync<List<Rule>>(query, RuleVariables);
-            }
+            return await apiConnection.SendQueryAsync<List<Rule>>(query, markerVariables);
         }
 
         /// <summary>
@@ -211,32 +221,216 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Checks whether successful imports with pending rule_owner mapping can affect this management.
-        /// When such backlog exists, the marker query is safer than the NameField prefilter because
-        /// the mapping table may be incomplete.
+        /// Runs the checks that decide whether the rule_owner mapping may be used as a prefilter and,
+        /// if they pass, the prefilter itself.
         /// </summary>
-        private async Task<bool> IsRuleOwnerMappingCurrent(HashSet<int> relevantMgmIds)
+        /// <param name="mgtId">Management to load from.</param>
+        /// <param name="relImpId">Import that defines the state to read.</param>
+        /// <param name="managementIds">Management and sub management ids the analysis reads.</param>
+        /// <param name="modellingFilter">Filter of the running analysis.</param>
+        /// <returns>The prefiltered rules, or null when the marker query has to be used instead.</returns>
+        private async Task<List<Rule>?> TryGetPreFilteredRules(int mgtId, long relImpId, HashSet<int> managementIds, ModellingFilter modellingFilter)
         {
+            RuleOwnerPrefilterState? state = await GetUsableRuleOwnerState(mgtId, managementIds, modellingFilter);
+            if (state == null)
+            {
+                return null;
+            }
+
+            if (!await IsRuleOwnerPreFilterCompletenessVerified(mgtId, relImpId, modellingFilter))
+            {
+                return null;
+            }
+
+            return await RunNameFieldRuleOwnerPreFilter(mgtId, relImpId, state);
+        }
+
+        /// <summary>
+        /// Reads the mapping state and decides whether it may be trusted. A pending import is waited
+        /// out once where somebody is waiting for the result, because the mapping job usually closes
+        /// that gap within its interval - far quicker than the marker query would finish.
+        /// </summary>
+        /// <param name="mgtId">Management to load from.</param>
+        /// <param name="managementIds">Management and sub management ids the analysis reads.</param>
+        /// <param name="modellingFilter">Filter of the running analysis.</param>
+        /// <returns>The usable state, or null when the marker query has to be used.</returns>
+        private async Task<RuleOwnerPrefilterState?> GetUsableRuleOwnerState(int mgtId, HashSet<int> managementIds, ModellingFilter modellingFilter)
+        {
+            RuleOwnerPrefilterState? state = await GetRuleOwnerPrefilterState();
+            if (state == null)
+            {
+                await ReportPreFilterFallback(mgtId, "the rule_owner mapping state could not be read");
+                return null;
+            }
+
+            if (state.RebuildRunning)
+            {
+                await ReportPreFilterFallback(mgtId, "a full rule_owner reinitialize is rebuilding the mapping");
+                return null;
+            }
+
+            if (!state.HasPendingImportFor(managementIds))
+            {
+                return state;
+            }
+
+            state = await WaitForRuleOwnerMapping(managementIds, modellingFilter);
+            if (state != null && !state.RebuildRunning && !state.HasPendingImportFor(managementIds))
+            {
+                return state;
+            }
+
+            await ReportPreFilterFallback(mgtId, "imports are still waiting for their rule_owner mapping");
+            return null;
+        }
+
+        /// <summary>
+        /// Checks whether this analysis may wait for the mapping job at all. Only callers where
+        /// somebody waits for the result allow it, and only once per analysis, so a run over several
+        /// owners or managements cannot accumulate wait times.
+        /// </summary>
+        /// <param name="modellingFilter">Filter of the running analysis.</param>
+        /// <returns>True if waiting is allowed right now.</returns>
+        private bool MayWaitForRuleOwnerMapping(ModellingFilter modellingFilter)
+        {
+            return modellingFilter.AllowWaitForRuleOwnerMapping
+                && userConfig.VarianceNameFieldWaitTime > 0
+                && !ruleOwnerWaitDone;
+        }
+
+        /// <summary>
+        /// Polls the mapping state until the pending imports are processed or the configured wait time
+        /// is used up. Polling rather than waiting the full time keeps the delay at the actual gap,
+        /// which is usually far shorter than the configured maximum.
+        /// </summary>
+        /// <param name="managementIds">Management and sub management ids the analysis reads.</param>
+        /// <param name="modellingFilter">Filter of the running analysis.</param>
+        /// <returns>The state after waiting, or null if it could not be read.</returns>
+        private async Task<RuleOwnerPrefilterState?> WaitForRuleOwnerMapping(HashSet<int> managementIds, ModellingFilter modellingFilter)
+        {
+            if (!MayWaitForRuleOwnerMapping(modellingFilter))
+            {
+                return ruleOwnerPrefilterState;
+            }
+
+            ruleOwnerWaitDone = true;
+            int attempts = (int)Math.Ceiling((double)userConfig.VarianceNameFieldWaitTime / kRuleOwnerPollIntervalSeconds);
+            TimeSpan pollInterval = TimeSpan.FromSeconds(kRuleOwnerPollIntervalSeconds);
+
+            for (int attempt = 0; attempt < attempts && !CancellationToken.IsCancellationRequested; attempt++)
+            {
+                await DelayAsync(pollInterval, CancellationToken);
+                ruleOwnerPrefilterState = null;
+                RuleOwnerPrefilterState? state = await GetRuleOwnerPrefilterState();
+                if (state == null || (!state.RebuildRunning && !state.HasPendingImportFor(managementIds)))
+                {
+                    return state;
+                }
+            }
+
+            return ruleOwnerPrefilterState;
+        }
+
+        /// <summary>
+        /// Reads the rule_owner mapping state and caches it for this analysis. The cache is dropped
+        /// while waiting, so every poll sees the current state.
+        /// <para>
+        /// Three separate queries rather than one with aliases, following the one query per file
+        /// convention. They are small enough that reading them in sequence costs nothing measurable
+        /// against the marker query this whole check exists to avoid.
+        /// </para>
+        /// </summary>
+        /// <returns>The state, or null if it could not be read.</returns>
+        private async Task<RuleOwnerPrefilterState?> GetRuleOwnerPrefilterState()
+        {
+            if (ruleOwnerPrefilterState != null)
+            {
+                return ruleOwnerPrefilterState;
+            }
+
             try
             {
-                PendingRuleOwnerMappingImports ??= await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports) ?? [];
-
-                bool hasRelevantPendingImport = PendingRuleOwnerMappingImports.Any(import => !import.MgmId.HasValue || relevantMgmIds.Contains(import.MgmId.Value));
-
-                if (hasRelevantPendingImport)
+                var rebuildVariables = new
                 {
-                    Log.WriteDebug("Variance Rule Loading",
-                        $"Skipping NameField rule_owner prefilter because pending rule_owner mapping imports exist for managements {string.Join(", ", relevantMgmIds)}.");
-                }
+                    rebuildCutoff = DateTime.Now.AddHours(-kRuleOwnerRebuildMaxAgeHours).ToString("yyyy-MM-dd HH:mm:ss")
+                };
+                var mappingVariables = new
+                {
+                    ownerMappingSourceId = (short)(int)OwnerMappingSourceStm.NameField
+                };
 
-                return !hasRelevantPendingImport;
+                List<ImportControl> runningRebuild = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getRunningRuleOwnerRebuild, rebuildVariables) ?? [];
+                List<ImportControl> pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleAffectingImports) ?? [];
+                List<RuleOwner> existingMapping = await apiConnection.SendQueryAsync<List<RuleOwner>>(OwnerQueries.getAnyActiveRuleOwnerMapping, mappingVariables) ?? [];
+
+                ruleOwnerPrefilterState = new()
+                {
+                    RunningRuleOwnerRebuild = runningRebuild,
+                    PendingRuleAffectingImports = pendingImports,
+                    MappingExists = existingMapping.Count > 0
+                };
+                return ruleOwnerPrefilterState;
             }
             catch (Exception exception)
             {
                 Log.WriteWarning("Variance Rule Loading",
-                    $"Could not verify rule_owner mapping freshness for managements {string.Join(", ", relevantMgmIds)}. Falling back to marker query. {exception.Message}");
-                return false;
+                    $"Could not read the rule_owner mapping state for owner {owner.Id}. Falling back to marker query. {exception.Message}");
+                return null;
             }
+        }
+
+        /// <summary>
+        /// Runs the prefilter query and decides what an empty result means. Empty is a valid answer
+        /// once the mapping exists at all - the owner simply has nothing on this management. Without
+        /// any mapping it says nothing, so the marker query has to answer instead.
+        /// </summary>
+        /// <param name="mgtId">Management to load from.</param>
+        /// <param name="relImpId">Import that defines the state to read.</param>
+        /// <param name="state">Mapping state read before.</param>
+        /// <returns>The prefiltered rules, or null when the marker query has to be used.</returns>
+        private async Task<List<Rule>?> RunNameFieldRuleOwnerPreFilter(int mgtId, long relImpId, RuleOwnerPrefilterState state)
+        {
+            List<Rule>? preFilteredRules = await TryGetNameFieldRuleOwnerPrefilteredRules(mgtId, relImpId);
+            if (preFilteredRules == null)
+            {
+                await ReportPreFilterFallback(mgtId, "the rule_owner prefilter query failed");
+                return null;
+            }
+
+            if (preFilteredRules.Count > 0 || state.MappingExists)
+            {
+                return preFilteredRules;
+            }
+
+            await ReportPreFilterFallback(mgtId, "no rule_owner mapping has been built yet");
+            return null;
+        }
+
+        /// <summary>
+        /// Records that the analysis falls back to the marker query. The log entry is written for every
+        /// occurrence so the frequency can be read later; the message to the user is shown once per
+        /// analysis, so a run over several managements does not repeat it.
+        /// <para>
+        /// Only ever reached inside the NameField branch - for the other mapping sources the marker
+        /// query is the normal path and there is nothing to report.
+        /// </para>
+        /// </summary>
+        /// <param name="mgtId">Management the analysis was loading.</param>
+        /// <param name="reason">Why the prefilter could not be used.</param>
+        private async Task ReportPreFilterFallback(int mgtId, string reason)
+        {
+            Log.WriteDebug("Variance Rule Loading",
+                $"Falling back to marker query for owner {owner.Id}, management {mgtId}: {reason}.");
+            await AlertHelper.AddLogEntry(apiConnection, 0, reason,
+                $"Variance analysis for owner {owner.Id} used the marker query on management {mgtId}.",
+                GlobalConst.kVarianceRuleOwnerPrefilter, mgtId);
+
+            if (preFilterFallbackReported)
+            {
+                return;
+            }
+            preFilterFallbackReported = true;
+            displayMessageInUi(null, userConfig.GetText("variance_analysis"), userConfig.GetText("U9044"), true);
         }
 
         private async Task<HashSet<long>> GetNameFieldRuleOwnerConnectionIds()
@@ -295,9 +489,7 @@ namespace FWO.Services.Modelling
 
                 if (missingMappingCount > 0)
                 {
-                    Log.WriteDebug("Variance Rule Loading",
-                        $"Skipping NameField rule_owner prefilter because {missingMappingCount} owner marker rules have no active rule_owner mapping " +
-                        $"for owner {owner.Id}, management {mgtId}.");
+                    await ReportPreFilterFallback(mgtId, $"{missingMappingCount} owner marker rules have no active rule_owner mapping");
                 }
 
                 return missingMappingCount == 0;

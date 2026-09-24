@@ -1,4 +1,4 @@
-@using FWO.Data.Modelling
+﻿@using FWO.Data.Modelling
 @using FWO.Report
 @using FWO.Report.Data.ViewData
 @using FWO.Report.Filter
@@ -624,6 +624,9 @@
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
+            // somebody is waiting for this report, so a short wait for the rule_owner mapping
+            // beats falling back to the much slower marker query
+            temp.ReportParams.ModellingFilter.AllowWaitForRuleOwnerMapping = true;
 
             currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;

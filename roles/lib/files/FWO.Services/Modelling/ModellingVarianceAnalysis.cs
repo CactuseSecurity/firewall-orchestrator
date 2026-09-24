@@ -48,10 +48,31 @@ namespace FWO.Services.Modelling
 
         public ModellingAppZone? PlannedAppZoneDbUpdate { get; set; } = default;
 
-        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections)
+        /// <summary>
+        /// Delay used while waiting for the rule_owner mapping job. Replaceable so tests do not have
+        /// to wait in real time.
+        /// </summary>
+        public Func<TimeSpan, CancellationToken, Task> DelayAsync { get; set; } = Task.Delay;
+
+        /// <summary>
+        /// Cancels a wait for the rule_owner mapping job, for instance when the user navigates away.
+        /// Callers without a token leave the default, which never cancels.
+        /// </summary>
+        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+
+        /// <summary>
+        /// Determines the modelling state of the given connections.
+        /// </summary>
+        /// <param name="connections">Connections to analyse.</param>
+        /// <param name="allowWait">
+        /// True where somebody waits for the result, so a pending rule_owner mapping run may be waited
+        /// out instead of falling back to the much slower marker query. The background job leaves it
+        /// false.
+        /// </param>
+        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections, bool allowWait = false)
         {
             connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
-            varianceResult = await AnalyseRulesVsModelledConnections(connections, new(), false);
+            varianceResult = await AnalyseRulesVsModelledConnections(connections, new() { AllowWaitForRuleOwnerMapping = allowWait }, false);
             await GetNwObjectsProductionState();
             foreach (var conn in connections)
             {
@@ -155,12 +176,19 @@ namespace FWO.Services.Modelling
             return varianceResult;
         }
 
-        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections)
+        /// <summary>
+        /// Builds the request tasks needed to implement the given connections.
+        /// </summary>
+        /// <param name="connections">Connections to request.</param>
+        /// <param name="allowWait">
+        /// True where somebody waits for the result, see <see cref="AnalyseConnsForStatus"/>.
+        /// </param>
+        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections, bool allowWait = false)
         {
             appServerComparer = new(namingConvention);
             await InitManagements();
             await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false });
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait });
             await GetNwObjectsProductionState();
             await GetDeletedConnections();
 

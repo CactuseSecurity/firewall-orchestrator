@@ -1,4 +1,4 @@
-@using System.Net
+﻿@using System.Net
 @using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
@@ -123,6 +123,7 @@
     public string LastRequestDate { get; set; } = "";
 
 
+    private CancellationTokenSource varianceTokenSource = new();
     private List<WfReqTask> TaskList = [];
     private List<WfReqTask> TaskListSnapshot => [.. TaskList];
     private List<IpProtocol> ipProtos = [];
@@ -188,8 +189,14 @@
                 }
                 else
                 {
-                    ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
-                    TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
+                    // a fresh source per run: Dispose is also called explicitly while the popup stays alive
+                    varianceTokenSource.Cancel();
+                    varianceTokenSource = new CancellationTokenSource();
+                    ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi)
+                    {
+                        CancellationToken = varianceTokenSource.Token
+                    };
+                    TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections, allowWait: true);
                     PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
                 }
             }
@@ -566,6 +573,8 @@
 
     public void Dispose()
     {
+        // stops a variance analysis that is waiting for the rule_owner mapping run
+        varianceTokenSource.Cancel();
         try
         {
             foreach (var sub in actTaskSubscriptions)

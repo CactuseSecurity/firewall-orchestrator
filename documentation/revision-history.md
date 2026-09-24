@@ -1,4 +1,4 @@
-# Firewall Orchestrator Revision History
+﻿# Firewall Orchestrator Revision History
 
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module
@@ -759,3 +759,14 @@ Not supported any longer are:
   affected rules and what caused a difference
 - rule owner mapping: new setting for the log level of mapping issues
 - rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area
+- variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import
+  without policy changes cannot have changed a marker and is ignored, and where somebody is waiting for the
+  result the analysis waits briefly for the mapping run instead of falling back to the much slower marker
+  query. The wait is capped by the new setting varianceNameFieldWaitTime (0 disables it) and never happens
+  in the background job
+- variance analysis: a running full reinitialize of the rule_owner mapping is now detected, so the analysis
+  no longer reads a half-rebuilt mapping and silently reports implemented connections as not implemented
+- variance analysis: an empty prefilter result is accepted once the mapping exists at all, instead of
+  running the full marker query for every owner that has nothing on a management
+- variance analysis: every fall back to the marker query is written to the log with its reason and shown
+  to the user once per analysis, so the remaining cases can be found without debug logging

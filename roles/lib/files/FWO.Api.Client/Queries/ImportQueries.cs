@@ -1,4 +1,4 @@
-using FWO.Logging;
+﻿using FWO.Logging;
 
 namespace FWO.Api.Client.Queries
 {
@@ -17,6 +17,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateImportControlForRuleOwnerFull;
         public static readonly string updateImportControlForRuleOwnerInc;
         public static readonly string getPendingRuleOwnerImports;
+        public static readonly string getRunningRuleOwnerRebuild;
+        public static readonly string getPendingRuleAffectingImports;
 
         static ImportQueries()
         {
@@ -33,6 +35,8 @@ namespace FWO.Api.Client.Queries
                 completeLogImport = GetQueryText("import/completeLogImport.graphql");
                 updateImportControlForRuleOwnerFull = GetQueryText("import/updateImportControlForRuleOwnerFull.graphql");
                 getPendingRuleOwnerImports = GetQueryText("import/getPendingRuleOwnerImports.graphql");
+                getRunningRuleOwnerRebuild = GetQueryText("import/getRunningRuleOwnerRebuild.graphql");
+                getPendingRuleAffectingImports = GetQueryText("import/getPendingRuleAffectingImports.graphql");
                 updateImportControlForRuleOwnerInc = GetQueryText("import/updateImportControlForRuleOwnerInc.graphql");
             }
             catch (Exception exception)

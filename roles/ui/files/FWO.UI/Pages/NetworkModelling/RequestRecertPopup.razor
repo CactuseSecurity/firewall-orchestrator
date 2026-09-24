@@ -1,4 +1,4 @@
-@using FWO.Data.Report
+﻿@using FWO.Data.Report
 @using FWO.Data.Workflow
 @using FWO.Middleware.Client
 @using FWO.Recert
@@ -240,7 +240,8 @@
             SelectedOwner = AppHandler!.Application,
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
             RulesForDeletedConns = true,
-            VerifyRuleOwnerPreFilterCompleteness = true
+            VerifyRuleOwnerPreFilterCompleteness = true,
+            AllowWaitForRuleOwnerMapping = true
         };
         ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
         (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();

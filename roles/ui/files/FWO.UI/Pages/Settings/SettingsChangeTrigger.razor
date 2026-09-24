@@ -1,4 +1,4 @@
-@page "/settings/changetrigger"
+﻿@page "/settings/changetrigger"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @using FWO.Data
 
@@ -61,6 +61,12 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("updateRuleOwnerMappingSleepTime")):</label>
             <div class="col-sm-2">
                 <input type="number" min="0" @bind="configData!.UpdateRuleOwnerMappingSleepTime" />
+            </div>
+        </div>
+        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5485d"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("varianceNameFieldWaitTime")):</label>
+            <div class="col-sm-2">
+                <input type="number" min="0" @bind="configData!.VarianceNameFieldWaitTime" />
             </div>
         </div>
         <hr />

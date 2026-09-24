@@ -430,6 +430,7 @@ namespace FWO.Test
             source.GlobalMatrix[WorkflowPhases.approval].LowestInputState = 49;
             source.GlobalMatrix[WorkflowPhases.approval].LowestStartedState = 50;
             source.GlobalMatrix[WorkflowPhases.approval].LowestEndState = 60;
+            source.GlobalMatrix[WorkflowPhases.approval].VisibilityMode = PhaseVisibilityMode.TicketState;
 
             List<WorkflowConfiguration> configurations = StateMatrixConfigurationTestHelper.FromGlobalMatrix(source, WfTaskType.access);
             StateMatrixTransitionGroup approvalGroup = configurations[0].Phases
@@ -447,6 +448,7 @@ namespace FWO.Test
             {
                 Assert.That(matrix.ExclusiveVisibilityGroupIds, Does.Contain(3));
                 Assert.That(matrix.GetVisibilityGroupIds(49), Does.Contain(3));
+                Assert.That(matrix.VisibilityMode, Is.EqualTo(PhaseVisibilityMode.TicketState));
             });
         }
 

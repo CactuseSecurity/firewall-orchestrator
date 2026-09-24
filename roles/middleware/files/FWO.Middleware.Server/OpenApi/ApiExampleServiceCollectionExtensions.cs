@@ -26,6 +26,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesRequestExample>();
         services.AddSingleton<IApiExampleProvider, CreateTicketResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetTicketStatusResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketRequestExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
         services.AddSingleton<IApiExampleProvider, ComplianceDesignatedZoneResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetPolicyIdsResponseExample>();
@@ -39,6 +40,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, ServiceObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnerResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketResponseExample>();
         services.AddOpenApiEndpointDocumentationProviders();
         return services;
     }
@@ -606,6 +608,89 @@ public sealed class GetAuditProofCriticalChangesResponseExample : ApiExampleProv
                 ChangeUserName = "abc",
                 ChangeUserId = 42,
                 ChangeContent = "Updated workflow ticket"
+            }
+        ]
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetTicketRequest"/>.
+/// </summary>
+public sealed class GetTicketRequestExample : ApiExampleProvider<GetTicketRequest>
+{
+    /// <inheritdoc />
+    public override GetTicketRequest GetExample() => new()
+    {
+        TicketId = 1234,
+        Options = new GetTicketOptions
+        {
+            Filter = new TicketTaskFilter
+            {
+                TaskType = "access"
+            }
+        }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetTicketResponse"/>.
+/// </summary>
+public sealed class GetTicketResponseExample : ApiExampleProvider<GetTicketResponse>
+{
+    // Unspecified on purpose: the stored columns are timezone-naive, so the endpoint emits no offset.
+    private static readonly DateTime kCreationDate = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified);
+
+    /// <inheritdoc />
+    public override GetTicketResponse GetExample() => new()
+    {
+        Id = 1234,
+        Title = "Allow HTTPS to application server",
+        StateId = 49,
+        State = "Approval",
+        Status = "in_progress",
+        CreationDate = kCreationDate,
+        Priority = 3,
+        RequesterName = "alice",
+        RequesterDn = "uid=alice,ou=users,dc=example,dc=com",
+        Reason = "Alice Example (alice)",
+        Locked = true,
+        Tasks =
+        [
+            new TicketTaskResponse
+            {
+                Id = 5678,
+                TaskNumber = 1,
+                Title = "HTTPS to app server",
+                TaskType = "access",
+                StateId = 49,
+                State = "Approval",
+                RequestAction = "create",
+                RuleActionId = 1,
+                TrackingId = 1,
+                ManagementId = 3,
+                ManagementName = "Checkpoint R8x",
+                DeviceIds = [7],
+                Locked = true,
+                Elements =
+                [
+                    new TicketElementResponse { Id = 1, Field = "source", Action = "create", Name = "client-net", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" },
+                    new TicketElementResponse { Id = 2, Field = "destination", Action = "create", Name = "app-server", Ip = "192.168.1.10/32", IpEnd = "192.168.1.10/32" },
+                    new TicketElementResponse { Id = 3, Field = "service", Action = "create", Name = "https", Port = 443, PortEnd = 443, ProtocolId = 6 }
+                ],
+                Approvals =
+                [
+                    new TicketApprovalResponse
+                    {
+                        Id = 91,
+                        StateId = 49,
+                        State = "Approval",
+                        DateOpened = kCreationDate,
+                        ApproverGroup = "cn=approvers,ou=groups,dc=example,dc=com",
+                        InitialApproval = true
+                    }
+                ],
+                Owners = [new TicketOwnerResponse { Id = 12, Name = "Payments", ExtAppId = "APP-4711" }],
+                Comments = [new TicketCommentResponse { Id = 300, CreationDate = kCreationDate, CreatorName = "alice", Text = "Needed for go-live" }]
             }
         ]
     };

@@ -11,11 +11,12 @@ using System.Security.Claims;
 namespace FWO.Middleware.Server.Controllers;
 
 /// <summary>
-/// Provides flow request endpoints.
+/// Provides workflow ticket endpoints.
 /// </summary>
 [Authorize]
 [ApiController]
 [Route("api/workflow")]
+[AggregatedValidationErrors]
 public class WorkflowTicketController : ControllerBase
 {
     private readonly WorkflowTicketService workflowTicketService;
@@ -85,6 +86,47 @@ public class WorkflowTicketController : ControllerBase
         catch (Exception exception)
         {
             Log.WriteError("Get Ticket Status", "Error while fetching workflow ticket status.", exception);
+            return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Returns an existing workflow ticket with all of its details: request tasks with their elements,
+    /// approvals, implementation tasks, owners and comments, and the ticket-level comments.
+    /// </summary>
+    /// <remarks>
+    /// <c>options.filter</c> restricts the returned request tasks; the ticket itself is always
+    /// returned when it exists. A ticketId that names no ticket answers 404 with the error contract
+    /// of this endpoint.
+    /// </remarks>
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+    [HttpPost("getTicket")]
+    [ProducesResponseType(typeof(GetTicketResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<GetTicketResponse>> GetTicket([FromBody] GetTicketRequest request)
+    {
+        RequestValidationErrorResponse validationErrors = GetTicketRequestValidator.Validate(request);
+        if (validationErrors.Errors.Count > 0)
+        {
+            return BadRequest(validationErrors);
+        }
+
+        long ticketId = request.TicketId.GetValueOrDefault();
+        try
+        {
+            GetTicketResponse? response = await workflowTicketService.GetTicketAsync(ticketId, request.Options.Filter);
+            if (response == null)
+            {
+                return NotFound(GetTicketRequestValidator.BuildUnknownTicketError(ticketId));
+            }
+
+            return Ok(response);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Get Ticket", $"Error while fetching workflow ticket {ticketId}.", exception);
             return StatusCode(StatusCodes.Status500InternalServerError, "Internal server error");
         }
     }

@@ -131,7 +131,7 @@ namespace FWO.Report
                         actOwnerData.Connections = rep.OwnerData[0].Connections;
                         return Task.CompletedTask;
                     }, token);
-                await PrepareConnReportData(selectedOwner, actOwnerData, report, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi);
+                await PrepareConnReportData(actOwnerData, report, reportTemplate.ReportParams.ModellingFilter, apiConnection, userConfig, displayMessageInUi, token);
             }
             if (report.ReportType == ReportType.Connections)
             {
@@ -143,8 +143,8 @@ namespace FWO.Report
             }
         }
 
-        private static async Task PrepareConnReportData(FwoOwner selectedOwner, OwnerConnectionReport ownerReport, ReportBase report, ModellingFilter modellingFilter,
-            ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
+        private static async Task PrepareConnReportData(OwnerConnectionReport ownerReport, ReportBase report, ModellingFilter modellingFilter,
+            ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
             ModellingHandlerBase handlerBase = new(apiConnection, userConfig, new(), false, displayMessageInUi, true, false);
             foreach (var conn in ownerReport.Connections)
@@ -153,20 +153,24 @@ namespace FWO.Report
             }
             if (report.ReportType == ReportType.VarianceAnalysis)
             {
-                await PrepareVarianceData(report, ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi);
+                await PrepareVarianceData(report, ownerReport, modellingFilter, apiConnection, userConfig, displayMessageInUi, token);
             }
-            ownerReport.Name = selectedOwner.Name;
+            ownerReport.Name = ownerReport.Owner.Name;
             ownerReport.RegularConnections = [.. ownerReport.Connections.Where(x => !x.IsInterface && !x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
             ownerReport.Interfaces = [.. ownerReport.Connections.Where(x => x.IsInterface && !(x.GetBoolProperty(ConState.Rejected.ToString()) || x.GetBoolProperty(ConState.Decommissioned.ToString())))];
             ownerReport.CommonServices = [.. ownerReport.Connections.Where(x => !x.IsInterface && x.IsCommonService && !x.GetBoolProperty(ConState.InterfaceRejected.ToString()))];
         }
 
         private static async Task PrepareVarianceData(ReportBase report, OwnerConnectionReport ownerReport, ModellingFilter modellingFilter, ApiConnection apiConnection,
-            UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi)
+            UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken token)
         {
             ownerReport.ExtractConnectionsToAnalyse();
             ExtStateHandler extStateHandler = new(apiConnection);
-            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi);
+            // the report's token, so cancelling the report also stops a wait for the rule_owner mapping run
+            ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, ownerReport.Owner, displayMessageInUi)
+            {
+                CancellationToken = token
+            };
             ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;

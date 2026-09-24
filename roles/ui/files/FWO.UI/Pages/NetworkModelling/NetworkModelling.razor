@@ -127,17 +127,17 @@
                     <TabSet WholeWidth="false" DarkMode="false" KeepPanelsAlive="false" @ref="appHandler!.Tabset">
                         <Tab Title="@(userConfig.GetText("connections"))" Position=0>
                             <div>
-                                <button type="button" class="btn btn-sm btn-success" @onclick="AddConnection" disabled="@(!IsModellingWriteAllowedForSelectedApp())">
+                                <button type="button" class="btn btn-sm btn-success" @onclick="AddConnection" disabled="@(!IsModellingInteractionAllowedForSelectedApp())">
                                     @(DisplayService.DisplayButton(userConfig, "add_connection", Icons.Add))
                                 </button>
                             </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetRegularConnections()"
-                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())" />
                         </Tab>
                         <Tab Title="@(userConfig.GetText("provided_interfaces"))" Position=1>
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <button type="button" class="btn btn-sm btn-success" @onclick="AddInterface" disabled="@(!IsModellingWriteAllowedForSelectedApp())">
+                                    <button type="button" class="btn btn-sm btn-success" @onclick="AddInterface" disabled="@(!IsModellingInteractionAllowedForSelectedApp())">
                                         @(DisplayService.DisplayButton(userConfig, "add_interface", Icons.Add))
                                     </button>
                                 </div>
@@ -151,20 +151,20 @@
                                 </ExecutionModeAuthorizeView>
                             </div>
                             <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetInterfaces(showRejected)"
-                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())"/>
+                                @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" InterfacesPossible="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())"/>
                         </Tab>
                         @if (selectedApp.CommSvcPossible)
                         {
                             <Tab Title="@(userConfig.GetText("common_services"))" Position=2>
                                <div>
                                     <button type="button" class="btn btn-sm btn-success"
-                                            disabled="@(!IsModellingWriteAllowedForSelectedApp())"
+                                            disabled="@(!IsModellingInteractionAllowedForSelectedApp())"
                                             @onclick="AddCommonService">
                                         @(DisplayService.DisplayButton(userConfig, "add_common_service", Icons.Add))
                                     </button>
                                </div>
                                 <ConnectionTable UseResponsiveTable="true" ShowPageSizeInput="true" Connections="@appHandler!.GetCommonServices()"
-                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingWriteAllowedForSelectedApp())" />
+                                    @bind-AppHandler="appHandler" AppActive="appActive" ShowModellingState="true" ShowProductionState="true" Readonly="@(!IsModellingInteractionAllowedForSelectedApp())" />
                             </Tab>
                         }
                     </TabSet>
@@ -329,7 +329,7 @@ else
         {
             appSelected = false;
             selectedApp = newApp;
-            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingWriteAllowedForApp(newApp))
+            appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingInteractionAllowedForApp(newApp))
             {
                 ActWidth = sidebarLeftWidth,
                 StartCollapsed = firstInit
@@ -359,7 +359,7 @@ else
             {
                 tabSelected = true;
                 appHandler?.InitActiveTab(selectedConn);
-                if (IsModellingWriteAllowedForSelectedApp())
+                if (IsModellingInteractionAllowedForSelectedApp())
                 {
                     await appHandler!.EditConn(selectedConn);
                 }
@@ -403,7 +403,7 @@ else
 
     private async Task AddConnection()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_connection"), userConfig.GetText("E9104"), true);
             return;
@@ -425,7 +425,7 @@ else
 
     private async Task AddInterface()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_interface"), userConfig.GetText("E9104"), true);
             return;
@@ -436,7 +436,7 @@ else
 
     private async Task AddCommonService()
     {
-        if (!IsModellingWriteAllowedForSelectedApp() || appHandler == null)
+        if (!IsModellingInteractionAllowedForSelectedApp() || appHandler == null)
         {
             DisplayMessageInUi(null, userConfig.GetText("add_common_service"), userConfig.GetText("E9104"), true);
             return;
@@ -488,6 +488,22 @@ else
     private bool IsModellingWriteAllowedForSelectedApp()
     {
         return IsModellingWriteAllowedForApp(selectedApp);
+    }
+
+    /// <summary>
+    /// Checks whether the selected application's modelling forms may be used without granting persistence rights.
+    /// </summary>
+    private bool IsModellingInteractionAllowedForSelectedApp()
+    {
+        return IsModellingInteractionAllowedForApp(selectedApp);
+    }
+
+    /// <summary>
+    /// Checks whether modelling forms may be used for the supplied application without granting persistence rights.
+    /// </summary>
+    private bool IsModellingInteractionAllowedForApp(FwoOwner owner)
+    {
+        return userConfig.CanUseAnyRole(Roles.Auditor) || IsModellingWriteAllowedForApp(owner);
     }
 
     private bool IsModellingWriteAllowedForApp(FwoOwner owner)

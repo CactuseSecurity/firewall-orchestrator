@@ -5,6 +5,8 @@ using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Services.Workflow;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -15,6 +17,32 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class WorkflowChangeHistoryService
 {
+    /// <summary>
+    /// Serializer with the settings the GraphQL client uses to write change-history snapshots.
+    /// </summary>
+    /// <remarks>
+    /// Snapshots reach change_history.new_data as GraphQL variables, so their keys are camelCased by
+    /// the client's contract resolver. A current state converted with any other settings would never
+    /// compare equal to the stored snapshot, nor match its key names in the response.
+    /// </remarks>
+    private static readonly JsonSerializer kHistorySnapshotSerializer = JsonSerializer.Create(NewtonsoftJsonSerializer.DefaultJsonSerializerSettings);
+
+    /// <summary>
+    /// Stored request-task snapshot keys that workflow actions write, not the requester or an editor.
+    /// </summary>
+    /// <remarks>
+    /// Start and stop follow the state transitions of the task, additional info holds bookkeeping keys
+    /// of workflow actions. Neither is request content, so they are left out when deciding whether a
+    /// request task differs from what was requested. The names are the camelCased keys the history
+    /// serializer writes.
+    /// </remarks>
+    private static readonly List<string> kNonContentRequestTaskFields = new() { "start", "stop", "additionalInfo" };
+
+    /// <summary>
+    /// Stored request-task snapshot keys whose arrays carry no meaningful order.
+    /// </summary>
+    private static readonly List<string> kUnorderedRequestTaskFields = new() { "owners", "elements" };
+
     private readonly ApiConnection apiConnection;
 
     /// <summary>
@@ -59,7 +87,7 @@ public sealed class WorkflowChangeHistoryService
         List<AuditProofCriticalChangeResponse> changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList();
         AuditProofTaskDiffResponse? taskDiff = changes.Count == 0
             ? null
-            : await GetTaskDiffAsync(ticketId);
+            : await GetTaskDiffAsync(ticketId, filter);
 
         return new GetAuditProofCriticalChangesResponse
         {
@@ -72,8 +100,9 @@ public sealed class WorkflowChangeHistoryService
     /// Builds the task-state evidence attached to a non-empty audit-proof trail.
     /// </summary>
     /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <param name="filter">Response filter, applied to the manual implementation-task changes.</param>
     /// <returns>The request-task diff and the manual implementation-task history entries.</returns>
-    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId)
+    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId, AuditProofCriticalChangeFilter? filter)
     {
         List<ModellingHistoryEntry> history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(
             RequestQueries.getWorkflowTaskHistoryForTicket, new { ticketId });
@@ -82,7 +111,7 @@ public sealed class WorkflowChangeHistoryService
         return new AuditProofTaskDiffResponse
         {
             RequestTaskDiffs = BuildRequestTaskDiffs(history, currentTicket.Tasks),
-            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history)
+            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history, filter)
         };
     }
 
@@ -111,8 +140,13 @@ public sealed class WorkflowChangeHistoryService
     private static RequestTaskDiffResponse? BuildRequestTaskDiff(IGrouping<long, ModellingHistoryEntry> entries, WfReqTask? currentTask)
     {
         ModellingHistoryEntry? creation = entries.FirstOrDefault(entry => entry.ChangeType == (int)ModellingTypes.ChangeType.Insert);
-        object? currentData = currentTask == null ? null : RequestTaskSnapshot(currentTask);
-        if (creation?.NewData == null || JToken.DeepEquals(ToJsonToken(creation.NewData), ToJsonToken(currentData)))
+        if (creation?.NewData == null)
+        {
+            return null;
+        }
+
+        JToken? currentData = currentTask == null ? null : ToJsonToken(WfDbAccess.RequestTaskHistorySnapshot(currentTask));
+        if (currentData != null && JToken.DeepEquals(RequestContentOf(ToJsonToken(creation.NewData)), RequestContentOf(currentData)))
         {
             return null;
         }
@@ -126,57 +160,50 @@ public sealed class WorkflowChangeHistoryService
     }
 
     /// <summary>
-    /// Selects the request-task fields captured by workflow change history from the current database state.
+    /// Reduces a stored request-task snapshot to the request content that is compared.
     /// </summary>
-    private static object RequestTaskSnapshot(WfReqTask task)
+    /// <param name="snapshot">A request-task snapshot in the stored shape.</param>
+    /// <returns>A copy without the workflow-written fields and with unordered arrays in a fixed order.</returns>
+    private static JToken RequestContentOf(JToken snapshot)
     {
-        return new
+        if (snapshot is not JObject stored)
         {
-            task.Title,
-            task.TaskType,
-            task.RequestAction,
-            task.RuleAction,
-            task.Tracking,
-            task.Start,
-            task.Stop,
-            task.FreeText,
-            task.Reason,
-            task.AdditionalInfo,
-            task.ManagementId,
-            task.SelectedDevices,
-            Owners = task.Owners.Select(owner => owner.Owner.Id),
-            Elements = task.Elements.Select(element => new
+            return snapshot;
+        }
+
+        JObject content = (JObject)stored.DeepClone();
+        foreach (string field in kNonContentRequestTaskFields)
+        {
+            content.Remove(field);
+        }
+        foreach (string field in kUnorderedRequestTaskFields)
+        {
+            if (content[field] is JArray items)
             {
-                element.Id,
-                element.Field,
-                element.RequestAction,
-                element.IpString,
-                element.IpEnd,
-                element.Port,
-                element.PortEnd,
-                element.ProtoId,
-                element.NetworkId,
-                element.ServiceId,
-                element.Name,
-                element.GroupName
-            })
-        };
+                content[field] = new JArray(items.OrderBy(item => item.ToString(Formatting.None), StringComparer.Ordinal));
+            }
+        }
+        return content;
     }
 
     /// <summary>
-    /// Projects all audit-proof-critical implementation-task history entries as manual changes.
+    /// Projects the audit-proof-critical implementation-task history entries that match the filter as manual changes.
     /// </summary>
     /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <param name="filter">Response filter; null applies no restriction.</param>
     /// <returns>The recorded manual implementation-task changes.</returns>
-    private static List<ManualImplementationTaskChangeResponse> BuildManualImplementationTaskChanges(List<ModellingHistoryEntry> history)
+    private static List<ManualImplementationTaskChangeResponse> BuildManualImplementationTaskChanges(List<ModellingHistoryEntry> history,
+        AuditProofCriticalChangeFilter? filter)
     {
         return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.ImplementationTask && entry.AuditProofCritical)
+            .Where(entry => Matches(Map(entry), filter))
             .Select(entry => new ManualImplementationTaskChangeResponse
             {
                 ImplementationTaskId = entry.ObjectId,
                 ChangeTime = NormalizeStoredTime(entry.ChangeTime),
                 ChangeUserId = entry.ChangerId,
                 ChangeUserName = entry.Changer ?? string.Empty,
+                ChangeContent = entry.ChangeText ?? string.Empty,
                 Original = entry.OldData == null ? null : ToJsonElement(entry.OldData),
                 Current = entry.NewData == null ? null : ToJsonElement(entry.NewData)
             })
@@ -197,11 +224,12 @@ public sealed class WorkflowChangeHistoryService
     /// <summary>
     /// Normalizes a jsonb value to a token so snapshots can be compared structurally.
     /// </summary>
-    /// <param name="value">A jsonb value returned by Newtonsoft or created by a test fixture.</param>
+    /// <param name="value">A non-null jsonb value returned by Newtonsoft, or a snapshot object that is
+    /// serialized the way the GraphQL client stores it.</param>
     /// <returns>The equivalent JSON token.</returns>
-    private static JToken ToJsonToken(object? value)
+    private static JToken ToJsonToken(object value)
     {
-        return value as JToken ?? JToken.FromObject(value!);
+        return value as JToken ?? JToken.FromObject(value, kHistorySnapshotSerializer);
     }
 
     /// <summary>

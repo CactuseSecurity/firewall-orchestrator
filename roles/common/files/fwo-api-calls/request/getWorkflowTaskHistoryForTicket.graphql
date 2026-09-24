@@ -17,6 +17,7 @@ query getWorkflowTaskHistoryForTicket($ticketId: bigint!) {
     change_time
     changer
     changer_id
+    change_text
     old_data
     new_data
     audit_proof_critical

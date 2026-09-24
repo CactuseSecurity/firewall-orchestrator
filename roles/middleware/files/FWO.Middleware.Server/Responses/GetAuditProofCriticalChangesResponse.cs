@@ -21,8 +21,9 @@ public sealed class GetAuditProofCriticalChangesResponse
     /// </summary>
     /// <remarks>
     /// Null when no audit-proof changes match the request. Request-task diffs compare the first
-    /// recorded insert snapshot with the current request-task state; implementation-task
-    /// changes contain every audit-proof-critical manual history entry.
+    /// recorded insert snapshot with the current request-task state; they describe the ticket as a
+    /// whole and are therefore not restricted by the filter. Implementation-task changes contain the
+    /// audit-proof-critical manual history entries that match the filter.
     /// </remarks>
     [JsonPropertyName("taskDiff")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -35,8 +36,13 @@ public sealed class GetAuditProofCriticalChangesResponse
 public sealed class AuditProofTaskDiffResponse
 {
     /// <summary>
-    /// Gets or sets the request-task snapshots whose latest state differs from the original request.
+    /// Gets or sets the request-task snapshots whose current content differs from the original request.
     /// </summary>
+    /// <remarks>
+    /// Start, stop and additional info are written by workflow actions and do not count as a
+    /// difference; the order of owners and elements does not matter either. The snapshots themselves
+    /// are returned complete.
+    /// </remarks>
     [JsonPropertyName("requestTaskDiffs")]
     public List<RequestTaskDiffResponse> RequestTaskDiffs { get; set; } = [];
 
@@ -85,6 +91,10 @@ public sealed class ManualImplementationTaskChangeResponse
     /// <summary>Gets or sets the free-text name recorded for the user.</summary>
     [JsonPropertyName("changeUserName")]
     public string ChangeUserName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the recorded description of the change.</summary>
+    [JsonPropertyName("changeContent")]
+    public string ChangeContent { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the snapshot before the manual change.</summary>
     [JsonPropertyName("original")]

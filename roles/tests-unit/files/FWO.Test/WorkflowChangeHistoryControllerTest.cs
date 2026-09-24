@@ -10,8 +10,12 @@ using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
+using FWO.Services.Workflow;
+using GraphQL;
+using GraphQL.Client.Serializer.Newtonsoft;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace FWO.Test;
@@ -226,7 +230,7 @@ internal class WorkflowChangeHistoryControllerTest
                 ChangeType = (int)ModellingTypes.ChangeType.Insert,
                 ObjectType = (int)ChangeHistoryObjectType.RequestTask,
                 ObjectId = 10,
-                NewData = new Dictionary<string, object> { ["Title"] = "Original", ["Tracking"] = 1 }
+                NewData = StoredRequestTaskSnapshot(new WfReqTask { Id = 10, Title = "Original", Tracking = 1 })
             },
             new ModellingHistoryEntry
             {
@@ -234,7 +238,7 @@ internal class WorkflowChangeHistoryControllerTest
                 ChangeType = (int)ModellingTypes.ChangeType.Update,
                 ObjectType = (int)ChangeHistoryObjectType.RequestTask,
                 ObjectId = 10,
-                NewData = new Dictionary<string, object> { ["Title"] = "Planned", ["Tracking"] = 1 }
+                NewData = StoredRequestTaskSnapshot(new WfReqTask { Id = 10, Title = "Planned", Tracking = 1 })
             },
             new ModellingHistoryEntry
             {
@@ -259,12 +263,115 @@ internal class WorkflowChangeHistoryControllerTest
             Assert.That(response.TaskDiff, Is.Not.Null);
             Assert.That(response.TaskDiff!.RequestTaskDiffs, Has.Count.EqualTo(1));
             Assert.That(response.TaskDiff.RequestTaskDiffs[0].RequestTaskId, Is.EqualTo(10));
-            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Original.GetProperty("Title").GetString(), Is.EqualTo("Original"));
-            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Current!.Value.GetProperty("Title").GetString(), Is.EqualTo("Planned"));
+            // Both sides carry the stored key names, so a consumer can compare them field by field.
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Original.GetProperty("title").GetString(), Is.EqualTo("Original"));
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Current!.Value.GetProperty("title").GetString(), Is.EqualTo("Planned"));
             Assert.That(response.TaskDiff.ManualImplementationTaskChanges, Has.Count.EqualTo(1));
             Assert.That(response.TaskDiff.ManualImplementationTaskChanges[0].ImplementationTaskId, Is.EqualTo(20));
             Assert.That(response.TaskDiff.ManualImplementationTaskChanges[0].Current!.Value.GetProperty("deviceId").GetInt32(), Is.EqualTo(2));
         });
+    }
+
+    [Test]
+    public async Task AnUnchangedRequestTaskProducesNoDiff()
+    {
+        WfReqTask task = new() { Id = 10, Title = "Unchanged", Tracking = 1, Start = kFirstChangeTime };
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        apiConnection.TaskHistory = [RequestTaskInsert(10, StoredRequestTaskSnapshot(task))];
+        apiConnection.CurrentTasks = [task];
+
+        GetAuditProofCriticalChangesResponse response = await AllChanges(apiConnection);
+
+        // The stored snapshot went through the GraphQL client serializer (camelCase keys, ISO dates),
+        // the current state is projected in the service: both have to meet in the same shape.
+        Assert.That(response.TaskDiff!.RequestTaskDiffs, Is.Empty);
+    }
+
+    [Test]
+    public async Task ADeletedRequestTaskIsReportedWithoutACurrentState()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        apiConnection.TaskHistory = [RequestTaskInsert(10, StoredRequestTaskSnapshot(new WfReqTask { Id = 10, Title = "Removed" }))];
+
+        GetAuditProofCriticalChangesResponse response = await AllChanges(apiConnection);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TaskDiff!.RequestTaskDiffs, Has.Count.EqualTo(1));
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Original.GetProperty("title").GetString(), Is.EqualTo("Removed"));
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Current, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task WorkflowWrittenFieldsAndOwnerOrderDoNotCountAsARequestChange()
+    {
+        WfReqTask requested = new() { Id = 10, Title = "Same", Owners = [Owner(1), Owner(2)] };
+        WfReqTask current = new()
+        {
+            Id = 10,
+            Title = "Same",
+            Start = kFirstChangeTime,
+            Stop = kSecondChangeTime,
+            AdditionalInfo = "{\"ExtTicketId\":\"4711\"}",
+            Owners = [Owner(2), Owner(1)]
+        };
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        apiConnection.TaskHistory = [RequestTaskInsert(10, StoredRequestTaskSnapshot(requested))];
+        apiConnection.CurrentTasks = [current];
+
+        GetAuditProofCriticalChangesResponse response = await AllChanges(apiConnection);
+
+        // State transitions set start and stop, workflow actions write additional info, and owners
+        // come back in load order: none of that is a change to what was requested.
+        Assert.That(response.TaskDiff!.RequestTaskDiffs, Is.Empty);
+    }
+
+    [Test]
+    public async Task AContentChangeNextToWorkflowWrittenFieldsIsStillReported()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        apiConnection.TaskHistory = [RequestTaskInsert(10, StoredRequestTaskSnapshot(new WfReqTask { Id = 10, Reason = "Requested" }))];
+        apiConnection.CurrentTasks = [new WfReqTask { Id = 10, Reason = "Rewritten", Start = kFirstChangeTime }];
+
+        GetAuditProofCriticalChangesResponse response = await AllChanges(apiConnection);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.TaskDiff!.RequestTaskDiffs, Has.Count.EqualTo(1));
+            // The comparison ignores start, the returned snapshot still carries it.
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Current!.Value.GetProperty("reason").GetString(), Is.EqualTo("Rewritten"));
+            Assert.That(response.TaskDiff.RequestTaskDiffs[0].Current!.Value.GetProperty("start").ValueKind, Is.Not.EqualTo(JsonValueKind.Null));
+        });
+    }
+
+    [Test]
+    public async Task TheFilterAlsoRestrictsTheManualImplementationTaskChanges()
+    {
+        AuditProofCriticalChangesApiConnection apiConnection = CreateApiConnection();
+        apiConnection.TaskHistory =
+        [
+            ImplementationTaskChange(20, "DEF", "Updated workflow implementation task"),
+            ImplementationTaskChange(21, "abc", "Updated workflow implementation task")
+        ];
+        WorkflowChangeHistoryService service = new(apiConnection);
+
+        GetAuditProofCriticalChangesResponse response = (await service.GetAuditProofCriticalChangesAsync(1234,
+            new AuditProofCriticalChangeFilter { ChangeUserName = "def" }))!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Changes, Has.Count.EqualTo(1));
+            Assert.That(response.TaskDiff!.ManualImplementationTaskChanges, Has.Count.EqualTo(1));
+            Assert.That(response.TaskDiff.ManualImplementationTaskChanges[0].ImplementationTaskId, Is.EqualTo(20));
+            Assert.That(response.TaskDiff.ManualImplementationTaskChanges[0].ChangeContent, Is.EqualTo("Updated workflow implementation task"));
+        });
+    }
+
+    [Test]
+    public void TaskHistoryQuerySelectsTheChangeTextTheFilterMatchesOn()
+    {
+        Assert.That(RequestQueries.getWorkflowTaskHistoryForTicket, Does.Contain("change_text"));
     }
 
     [Test]
@@ -652,6 +759,46 @@ internal class WorkflowChangeHistoryControllerTest
     private static async Task<GetAuditProofCriticalChangesResponse> AllChanges(AuditProofCriticalChangesApiConnection? apiConnection = null)
     {
         return (await new WorkflowChangeHistoryService(apiConnection ?? CreateApiConnection()).GetAuditProofCriticalChangesAsync(1234, null))!;
+    }
+
+    /// <summary>
+    /// Returns a request-task snapshot as it reads back from change_history.new_data: projected by the
+    /// write path and serialized as a GraphQL variable by the client serializer.
+    /// </summary>
+    private static JToken StoredRequestTaskSnapshot(WfReqTask task)
+    {
+        GraphQLRequest request = new() { Variables = new { newData = WfDbAccess.RequestTaskHistorySnapshot(task) } };
+        return JObject.Parse(new NewtonsoftJsonSerializer().SerializeToString(request))["variables"]!["newData"]!;
+    }
+
+    private static ModellingHistoryEntry RequestTaskInsert(long requestTaskId, JToken snapshot)
+    {
+        return new ModellingHistoryEntry
+        {
+            ChangeType = (int)ModellingTypes.ChangeType.Insert,
+            ObjectType = (int)ChangeHistoryObjectType.RequestTask,
+            ObjectId = requestTaskId,
+            NewData = snapshot
+        };
+    }
+
+    private static FwoOwnerDataHelper Owner(int ownerId)
+    {
+        return new FwoOwnerDataHelper { Owner = new FwoOwner { Id = ownerId } };
+    }
+
+    private static ModellingHistoryEntry ImplementationTaskChange(long implementationTaskId, string changer, string changeText)
+    {
+        return new ModellingHistoryEntry
+        {
+            ChangeType = (int)ModellingTypes.ChangeType.Update,
+            ObjectType = (int)ChangeHistoryObjectType.ImplementationTask,
+            ObjectId = implementationTaskId,
+            ChangeTime = kSecondChangeTime,
+            Changer = changer,
+            ChangeText = changeText,
+            AuditProofCritical = true
+        };
     }
 
     private static async Task<GetAuditProofCriticalChangesResponse> FilteredChanges(AuditProofCriticalChangeFilter filter)

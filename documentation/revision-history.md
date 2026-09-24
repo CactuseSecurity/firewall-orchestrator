@@ -769,3 +769,4 @@ Not supported any longer are:
 
 ## 9.5.5 - 23.09.2026
 - workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
+- new REST endpoint workflow/getTicket returns a workflow ticket with all its details in JSON: ticket header data, the request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments. It is available to admins and auditors. Besides the workflow state ids and names, the ticket carries the same status that flow/getRequestStatus reports. The optional options.filter restricts the returned request tasks by any of their scalar fields; the ticket itself is always returned when it exists, so a filter that excludes every task yields an empty task list, while a ticketId that names no ticket is answered with 404. All validation errors of a request are reported together.

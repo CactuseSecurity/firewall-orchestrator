@@ -168,7 +168,7 @@ namespace FWO.Services.Modelling
             RefreshSelectableNwObjects();
         }
 
-        private async Task RefreshActConn()
+        public async Task RefreshActConn()
         {
             try
             {

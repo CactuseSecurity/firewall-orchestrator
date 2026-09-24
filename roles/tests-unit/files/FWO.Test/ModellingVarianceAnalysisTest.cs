@@ -1566,6 +1566,74 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestSharedRuleOwnerWaitStateWaitsAndReportsOnceOverSeveralOwners()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            RuleOwnerWaitState sharedState = new();
+            int delays = 0;
+            int userMessages = 0;
+
+            // a report over two owners: one analysis per owner, one state for the report
+            for (int ownerIndex = 0; ownerIndex < 2; ownerIndex++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    },
+                    WaitState = sharedState
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(5), "the backlog does not drain, so only the first owner waits");
+                Assert.That(userMessages, Is.EqualTo(1), "the user is told once per report, not once per owner");
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once per report");
+                Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2),
+                    "every owner still falls back to the marker query");
+            });
+        }
+
+        [Test]
+        public async Task TestRuleOwnerWaitStateIsPerAnalysisByDefault()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            int delays = 0;
+            int userMessages = 0;
+
+            // separate requests, such as two popups opened one after the other, keep their own state
+            for (int request = 0; request < 2; request++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    }
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(10));
+                Assert.That(userMessages, Is.EqualTo(2));
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
         public async Task TestPreFilterFallbackNamesTheRebuildThatStartedWhileWaiting()
         {
             SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();

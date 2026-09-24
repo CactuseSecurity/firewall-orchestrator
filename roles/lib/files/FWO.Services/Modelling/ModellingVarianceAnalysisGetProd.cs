@@ -19,9 +19,6 @@ namespace FWO.Services.Modelling
 
         private RuleOwnerPrefilterState? ruleOwnerPrefilterState;
         private HashSet<long>? NameFieldRuleOwnerConnectionIds { get; set; }
-        private bool ruleOwnerWaitDone;
-        private bool preFilterFallbackReported;
-        private readonly HashSet<string> loggedFallbackReasons = [];
         private sealed record RelevantImportContext(long? ImportId, HashSet<int> ManagementIds);
 
         private async Task InitManagements()
@@ -311,8 +308,9 @@ namespace FWO.Services.Modelling
 
         /// <summary>
         /// Checks whether this analysis may wait for the mapping job at all. Only callers where
-        /// somebody waits for the result allow it, and only once per analysis, so a run over several
-        /// owners or managements cannot accumulate wait times.
+        /// somebody waits for the result allow it, and only once per <see cref="WaitState"/>, so a run
+        /// over several managements - or over several owners sharing one state - cannot accumulate
+        /// wait times.
         /// </summary>
         /// <param name="modellingFilter">Filter of the running analysis.</param>
         /// <returns>True if waiting is allowed right now.</returns>
@@ -320,7 +318,7 @@ namespace FWO.Services.Modelling
         {
             return modellingFilter.AllowWaitForRuleOwnerMapping
                 && userConfig.VarianceNameFieldWaitTime > 0
-                && !ruleOwnerWaitDone;
+                && !WaitState.WaitDone;
         }
 
         /// <summary>
@@ -338,7 +336,7 @@ namespace FWO.Services.Modelling
                 return ruleOwnerPrefilterState;
             }
 
-            ruleOwnerWaitDone = true;
+            WaitState.WaitDone = true;
             int attempts = (int)Math.Ceiling((double)userConfig.VarianceNameFieldWaitTime / kRuleOwnerPollIntervalSeconds);
             TimeSpan pollInterval = TimeSpan.FromSeconds(kRuleOwnerPollIntervalSeconds);
 
@@ -458,18 +456,18 @@ namespace FWO.Services.Modelling
         {
             Log.WriteDebug("Variance Rule Loading",
                 $"Falling back to marker query for owner {owner.Id}, management {mgtId}: {reason}.");
-            if (LogPrefilterFallbackToDb && loggedFallbackReasons.Add(reason))
+            if (LogPrefilterFallbackToDb && WaitState.LoggedFallbackReasons.Add(reason))
             {
                 await AlertHelper.AddLogEntry(apiConnection, 0, reason,
                     $"Variance analysis for owner {owner.Id} used the marker query on management {mgtId}.",
                     GlobalConst.kVarianceRuleOwnerPrefilter, mgtId);
             }
 
-            if (preFilterFallbackReported)
+            if (WaitState.FallbackReported)
             {
                 return;
             }
-            preFilterFallbackReported = true;
+            WaitState.FallbackReported = true;
             displayMessageInUi(null, userConfig.GetText("variance_analysis"), userConfig.GetText("U9045"), true);
         }
 

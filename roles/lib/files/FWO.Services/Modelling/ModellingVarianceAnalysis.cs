@@ -68,6 +68,13 @@ namespace FWO.Services.Modelling
         public bool LogPrefilterFallbackToDb { get; set; } = true;
 
         /// <summary>
+        /// Whether the mapping job was already waited for and the fallback already reported or
+        /// logged. A caller that runs several owners for one request passes the same instance to
+        /// each analysis, so these happen once per request instead of once per owner.
+        /// </summary>
+        public RuleOwnerWaitState WaitState { get; set; } = new();
+
+        /// <summary>
         /// Determines the modelling state of the given connections.
         /// </summary>
         /// <param name="connections">Connections to analyse.</param>

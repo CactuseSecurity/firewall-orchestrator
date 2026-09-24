@@ -1,10 +1,14 @@
 name: Allocate FWO PR version
+# issue_comment workflows always run from the default branch (main). This
+# workflow is therefore only active once a release has fast-forwarded main;
+# see documentation/developer-docs/versioning.md.
 
 on:
   issue_comment:
     types: [created]
 
 permissions:
+  actions: write
   contents: write
   issues: read
   pull-requests: read
@@ -16,133 +20,65 @@ concurrency:
 jobs:
   allocate:
     if: >-
-      github.event.issue.pull_request &&
-      github.event.comment.body == '/allocate-fwo-version'
+      github.event.issue.pull_request && (
+        github.event.comment.body == '/allocate-fwo-version' ||
+        github.event.comment.body == '/allocate-fwo-version patch' ||
+        github.event.comment.body == '/allocate-fwo-version minor' ||
+        github.event.comment.body == '/allocate-fwo-version major')
     runs-on: ubuntu-latest
     steps:
-      - name: Read and authorize pull request
-        id: pull-request
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        with:
-          script: |
-            const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              username: context.actor,
-            });
-            if (!['admin', 'maintain', 'write'].includes(permission.user.permissions)) {
-              core.setFailed('Only repository maintainers may allocate FWO versions.');
-              return;
-            }
-
-            const { data: pullRequest } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            if (pullRequest.base.ref !== 'develop') {
-              core.setFailed('Version allocation is only supported for pull requests targeting develop.');
-              return;
-            }
-            if (!pullRequest.labels.some((label) => label.name === 'versioned-change')) {
-              core.setFailed('Add the versioned-change label before allocating a FWO version.');
-              return;
-            }
-            if (pullRequest.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
-              core.setFailed('Version allocation cannot push to a fork. A maintainer must create a same-repository branch.');
-              return;
-            }
-
-            core.setOutput('head_ref', pullRequest.head.ref);
-            core.setOutput('head_sha', pullRequest.head.sha);
-
-      - name: Check out trusted allocation helper
-        if: success()
+      # The tooling comes from the same trusted default-branch commit as this
+      # workflow file, never from the pull request.
+      - name: Check out trusted allocation tooling
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: develop
+          ref: ${{ github.sha }}
           path: fwo-version-tooling
           fetch-depth: 1
+          persist-credentials: false
+
+      - name: Authorize and select next unreserved version
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py plan-allocation --pull-request "$PULL_REQUEST_NUMBER"
 
       - name: Check out pull request head
-        if: success()
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ steps.pull-request.outputs.head_sha }}
+          ref: ${{ steps.version.outputs.head_sha }}
           path: pull-request
           fetch-depth: 0
 
-      - name: Select next unreserved patch version
-        id: version
-        if: success()
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        with:
-          script: |
-            const versionPattern = /^product_version:\s*"?([0-9]+\.[0-9]+\.[0-9]+)"?\s*$/m;
-            const parseVersion = (version) => version.split('.').map(Number);
-            const compareVersions = (left, right) => {
-              const leftParts = parseVersion(left);
-              const rightParts = parseVersion(right);
-              return leftParts.findIndex((part, index) => part !== rightParts[index]) === -1
-                ? 0
-                : leftParts.find((part, index) => part !== rightParts[index]) < rightParts.find((part, index) => part !== rightParts[index]) ? -1 : 1;
-            };
-            const readVersion = async (ref) => {
-              const { data } = await github.rest.repos.getContent({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                path: 'inventory/group_vars/all.yml',
-                ref,
-              });
-              const match = Buffer.from(data.content, 'base64').toString('utf8').match(versionPattern);
-              if (!match) throw new Error(`No valid product_version on ${ref}.`);
-              return match[1];
-            };
-            const baseVersion = await readVersion('develop');
-            const { data: pullRequests } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              base: 'develop',
-              per_page: 100,
-            });
-            const [baseMajor, baseMinor] = parseVersion(baseVersion);
-            const reservedVersions = [baseVersion];
-            for (const pullRequest of pullRequests) {
-              if (pullRequest.number === context.issue.number ||
-                  !pullRequest.labels.some((label) => label.name === 'versioned-change')) continue;
-              const version = await readVersion(pullRequest.head.sha);
-              if (version === '999.0.0') continue;
-              const [major, minor] = parseVersion(version);
-              if (major !== baseMajor || minor !== baseMinor) {
-                throw new Error(`PR #${pullRequest.number} reserves ${version}, outside develop's ${baseMajor}.${baseMinor}.x release line.`);
-              }
-              reservedVersions.push(version);
-            }
-            const greatestVersion = reservedVersions.reduce((greatest, version) =>
-              compareVersions(version, greatest) > 0 ? version : greatest);
-            const [major, minor, patch] = parseVersion(greatestVersion);
-            core.setOutput('base_version', baseVersion);
-            core.setOutput('target_version', `${major}.${minor}.${patch + 1}`);
-
       - name: Allocate versioned files
-        if: success()
         env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
           TARGET_VERSION: ${{ steps.version.outputs.target_version }}
         run: |
           cd pull-request
-          ../fwo-version-tooling/scripts/allocate-fwo-version.sh --allocate --target "$TARGET_VERSION"
+          ../fwo-version-tooling/scripts/allocate-fwo-version.sh --allocate --target "$TARGET_VERSION" --base-version "$BASE_VERSION"
 
       - name: Commit allocation
-        if: success()
         env:
-          HEAD_REF: ${{ steps.pull-request.outputs.head_ref }}
+          HEAD_REF: ${{ steps.version.outputs.head_ref }}
           TARGET_VERSION: ${{ steps.version.outputs.target_version }}
         run: |
           set -euo pipefail
           cd pull-request
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add inventory/group_vars/all.yml documentation/revision-history.md roles/database/files/upgrade
+          git add --all inventory/group_vars/all.yml documentation/revision-history.md roles/database/files/upgrade
           git commit -m "chore: allocate FWO version $TARGET_VERSION"
           git push origin "HEAD:refs/heads/$HEAD_REF"
+
+      # Pushes made with GITHUB_TOKEN do not trigger pull_request workflows, so
+      # the validation of the allocation commit is started explicitly.
+      - name: Validate allocation commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ steps.version.outputs.head_ref }}
+          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py dispatch-validation --pull-request "$PULL_REQUEST_NUMBER" --ref "$HEAD_REF"

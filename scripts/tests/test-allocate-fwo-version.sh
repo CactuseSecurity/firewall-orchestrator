@@ -35,7 +35,7 @@ assert_allocated_heading() {
     prepare_case "$case_directory" "$placeholder_heading"
     (
         cd "$case_directory"
-        FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.5.6
+        FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.5.6 --base-version 9.5.4
         ./allocate-fwo-version.sh --check --base-version 9.5.4
     )
 
@@ -54,15 +54,52 @@ assert_allocated_heading without-date '## 999.0.0' "## 9.5.6 - $kAllocationDate"
 assert_allocated_heading without-date-with-suffix '## 999.0.0 MAIN' "## 9.5.6 - $kAllocationDate MAIN"
 assert_allocated_heading dash-without-date '## 999.0.0 - MAIN' "## 9.5.6 - $kAllocationDate MAIN"
 
-readonly kMismatchDirectory="$kTemporaryDirectory/dated-with-suffix"
-sed -i 's/9\.5\.6/9.6.0/g' "$kMismatchDirectory/inventory/group_vars/all.yml" \
-    "$kMismatchDirectory/documentation/revision-history.md"
-mv "$kMismatchDirectory/roles/database/files/upgrade/9.5.6.sql" \
-    "$kMismatchDirectory/roles/database/files/upgrade/9.6.0.sql"
-if (
-    cd "$kMismatchDirectory"
+# Runs a command in a case directory and fails the test if the command succeeds.
+expect_failure() {
+    local case_directory="$1"
+    local description="$2"
+    shift 2
+
+    if (cd "$case_directory" && "$@" 2> /dev/null); then
+        echo "Expected failure: $description" >&2
+        exit 1
+    fi
+}
+
+readonly kCaseDirectory="$kTemporaryDirectory/dated-with-suffix"
+
+# An allocated version above develop is final.
+expect_failure "$kCaseDirectory" "re-allocation of a current version" \
+    ./allocate-fwo-version.sh --allocate --target 9.5.7 --base-version 9.5.4
+
+# After develop moved to a new release line, a stale version is re-allocated.
+(
+    cd "$kCaseDirectory"
+    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.6.1 --base-version 9.6.0
+    ./allocate-fwo-version.sh --check --base-version 9.6.0
+)
+grep -qx 'product_version: "9.6.1"' "$kCaseDirectory/inventory/group_vars/all.yml"
+[[ -f "$kCaseDirectory/roles/database/files/upgrade/9.6.1.sql" ]]
+[[ ! -e "$kCaseDirectory/roles/database/files/upgrade/9.5.6.sql" ]]
+grep -qx "## 9.6.1 - $kAllocationDate MAIN" "$kCaseDirectory/documentation/revision-history.md"
+
+# The target must be above develop.
+expect_failure "$kTemporaryDirectory/dated" "target below base version" \
+    ./allocate-fwo-version.sh --allocate --target 9.5.3 --base-version 9.5.6
+
+# The next minor and major lines may start; skipping a line fails.
+(cd "$kCaseDirectory" && ./allocate-fwo-version.sh --check --base-version 9.5.4)
+(
+    cd "$kTemporaryDirectory/dated"
+    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 10.0.0 --base-version 9.5.6
+    ./allocate-fwo-version.sh --check --base-version 9.5.6
+)
+expect_failure "$kCaseDirectory" "release line skipping a minor version" \
+    ./allocate-fwo-version.sh --check --base-version 9.4.4
+
+# The placeholder never passes validation.
+prepare_case "$kTemporaryDirectory/placeholder" '## 999.0.0'
+expect_failure "$kTemporaryDirectory/placeholder" "unallocated placeholder" \
     ./allocate-fwo-version.sh --check --base-version 9.5.4
-); then
-    echo "Expected a release-line mismatch to fail validation." >&2
-    exit 1
-fi
+
+echo "All allocate-fwo-version tests passed."

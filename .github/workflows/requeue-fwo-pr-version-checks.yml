@@ -1,0 +1,44 @@
+name: Requeue FWO PR version checks
+# When develop advances or a reservation is released, the version-order result
+# of every other labelled PR may change. Neither event re-runs their checks, so
+# this workflow dispatches Validate FWO PR version on each of them.
+
+on:
+  push:
+    branches: [develop]
+  # pull_request_target runs the develop copy of this workflow and never checks
+  # out pull request code.
+  pull_request_target:
+    branches: [develop]
+    types: [closed, unlabeled]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: requeue-fwo-pr-version-checks
+  cancel-in-progress: false
+
+jobs:
+  requeue:
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.action == 'closed' && !github.event.pull_request.merged &&
+        contains(github.event.pull_request.labels.*.name, 'versioned-change')) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'versioned-change')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted versioning tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: develop
+          path: fwo-version-tooling
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Dispatch version validation on labelled pull requests
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py requeue

@@ -8,11 +8,11 @@ readonly kUpgradeDirectory="roles/database/files/upgrade"
 # This sorts after every released FWO version, so installer upgrade tests execute
 # a candidate migration after all existing migrations before it is allocated.
 readonly kPlaceholderVersion="999.0.0"
-readonly kPlaceholderHeadingPattern="( |$)"
+readonly kSourceHeadingPattern="( |$)"
 readonly kAllocatedHeadingPattern=" - [0-9]{2}\\.[0-9]{2}\\.[0-9]{4}( |$)"
 
 usage() {
-    echo "Usage: $0 --allocate --target VERSION | --check --base-version VERSION" >&2
+    echo "Usage: $0 --allocate --target VERSION --base-version VERSION | --check --base-version VERSION" >&2
     exit 2
 }
 
@@ -29,11 +29,17 @@ version_is_greater_than() {
     [[ "$(printf '%s\n%s\n' "$left_version" "$right_version" | sort -V | tail -n 1)" == "$left_version" && "$left_version" != "$right_version" ]]
 }
 
-version_has_same_release_line() {
-    local left_version="$1"
-    local right_version="$2"
+# Accepts the base release line and the start of the next minor or major line.
+version_has_allowed_release_line() {
+    local version="$1"
+    local base_version="$2"
+    local major minor base_major base_minor
 
-    [[ "${left_version%.*}" == "${right_version%.*}" ]]
+    IFS=. read -r major minor _ <<< "$version"
+    IFS=. read -r base_major base_minor _ <<< "$base_version"
+    [[ "$major.$minor" == "$base_major.$base_minor" ||
+        "$major.$minor" == "$base_major.$((base_minor + 1))" ||
+        "$major.$minor" == "$((base_major + 1)).0" ]]
 }
 
 read_allocation_date() {
@@ -78,18 +84,19 @@ require_versioned_files() {
     fi
 }
 
-# Rewrites the placeholder heading to "## TARGET - DATE", accepting it with or
+# Rewrites the source heading to "## TARGET - DATE", accepting it with or
 # without a date and keeping any suffix such as MAIN.
-replace_placeholder_heading() {
-    local target_version="$1"
-    local allocation_date="$2"
+replace_version_heading() {
+    local source_version="$1"
+    local target_version="$2"
+    local allocation_date="$3"
     local heading
     local line_number
     local suffix
 
-    heading="$(grep -nE "^## ${kPlaceholderVersion//./\\.}$kPlaceholderHeadingPattern" "$kRevisionHistoryFile")"
+    heading="$(grep -nE "^## ${source_version//./\\.}$kSourceHeadingPattern" "$kRevisionHistoryFile")"
     line_number="${heading%%:*}"
-    suffix="${heading#*:"## $kPlaceholderVersion"}"
+    suffix="${heading#*:"## $source_version"}"
     suffix="${suffix# -}"
     if [[ "$suffix" =~ ^\ [0-9]{2}\.[0-9]{2}\.[0-9]{4}(.*)$ ]]; then
         suffix="${BASH_REMATCH[1]}"
@@ -105,22 +112,30 @@ replace_placeholder_heading() {
 mode="${1:-}"
 case "$mode" in
     --allocate)
-        [[ "$#" -eq 3 && "$2" == "--target" ]] || usage
+        [[ "$#" -eq 5 && "$2" == "--target" && "$4" == "--base-version" ]] || usage
         target_version="$3"
-        version_is_valid "$target_version" || usage
+        base_version="$5"
+        version_is_valid "$target_version" && version_is_valid "$base_version" || usage
+        [[ "$target_version" != "$kPlaceholderVersion" ]] || usage
 
+        # A stale version (not above develop, e.g. after a release-line change)
+        # may be re-allocated; any other allocated version is final.
         source_version="$(read_product_version)"
-        if [[ "$source_version" != "$kPlaceholderVersion" ]]; then
-            echo "Allocation requires the $kPlaceholderVersion placeholder, found $source_version." >&2
+        if [[ "$source_version" != "$kPlaceholderVersion" ]] &&
+            version_is_greater_than "$source_version" "$base_version"; then
+            echo "Allocation requires the $kPlaceholderVersion placeholder or a stale version, found $source_version." >&2
             exit 1
         fi
-        require_versioned_files "$source_version" "$kPlaceholderHeadingPattern"
-        [[ "$target_version" != "$kPlaceholderVersion" ]] || usage
+        version_is_greater_than "$target_version" "$base_version" || {
+            echo "Target version $target_version must be greater than base version $base_version." >&2
+            exit 1
+        }
+        require_versioned_files "$source_version" "$kSourceHeadingPattern"
         allocation_date="$(read_allocation_date)"
 
         sed -i "s/^product_version:.*/product_version: \"$target_version\"/" "$kProductVersionFile"
         mv "$kUpgradeDirectory/$source_version.sql" "$kUpgradeDirectory/$target_version.sql"
-        replace_placeholder_heading "$target_version" "$allocation_date"
+        replace_version_heading "$source_version" "$target_version" "$allocation_date"
         echo "Allocated FWO version $target_version."
         ;;
     --check)
@@ -137,8 +152,8 @@ case "$mode" in
             echo "PR version $product_version must be greater than base version $base_version." >&2
             exit 1
         }
-        version_has_same_release_line "$product_version" "$base_version" || {
-            echo "PR version $product_version must use the same major.minor release line as $base_version." >&2
+        version_has_allowed_release_line "$product_version" "$base_version" || {
+            echo "PR version $product_version must use the release line of $base_version or start the next minor or major line." >&2
             exit 1
         }
         require_versioned_files "$product_version" "$kAllocatedHeadingPattern"

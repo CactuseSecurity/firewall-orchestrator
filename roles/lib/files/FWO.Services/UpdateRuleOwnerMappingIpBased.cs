@@ -21,9 +21,9 @@ namespace FWO.Services
         {
         }
 
-        public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
+        public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null, CancellationToken cancellationToken = default)
         {
-            return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, eventArgs);
+            return await UpdateRuleOwners(RunFullReinitialize, () => RunIncremental(cancellationToken), eventArgs, cancellationToken);
         }
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace FWO.Services
         /// <summary>
         /// Delegates incremental processing of pending imports to the shared base implementation for IP-based mapping.
         /// </summary>
-        private async Task<bool> RunIncremental() => await RunIncremental(ProcessIncrementalImportIpBased, RunFullReinitialize);
+        private async Task<bool> RunIncremental(CancellationToken cancellationToken) => await RunIncremental(ProcessIncrementalImportIpBased, RunFullReinitialize, cancellationToken);
 
         /// <summary>
         /// Delegates one incremental import to the shared base implementation using IP-based loaders and mapper.

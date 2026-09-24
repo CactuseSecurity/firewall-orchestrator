@@ -42,11 +42,13 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Recertification check
         /// </summary>
-        public async Task<int> CheckRecertifications()
+        /// <param name="cancellationToken">Stops before the next owner; the last sent state of notifications is still updated.</param>
+        public async Task<int> CheckRecertifications(CancellationToken cancellationToken = default)
         {
             int emailsSent = 0;
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await InitEnv();
                 if (globalConfig.RecertificationMode == RecertificationMode.RuleByRule)
                 {
@@ -56,7 +58,7 @@ namespace FWO.Middleware.Server
                         apiConnectionMiddlewareServer);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                     ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
-                    foreach (FwoOwner owner in owners)
+                    await ForEachOwnerUpdatingLastSent(owners, notificationService, cancellationToken, async owner =>
                     {
                         int ownerEmailsSent = await CheckRuleByRule(owner, apiConnectionReporter, notificationService);
                         emailsSent += ownerEmailsSent;
@@ -64,8 +66,7 @@ namespace FWO.Middleware.Server
                         {
                             await SetOwnerLastCheck(owner);
                         }
-                    }
-                    await notificationService.UpdateNotificationsLastSent();
+                    });
                 }
                 else
                 {
@@ -77,7 +78,7 @@ namespace FWO.Middleware.Server
                         globalConfig,
                         apiConnectionMiddlewareServer,
                         globalConfig.DefaultLanguage);
-                    foreach (FwoOwner? owner in owners.Where(o => IsRecertCheckTime(o)))
+                    await ForEachOwnerUpdatingLastSent(owners.Where(o => IsRecertCheckTime(o)), notificationService, cancellationToken, async owner =>
                     {
                         int ownerEmailsSent = await notificationService.SendNotificationsIfDue(
                             owner,
@@ -89,15 +90,41 @@ namespace FWO.Middleware.Server
                         {
                             await SetOwnerLastCheck(owner);
                         }
-                    }
-                    await notificationService.UpdateNotificationsLastSent();
+                    });
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
                 Log.WriteError(LogMessageTitle, $"Checking owners for upcoming recertifications leads to exception.", exception);
             }
             return emailsSent;
+        }
+
+        /// <summary>
+        /// Checks every owner and updates the last sent state of the notifications afterwards,
+        /// also when stopped between two owners, so already sent notifications are not repeated.
+        /// </summary>
+        private static async Task ForEachOwnerUpdatingLastSent(IEnumerable<FwoOwner> ownersToCheck, NotificationService notificationService,
+            CancellationToken cancellationToken, Func<FwoOwner, Task> checkOwner)
+        {
+            try
+            {
+                foreach (FwoOwner owner in ownersToCheck)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await checkOwner(owner);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                await notificationService.UpdateNotificationsLastSent();
+                throw;
+            }
+            await notificationService.UpdateNotificationsLastSent();
         }
 
         private async Task InitEnv()

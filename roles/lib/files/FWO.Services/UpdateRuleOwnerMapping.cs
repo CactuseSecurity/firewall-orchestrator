@@ -45,7 +45,7 @@ namespace FWO.Services
             return $"Starting rule_owner mapping run. Source: {source}, mode: {mode}, triggered by: {trigger}.";
         }
 
-        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
+        protected override async Task<bool> Execute(UpdateRuleOwnerMappingEventArgs? eventArgs, CancellationToken cancellationToken)
         {
             OwnerMappingSourceStm source = (OwnerMappingSourceStm)globalConfig.OwnerSoruceMappingID;
             Log.WriteInfo(kLogMessageTitle, BuildRunStartMessage(source, eventArgs?.isFullReInitialize ?? false,
@@ -53,10 +53,10 @@ namespace FWO.Services
 
             return source switch
             {
-                OwnerMappingSourceStm.IpBased => await updateRuleOwnerMappingIpBased.RunAsync(eventArgs),
-                OwnerMappingSourceStm.CustomField => await updateRuleOwnerMappingCustomField.RunAsync(eventArgs),
-                OwnerMappingSourceStm.NameField => await updateRuleOwnerMappingNameField.RunAsync(eventArgs),
-                OwnerMappingSourceStm.Disabled => await updateRuleOwnerMappingDisabled.RunAsync(eventArgs),
+                OwnerMappingSourceStm.IpBased => await updateRuleOwnerMappingIpBased.RunAsync(eventArgs, cancellationToken),
+                OwnerMappingSourceStm.CustomField => await updateRuleOwnerMappingCustomField.RunAsync(eventArgs, cancellationToken),
+                OwnerMappingSourceStm.NameField => await updateRuleOwnerMappingNameField.RunAsync(eventArgs, cancellationToken),
+                OwnerMappingSourceStm.Disabled => await updateRuleOwnerMappingDisabled.RunAsync(eventArgs, cancellationToken),
                 _ => false
             };
         }

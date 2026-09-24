@@ -40,7 +40,7 @@ namespace FWO.Middleware.Server.Jobs
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await flowSync.Run();
+                await flowSync.Run(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

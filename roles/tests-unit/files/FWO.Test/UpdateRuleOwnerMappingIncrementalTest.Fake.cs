@@ -35,6 +35,9 @@ namespace FWO.Test
 
             public List<long> CompletedImports { get; } = [];
 
+            /// <summary>Called after an import control was marked as completed.</summary>
+            public Action<long>? OnImportCompleted { get; set; }
+
             /// <summary>Every alert that was raised, including ones acknowledged again since.</summary>
             public List<string> RaisedAlerts { get; } = [];
 
@@ -206,6 +209,7 @@ namespace FWO.Test
                     }
                     CompletedImports.Add(completedId);
                     fullReinitializeCompleted |= query == ImportQueries.updateImportControlForRuleOwnerFull;
+                    OnImportCompleted?.Invoke(completedId);
                     result = new ImportControl();
                     return true;
                 }

@@ -116,42 +116,45 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the Import Change Notifier
         /// </summary>
-        public async Task Run()
+        /// <param name="cancellationToken">Stops before the first notification is sent; imports then remain unnotified.</param>
+        public async Task Run(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
+            if (WorkInProgress)
+            {
+                return;
+            }
+            WorkInProgress = true;
             try
             {
-                if (!WorkInProgress)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (await NewImportFound())
                 {
-                    WorkInProgress = true;
-                    if (await NewImportFound())
+                    cancellationToken.ThrowIfCancellationRequested();
+                    NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
+                    if (notificationService.Notifications.Count == 0)
                     {
-                        NotificationService notificationService = await NotificationService.CreateAsync(NotificationClient.ImportChange, globalConfig, apiConnection);
-                        if (notificationService.Notifications.Count == 0)
-                        {
-                            Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
-                            WorkInProgress = false;
-                            return;
-                        }
-
-                        if (notificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
-                        {
-                            await GenerateChangeReport();
-                        }
-                        foreach (FwoNotification notification in notificationService.Notifications)
-                        {
-                            await notificationService.SendNotification(notification, null, CreateBody(), changeReport);
-                        }
-                        await notificationService.UpdateNotificationsLastSent();
-                        await SetImportsNotified();
+                        Log.WriteInfo(LogMessageTitle, "No notification configured for import changes. Imports remain unnotified.");
+                        return;
                     }
-                    WorkInProgress = false;
+
+                    if (notificationService.Notifications.Any(notification => notification.Layout != NotificationLayout.SimpleText))
+                    {
+                        await GenerateChangeReport(cancellationToken);
+                    }
+                    // last checkpoint: once the first notification is sent, all of them are sent and the imports marked as notified
+                    cancellationToken.ThrowIfCancellationRequested();
+                    foreach (FwoNotification notification in notificationService.Notifications)
+                    {
+                        await notificationService.SendNotification(notification, null, CreateBody(), changeReport);
+                    }
+                    await notificationService.UpdateNotificationsLastSent();
+                    await SetImportsNotified();
                 }
             }
-            catch (Exception)
+            finally
             {
                 WorkInProgress = false;
-                throw;
             }
         }
 
@@ -175,11 +178,11 @@ namespace FWO.Middleware.Server
             return importsToNotify.Count > 0;
         }
 
-        private async Task GenerateChangeReport()
+        private async Task GenerateChangeReport(CancellationToken cancellationToken)
         {
             try
             {
-                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing);
+                changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
             }
             catch (Exception exception)
             {

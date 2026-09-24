@@ -39,9 +39,9 @@ namespace FWO.Middleware.Server.Jobs
                 using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
-                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                await complianceCheck.PersistDataAsync();
+                await complianceCheck.PersistDataAsync(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

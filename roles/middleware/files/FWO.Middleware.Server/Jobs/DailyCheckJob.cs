@@ -63,12 +63,12 @@ namespace FWO.Middleware.Server.Jobs
                 if (enabledModules.Contains(DailyCheckModule.RecertRefresh) && globalConfig.RecRefreshDaily)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await RefreshRecert();
+                    await RefreshRecert(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertCheck))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await CheckRecerts();
+                    await CheckRecerts(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.UnansweredInterfaceRequests))
                 {
@@ -78,12 +78,12 @@ namespace FWO.Middleware.Server.Jobs
                 if (enabledModules.Contains(DailyCheckModule.RuleExpiryCheck))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await CheckRuleExpiry();
+                    await CheckRuleExpiry(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.OwnerActiveRules))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    await CheckOwnerActiveRules();
+                    await CheckOwnerActiveRules(cancellationToken);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -117,35 +117,35 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task RefreshRecert()
+        private async Task RefreshRecert(CancellationToken cancellationToken)
         {
             Log.WriteDebug(LogMessageTitle, "Refresh recert ownerships");
-            await RecertRefresh.RecalcRecerts(apiConnection);
+            await RecertRefresh.RecalcRecerts(apiConnection, cancellationToken);
         }
 
-        private async Task CheckRecerts()
+        private async Task CheckRecerts(CancellationToken cancellationToken)
         {
             if (globalConfig.RecCheckActive)
             {
                 RecertCheck recertCheck = new(apiConnection, globalConfig, tokenLifetimeProvider);
-                int emailsSent = await recertCheck.CheckRecertifications();
+                int emailsSent = await recertCheck.CheckRecertifications(cancellationToken);
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }
 
-        private async Task CheckRuleExpiry()
+        private async Task CheckRuleExpiry(CancellationToken cancellationToken)
         {
             RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
-            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckOwnerActiveRules()
+        private async Task CheckOwnerActiveRules(CancellationToken cancellationToken)
         {
             OwnerActiveRuleCheck ownerActiveRuleCheck = new(apiConnection, globalConfig);
-            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler();
+            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Owner Active Rule Check: Sent {ownerActiveRuleEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Owner Active Rule Check", ownerActiveRuleEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }

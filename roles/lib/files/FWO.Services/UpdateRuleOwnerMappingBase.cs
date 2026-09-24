@@ -61,7 +61,7 @@ namespace FWO.Services
 
         public abstract OwnerMappingSourceStm Source { get; }
 
-        public abstract Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null);
+        public abstract Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Chooses between full reinitialize and incremental processing based on the event arguments and
@@ -70,9 +70,12 @@ namespace FWO.Services
         /// <param name="fullReinitFunc">Rebuilds every mapping.</param>
         /// <param name="incrementalFunc">Processes the pending imports.</param>
         /// <param name="eventArgs">Arguments of the triggering event.</param>
+        /// <param name="cancellationToken">Stops before the run starts.</param>
         /// <returns>True if the run succeeded.</returns>
-        protected async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, UpdateRuleOwnerMappingEventArgs? eventArgs)
+        protected async Task<bool> UpdateRuleOwners(Func<Task<bool>> fullReinitFunc, Func<Task<bool>> incrementalFunc, UpdateRuleOwnerMappingEventArgs? eventArgs,
+            CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             TakeOverEventArgs(eventArgs);
             return (eventArgs?.isFullReInitialize ?? false) ? await fullReinitFunc() : await incrementalFunc();
         }
@@ -288,8 +291,10 @@ namespace FWO.Services
 
         /// <summary>
         /// Processes all pending incremental imports in control-id order and falls back to full reinitialize when too many imports are queued.
+        /// A requested cancellation stops before the next import; the remaining imports stay pending and nothing is reported as failed.
         /// </summary>
-        protected async Task<bool> RunIncremental(Func<ImportControl, Task> processIncrementalImportFunc, Func<Task<bool>> fullReinitFunc)
+        protected async Task<bool> RunIncremental(Func<ImportControl, Task> processIncrementalImportFunc, Func<Task<bool>> fullReinitFunc,
+            CancellationToken cancellationToken = default)
         {
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(ImportQueries.getPendingRuleOwnerImports);
 
@@ -309,6 +314,7 @@ namespace FWO.Services
 
             foreach (var import in pendingImports.OrderBy(i => i.ControlId))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
                     await processIncrementalImportFunc(import);

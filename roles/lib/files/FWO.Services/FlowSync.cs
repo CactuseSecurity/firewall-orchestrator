@@ -97,8 +97,10 @@ namespace FWO.Services
         /// <summary>
         /// Main entry point: discovers pending imports and synchronizes each management.
         /// </summary>
-        public async Task<bool> Run()
+        /// <param name="cancellationToken">Stops before the next management or sync phase; imports of completely synchronized managements are still marked as done.</param>
+        public async Task<bool> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var pendingImports = await apiConnection.SendQueryAsync<List<ImportControl>>(FlowQueries.getPendingFlowSyncImports);
 
             if (pendingImports == null || pendingImports.Count == 0)
@@ -144,19 +146,33 @@ namespace FWO.Services
 
             HashSet<int> successfullySyncedManagementIds = [];
 
-            foreach (int mgmId in managementIdsToSync)
+            try
             {
-                try
+                foreach (int mgmId in managementIdsToSync)
                 {
-                    if (await SyncManagementAsync(mgmId, useManagementNamesForFlow))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
                     {
-                        successfullySyncedManagementIds.Add(mgmId);
+                        if (await SyncManagementAsync(mgmId, useManagementNamesForFlow, cancellationToken))
+                        {
+                            successfullySyncedManagementIds.Add(mgmId);
+                        }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
                     }
                 }
-                catch (Exception exception)
-                {
-                    Log.WriteError(LogMessageTitle, $"Flow sync failed for management {mgmId}.", exception);
-                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // a partially synchronized management stays pending and is synchronized again in the next run
+                await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
+                throw;
             }
 
             await CompletePendingImportsAsync(pendingImportsByManagement, superMgmToSubMgmIds, successfullySyncedManagementIds);
@@ -174,7 +190,7 @@ namespace FWO.Services
         /// Synchronizes a single management: fetches normalized objects, calculates hashes,
         /// inserts missing flows, and updates mappings.
         /// </summary>
-        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow)
+        private async Task<bool> SyncManagementAsync(int mgmId, bool useManagementNamesForFlow, CancellationToken cancellationToken)
         {
             var managementData = (await apiConnection.SendQueryAsync<List<FlowSyncManagementData>>(FlowQueries.getFlowSyncManagementData, new { mgmId }))?.FirstOrDefault();
 
@@ -184,6 +200,7 @@ namespace FWO.Services
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             var flowData = await GetConsistentFlowDataAsync(mgmId);
 
             if (flowData == null)
@@ -192,20 +209,27 @@ namespace FWO.Services
             }
 
             // Process simple objects first, as they are used in groups and accesses
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessNetworkObjectsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name != ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceObjectsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name != ServiceType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessTimeObjectsAsync(mgmId, managementData.TimeObjects, flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted objects
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Process groups next, as they are used in accesses
             await ProcessNetworkGroupsAsync(mgmId, managementData.NetworkObjects.Where(o => o.Type.Name == ObjectType.Group), flowData, useManagementNamesForFlow);
+            cancellationToken.ThrowIfCancellationRequested();
             await ProcessServiceGroupsAsync(mgmId, managementData.ServiceObjects.Where(s => s.Type.Name == ServiceType.Group), flowData, useManagementNamesForFlow);
             // Refresh flow data to include newly inserted groups
+            cancellationToken.ThrowIfCancellationRequested();
             flowData = await GetFlowSyncDataAsync(mgmId);
             // Finally, process accesses which reference all object types
             await ProcessRulesAsync(mgmId, managementData.Rules, flowData);
 
             // remove flow mappings from all normalized entries that are set to removed
+            cancellationToken.ThrowIfCancellationRequested();
             await apiConnection.SendQueryAsync<MutationResult>(FlowQueries.updateFlowMappingsForRemoved, new { mgmId });
 
             return true;

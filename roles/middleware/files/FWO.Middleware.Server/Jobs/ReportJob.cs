@@ -133,11 +133,15 @@ namespace FWO.Middleware.Server.Jobs
                 await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
                 ReportBase? report = await ReportGenerator.GenerateFromTemplate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
+                // a canceled generation returns a partial report, which must neither be archived nor sent
+                token.ThrowIfCancellationRequested();
                 if (report != null)
                 {
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                    token.ThrowIfCancellationRequested();
 
                     await WriteReportFile(report, reportSchedule.OutputFormat, reportFile, timeProvider);
+                    token.ThrowIfCancellationRequested();
 
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
@@ -148,6 +152,7 @@ namespace FWO.Middleware.Server.Jobs
 
                     if (reportSchedule.Notifications.Any())
                     {
+                        token.ThrowIfCancellationRequested();
                         await TrySendReportViaEmail(reportSchedule, report, userConfig);
                     }
                 }

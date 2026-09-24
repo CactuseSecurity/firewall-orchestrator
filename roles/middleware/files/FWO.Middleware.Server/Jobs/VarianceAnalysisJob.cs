@@ -52,6 +52,8 @@ namespace FWO.Middleware.Server.Jobs
                 List<FwoOwner> owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwners);
                 cancellationToken.ThrowIfCancellationRequested();
                 ReportBase? report = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", new() { ReportType = (int)ReportType.Connections, ModellingFilter = new() { SelectedOwners = owners } }), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
+                // a canceled generation returns partial owner data, which must not be analysed
+                cancellationToken.ThrowIfCancellationRequested();
                 if (report == null || report.ReportData.OwnerData.Count == 0)
                 {
                     Log.WriteInfo(LogMessageTitle, "No data found.");
@@ -61,7 +63,7 @@ namespace FWO.Middleware.Server.Jobs
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
-                    if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))
+                    if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections, cancellationToken))
                     {
                         Log.WriteError(LogMessageTitle, $"Variance Analysis failed for owner {owner.Name}.");
                     }

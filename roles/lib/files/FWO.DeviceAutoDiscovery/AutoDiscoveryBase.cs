@@ -20,13 +20,18 @@ namespace FWO.DeviceAutoDiscovery
             apiConnection = apiConn;
         }
 
-        public virtual Task<List<Management>> Run()
+        /// <summary>
+        /// Discovers the managements below the super management and returns the differences to the stored ones.
+        /// </summary>
+        /// <param name="cancellationToken">Stops the discovery before the next domain or ADOM; no differences are
+        /// calculated then, as missing managements would otherwise be reported as deleted.</param>
+        public virtual Task<List<Management>> Run(CancellationToken cancellationToken = default)
         {
             return SuperManagement.DeviceType.Name switch
             {
-                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(),
-                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
-                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(),
+                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(cancellationToken),
+                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
+                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }

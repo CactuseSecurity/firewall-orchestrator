@@ -36,7 +36,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using ImportChangeNotifier notifyImportChanges = new(apiConnection, globalConfig);
-                await notifyImportChanges.Run();
+                await notifyImportChanges.Run(cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

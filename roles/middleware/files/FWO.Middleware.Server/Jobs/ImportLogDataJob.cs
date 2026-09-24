@@ -24,7 +24,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 LogDataImport import = new(apiConnection, globalConfig);
-                List<string> failedImports = await import.Run();
+                List<string> failedImports = await import.Run(cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (failedImports.Count > 0)
                 {

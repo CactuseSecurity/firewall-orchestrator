@@ -40,7 +40,7 @@ namespace FWO.Middleware.Server.Jobs
                 cancellationToken.ThrowIfCancellationRequested();
                 using (ExternalRequestSender externalRequestSender = new(apiConnection, globalConfig))
                 {
-                    List<string> failedRequests = await externalRequestSender.Run();
+                    List<string> failedRequests = await externalRequestSender.Run(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
 
                     if (failedRequests.Count > 0)

@@ -214,7 +214,7 @@ namespace FWO.Test
             MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("CheckRecerts method not found.");
 
-            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
                 ?? throw new InvalidOperationException("CheckRecerts returned null task."));
             await task;
 
@@ -251,7 +251,7 @@ namespace FWO.Test
             MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("CheckRecerts method not found.");
 
-            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
                 ?? throw new InvalidOperationException("CheckRecerts returned null task."));
             await task;
 

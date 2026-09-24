@@ -49,7 +49,7 @@ namespace FWO.Middleware.Server.Jobs
                     {
                         AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection);
 
-                        List<Management> diffList = await autodiscovery.Run();
+                        List<Management> diffList = await autodiscovery.Run(cancellationToken);
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
 
                         int changeCounter = 0;

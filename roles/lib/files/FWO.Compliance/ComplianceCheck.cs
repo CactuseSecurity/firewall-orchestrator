@@ -172,11 +172,13 @@ namespace FWO.Compliance
         /// For <see cref="ComplianceCheckType.Standard"/> or other types,
         /// a standard full compliance check is performed without the initial flag.
         /// </remarks>
+        /// <param name="cancellationToken">Stops the check between its phases and chunks; no violation changes are prepared then.</param>
         /// <returns>
         /// A task representing the asynchronous operation.
         /// </returns>
-        public async Task RunComplianceCheck(ComplianceCheckType complianceCheckType)
+        public async Task RunComplianceCheck(ComplianceCheckType complianceCheckType, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             switch (complianceCheckType)
             {
                 case ComplianceCheckType.Variable:
@@ -186,11 +188,11 @@ namespace FWO.Compliance
                     {
                         isInitial = true;
                     }
-                    await CheckAll(isInitial);
+                    await CheckAll(isInitial, cancellationToken);
                     break;
                 case ComplianceCheckType.Standard:
                 default:
-                    await CheckAll();
+                    await CheckAll(cancellationToken: cancellationToken);
                     break;
             }
         }
@@ -285,8 +287,9 @@ namespace FWO.Compliance
         /// </summary>
         /// <param name="managementIds">Management identifiers whose rules should be checked.</param>
         /// <param name="isInitial">Whether this is part of an initial check</param>
+        /// <param name="cancellationToken">Stops loading and checking further chunks; violation changes are then not prepared.</param>
         /// <returns>List of all rules that have been analyzed.</returns>
-        public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds, bool isInitial = false)
+        public async Task<List<Rule>> PerformCheckAsync(List<int> managementIds, bool isInitial = false, CancellationToken cancellationToken = default)
         {
             // Getting max import id for query vars.
 
@@ -315,9 +318,9 @@ namespace FWO.Compliance
             _parallelProcessor.SetUp(activeRulesCount, _maxDegreeOfParallelism, _elementsPerFetch);
 
             bool requiresGlobalDuplicateIndex = Policy?.Criteria.Any(c => c.Content.CriterionType == nameof(CriterionType.ForbidBidirectionalDuplicate)) == true;
-            Func<List<Rule>, Task<List<Rule>>>? postProcessAsync = requiresGlobalDuplicateIndex ? null : CalculateCompliance;
+            Func<List<Rule>, Task<List<Rule>>>? postProcessAsync = requiresGlobalDuplicateIndex ? null : rules => CalculateCompliance(rules, cancellationToken);
 
-            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, postProcessAsync, managementIds, maxImportId);
+            List<Rule>[]? chunks = await _parallelProcessor.SendParallelizedQueriesAsync<Rule>(RuleQueries.getRulesForSelectedManagements, postProcessAsync, managementIds, maxImportId, cancellationToken);
 
             if (chunks == null)
             {
@@ -333,7 +336,8 @@ namespace FWO.Compliance
 
             if (requiresGlobalDuplicateIndex)
             {
-                await CalculateCompliance(rules);
+                cancellationToken.ThrowIfCancellationRequested();
+                await CalculateCompliance(rules, cancellationToken);
             }
 
             Logger.TryWriteInfo("Compliance Check", $"Loaded {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
@@ -344,9 +348,11 @@ namespace FWO.Compliance
 
             Logger.TryWriteInfo("Compliance Check", $"Post-processing {rules.Count} rules.", LocalSettings.ComplianceCheckVerbose);
 
-            // Create diffs and fill argument bags.
+            // Create diffs and fill argument bags. Violations to remove are derived from the complete
+            // results only, so a stopped check must not get here.
 
-            await PostProcessRulesAsync(rules, isInitial);
+            cancellationToken.ThrowIfCancellationRequested();
+            await PostProcessRulesAsync(rules, isInitial, cancellationToken);
 
             return rules;
         }
@@ -356,7 +362,8 @@ namespace FWO.Compliance
         /// </summary>
         /// <param name="ruleFromDb">Rules including the violations persisted in the database.</param>
         /// <param name="isInitial">Whether this is part of an initial check</param>
-        public Task PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial = false)
+        /// <param name="cancellationToken">Stops the comparison.</param>
+        public Task PostProcessRulesAsync(List<Rule> ruleFromDb, bool isInitial = false, CancellationToken cancellationToken = default)
         {
             List<(ComplianceViolation Violation, string Key)> dbViolationsWithKeys = ruleFromDb
                 .SelectMany(rule => rule.Violations)
@@ -372,7 +379,8 @@ namespace FWO.Compliance
 
             ParallelOptions parallelOptions = new()
             {
-                MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism)
+                MaxDegreeOfParallelism = Math.Max(1, _maxDegreeOfParallelism),
+                CancellationToken = cancellationToken
             };
 
             // Get remove args.
@@ -420,8 +428,10 @@ namespace FWO.Compliance
         /// <summary>
         /// Updates the violation db table.
         /// </summary>
-        public async Task PersistDataAsync()
+        /// <param name="cancellationToken">Only checked before persisting, so additions and removals are always written together.</param>
+        public async Task PersistDataAsync(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 Logger.TryWriteInfo("Compliance Check", "Persisting violations.", true);
@@ -513,7 +523,7 @@ namespace FWO.Compliance
         /// Full compliance check
         /// </summary>
         /// <returns>Task that completes when the asynchronous compliance evaluation finished.</returns>
-        private async Task CheckAll(bool isInitial = false)
+        private async Task CheckAll(bool isInitial = false, CancellationToken cancellationToken = default)
         {
             DateTime startTime = DateTime.UtcNow;
 
@@ -542,6 +552,7 @@ namespace FWO.Compliance
                     return;
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 Policy = await _apiConnection.SendQueryAsync<CompliancePolicy>(ComplianceQueries.getPolicyById, new { id = _complianceCheckPolicyId });
 
                 if (Policy == null)
@@ -550,6 +561,7 @@ namespace FWO.Compliance
                     return;
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 Managements = await _apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
                 Managements = GetRelevantManagements(globalConfig, Managements);
 
@@ -583,11 +595,13 @@ namespace FWO.Compliance
 
                 // Load data for evaluation.
 
+                cancellationToken.ThrowIfCancellationRequested();
                 await LoadNetworkZonesAsync();
 
                 // Perform check.
 
-                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList(), isInitial);
+                cancellationToken.ThrowIfCancellationRequested();
+                RulesInCheck = await PerformCheckAsync(Managements!.Select(m => m.Id).ToList(), isInitial, cancellationToken);
 
                 if (RulesInCheck == null || RulesInCheck.Count == 0)
                 {
@@ -600,6 +614,11 @@ namespace FWO.Compliance
                 Logger.TryWriteInfo("Compliance Check", $"Compliance check evaluated {RulesInCheck.Count} rules in {elapsed.TotalSeconds} seconds.", true);
                 Logger.TryWriteInfo("Compliance Check", "Compliance check completed.", true);
 
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Logger.TryWriteInfo("Compliance Check", "Compliance check stopped.", true);
+                throw;
             }
             catch (Exception e)
             {
@@ -660,8 +679,9 @@ namespace FWO.Compliance
         /// Calculates compliance for all provided rules (or the rules from the last check) and stores violations.
         /// </summary>
         /// <param name="rulesToCheck">Explicit set of rules; when null, the rules prepared by <see cref="CheckAll"/> are used.</param>
+        /// <param name="cancellationToken">Stops before the next rule.</param>
         /// <returns>List of rules that have been processed.</returns>
-        public async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null)
+        public async Task<List<Rule>> CalculateCompliance(List<Rule>? rulesToCheck = null, CancellationToken cancellationToken = default)
         {
             List<Rule> rules = rulesToCheck ?? RulesInCheck ?? [];
 
@@ -698,6 +718,7 @@ namespace FWO.Compliance
 
             foreach (Rule rule in rules)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool ruleIsCompliant = await CheckRuleCompliance(rule, criteria, duplicateIndex);
 
                 if (!ruleIsCompliant)

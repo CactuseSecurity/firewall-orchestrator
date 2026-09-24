@@ -71,6 +71,36 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Run_CanceledBeforeSending_KeepsImportsUnnotified()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            ImportChangeNotifierTestApiConn apiConnection = new()
+            {
+                ImportsToNotify = [CreateImport(11L, 1, "mgmt-a", new DateTime(2026, 7, 14, 8, 0, 0), 3)],
+                Notifications = [new FwoNotification { Id = 1, Layout = NotificationLayout.SimpleText }],
+                OnNotificationQuery = cancellationTokenSource.Cancel
+            };
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await notifier.Run(cancellationTokenSource.Token));
+
+            Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
+            Assert.That(GetPrivateField<bool>(notifier, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
+        public void Run_PreCanceledToken_StopsBeforeQueryingImports()
+        {
+            ImportChangeNotifierTestApiConn apiConnection = new();
+            ImportChangeNotifier notifier = new(apiConnection, new SimulatedGlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await notifier.Run(new CancellationToken(canceled: true)));
+
+            Assert.That(apiConnection.LastQuery, Is.Not.EqualTo(ReportQueries.getImportsToNotifyForRuleChanges));
+            Assert.That(GetPrivateField<bool>(notifier, "WorkInProgress"), Is.False);
+        }
+
+        [Test]
         public async Task NewImportFound_UsesObjectChangeQuery_WhenEnabled()
         {
             SimulatedGlobalConfig globalConfig = new()
@@ -274,6 +304,7 @@ namespace FWO.Test
             public List<ManagementSelect> Managements { get; init; } = [];
             public bool ThrowOnImportQuery { get; init; }
             public bool ThrowOnSetImportsNotified { get; init; }
+            public Action? OnNotificationQuery { get; init; }
             public string? LastQuery { get; private set; }
             public object? LastVariables { get; private set; }
             public int LdapQueryCalls { get; private set; }
@@ -298,6 +329,7 @@ namespace FWO.Test
                 if (query == NotificationQueries.getNotifications)
                 {
                     ++NotificationQueryCalls;
+                    OnNotificationQuery?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)Notifications.ToList());
                 }
 

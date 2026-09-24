@@ -59,13 +59,25 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the External Request Sender
         /// </summary>
-        public async Task<List<string>> Run()
+        /// <param name="cancellationToken">Stops before the next request; requests already locked are released.</param>
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
             List<string> FailedRequests = [];
+            cancellationToken.ThrowIfCancellationRequested();
             ExternalRequestDataHelper openRequests = await apiConnection.SendQueryAsync<ExternalRequestDataHelper>(ExtRequestQueries.getAndLockOpenRequests, new { states = openRequestStates });
-            foreach (ExternalRequest request in openRequests.ExternalRequests)
+            try
             {
-                await HandleRequest(request, FailedRequests);
+                foreach (ExternalRequest request in openRequests.ExternalRequests)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await HandleRequest(request, FailedRequests);
+                }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // unprocessed requests are still locked and would otherwise be blocked
+                await ReleaseRemainingLocks(openRequests.ExternalRequests);
+                throw;
             }
             await ReleaseRemainingLocks(openRequests.ExternalRequests);
             return FailedRequests;

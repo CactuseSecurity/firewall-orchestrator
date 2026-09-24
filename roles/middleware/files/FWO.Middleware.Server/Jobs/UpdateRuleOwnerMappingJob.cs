@@ -37,7 +37,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 UpdateRuleOwnerMapping updateRuleOwnerMapping = new(apiConnection, globalConfig);
-                await updateRuleOwnerMapping.Run();
+                await updateRuleOwnerMapping.Run(cancellationToken: cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {

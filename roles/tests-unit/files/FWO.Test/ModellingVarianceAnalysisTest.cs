@@ -1498,6 +1498,76 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
+        [Test]
+        public async Task TestPreFilterFallbackIsReportedOncePerAnalysisOverSeveralManagements()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasRunningRuleOwnerRebuild = true
+            };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(userMessages, Is.EqualTo(1), "the user is told once, not once per management");
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1), "the state is read once and reused");
+            Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TestRuleOwnerMappingIsWaitedForOnlyOncePerAnalysis()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasPendingRuleOwnerMappingImport = true
+            };
+            int delays = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) =>
+                {
+                    delays++;
+                    return Task.CompletedTask;
+                }
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // 10 seconds at a 2 second poll interval, and only for the first management
+            Assert.That(delays, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackNamesTheRebuildThatStartedWhileWaiting()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 4;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1,
+                StartRebuildAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // the backlog cleared but a rebuild took over, so that is what has to be recorded
+            Assert.That(apiConnection.LoggedReasons, Has.Exactly(1).Contains("reinitialize"));
+            Assert.That(apiConnection.LoggedReasons, Has.None.Contains("still waiting"));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
         private static readonly List<int> kNonNameFieldMappingSources =
         [
             (int)OwnerMappingSourceStm.IpBased,
@@ -1559,6 +1629,9 @@ namespace FWO.Test
             public bool HasAnyActiveRuleOwnerMapping { get; init; } = true;
             public int PrefilterStateReads { get; private set; }
             public int ClearPendingAfterStateReads { get; init; } = int.MaxValue;
+            public int ManagementCount { get; init; } = 1;
+            public int StartRebuildAfterStateReads { get; init; } = int.MaxValue;
+            public List<string> LoggedReasons { get; } = [];
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1599,15 +1672,16 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<Management>))
                 {
-                    List<Management> managements =
-                    [
-                        new()
+                    List<Management> managements = [];
+                    for (int managementId = 1; managementId <= ManagementCount; managementId++)
+                    {
+                        managements.Add(new()
                         {
-                            Id = 1,
-                            Name = "Checkpoint1",
-                            ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}"
-                        }
-                    ];
+                            Id = managementId,
+                            Name = $"Checkpoint{managementId}",
+                            ExtMgtData = $"{{\"id\":\"{managementId}\",\"name\":\"CheckpointExt\"}}"
+                        });
+                    }
 
                     return (QueryResponseType)(object)managements;
                 }
@@ -1638,12 +1712,20 @@ namespace FWO.Test
 
                 if (responseType == typeof(ReturnIdWrapper))
                 {
+                    // AddLogEntry carries the fallback reason as suspectedCause
+                    object? cause = variables?.GetType().GetProperty("suspectedCause")?.GetValue(variables);
+                    if (cause != null)
+                    {
+                        LoggedReasons.Add(cause.ToString() ?? "");
+                    }
+
                     return (QueryResponseType)(object)new ReturnIdWrapper();
                 }
 
                 if (responseType == typeof(List<ImportControl>) && query == ImportQueries.getRunningRuleOwnerRebuild)
                 {
-                    List<ImportControl> rebuild = HasRunningRuleOwnerRebuild ? [new() { ControlId = 9 }] : [];
+                    bool rebuilding = HasRunningRuleOwnerRebuild || PrefilterStateReads >= StartRebuildAfterStateReads;
+                    List<ImportControl> rebuild = rebuilding ? [new() { ControlId = 9 }] : [];
                     return (QueryResponseType)(object)rebuild;
                 }
 

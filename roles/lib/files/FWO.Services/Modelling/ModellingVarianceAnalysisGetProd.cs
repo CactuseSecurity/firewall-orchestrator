@@ -257,30 +257,54 @@ namespace FWO.Services.Modelling
         private async Task<RuleOwnerPrefilterState?> GetUsableRuleOwnerState(int mgtId, HashSet<int> managementIds, ModellingFilter modellingFilter)
         {
             RuleOwnerPrefilterState? state = await GetRuleOwnerPrefilterState();
+            string? blocker = DescribeUnusableState(state, managementIds);
+            if (blocker == null)
+            {
+                return state;
+            }
+
+            // only an unprocessed import can resolve itself while we watch - a rebuild has to finish
+            // and an unreadable state will not fix itself within the wait time
+            if (state != null && !state.RebuildRunning)
+            {
+                state = await WaitForRuleOwnerMapping(managementIds, modellingFilter);
+                blocker = DescribeUnusableState(state, managementIds);
+                if (blocker == null)
+                {
+                    return state;
+                }
+            }
+
+            await ReportPreFilterFallback(mgtId, blocker);
+            return null;
+        }
+
+        /// <summary>
+        /// Names why the mapping state cannot be used, or null when it can. Keeping this in one place
+        /// makes sure the reason that ends up in the log is the one that actually applies, also after
+        /// waiting - where a failed query or a rebuild that started meanwhile would otherwise be
+        /// reported as a pending import.
+        /// </summary>
+        /// <param name="state">State read from the database, or null if it could not be read.</param>
+        /// <param name="managementIds">Management and sub management ids the analysis reads.</param>
+        /// <returns>The reason, or null if the state is usable.</returns>
+        private static string? DescribeUnusableState(RuleOwnerPrefilterState? state, HashSet<int> managementIds)
+        {
             if (state == null)
             {
-                await ReportPreFilterFallback(mgtId, "the rule_owner mapping state could not be read");
-                return null;
+                return "the rule_owner mapping state could not be read";
             }
 
             if (state.RebuildRunning)
             {
-                await ReportPreFilterFallback(mgtId, "a full rule_owner reinitialize is rebuilding the mapping");
-                return null;
+                return "a full rule_owner reinitialize is rebuilding the mapping";
             }
 
-            if (!state.HasPendingImportFor(managementIds))
+            if (state.HasPendingImportFor(managementIds))
             {
-                return state;
+                return "imports are still waiting for their rule_owner mapping";
             }
 
-            state = await WaitForRuleOwnerMapping(managementIds, modellingFilter);
-            if (state != null && !state.RebuildRunning && !state.HasPendingImportFor(managementIds))
-            {
-                return state;
-            }
-
-            await ReportPreFilterFallback(mgtId, "imports are still waiting for their rule_owner mapping");
             return null;
         }
 
@@ -319,7 +343,17 @@ namespace FWO.Services.Modelling
 
             for (int attempt = 0; attempt < attempts && !CancellationToken.IsCancellationRequested; attempt++)
             {
-                await DelayAsync(pollInterval, CancellationToken);
+                try
+                {
+                    await DelayAsync(pollInterval, CancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    // navigating away cancels the wait; the analysis still finishes over the marker
+                    // query, so this must not travel up as an error
+                    return ruleOwnerPrefilterState;
+                }
+
                 ruleOwnerPrefilterState = null;
                 RuleOwnerPrefilterState? state = await GetRuleOwnerPrefilterState();
                 if (state == null || (!state.RebuildRunning && !state.HasPendingImportFor(managementIds)))
@@ -498,6 +532,7 @@ namespace FWO.Services.Modelling
             {
                 Log.WriteWarning("Variance Rule Loading",
                     $"Could not verify NameField rule_owner prefilter completeness for owner {owner.Id}, management {mgtId}. Falling back to marker query. {exception.Message}");
+                await ReportPreFilterFallback(mgtId, "the rule_owner prefilter completeness check failed");
                 return false;
             }
         }

@@ -189,9 +189,12 @@
                 }
                 else
                 {
-                    // a fresh source per run: Dispose is also called explicitly while the popup stays alive
-                    varianceTokenSource.Cancel();
+                    // a fresh source per run, because Dispose is also called explicitly while the popup
+                    // stays alive; the previous one is released instead of being left to the GC
+                    CancellationTokenSource previousTokenSource = varianceTokenSource;
                     varianceTokenSource = new CancellationTokenSource();
+                    previousTokenSource.Cancel();
+                    previousTokenSource.Dispose();
                     ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi)
                     {
                         CancellationToken = varianceTokenSource.Token

@@ -69,6 +69,8 @@ namespace FWO.Test
             public int AddHistoryEntryCallCount { get; private set; }
             public object? LastHistoryVariables { get; private set; }
             public string? LastHistoryQuery { get; private set; }
+            public string? LastTicketQuery { get; private set; }
+            public object? LastTicketQueryVariables { get; private set; }
             public long NewApprovalId { get; set; } = 301;
             public int GetTicketByIdCallCount { get; private set; }
             public bool ThrowOnGetTicketById { get; set; }
@@ -264,8 +266,12 @@ namespace FWO.Test
                     DeleteReqElementCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { DeletedIdLong = DeletedReqElementId });
                 }
-                if (query == RequestQueries.getTickets || query == RequestQueries.getFullTickets || query == RequestQueries.getTicketsByParameters)
+                if (query == RequestQueries.getTickets || query == RequestQueries.getTicketsByTicketState
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState
+                    || query == RequestQueries.getTicketsByParameters)
                 {
+                    LastTicketQuery = query;
+                    LastTicketQueryVariables = variables;
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -279,6 +285,60 @@ namespace FWO.Test
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesTicketQuery_WhenVisibilityModeIsTicket()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10, VisibilityMode = PhaseVisibilityMode.TicketState };
+
+            await dbAccess.FetchTickets(matrix);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByTicketState));
+                Assert.That(apiConn.LastTicketQueryVariables, Is.Not.Null);
+                Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("fromState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(1));
+                Assert.That(apiConn.LastTicketQueryVariables.GetType().GetProperty("toState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(10));
+            });
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesAnyTaskQuery_ByDefault()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10 };
+
+            await dbAccess.FetchTickets(matrix);
+
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTickets));
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesFullTicketStateQuery_WhenFullTicketsAndTicketStateAreRequested()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10, VisibilityMode = PhaseVisibilityMode.TicketState };
+
+            await dbAccess.FetchTickets(matrix, null, false, true);
+
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getFullTicketsByTicketState));
         }
 
         [Test]

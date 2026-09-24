@@ -61,6 +61,13 @@ namespace FWO.Services.Modelling
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
 
         /// <summary>
+        /// Writes a fall back from the rule_owner prefilter to the marker query into the database log.
+        /// The background job turns it off: nobody waits for its result, and it would repeat the same
+        /// global state for every owner in every run.
+        /// </summary>
+        public bool LogPrefilterFallbackToDb { get; set; } = true;
+
+        /// <summary>
         /// Determines the modelling state of the given connections.
         /// </summary>
         /// <param name="connections">Connections to analyse.</param>

@@ -1514,8 +1514,29 @@ namespace FWO.Test
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
             Assert.That(userMessages, Is.EqualTo(1), "the user is told once, not once per management");
+            Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once, not once per management");
             Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1), "the state is read once and reused");
             Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackIsNotWrittenToDbLogWhenTurnedOff()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++)
+            {
+                LogPrefilterFallbackToDb = false
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            // the background job: the fall back still happens, only the database log is left out
+            Assert.That(apiConnection.LoggedReasons, Is.Empty);
+            Assert.That(userMessages, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]

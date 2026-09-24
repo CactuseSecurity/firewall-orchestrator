@@ -21,6 +21,7 @@ namespace FWO.Services.Modelling
         private HashSet<long>? NameFieldRuleOwnerConnectionIds { get; set; }
         private bool ruleOwnerWaitDone;
         private bool preFilterFallbackReported;
+        private readonly HashSet<string> loggedFallbackReasons = [];
         private sealed record RelevantImportContext(long? ImportId, HashSet<int> ManagementIds);
 
         private async Task InitManagements()
@@ -441,8 +442,10 @@ namespace FWO.Services.Modelling
         }
 
         /// <summary>
-        /// Records that the analysis falls back to the marker query. The log entry is written for every
-        /// occurrence so the frequency can be read later; the message to the user is shown once per
+        /// Records that the analysis falls back to the marker query. The debug log gets every occurrence.
+        /// The database log gets one entry per reason and analysis, because nearly every reason is a
+        /// global state that would otherwise be repeated for each management - and none at all where
+        /// <see cref="LogPrefilterFallbackToDb"/> is off. The message to the user is shown once per
         /// analysis, so a run over several managements does not repeat it.
         /// <para>
         /// Only ever reached inside the NameField branch - for the other mapping sources the marker
@@ -455,9 +458,12 @@ namespace FWO.Services.Modelling
         {
             Log.WriteDebug("Variance Rule Loading",
                 $"Falling back to marker query for owner {owner.Id}, management {mgtId}: {reason}.");
-            await AlertHelper.AddLogEntry(apiConnection, 0, reason,
-                $"Variance analysis for owner {owner.Id} used the marker query on management {mgtId}.",
-                GlobalConst.kVarianceRuleOwnerPrefilter, mgtId);
+            if (LogPrefilterFallbackToDb && loggedFallbackReasons.Add(reason))
+            {
+                await AlertHelper.AddLogEntry(apiConnection, 0, reason,
+                    $"Variance analysis for owner {owner.Id} used the marker query on management {mgtId}.",
+                    GlobalConst.kVarianceRuleOwnerPrefilter, mgtId);
+            }
 
             if (preFilterFallbackReported)
             {

@@ -17,9 +17,9 @@ using System.Text.Json;
 namespace FWO.Middleware.Server.Services;
 
 /// <summary>
-/// Provides request workflow data for flow request REST endpoints.
+/// Provides workflow ticket data for workflow REST endpoints.
 /// </summary>
-public sealed class FlowRequestService : IDisposable
+public sealed class WorkflowTicketService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
@@ -28,7 +28,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Initializes a new instance of the type.
     /// </summary>
-    public FlowRequestService(ApiConnection apiConnection, GlobalConfig globalConfig)
+    public WorkflowTicketService(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
@@ -59,10 +59,10 @@ public sealed class FlowRequestService : IDisposable
     /// <param name="request">The high-level request payload.</param>
     /// <param name="requesterId">Database id of the authenticated caller.</param>
     /// <param name="callerName">Login name of the authenticated caller, recorded as changer in the change history.</param>
-    public async Task<CreateRequestResponse> CreateRequestAsync(CreateRequestRequest request, int requesterId, string? callerName = null)
+    public async Task<CreateTicketResponse> CreateTicketAsync(CreateTicketRequest request, int requesterId, string? callerName = null)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ValidateCreateRequest(request);
+        ValidateCreateTicket(request);
         if (requesterId <= 0)
         {
             throw new ArgumentException("'requesterId' must be a positive integer.");
@@ -79,19 +79,19 @@ public sealed class FlowRequestService : IDisposable
         // and attributing the change history entry to that requester would be wrong.
         int? changerId = string.IsNullOrWhiteSpace(callerName) ? null : requesterId;
         ticket = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
-        string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
+        string status = await BuildTicketStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
-        return new CreateRequestResponse
+        return new CreateTicketResponse
         {
             Status = status,
-            RequestId = ticket.Id
+            TicketId = ticket.Id
         };
     }
 
     /// <summary>
     /// Returns the workflow ticket status and latest ticket comment.
     /// </summary>
-    public async Task<GetRequestStatusResponse?> GetRequestStatusAsync(long ticketId)
+    public async Task<GetTicketStatusResponse?> GetTicketStatusAsync(long ticketId)
     {
         WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
         if (ticket == null)
@@ -99,17 +99,17 @@ public sealed class FlowRequestService : IDisposable
             return null;
         }
 
-        return new GetRequestStatusResponse
+        return new GetTicketStatusResponse
         {
-            Status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
+            Status = await BuildTicketStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
             StatusComment = GetLatestTicketComment(ticket)
         };
     }
 
     /// <summary>
-    /// Validates the create-request payload before the ticket is built.
+    /// Validates the create-ticket payload before the ticket is built.
     /// </summary>
-    private static void ValidateCreateRequest(CreateRequestRequest request)
+    private static void ValidateCreateTicket(CreateTicketRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RequestorName))
         {
@@ -222,7 +222,7 @@ public sealed class FlowRequestService : IDisposable
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<FlowReferenceCatalog> ResolveFlowReferencesAsync(CreateRequestRequest request)
+    private async Task<FlowReferenceCatalog> ResolveFlowReferencesAsync(CreateTicketRequest request)
     {
         List<long> networkIds = request.Rules.SelectMany(rule => rule.SourceObjects.Concat(rule.DestinationObjects))
             .Concat(request.AddressGroups.SelectMany(group => group.MemberIds))
@@ -331,10 +331,10 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds the ticket object that is persisted through the existing whole-ticket insert path.
     /// </summary>
-    private WfTicket BuildTicket(CreateRequestRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
+    private WfTicket BuildTicket(CreateTicketRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
         Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
-        Dictionary<long, CreateRequestEntity> entities = BuildEntityIndex(request, protocolIds);
+        Dictionary<long, CreateTicketEntity> entities = BuildEntityIndex(request, protocolIds);
         List<WfReqTask> tasks = [];
         int taskNumber = 1;
 
@@ -359,7 +359,7 @@ public sealed class FlowRequestService : IDisposable
     /// The API payload intentionally supplies these display fields so technical callers can submit
     /// requests on behalf of someone else while the authenticated caller still provides requesterId.
     /// </summary>
-    private static UiUser BuildRequester(CreateRequestRequest request, int requesterId)
+    private static UiUser BuildRequester(CreateTicketRequest request, int requesterId)
     {
         return new UiUser
         {
@@ -372,7 +372,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Keeps the supplied request contact information available in the ticket reason field.
     /// </summary>
-    private static string BuildRequestReason(CreateRequestRequest request)
+    private static string BuildRequestReason(CreateTicketRequest request)
     {
         return $"{request.RuleContactName} ({request.RuleContactId})";
     }
@@ -380,36 +380,36 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds all group/entity lookup entries and checks for duplicate ids.
     /// </summary>
-    private static Dictionary<long, CreateRequestEntity> BuildEntityIndex(CreateRequestRequest request, Dictionary<string, int> protocolIds)
+    private static Dictionary<long, CreateTicketEntity> BuildEntityIndex(CreateTicketRequest request, Dictionary<string, int> protocolIds)
     {
-        Dictionary<long, CreateRequestEntity> entities = [];
+        Dictionary<long, CreateTicketEntity> entities = [];
 
-        foreach (CreateRequestRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
+        foreach (CreateTicketRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
         {
             long entityId = ParseLocalEntityId(addressObject.Id, "address object");
-            AddEntity(entities, entityId, CreateRequestEntity.FromAddressObject(entityId, addressObject));
+            AddEntity(entities, entityId, CreateTicketEntity.FromAddressObject(entityId, addressObject));
         }
 
-        foreach (CreateRequestRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
+        foreach (CreateTicketRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
         {
             long entityId = ParseLocalEntityId(serviceObject.Id, "service object");
-            AddEntity(entities, entityId, CreateRequestEntity.FromServiceObject(entityId, serviceObject, protocolIds));
+            AddEntity(entities, entityId, CreateTicketEntity.FromServiceObject(entityId, serviceObject, protocolIds));
         }
 
-        foreach (CreateRequestRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
+        foreach (CreateTicketRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
         {
-            AddEntity(entities, ParseLocalEntityId(addressGroup.Id, "address group"), CreateRequestEntity.FromAddressGroup(addressGroup));
+            AddEntity(entities, ParseLocalEntityId(addressGroup.Id, "address group"), CreateTicketEntity.FromAddressGroup(addressGroup));
         }
 
-        foreach (CreateRequestRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
+        foreach (CreateTicketRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
         {
-            AddEntity(entities, ParseLocalEntityId(serviceGroup.Id, "service group"), CreateRequestEntity.FromServiceGroup(serviceGroup));
+            AddEntity(entities, ParseLocalEntityId(serviceGroup.Id, "service group"), CreateTicketEntity.FromServiceGroup(serviceGroup));
         }
 
-        foreach (CreateRequestRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
+        foreach (CreateTicketRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
         {
             long entityId = ParseLocalEntityId(timeObject.Id, "time object");
-            AddEntity(entities, entityId, CreateRequestEntity.FromTimeObject(entityId, timeObject));
+            AddEntity(entities, entityId, CreateTicketEntity.FromTimeObject(entityId, timeObject));
         }
 
         return entities;
@@ -418,11 +418,11 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds the access tasks for the request rules.
     /// </summary>
-    private static List<WfReqTask> BuildRuleTasks(CreateRequestRequest request, Dictionary<long, CreateRequestEntity> entities,
+    private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, CreateTicketEntity> entities,
         int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds, FlowReferenceCatalog flowReferences, ref int taskNumber)
     {
         List<WfReqTask> tasks = [];
-        foreach (CreateRequestRequest.CreateRequestRuleRequest rule in request.Rules)
+        foreach (CreateTicketRequest.CreateTicketRuleRequest rule in request.Rules)
         {
             tasks.Add(BuildRuleTask(request, rule, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, taskNumber++));
         }
@@ -432,16 +432,16 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds ticket tasks that create object groups.
     /// </summary>
-    private static List<WfReqTask> BuildGroupTasks(CreateRequestRequest request, Dictionary<long, CreateRequestEntity> entities,
+    private static List<WfReqTask> BuildGroupTasks(CreateTicketRequest request, Dictionary<long, CreateTicketEntity> entities,
         int ticketStateId, FlowReferenceCatalog flowReferences, ref int taskNumber)
     {
         List<WfReqTask> tasks = [];
-        foreach (CreateRequestRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
+        foreach (CreateTicketRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
         {
             tasks.Add(BuildNetworkGroupTask(request, addressGroup, entities, ticketStateId, flowReferences, taskNumber++));
         }
 
-        foreach (CreateRequestRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
+        foreach (CreateTicketRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
         {
             tasks.Add(BuildServiceGroupTask(request, serviceGroup, entities, ticketStateId, flowReferences, taskNumber++));
         }
@@ -451,10 +451,10 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates a task for an address group.
     /// </summary>
-    private static WfReqTask BuildNetworkGroupTask(CreateRequestRequest request, CreateRequestRequest.CreateAddressGroupRequest group,
-        Dictionary<long, CreateRequestEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
+    private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateAddressGroupRequest group,
+        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        CreateRequestEntity groupEntity = entities[group.Id];
+        CreateTicketEntity groupEntity = entities[group.Id];
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -472,10 +472,10 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates a task for a service group.
     /// </summary>
-    private static WfReqTask BuildServiceGroupTask(CreateRequestRequest request, CreateRequestRequest.CreateServiceGroupRequest group,
-        Dictionary<long, CreateRequestEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
+    private static WfReqTask BuildServiceGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateServiceGroupRequest group,
+        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        CreateRequestEntity groupEntity = entities[group.Id];
+        CreateTicketEntity groupEntity = entities[group.Id];
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -493,8 +493,8 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates an access task for one request rule.
     /// </summary>
-    private static WfReqTask BuildRuleTask(CreateRequestRequest request, CreateRequestRequest.CreateRequestRuleRequest rule,
-        Dictionary<long, CreateRequestEntity> entities, int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
+    private static WfReqTask BuildRuleTask(CreateTicketRequest request, CreateTicketRequest.CreateTicketRuleRequest rule,
+        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
         FlowReferenceCatalog flowReferences, int taskNumber)
     {
         List<WfReqElement> elements =
@@ -507,7 +507,7 @@ public sealed class FlowRequestService : IDisposable
         int ruleActionId = ResolveRuleActionId(rule.Action, ruleActionIds);
         FwoOwner? taskOwner = ResolveRuleOwner(rule.OwnerId, ownersById);
 
-        CreateRequestEntity? timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
+        CreateTicketEntity? timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
 
         return new WfReqTask
         {
@@ -569,7 +569,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Resolves the referenced time object, if any.
     /// </summary>
-    private static CreateRequestEntity? ResolveTimeObject(long timeObjectId, Dictionary<long, CreateRequestEntity> entities, FlowReferenceCatalog flowReferences)
+    private static CreateTicketEntity? ResolveTimeObject(long timeObjectId, Dictionary<long, CreateTicketEntity> entities, FlowReferenceCatalog flowReferences)
     {
         if (timeObjectId == 0)
         {
@@ -580,13 +580,13 @@ public sealed class FlowRequestService : IDisposable
         {
             if (flowReferences.TimeObjects.TryGetValue(timeObjectId, out FlowTimeObject? flowTimeObject))
             {
-                return CreateRequestEntity.FromFlowTimeObject(flowTimeObject);
+                return CreateTicketEntity.FromFlowTimeObject(flowTimeObject);
             }
 
             throw new ArgumentException($"Unknown Flow time object id {timeObjectId}.");
         }
 
-        if (!entities.TryGetValue(timeObjectId, out CreateRequestEntity? entity) || entity.Kind != CreateRequestEntityKind.TimeObject)
+        if (!entities.TryGetValue(timeObjectId, out CreateTicketEntity? entity) || entity.Kind != CreateTicketEntityKind.TimeObject)
         {
             throw new ArgumentException($"Time object id {timeObjectId} must reference a time object.");
         }
@@ -597,7 +597,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds elements for rule references.
     /// </summary>
-    private static IEnumerable<WfReqElement> BuildReferencedElements(IEnumerable<long> references, Dictionary<long, CreateRequestEntity> entities, ElemFieldType field,
+    private static IEnumerable<WfReqElement> BuildReferencedElements(IEnumerable<long> references, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
         FlowReferenceCatalog flowReferences)
     {
         foreach (long reference in references)
@@ -609,7 +609,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Converts a single reference into a workflow element.
     /// </summary>
-    private static WfReqElement BuildReferencedElement(long reference, Dictionary<long, CreateRequestEntity> entities, ElemFieldType field,
+    private static WfReqElement BuildReferencedElement(long reference, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
         FlowReferenceCatalog flowReferences)
     {
         if (reference > 0)
@@ -617,12 +617,12 @@ public sealed class FlowRequestService : IDisposable
             return flowReferences.BuildElement(reference, field);
         }
 
-        CreateRequestEntity entity = GetEntity(entities, reference);
+        CreateTicketEntity entity = GetEntity(entities, reference);
         if (field == ElemFieldType.service)
         {
             return entity.Kind switch
             {
-                CreateRequestEntityKind.ServiceObject => new WfReqElement
+                CreateTicketEntityKind.ServiceObject => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -631,7 +631,7 @@ public sealed class FlowRequestService : IDisposable
                     PortEnd = entity.PortEnd,
                     ProtoId = entity.ProtocolId
                 },
-                CreateRequestEntityKind.ServiceGroup => new WfReqElement
+                CreateTicketEntityKind.ServiceGroup => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -646,7 +646,7 @@ public sealed class FlowRequestService : IDisposable
         {
             return entity.Kind switch
             {
-                CreateRequestEntityKind.AddressObject => new WfReqElement
+                CreateTicketEntityKind.AddressObject => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -654,7 +654,7 @@ public sealed class FlowRequestService : IDisposable
                     IpString = entity.IpStart,
                     IpEnd = entity.IpEnd
                 },
-                CreateRequestEntityKind.AddressGroup => new WfReqElement
+                CreateTicketEntityKind.AddressGroup => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -671,7 +671,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates one element for a group member reference.
     /// </summary>
-    private static WfReqElement BuildGroupMemberElement(long memberId, Dictionary<long, CreateRequestEntity> entities, ElemFieldType field,
+    private static WfReqElement BuildGroupMemberElement(long memberId, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
         FlowReferenceCatalog flowReferences)
     {
         if (memberId > 0)
@@ -679,10 +679,10 @@ public sealed class FlowRequestService : IDisposable
             return flowReferences.BuildElement(memberId, field);
         }
 
-        CreateRequestEntity entity = GetEntity(entities, memberId);
+        CreateTicketEntity entity = GetEntity(entities, memberId);
         return entity.Kind switch
         {
-            CreateRequestEntityKind.AddressObject => new WfReqElement
+            CreateTicketEntityKind.AddressObject => new WfReqElement
             {
                 Field = field.ToString(),
                 RequestAction = RequestAction.create.ToString(),
@@ -690,7 +690,7 @@ public sealed class FlowRequestService : IDisposable
                 IpString = entity.IpStart,
                 IpEnd = entity.IpEnd
             },
-            CreateRequestEntityKind.ServiceObject => new WfReqElement
+            CreateTicketEntityKind.ServiceObject => new WfReqElement
             {
                 Field = field.ToString(),
                 RequestAction = RequestAction.create.ToString(),
@@ -706,7 +706,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Stores group metadata together with the request context.
     /// </summary>
-    private static string BuildGroupAdditionalInfo(CreateRequestRequest request, string groupName, long groupId)
+    private static string BuildGroupAdditionalInfo(CreateTicketRequest request, string groupName, long groupId)
     {
         Dictionary<string, string> additionalInfo = BuildRequestContactInfo(request.RuleContactName, request.RuleContactId, request.RequestorName, request.RequestorId);
         additionalInfo[AdditionalInfoKeys.GrpName] = groupName;
@@ -743,7 +743,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Adds an entity to the request index and rejects duplicate ids.
     /// </summary>
-    private static void AddEntity(Dictionary<long, CreateRequestEntity> entities, long id, CreateRequestEntity entity)
+    private static void AddEntity(Dictionary<long, CreateTicketEntity> entities, long id, CreateTicketEntity entity)
     {
         if (entities.TryAdd(id, entity))
         {
@@ -756,9 +756,9 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Looks up a request entity or fails with a readable error.
     /// </summary>
-    private static CreateRequestEntity GetEntity(Dictionary<long, CreateRequestEntity> entities, long id)
+    private static CreateTicketEntity GetEntity(Dictionary<long, CreateTicketEntity> entities, long id)
     {
-        if (entities.TryGetValue(id, out CreateRequestEntity? entity))
+        if (entities.TryGetValue(id, out CreateTicketEntity? entity))
         {
             return entity;
         }
@@ -825,7 +825,7 @@ public sealed class FlowRequestService : IDisposable
     /// Serializes the metadata we want to keep alongside the ticket task.
     /// </summary>
     private static string BuildAdditionalInfo(string requestContactName, string requestContactId, string requestorName, string requestorId,
-        CreateRequestEntity? timeEntity)
+        CreateTicketEntity? timeEntity)
     {
         Dictionary<string, string> additionalInfo = BuildRequestContactInfo(requestContactName, requestContactId, requestorName, requestorId);
         if (timeEntity != null)
@@ -848,9 +848,9 @@ public sealed class FlowRequestService : IDisposable
         throw new ArgumentException($"The {entityType} id '{id}' must be a negative, non-zero integer because positive ids reference existing Flow objects.");
     }
 
-    private sealed record CreateRequestEntity(
+    private sealed record CreateTicketEntity(
         long Id,
-        CreateRequestEntityKind Kind,
+        CreateTicketEntityKind Kind,
         string DisplayName,
         string? IpStart = null,
         string? IpEnd = null,
@@ -860,55 +860,55 @@ public sealed class FlowRequestService : IDisposable
         DateTime? TimeStart = null,
         DateTime? TimeEnd = null)
     {
-        public static CreateRequestEntity FromAddressObject(long id, CreateRequestRequest.CreateAddressObjectRequest request)
+        public static CreateTicketEntity FromAddressObject(long id, CreateTicketRequest.CreateAddressObjectRequest request)
         {
-            return new CreateRequestEntity(
+            return new CreateTicketEntity(
                 id,
-                CreateRequestEntityKind.AddressObject,
+                CreateTicketEntityKind.AddressObject,
                 request.Name,
                 request.IpStart,
                 request.IpEnd);
         }
 
-        public static CreateRequestEntity FromAddressGroup(CreateRequestRequest.CreateAddressGroupRequest request)
+        public static CreateTicketEntity FromAddressGroup(CreateTicketRequest.CreateAddressGroupRequest request)
         {
-            return new CreateRequestEntity(request.Id, CreateRequestEntityKind.AddressGroup, request.Name);
+            return new CreateTicketEntity(request.Id, CreateTicketEntityKind.AddressGroup, request.Name);
         }
 
-        public static CreateRequestEntity FromServiceObject(long id, CreateRequestRequest.CreateServiceObjectRequest request, Dictionary<string, int> protocolIds)
+        public static CreateTicketEntity FromServiceObject(long id, CreateTicketRequest.CreateServiceObjectRequest request, Dictionary<string, int> protocolIds)
         {
             int protocolId = ResolveProtocolId(request.Protocol, protocolIds, request.PortStart, request.PortEnd);
-            return new CreateRequestEntity(
+            return new CreateTicketEntity(
                 id,
-                CreateRequestEntityKind.ServiceObject,
+                CreateTicketEntityKind.ServiceObject,
                 request.Name,
                 ProtocolId: protocolId,
                 PortStart: request.PortStart,
                 PortEnd: request.PortEnd);
         }
 
-        public static CreateRequestEntity FromServiceGroup(CreateRequestRequest.CreateServiceGroupRequest request)
+        public static CreateTicketEntity FromServiceGroup(CreateTicketRequest.CreateServiceGroupRequest request)
         {
-            return new CreateRequestEntity(request.Id, CreateRequestEntityKind.ServiceGroup, request.Name);
+            return new CreateTicketEntity(request.Id, CreateTicketEntityKind.ServiceGroup, request.Name);
         }
 
-        public static CreateRequestEntity FromTimeObject(long id, CreateRequestRequest.CreateTimeObjectRequest request)
+        public static CreateTicketEntity FromTimeObject(long id, CreateTicketRequest.CreateTimeObjectRequest request)
         {
             DateTime? startTime = ParseDateTime(request.StartTime, "startTime");
             DateTime? endTime = ParseDateTime(request.EndTime, "endTime");
-            return new CreateRequestEntity(
+            return new CreateTicketEntity(
                 id,
-                CreateRequestEntityKind.TimeObject,
+                CreateTicketEntityKind.TimeObject,
                 request.Name,
                 TimeStart: startTime,
                 TimeEnd: endTime);
         }
 
-        public static CreateRequestEntity FromFlowTimeObject(FlowTimeObject flowObject)
+        public static CreateTicketEntity FromFlowTimeObject(FlowTimeObject flowObject)
         {
-            return new CreateRequestEntity(
+            return new CreateTicketEntity(
                 flowObject.Id,
-                CreateRequestEntityKind.TimeObject,
+                CreateTicketEntityKind.TimeObject,
                 flowObject.Name,
                 TimeStart: flowObject.StartTime,
                 TimeEnd: flowObject.EndTime);
@@ -981,7 +981,7 @@ public sealed class FlowRequestService : IDisposable
         }
     }
 
-    private enum CreateRequestEntityKind
+    private enum CreateTicketEntityKind
     {
         AddressObject,
         AddressGroup,
@@ -1003,7 +1003,7 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Builds the public status string for a workflow request.
     /// </summary>
-    private async Task<string> BuildRequestStatusAsync(int stateId, bool tolerateExternalStateErrors)
+    private async Task<string> BuildTicketStatusAsync(int stateId, bool tolerateExternalStateErrors)
     {
         WfStateDict states = await GetStateDictAsync();
         string status = states.GetName(stateId);

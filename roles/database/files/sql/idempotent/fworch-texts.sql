@@ -7794,13 +7794,13 @@ INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem ge
     <ul>
         <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
         <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
-        <li><b>FlowRequestController</b>: Endpunkte f&uuml;r Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
+        <li><b>WorkflowTicketController</b>: Endpunkte f&uuml;r Workflow-Ticket-Erzeugung und Statusabfrage.</li>
     </ul>
     Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow-Katalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow-Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow-Antr&auml;ge</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow-Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below the shared <code>/api/flow</code> prefix.
@@ -7808,13 +7808,13 @@ INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below 
     <ul>
         <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
         <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
-        <li><b>FlowRequestController</b>: Endpoints for flow-related request creation and status lookups.</li>
+        <li><b>WorkflowTicketController</b>: Endpoints for workflow ticket creation and status lookups.</li>
     </ul>
     The following pages document the three controllers separately so the individual endpoints stay easy to find.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow Catalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow Requests</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> stellt lesende Katalogabfragen unter <code>/api/flow</code> bereit.
@@ -7897,21 +7897,21 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
 ');
 INSERT INTO txt VALUES ('H9085', 'German',  'Kann ein Objekt keiner konfigurierten Netzwerkzone zugeordnet werden, wird dies in geplanten Compliance-Pr&uuml;fungen und Berichten als nicht bewertbar gemeldet. Dies gilt insbesondere f&uuml;r IPv6-Objekte, wenn keine passende IPv6-Zone konfiguriert ist. Als nicht bewertbar wird eine Regel nur dann ausgewiesen, wenn f&uuml;r sie kein einziger echter Versto&szlig; festgestellt wurde; andernfalls bleiben die festgestellten Verst&ouml;&szlig;e der Regel ma&szlig;geblich und im Bericht sichtbar, zusammen mit dem Hinweis auf das nicht bewertbare Objekt.');
 INSERT INTO txt VALUES ('H9085', 'English', 'When an object cannot be assigned to a configured network zone, scheduled compliance checks and reports mark that object as not assessable. This applies especially to IPv6 objects when no matching IPv6 zone is configured. A rule is labelled not assessable only when no real violation was found for it at all; otherwise its detected violations stay decisive and visible in the report, together with the note about the object that could not be assessed.');
-INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b> stellt die Workflow-Ticket-Funktionen unter <code>/api/workflow</code> bereit.
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Erzeugt ein neues Workflow-Ticket.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
 ');
-INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> provides flow-related request functions below <code>/api/flow</code>.
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b> provides workflow ticket functions below <code>/api/workflow</code>.
     <table class="table table-sm">
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Creates a new workflow ticket.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
 ');

@@ -10,34 +10,34 @@ internal class FlowRequestContractTest
 {
 
     [Test]
-    public void GetRequestStatusRequest_RequiresTicketId()
+    public void GetTicketStatusRequest_RequiresTicketId()
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetRequestStatusRequest>("{}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetTicketStatusRequest>("{}"));
     }
 
     [Test]
-    public void GetRequestStatusRequest_SupportsBigintTicketId()
+    public void GetTicketStatusRequest_SupportsBigintTicketId()
     {
         const long ticketId = (long)int.MaxValue + 1;
 
-        GetRequestStatusRequest? request = JsonSerializer.Deserialize<GetRequestStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
+        GetTicketStatusRequest? request = JsonSerializer.Deserialize<GetTicketStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
 
         Assert.That(request?.TicketId, Is.EqualTo(ticketId));
     }
 
     [Test]
-    public void CreateRequestRequest_DefaultsSortTasksToFalse()
+    public void CreateTicketRequest_DefaultsSortTasksToFalse()
     {
-        CreateRequestRequest? request = JsonSerializer.Deserialize<CreateRequestRequest>(
+        CreateTicketRequest? request = JsonSerializer.Deserialize<CreateTicketRequest>(
             """{"requestorName":"Alice Example","requestorId":"alice","ruleContactName":"Bob Approver","ruleContactId":"bob","title":"Allow HTTPS"}""");
 
         Assert.That(request?.SortTasks, Is.False);
     }
 
     [Test]
-    public void CreateRequestRequest_SerializesSortTasks()
+    public void CreateTicketRequest_SerializesSortTasks()
     {
-        CreateRequestRequest request = new()
+        CreateTicketRequest request = new()
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -53,9 +53,9 @@ internal class FlowRequestContractTest
     }
 
     [Test]
-    public void GetRequestStatusResponse_UsesExpectedJsonNames()
+    public void GetTicketStatusResponse_UsesExpectedJsonNames()
     {
-        GetRequestStatusResponse response = new()
+        GetTicketStatusResponse response = new()
         {
             Status = "implementation",
             StatusComment = "latest"

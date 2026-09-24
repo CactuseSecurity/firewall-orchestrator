@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents the CreateRequestRequest type.
+/// Represents the CreateTicketRequest type.
 /// </summary>
-public sealed class CreateRequestRequest
+public sealed class CreateTicketRequest
 {
     /// <summary>
     /// Gets the RequestorName value.
@@ -48,7 +48,7 @@ public sealed class CreateRequestRequest
     /// Gets the Rules value.
     /// </summary>
     [JsonPropertyName("rules")]
-    public List<CreateRequestRuleRequest> Rules { get; set; } = [];
+    public List<CreateTicketRuleRequest> Rules { get; set; } = [];
 
     /// <summary>
     /// Gets the AddressObjects value.
@@ -81,9 +81,9 @@ public sealed class CreateRequestRequest
     public List<CreateTimeObjectRequest> TimeObjects { get; set; } = [];
 
     /// <summary>
-    /// Represents the CreateRequestRuleRequest type.
+    /// Represents the CreateTicketRuleRequest type.
     /// </summary>
-    public sealed class CreateRequestRuleRequest
+    public sealed class CreateTicketRuleRequest
     {
         /// <summary>
         /// Gets the Action value.

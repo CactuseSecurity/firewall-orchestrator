@@ -19,7 +19,7 @@ internal class FlowControllerAuthorizationTest
     [TestCase(typeof(FlowCatalogController), nameof(FlowCatalogController.GetAddressObjectId))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetFlowComplianceState))]
     [TestCase(typeof(FlowComplianceController), nameof(FlowComplianceController.GetPolicyIds))]
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.GetRequestStatus))]
+    [TestCase(typeof(WorkflowTicketController), nameof(WorkflowTicketController.GetTicketStatus))]
     public void ReadOnlyFlowEndpoints_AllowAdminAndAuditor(Type controllerType, string methodName)
     {
         AuthorizeAttribute authorize = GetAuthorizeAttribute(controllerType, methodName);
@@ -35,7 +35,7 @@ internal class FlowControllerAuthorizationTest
         Assert.That(authorize.Roles, Is.EqualTo($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}"));
     }
 
-    [TestCase(typeof(FlowRequestController), nameof(FlowRequestController.CreateRequest))]
+    [TestCase(typeof(WorkflowTicketController), nameof(WorkflowTicketController.CreateTicket))]
     public void WriteFlowEndpoints_RemainAdminOnly(Type controllerType, string methodName)
     {
         AuthorizeAttribute authorize = GetAuthorizeAttribute(controllerType, methodName);

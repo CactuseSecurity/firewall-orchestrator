@@ -184,6 +184,10 @@ namespace FWO.Middleware.Server
             {
                 changeReport = await ReportGenerator.GenerateFromTemplate(new ReportTemplate("", await SetFilters()), apiConnection, userConfig, DefaultInit.DoNothing, cancellationToken);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
             catch (Exception exception)
             {
                 Log.WriteError(LogMessageTitle, $"Report generation leads to exception.", exception);

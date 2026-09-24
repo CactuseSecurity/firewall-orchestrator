@@ -672,7 +672,7 @@ public sealed class GetTicketResponseExample : ApiExampleProvider<GetTicketRespo
                 Locked = true,
                 Elements =
                 [
-                    new TicketElementResponse { Id = 1, Field = "source", Action = "create", Name = "client-net", Ip = "10.0.0.0/24", IpEnd = "10.0.0.255/24" },
+                    new TicketElementResponse { Id = 1, Field = "source", Action = "create", Name = "client-net", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" },
                     new TicketElementResponse { Id = 2, Field = "destination", Action = "create", Name = "app-server", Ip = "192.168.1.10/32", IpEnd = "192.168.1.10/32" },
                     new TicketElementResponse { Id = 3, Field = "service", Action = "create", Name = "https", Port = 443, PortEnd = 443, ProtocolId = 6 }
                 ],

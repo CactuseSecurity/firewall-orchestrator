@@ -127,14 +127,14 @@ public static class TicketResponseMapper
         response.DeviceIds = [.. task.GetDeviceList()];
         response.FlowAccessId = task.FlowAccessId;
         response.Locked = task.Locked;
-        response.Elements = (task.Elements ?? []).Where(element => element != null).Select(MapRequestElement).ToList();
-        response.Approvals = (task.Approvals ?? []).Where(approval => approval != null).Select(approval => MapApproval(approval, states)).ToList();
+        response.Elements = (task.Elements ?? []).Where(element => element != null).OrderBy(element => element.Id).Select(MapRequestElement).ToList();
+        response.Approvals = (task.Approvals ?? []).Where(approval => approval != null).OrderBy(approval => approval.Id).Select(approval => MapApproval(approval, states)).ToList();
         response.ImplementationTasks = (task.ImplementationTasks ?? [])
             .Where(implTask => implTask != null)
             .OrderBy(implTask => implTask.TaskNumber)
             .Select(implTask => MapImplementationTask(implTask, states))
             .ToList();
-        response.Owners = (task.Owners ?? []).Where(owner => owner?.Owner != null).Select(owner => MapOwner(owner)).ToList();
+        response.Owners = (task.Owners ?? []).Where(owner => owner?.Owner != null).OrderBy(owner => owner.Owner.Id).Select(owner => MapOwner(owner)).ToList();
         return response;
     }
 
@@ -195,7 +195,7 @@ public static class TicketResponseMapper
         TicketImplementationTaskResponse response = MapTaskBase<TicketImplementationTaskResponse>(implTask, implTask.Id, implTask.Comments, states);
         response.ImplementationAction = implTask.ImplAction ?? string.Empty;
         response.DeviceId = implTask.DeviceId;
-        response.Elements = (implTask.ImplElements ?? []).Where(element => element != null).Select(MapImplementationElement).ToList();
+        response.Elements = (implTask.ImplElements ?? []).Where(element => element != null).OrderBy(element => element.Id).Select(MapImplementationElement).ToList();
         return response;
     }
 

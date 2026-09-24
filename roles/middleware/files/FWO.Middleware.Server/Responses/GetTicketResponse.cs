@@ -205,19 +205,19 @@ public sealed class TicketTaskResponse : TicketTaskResponseBase
     [JsonPropertyName("locked")]
     public bool Locked { get; set; }
 
-    /// <summary>Gets or sets the requested elements of the task. Not filterable.</summary>
+    /// <summary>Gets or sets the requested elements of the task, ordered by id. Not filterable.</summary>
     [JsonPropertyName("elements")]
     public List<TicketElementResponse> Elements { get; set; } = [];
 
-    /// <summary>Gets or sets the approvals of the task. Not filterable.</summary>
+    /// <summary>Gets or sets the approvals of the task, ordered by id. Not filterable.</summary>
     [JsonPropertyName("approvals")]
     public List<TicketApprovalResponse> Approvals { get; set; } = [];
 
-    /// <summary>Gets or sets the implementation tasks of the task. Not filterable.</summary>
+    /// <summary>Gets or sets the implementation tasks of the task, ordered by task number. Not filterable.</summary>
     [JsonPropertyName("implementationTasks")]
     public List<TicketImplementationTaskResponse> ImplementationTasks { get; set; } = [];
 
-    /// <summary>Gets or sets the owners assigned to the task. Not filterable.</summary>
+    /// <summary>Gets or sets the owners assigned to the task, ordered by id. Not filterable.</summary>
     [JsonPropertyName("owners")]
     public List<TicketOwnerResponse> Owners { get; set; } = [];
 }
@@ -289,7 +289,7 @@ public sealed class TicketImplementationTaskResponse : TicketTaskResponseBase
     [JsonPropertyName("deviceId")]
     public int? DeviceId { get; set; }
 
-    /// <summary>Gets or sets the elements of the implementation task.</summary>
+    /// <summary>Gets or sets the elements of the implementation task, ordered by id.</summary>
     [JsonPropertyName("elements")]
     public List<TicketElementResponse> Elements { get; set; } = [];
 }

@@ -7924,6 +7924,7 @@ INSERT INTO txt VALUES ('H6944', 'German',  'Die Workflow-REST-API stellt lesend
         <li>Bei <code>getTicket</code> schr&auml;nkt der Filter nur die zur&uuml;ckgegebenen Request Tasks ein. Filterbar sind alle einfachen Felder eines Tasks, z.B. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> oder <code>targetBeginDate</code>. Schlie&szlig;t der Filter alle Tasks aus, wird das Ticket mit leerer Task-Liste geliefert.</li>
         <li><code>state</code> enth&auml;lt den internen Workflow-Status, <code>status</code> den Status, den auch <code>/api/flow/getRequestStatus</code> meldet (bevorzugt der externe Statusname).</li>
         <li>Zeitstempel werden ohne Offset in der Uhrzeit der Installation geliefert, da die zugrunde liegenden Spalten keine Zeitzone speichern.</li>
+        <li>Bei <code>getTicket</code> sind Request Tasks und Implementierungs-Tasks nach Task-Nummer sortiert, Elemente, Genehmigungen und Eigent&uuml;mer nach ihrer Id und Kommentare nach Erstellungszeit (&auml;lteste zuerst). Die Reihenfolge ist damit bei wiederholten Abfragen stabil.</li>
         <li>Ung&uuml;ltige Requests werden mit 400 beantwortet, eine unbekannte <code>ticketId</code> mit 404. Beide liefern alle gefundenen Fehler gemeinsam im Format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
     </ul>
 ');
@@ -7944,6 +7945,7 @@ INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read
         <li>For <code>getTicket</code> the filter only restricts the returned request tasks. Every simple field of a task can be filtered, e.g. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> or <code>targetBeginDate</code>. If the filter excludes every task, the ticket is returned with an empty task list.</li>
         <li><code>state</code> holds the internal workflow state, <code>status</code> the status that <code>/api/flow/getRequestStatus</code> reports as well (the external state name where one is mapped).</li>
         <li>Timestamps are returned without an offset on the wall clock of the installation, because the underlying columns store no time zone.</li>
+        <li>For <code>getTicket</code>, request tasks and implementation tasks are ordered by task number, elements, approvals and owners by their id, and comments by creation time (oldest first), so repeated calls return the same order.</li>
         <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
     </ul>
 ');

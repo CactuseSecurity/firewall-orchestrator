@@ -38,6 +38,7 @@ internal class GetTicketEndpointTest
     private static readonly List<string> kExpectedQueries = [RequestQueries.getTicketById, RequestQueries.getStates, RequestQueries.getExtStates];
     private static readonly List<long> kAccessTaskIds = [501];
     private static readonly List<int> kSelectedDevices = [7, 8];
+    private static readonly List<long> kAscendingIds = [1, 2, 3];
     private static readonly List<string> kCommentTextsOldestFirst = ["first", "second"];
     private static readonly string[] kExtStateErrors = ["external state query failed"];
     private static readonly List<string> kMultipleErrorPaths = ["ticketId", "options.filter.unknownFilterKey", "options.unknownOptionKey", "unknownRootKey"];
@@ -304,6 +305,48 @@ internal class GetTicketEndpointTest
             Assert.That(result.Tasks[0].Reason, Is.Empty);
             Assert.That(result.Tasks[0].Owners, Is.Empty);
             Assert.That(result.Tasks[0].State, Is.EqualTo("0"));
+        });
+    }
+
+    [Test]
+    public void NestedTaskListsAreOrderedByIdWhateverOrderTheApiReturns()
+    {
+        WfTicket ticket = new()
+        {
+            Id = kTicketId,
+            Tasks =
+            [
+                new WfReqTask
+                {
+                    Id = 501,
+                    Elements = [new WfReqElement { Id = 3 }, new WfReqElement { Id = 1 }, new WfReqElement { Id = 2 }],
+                    Approvals = [new WfApproval { Id = 3 }, new WfApproval { Id = 1 }, new WfApproval { Id = 2 }],
+                    Owners =
+                    [
+                        new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 3 } },
+                        new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 1 } },
+                        new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 2 } }
+                    ],
+                    ImplementationTasks =
+                    [
+                        new WfImplTask
+                        {
+                            Id = 601,
+                            ImplElements = [new WfImplElement { Id = 3 }, new WfImplElement { Id = 1 }, new WfImplElement { Id = 2 }]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        TicketTaskResponse task = TicketResponseMapper.Map(ticket, new WfStateDict(), "0", null).Tasks[0];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.Elements.Select(element => element.Id), Is.EqualTo(kAscendingIds));
+            Assert.That(task.Approvals.Select(approval => approval.Id), Is.EqualTo(kAscendingIds));
+            Assert.That(task.Owners.Select(owner => (long)owner.Id), Is.EqualTo(kAscendingIds));
+            Assert.That(task.ImplementationTasks[0].Elements.Select(element => element.Id), Is.EqualTo(kAscendingIds));
         });
     }
 

@@ -98,7 +98,7 @@ namespace FWO.Services
                 : content;
         }
 
-        private static async Task<string?> ToPdf(string html)
+        internal static async Task<string?> ToPdf(string html)
         {
             OperatingSystem os = Environment.OSVersion;
             string path = os.Platform == PlatformID.Unix ? GlobalConst.ChromeBinPathLinux : "";

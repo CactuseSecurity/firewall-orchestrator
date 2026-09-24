@@ -240,7 +240,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -250,7 +250,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = protocol,
                     PortStart = 443,
@@ -261,7 +261,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateTimeObjectRequest
                 {
-                    Id = "-3",
+                    Id = -3,
                     Name = "business-hours",
                     StartTime = startTime,
                     EndTime = endTime
@@ -379,7 +379,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -389,7 +389,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "any-ip",
                     Protocol = "ANY",
                     PortStart = null,
@@ -441,7 +441,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -451,7 +451,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = null,
@@ -498,7 +498,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -508,7 +508,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -559,7 +559,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -578,7 +578,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -642,7 +642,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -652,7 +652,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -713,7 +713,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -723,7 +723,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -857,7 +857,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -867,7 +867,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -998,7 +998,7 @@ internal class FlowRequestServiceTest
                 [
                     new CreateRequestRequest.CreateAddressObjectRequest
                     {
-                        Id = "-1",
+                        Id = -1,
                         Name = "app-server-1",
                         IpStart = "192.0.2.10",
                         IpEnd = "192.0.2.10"
@@ -1008,7 +1008,7 @@ internal class FlowRequestServiceTest
                 [
                     new CreateRequestRequest.CreateServiceObjectRequest
                     {
-                        Id = "-2",
+                        Id = -2,
                         Name = "https",
                         Protocol = "tcp",
                         PortStart = 443,
@@ -1083,7 +1083,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1093,7 +1093,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1143,7 +1143,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1153,7 +1153,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1230,7 +1230,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1240,7 +1240,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1314,7 +1314,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1324,7 +1324,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1408,7 +1408,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1418,7 +1418,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1523,7 +1523,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1533,7 +1533,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1595,7 +1595,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1605,7 +1605,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1735,7 +1735,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1745,7 +1745,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1836,7 +1836,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1846,7 +1846,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1901,7 +1901,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1911,7 +1911,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "17",
                     PortStart = 443,
@@ -1963,7 +1963,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "0",
+                    Id = 0,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1973,7 +1973,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2023,7 +2023,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2033,7 +2033,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2081,7 +2081,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2091,7 +2091,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2154,7 +2154,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2164,7 +2164,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = protocol,
                     PortStart = 443,
@@ -2226,7 +2226,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2236,7 +2236,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2298,7 +2298,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2308,7 +2308,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2370,7 +2370,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2380,7 +2380,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2442,7 +2442,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2452,7 +2452,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2513,7 +2513,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2523,7 +2523,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2625,7 +2625,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2635,7 +2635,7 @@ internal class FlowRequestServiceTest
             [
                 new CreateRequestRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2703,7 +2703,7 @@ internal class FlowRequestServiceTest
     {
         return new CreateRequestRequest.CreateAddressObjectRequest
         {
-            Id = "-1",
+            Id = -1,
             Name = "app-server-1",
             IpStart = "192.0.2.10",
             IpEnd = "192.0.2.10"
@@ -2717,7 +2717,7 @@ internal class FlowRequestServiceTest
     {
         return new CreateRequestRequest.CreateServiceObjectRequest
         {
-            Id = "-2",
+            Id = -2,
             Name = "https",
             Protocol = "tcp",
             PortStart = 443,

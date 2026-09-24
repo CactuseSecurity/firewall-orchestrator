@@ -147,7 +147,7 @@ public sealed class CreateRequestRequest
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.
@@ -201,7 +201,7 @@ public sealed class CreateRequestRequest
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.
@@ -263,7 +263,7 @@ public sealed class CreateRequestRequest
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.

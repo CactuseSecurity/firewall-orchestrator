@@ -386,13 +386,13 @@ public sealed class FlowRequestService : IDisposable
 
         foreach (CreateRequestRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
         {
-            long entityId = ParseEntityId(addressObject.Id, "address object");
+            long entityId = ParseLocalEntityId(addressObject.Id, "address object");
             AddEntity(entities, entityId, CreateRequestEntity.FromAddressObject(entityId, addressObject));
         }
 
         foreach (CreateRequestRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
         {
-            long entityId = ParseEntityId(serviceObject.Id, "service object");
+            long entityId = ParseLocalEntityId(serviceObject.Id, "service object");
             AddEntity(entities, entityId, CreateRequestEntity.FromServiceObject(entityId, serviceObject, protocolIds));
         }
 
@@ -408,7 +408,7 @@ public sealed class FlowRequestService : IDisposable
 
         foreach (CreateRequestRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
         {
-            long entityId = ParseEntityId(timeObject.Id, "time object");
+            long entityId = ParseLocalEntityId(timeObject.Id, "time object");
             AddEntity(entities, entityId, CreateRequestEntity.FromTimeObject(entityId, timeObject));
         }
 
@@ -836,18 +836,8 @@ public sealed class FlowRequestService : IDisposable
     }
 
     /// <summary>
-    /// Parses a request entity identifier and preserves negative temporary ids.
+    /// Validates a request-local entity identifier.
     /// </summary>
-    private static long ParseEntityId(string value, string entityType)
-    {
-        if (long.TryParse(value, out long id) && id != 0)
-        {
-            return ParseLocalEntityId(id, entityType);
-        }
-
-        throw new ArgumentException($"The {entityType} id '{value}' must be a non-zero integer.");
-    }
-
     private static long ParseLocalEntityId(long id, string entityType)
     {
         if (id < 0)
@@ -855,7 +845,7 @@ public sealed class FlowRequestService : IDisposable
             return id;
         }
 
-        throw new ArgumentException($"The {entityType} id '{id}' must be negative because positive ids reference existing Flow objects.");
+        throw new ArgumentException($"The {entityType} id '{id}' must be a negative, non-zero integer because positive ids reference existing Flow objects.");
     }
 
     private sealed record CreateRequestEntity(

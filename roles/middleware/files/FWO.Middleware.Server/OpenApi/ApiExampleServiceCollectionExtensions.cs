@@ -91,7 +91,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateAddressObjectRequest
             {
-                Id = "-1",
+                Id = -1,
                 Name = "app-server-1",
                 IpStart = "192.0.2.10",
                 IpEnd = "192.0.2.10"
@@ -110,7 +110,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateServiceObjectRequest
             {
-                Id = "-2",
+                Id = -2,
                 Name = "https",
                 Protocol = "tcp",
                 PortStart = 443,
@@ -130,7 +130,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         [
             new CreateRequestRequest.CreateTimeObjectRequest
             {
-                Id = "-4",
+                Id = -4,
                 Name = "Temporary rule window",
                 StartTime = "2026-08-01T00:00:00Z",
                 EndTime = "2026-08-31T23:59:59Z"

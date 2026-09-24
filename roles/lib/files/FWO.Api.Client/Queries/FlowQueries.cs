@@ -55,6 +55,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string updateRuleFlowMappings;
         public static readonly string updateImportControlForFlowSync;
         public static readonly string updateFlowMappingsForRemoved;
+        public static readonly string updateFlowHashes;
 
         static FlowQueries()
         {
@@ -160,6 +161,7 @@ namespace FWO.Api.Client.Queries
                 updateRuleFlowMappings = GetQueryText("flowSync/updateRuleFlowMappings.graphql");
                 updateImportControlForFlowSync = GetQueryText("flowSync/updateImportControlForFlowSync.graphql");
                 updateFlowMappingsForRemoved = GetQueryText("flowSync/updateFlowMappingsForRemoved.graphql");
+                updateFlowHashes = GetQueryText("flowSync/updateFlowHashes.graphql");
             }
             catch (Exception exception)
             {

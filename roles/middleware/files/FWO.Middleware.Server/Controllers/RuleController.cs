@@ -286,7 +286,8 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
 
         return inputList.Select(item =>
         {
-            List<NetworkService> flattenedServices = FlattenRuleServices(item.Services.Select(s => s.Content).ToList());
+            List<NetworkService> ruleServices = GetRuleServices(item.Services.Select(s => s.Content).ToList());
+            List<NetworkService> ruleServicesWithMembers = GetRuleServicesWithMembers(ruleServices);
 
             return new RuleDetail
             {
@@ -297,7 +298,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = s.Name,
                         Type = s.Type.Name,
-                        Ip = DisplayBase.DisplayIp(s.IP, s.IpEnd)
+                        Ip = DisplayBase.DisplayIp(s.IP ?? "", s.IpEnd ?? "")
                     })
                     .ToList(),
                 SourceShort = DisplaySourceOrDestinationPlain(item, isSource: true, userConfig),
@@ -306,11 +307,11 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                     {
                         Name = d.Name,
                         Type = d.Type.Name,
-                        Ip = DisplayBase.DisplayIp(d.IP, d.IpEnd)
+                        Ip = DisplayBase.DisplayIp(d.IP ?? "", d.IpEnd ?? "")
                     })
                     .ToList(),
                 DestinationShort = DisplaySourceOrDestinationPlain(item, isSource: false, userConfig),
-                Service = flattenedServices
+                Service = ruleServicesWithMembers
                     .Select(s => new ServiceObject
                     {
                         Name = s.Name,
@@ -318,7 +319,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
                         Port = s.DestinationPort ?? -1
                     })
                     .ToList(),
-                ServiceShort = DisplayServicesPlain(flattenedServices, item.ServiceNegated, userConfig),
+                ServiceShort = DisplayServicesPlain(ruleServices, item.ServiceNegated, userConfig),
                 Name = item.Name ?? notFound,
                 CreationDate = item.CreatedImport?.StartTime?.ToString() ?? notFound,
                 LastHitDate = item.Metadata.LastHit?.ToString() ?? notFound,
@@ -433,9 +434,18 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
             .ToList();
     }
 
-    private static List<NetworkService> FlattenRuleServices(List<NetworkService> list)
+    private static List<NetworkService> GetRuleServices(List<NetworkService> list)
     {
-        return NetworkService.FlattenRuleServices(list)
+        return list
+            .Where(HasType)
+            .Distinct()
+            .ToList();
+    }
+
+    private static List<NetworkService> GetRuleServicesWithMembers(List<NetworkService> list)
+    {
+        return list
+            .Concat(NetworkService.FlattenRuleServices(list))
             .Where(HasType)
             .Distinct()
             .ToList();

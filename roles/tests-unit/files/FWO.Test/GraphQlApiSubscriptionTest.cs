@@ -33,17 +33,21 @@ namespace FWO.Test
         }
 
         [Test]
-        public void GraphQlApiSubscriptionRecreateCreatesFreshSubscription()
+        public void GraphQlApiSubscriptionRebindUpdatesClientUsedForFutureSubscriptionCreation()
         {
             TestApiConnection apiConnection = new();
-            using TestGraphQlApiSubscription<string> subscription = CreateSubscription<string>(apiConnection);
-            GraphQLHttpClient recreatedClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+            using GraphQLHttpClient initialClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
+            using RebindTrackingGraphQlApiSubscription<string> subscription = new(
+                apiConnection,
+                initialClient,
+                new GraphQLRequest("subscription Test { test }"),
+                _ => { },
+                _ => { });
+            using GraphQLHttpClient reboundClient = new(new GraphQLHttpClientOptions(), new SystemTextJsonSerializer(), new HttpClient());
 
-            TestGraphQlApiSubscription<string> recreated = (TestGraphQlApiSubscription<string>)subscription.Recreate(recreatedClient);
+            subscription.RebindTo(reboundClient);
 
-            Assert.That(recreated, Is.Not.SameAs(subscription));
-            Assert.That(recreated.CreateSubscriptionCount, Is.EqualTo(1));
-            Assert.That(subscription.CreateSubscriptionCount, Is.EqualTo(1));
+            Assert.That(subscription.LastGraphQlClient, Is.SameAs(reboundClient));
         }
 
         [Test]
@@ -163,20 +167,43 @@ namespace FWO.Test
                 onUpdate);
         }
 
+        private sealed class RebindTrackingGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
+        {
+            public GraphQLHttpClient? LastGraphQlClient { get; private set; }
+
+            public RebindTrackingGraphQlApiSubscription(ApiConnection apiConnection, GraphQLHttpClient graphQlClient, GraphQLRequest request,
+                Action<Exception> exceptionHandler, SubscriptionUpdate onUpdate)
+                : base(apiConnection, graphQlClient, request, exceptionHandler, onUpdate)
+            { }
+
+            public void RebindTo(GraphQLHttpClient graphQlClient)
+            {
+                Rebind(graphQlClient);
+            }
+
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
+            {
+                LastGraphQlClient = graphQlClient;
+                return (IObservable<GraphQLResponse<dynamic>>)(object)new NoopObservable();
+            }
+        }
+
         private sealed class TrackingSubscription : ApiSubscription
         {
             public int DisposeCount { get; private set; }
             public bool DisposedState => IsDisposed;
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new TrackingSubscription();
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
             {
                 DisposeCount++;
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class TestGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
@@ -202,9 +229,9 @@ namespace FWO.Test
                 CreateSubscriptionCount++;
             }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new TestGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -212,6 +239,8 @@ namespace FWO.Test
                 DisposeCount++;
                 base.Dispose(disposing);
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class StreamBackedGraphQlApiSubscription<T> : GraphQlApiSubscription<T>
@@ -230,16 +259,16 @@ namespace FWO.Test
                 this.onUpdate = onUpdate;
             }
 
-            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(Action<Exception> exceptionHandler)
+            protected override IObservable<GraphQLResponse<dynamic>> CreateSubscriptionStream(GraphQLHttpClient graphQlClient, Action<Exception> exceptionHandler)
             {
                 ManualGraphQlObservable stream = Streams.Dequeue();
                 stream.ExceptionHandler = exceptionHandler;
                 return (IObservable<GraphQLResponse<dynamic>>)(object)stream;
             }
 
-            internal override ApiSubscription Recreate(GraphQLHttpClient graphQlClient)
+            internal override void Rebind(GraphQLHttpClient graphQlClient)
             {
-                return new StreamBackedGraphQlApiSubscription<T>(apiConnection, graphQlClient, Request, exceptionHandler, onUpdate);
+                RebindCount++;
             }
 
             protected override void Dispose(bool disposing)
@@ -247,6 +276,8 @@ namespace FWO.Test
                 base.Dispose(disposing);
                 Streams.Clear();
             }
+
+            public int RebindCount { get; private set; }
         }
 
         private sealed class ManualGraphQlObservable : IObservable<GraphQLResponse<object>>
@@ -288,6 +319,21 @@ namespace FWO.Test
             {
                 DisposeCount++;
                 IsDisposed = true;
+            }
+        }
+
+        private sealed class NoopObservable : IObservable<GraphQLResponse<object>>
+        {
+            public IDisposable Subscribe(IObserver<GraphQLResponse<object>> observer)
+            {
+                return new NoopDisposable();
+            }
+        }
+
+        private sealed class NoopDisposable : IDisposable
+        {
+            public void Dispose()
+            {
             }
         }
 

@@ -170,6 +170,7 @@ namespace FWO.Config.Api.Data
         public string RecCheckParams { get; set; } = System.Text.Json.JsonSerializer.Serialize(new RecertCheckParams());
 
         [JsonProperty("recCheckEmailSubject"), JsonPropertyName("recCheckEmailSubject")]
+        [Obsolete("Migrated to notification subjects in version 9.5.3.")]
         public string RecCheckEmailSubject { get; set; } = "";
 
         [JsonProperty("recCheckEmailUpcomingText"), JsonPropertyName("recCheckEmailUpcomingText")]
@@ -370,6 +371,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("CustomFieldOwnerKey"), JsonPropertyName("CustomFieldOwnerKey")]
         public string CustomFieldOwnerKey { get; set; } = "";
 
+        [JsonProperty("ruleOwnerMappingLogLevel"), JsonPropertyName("ruleOwnerMappingLogLevel")]
+        public RuleOwnerMappingLogLevel RuleOwnerMappingLogLevel { get; set; } = RuleOwnerMappingLogLevel.Warning;
+
         [JsonProperty("CustomFieldChangeIdKey"), JsonPropertyName("CustomFieldChangeIdKey")]
         public string CustomFieldChangeIdKey { get; set; } = GlobalConst.kDefaultChangeIdKeys;
 
@@ -391,7 +395,7 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modNamingConvention"), JsonPropertyName("modNamingConvention")]
         public string ModNamingConvention { get; set; } = "";
 
-        [JsonProperty("modIconify"), JsonPropertyName("modIconify")]
+        [JsonProperty("modIconify"), JsonPropertyName("modIconify"), UserConfigData]
         public bool ModIconify { get; set; } = true;
 
         [JsonProperty("modCommonAreas"), JsonPropertyName("modCommonAreas")]
@@ -412,21 +416,29 @@ namespace FWO.Config.Api.Data
         [JsonProperty("flowNamingSourceManagementRanking"), JsonPropertyName("flowNamingSourceManagementRanking")]
         public string FlowNamingSourceManagementRanking { get; set; } = "[]";
 
+        [JsonProperty("flowZoneGroupNamePatterns"), JsonPropertyName("flowZoneGroupNamePatterns")]
+        public string FlowZoneGroupNamePatterns { get; set; } = "[]";
+
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailReceiver"), JsonPropertyName("modReqEmailReceiver")]
         public string ModReqEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
+        [Obsolete("Use notification recipient selection for NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailRequesterInCc"), JsonPropertyName("modReqEmailRequesterInCc")]
         public bool ModReqEmailRequesterInCc { get; set; } = true;
 
         [JsonProperty("modReqEmailOtherAddresses"), JsonPropertyName("modReqEmailOtherAddresses")]
         public string ModReqEmailOtherAddresses { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailSubject"), JsonPropertyName("modReqEmailSubject")]
         public string ModReqEmailSubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modReqEmailBody"), JsonPropertyName("modReqEmailBody")]
         public string ModReqEmailBody { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceRequest instead.")]
         [JsonProperty("modUnansweredReqEmailBody"), JsonPropertyName("modUnansweredReqEmailBody")]
         public string ModUnansweredReqEmailBody { get; set; } = "";
 
@@ -445,15 +457,19 @@ namespace FWO.Config.Api.Data
         [JsonProperty("modReqTaskTitle"), JsonPropertyName("modReqTaskTitle")]
         public string ModReqTaskTitle { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailReceiver"), JsonPropertyName("modDecommEmailReceiver")]
         public string ModDecommEmailReceiver { get; set; } = nameof(EmailRecipientOption.None);
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailOtherAddresses"), JsonPropertyName("modDecommEmailOtherAddresses")]
         public string ModDecommEmailOtherAddresses { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailSubject"), JsonPropertyName("modDecommEmailSubject")]
         public string ModDecommEmailSubject { get; set; } = "";
 
+        [Obsolete("Use notification entries with NotificationClient.InterfaceDecomm instead.")]
         [JsonProperty("modDecommEmailBody"), JsonPropertyName("modDecommEmailBody")]
         public string ModDecommEmailBody { get; set; } = "";
 
@@ -553,8 +569,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMailBody"), JsonPropertyName("complianceCheckMailBody")]
         public string ComplianceCheckMailBody { get; set; } = "";
 
-        [JsonProperty("complianceMatrixAllowNetworkZones"), JsonPropertyName("complianceMatrixAllowNetworkZones")]
-        public bool ComplianceMatrixAllowNetworkZones { get; set; } = false;
+        [JsonProperty("matrixAllowNestedZones"), JsonPropertyName("matrixAllowNestedZones")]
+        public bool MatrixAllowNestedZones { get; set; } = false;
 
         [JsonProperty("complianceCheckScheduledDiffReportsIntervals"), JsonPropertyName("complianceCheckScheduledDiffReportsIntervals")]
         public string ComplianceCheckScheduledDiffReportsIntervals { get; set; } = "";
@@ -565,8 +581,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckMaxPrintedViolations"), JsonPropertyName("complianceCheckMaxPrintedViolations")]
         public int ComplianceCheckMaxPrintedViolations { get; set; } = 0;
 
-        [JsonProperty("complianceCheckSortMatrixByID"), JsonPropertyName("complianceCheckSortMatrixByID")]
-        public bool ComplianceCheckSortMatrixByID { get; set; } = false;
+        [JsonProperty("sortMatrixByID"), JsonPropertyName("sortMatrixByID")]
+        public bool SortMatrixByID { get; set; } = false;
 
         [JsonProperty("complianceCheckRelevantManagements"), JsonPropertyName("complianceCheckRelevantManagements")]
         public string ComplianceCheckRelevantManagements { get; set; } = "";
@@ -656,6 +672,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("refreshTokenLifetimeUnit"), JsonPropertyName("refreshTokenLifetimeUnit")]
         public TokenLifetimeUnit RefreshTokenLifetimeUnit { get; set; } = TokenLifetimeUnit.Days;
 
+        [JsonProperty("pathAnalysisAlgorithm"), JsonPropertyName("pathAnalysisAlgorithm")]
+        public long PathAnalysisAlgorithm { get; set; } = GlobalConst.kPathAnalysisAlgorithmNone;
+
         [JsonProperty("complianceCheckElementsPerFetch"), JsonPropertyName("complianceCheckElementsPerFetch")]
         public int ComplianceCheckElementsPerFetch { get; set; } = 500;
 
@@ -665,12 +684,17 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceFilterOutInitialViolations"), JsonPropertyName("complianceFilterOutInitialViolations")]
         public bool ComplianceFilterOutInitialViolations { get; set; } = false;
 
+        [JsonProperty("complianceDiffFilterExistingViolations"), JsonPropertyName("complianceDiffFilterExistingViolations")]
+        public bool ComplianceDiffFilterExistingViolations { get; set; } = false;
+
         [JsonProperty("reportingPersonalPreferredCollapseState"), JsonPropertyName("reportingPersonalPreferredCollapseState")]
         public PreferredCollapseState ReportingPersonalPreferredCollapseState { get; set; } = PreferredCollapseState.Collapsed;
 
         [JsonProperty("fwConfigChangeMgmSettings"), JsonPropertyName("fwConfigChangeMgmSettings")]
         public string FwConfigChangeMgmSettings { get; set; } = "[]";
 
+        [JsonProperty("allowFullRollback"), JsonPropertyName("allowFullRollback")]
+        public bool AllowFullRollback { get; set; } = false;
 
         public ConfigData(bool editable = false)
         {

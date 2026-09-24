@@ -1,0 +1,11 @@
+mutation updateState($id: Int!, $name: String!, $automaticOnly: Boolean!) {
+  update_request_state(
+    where: {id: {_eq: $id}}
+    _set: {
+      name: $name
+      automatic_only: $automaticOnly
+    }
+  ) {
+    affected_rows
+  }
+}

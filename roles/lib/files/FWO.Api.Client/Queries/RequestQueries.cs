@@ -18,6 +18,9 @@ namespace FWO.Api.Client.Queries
         public static readonly string getFullTicketsPaged;
         public static readonly string getOwnerTicketIds;
         public static readonly string getTicketById;
+        public static readonly string getTicketRequesterId;
+        public static readonly string getAuditProofCriticalChangesForTicket;
+        public static readonly string getTicketIdIfExists;
         public static readonly string getTicketsByParameters;
         public static readonly string getRequestTasksByIds;
         public static readonly string newTicket;
@@ -45,7 +48,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string newApproval;
         public static readonly string updateApproval;
         public static readonly string getStates;
-        public static readonly string upsertState;
+        public static readonly string createState;
+        public static readonly string updateState;
         public static readonly string deleteState;
         public static readonly string getExtStates;
         public static readonly string replaceExtStates;
@@ -105,6 +109,9 @@ namespace FWO.Api.Client.Queries
                 getTicketsByParameters = ticketDetailsReqTaskOverviewFragment + GetQueryText("request/getTicketsByParameters.graphql");
                 getRequestTasksByIds = reqTaskDetailsFragment + GetQueryText("request/getRequestTasksByIds.graphql");
                 getTicketById = ticketDetailsFragment + GetQueryText("request/getTicketById.graphql");
+                getTicketRequesterId = GetQueryText("request/getTicketRequesterId.graphql");
+                getAuditProofCriticalChangesForTicket = GetQueryText("request/getAuditProofCriticalChangesForTicket.graphql");
+                getTicketIdIfExists = GetQueryText("request/getTicketIdIfExists.graphql");
                 newTicket = GetQueryText("request/newTicket.graphql");
                 updateTicket = GetQueryText("request/updateTicket.graphql");
                 updateTicketState = GetQueryText("request/updateTicketState.graphql");
@@ -130,7 +137,8 @@ namespace FWO.Api.Client.Queries
                 newApproval = GetQueryText("request/newApproval.graphql");
                 updateApproval = GetQueryText("request/updateApproval.graphql");
                 getStates = GetQueryText("request/getStates.graphql");
-                upsertState = GetQueryText("request/upsertState.graphql");
+                createState = GetQueryText("request/createState.graphql");
+                updateState = GetQueryText("request/updateState.graphql");
                 deleteState = GetQueryText("request/deleteState.graphql");
                 getExtStates = GetQueryText("request/getExtStates.graphql");
                 replaceExtStates = GetQueryText("request/replaceExtStates.graphql");

@@ -4,6 +4,7 @@ using FWO.Report.Data.ViewData;
 using FWO.Test.Mocks;
 using FWO.Api.Client.Queries;
 using NUnit.Framework;
+using static FWO.Test.ComplianceReportTestData;
 
 namespace FWO.Test
 {
@@ -12,20 +13,11 @@ namespace FWO.Test
     {
         private MockReportCompliance _complianceReport => new(new(""), new(), Basics.ReportType.ComplianceReport);
         private MockReportCompliance _testReport = default!;
-        private MockReportComplianceDiff _testDiffReport = default!;
-
 
         [SetUp]
         public void SetUpTest()
         {
             _testReport = _complianceReport;
-            SimulatedGlobalConfig globalConfig = new();
-            globalConfig.ComplianceCheckMaxPrintedViolations = 2;
-            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
-
-            _testDiffReport = new(new(""), userConfig, Basics.ReportType.ComplianceDiffReport);
-            ;
-            _testDiffReport.MockPostProcessDiffReportsRule = true;
         }
 
         [Test]
@@ -42,7 +34,7 @@ namespace FWO.Test
 
             // ACT
 
-            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
+            List<Rule> testResults = await _testReport.ProcessChunksParallelized(ruleChunks, ct);
 
             // ASSERT
 
@@ -51,98 +43,17 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ProcessChunksParallelized_DiffReport_CreatesCorrectDiffs()
+        public async Task Generate_UsesActiveRuleCountForChunkPaging()
         {
-            // ARRANGE
+            ActiveRuleCountApiConnection apiConnection = new();
 
-            CancellationToken ct = default;
-            DateTime foundDate = DateTime.Now;
+            await _testReport.Generate(100, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
 
-            _testDiffReport.DiffReferenceInDays = 7;
-
-            Rule notAssessable = new()
+            Assert.Multiple(() =>
             {
-                Id = 1,
-                Name = "Testrule 1",
-                Violations = [
-                    CreateMockComplianceViolation(1,1, foundDate, criterion:
-
-                        new()
-                        {
-                            CriterionType = nameof(ComplianceViolationType.NotAssessable)
-                        },
-                        type: ComplianceViolationType.NotAssessable
-
-                    ),
-                    CreateMockComplianceViolation(2,2, foundDate, type: ComplianceViolationType.MatrixViolation)
-                ]
-            };
-
-            Rule abbreviated = new()
-            {
-                Id = 2,
-                Name = "Testrule 2",
-                Violations = [
-                        CreateMockComplianceViolation(3,2, foundDate, type: ComplianceViolationType.MatrixViolation),
-                        CreateMockComplianceViolation(4,2, foundDate, type: ComplianceViolationType.MatrixViolation),
-                        CreateMockComplianceViolation(5,2, foundDate, type: ComplianceViolationType.MatrixViolation)
-                    ]
-            };
-
-            Rule multiple = new()
-            {
-                Id = 3,
-                Name = "Testrule 3",
-                Violations = [
-                    CreateMockComplianceViolation(6,3, foundDate, type: ComplianceViolationType.MatrixViolation),
-                    CreateMockComplianceViolation(7,3, foundDate, type: ComplianceViolationType.ServiceViolation)
-                ]
-            };
-
-            Rule singular = new()
-            {
-                Id = 4,
-                Name = "Testrule 4",
-                Violations = [
-                    CreateMockComplianceViolation(8,4, foundDate, criterion:
-
-                        new()
-                        {
-                            CriterionType = nameof(ComplianceViolationType.ServiceViolation)
-                        },
-                        type: ComplianceViolationType.ServiceViolation
-
-                    )
-                ]
-            };
-
-            List<Rule>[] ruleChunks =
-            [
-                new List<Rule>(){ notAssessable },
-                new List<Rule>(){ abbreviated },
-                new List<Rule>(){ multiple },
-                new List<Rule>(){ singular }
-            ];
-
-            string controlNotAssessable = CreateViolationDetailsControlString(foundDate, 1);
-            string controlAbbreviated = CreateViolationDetailsControlString(foundDate, 3) + "<br>" + CreateViolationDetailsControlString(foundDate, 4) + "<br>Too many violations to display (3), please check the system for details.";
-            string controlMultiple = CreateViolationDetailsControlString(foundDate, 6) + "<br>" + CreateViolationDetailsControlString(foundDate, 7);
-            string controlSingular = CreateViolationDetailsControlString(foundDate, 8);
-
-            // ACT
-
-            List<Rule> testResults = await _testDiffReport.ProcessChunksParallelized(ruleChunks, ct, new SimulatedApiConnection());
-
-            // ASSERT
-
-            Assert.That(testResults.Count == 4);
-            Assert.That(notAssessable.ViolationDetails == controlNotAssessable);
-            Assert.That(notAssessable.Compliance == ComplianceViolationType.NotAssessable);
-            Assert.That(abbreviated.ViolationDetails == controlAbbreviated);
-            Assert.That(multiple.ViolationDetails == controlMultiple);
-            Assert.That(multiple.Compliance == ComplianceViolationType.MultipleViolations);
-            Assert.That(singular.ViolationDetails == controlSingular);
-            Assert.That(singular.Compliance == ComplianceViolationType.ServiceViolation);
+                Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.countActiveRules));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.countRules));
+            });
         }
 
         [Test]
@@ -177,6 +88,241 @@ namespace FWO.Test
 
             Assert.That(queryVariables.ContainsKey("mgm_ids"), Is.True);
             Assert.That((List<int>)queryVariables["mgm_ids"], Is.EqualTo(new List<int> { 3, 4 }));
+        }
+
+        [Test]
+        public void DetermineCompliance_ReportsNotAssessableOnlyWhenNoRealViolationRemains()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations()),
+                    Is.EqualTo(ComplianceViolationType.None));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(ComplianceViolationType.MatrixViolation)),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.MatrixViolation,
+                        ComplianceViolationType.ServiceViolation)),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+
+                // Every criterion records assessability issues per object, so a single one of them must not
+                // outrank the violations the other objects of the same rule did produce.
+
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.MatrixViolation,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.NotAssessable,
+                        ComplianceViolationType.MinimumCIDRLengthViolation)),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+
+                // Several assessability issues without any real violation must read as not assessable,
+                // never as multiple violations.
+
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.NotAssessable,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+            });
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_RetainsRealViolationAlongsidePartialAssessabilityIssue()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            ComplianceViolation partialAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Matrix)
+            }, type: ComplianceViolationType.NotAssessable);
+            partialAssessabilityIssue.Details = "Object has no matching zone";
+            Rule rule = new()
+            {
+                Violations = [matrixViolation, partialAssessabilityIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.MultipleViolations));
+                Assert.That(rule.ViolationDetails, Does.Contain(matrixViolation.Details));
+                Assert.That(rule.ViolationDetails, Does.Contain(partialAssessabilityIssue.Details));
+            });
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_SeveralAssessabilityCriterionIssuesStayNotAssessable()
+        {
+            // A rule whose only violations are assessability issues stays not assessable, however many objects
+            // reported one and whichever criterion recorded them.
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
+            ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            Rule rule = new()
+            {
+                Violations = [firstIssue, secondIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_RetainsRealViolationAlongsideAssessabilityCriterionIssue()
+        {
+            // The Assessability criterion also records one issue per object, so an unassessable object of an
+            // otherwise assessable rule must not hide the violation found on its remaining objects.
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(1, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            ComplianceViolation ruleAssessabilityIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Assessability)
+            }, type: ComplianceViolationType.NotAssessable);
+            ruleAssessabilityIssue.Details = "Object without address";
+            Rule rule = new()
+            {
+                Violations = [matrixViolation, ruleAssessabilityIssue]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.MultipleViolations));
+                Assert.That(rule.ViolationDetails, Does.Contain(ruleAssessabilityIssue.Details));
+                Assert.That(rule.ViolationDetails, Does.Contain(matrixViolation.Details));
+            });
+        }
+
+        [Test]
+        public void GetViewDataFromRules_SeveralAssessabilityCriterionIssuesStayNotAssessable()
+        {
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(new SimulatedGlobalConfig()), Basics.ReportType.ComplianceReport);
+            ComplianceCriterion assessabilityCriterion = new() { CriterionType = nameof(CriterionType.Assessability) };
+            ComplianceViolation firstIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            ComplianceViolation secondIssue = CreateMockComplianceViolation(2, 1, DateTime.Now, criterion: assessabilityCriterion, type: ComplianceViolationType.NotAssessable);
+            Rule rule = new()
+            {
+                Violations = [firstIssue, secondIssue]
+            };
+            List<Rule> rules = [rule];
+
+            report.GetViewDataFromRules(rules);
+
+            Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.NotAssessable));
+        }
+
+        [Test]
+        public void DetermineCompliance_PrintedViolationLimitKeepsRealViolationDecisive()
+        {
+            // With a limit of one printed violation the state describes that single violation, so it must be the
+            // real one whichever position the API returned it in - otherwise the list order decides whether the
+            // rule reads as not assessable and its real violation disappears from the report.
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            List<ComplianceViolation> assessabilityIssueFirst = CreateTypedViolations(
+                ComplianceViolationType.NotAssessable,
+                ComplianceViolationType.MatrixViolation);
+            List<ComplianceViolation> realViolationFirst = CreateTypedViolations(
+                ComplianceViolationType.MatrixViolation,
+                ComplianceViolationType.NotAssessable);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    report.DetermineCompliancePublic(assessabilityIssueFirst),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    report.DetermineCompliancePublic(realViolationFirst),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+
+                // A rule without any real violation still reads as not assessable under the same limit.
+
+                Assert.That(
+                    report.DetermineCompliancePublic(CreateTypedViolations(
+                        ComplianceViolationType.NotAssessable,
+                        ComplianceViolationType.NotAssessable)),
+                    Is.EqualTo(ComplianceViolationType.NotAssessable));
+            });
+        }
+
+        [Test]
+        public void SetComplianceDataForRule_PrintsRealViolationBeforeAssessabilityIssue()
+        {
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            MockReportCompliance report = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            ComplianceViolation assessabilityIssue = CreateMockComplianceViolation(1, 1, DateTime.Now, criterion: new()
+            {
+                CriterionType = nameof(CriterionType.Assessability)
+            }, type: ComplianceViolationType.NotAssessable);
+            assessabilityIssue.Details = "Object without address";
+            ComplianceViolation matrixViolation = CreateMockComplianceViolation(2, 1, DateTime.Now, type: ComplianceViolationType.MatrixViolation);
+            matrixViolation.Details = "Matrix violation";
+            Rule rule = new()
+            {
+                Violations = [assessabilityIssue, matrixViolation]
+            };
+
+            report.SetComplianceDataForRulePublic(rule);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(rule.Compliance, Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(rule.ViolationDetails, Does.Contain(matrixViolation.Details));
+                Assert.That(rule.ViolationDetails, Does.Not.Contain(assessabilityIssue.Details));
+                Assert.That(rule.ViolationDetails, Does.Contain("Too many violations to display (2)"));
+            });
+        }
+
+        [Test]
+        public void DetermineCompliance_CountsOnlyViolationsWithinThePrintedViolationLimit()
+        {
+            SimulatedGlobalConfig singleViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 1
+            };
+            SimulatedGlobalConfig twoViolationConfig = new()
+            {
+                ComplianceCheckMaxPrintedViolations = 2
+            };
+            MockReportCompliance singleViolationReport = new(new(""), UserConfig.ForTextOnly(singleViolationConfig), Basics.ReportType.ComplianceReport);
+            MockReportCompliance twoViolationReport = new(new(""), UserConfig.ForTextOnly(twoViolationConfig), Basics.ReportType.ComplianceReport);
+            List<ComplianceViolation> violations = CreateTypedViolations(
+                ComplianceViolationType.MatrixViolation,
+                ComplianceViolationType.ServiceViolation,
+                ComplianceViolationType.MatrixViolation);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(
+                    singleViolationReport.DetermineCompliancePublic(violations),
+                    Is.EqualTo(ComplianceViolationType.MatrixViolation));
+                Assert.That(
+                    twoViolationReport.DetermineCompliancePublic(violations),
+                    Is.EqualTo(ComplianceViolationType.MultipleViolations));
+            });
         }
 
         [Test]
@@ -245,41 +391,26 @@ namespace FWO.Test
             return ruleChunks;
         }
 
-        private ComplianceViolation CreateMockComplianceViolation(int id = 0, int ruleId = 0, DateTime? foundDate = null, DateTime? removedDate = null, string details = "", int policyId = 0, ComplianceCriterion? criterion = null, ComplianceViolationType type = ComplianceViolationType.None)
+        private sealed class ActiveRuleCountApiConnection : SimulatedApiConnection
         {
-            if (string.IsNullOrEmpty(details))
-            {
-                details = $"Test violation {id}";
-            }
+            public List<string> Queries { get; } = new();
 
-            if (criterion == null)
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
-                criterion = new()
+                Queries.Add(query);
+
+                if (query == DeviceQueries.getManagementNames && typeof(QueryResponseType) == typeof(List<Management>))
                 {
-                    Id = 0
-                };
+                    return Task.FromResult((QueryResponseType)(object)new List<Management>());
+                }
+
+                if (query == RuleQueries.countActiveRules && typeof(QueryResponseType) == typeof(AggregateCount))
+                {
+                    return Task.FromResult((QueryResponseType)(object)new AggregateCount());
+                }
+
+                throw new NotSupportedException($"Unexpected query: {query}");
             }
-
-            ComplianceViolation violation = new()
-            {
-                Id = id,
-                RuleId = ruleId,
-                FoundDate = foundDate ?? DateTime.Now,
-                Details = details,
-                RiskScore = 0,
-                PolicyId = policyId,
-                CriterionId = criterion.Id,
-                Criterion = criterion
-            };
-
-            violation.Type = type;
-
-            return violation;
-        }
-
-        private string CreateViolationDetailsControlString(DateTime foundDate, int violationId)
-        {
-            return $"Found: ({foundDate:dd.MM.yyyy} - {foundDate:hh:mm}) Test violation {violationId}";
         }
 
     }

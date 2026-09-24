@@ -1,5 +1,5 @@
 query getRulesWithCurrentViolationsByChunk($limit: Int, $offset: Int, $active: Boolean, $import_id_start: bigint, $import_id_end: bigint, $mgm_ids: [Int!]) {
-  firewall_rule(limit: $limit, offset: $offset, order_by: { rule_uid: asc }, where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } }) {
+  firewall_rule(limit: $limit, offset: $offset, order_by: { rule_uid: asc }, where: { mgm_id: { _in: $mgm_ids } removed: { _is_null: true } access_rule: { _eq: true }}) {
     rule_src
     rule_dst
     ...ruleDetails
@@ -14,6 +14,7 @@ query getRulesWithCurrentViolationsByChunk($limit: Int, $offset: Int, $active: B
       risk_score
       policy_id
       criterion_id
+      violation_type
       criterion: criterion{
         id
         name

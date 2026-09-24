@@ -76,7 +76,7 @@ def normalize_all_service_objects(native_config: Config) -> dict[str, ServiceObj
     service_objects = normalize_service_objects(native_config.service_objects)
 
     # Add default 'any' protocol service objects
-    service_objects.update(create_protocol_any_service_objects())
+    create_protocol_any_service_objects(service_objects)
 
     # Add service object groups
     normalize_service_object_groups(native_config.service_object_groups, service_objects)

@@ -27,6 +27,13 @@ namespace FWO.Config.Api
 
         protected readonly SemaphoreSlim semaphoreSlim = new(1, 1);
 
+        private static readonly HashSet<string> ignoredLegacyConfigKeys =
+        [
+            "manageOwnerLdapGroups",
+            "ownerLdapId",
+            "ownerLdapGroupNames"
+        ];
+
         // To detect redundant dispose calls
         private bool _isDisposed;
         protected bool IsDisposed => _isDisposed;
@@ -68,7 +75,7 @@ namespace FWO.Config.Api
             }
             else // when only simple read is needed, e.g. during scheduled report in middleware server
             {
-                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { User = UserId });
+                ConfigItem[] configItems = await apiConnection.SendQueryAsync<ConfigItem[]>(ConfigQueries.getConfigItemsByUser, new { user = UserId });
                 if (configItems.Length > 0)
                 {
                     Update(configItems);
@@ -86,11 +93,32 @@ namespace FWO.Config.Api
             {
                 Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
                 RawConfigItems = configItems;
-                Update(configItems);
-                OnChange?.Invoke(this, configItems);
-                Initialized = true;
+                ApplySubscriptionUpdate(configItems);
             }
             finally { semaphoreSlim.Release(); }
+        }
+
+        /// <summary>
+        /// Merges a partial subscription update into the raw snapshot before applying it.
+        /// </summary>
+        public void MergeSubscriptionUpdateHandler(ConfigItem[] configItems)
+        {
+            if (_isDisposed) return;
+            semaphoreSlim.Wait();
+            try
+            {
+                Log.WriteDebug("Config subscription update", $"New {configItems.Length} config values received from config subscription");
+                MergeRawConfigItems(configItems);
+                ApplySubscriptionUpdate(configItems);
+            }
+            finally { semaphoreSlim.Release(); }
+        }
+
+        private void ApplySubscriptionUpdate(ConfigItem[] configItems)
+        {
+            Update(configItems);
+            OnChange?.Invoke(this, configItems);
+            Initialized = true;
         }
 
         protected void Update(ConfigItem[] configItems)
@@ -106,7 +134,7 @@ namespace FWO.Config.Api
                     ApplyConfigValue(property, resolvedKey, configItem, remainingConfigItemNames);
                 }
             }
-            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix"))) // StateMatrix ConfigItems are handled separately
+            foreach (var name in remainingConfigItemNames.Where(n => !n.Contains("StateMatrix") && !ignoredLegacyConfigKeys.Contains(n))) // StateMatrix and retired settings are handled separately
             {
                 Log.WriteDebug($"Load {(UserId == 0 ? "Global " : "")}Config Items", $"Config item with key \"{name}\" could not be found. {(UserId == 0 ? "" : "User might not have customized the setting. ")}Using default value.");
             }

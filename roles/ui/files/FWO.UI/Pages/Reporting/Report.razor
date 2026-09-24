@@ -35,7 +35,11 @@
         </div>
         @if(actReportFilters.ReportType.IsModellingReport())
         {
-            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter" @bind-TimeFilter="actReportFilters.TimeFilter" InjectedAppId="injectedAppId" ReportType="actReportFilters.ReportType" />
+            <ReportModellingParamSelection @bind-ModellingFilter="actReportFilters.ModellingFilter"
+                                           @bind-TimeFilter="actReportFilters.TimeFilter"
+                                           InjectedAppId="injectedAppId"
+                                           ReportType="actReportFilters.ReportType"
+                                           AvailableAddInfoNames="availableOwnerAddInfoNames" />
         }
         @if(actReportFilters.ReportType == ReportType.Owners)
         {
@@ -193,7 +197,11 @@
                                 break;
 
                             case ReportType.OwnerRecertification:
-                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData" RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod" MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables" OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey" />
+                                <OwnerRecertReport OwnerData="currentReport.ReportData.OwnerData"
+                                                   RecertificationDisplayPeriod="currentReport.ReportData.RecertificationDisplayPeriod"
+                                                   MergeOwnerRecertTables="currentReport.ReportData.MergeOwnerRecertTables"
+                                                   OwnerAdditionalInfoKey="@currentReport.ReportData.OwnerAdditionalInfoKey"
+                                                   OwnerAddInfoFilter="currentReport.ReportData.OwnerAddInfoFilter" />
                                 break;
 
                             case ReportType.Owners:
@@ -213,7 +221,7 @@
                                                  TicketReferenceDates="currentReport.ReportData.TicketReferenceDates"
                                                  SelectedReportType="currentReport.ReportType"
                                                  ReferenceDate="currentReport.ReportData.WorkflowFilter.ReferenceDate"
-                                                 LabelName="@currentReport.ReportData.WorkflowFilter.LabelFilter.Name"
+                                                 AddInfoName="@currentReport.ReportData.WorkflowFilter.AddInfoFilter.Name"
                                                  DetailedView="currentReport.ReportData.WorkflowFilter.DetailedView"
                                                  ShowFullTicket="currentReport.ReportData.WorkflowFilter.ShowFullTicket"
                                                  TaskTypes="currentReport.ReportData.WorkflowFilter.TaskTypes"
@@ -295,6 +303,7 @@
     private ReportTemplateComponent reportTemplateControl = new();
 
     private ReportBase? currentReport;
+    private List<string>? availableOwnerAddInfoNames;
 
     private Sidebar? deviceSelectionSidebar;
 
@@ -357,6 +366,26 @@
         return $"{userConfig.GetText("report_elements")}: {currentReport!.ReportData.ElementsCount}.";
     }
 
+    private void RefreshAvailableOwnerAddInfoNames()
+    {
+        List<string> addInfoNames = [];
+
+        addInfoNames.AddRange(owners.SelectMany(owner => owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+
+        if (currentReport?.ReportType == ReportType.OwnerRecertification)
+        {
+            addInfoNames.AddRange(currentReport.ReportData.OwnerData.SelectMany(owner => owner.Owner.AdditionalInfo?.Keys ?? Enumerable.Empty<string>()));
+        }
+
+        List<string> distinctAddInfoNames = addInfoNames
+            .Where(addInfoName => !string.IsNullOrWhiteSpace(addInfoName))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(addInfoName => addInfoName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        availableOwnerAddInfoNames = distinctAddInfoNames.Count > 0 ? distinctAddInfoNames : null;
+    }
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -392,6 +421,7 @@
                     autoGenerateReport = true;
                 }
             }
+            RefreshAvailableOwnerAddInfoNames();
             InitDone = true;
             await InvokeAsync(StateHasChanged);
         }
@@ -427,6 +457,7 @@
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();
             ResetReport();
+            RefreshAvailableOwnerAddInfoNames();
             StateHasChanged();
         }
         catch (Exception e)
@@ -525,6 +556,7 @@
         actReportFilters.SelectAll = !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet();
         AdjustDeviceSelection();
         UpdateRightSidebarVisibility(actReportFilters.ReportType);
+        RefreshAvailableOwnerAddInfoNames();
 
         StateHasChanged();
     }
@@ -572,6 +604,7 @@
 
         watch.Stop();
         reportGenerationDuration = watch.ElapsedMilliseconds / 1000.0;
+        RefreshAvailableOwnerAddInfoNames();
 
         processing = false;
 
@@ -655,6 +688,7 @@
                 _showAnyRulesInComplianceReport = ((ReportCompliance)currentReport).ShowNonImpactRules;
             }
         }
+        RefreshAvailableOwnerAddInfoNames();
     }
 
     private void CancelGeneration()

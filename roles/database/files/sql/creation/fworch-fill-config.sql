@@ -82,17 +82,8 @@ insert into config (config_key, config_value, config_user) VALUES ('modNamingCon
 insert into config (config_key, config_value, config_user) VALUES ('modCommonAreas', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqInterfaceName', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailOtherAddresses', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailOtherAddresses', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationMode', 'FullyIntegrated', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStates', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStateMarker', 'ImplementationState', 0);
@@ -148,7 +139,9 @@ insert into config (config_key, config_value, config_user) VALUES ('complianceCh
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckPolicy', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckMaxPrintedViolations', '0', 0);
-insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSortMatrixByID', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('sortMatrixByID', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('matrixAllowNestedZones', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('complianceDiffFilterExistingViolations', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('CustomFieldChangeIdKey', '["field-2","ChangeID"]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('availableModules', '[1,2,3,4,5,6]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('debugConfig', '{"debugLevel":8, "extendedLogComplianceCheck":true, "extendedLogReportGeneration":true, "extendedLogScheduler":true}', 0);
@@ -182,3 +175,5 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenL
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
 insert into config (config_key, config_value, config_user) VALUES ('reqCreateRequestTaskSortConfig', '{"group_create_priority":0,"group_modify_add_priority":1,"access_priority":2,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);

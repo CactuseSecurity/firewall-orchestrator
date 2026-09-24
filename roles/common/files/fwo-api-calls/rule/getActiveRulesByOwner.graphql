@@ -6,6 +6,7 @@ query getActiveRulesByOwner($ownerId: Int!) {
         owner_id: {_eq: $ownerId},
         removed: {_is_null: true}
       }
+      access_rule: { _eq: true }
     }
   ) {
     rule_uid

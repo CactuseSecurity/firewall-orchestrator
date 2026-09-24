@@ -104,9 +104,19 @@ create unique index if not exists only_one_default_owner on owner(is_default)
 where is_default = true;
 
 -- compliance
-Create index IF NOT EXISTS idx_fkey_network_zone_id on compliance.ip_range USING HASH (network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_from on compliance.network_zone_communication USING HASH (from_network_zone_id);
 Create index IF NOT EXISTS idx_fkey_network_zone_to on compliance.network_zone_communication USING HASH (to_network_zone_id);
+
+-- network_zone
+Create index IF NOT EXISTS idx_fkey_network_zone_id on network_zone.ip_range USING HASH (network_zone_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_root_dev_id
+ON network_zone.device_ip_range_root (dev_id);
+CREATE INDEX IF NOT EXISTS idx_fkey_device_ip_range_internet_dev_id
+ON network_zone.device_ip_range_internet (dev_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
+ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
+ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
 
 -- rule_owner
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rule_owner_removed_is_null_unique ON rule_owner (rule_id, owner_id) WHERE removed IS NULL;
@@ -132,3 +142,12 @@ Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;
+
+-- Central change history. The table is insert heavy and read rarely, so the index set is kept
+-- minimal and the two per-object indices are partial: a workflow row has no app_id and a
+-- modelling row has no ticket_id, so each row maintains only the indices that apply to it.
+-- id is part of the sort key because change_time is not unique and paging by it alone is unstable.
+CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON change_history (module, change_time DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (change_time DESC) WHERE audit_proof_critical;

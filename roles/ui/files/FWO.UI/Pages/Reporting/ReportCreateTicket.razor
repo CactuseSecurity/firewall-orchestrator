@@ -102,7 +102,7 @@
         await apiConnection.RunWithWorkflowRole(authenticationStateTask!.Result.User, async () =>
         {
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User, middlewareClient, WorkflowPhases.request,
-                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection), DisplayMessageInUi);
+                new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient), DisplayMessageInUi);
             foreach(int rulebaseId in ruleUidsPerRulebase.Keys)
             {
                 await ticketCreator.CreateUnusedRuleDeleteTicket(rulebaseId, ruleUidsPerRulebase[rulebaseId], commentText, DateTime.Now.AddDays(userConfig.RuleRemovalGracePeriod));

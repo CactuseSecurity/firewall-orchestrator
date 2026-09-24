@@ -201,7 +201,7 @@
                     <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
                         Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
                         Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                        IpProtos="ipProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
+                        IpProtos="displayIpProtos" SelectableIpProtos="selectableIpProtos" TaskId="WfHandler.ActImplTask.Id" EditMode="WfHandler.EditImplTaskMode" />
                 }
                 else if(WfHandler.ActImplTask.TaskType == WfTaskType.rule_delete.ToString())
                 {
@@ -219,7 +219,7 @@
                             else
                             {
                                 <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
-                                    IpProtos="ipProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
+                                    IpProtos="selectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false"/>
                             }
                         }
                         else
@@ -351,7 +351,8 @@
 
     private List<RuleAction> ruleActions = [];
     private List<Tracking> trackings = [];
-    private List<IpProtocol> ipProtos = [];
+    private List<IpProtocol> displayIpProtos = [];
+    private List<IpProtocol> selectableIpProtos = [];
     
     private List<NwObjectElement> actSources = [];
     private List<NwObjectElement> actDestinations = [];
@@ -387,8 +388,10 @@
         {
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
-            ipProtos = ProtocolDisplayHelper.CustomSortProtocols(
-                await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols),
+            List<IpProtocol> protocols = await apiConnection.SendQueryAsync<List<IpProtocol>>(StmQueries.getIpProtocols);
+            displayIpProtos = ProtocolDisplayHelper.CustomSortProtocols(protocols, null, false);
+            selectableIpProtos = ProtocolDisplayHelper.CustomSortProtocols(
+                ProtocolDisplayHelper.GetSelectableProtocols(protocols),
                 ProtocolDisplayHelper.ParseProtocolNames(userConfig.ReducedProtocolSetProtocols),
                 userConfig.ReducedProtocolSet);
             firstParamSet = true;
@@ -489,7 +492,7 @@
         {
             return element.FlowServiceObjectId?.ToString() ?? element.FlowServiceGroupId?.ToString() ?? "";
         }
-        return DisplayBase.DisplayService(element, ipProtos);
+        return DisplayBase.DisplayService(element, displayIpProtos);
     }
 
     private static bool HasId(long? id)

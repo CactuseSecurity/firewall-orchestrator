@@ -223,6 +223,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckValues_AcceptsAnEmptyPasswordWhenEditingAnExistingConnection()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            SettingsLdap component = CreateBareComponent(out messages);
+            SetMember(component, "AddMode", false);
+            SetMember(component, "connectedLdaps", new List<UiLdapConnection>());
+            UiLdapConnection ldapConnection = BuildLdap(1, "ldap-edit", "ldap.example.org", roleHandling: false, internalLdap: true);
+            ldapConnection.SearchUserPwd = "";
+            ldapConnection.WriteUserPwd = "";
+            SetMember(component, "actLdapConnection", ldapConnection);
+
+            bool result = InvokePrivate<bool>(component, "CheckValues");
+
+            Assert.That(result, Is.True);
+            Assert.That(messages, Is.Empty);
+        }
+
+        [Test]
+        public void CheckValues_StillDemandsAPasswordForANewConnection()
+        {
+            AssertValidationFailure(
+                expectedMessageKey: "E5102",
+                configure: component =>
+                {
+                    SetMember(component, "AddMode", true);
+                    UiLdapConnection ldapConnection = BuildLdap(0, "ldap-new", "ldap.example.org", roleHandling: false, internalLdap: true);
+                    ldapConnection.SearchUserPwd = "";
+                    SetMember(component, "actLdapConnection", ldapConnection);
+                });
+        }
+
+        [Test]
+        public void EncryptPasswords_LeavesEmptyPasswordsUntouched()
+        {
+            SettingsLdap component = CreateBareComponent(out List<(Exception? Exception, string Title, string Message, bool IsError)> messages);
+            UiLdapConnection ldapConnection = BuildLdap(1, "ldap-edit", "ldap.example.org", roleHandling: false, internalLdap: true);
+            ldapConnection.SearchUserPwd = "";
+            ldapConnection.WriteUserPwd = "";
+            SetMember(component, "actLdapConnection", ldapConnection);
+
+            InvokePrivateVoid(component, "EncryptPasswords");
+
+            Assert.That(GetMember<UiLdapConnection>(component, "actLdapConnection").SearchUserPwd, Is.Empty);
+            Assert.That(GetMember<UiLdapConnection>(component, "actLdapConnection").WriteUserPwd, Is.Empty);
+        }
+
+        [Test]
         public async Task TestConnection_ShowsExpectedMessagesForResponseCodes()
         {
             foreach ((HttpStatusCode StatusCode, int ResponseCode, string ExpectedMessage) testCase in new (HttpStatusCode StatusCode, int ResponseCode, string ExpectedMessage)[]
@@ -244,10 +291,10 @@ namespace FWO.Test
 
                 await InvokePrivateTask(component, "TestConnection");
 
-            Assert.That(messages, Has.Count.EqualTo(1));
-            Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
-            Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
-            messages.Clear();
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo(GetMember<UserConfig>(component, "userConfig").GetText("test_connection")));
+                Assert.That(messages[0].Message, Is.EqualTo(testCase.ExpectedMessage));
+                messages.Clear();
             }
         }
 

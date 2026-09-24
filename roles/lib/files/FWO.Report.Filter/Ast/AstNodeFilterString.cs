@@ -162,9 +162,14 @@ namespace FWO.Report.Filter.Ast
         private void ExtractProtocolFilter(DynGraphqlQuery query)
         {
             string queryVarName = AddVariable<string>(query, "proto", Operator.Kind, semanticValue!);
-            query.RuleWhereStatement += $"rule_services: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }}";
-            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{service: {{stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }}, " +
-                $"{{ service_group_connections: {{service_group: {{ service_service_groups: {{ service: {{ stm_ip_proto: {{ip_proto_name: {{ {ExtractOperator()}: ${queryVarName} }} }} }} }} }} }} }} ]";
+            string queryOperator = ExtractOperator();
+            string ruleAnyServiceFilter = BuildCanonicalAnyServiceFilter("ip_proto_id", "svc_port", "svc_port_end");
+            string connectionAnyServiceFilter = BuildCanonicalAnyServiceFilter("proto_id", "port", "port_end");
+            string protocolFilter = $"{{ stm_ip_proto: {{ ip_proto_name: {{ {queryOperator}: ${queryVarName} }} }} }}";
+
+            query.RuleWhereStatement += $"rule_services: {{ service: {{ _or: [ {protocolFilter}, {ruleAnyServiceFilter} ] }} }}";
+            query.ConnectionWhereStatement += $"_or: [ {{ service_connections: {{ service: {{ _or: [ {protocolFilter}, {connectionAnyServiceFilter} ] }} }} }}, " +
+                $"{{ service_group_connections: {{ service_group: {{ service_service_groups: {{ service: {{ _or: [ {protocolFilter}, {connectionAnyServiceFilter} ] }} }} }} }} }} ]";
         }
 
         private void ExtractActionFilter(DynGraphqlQuery query)

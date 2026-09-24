@@ -19,9 +19,29 @@ namespace FWO.Services.Modelling
         public List<CommonAreaConfig> CommonAreaConfigItems { get; set; } = [];
         public ModellingAppServerHandler? AppServerHandler { get; set; }
         private readonly string InsertForbidden = "insert_forbidden";
+        private const string ChangeAppRoleForbidden = "change_app_role_forbidden";
+        private const string ChangeAppRoleForbiddenMessage = "E9030";
         private ModellingAppRole actAppRole = new();
         private ModellingNwGroup actNwGrpObj = new();
         private List<ModellingConnection> FoundConnectionsForAppRole = [];
+
+        /// <summary>
+        /// Determines whether the current user may change application roles for this application.
+        /// Only an owner holding the modeller role may do so; admin deliberately may not.
+        /// </summary>
+        /// <returns>True if the current user may add, edit or delete application roles.</returns>
+        public bool CanModifyAppRoles()
+        {
+            return IsOwner && userConfig.CanUseAnyRole(Roles.Modeller);
+        }
+
+        /// <summary>
+        /// Tells the user why an application role cannot be changed, instead of silently doing nothing.
+        /// </summary>
+        private void DisplayAppRoleChangeForbidden()
+        {
+            DisplayMessageInUi(null, userConfig.GetText(ChangeAppRoleForbidden), userConfig.GetText(ChangeAppRoleForbiddenMessage), true);
+        }
 
         public async Task InitAvailableNWObjects()
         {
@@ -507,6 +527,11 @@ namespace FWO.Services.Modelling
 
         public void CreateAppRole()
         {
+            if (!CanModifyAppRoles())
+            {
+                DisplayAppRoleChangeForbidden();
+                return;
+            }
             DisplayAppRoleMode = false;
             AddAppRoleMode = true;
             HandleAppRole(new ModellingAppRole() { });
@@ -514,12 +539,18 @@ namespace FWO.Services.Modelling
 
         public void EditAppRole(ModellingAppRole? appRole)
         {
-            if (appRole != null)
+            if (appRole == null)
             {
-                DisplayAppRoleMode = false;
-                AddAppRoleMode = false;
-                HandleAppRole(appRole);
+                return;
             }
+            if (!CanModifyAppRoles())
+            {
+                DisplayAppRoleChangeForbidden();
+                return;
+            }
+            DisplayAppRoleMode = false;
+            AddAppRoleMode = false;
+            HandleAppRole(appRole);
         }
 
         public void DisplayAppRole(ModellingAppRole? appRole)
@@ -536,8 +567,16 @@ namespace FWO.Services.Modelling
         {
             try
             {
+                EditAppRoleMode = false;
                 AppRoleHandler = new ModellingAppRoleHandler(apiConnection, userConfig, Application, AvailableAppRoles,
                     appRole, AvailableAppServers, AvailableNwElems, AddAppRoleMode, DisplayMessageInUi, IsOwner, DisplayAppRoleMode);
+                if (!AppRoleHandler.AreaConversionValid)
+                {
+                    // no dialog is usable: an existing area cannot be derived and a new identifier cannot be proposed
+                    DisplayAppRoleMode = false;
+                    AddAppRoleMode = false;
+                    return;
+                }
                 EditAppRoleMode = true;
             }
             catch (Exception exception)
@@ -548,13 +587,19 @@ namespace FWO.Services.Modelling
 
         public async Task RequestDeleteAppRole(ModellingAppRole? appRole)
         {
-            if (appRole != null)
+            if (appRole == null)
             {
-                actAppRole = appRole;
-                DeleteAllowed = !await CheckAppRoleIsInUse();
-                Message = DeleteAllowed ? userConfig.GetText("U9002") + actAppRole.Name + "?" : userConfig.GetText("E9009") + actAppRole.Name;
-                DeleteAppRoleMode = true;
+                return;
             }
+            if (!CanModifyAppRoles())
+            {
+                DisplayAppRoleChangeForbidden();
+                return;
+            }
+            actAppRole = appRole;
+            DeleteAllowed = !await CheckAppRoleIsInUse();
+            Message = DeleteAllowed ? userConfig.GetText("U9002") + actAppRole.Name + "?" : userConfig.GetText("E9009") + actAppRole.Name;
+            DeleteAppRoleMode = true;
         }
 
         private async Task<bool> CheckAppRoleIsInUse()

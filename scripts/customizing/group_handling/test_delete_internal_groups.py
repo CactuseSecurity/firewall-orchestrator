@@ -1,5 +1,6 @@
 # ruff: noqa: INP001
 import importlib.util
+import json
 import logging
 import sys
 from pathlib import Path
@@ -7,6 +8,10 @@ from types import ModuleType, TracebackType
 from typing import Any, ClassVar, Self, cast
 
 import pytest
+
+SAMPLE_CLIENT_CERT = "/etc/fworch/secrets/client/client.crt"
+SAMPLE_CLIENT_KEY = "/etc/fworch/secrets/client/client.key"
+SAMPLE_CA_CERT = "/etc/fworch/fworch-internal-ca.crt"
 
 
 def load_module() -> ModuleType:
@@ -36,6 +41,7 @@ class FakeSession:
     response: FakeResponse = FakeResponse()
     calls: ClassVar[list[dict[str, Any]]] = []
     raise_on_post: Exception | None = None
+    cert: tuple[str, str]
 
     def __init__(self) -> None:
         self.verify: bool = True
@@ -155,3 +161,69 @@ def test_delete_groups_from_roles_and_extract_common_names(module: ModuleType, m
         {"Role": "admin", "UserDn": "CN=group,OU=Groups"},
         {"Role": "reporter", "UserDn": "CN=group,OU=Groups"},
     ]
+
+
+def test_read_tls_identity_returns_client_pair_and_internal_ca(tmp_path: Path) -> None:
+    module = load_module()
+    config_path = tmp_path / "fworch.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "tls_client_certificate": SAMPLE_CLIENT_CERT,
+                "tls_client_private_key": SAMPLE_CLIENT_KEY,
+                "tls_ca_certificate": SAMPLE_CA_CERT,
+            }
+        ),
+        encoding="utf-8",
+    )
+    module.read_tls_identity.cache_clear()
+
+    client_identity, ca_certificate = module.read_tls_identity(str(config_path))
+
+    assert client_identity == (SAMPLE_CLIENT_CERT, SAMPLE_CLIENT_KEY)
+    assert ca_certificate == SAMPLE_CA_CERT
+
+
+def test_read_tls_identity_falls_back_to_default_store_when_config_absent(tmp_path: Path) -> None:
+    module = load_module()
+    module.read_tls_identity.cache_clear()
+
+    client_identity, ca_certificate = module.read_tls_identity(str(tmp_path / "absent.json"))
+
+    assert client_identity is None
+    # never False: a missing local config must not silently disable verification
+    assert ca_certificate is True
+
+
+def test_configure_tls_never_disables_verification(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    module = load_module()
+    config_path = tmp_path / "fworch.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "tls_client_certificate": SAMPLE_CLIENT_CERT,
+                "tls_client_private_key": SAMPLE_CLIENT_KEY,
+                "tls_ca_certificate": SAMPLE_CA_CERT,
+            }
+        ),
+        encoding="utf-8",
+    )
+    module.read_tls_identity.cache_clear()
+    monkeypatch.setattr(module, "FWO_CONFIG_FILE", str(config_path))
+    session = FakeSession()
+
+    module.configure_tls(session)
+
+    assert session.verify == SAMPLE_CA_CERT
+    assert session.cert == (SAMPLE_CLIENT_CERT, SAMPLE_CLIENT_KEY)
+
+
+def test_read_tls_identity_raises_on_a_corrupt_config(tmp_path: Path) -> None:
+    module = load_module()
+    corrupt = tmp_path / "fworch.json"
+    corrupt.write_text("{ not json", encoding="utf-8")
+    module.read_tls_identity.cache_clear()
+
+    # a missing file is tolerated, an unparsable one must not degrade silently
+    with pytest.raises(json.JSONDecodeError):
+        module.read_tls_identity(str(corrupt))

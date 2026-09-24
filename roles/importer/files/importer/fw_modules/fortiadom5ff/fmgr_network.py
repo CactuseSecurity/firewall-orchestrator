@@ -3,11 +3,19 @@ from __future__ import annotations
 import ipaddress
 from typing import Any
 
+from fw_modules.fortiadom5ff.fmgr_consts import nw_obj_types
 from fw_modules.fortiadom5ff.fmgr_zone import find_zones_in_normalized_config
 from fwo_base import sort_and_join_refs
 from fwo_const import ANY_IP_END, ANY_IP_START, LIST_DELIMITER, NAT_POSTFIX
 from fwo_exceptions import FwoImporterErrorInconsistenciesError
 from fwo_log import FWOLogger
+
+IPV6_OBJECT_TYPE_SUFFIXES = (
+    "firewall/address6",
+    "firewall/addrgrp6",
+    "firewall/ippool6",
+    "firewall/vipgrp6",
+)
 
 
 def normalize_network_objects(
@@ -80,6 +88,13 @@ def exclude_object_types_in_member_ref_search(obj_type: str, current_obj_type: s
     return skip_member_ref_loop
 
 
+def get_native_obj_type(object_type: str) -> str:
+    for native_obj_type in nw_obj_types:
+        if object_type.endswith(native_obj_type):
+            return native_obj_type
+    return "unknown"
+
+
 def normalize_network_object(
     obj_orig: dict[str, Any],
     nw_objects: list[dict[str, Any]],
@@ -90,6 +105,8 @@ def normalize_network_object(
 ) -> None:
     obj: dict[str, Any] = {}
     obj.update({"obj_name": obj_orig["name"]})
+    # Retain this only while rules are normalized. FwConfigNormalized discards unknown fields before persistence.
+    obj.update({"_ip_version": 6 if current_obj_type.endswith(IPV6_OBJECT_TYPE_SUFFIXES) else 4})
     if "subnet" in obj_orig:  # ipv4 object
         _parse_subnet(obj, obj_orig)
     elif "ip6" in obj_orig:  # ipv6 object
@@ -115,12 +132,12 @@ def normalize_network_object(
         normalize_vip_object(obj_orig, obj, nw_objects)
     elif "wildcard-fqdn" in obj_orig or "fqdn" in obj_orig:  # domain or wildcard-domain
         obj.update({"obj_typ": "domain"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     elif "q_origin_key" in obj_orig:
         obj.update({"obj_typ": "dynamic_net_obj"})
-        obj.update({"obj_ip": ANY_IP_START})
-        obj.update({"obj_ip_end": ANY_IP_END})
+        obj.update({"obj_ip": None})
+        obj.update({"obj_ip_end": None})
     else:  # unknown types
         obj.update({"obj_typ": "network"})
         obj.update({"obj_ip": ANY_IP_START})
@@ -144,6 +161,7 @@ def normalize_network_object(
         obj_orig.get("associated-interface", []), normalized_config_adom, normalized_config_global
     )
     obj.update({"obj_zone": LIST_DELIMITER.join(associated_interfaces)})
+    obj.update({"obj_native_type": get_native_obj_type(current_obj_type)})
 
     nw_objects.append(obj)
 

@@ -6,6 +6,7 @@ using FWO.Services;
 using FWO.Services.Modelling;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
+using System.Text;
 
 namespace FWO.Test
 {
@@ -313,6 +314,216 @@ namespace FWO.Test
         }
 
         [Test]
+        public void ReplaceWorkflowPlaceholdersUsesRequesterDnWhenRequesterNameIsMissing()
+        {
+            WfTicket ticket = new()
+            {
+                RequesterDn = "cn=requester,dc=test",
+                Tasks =
+                {
+                    new WfReqTask
+                    {
+                        Owners =
+                        {
+                            new() { Owner = new() { Name = "Application", ExtAppId = "APP-2" } }
+                        }
+                    }
+                }
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTER}", ticket, null);
+
+            Assert.That(text, Is.EqualTo("Application/APP-2/cn=requester,dc=test"));
+        }
+
+        [Test]
+        public void ReplaceWorkflowPlaceholdersAppliesCallerProvidedContext()
+        {
+            WfTicket ticket = new()
+            {
+                Requester = new() { Name = "Requester" },
+                Reason = "Original reason",
+                CreationDate = new DateTime(2025, 1, 2)
+            };
+            NotificationPlaceholderData placeholderData = new()
+            {
+                RequestingAppName = "Requesting App",
+                RequestingAppId = "REQ-APP",
+                InterfaceName = "old-interface",
+                InterfaceLinkText = "Interface",
+                InterfaceLinkName = "old-interface",
+                InterfaceLinkUrl = "https://example.test/old",
+                NewInterfaceName = "new-interface",
+                NewInterfaceLinkText = "New interface",
+                NewInterfaceLinkName = "new-interface",
+                NewInterfaceLinkUrl = "https://example.test/new",
+                Reason = "Rejected reason",
+                UserName = "Rejecter",
+                RequestDate = "03.01.2025"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(
+                string.Join("|", new List<string>
+                {
+                    Placeholder.APPNAME,
+                    Placeholder.APPID,
+                    Placeholder.REQUESTER,
+                    Placeholder.REQUESTING_APPNAME,
+                    Placeholder.REQUESTING_APPID,
+                    Placeholder.INTERFACE_NAME,
+                    Placeholder.INTERFACE_LINK,
+                    Placeholder.NEW_INTERFACE_NAME,
+                    Placeholder.NEW_INTERFACE_LINK,
+                    Placeholder.REASON,
+                    Placeholder.USER_NAME,
+                    Placeholder.REQUESTDATE
+                }),
+                ticket,
+                new FwoOwner { Name = "Owner", ExtAppId = "APP-1" },
+                placeholderData,
+                renderHtmlLinks: true);
+
+            Assert.That(text, Is.EqualTo(
+                "Owner|APP-1|Requester|Requesting App|REQ-APP|old-interface|<a target=\"_blank\" href=\"https://example.test/old\">Interface: old-interface</a>|new-interface|<a target=\"_blank\" href=\"https://example.test/new\">New interface: new-interface</a>|Rejected reason|Rejecter|03.01.2025"));
+        }
+
+        [Test]
+        public void ReplaceOwnerPlaceholdersReplacesAppAndTimeInterval()
+        {
+            FwoOwner owner = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-3"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.TIME_INTERVAL}", owner, "14 days");
+
+            Assert.That(text, Is.EqualTo("Application/APP-3/14 days"));
+        }
+
+        [Test]
+        public void ReplaceNotificationPlaceholdersReplacesRequestContext()
+        {
+            FwoOwner selectedOwner = new()
+            {
+                Name = "Selected",
+                ExtAppId = "APP-1"
+            };
+            FwoOwner requestingOwner = new()
+            {
+                Name = "Requester",
+                ExtAppId = "APP-2"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.REQUESTING_APPNAME}/{Placeholder.REQUESTING_APPID}/{Placeholder.REQUESTER}/{Placeholder.INTERFACE_NAME}/{Placeholder.INTERFACE_LINK}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = selectedOwner,
+                    RequestingOwner = requestingOwner,
+                    InterfaceName = "if-test",
+                    InterfaceLinkText = "Interface Request",
+                    InterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-1/99",
+                    NewInterfaceName = "if-test",
+                    NewInterfaceLinkText = "Interface Request",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-1/99",
+                    Reason = "Need access",
+                    UserName = "Tester"
+                },
+                renderHtmlLinks: true);
+
+            Assert.That(text, Is.EqualTo(
+                "Selected/APP-1/Requester/APP-2/Requester/if-test/"
+                + "<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-1/99\">Interface Request</a>"
+                + "/if-test/"
+                + "<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-1/99\">Interface Request</a>"
+                + "/Need access/Tester"));
+        }
+
+        [Test]
+        public void ReplaceDecommissionPlaceholdersReplacesDecommissionContext()
+        {
+            FwoOwner application = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-9"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.APPNAME}/{Placeholder.APPID}/{Placeholder.INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = application,
+                    InterfaceName = "if-old",
+                    NewInterfaceName = "if-new",
+                    NewInterfaceLinkText = "Interface",
+                    NewInterfaceLinkName = "if-new",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-9/100",
+                    Reason = "Planned decommission",
+                    UserName = "Tester"
+                });
+
+            Assert.That(text, Is.EqualTo("Application/APP-9/if-old/if-new/https://ui.example.test/networkmodelling/APP-9/100/Planned decommission/Tester"));
+        }
+
+        [Test]
+        public void ReplaceDecommissionBodyPlaceholdersRendersFormattedContext()
+        {
+            FwoOwner application = new()
+            {
+                Name = "Application",
+                ExtAppId = "APP-9"
+            };
+
+            string text = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(
+                $"{Placeholder.INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_NAME}/{Placeholder.NEW_INTERFACE_LINK}/{Placeholder.REASON}/{Placeholder.USER_NAME}",
+                new NotificationPlaceholderResolver.NotificationPlaceholderValues
+                {
+                    Application = application,
+                    InterfaceName = "if-old",
+                    NewInterfaceName = "if-new",
+                    NewInterfaceLinkText = "Interface",
+                    NewInterfaceLinkName = "if-new",
+                    NewInterfaceLinkUrl = "https://ui.example.test/networkmodelling/APP-9/100",
+                    Reason = "Planned decommission",
+                    UserName = "Tester"
+                },
+                renderHtmlLinks: true);
+
+            Assert.That(text, Is.EqualTo("if-old/if-new/<a target=\"_blank\" href=\"https://ui.example.test/networkmodelling/APP-9/100\">Interface: if-new</a>/Planned decommission/Tester"));
+        }
+
+        [Test]
+        public void NotificationScheduleHelper_ConsidersRequestNotificationsDueImmediately()
+        {
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RequestDate,
+                IntervalBeforeDeadline = SchedulerInterval.Days,
+                OffsetBeforeDeadline = 0
+            };
+
+            Assert.That(NotificationScheduleHelper.IsNotificationDue(new FwoOwner(), DateTime.Now, notification), Is.True);
+        }
+
+        [Test]
+        public void NotificationScheduleHelper_SkipsDelayedRequestReminders()
+        {
+            FwoNotification notification = new()
+            {
+                Deadline = NotificationDeadline.RequestDate,
+                RepeatIntervalAfterDeadline = SchedulerInterval.Days,
+                InitialOffsetAfterDeadline = 2,
+                RepeatOffsetAfterDeadline = 1,
+                RepetitionsAfterDeadline = 2
+            };
+
+            Assert.That(NotificationScheduleHelper.IsNotificationDue(new FwoOwner(), DateTime.Now.AddDays(-1), notification), Is.False);
+        }
+
+        [Test]
         public void NotificationRequestBuilderKeepsNetworkIpsWhenTicketIsSerialized()
         {
             ModellingNotificationRequestBuilder builder = new(new EmailNotificationUserConfig());
@@ -501,6 +712,45 @@ namespace FWO.Test
             Assert.That(content.Csv, Does.Contain("\"102\",\"Create Group\",\"New App Role\",\"create\",\"\",\"10.0.0.2\",\"\""));
             Assert.That(content.Json, Does.Contain("\"MembersToAdd\":\"10.0.0.2\""));
             Assert.That(content.Json, Does.Contain("\"MembersToRemove\":\"10.0.0.3\""));
+        }
+
+        [Test]
+        public void FromRequestTasksFormatsGroupServiceAndRuleMembersWithDetails()
+        {
+            WfReqTask groupTask = new()
+            {
+                Id = 10,
+                TaskNumber = 104,
+                TaskType = WfTaskType.group_modify.ToString(),
+                Title = "Refine Group",
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.service.ToString(),
+                        RequestAction = RequestAction.modify.ToString(),
+                        Port = 443,
+                        ProtoId = 6
+                    },
+                    new WfReqElement
+                    {
+                        Field = ElemFieldType.rule.ToString(),
+                        RequestAction = RequestAction.addAfterCreation.ToString(),
+                        Name = "RuleA",
+                        RuleUid = "R-7"
+                    }
+                }
+            };
+
+            List<WfReqTask> requestTasks = new() { groupTask };
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(requestTasks, new EmailNotificationUserConfig(), new Dictionary<int, string>
+            {
+                { 6, "TCP" }
+            });
+
+            Assert.That(content.PlainText, Does.Contain("443/TCP"));
+            Assert.That(content.PlainText, Does.Contain("RuleA (R-7)"));
         }
 
         private static async Task<string> ReadFormFile(FormFile formFile)

@@ -24,7 +24,9 @@ namespace FWO.Basics
         public const int kMinutesToMilliseconds = 60000;
         public const int kSecondsToMilliseconds = 1000;
         public const int kDaysPerWeek = 7;
+        public const int kMonthsPerYear = 12;
         public const int kMaxPortNumber = 65535;
+        public const int kAnyIpProtocolId = -1;
         // an import script is waited for with a timeout in milliseconds which has to fit into an int
         public const int kMaxImportScriptTimeoutMinutes = int.MaxValue / kMinutesToMilliseconds;
         public const int kOwnerResponsibleTypeMain = 1;
@@ -38,6 +40,7 @@ namespace FWO.Basics
 
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
+        public const string kWorkflow = "workflow";
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
@@ -47,6 +50,12 @@ namespace FWO.Basics
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
         public const string kManual = "manual";
+        // change_history.module: names the subsystem that wrote a history row and therefore
+        // which enum its object_type has to be read against. Workflow rows use the same literal as
+        // their change_source, because the workflow module has exactly one provenance. Keeping it a
+        // single constant avoids two identical literals that would silently drift apart.
+        public const string kModuleModelling = "modelling";
+        public const string kModuleWorkflow = "workflow";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
@@ -59,8 +68,11 @@ namespace FWO.Basics
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+        public const string kRuleOwnerMapping = "ruleOwnerMapping";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
+        public const long kPathAnalysisAlgorithmNone = 1;
+
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;
         public const string kDummyAppRole = "DummyAppRole";
@@ -101,7 +113,17 @@ namespace FWO.Basics
         public const string Host = "host";
         public const string Network = "network";
         public const string IPRange = "ip_range";
+        public const string DynamicNetObj = "dynamic_net_obj";
         public const string AccessRole = "access-role";
+        public const string Domain = "domain";
+
+        /// <summary>
+        /// Determines whether a network object has an address range that is resolved only at policy evaluation time.
+        /// </summary>
+        public static bool IsDynamicallyResolvedObject(string objectTypeName)
+        {
+            return objectTypeName == DynamicNetObj || objectTypeName == Domain || objectTypeName == AccessRole;
+        }
     }
 
     public struct ServiceType
@@ -147,6 +169,7 @@ namespace FWO.Basics
         public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string CONTENT = "@@CONTENT@@";
         public const string COUNT = "@@COUNT@@";
+        public const string DATE = "@@DATE@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
@@ -191,6 +214,7 @@ namespace FWO.Basics
 
     public enum OwnerMappingSourceStm
     {
+        Disabled = 0,
         IpBased = 1,
         CustomField = 2,
         NameField = 3,

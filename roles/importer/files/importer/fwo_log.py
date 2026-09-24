@@ -1,14 +1,21 @@
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import threading
 import time
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TextIO, TypeAlias, cast
 
-try:
-    import fcntl as fcntl_module
-except ImportError:
+# Returns True if the OS is Linux, macOS (Darwin), or BSD-based systems
+is_unix = sys.platform in ("linux", "darwin", "freebsd")
+if is_unix:
+    try:
+        import fcntl as fcntl_module
+    except ImportError:
+        fcntl_module = None
+else:
     fcntl_module = None
 
 

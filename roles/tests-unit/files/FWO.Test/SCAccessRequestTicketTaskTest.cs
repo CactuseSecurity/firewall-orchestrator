@@ -87,7 +87,8 @@ namespace FWO.Test
                     new() { Id = 4, Field = ElemFieldType.service.ToString(), Name = "tunnel", ProtoId = 47 },
                     new() { Id = 5, Field = ElemFieldType.service.ToString(), Name = "unknown-proto", ProtoId = 99 },
                     new() { Id = 6, Field = ElemFieldType.service.ToString(), Name = "hopopt", ProtoId = 0 },
-                    new() { Id = 7, Field = ElemFieldType.service.ToString(), Name = "any-service", ProtoId = null }
+                    new() { Id = 7, Field = ElemFieldType.service.ToString(), Name = "any-service", ProtoId = null },
+                    new() { Id = 8, Field = ElemFieldType.service.ToString(), Name = "portless-tcp", ProtoId = 6, Port = null }
                 ]
             };
             SCAccessRequestTicketTask ticketTask = new(reqTask, kIpProtos);
@@ -104,7 +105,33 @@ namespace FWO.Test
                 Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"99\",\"id\":\"99\",\"name\":\"unknown-proto\"}"));
                 Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"HOPOPT\",\"id\":\"0\",\"name\":\"hopopt\"}"));
                 Assert.That(ticketTask.TaskText, Does.Contain(SCConstants.SCAnyServiceJson));
+                Assert.That(ticketTask.TaskText, Does.Contain("{\"proto\":\"TCP\",\"id\":\"6\",\"name\":\"portless-tcp\"}"), "portless TCP falls back to the protocol-only template instead of an empty port");
             });
+        }
+
+        /// <summary>
+        /// Verifies a portless TCP/UDP service never reaches the port template, which would emit
+        /// invalid JSON ("port": ,) when the placeholder is unquoted in the configured template.
+        /// </summary>
+        [Test]
+        public void FillTaskTextEmitsValidJsonForPortlessServiceWithUnquotedPortPlaceholder()
+        {
+            ExternalTicketTemplate template = Template();
+            template.ServiceTemplate = "{\"proto\":\"@@PROTOCOLNAME@@\",\"port\":@@PORT@@,\"name\":\"@@SERVICENAME@@\"}";
+            WfReqTask reqTask = new()
+            {
+                TaskNumber = 11,
+                TaskType = WfTaskType.access.ToString(),
+                Elements =
+                [
+                    new() { Id = 1, Field = ElemFieldType.service.ToString(), Name = "portless-udp", ProtoId = 17, Port = null }
+                ]
+            };
+            SCAccessRequestTicketTask ticketTask = new(reqTask, kIpProtos);
+
+            ticketTask.FillTaskText(template);
+
+            Assert.That(ticketTask.TaskText, Does.Not.Contain("\"port\":,"));
         }
 
         /// <summary>
@@ -168,7 +195,8 @@ namespace FWO.Test
         [TestCase(443, 0, "443")]
         [TestCase(443, 443, "443")]
         [TestCase(100, 200, "100-200")]
-        public void DisplayPortRangeFormatsPorts(int port, int? portEnd, string expected)
+        [TestCase(null, null, "")]
+        public void DisplayPortRangeFormatsPorts(int? port, int? portEnd, string expected)
         {
             Assert.That(SCAccessRequestTicketTask.DisplayPortRange(port, portEnd), Is.EqualTo(expected));
         }

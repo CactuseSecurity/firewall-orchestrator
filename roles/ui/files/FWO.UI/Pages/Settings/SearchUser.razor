@@ -128,7 +128,7 @@
     {
         try
         {
-            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnections);
+            connectedLdaps = await apiConnection.SendQueryAsync<List<UiLdapConnection>>(AuthQueries.getLdapConnectionsWithoutSecrets);
             if(connectedLdaps.Count > 0)
             {
                 selectedLdap = connectedLdaps.First();

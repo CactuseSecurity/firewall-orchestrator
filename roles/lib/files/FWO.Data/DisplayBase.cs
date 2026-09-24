@@ -67,9 +67,9 @@ namespace FWO.Data
         {
             if (elem.Name != null && elem.Name != "")
             {
-                return elem.Name + DisplayIp(elem.IP, elem.IpEnd, true);
+                return elem.Name + DisplayIp(elem.IP ?? "", elem.IpEnd ?? "", true);
             }
-            return DisplayIp(elem.IP, elem.IpEnd);
+            return DisplayIp(elem.IP ?? "", elem.IpEnd ?? "");
         }
 
         public static string DisplayIp(string ip1, string ip2, bool inBrackets = false)

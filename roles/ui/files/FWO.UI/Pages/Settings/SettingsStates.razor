@@ -52,13 +52,13 @@
         </Table>
     </div>
 
-    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="() => EditStateMode = false">
+    <PopUp Title="@(userConfig.GetText("edit_state"))" Show="@EditStateMode" Size=PopupSize.Large OnClose="CloseEditState">
         <Body>
             @if (EditStateMode)
             {
                 <div class="form-group row">
                     <div class="col-sm-2">
-                        @if(AddStateMode)
+                        @if(AddStateMode && !NewStatePersisted)
                         {
                             <input type="number" class="form-control form-control-sm" @bind="actState.Id" />
                         }
@@ -78,7 +78,7 @@
                     </div>
                 </div>
                 <br><br>
-                <button type="button" class="btn btn-sm btn-success" @onclick="SelectAction">
+                <button type="button" class="btn btn-sm btn-success" disabled="@(!HasSelectableActions())" @onclick="SelectAction">
                     @(DisplayService.DisplayButton(userConfig, "add_action", Icons.Add, "action"))</button>
                 <br><br>
                 <div class="m-2 vheight75">
@@ -126,7 +126,7 @@
             @if (SelectActionMode)
             {
                 <div class="col-sm-8">
-                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="actions">
+                    <Dropdown ElementType="WfStateAction" ElementToString="@(a => a.Name)" @bind-SelectedElement="selectedAction" Elements="@selectableActions">
                         <ElementTemplate Context="action">
                             @action.Name
                         </ElementTemplate>
@@ -138,7 +138,7 @@
             <div class="btn-group">
                 <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                     <Authorized>
-                        @if(selectedAction != null)
+                        @if(selectedAction != null && !addActionInProgress)
                         {
                             <button type="button" class="btn btn-sm btn-primary" @onclick="AddActionToState">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
                         }
@@ -172,16 +172,22 @@ else
     private List<int> usedStateIds = [];
     private WfStateDict statesDict = new ();
     private WfState actState = new ();
+    private WfState persistedNewState = new ();
 
     private List<WfStateAction> actions = [];
+    private List<WfStateAction> selectableActions = [];
     private WfStateAction? selectedAction;
 
     private bool EditStateMode = false;
     private bool AddStateMode = false;
+    private bool NewStatePersisted = false;
     private bool DeleteStateMode = false;
     private bool InitComplete = false;
     private bool SelectActionMode = false;
     private bool EditExtStatesMode = false;
+    private bool addActionInProgress = false;
+    private bool saveInProgress = false;
+    private readonly HashSet<int> persistedNewStateActionIds = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -277,55 +283,192 @@ else
 
     private void AddState()
     {
-        AddStateMode = true;
+        ResetNewStateTracking();
         int firstFreeId = 0;
         while (states.Find(x => x.Id == firstFreeId) != null)
         {
             firstFreeId++;
         }
         EditState(new WfState(){ Id = firstFreeId });
+        AddStateMode = true;
     }
 
     private void EditState(WfState state)
     {
-        actState = state;
+        ResetNewStateTracking();
+        actState = CloneState(state);
+        AddStateMode = false;
         EditStateMode = true;
+    }
+
+    private static WfState CloneState(WfState state)
+    {
+        return new WfState
+        {
+            Id = state.Id,
+            Name = state.Name,
+            AutomaticOnly = state.AutomaticOnly,
+            Actions = [.. state.Actions.Select(action => new WfStateActionDataHelper
+            {
+                SortOrder = action.SortOrder,
+                Action = new WfStateAction(action.Action)
+            })]
+        };
+    }
+
+    private void ResetNewStateTracking()
+    {
+        NewStatePersisted = false;
+        persistedNewState = new WfState();
+        persistedNewStateActionIds.Clear();
+    }
+
+    private bool StateExistsInDatabase()
+    {
+        return !AddStateMode || NewStatePersisted;
+    }
+
+    private bool ShouldPersistStateAction(WfStateActionDataHelper action)
+    {
+        return StateExistsInDatabase() && (!AddStateMode || persistedNewStateActionIds.Contains(action.Action.Id));
     }
 
     private async Task SaveState()
     {
+        if (saveInProgress)
+        {
+            return;
+        }
+
+        saveInProgress = true;
         try
         {
-            await apiConnection.SendQueryAsync<object>(RequestQueries.upsertState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
-            if(AddStateMode)
+            if (AddStateMode && !NewStatePersisted && states.Any(state => state.Id == actState.Id))
             {
-                states.Add(actState);
-                states = states.OrderBy(x => x.Id).ToList();
-                NormalizeActionSortOrder(actState);
-                foreach(var action in actState.Actions)
-                {
-                    await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
-                }
+                DisplayMessageInUi(null, userConfig.GetText("edit_state"), userConfig.GetText("duplicate_state_id"), true);
+                return;
+            }
+
+            if (AddStateMode)
+            {
+                await SaveAddStateAsync();
             }
             else
             {
-                states[states.FindIndex(x => x.Id == actState.Id)] = actState;
+                await UpdateStateAsync();
             }
             EditStateMode = false;
             AddStateMode = false;
+            ResetNewStateTracking();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
         }
+        finally
+        {
+            saveInProgress = false;
+        }
+    }
+
+    private async Task SaveAddStateAsync()
+    {
+        await SaveStateRowAsync();
+        await SaveMissingStateActionsAsync();
+    }
+
+    private async Task SaveStateRowAsync()
+    {
+        if (!NewStatePersisted)
+        {
+            ReturnId createResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.createState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+            if (createResult.AffectedRows != 1)
+            {
+                throw new InvalidOperationException($"Could not create workflow state with id {actState.Id}.");
+            }
+            NewStatePersisted = true;
+            states.Add(actState);
+            states = states.OrderBy(x => x.Id).ToList();
+            persistedNewState = CloneState(actState);
+            NormalizeActionSortOrder(actState);
+            return;
+        }
+
+        await UpdateStateAsync();
+    }
+
+    private async Task SaveMissingStateActionsAsync()
+    {
+        foreach (var action in actState.Actions.Where(action => !persistedNewStateActionIds.Contains(action.Action.Id)).ToList())
+        {
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = action.Action.Id, sortOrder = action.SortOrder });
+            persistedNewStateActionIds.Add(action.Action.Id);
+        }
+    }
+
+    private async Task UpdateStateAsync()
+    {
+        ReturnId updateResult = await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.updateState, new { id = actState.Id, name = actState.Name, automaticOnly = actState.AutomaticOnly });
+        if (updateResult.AffectedRows != 1)
+        {
+            throw new InvalidOperationException($"Workflow state with id {actState.Id} no longer exists.");
+        }
+
+        int stateIndex = states.FindIndex(x => x.Id == actState.Id);
+        if (stateIndex < 0)
+        {
+            throw new InvalidOperationException($"Workflow state with id {actState.Id} no longer exists.");
+        }
+
+        states[stateIndex] = actState;
+        if (AddStateMode && NewStatePersisted)
+        {
+            persistedNewState = CloneState(actState);
+        }
     }
 
     private void Cancel()
     {
+        ReconcilePartiallyPersistedNewState();
+        CancelSelect();
         EditStateMode = false;
         AddStateMode = false;
         DeleteStateMode = false;
         EditExtStatesMode = false;
+        ResetNewStateTracking();
+    }
+
+    private void CloseEditState()
+    {
+        ReconcilePartiallyPersistedNewState();
+        CancelSelect();
+        EditStateMode = false;
+        AddStateMode = false;
+        ResetNewStateTracking();
+    }
+
+    private void ReconcilePartiallyPersistedNewState()
+    {
+        if (!AddStateMode || !NewStatePersisted)
+        {
+            return;
+        }
+
+        HashSet<int> persistedActionIds = persistedNewStateActionIds.ToHashSet();
+        if (persistedActionIds.Count != actState.Actions.Count)
+        {
+            actState.Actions = actState.Actions.Where(action => persistedActionIds.Contains(action.Action.Id)).ToList();
+            NormalizeActionSortOrder(actState);
+        }
+
+        RestorePersistedNewStateFields();
+    }
+
+    private void RestorePersistedNewStateFields()
+    {
+        actState.Id = persistedNewState.Id;
+        actState.Name = persistedNewState.Name;
+        actState.AutomaticOnly = persistedNewState.AutomaticOnly;
     }
 
     private void RequestDeleteState(WfState state)
@@ -351,30 +494,60 @@ else
 
     private void SelectAction()
     {
-        selectedAction = actions.Count > 0 ? actions.First() : null;
-        SelectActionMode = true;
+        selectableActions = GetSelectableActions();
+        selectedAction = selectableActions.FirstOrDefault();
+        SelectActionMode = selectedAction != null;
     }
 
     private void CancelSelect()
     {
+        selectableActions = [];
+        selectedAction = null;
         SelectActionMode = false;
     }
 
     private async Task AddActionToState()
     {
+        if (addActionInProgress)
+        {
+            return;
+        }
+
+        addActionInProgress = true;
         try
         {
-            if(!AddStateMode)
+            WfStateAction selectedActionValue = selectedAction ?? throw new ArgumentException("no action selected");
+            if (actState.Actions.Any(action => action.Action.Id == selectedActionValue.Id))
             {
-                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedAction?.Id ?? 0, sortOrder = NextActionSortOrder() });
+                return;
             }
-            actState.Actions.Add(new WfStateActionDataHelper(){ Action = selectedAction ?? throw new ArgumentException("no action selected"), SortOrder = NextActionSortOrder() });
+
+            if (StateExistsInDatabase())
+            {
+                await apiConnection.SendQueryAsync<object>(RequestQueries.addStateAction, new { stateId = actState.Id, actionId = selectedActionValue.Id, sortOrder = NextActionSortOrder() });
+            }
+            WfStateActionDataHelper newAction = new()
+            {
+                Action = selectedActionValue,
+                SortOrder = NextActionSortOrder()
+            };
+            actState.Actions.Add(newAction);
+            if (StateExistsInDatabase() && AddStateMode)
+            {
+                persistedNewStateActionIds.Add(newAction.Action.Id);
+            }
             NormalizeActionSortOrder(actState);
+            selectableActions = GetSelectableActions();
+            selectedAction = selectableActions.FirstOrDefault();
             SelectActionMode = false;
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("edit_state"), "", true);
+        }
+        finally
+        {
+            addActionInProgress = false;
         }
     }
 
@@ -382,15 +555,17 @@ else
     {
         try
         {
-            if(!AddStateMode)
+            bool shouldPersistAction = ShouldPersistStateAction(action);
+            if (shouldPersistAction)
             {
                 await apiConnection.SendQueryAsync<object>(RequestQueries.removeStateAction, new { stateId = actState.Id, actionId = action.Action.Id });
+                persistedNewStateActionIds.Remove(action.Action.Id);
             }
             actState.Actions.Remove(action);
             NormalizeActionSortOrder(actState);
-            if (!AddStateMode)
+            if (StateExistsInDatabase())
             {
-                await SaveActionSortOrder(actState.Actions);
+                await SaveActionSortOrder(actState.Actions.Where(ShouldPersistStateAction));
             }
         }
         catch (Exception exception)
@@ -414,6 +589,16 @@ else
         return actState.Actions.Count == 0 ? 1 : actState.Actions.Max(action => action.SortOrder) + 1;
     }
 
+    private List<WfStateAction> GetSelectableActions()
+    {
+        return actions.Where(action => !actState.Actions.Any(existingAction => existingAction.Action.Id == action.Id)).ToList();
+    }
+
+    private bool HasSelectableActions()
+    {
+        return actions.Any(action => !actState.Actions.Any(existingAction => existingAction.Action.Id == action.Id));
+    }
+
     private static void NormalizeActionSortOrder(WfState state)
     {
         for (int index = 0; index < state.Actions.Count; ++index)
@@ -435,9 +620,14 @@ else
         actState.Actions[index] = actState.Actions[targetIndex];
         actState.Actions[targetIndex] = movedAction;
         NormalizeActionSortOrder(actState);
-        if (!AddStateMode)
+        if (StateExistsInDatabase())
         {
-            await SaveActionSortOrder([actState.Actions[index], actState.Actions[targetIndex]]);
+            List<WfStateActionDataHelper> changedActions =
+            [
+                actState.Actions[index],
+                actState.Actions[targetIndex]
+            ];
+            await SaveActionSortOrder(changedActions.Where(ShouldPersistStateAction));
         }
     }
 

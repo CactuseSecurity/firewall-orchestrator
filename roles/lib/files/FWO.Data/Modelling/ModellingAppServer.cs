@@ -76,8 +76,8 @@ namespace FWO.Data.Modelling
 
         public ModellingAppServer(NetworkObject nwObj) : base(nwObj)
         {
-            Ip = nwObj.IP;
-            IpEnd = nwObj.IpEnd;
+            Ip = nwObj.IP ?? "";
+            IpEnd = nwObj.IpEnd ?? "";
             CustomType = 0;
         }
 

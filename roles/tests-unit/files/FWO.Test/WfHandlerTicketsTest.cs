@@ -15,6 +15,7 @@ namespace FWO.Test
     internal class WfHandlerTicketsTest
     {
         private static readonly long[] kVisibleRequestTaskIds = [11];
+        private static readonly long[] kAllRequestTaskIds = [11, 12];
         private static readonly int[] kExclusiveVisibilityGroupIds = [1, 2, 4, 5, 6];
         private static readonly long[] kImplTaskIds = [21, 22];
 
@@ -36,6 +37,8 @@ namespace FWO.Test
             public WfTicket Ticket { get; set; } = new();
             public List<WfTicket> Tickets { get; set; } = [];
             public List<long> RegisteredTicketIds { get; set; } = [];
+            public object? LastTicketQueryVariables { get; private set; }
+            public string? LastTicketQuery { get; private set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -50,6 +53,11 @@ namespace FWO.Test
                 }
                 if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets || query == RequestQueries.getFullTickets)
                 {
+                    if (query == RequestQueries.getTicketsByParameters)
+                    {
+                        LastTicketQuery = query;
+                        LastTicketQueryVariables = variables;
+                    }
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -74,15 +82,26 @@ namespace FWO.Test
             }
         }
 
-        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig)
+        private static WfHandler CreateHandlerWithDbAccess(TicketTestApiConn apiConn, UserConfig userConfig, bool systemContext = false)
         {
-            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, WorkflowPhases.request);
+            WfHandler handler = new(DefaultInit.DoNothing, userConfig, new System.Security.Claims.ClaimsPrincipal(), apiConn, null!, WorkflowPhases.request)
+            {
+                SystemContext = systemContext
+            };
             ActionHandler actionHandler = new(apiConn, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);
             return handler;
+        }
+
+        private static T GetQueryValue<T>(object? variables, string propertyName)
+        {
+            Assert.That(variables, Is.Not.Null);
+            object? value = variables!.GetType().GetProperty(propertyName)?.GetValue(variables);
+            Assert.That(value, Is.Not.Null, $"{propertyName} was not set on the query variables.");
+            return (T)value!;
         }
 
         [Test]
@@ -405,6 +424,59 @@ namespace FWO.Test
 
             Assert.That(ticket, Is.Not.Null);
             Assert.That(ticket!.Tasks.Select(task => task.Id), Is.EqualTo(kVisibleRequestTaskIds));
+        }
+
+        [Test]
+        public async Task ResolveTicket_SystemContext_KeepsTasksThatVisibilityGroupsWouldHide()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateGroupTaggedTicket() };
+            UserConfig userConfig = new();
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig, systemContext: true);
+            ApplyGroupTaggedMatrices(handler);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Not.Null);
+            Assert.That(ticket!.Tasks.Select(task => task.Id), Is.EqualTo(kAllRequestTaskIds));
+        }
+
+        [Test]
+        public async Task ResolveTicket_UserContextWithoutGroups_StillDropsInvisibleTasks()
+        {
+            TicketTestApiConn apiConn = new() { Ticket = CreateGroupTaggedTicket() };
+            UserConfig userConfig = new();
+            EnableVisibilityChecks(userConfig);
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            ApplyGroupTaggedMatrices(handler);
+
+            WfTicket? ticket = await handler.ResolveTicket(7);
+
+            Assert.That(ticket, Is.Null);
+        }
+
+        /// <summary>
+        /// Ticket whose every request task sits in a state tagged with a visibility group, so a caller
+        /// without that group sees nothing of it. Shape of the ticket the external request chain fails on.
+        /// </summary>
+        private static WfTicket CreateGroupTaggedTicket()
+        {
+            return new WfTicket
+            {
+                Id = 7,
+                StateId = 10,
+                Tasks =
+                [
+                    new WfReqTask { Id = 11, TaskNumber = 1, TaskType = WfTaskType.access.ToString(), StateId = 21 },
+                    new WfReqTask { Id = 12, TaskNumber = 2, TaskType = WfTaskType.access.ToString(), StateId = 21 }
+                ]
+            };
+        }
+
+        private static void ApplyGroupTaggedMatrices(WfHandler handler)
+        {
+            handler.MasterStateMatrix = new StateMatrix { StateVisibilityGroupIds = { [10] = [3] } };
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix { StateVisibilityGroupIds = { [21] = [3] } });
         }
 
         [Test]
@@ -819,6 +891,70 @@ namespace FWO.Test
 
             Assert.That(tickets, Has.Count.EqualTo(1));
             Assert.That(tickets[0].Id, Is.EqualTo(7));
+        }
+
+        [Test]
+        public async Task GetOpenTickets_UsesWeeksIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Weeks);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddDays(-14)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
+        }
+
+        [Test]
+        public async Task GetOpenTickets_UsesMonthsIntervalForCreatedFrom()
+        {
+            TicketTestApiConn apiConn = new()
+            {
+                Tickets =
+                [
+                    new WfTicket
+                    {
+                        Id = 7,
+                        StateId = 10
+                    }
+                ]
+            };
+            UserConfig userConfig = new();
+            WfHandler handler = CreateHandlerWithDbAccess(apiConn, userConfig);
+            SetMatrix(handler, WfTaskType.access.ToString(), new StateMatrix
+            {
+                LowestInputState = 3,
+                LowestEndState = 9
+            });
+
+            List<WfTicket> tickets = await handler.GetOpenTickets(WfTaskType.access.ToString(), 2, SchedulerInterval.Months);
+
+            Assert.That(tickets, Has.Count.EqualTo(1));
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByParameters));
+            Assert.That(GetQueryValue<DateTime>(apiConn.LastTicketQueryVariables, "createdFrom"), Is.EqualTo(DateTime.Now.Date.AddMonths(-2)));
+            Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("createdUntil")!.GetValue(apiConn.LastTicketQueryVariables), Is.Null);
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "fromState"), Is.EqualTo(3));
+            Assert.That(GetQueryValue<int>(apiConn.LastTicketQueryVariables, "toState"), Is.EqualTo(9));
         }
 
         [Test]

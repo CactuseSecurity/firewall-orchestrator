@@ -32,7 +32,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.request])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.request, out bool requestActive) && requestActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
@@ -42,7 +42,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.approval])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalActive) && approvalActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Auditor}")">
                         <li class="nav-item px-2">
@@ -52,7 +52,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.planning])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningActive) && planningActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}, {Roles.FwAdmin}")">
                         <li class="nav-item px-2">
@@ -62,7 +62,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.implementation])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.implementation, out bool implementationActive) && implementationActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Auditor}, {Roles.FwAdmin}")">
                         <li class="nav-item px-2">
@@ -72,7 +72,7 @@
                         </li>
                     </ExecutionModeAuthorizeView>
                 }
-                @if(stateMatrix.PhaseActive[WorkflowPhases.review])
+                @if (stateMatrix.PhaseActive.TryGetValue(WorkflowPhases.review, out bool reviewActive) && reviewActive)
                 {
                     <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reviewer}, {Roles.Auditor}")">
                         <li class="nav-item px-2">

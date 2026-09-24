@@ -1,4 +1,5 @@
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Logging;
 
@@ -27,6 +28,19 @@ namespace FWO.Services.Workflow
 
     public partial class WfHandler
     {
+        public string? WorkflowEmailBundleId { get; private set; }
+
+        private void BeginWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = Guid.NewGuid().ToString("N");
+            ActionHandler?.ResetBundledDelegations();
+        }
+
+        private void ClearWorkflowEmailBundle()
+        {
+            WorkflowEmailBundleId = null;
+        }
+
         // promote the different objects
 
         public async Task<bool> PromoteTicket(WfStatefulObject ticket)
@@ -47,27 +61,82 @@ namespace FWO.Services.Workflow
 
         public async Task<bool> PromoteTicketAndTasks(WfStatefulObject ticket)
         {
+            bool emailBundleStarted = false;
+            bool emailBundleFlushAttempted = false;
             try
             {
-                if (await PromoteTicket(ticket) && await UpdateRequestTasksFromTicket(false))
+                if (!await PromoteTicket(ticket))
+                {
+                    return false;
+                }
+
+                BeginWorkflowEmailBundle();
+                emailBundleStarted = true;
+
+                bool requestTaskActionsChangedState = await UpdateRequestTasksFromTicket(false);
+                if (requestTaskActionsChangedState)
                 {
                     await UpdateActTicketStateFromReqTasks();
                 }
+
+                // Set before the call so a throw inside it still counts as attempted and the finally does
+                // not report the same delivery failure a second time.
+                emailBundleFlushAttempted = true;
+                await FlushWorkflowEmailBundle();
                 return true;
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("promote_ticket"), "", true);
             }
+            finally
+            {
+                if (emailBundleStarted)
+                {
+                    // Captured emails were suppressed at their state action, so an aborted promote must
+                    // still flush what was collected - those request tasks did change state.
+                    if (!emailBundleFlushAttempted)
+                    {
+                        await FlushWorkflowEmailBundle();
+                    }
+                    ClearWorkflowEmailBundle();
+                }
+            }
             return false;
         }
 
-        public async Task PromoteReqTask(WfStatefulObject reqTask)
+        /// <summary>
+        /// Ends the active workflow email bundle and asks the middleware to send it. Delivery problems are
+        /// reported to the promoting user and never turn a completed state change into a failed one. The
+        /// flush itself decides whether a round trip is needed, so an empty bundle reports nothing.
+        /// </summary>
+        private async Task FlushWorkflowEmailBundle()
+        {
+            if (ActionHandler == null)
+            {
+                // Without an action handler no state action ran, so nothing was captured. Reporting an
+                // email problem here would be misleading.
+                return;
+            }
+
+            try
+            {
+                await ActionHandler.FlushWorkflowEmailBundleInMiddleware(ActTicket.Id);
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(userConfig.GetText("send_email"),
+                    $"Could not send bundled workflow emails for ticket {ActTicket.Id}.", exception);
+                DisplayMessageInUi(exception, userConfig.GetText("send_email"), userConfig.GetText("E9105"), true);
+            }
+        }
+
+        public async Task PromoteReqTask(WfStatefulObject reqTask, bool setStartedHandler = true)
         {
             try
             {
                 ActReqTask.StateId = reqTask.StateId;
-                if (ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
+                if (setStartedHandler && ActReqTask.Start == null && ActReqTask.StateId >= ActStateMatrix.LowestStartedState)
                 {
                     ActReqTask.Start = DateTime.Now;
                     ActReqTask.CurrentHandler = userConfig.User;
@@ -88,7 +157,7 @@ namespace FWO.Services.Workflow
             }
         }
 
-        public async Task PromoteImplTask(WfStatefulObject implTask)
+        public async Task PromoteImplTask(WfStatefulObject implTask, NotificationPlaceholderData? placeholderData = null)
         {
             try
             {
@@ -98,10 +167,10 @@ namespace FWO.Services.Workflow
                 {
                     ActImplTask.Stop = DateTime.Now;
                 }
-                await UpdateActImplTaskState();
+                await UpdateActImplTaskState(placeholderData: placeholderData);
                 ResetImplTaskList();
-                await UpdateReqTaskStatesFromActImplTask();
-                await UpdateActTicketStateFromReqTasks();
+                await UpdateReqTaskStatesFromActImplTask(placeholderData: placeholderData);
+                await UpdateActTicketStateFromReqTasks(placeholderData: placeholderData);
                 DisplayPromoteImplTaskMode = false;
             }
             catch (Exception exception)
@@ -116,6 +185,7 @@ namespace FWO.Services.Workflow
             if (toStateId != null)
             {
                 statefulObject.StateId = (int)toStateId;
+                Log.WriteDebug("AutoPromote", $"Using configured target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)}.");
                 promotePossible = true;
             }
             else
@@ -124,6 +194,7 @@ namespace FWO.Services.Workflow
                 if (possibleStates.Count >= 1)
                 {
                     statefulObject.StateId = possibleStates[0];
+                    Log.WriteDebug("AutoPromote", $"Using fallback target state {statefulObject.StateId} for {scope} id {GetStatefulObjectId(statefulObject)} from allowed transitions [{string.Join(", ", possibleStates)}].");
                     promotePossible = true;
                 }
             }
@@ -141,6 +212,7 @@ namespace FWO.Services.Workflow
                         ActReqTask.StateId = statefulObject.StateId;
                         ActReqTask.CurrentHandler = statefulObject.CurrentHandler;
                         await UpdateActReqTaskState();
+                        await UpdateActTicketStateFromReqTasks();
                         break;
                     case WfObjectScopes.ImplementationTask:
                         SetImplTaskEnv((WfImplTask)statefulObject);
@@ -293,7 +365,8 @@ namespace FWO.Services.Workflow
 
         // synchronization between the different objects
 
-        private async Task UpdateActTicketState(bool triggerActions = true, bool syncImplementationTasks = true)
+        private async Task UpdateActTicketState(bool triggerActions = true, bool syncImplementationTasks = true,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (ActTicket.StateId >= MasterStateMatrix.MinTicketCompleted)
             {
@@ -306,7 +379,7 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActTicket, WfObjectScopes.Ticket, MasterStateMatrix);
-                await dbAcc.UpdateTicketStateInDb(ActTicket, triggerActions);
+                await dbAcc.UpdateTicketStateInDb(ActTicket, triggerActions, placeholderData: placeholderData);
             }
             int idx = TicketList.FindIndex(x => x.Id == ActTicket.Id);
             if (idx >= 0)
@@ -324,7 +397,8 @@ namespace FWO.Services.Workflow
             }
         }
 
-        private async Task UpdateActTicketStateFromReqTasks(bool triggerActions = true, bool syncImplementationTasks = true)
+        private async Task UpdateActTicketStateFromReqTasks(bool triggerActions = true, bool syncImplementationTasks = true,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (ActTicket.Tasks.Count > 0)
             {
@@ -337,7 +411,7 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug("UpdateActTicketStateFromReqTasks", $"Ticket {ActTicket.Id}: derived state {derivedState} from request task states {string.Join(", ", taskStates)}.");
                 ActTicket.StateId = derivedState;
             }
-            await UpdateActTicketState(triggerActions, syncImplementationTasks);
+            await UpdateActTicketState(triggerActions, syncImplementationTasks, placeholderData);
         }
 
         public async Task UpdateActReqTaskState(bool triggerActions = true)
@@ -355,18 +429,21 @@ namespace FWO.Services.Workflow
             bool requestTaskActionsChangedState = false;
             List<WfReqTask> requestTasks = [.. ActTicket.Tasks];
             List<WfReqTask> requestTasksNeedingInitialImplTasks = [];
+            // Read the stored ticket once for the whole loop: every task and approval below needs the same
+            // pre-change snapshot for the change history, and none of them is affected by another's write.
+            WfTicket? storedTicket = dbAcc != null && requestTasks.Count > 0 ? await dbAcc.LoadPreviousTicket(ActTicket.Id) : null;
             foreach (WfReqTask reqtask in requestTasks)
             {
                 StateMatrix reqTaskMatrix = stateMatrixDict.Matrices[reqtask.TaskType];
                 int newReqTaskState = reqTaskMatrix.getDerivedStateFromSubStates([ActTicket.StateId]);
                 Log.WriteDebug("UpdateRequestTasksFromTicket", $"Ticket {ActTicket.Id} state {ActTicket.StateId}: request task {reqtask.Id} ({reqtask.TaskType}) state {reqtask.StateId} -> {newReqTaskState}.");
-                await UpdateReqTaskAndApprovalStatesFromTicket(reqtask, reqTaskMatrix, newReqTaskState, triggerActions);
+                await UpdateReqTaskAndApprovalStatesFromTicket(reqtask, reqTaskMatrix, newReqTaskState, triggerActions, storedTicket);
                 if (reqtask.StateId != newReqTaskState)
                 {
                     requestTaskActionsChangedState = true;
                     Log.WriteDebug("UpdateRequestTasksFromTicket", $"Request task {reqtask.Id} changed by actions from synced state {newReqTaskState} to {reqtask.StateId}.");
                 }
-                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !stateMatrixDict.Matrices[reqtask.TaskType].PhaseActive[WorkflowPhases.planning]
+                if (createImplTasks && reqtask.ImplementationTasks.Count == 0 && !IsPlanningPhaseActive(stateMatrixDict.Matrices[reqtask.TaskType])
                     && RequestTaskNeedsInitialImplTasks(reqtask))
                 {
                     requestTasksNeedingInitialImplTasks.Add(reqtask);
@@ -379,7 +456,8 @@ namespace FWO.Services.Workflow
             return requestTaskActionsChangedState;
         }
 
-        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask, StateMatrix reqTaskMatrix, int newReqTaskState, bool triggerActions = true)
+        private async Task UpdateReqTaskAndApprovalStatesFromTicket(WfReqTask reqTask, StateMatrix reqTaskMatrix, int newReqTaskState,
+            bool triggerActions = true, WfTicket? storedTicket = null)
         {
             reqTask.StateId = newReqTaskState;
             List<WfApproval> approvalsToUpdate = reqTask.Approvals
@@ -393,16 +471,17 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, reqTaskMatrix);
-                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions);
+                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions, storedTicket);
                 foreach (WfApproval approval in approvalsToUpdate)
                 {
                     AuditUnexpectedStateTransition(approval, WfObjectScopes.Approval, reqTaskMatrix);
-                    await dbAcc.UpdateApprovalInDb(approval, triggerActions);
+                    await dbAcc.UpdateApprovalInDb(approval, ActTicket.Id, ActTicket.Requester, triggerActions, storedTicket);
                 }
             }
         }
 
-        private async Task UpdateReqTaskStateFromImplTasks(WfReqTask reqTask, bool triggerActions = true)
+        private async Task UpdateReqTaskStateFromImplTasks(WfReqTask reqTask, bool triggerActions = true, WfTicket? storedTicket = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (reqTask.ImplementationTasks.Count > 0)
             {
@@ -416,15 +495,17 @@ namespace FWO.Services.Workflow
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(reqTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[reqTask.TaskType]);
-                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions);
+                await dbAcc.UpdateReqTaskStateInDb(reqTask, triggerActions, storedTicket, placeholderData);
             }
             SyncActTicketFromReqTask(reqTask);
         }
 
-        private async Task UpdateReqTaskStatesFromActImplTask(bool triggerActions = true)
+        private async Task UpdateReqTaskStatesFromActImplTask(bool triggerActions = true,
+            NotificationPlaceholderData? placeholderData = null)
         {
             SyncReqTaskStopTime(ActReqTask);
-            await UpdateReqTaskStateFromImplTasks(ActReqTask, triggerActions);
+            WfTicket? storedTicket = dbAcc != null ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId) : null;
+            await UpdateReqTaskStateFromImplTasks(ActReqTask, triggerActions, storedTicket, placeholderData);
 
             List<WfReqTask> bundledTasks = [.. GetBundledRequestTasks(ActReqTask).Where(task => task.Id != ActReqTask.Id)];
             foreach (WfReqTask bundledTask in bundledTasks)
@@ -437,7 +518,7 @@ namespace FWO.Services.Workflow
                 if (dbAcc != null)
                 {
                     AuditUnexpectedStateTransition(bundledTask, WfObjectScopes.RequestTask, stateMatrixDict.Matrices[bundledTask.TaskType]);
-                    await dbAcc.UpdateReqTaskStateInDb(bundledTask, triggerActions);
+                    await dbAcc.UpdateReqTaskStateInDb(bundledTask, triggerActions, storedTicket, placeholderData);
                 }
                 SyncActTicketFromReqTask(bundledTask);
             }
@@ -456,12 +537,12 @@ namespace FWO.Services.Workflow
                 : [.. ActTicket.Tasks.Where(task => task.GetAddInfoValue(AdditionalInfoKeys.FlowBundleId) == bundleId)];
         }
 
-        private async Task UpdateActImplTaskState(bool triggerActions = true)
+        private async Task UpdateActImplTaskState(bool triggerActions = true, NotificationPlaceholderData? placeholderData = null)
         {
             if (dbAcc != null)
             {
                 AuditUnexpectedStateTransition(ActImplTask, WfObjectScopes.ImplementationTask, ActStateMatrix);
-                await dbAcc.UpdateImplTaskStateInDb(ActImplTask, triggerActions);
+                await dbAcc.UpdateImplTaskStateInDb(ActImplTask, triggerActions, placeholderData: placeholderData);
             }
             int index = ActReqTask.ImplementationTasks.FindIndex(x => x.Id == ActImplTask.Id);
             if (index >= 0)
@@ -479,14 +560,14 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                foreach (var impltask in reqTask.ImplementationTasks)
+                List<WfImplTask> tasksToUpgrade = [.. reqTask.ImplementationTasks.Where(task => task.StateId < reqTask.StateId)];
+                // only read the stored ticket when there is something to write, and then only once
+                WfTicket? storedTicket = tasksToUpgrade.Count > 0 ? await dbAcc.LoadPreviousTicket(reqTask.TicketId) : null;
+                foreach (WfImplTask impltask in tasksToUpgrade)
                 {
-                    if (impltask.StateId < reqTask.StateId)
-                    {
-                        impltask.StateId = reqTask.StateId;
-                        AuditUnexpectedStateTransition(impltask, WfObjectScopes.ImplementationTask, stateMatrixDict.Matrices[reqTask.TaskType]);
-                        await dbAcc.UpdateImplTaskStateInDb(impltask);
-                    }
+                    impltask.StateId = reqTask.StateId;
+                    AuditUnexpectedStateTransition(impltask, WfObjectScopes.ImplementationTask, stateMatrixDict.Matrices[reqTask.TaskType]);
+                    await dbAcc.UpdateImplTaskStateInDb(impltask, true, storedTicket);
                 }
             }
         }

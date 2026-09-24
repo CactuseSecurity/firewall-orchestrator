@@ -1,0 +1,55 @@
+# Writes recalculated flow hashes in a single transaction.
+# Entries whose current hash is claimed by another entry are moved to a temporary hash first,
+# so that hashes handed over between entries do not violate the unique hash constraint while
+# the updates are applied. The temp lists are empty whenever no hash is handed over.
+mutation updateFlowHashes(
+  $nwObjectTempHashes: [flow_nwobject_updates!]!
+  $nwObjectHashes: [flow_nwobject_updates!]!
+  $nwGroupTempHashes: [flow_nwgroup_updates!]!
+  $nwGroupHashes: [flow_nwgroup_updates!]!
+  $svcObjectTempHashes: [flow_svcobject_updates!]!
+  $svcObjectHashes: [flow_svcobject_updates!]!
+  $svcGroupTempHashes: [flow_svcgroup_updates!]!
+  $svcGroupHashes: [flow_svcgroup_updates!]!
+  $timeObjectTempHashes: [flow_timeobject_updates!]!
+  $timeObjectHashes: [flow_timeobject_updates!]!
+  $accessTempHashes: [flow_access_updates!]!
+  $accessHashes: [flow_access_updates!]!
+) {
+  nwObjectTempHashes: update_flow_nwobject_many(updates: $nwObjectTempHashes) {
+    affected_rows
+  }
+  nwGroupTempHashes: update_flow_nwgroup_many(updates: $nwGroupTempHashes) {
+    affected_rows
+  }
+  svcObjectTempHashes: update_flow_svcobject_many(updates: $svcObjectTempHashes) {
+    affected_rows
+  }
+  svcGroupTempHashes: update_flow_svcgroup_many(updates: $svcGroupTempHashes) {
+    affected_rows
+  }
+  timeObjectTempHashes: update_flow_timeobject_many(updates: $timeObjectTempHashes) {
+    affected_rows
+  }
+  accessTempHashes: update_flow_access_many(updates: $accessTempHashes) {
+    affected_rows
+  }
+  nwObjectHashes: update_flow_nwobject_many(updates: $nwObjectHashes) {
+    affected_rows
+  }
+  nwGroupHashes: update_flow_nwgroup_many(updates: $nwGroupHashes) {
+    affected_rows
+  }
+  svcObjectHashes: update_flow_svcobject_many(updates: $svcObjectHashes) {
+    affected_rows
+  }
+  svcGroupHashes: update_flow_svcgroup_many(updates: $svcGroupHashes) {
+    affected_rows
+  }
+  timeObjectHashes: update_flow_timeobject_many(updates: $timeObjectHashes) {
+    affected_rows
+  }
+  accessHashes: update_flow_access_many(updates: $accessHashes) {
+    affected_rows
+  }
+}

@@ -1,5 +1,14 @@
-from fw_modules.fortiosmanagementREST.fos_models import FortiOSConfig, NwObjAddress6, NwObjVip
+import pytest
+from fw_modules.fortiosmanagementREST.fos_models import (
+    FortiOSConfig,
+    NwObjAddress,
+    NwObjAddress6,
+    NwObjInternetService,
+    NwObjVip,
+)
 from fw_modules.fortiosmanagementREST.fos_network import (
+    normalize_internet_services,
+    normalize_ipv4_network_objects,
     normalize_single_ipv6_network_object,
     normalize_vips,
     parse_fortios_ip_range,
@@ -46,7 +55,7 @@ def test_normalize_vips_range_extip():
     assert str(obj.obj_ip_end) == "10.0.0.10/32"
 
 
-def test_normalize_vips_missing_extip_falls_back_to_name_uid_and_full_range():
+def test_normalize_vips_missing_extip_falls_back_to_name_uid_and_dummy_ip():
     config = FortiOSConfig()
     config.nw_obj_vip = [_build_vip("vip_empty", None, None)]
     lookup: dict[str, str] = {}
@@ -54,7 +63,9 @@ def test_normalize_vips_missing_extip_falls_back_to_name_uid_and_full_range():
     obj = next(iter(normalize_vips(config, lookup)))
 
     assert obj.obj_uid == "vip_empty"
-    assert obj.obj_typ == "network"
+    assert obj.obj_typ == "host"
+    assert str(obj.obj_ip) == "0.0.0.0/32"
+    assert str(obj.obj_ip_end) == "0.0.0.0/32"
     assert lookup["vip_empty"] == "vip_empty"
 
 
@@ -66,14 +77,37 @@ def test_parse_fortios_ip_range_treats_equal_range_endpoints_as_host():
     assert obj_typ == "host"
 
 
-def test_normalize_single_ipv6_network_object_marks_explicit_end_ip_as_range():
+def test_normalize_single_ipv6_ipprefix_object_prefers_configured_prefix_over_default_range():
     native_object = NwObjAddress6.model_validate(
         {
-            "name": "ipv6_range",
-            "q_origin_key": "ipv6_range",
-            "uuid": "uuid-ipv6-range",
+            "name": "ipv6_prefix",
+            "q_origin_key": "ipv6_prefix",
+            "uuid": "uuid-ipv6-prefix",
             "type": "ipprefix",
-            "ip6": "2001:db8::1/128",
+            "ip6": "2001:db8:1::/64",
+            "start-ip": "::",
+            "end-ip": "::",
+        }
+    )
+    lookup: dict[str, str] = {}
+
+    result = normalize_single_ipv6_network_object(native_object, lookup)
+
+    assert result.obj_typ == "network"
+    assert str(result.obj_ip) == "2001:db8:1::/128"
+    assert str(result.obj_ip_end) == "2001:db8:1:0:ffff:ffff:ffff:ffff/128"
+    assert lookup["ipv6_prefix"] == "uuid-ipv6-prefix"
+
+
+def test_normalize_single_ipv6_ipprefix_object_ignores_non_default_range_fields():
+    native_object = NwObjAddress6.model_validate(
+        {
+            "name": "ipv6_prefix",
+            "q_origin_key": "ipv6_prefix",
+            "uuid": "uuid-ipv6-prefix",
+            "type": "ipprefix",
+            "ip6": "2001:db8:2::/64",
+            "start-ip": "2001:db8::1",
             "end-ip": "2001:db8::2",
         }
     )
@@ -81,24 +115,133 @@ def test_normalize_single_ipv6_network_object_marks_explicit_end_ip_as_range():
 
     result = normalize_single_ipv6_network_object(native_object, lookup)
 
-    assert result.obj_typ == "ip_range"
-    assert lookup["ipv6_range"] == "uuid-ipv6-range"
+    assert result.obj_typ == "network"
+    assert str(result.obj_ip) == "2001:db8:2::/128"
+    assert str(result.obj_ip_end) == "2001:db8:2:0:ffff:ffff:ffff:ffff/128"
+    assert lookup["ipv6_prefix"] == "uuid-ipv6-prefix"
 
 
-def test_normalize_single_ipv6_network_object_treats_equal_endpoints_as_host():
+def test_normalize_single_ipv6_iprange_object_uses_configured_range():
     native_object = NwObjAddress6.model_validate(
         {
-            "name": "ipv6_host",
-            "q_origin_key": "ipv6_host",
-            "uuid": "uuid-ipv6-host",
-            "type": "ipprefix",
-            "ip6": "2001:db8::1/128",
-            "end-ip": "2001:db8::1",
+            "name": "ipv6_range",
+            "q_origin_key": "ipv6_range",
+            "uuid": "uuid-ipv6-range",
+            "type": "iprange",
+            "start-ip": "2001:db8::10",
+            "end-ip": "2001:db8::20",
         }
     )
     lookup: dict[str, str] = {}
 
     result = normalize_single_ipv6_network_object(native_object, lookup)
 
-    assert result.obj_typ == "host"
-    assert lookup["ipv6_host"] == "uuid-ipv6-host"
+    assert result.obj_typ == "ip_range"
+    assert str(result.obj_ip) == "2001:db8::10/128"
+    assert str(result.obj_ip_end) == "2001:db8::20/128"
+    assert lookup["ipv6_range"] == "uuid-ipv6-range"
+
+
+@pytest.mark.parametrize(
+    ("native_type", "normalized_type"),
+    [
+        ("fqdn", "domain"),
+        ("wildcard-fqdn", "domain"),
+        ("dynamic", "dynamic_net_obj"),
+        ("geography", "dynamic_net_obj"),
+        ("interface-subnet", "dynamic_net_obj"),
+    ],
+)
+def test_normalize_ipv4_non_static_objects_have_no_ip_range(native_type: str, normalized_type: str) -> None:
+    native_object = NwObjAddress.model_validate(
+        {
+            "name": f"ipv4_{native_type}",
+            "q_origin_key": f"ipv4_{native_type}",
+            "uuid": f"uuid-ipv4-{native_type}",
+            "type": native_type,
+        }
+    )
+    config = FortiOSConfig()
+    config.nw_obj_address = [native_object]
+    lookup: dict[str, str] = {}
+
+    result = next(normalize_ipv4_network_objects(config, lookup))
+
+    assert result.obj_typ == normalized_type
+    assert result.obj_ip is None
+    assert result.obj_ip_end is None
+    assert lookup[native_object.name] == native_object.uuid
+
+
+def test_normalize_ipv4_wildcard_has_no_range_because_pattern_may_be_non_contiguous() -> None:
+    native_object = NwObjAddress.model_validate(
+        {
+            "name": "ipv4_wildcard",
+            "q_origin_key": "ipv4_wildcard",
+            "uuid": "uuid-ipv4-wildcard",
+            "type": "wildcard",
+        }
+    )
+    config = FortiOSConfig()
+    config.nw_obj_address = [native_object]
+    lookup: dict[str, str] = {}
+
+    result = next(normalize_ipv4_network_objects(config, lookup))
+
+    assert result.obj_typ == "dynamic_net_obj"
+    assert result.obj_ip is None
+    assert result.obj_ip_end is None
+    assert lookup[native_object.name] == native_object.uuid
+
+
+@pytest.mark.parametrize(
+    ("native_type", "normalized_type"),
+    [("fqdn", "domain"), ("dynamic", "dynamic_net_obj"), ("template", "dynamic_net_obj")],
+)
+def test_normalize_ipv6_non_static_objects_have_no_ip_range(native_type: str, normalized_type: str) -> None:
+    native_object = NwObjAddress6.model_validate(
+        {
+            "name": f"ipv6_{native_type}",
+            "q_origin_key": f"ipv6_{native_type}",
+            "uuid": f"uuid-ipv6-{native_type}",
+            "type": native_type,
+        }
+    )
+    lookup: dict[str, str] = {}
+
+    result = normalize_single_ipv6_network_object(native_object, lookup)
+
+    assert result.obj_typ == normalized_type
+    assert result.obj_ip is None
+    assert result.obj_ip_end is None
+    assert lookup[native_object.name] == native_object.uuid
+
+
+def test_normalize_internet_services_have_no_ip_range() -> None:
+    native_object = NwObjInternetService.model_validate(
+        {
+            "id": 1,
+            "q_origin_key": 1,
+            "name": "internet-service",
+            "icon-id": 1,
+            "direction": "destination",
+            "database": "internet-service",
+            "ip-range-number": 1,
+            "extra-ip-range-number": 0,
+            "ip-number": 1,
+            "ip6-range-number": 0,
+            "extra-ip6-range-number": 0,
+            "singularity": 0,
+            "obsolete": 0,
+        }
+    )
+    config = FortiOSConfig()
+    config.nw_obj_internet_service = [native_object]
+    lookup: dict[str, str] = {}
+
+    result = next(normalize_internet_services(config, lookup))
+
+    assert result.obj_typ == "dynamic_net_obj"
+    assert result.obj_ip is None
+    assert result.obj_ip_end is None
+    assert lookup[native_object.name] == native_object.name

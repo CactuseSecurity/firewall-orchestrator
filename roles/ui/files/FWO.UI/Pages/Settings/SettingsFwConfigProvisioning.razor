@@ -4,6 +4,7 @@
 @page "/settings/fwconfigprovisioning"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
+@inject ApiConnection apiConnection
 @inject UserConfig userConfig
 @inject IJSRuntime JsRuntime
 
@@ -14,272 +15,245 @@
 @(userConfig.GetText("prov_settings_intro"))
 <hr />
 
-<div class="row">
-    <div class="col-sm-3 border-end">
-        <ul class="navbar-nav flex-column mb-3">
-            <li class="nav-item">
-                <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == "global" ? "btn-primary" : "btn-light")"
-                        @onclick="SelectGlobal">
-                    <span class="@Icons.Settings"></span> @(userConfig.GetText("prov_global"))
-                </button>
-            </li>
-            @foreach (ProvisioningNode deviceType in ProvisioningSettingsData.GetChildren(allNodes, ProvisioningSettingsData.GlobalNodeKey))
+@if (root == null)
+{
+    <Loading />
+}
+else
+{
+    <div class="row">
+        <div class="col-sm-3 border-end">
+            <ul class="navbar-nav flex-column mb-3">
+                @RenderTreeNode(root)
+            </ul>
+            <div class="text-muted small">
+                @(userConfig.GetText("prov_hierarchy_hint"))
+            </div>
+        </div>
+
+        <div class="col-sm-9">
+            @if (form != null)
             {
-                <li class="nav-item ms-2">
-                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == deviceType.Id ? "btn-primary" : "btn-light")"
-                            @onclick="() => SelectNode(deviceType)">
-                        <span class="@Icons.Management"></span> @deviceType.Name
-                    </button>
-                    @if (expandedDeviceTypeIds.Contains(deviceType.Id))
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    @foreach (ProvisioningNode crumb in form.Node.SelfAndAncestors().Reverse())
                     {
-                        @foreach (ProvisioningNode manager in ProvisioningSettingsData.GetChildren(allNodes, deviceType.Id))
+                        bool isLast = crumb == form.Node;
+                        <span class="fw-@(isLast ? "bold" : "normal")">@crumb.Name</span>
+                        @if (!isLast)
                         {
-                            <ul class="list-unstyled ms-3">
-                                <li>
-                                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == manager.Id ? "btn-primary" : "btn-outline-light text-dark")"
-                                            @onclick="() => SelectNode(manager)">
-                                        <span class="@Icons.Management"></span> @manager.Name
-                                    </button>
-                                    @if (expandedManagerIds.Contains(manager.Id))
-                                    {
-                                        <ul class="list-unstyled ms-3">
-                                            @foreach (ProvisioningNode gateway in ProvisioningSettingsData.GetChildren(allNodes, manager.Id))
-                                            {
-                                                <li>
-                                                    <button type="button" class="btn btn-sm w-100 text-start mb-1 @(SelectedNode?.Id == gateway.Id ? "btn-primary" : "btn-outline-light text-dark")"
-                                                            @onclick="() => SelectNode(gateway)">
-                                                        <span class="@Icons.Gateway"></span> @gateway.Name
-                                                    </button>
-                                                </li>
-                                            }
-                                        </ul>
-                                    }
-                                </li>
-                            </ul>
+                            <span class="text-muted">&gt;</span>
                         }
                     }
-                </li>
+                </div>
+
+                <form onsubmit="return false">
+                    @foreach (ProvisioningFieldState state in form.Fields)
+                    {
+                        <div id="@FieldRowId(state.Field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(state.Field.HelpTextKey))">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="fw-semibold">@(userConfig.GetText(state.Field.LabelTextKey))</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (state.IsChanged)
+                                    {
+                                        <span class="badge rounded-pill bg-warning text-dark">@(userConfig.GetText("unsaved_changes"))</span>
+                                    }
+                                    <span class="badge rounded-pill fw-bold @(state.IsLocal ? "bg-success" : "bg-secondary")">
+                                        @(state.IsLocal ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
+                                    </span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" id="@($"prov-override-{state.Field.Id}")" checked="@state.IsLocal"
+                                               @onchange="e => ToggleOverride(state, e.Value is true)" />
+                                        <label class="form-check-label small" for="@($"prov-override-{state.Field.Id}")">@(userConfig.GetText("prov_override_here"))</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal, v => state.LocalValue = v)
+                            </div>
+
+                            @if (!state.IsLocal)
+                            {
+                                <div class="text-muted small mt-1">
+                                    @if (SourceNode(state) is ProvisioningNode sourceNode)
+                                    {
+                                        @(userConfig.GetText("prov_inherited_from"))
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@form.HasChanges"
+                                                @onclick="() => NavigateToSource(state.Field, sourceNode)">
+                                            <strong>@LevelLabel(sourceNode.Level)</strong> "@sourceNode.Name" <span class="@Icons.Use"></span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        @(userConfig.GetText("prov_compiled_default"))
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </form>
+
+                @if (form.HasChanges)
+                {
+                    <div class="alert alert-warning small">@(userConfig.GetText("prov_unsaved_hint"))</div>
+                }
+                <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                    <Authorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled="@(!form.HasChanges || saving)" @onclick="Save">
+                            @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                        </button>
+                    </Authorized>
+                    <NotAuthorized>
+                        <button type="button" class="btn btn-sm btn-primary" disabled>@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+                    </NotAuthorized>
+                </ExecutionModeAuthorizeView>
+                <button type="button" class="btn btn-sm btn-secondary" disabled="@(!form.HasChanges || saving)" @onclick="form.Reset">
+                    @(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))
+                </button>
             }
-        </ul>
-        <div class="text-muted small">
-            @(userConfig.GetText("prov_hierarchy_hint"))
+            else
+            {
+                <Loading />
+            }
         </div>
     </div>
-
-    <div class="col-sm-9">
-        @if (SelectedNode != null)
-        {
-            <div class="d-flex align-items-center gap-2 mb-3">
-                @foreach ((ProvisioningNode crumb, bool isLast) in BreadcrumbChain())
-                {
-                    <span class="fw-@(isLast ? "bold" : "normal")">@crumb.Name</span>
-                    @if (!isLast)
-                    {
-                        <span class="text-muted">&gt;</span>
-                    }
-                }
-            </div>
-
-            <form onsubmit="return false">
-                @foreach (ProvisioningFieldDefinition field in VisibleFields())
-                {
-                    ProvisioningResolvedValue resolved = ProvisioningSettingsData.Resolve(allNodes, SelectedNode, field);
-                    bool overriddenHere = resolved.IsOverriddenHere;
-                    ProvisioningNode? sourceNode = resolved.SourceNode;
-
-                    <div id="@FieldRowId(field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(field.HelpTextKey))">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="fw-semibold">@(userConfig.GetText(field.LabelTextKey))</div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge rounded-pill fw-bold @(overriddenHere ? "bg-success" : "bg-secondary")">
-                                    @(overriddenHere ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
-                                </span>
-                                @if (overriddenHere && SelectedNode.Level != ProvisioningScopeType.Global)
-                                {
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" title="@(userConfig.GetText("prov_reset_to_inherited"))"
-                                            @onclick="() => ResetOverride(field)">
-                                        <span class="@Icons.Undo"></span>
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="mt-2">
-                            @RenderEditor(field, overriddenHere ? GetOverrideValue(field) : resolved.Value, v => SetOverrideValue(field, v))
-                        </div>
-
-                        @if (!overriddenHere && sourceNode != null)
-                        {
-                            <div class="text-muted small mt-1">
-                                @(userConfig.GetText("prov_inherited_from"))
-                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="() => NavigateToSource(field, sourceNode)">
-                                    <strong>@LevelLabel(sourceNode.Level)</strong> "@sourceNode.Name" <span class="@Icons.Use"></span>
-                                </button>
-                            </div>
-                        }
-                        else if (!overriddenHere)
-                        {
-                            <div class="text-muted small mt-1">
-                                @(userConfig.GetText("prov_not_set"))
-                            </div>
-                        }
-                    </div>
-                }
-            </form>
-
-            <div class="alert alert-info small">
-                @(userConfig.GetText("prov_mock_data_hint"))
-            </div>
-        }
-        else
-        {
-            <Loading />
-        }
-    </div>
-</div>
+}
 
 @code
 {
-    private List<ProvisioningNode> allNodes = [];
-    private readonly HashSet<string> expandedDeviceTypeIds = [];
-    private readonly HashSet<string> expandedManagerIds = [];
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
-    private ProvisioningNode? SelectedNode;
-    private string? pendingHighlightFieldKey;
+    private ProvisioningSettingsService? service;
+    private ProvisioningNode? root;
+    private ProvisioningLevelForm? form;
+    private readonly HashSet<string> expandedNodeIds = [];
+    private string? pendingHighlightFieldId;
+    private bool saving;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        allNodes = ProvisioningSettingsData.BuildSampleHierarchy();
-        SelectedNode = NodeById(ProvisioningSettingsData.GlobalNodeKey);
+        try
+        {
+            service = new ProvisioningSettingsService(new ProvisioningSettingsManager(apiConnection));
+            List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementDetailsWithoutSecrets);
+            root = await service.LoadHierarchyAsync(managements);
+            await SelectNode(root);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("prov_settings"), userConfig.GetText("E5301"), true);
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (pendingHighlightFieldKey != null)
+        if (pendingHighlightFieldId != null && form != null)
         {
-            string fieldKey = pendingHighlightFieldKey;
-            pendingHighlightFieldKey = null;
-            await JsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", $"prov-field-{fieldKey}");
+            string fieldId = pendingHighlightFieldId;
+            pendingHighlightFieldId = null;
+            await JsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", $"prov-field-{fieldId}");
         }
     }
 
-    private static string FieldRowId(ProvisioningFieldDefinition field) => $"prov-field-{field.Key}";
+    private static string FieldRowId(ProvisioningFieldDefinition field) => $"prov-field-{field.Id}";
+
+    private RenderFragment RenderTreeNode(ProvisioningNode node) =>
+        @<li class="nav-item @(node.Parent == null ? "" : "ms-2")">
+            <button type="button" class="btn btn-sm w-100 text-start mb-1 @(form?.Node == node ? "btn-primary" : "btn-light")"
+                    disabled="@(form?.HasChanges == true && form.Node != node)" @onclick="() => SelectNode(node)">
+                <span class="@NodeIcon(node.Level)"></span> @(node.Parent == null ? userConfig.GetText("prov_global") : node.Name)
+            </button>
+            @if (node.Children.Count > 0 && (node.Parent == null || expandedNodeIds.Contains(node.Id)))
+            {
+                <ul class="list-unstyled">
+                    @foreach (ProvisioningNode child in node.Children)
+                    {
+                        @RenderTreeNode(child)
+                    }
+                </ul>
+            }
+        </li>;
+
+    private static string NodeIcon(ProvisioningScopeType level) => level switch
+    {
+        ProvisioningScopeType.Global => Icons.Settings,
+        ProvisioningScopeType.Gateway => Icons.Gateway,
+        _ => Icons.Management
+    };
+
+    /// <summary>Loads the given node's form and expands the tree down to it. Blocked while there are unsaved edits.</summary>
+    private async Task SelectNode(ProvisioningNode node)
+    {
+        if (service == null || (form?.HasChanges == true && form.Node != node))
+        {
+            return;
+        }
+
+        foreach (ProvisioningNode ancestor in node.SelfAndAncestors())
+        {
+            expandedNodeIds.Add(ancestor.Id);
+        }
+
+        try
+        {
+            form = null;
+            form = await service.LoadFormAsync(node);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("prov_settings"), userConfig.GetText("E5301"), true);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (service == null || form == null)
+        {
+            return;
+        }
+
+        saving = true;
+        try
+        {
+            await service.SaveAsync(form);
+            form = await service.LoadFormAsync(form.Node);
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("prov_settings"), "", true);
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private static void ToggleOverride(ProvisioningFieldState state, bool overrideHere)
+    {
+        if (overrideHere)
+        {
+            state.Override();
+        }
+        else
+        {
+            state.Inherit();
+        }
+    }
+
+    private ProvisioningNode? SourceNode(ProvisioningFieldState state) =>
+        root == null || state.InheritedSource == null ? null : ProvisioningSettingsData.FindNode(root, state.InheritedSource);
 
     /// <summary>Jumps to the node a field's value is currently inherited from, so it can be edited there.</summary>
-    private void NavigateToSource(ProvisioningFieldDefinition field, ProvisioningNode sourceNode)
+    private async Task NavigateToSource(ProvisioningFieldDefinition field, ProvisioningNode sourceNode)
     {
-        if (SelectedNode == null || sourceNode.Id == SelectedNode.Id)
+        if (form == null || sourceNode == form.Node || form.HasChanges)
         {
             return;
         }
 
-        SelectNode(sourceNode);
-        pendingHighlightFieldKey = field.Key;
-    }
-
-    private ProvisioningNode? NodeById(string id) => ProvisioningSettingsData.NodeById(allNodes, id);
-
-    private ProvisioningNode? ParentOf(ProvisioningNode node) => allNodes.FirstOrDefault(n => n.NodeId == node.ParentNodeId);
-
-    private void SelectGlobal() => SelectNode(NodeById(ProvisioningSettingsData.GlobalNodeKey));
-
-    private void SelectNode(ProvisioningNode? node)
-    {
-        if (node == null)
-        {
-            return;
-        }
-
-        SelectedNode = node;
-
-        if (node.Level == ProvisioningScopeType.DeviceType)
-        {
-            expandedDeviceTypeIds.Add(node.Id);
-        }
-        else if (node.Level == ProvisioningScopeType.Management)
-        {
-            ProvisioningNode? deviceType = ParentOf(node);
-            if (deviceType != null)
-            {
-                expandedDeviceTypeIds.Add(deviceType.Id);
-            }
-            expandedManagerIds.Add(node.Id);
-        }
-        else if (node.Level == ProvisioningScopeType.Gateway)
-        {
-            ProvisioningNode? manager = ParentOf(node);
-            if (manager != null)
-            {
-                expandedManagerIds.Add(manager.Id);
-                ProvisioningNode? deviceType = ParentOf(manager);
-                if (deviceType != null)
-                {
-                    expandedDeviceTypeIds.Add(deviceType.Id);
-                }
-            }
-        }
-    }
-
-    private IEnumerable<(ProvisioningNode node, bool isLast)> BreadcrumbChain()
-    {
-        if (SelectedNode == null)
-        {
-            yield break;
-        }
-
-        List<ProvisioningNode> chain = ProvisioningSettingsData.GetAncestryChain(allNodes, SelectedNode);
-        chain.Reverse();
-        for (int i = 0; i < chain.Count; i++)
-        {
-            yield return (chain[i], i == chain.Count - 1);
-        }
-    }
-
-    private IEnumerable<ProvisioningFieldDefinition> VisibleFields()
-    {
-        if (SelectedNode == null)
-        {
-            yield break;
-        }
-
-        foreach (ProvisioningFieldDefinition field in ProvisioningSettingsData.Fields)
-        {
-            if (!field.AppliesToLevel(SelectedNode.Level))
-            {
-                continue;
-            }
-
-            if (field.FortiManagerOnly && SelectedNode.DeviceTypeGroup != ProvisioningDeviceTypeGroups.FortiManager)
-            {
-                continue;
-            }
-
-            yield return field;
-        }
-    }
-
-    /// <summary>Clears the field on the selected scope, reverting it back to its inherited value.</summary>
-    private void ResetOverride(ProvisioningFieldDefinition field)
-    {
-        if (SelectedNode == null || SelectedNode.Level == ProvisioningScopeType.Global)
-        {
-            return;
-        }
-
-        field.Clear(SelectedNode.Settings);
-    }
-
-    private string GetOverrideValue(ProvisioningFieldDefinition field)
-    {
-        return SelectedNode != null && field.IsSetOn(SelectedNode.Settings) ? field.Read(SelectedNode.Settings) : field.DefaultValue;
-    }
-
-    private void SetOverrideValue(ProvisioningFieldDefinition field, string value)
-    {
-        if (SelectedNode != null)
-        {
-            field.Write(SelectedNode.Settings, value);
-        }
+        await SelectNode(sourceNode);
+        pendingHighlightFieldId = field.Id;
     }
 
     private string LevelLabel(ProvisioningScopeType level) => level switch
@@ -292,11 +266,10 @@
     };
 
     /// <summary>
-    /// Renders a field's control. Always editable, whether the field currently shows the
-    /// "set here" value or the inherited one - editing an inherited value overrides it at
-    /// the selected node via <paramref name="onChange"/>.
+    /// Renders a field's control. Read-only while the field inherits its value; switching on
+    /// "override here" makes it editable and reports edits via <paramref name="onChange"/>.
     /// </summary>
-    private RenderFragment RenderEditor(ProvisioningFieldDefinition field, string value, Action<string> onChange) => builder =>
+    private RenderFragment RenderEditor(ProvisioningFieldDefinition field, string value, bool disabled, Action<string> onChange) => builder =>
     {
         Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> changeCallback =
             Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e => onChange(e.Value?.ToString() ?? ""));
@@ -308,6 +281,7 @@
                 builder.AddAttribute(1, "class", "form-select form-select-sm w-auto");
                 builder.AddAttribute(2, "value", value);
                 builder.AddAttribute(3, "onchange", changeCallback);
+                builder.AddAttribute(4, "disabled", disabled);
                 foreach (ProvisioningFieldOption option in field.Options)
                 {
                     builder.OpenElement(5, "option");
@@ -325,109 +299,12 @@
                 builder.AddAttribute(3, "placeholder", userConfig.GetText("prov_templates_placeholder"));
                 builder.AddAttribute(4, "value", value);
                 builder.AddAttribute(5, "onchange", changeCallback);
-                builder.CloseElement();
-                break;
-
-            case ProvisioningFieldKind.MultiSelectTags:
-                builder.OpenElement(0, "div");
-                builder.OpenElement(1, "input");
-                builder.AddAttribute(2, "type", "text");
-                builder.AddAttribute(3, "class", "form-control form-control-sm");
-                builder.AddAttribute(4, "placeholder", userConfig.GetText("prov_tags_placeholder"));
-                builder.AddAttribute(5, "value", value);
-                builder.AddAttribute(6, "onchange", changeCallback);
-                builder.CloseElement();
-
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    builder.OpenElement(8, "div");
-                    builder.AddAttribute(9, "class", "mt-1");
-                    foreach (string tag in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    {
-                        builder.OpenElement(10, "span");
-                        builder.AddAttribute(11, "class", "badge bg-secondary me-1");
-                        builder.AddContent(12, tag);
-                        builder.CloseElement();
-                    }
-                    builder.CloseElement();
-                }
+                builder.AddAttribute(6, "disabled", disabled);
                 builder.CloseElement();
                 break;
 
             case ProvisioningFieldKind.StringList:
-                {
-                    List<string> ParseList() => value.Split(',', StringSplitOptions.TrimEntries).ToList();
-                    string BuildValue(List<string> items) => string.Join(",", items);
-
-                    List<string> items = ParseList();
-
-                    builder.OpenElement(0, "div");
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        int idx = i;
-                        Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.ChangeEventArgs> itemChangeCallback =
-                            Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this, e =>
-                            {
-                                List<string> current = ParseList();
-                                if (idx < current.Count)
-                                {
-                                    current[idx] = e.Value?.ToString() ?? "";
-                                    onChange(BuildValue(current));
-                                }
-                            });
-
-                        Microsoft.AspNetCore.Components.EventCallback removeCallback =
-                            Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, () =>
-                            {
-                                List<string> current = ParseList();
-                                if (idx < current.Count)
-                                {
-                                    current.RemoveAt(idx);
-                                    onChange(BuildValue(current));
-                                }
-                            });
-
-                        builder.OpenElement(1, "div");
-                        builder.AddAttribute(2, "class", "d-flex mb-1 gap-1");
-
-                        builder.OpenElement(3, "input");
-                        builder.AddAttribute(4, "type", "text");
-                        builder.AddAttribute(5, "class", "form-control form-control-sm");
-                        builder.AddAttribute(6, "value", items[idx]);
-                        builder.AddAttribute(7, "onchange", itemChangeCallback);
-                        builder.CloseElement();
-
-                        builder.OpenElement(8, "button");
-                        builder.AddAttribute(9, "type", "button");
-                        builder.AddAttribute(10, "class", "btn btn-sm btn-danger");
-                        builder.AddAttribute(11, "onclick", removeCallback);
-                        builder.OpenElement(12, "span");
-                        builder.AddAttribute(13, "class", Icons.Delete);
-                        builder.CloseElement();
-                        builder.CloseElement();
-
-                        builder.CloseElement();
-                    }
-
-                    Microsoft.AspNetCore.Components.EventCallback addCallback =
-                        Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, () =>
-                        {
-                            List<string> current = ParseList();
-                            current.Add("");
-                            onChange(BuildValue(current));
-                        });
-
-                    builder.OpenElement(20, "button");
-                    builder.AddAttribute(21, "type", "button");
-                    builder.AddAttribute(22, "class", "btn btn-sm btn-primary");
-                    builder.AddAttribute(23, "onclick", addCallback);
-                    builder.OpenElement(24, "span");
-                    builder.AddAttribute(25, "class", Icons.Add);
-                    builder.CloseElement();
-                    builder.CloseElement();
-
-                    builder.CloseElement();
-                }
+                builder.AddContent(0, RenderStringList(value, disabled, onChange));
                 break;
 
             default:
@@ -436,8 +313,64 @@
                 builder.AddAttribute(2, "class", "form-control form-control-sm w-auto");
                 builder.AddAttribute(3, "value", value);
                 builder.AddAttribute(4, "onchange", changeCallback);
+                builder.AddAttribute(5, "disabled", disabled);
                 builder.CloseElement();
                 break;
         }
+    };
+
+    /// <summary>Renders a list of text inputs with add/remove buttons, stored as a comma separated value.</summary>
+    private RenderFragment RenderStringList(string value, bool disabled, Action<string> onChange) => builder =>
+    {
+        // A plain split keeps one empty row for an empty list, so adding the first entry works.
+        List<string> items = [.. value.Split(',', StringSplitOptions.TrimEntries)];
+        void Update(Action<List<string>> change)
+        {
+            List<string> current = [.. value.Split(',', StringSplitOptions.TrimEntries)];
+            change(current);
+            onChange(string.Join(",", current));
+        }
+
+        builder.OpenElement(0, "div");
+        for (int i = 0; i < items.Count; i++)
+        {
+            int idx = i;
+            builder.OpenElement(1, "div");
+            builder.AddAttribute(2, "class", "d-flex mb-1 gap-1");
+
+            builder.OpenElement(3, "input");
+            builder.AddAttribute(4, "type", "text");
+            builder.AddAttribute(5, "class", "form-control form-control-sm");
+            builder.AddAttribute(6, "value", items[idx]);
+            builder.AddAttribute(7, "disabled", disabled);
+            builder.AddAttribute(8, "onchange", Microsoft.AspNetCore.Components.EventCallback.Factory.Create<Microsoft.AspNetCore.Components.ChangeEventArgs>(this,
+                e => Update(current => { if (idx < current.Count) current[idx] = e.Value?.ToString() ?? ""; })));
+            builder.CloseElement();
+
+            builder.OpenElement(9, "button");
+            builder.AddAttribute(10, "type", "button");
+            builder.AddAttribute(11, "class", "btn btn-sm btn-danger");
+            builder.AddAttribute(12, "disabled", disabled);
+            builder.AddAttribute(13, "onclick", Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this,
+                () => Update(current => { if (idx < current.Count) current.RemoveAt(idx); })));
+            builder.OpenElement(14, "span");
+            builder.AddAttribute(15, "class", Icons.Delete);
+            builder.CloseElement();
+            builder.CloseElement();
+
+            builder.CloseElement();
+        }
+
+        builder.OpenElement(20, "button");
+        builder.AddAttribute(21, "type", "button");
+        builder.AddAttribute(22, "class", "btn btn-sm btn-primary");
+        builder.AddAttribute(23, "disabled", disabled);
+        builder.AddAttribute(24, "onclick", Microsoft.AspNetCore.Components.EventCallback.Factory.Create(this, () => Update(current => current.Add(""))));
+        builder.OpenElement(25, "span");
+        builder.AddAttribute(26, "class", Icons.Add);
+        builder.CloseElement();
+        builder.CloseElement();
+
+        builder.CloseElement();
     };
 }

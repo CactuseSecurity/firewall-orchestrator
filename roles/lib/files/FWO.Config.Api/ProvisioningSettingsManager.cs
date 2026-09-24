@@ -178,6 +178,25 @@ public sealed class ProvisioningSettingsManager
         return persistedScope;
     }
 
+    /// <summary>
+    /// Persists the node of a scope without storing any override, so that child scopes can reference it
+    /// as their parent. Returns the canonical scope of the existing or newly created node.
+    /// </summary>
+    public async Task<ProvisioningSettingsScope> EnsureNodeAsync(ProvisioningSettingsScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ProvisioningSettingsHierarchyValidator.ValidateLocator(scope);
+
+        LoadedHierarchy? persistedHierarchy = await TryLoadPersistedHierarchyAsync(scope);
+        if (persistedHierarchy is not null)
+        {
+            return persistedHierarchy.Scope;
+        }
+
+        LoadedHierarchy hierarchy = await LoadUnpersistedHierarchyAsync(scope);
+        return await UpsertNodeAsync(CreateNodeForUpsert(scope, hierarchy));
+    }
+
     public async Task<IReadOnlyList<ProvisioningSettingsScope>> GetChildrenAsync(long parentNodeId)
     {
         if (parentNodeId <= 0)

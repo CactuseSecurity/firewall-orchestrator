@@ -46,6 +46,10 @@ namespace FWO.Data.Workflow
         [JsonPropertyName("active")]
         public bool Active { get; set; }
 
+        [JsonPropertyName("phase_visibility_mode")]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public PhaseVisibilityMode VisibilityMode { get; set; } = PhaseVisibilityMode.AnyTask;
+
         [JsonPropertyName("lowest_input_state")]
         public int LowestInputState { get; set; }
 

@@ -767,5 +767,8 @@ Not supported any longer are:
 - UI: the log data shown with a modelling connection now fills the browser window. The table takes as many rows per page as the window allows instead of a fixed 25 and follows a window resize, so a maximised window no longer shows a quarter-filled table with a pager below it. A new page size reaches the table only while the first page is shown, so it never moves the user to a different part of the log.
 - UI: auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.
 
-## 9.5.5 - 24.09.2026
+## 9.5.5 - 23.09.2026
+- workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
+
+## 9.5.6 - 24.09.2026
 - add upgrade seed for request task sort configuration

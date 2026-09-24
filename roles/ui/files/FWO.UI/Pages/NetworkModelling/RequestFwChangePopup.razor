@@ -1,4 +1,4 @@
-﻿@using System.Net
+@using System.Net
 @using FWO.Compliance
 @using FWO.Data.Middleware
 @using FWO.Data.Workflow
@@ -123,7 +123,7 @@
     public string LastRequestDate { get; set; } = "";
 
 
-    private CancellationTokenSource varianceTokenSource = new();
+    private CancellationTokenSource? varianceTokenSource;
     private List<WfReqTask> TaskList = [];
     private List<WfReqTask> TaskListSnapshot => [.. TaskList];
     private List<IpProtocol> ipProtos = [];
@@ -191,10 +191,12 @@
                 {
                     // a fresh source per run, because Dispose is also called explicitly while the popup
                     // stays alive; the previous one is released instead of being left to the GC
-                    CancellationTokenSource previousTokenSource = varianceTokenSource;
+                    if (varianceTokenSource != null)
+                    {
+                        await varianceTokenSource.CancelAsync();
+                        varianceTokenSource.Dispose();
+                    }
                     varianceTokenSource = new CancellationTokenSource();
-                    previousTokenSource.Cancel();
-                    previousTokenSource.Dispose();
                     ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi)
                     {
                         CancellationToken = varianceTokenSource.Token
@@ -576,8 +578,11 @@
 
     public void Dispose()
     {
-        // stops a variance analysis that is waiting for the rule_owner mapping run
-        varianceTokenSource.Cancel();
+        // stops a variance analysis that is waiting for the rule_owner mapping run. Set to null
+        // afterwards because Dispose is also called explicitly and has to stay repeatable
+        varianceTokenSource?.Cancel();
+        varianceTokenSource?.Dispose();
+        varianceTokenSource = null;
         try
         {
             foreach (var sub in actTaskSubscriptions)

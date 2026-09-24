@@ -1,4 +1,4 @@
-﻿# Firewall Orchestrator Revision History
+# Firewall Orchestrator Revision History
 
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module

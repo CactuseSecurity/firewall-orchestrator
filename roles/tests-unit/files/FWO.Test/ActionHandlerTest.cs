@@ -127,6 +127,17 @@ namespace FWO.Test
                     UpdatedNotificationLastSentIds = GetVariable<List<int>>(variables, "ids");
                     return Task.FromResult((T)(object)new ReturnId { AffectedRows = UpdateNotificationsLastSentAffectedRows });
                 }
+                if (query == NotificationQueries.insertNotificationLog)
+                {
+                    return Task.FromResult((T)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+                if (query == NotificationQueries.updateNotificationLog)
+                {
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
                 if (query == OwnerQueries.getOwnerResponsibleTypes)
                 {
                     return Task.FromResult((T)(object)new List<OwnerResponsibleType>());
@@ -1012,13 +1023,60 @@ namespace FWO.Test
             };
 
             await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
-
             Assert.Multiple(() =>
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Exception, Is.TypeOf<JsonException>());
                 Assert.That(messages[0].Title, Is.EqualTo("Send Email"));
                 Assert.That(messages[0].ErrorFlag, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SendEmail_LogOnlyWritesLogAndUpdatesTimestampWithoutConfirmingSend()
+        {
+            ActionHandlerTestApiConn apiConn = new()
+            {
+                Notifications = new List<FwoNotification>
+                {
+                    new FwoNotification
+                    {
+                        Id = 42,
+                        NotificationClient = NotificationClient.WfAction,
+                        RecipientTo = EmailRecipientOption.OtherAddresses,
+                        EmailAddressTo = "recipient@example.test",
+                        EmailSubject = "Interface requested",
+                        EmailBody = "The interface was requested.",
+                        Logging = NotificationLoggingMode.LogOnly
+                    }
+                },
+                UpdateNotificationsLastSentAffectedRows = 1
+            };
+            List<(Exception? Exception, string Title, string Message, bool ErrorFlag)> messages = new();
+            WfHandler wfHandler = new(new SimulatedUserConfig(), apiConn, WorkflowPhases.request, null,
+                displayMessage: (exception, title, message, errorFlag) => messages.Add((exception, title, message, errorFlag)));
+            ActionHandler handler = new(apiConn, wfHandler, useInMwServer: true);
+            WfStateAction action = new()
+            {
+                ExternalParams = JsonSerializer.Serialize(new EmailActionParams
+                {
+                    NotificationIds = new List<int> { 42 },
+                    ConfirmSentMail = true,
+                    AttachedContent = EmailAttachedContent.RequestedConnections
+                })
+            };
+
+            await handler.SendEmail(action, new WfTicket(), WfObjectScopes.Ticket, null);
+            List<int> expectedUpdatedNotificationIds = [42];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.getNotifications), Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.insertNotificationLog), Is.EqualTo(1));
+                Assert.That(apiConn.Queries.Count(query => query == StmQueries.getIpProtocols), Is.EqualTo(1));
+                Assert.That(apiConn.UpdatedNotificationLastSentIds, Is.EqualTo(expectedUpdatedNotificationIds));
+                Assert.That(apiConn.Queries.Count(query => query == NotificationQueries.updateNotificationLog), Is.EqualTo(1));
+                Assert.That(messages, Is.Empty);
             });
         }
 
@@ -1333,7 +1391,7 @@ namespace FWO.Test
             ticket.MarkCreatedStateChanged(1);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0])!;
+                .Invoke(handler, [ticket, WfObjectScopes.Ticket, null, 0, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1344,6 +1402,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildWorkflowActionParameters_PropagatesNotificationPlaceholderData()
+        {
+            ActionHandler handler = new(new ActionHandlerTestApiConn(), new WfHandler());
+            WfImplTask implTask = new() { Id = 12, TicketId = 42, StateId = 5 };
+            NotificationPlaceholderData placeholderData = new() { Content = "Rejected because the interface is obsolete." };
+
+            WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 66, placeholderData])!;
+
+            Assert.That(parameters.NotificationPlaceholders, Is.SameAs(placeholderData));
+            Assert.That(parameters.NotificationPlaceholders!.Content, Is.EqualTo("Rejected because the interface is obsolete."));
+        }
+
+        [Test]
         public void BuildWorkflowActionParameters_IncludesWorkflowEmailBundleId()
         {
             WfHandler wfHandler = new();
@@ -1351,7 +1423,7 @@ namespace FWO.Test
             ActionHandler handler = new(new ActionHandlerTestApiConn(), wfHandler);
 
             WorkflowActionParameters parameters = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0])!;
+                .Invoke(handler, [new WfTicket { Id = 42 }, WfObjectScopes.Ticket, null, 0, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1371,13 +1443,13 @@ namespace FWO.Test
             WfApproval approval = new() { Id = 13, StateId = 4 };
 
             WorkflowActionParameters reqParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, null, 5])!;
+                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, null, 5, null])!;
             WorkflowActionParameters implParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 6])!;
+                .Invoke(handler, [implTask, WfObjectScopes.ImplementationTask, null, 6, null])!;
             WorkflowActionParameters approvalParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [approval, WfObjectScopes.Approval, null, 7])!;
+                .Invoke(handler, [approval, WfObjectScopes.Approval, null, 7, null])!;
             WorkflowActionParameters explicitTicketParams = (WorkflowActionParameters)GetPrivateMethod("BuildWorkflowActionParameters")
-                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, 999L, 8])!;
+                .Invoke(handler, [reqTask, WfObjectScopes.RequestTask, 999L, 8, null])!;
 
             Assert.Multiple(() =>
             {
@@ -1818,7 +1890,7 @@ namespace FWO.Test
             public List<long> AttemptedTaskIds { get; } = [];
 
             public override Task<bool> TrySendEmail(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
-                FwoOwner? owner, string? userGrpDn = null)
+                FwoOwner? owner, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
             {
                 long taskId = statefulObject is WfReqTask reqTask ? reqTask.Id : 0;
                 AttemptedTaskIds.Add(taskId);

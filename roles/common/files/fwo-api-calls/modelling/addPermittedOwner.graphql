@@ -5,6 +5,9 @@ mutation addPermittedOwner(
   insert_modelling_permitted_owners(objects: {
     connection_id: $connectionId
     app_id: $appId
+  }, on_conflict: {
+    constraint: permitted_owners_pkey
+    update_columns: []
   }) {
     returning {
       insertedConnectionId: connection_id

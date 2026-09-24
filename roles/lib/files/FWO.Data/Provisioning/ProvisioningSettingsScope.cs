@@ -11,4 +11,6 @@ public sealed class ProvisioningSettingsScope
     public long NodeId { get; set; }
 
     public long? ParentNodeId { get; set; }
+
+    public int? SortOrder { get; set; }
 }

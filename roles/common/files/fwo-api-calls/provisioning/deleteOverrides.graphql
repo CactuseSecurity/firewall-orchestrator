@@ -1,0 +1,10 @@
+mutation deleteOverrides($nodeId: bigint!, $configKeys: [String!]!) {
+  delete_provisioning_config_value(
+    where: {
+      node_id: {_eq: $nodeId}
+      config_key: {_in: $configKeys}
+    }
+  ) {
+    affected_rows
+  }
+}

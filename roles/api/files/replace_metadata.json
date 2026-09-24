@@ -36106,6 +36106,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36122,6 +36123,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36138,6 +36140,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36154,6 +36157,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36170,6 +36174,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36186,6 +36191,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36202,6 +36208,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36218,6 +36225,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",

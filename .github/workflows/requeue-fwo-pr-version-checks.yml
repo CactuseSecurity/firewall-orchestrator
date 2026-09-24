@@ -6,9 +6,9 @@ name: Requeue FWO PR version checks
 on:
   push:
     branches: [develop]
-  # pull_request_target runs the develop copy of this workflow and never checks
-  # out pull request code.
-  pull_request_target:
+  # Only same-repository PRs get a token that may dispatch workflows. Fork PRs
+  # are skipped; they cannot hold an allocated version anyway.
+  pull_request:
     branches: [develop]
     types: [closed, unlabeled]
 
@@ -24,10 +24,11 @@ concurrency:
 jobs:
   requeue:
     if: >-
-      github.event_name == 'push' ||
-      (github.event.action == 'closed' && !github.event.pull_request.merged &&
-        contains(github.event.pull_request.labels.*.name, 'versioned-change')) ||
-      (github.event.action == 'unlabeled' && github.event.label.name == 'versioned-change')
+      github.event_name == 'push' || (
+        github.event.pull_request.head.repo.full_name == github.repository && (
+          (github.event.action == 'closed' && !github.event.pull_request.merged &&
+            contains(github.event.pull_request.labels.*.name, 'versioned-change')) ||
+          (github.event.action == 'unlabeled' && github.event.label.name == 'versioned-change')))
     runs-on: ubuntu-latest
     steps:
       - name: Check out trusted versioning tooling

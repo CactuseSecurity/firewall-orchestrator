@@ -96,7 +96,7 @@ Make the check required only after `main` contains
 | --- | --- | --- |
 | **Allocate FWO PR version** | `/allocate-fwo-version` comment | Reserves the next free version, commits it to the PR branch, and starts validation of that commit |
 | **Validate FWO PR version** | PR events, or dispatch on the PR branch | Checks the versioned files, uniqueness, and merge order |
-| **Requeue FWO PR version checks** | Push to `develop`; closing or unlabelling a labelled PR | Re-runs validation on every other labelled same-repository PR |
+| **Requeue FWO PR version checks** | Push to `develop`; closing or unlabelling a labelled same-repository PR | Re-runs validation on every other labelled same-repository PR |
 | **Test FWO versioning tooling** | Changes to the tooling | Runs the shell and Python tests of the tooling |
 
 Pushes made with the workflow token do not trigger `pull_request` workflows.

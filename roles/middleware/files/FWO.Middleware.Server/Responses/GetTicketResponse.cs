@@ -90,45 +90,88 @@ public sealed class GetTicketResponse
 }
 
 /// <summary>
-/// Represents one request task of a workflow ticket.
+/// Holds the fields shared by request tasks and implementation tasks of a workflow ticket.
 /// </summary>
-public sealed class TicketTaskResponse
+public abstract class TicketTaskResponseBase
 {
+    // System.Text.Json writes derived-type properties first. Pinning the order keeps the identifying
+    // fields at the top of each task and the comments at its end.
+    private const int kSharedFieldsFirst = -1;
+    private const int kCommentsLast = 1;
+
     /// <summary>Gets or sets the database id of the task.</summary>
-    [JsonPropertyName("id")]
+    [JsonPropertyName("id"), JsonPropertyOrder(kSharedFieldsFirst)]
     public long Id { get; set; }
 
-    /// <summary>Gets or sets the number of the task within the ticket.</summary>
-    [JsonPropertyName("taskNumber")]
+    /// <summary>Gets or sets the number of the task within its parent (ticket or request task).</summary>
+    [JsonPropertyName("taskNumber"), JsonPropertyOrder(kSharedFieldsFirst)]
     public int TaskNumber { get; set; }
 
     /// <summary>Gets or sets the task title.</summary>
-    [JsonPropertyName("title")]
+    [JsonPropertyName("title"), JsonPropertyOrder(kSharedFieldsFirst)]
     public string Title { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the task type, e.g. access or group_create.</summary>
-    [JsonPropertyName("taskType")]
+    [JsonPropertyName("taskType"), JsonPropertyOrder(kSharedFieldsFirst)]
     public string TaskType { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the workflow state id of the task.</summary>
-    [JsonPropertyName("stateId")]
+    [JsonPropertyName("stateId"), JsonPropertyOrder(kSharedFieldsFirst)]
     public int StateId { get; set; }
 
     /// <summary>Gets or sets the workflow state name of the task, or the state id when the state has no name.</summary>
-    [JsonPropertyName("state")]
+    [JsonPropertyName("state"), JsonPropertyOrder(kSharedFieldsFirst)]
     public string State { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the request action, e.g. create or delete.</summary>
-    [JsonPropertyName("requestAction")]
-    public string RequestAction { get; set; } = string.Empty;
-
     /// <summary>Gets or sets the rule action id; null when not applicable.</summary>
-    [JsonPropertyName("ruleActionId")]
+    [JsonPropertyName("ruleActionId"), JsonPropertyOrder(kSharedFieldsFirst)]
     public int? RuleActionId { get; set; }
 
     /// <summary>Gets or sets the rule tracking id; null when not applicable.</summary>
-    [JsonPropertyName("trackingId")]
+    [JsonPropertyName("trackingId"), JsonPropertyOrder(kSharedFieldsFirst)]
     public int? TrackingId { get; set; }
+
+    /// <summary>Gets or sets the free text of the task; empty when none is set.</summary>
+    [JsonPropertyName("freeText"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public string FreeText { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the rule validity start; null when none is set.</summary>
+    [JsonPropertyName("start"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public DateTime? Start { get; set; }
+
+    /// <summary>Gets or sets the rule validity end; null when none is set.</summary>
+    [JsonPropertyName("stop"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public DateTime? Stop { get; set; }
+
+    /// <summary>Gets or sets the target begin date; null when none is set.</summary>
+    [JsonPropertyName("targetBeginDate"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public DateTime? TargetBeginDate { get; set; }
+
+    /// <summary>Gets or sets the target end date; null when none is set.</summary>
+    [JsonPropertyName("targetEndDate"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public DateTime? TargetEndDate { get; set; }
+
+    /// <summary>Gets or sets the assigned group (LDAP DN); empty when none is assigned.</summary>
+    [JsonPropertyName("assignedGroup"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public string AssignedGroup { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the user name of the current handler; empty when none is set.</summary>
+    [JsonPropertyName("currentHandlerName"), JsonPropertyOrder(kSharedFieldsFirst)]
+    public string CurrentHandlerName { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the comments of the task, oldest first. Not filterable.</summary>
+    [JsonPropertyName("comments"), JsonPropertyOrder(kCommentsLast)]
+    public List<TicketCommentResponse> Comments { get; set; } = [];
+}
+
+/// <summary>
+/// Represents one request task of a workflow ticket.
+/// </summary>
+public sealed class TicketTaskResponse : TicketTaskResponseBase
+{
+    /// <summary>Gets or sets the request action, e.g. create or delete.</summary>
+    [JsonPropertyName("requestAction")]
+    public string RequestAction { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the task reason, e.g. the violation justification; empty when none is set.</summary>
     [JsonPropertyName("reason")]
@@ -137,26 +180,6 @@ public sealed class TicketTaskResponse
     /// <summary>Gets or sets the stored additional info of the task as JSON text; empty when none is set.</summary>
     [JsonPropertyName("additionalInfo")]
     public string AdditionalInfo { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the free text of the task; empty when none is set.</summary>
-    [JsonPropertyName("freeText")]
-    public string FreeText { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the rule validity start; null when none is set.</summary>
-    [JsonPropertyName("start")]
-    public DateTime? Start { get; set; }
-
-    /// <summary>Gets or sets the rule validity end; null when none is set.</summary>
-    [JsonPropertyName("stop")]
-    public DateTime? Stop { get; set; }
-
-    /// <summary>Gets or sets the target begin date; null when none is set.</summary>
-    [JsonPropertyName("targetBeginDate")]
-    public DateTime? TargetBeginDate { get; set; }
-
-    /// <summary>Gets or sets the target end date; null when none is set.</summary>
-    [JsonPropertyName("targetEndDate")]
-    public DateTime? TargetEndDate { get; set; }
 
     /// <summary>Gets or sets the last recertification date; null when never recertified.</summary>
     [JsonPropertyName("lastRecertDate")]
@@ -173,14 +196,6 @@ public sealed class TicketTaskResponse
     /// <summary>Gets or sets the ids of the selected devices; -1 stands for all devices. Not filterable.</summary>
     [JsonPropertyName("deviceIds")]
     public List<int> DeviceIds { get; set; } = [];
-
-    /// <summary>Gets or sets the assigned group (LDAP DN); empty when none is assigned.</summary>
-    [JsonPropertyName("assignedGroup")]
-    public string AssignedGroup { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the user name of the current handler; empty when none is set.</summary>
-    [JsonPropertyName("currentHandlerName")]
-    public string CurrentHandlerName { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the id of the flow access the task was created from; null when none.</summary>
     [JsonPropertyName("flowAccessId")]
@@ -205,10 +220,6 @@ public sealed class TicketTaskResponse
     /// <summary>Gets or sets the owners assigned to the task. Not filterable.</summary>
     [JsonPropertyName("owners")]
     public List<TicketOwnerResponse> Owners { get; set; } = [];
-
-    /// <summary>Gets or sets the comments of the task, oldest first. Not filterable.</summary>
-    [JsonPropertyName("comments")]
-    public List<TicketCommentResponse> Comments { get; set; } = [];
 }
 
 /// <summary>
@@ -268,32 +279,8 @@ public sealed class TicketApprovalResponse
 /// <summary>
 /// Represents one implementation task of a request task.
 /// </summary>
-public sealed class TicketImplementationTaskResponse
+public sealed class TicketImplementationTaskResponse : TicketTaskResponseBase
 {
-    /// <summary>Gets or sets the database id of the implementation task.</summary>
-    [JsonPropertyName("id")]
-    public long Id { get; set; }
-
-    /// <summary>Gets or sets the number of the implementation task within its request task.</summary>
-    [JsonPropertyName("taskNumber")]
-    public int TaskNumber { get; set; }
-
-    /// <summary>Gets or sets the implementation task title.</summary>
-    [JsonPropertyName("title")]
-    public string Title { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the task type, e.g. access or group_create.</summary>
-    [JsonPropertyName("taskType")]
-    public string TaskType { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the workflow state id of the implementation task.</summary>
-    [JsonPropertyName("stateId")]
-    public int StateId { get; set; }
-
-    /// <summary>Gets or sets the workflow state name, or the state id when the state has no name.</summary>
-    [JsonPropertyName("state")]
-    public string State { get; set; } = string.Empty;
-
     /// <summary>Gets or sets the implementation action, e.g. create or delete.</summary>
     [JsonPropertyName("implementationAction")]
     public string ImplementationAction { get; set; } = string.Empty;
@@ -302,49 +289,9 @@ public sealed class TicketImplementationTaskResponse
     [JsonPropertyName("deviceId")]
     public int? DeviceId { get; set; }
 
-    /// <summary>Gets or sets the rule action id; null when not applicable.</summary>
-    [JsonPropertyName("ruleActionId")]
-    public int? RuleActionId { get; set; }
-
-    /// <summary>Gets or sets the rule tracking id; null when not applicable.</summary>
-    [JsonPropertyName("trackingId")]
-    public int? TrackingId { get; set; }
-
-    /// <summary>Gets or sets the rule validity start; null when none is set.</summary>
-    [JsonPropertyName("start")]
-    public DateTime? Start { get; set; }
-
-    /// <summary>Gets or sets the rule validity end; null when none is set.</summary>
-    [JsonPropertyName("stop")]
-    public DateTime? Stop { get; set; }
-
-    /// <summary>Gets or sets the target begin date; null when none is set.</summary>
-    [JsonPropertyName("targetBeginDate")]
-    public DateTime? TargetBeginDate { get; set; }
-
-    /// <summary>Gets or sets the target end date; null when none is set.</summary>
-    [JsonPropertyName("targetEndDate")]
-    public DateTime? TargetEndDate { get; set; }
-
-    /// <summary>Gets or sets the free text of the implementation task; empty when none is set.</summary>
-    [JsonPropertyName("freeText")]
-    public string FreeText { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the assigned group (LDAP DN); empty when none is assigned.</summary>
-    [JsonPropertyName("assignedGroup")]
-    public string AssignedGroup { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets the user name of the current handler; empty when none is set.</summary>
-    [JsonPropertyName("currentHandlerName")]
-    public string CurrentHandlerName { get; set; } = string.Empty;
-
     /// <summary>Gets or sets the elements of the implementation task.</summary>
     [JsonPropertyName("elements")]
     public List<TicketElementResponse> Elements { get; set; } = [];
-
-    /// <summary>Gets or sets the comments of the implementation task, oldest first.</summary>
-    [JsonPropertyName("comments")]
-    public List<TicketCommentResponse> Comments { get; set; } = [];
 }
 
 /// <summary>

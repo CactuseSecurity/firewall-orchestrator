@@ -117,41 +117,57 @@ public static class TicketResponseMapper
 
     private static TicketTaskResponse MapTask(WfReqTask task, WfStateDict states)
     {
-        return new TicketTaskResponse
+        TicketTaskResponse response = MapTaskBase<TicketTaskResponse>(task, task.Id, task.Comments, states);
+        response.RequestAction = task.RequestAction ?? string.Empty;
+        response.Reason = task.Reason ?? string.Empty;
+        response.AdditionalInfo = task.AdditionalInfo ?? string.Empty;
+        response.LastRecertDate = WallClockTimestamp.NormalizeStored(task.LastRecertDate);
+        response.ManagementId = task.ManagementId;
+        response.ManagementName = task.OnManagement?.Name ?? string.Empty;
+        response.DeviceIds = [.. task.GetDeviceList()];
+        response.FlowAccessId = task.FlowAccessId;
+        response.Locked = task.Locked;
+        response.Elements = (task.Elements ?? []).Where(element => element != null).Select(MapRequestElement).ToList();
+        response.Approvals = (task.Approvals ?? []).Where(approval => approval != null).Select(approval => MapApproval(approval, states)).ToList();
+        response.ImplementationTasks = (task.ImplementationTasks ?? [])
+            .Where(implTask => implTask != null)
+            .OrderBy(implTask => implTask.TaskNumber)
+            .Select(implTask => MapImplementationTask(implTask, states))
+            .ToList();
+        response.Owners = (task.Owners ?? []).Where(owner => owner?.Owner != null).Select(owner => MapOwner(owner)).ToList();
+        return response;
+    }
+
+    /// <summary>
+    /// Maps the fields request tasks and implementation tasks share through <see cref="WfTaskBase"/>.
+    /// </summary>
+    /// <typeparam name="T">Response type of the task.</typeparam>
+    /// <param name="task">Task as loaded from the API.</param>
+    /// <param name="id">Database id of the task, which the shared base type does not carry.</param>
+    /// <param name="comments">Comments of the task, which the shared base type does not carry.</param>
+    /// <param name="states">Workflow state names used to resolve the state id.</param>
+    /// <returns>A response of the requested type with every shared field set.</returns>
+    private static T MapTaskBase<T>(WfTaskBase task, long id, List<WfCommentDataHelper>? comments, WfStateDict states)
+        where T : TicketTaskResponseBase, new()
+    {
+        return new T
         {
-            Id = task.Id,
+            Id = id,
             TaskNumber = task.TaskNumber,
             Title = task.Title ?? string.Empty,
             TaskType = task.TaskType ?? string.Empty,
             StateId = task.StateId,
             State = states.GetName(task.StateId),
-            RequestAction = task.RequestAction ?? string.Empty,
             RuleActionId = task.RuleAction,
             TrackingId = task.Tracking,
-            Reason = task.Reason ?? string.Empty,
-            AdditionalInfo = task.AdditionalInfo ?? string.Empty,
             FreeText = task.FreeText ?? string.Empty,
             Start = WallClockTimestamp.NormalizeStored(task.Start),
             Stop = WallClockTimestamp.NormalizeStored(task.Stop),
             TargetBeginDate = WallClockTimestamp.NormalizeStored(task.TargetBeginDate),
             TargetEndDate = WallClockTimestamp.NormalizeStored(task.TargetEndDate),
-            LastRecertDate = WallClockTimestamp.NormalizeStored(task.LastRecertDate),
-            ManagementId = task.ManagementId,
-            ManagementName = task.OnManagement?.Name ?? string.Empty,
-            DeviceIds = [.. task.GetDeviceList()],
             AssignedGroup = task.AssignedGroup ?? string.Empty,
             CurrentHandlerName = task.CurrentHandler?.Name ?? string.Empty,
-            FlowAccessId = task.FlowAccessId,
-            Locked = task.Locked,
-            Elements = (task.Elements ?? []).Where(element => element != null).Select(MapRequestElement).ToList(),
-            Approvals = (task.Approvals ?? []).Where(approval => approval != null).Select(approval => MapApproval(approval, states)).ToList(),
-            ImplementationTasks = (task.ImplementationTasks ?? [])
-                .Where(implTask => implTask != null)
-                .OrderBy(implTask => implTask.TaskNumber)
-                .Select(implTask => MapImplementationTask(implTask, states))
-                .ToList(),
-            Owners = (task.Owners ?? []).Where(owner => owner?.Owner != null).Select(owner => MapOwner(owner)).ToList(),
-            Comments = MapComments(task.Comments)
+            Comments = MapComments(comments)
         };
     }
 
@@ -176,28 +192,11 @@ public static class TicketResponseMapper
 
     private static TicketImplementationTaskResponse MapImplementationTask(WfImplTask implTask, WfStateDict states)
     {
-        return new TicketImplementationTaskResponse
-        {
-            Id = implTask.Id,
-            TaskNumber = implTask.TaskNumber,
-            Title = implTask.Title ?? string.Empty,
-            TaskType = implTask.TaskType ?? string.Empty,
-            StateId = implTask.StateId,
-            State = states.GetName(implTask.StateId),
-            ImplementationAction = implTask.ImplAction ?? string.Empty,
-            DeviceId = implTask.DeviceId,
-            RuleActionId = implTask.RuleAction,
-            TrackingId = implTask.Tracking,
-            Start = WallClockTimestamp.NormalizeStored(implTask.Start),
-            Stop = WallClockTimestamp.NormalizeStored(implTask.Stop),
-            TargetBeginDate = WallClockTimestamp.NormalizeStored(implTask.TargetBeginDate),
-            TargetEndDate = WallClockTimestamp.NormalizeStored(implTask.TargetEndDate),
-            FreeText = implTask.FreeText ?? string.Empty,
-            AssignedGroup = implTask.AssignedGroup ?? string.Empty,
-            CurrentHandlerName = implTask.CurrentHandler?.Name ?? string.Empty,
-            Elements = (implTask.ImplElements ?? []).Where(element => element != null).Select(MapImplementationElement).ToList(),
-            Comments = MapComments(implTask.Comments)
-        };
+        TicketImplementationTaskResponse response = MapTaskBase<TicketImplementationTaskResponse>(implTask, implTask.Id, implTask.Comments, states);
+        response.ImplementationAction = implTask.ImplAction ?? string.Empty;
+        response.DeviceId = implTask.DeviceId;
+        response.Elements = (implTask.ImplElements ?? []).Where(element => element != null).Select(MapImplementationElement).ToList();
+        return response;
     }
 
     private static TicketElementResponse MapRequestElement(WfReqElement element)

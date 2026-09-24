@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
@@ -306,6 +307,54 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("-3"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeStart"), Is.EqualTo(""));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue("timeEnd"), Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public async Task CreateRequest_ResolvesPositiveFlowObjectIdsIntoWorkflowElements()
+    {
+        DateTime startTime = new(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime endTime = new(2026, 8, 31, 23, 59, 59, DateTimeKind.Utc);
+        FlowRequestServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            FlowNetworkObjects = [new FlowNwObject { Id = 101, Name = "server", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }],
+            FlowNetworkGroups = [new FlowNwGroup { Id = 202, Name = "servers" }],
+            FlowServiceObjects = [new FlowSvcObject { Id = 303, Name = "https", ProtoId = 6, PortStart = 443, PortEnd = 443 }],
+            FlowTimeObjects = [new FlowTimeObject { Id = 404, Name = "maintenance", StartTime = startTime, EndTime = endTime }]
+        };
+
+        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        await service.CreateRequestAsync(new CreateRequestRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow existing Flow objects",
+            Rules =
+            [
+                new CreateRequestRequest.CreateRequestRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [101],
+                    DestinationObjects = [202],
+                    ServiceObjects = [303],
+                    TimeObjectId = 404
+                }
+            ]
+        }, kTrustedCallerId);
+
+        List<WfReqElementWriter> elements = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList;
+        Assert.Multiple(() =>
+        {
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.source.ToString()).FlowNetworkObjectId, Is.EqualTo(101));
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.destination.ToString()).FlowNetworkGroupId, Is.EqualTo(202));
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.service.ToString()).FlowServiceObjectId, Is.EqualTo(303));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
         });
     }
 
@@ -2734,6 +2783,11 @@ internal class FlowRequestServiceTest
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FwoOwner> Owners { get; set; } = [];
         public List<RuleAction> RuleActions { get; set; } = [new RuleAction { Id = 1, Name = "accept", Allowed = true }];
+        public List<FlowNwObject> FlowNetworkObjects { get; set; } = [];
+        public List<FlowNwGroup> FlowNetworkGroups { get; set; } = [];
+        public List<FlowSvcObject> FlowServiceObjects { get; set; } = [];
+        public List<FlowSvcGroup> FlowServiceGroups { get; set; } = [];
+        public List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
         public List<WfExtState> ExtStates { get; set; } = [];
         public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } =
         [
@@ -2829,6 +2883,31 @@ internal class FlowRequestServiceTest
             if (responseType == typeof(List<RuleAction>))
             {
                 return Task.FromResult((QueryResponseType)(object)RuleActions);
+            }
+
+            if (responseType == typeof(List<FlowNwObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowNetworkObjects);
+            }
+
+            if (responseType == typeof(List<FlowNwGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowNetworkGroups);
+            }
+
+            if (responseType == typeof(List<FlowSvcObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowServiceObjects);
+            }
+
+            if (responseType == typeof(List<FlowSvcGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowServiceGroups);
+            }
+
+            if (responseType == typeof(List<FlowTimeObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowTimeObjects);
             }
 
             if (responseType == typeof(List<WorkflowConfiguration>))

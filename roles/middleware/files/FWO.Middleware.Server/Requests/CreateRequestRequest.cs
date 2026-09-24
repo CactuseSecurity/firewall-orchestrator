@@ -98,28 +98,32 @@ public sealed class CreateRequestRequest
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the SourceObjects value.
+        /// Gets the SourceObjects value. Negative ids reference objects declared in this request;
+        /// positive ids reference existing Flow network objects or groups.
         /// </summary>
         [JsonPropertyName("sourceObjects")]
-        public List<int> SourceObjects { get; set; } = [];
+        public List<long> SourceObjects { get; set; } = [];
 
         /// <summary>
-        /// Gets the DestinationObjects value.
+        /// Gets the DestinationObjects value. Negative ids reference objects declared in this request;
+        /// positive ids reference existing Flow network objects or groups.
         /// </summary>
         [JsonPropertyName("destinationObjects")]
-        public List<int> DestinationObjects { get; set; } = [];
+        public List<long> DestinationObjects { get; set; } = [];
 
         /// <summary>
-        /// Gets the ServiceObjects value.
+        /// Gets the ServiceObjects value. Negative ids reference objects declared in this request;
+        /// positive ids reference existing Flow service objects or groups.
         /// </summary>
         [JsonPropertyName("serviceObjects")]
-        public List<int> ServiceObjects { get; set; } = [];
+        public List<long> ServiceObjects { get; set; } = [];
 
         /// <summary>
-        /// Gets the TimeObjectId value.
+        /// Gets the TimeObjectId value. Negative ids reference a time object declared in this request;
+        /// positive ids reference an existing Flow time object.
         /// </summary>
         [JsonPropertyName("timeObjectId")]
-        public int TimeObjectId { get; set; }
+        public long TimeObjectId { get; set; }
 
         /// <summary>
         /// Gets the OwnerId value.
@@ -173,7 +177,7 @@ public sealed class CreateRequestRequest
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.
@@ -185,7 +189,7 @@ public sealed class CreateRequestRequest
         /// Gets the MemberIds value.
         /// </summary>
         [JsonPropertyName("memberIds")]
-        public List<int> MemberIds { get; set; } = [];
+        public List<long> MemberIds { get; set; } = [];
     }
 
     /// <summary>
@@ -235,7 +239,7 @@ public sealed class CreateRequestRequest
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         /// <summary>
         /// Gets the Name value.
@@ -247,7 +251,7 @@ public sealed class CreateRequestRequest
         /// Gets the MemberIds value.
         /// </summary>
         [JsonPropertyName("memberIds")]
-        public List<int> MemberIds { get; set; } = [];
+        public List<long> MemberIds { get; set; } = [];
     }
 
     /// <summary>

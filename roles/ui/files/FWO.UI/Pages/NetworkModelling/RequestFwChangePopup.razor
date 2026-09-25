@@ -123,6 +123,7 @@
     public string LastRequestDate { get; set; } = "";
 
 
+    private CancellationTokenSource? varianceTokenSource;
     private List<WfReqTask> TaskList = [];
     private List<WfReqTask> TaskListSnapshot => [.. TaskList];
     private List<IpProtocol> ipProtos = [];
@@ -188,8 +189,19 @@
                 }
                 else
                 {
-                    ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi);
-                    TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections);
+                    // a fresh source per run, because Dispose is also called explicitly while the popup
+                    // stays alive; the previous one is released instead of being left to the GC
+                    if (varianceTokenSource != null)
+                    {
+                        await varianceTokenSource.CancelAsync();
+                        varianceTokenSource.Dispose();
+                    }
+                    varianceTokenSource = new CancellationTokenSource();
+                    ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, SelectedApp, DisplayMessageInUi)
+                    {
+                        CancellationToken = varianceTokenSource.Token
+                    };
+                    TaskList = await varianceAnalysis.AnalyseModelledConnectionsForRequest(Connections, allowWait: true);
                     PlannedAppZoneDbUpdate = varianceAnalysis.PlannedAppZoneDbUpdate;
                 }
             }
@@ -566,6 +578,11 @@
 
     public void Dispose()
     {
+        // stops a variance analysis that is waiting for the rule_owner mapping run. Set to null
+        // afterwards because Dispose is also called explicitly and has to stay repeatable
+        varianceTokenSource?.Cancel();
+        varianceTokenSource?.Dispose();
+        varianceTokenSource = null;
         try
         {
             foreach (var sub in actTaskSubscriptions)

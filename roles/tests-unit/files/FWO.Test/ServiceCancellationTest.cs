@@ -1,6 +1,7 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Config.File;
 using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Middleware.Server;
@@ -10,6 +11,7 @@ using FWO.Services.Modelling;
 using FWO.Services.Workflow;
 using NUnit.Framework;
 using System.Reflection;
+using System.Text.Json;
 
 namespace FWO.Test
 {
@@ -86,6 +88,66 @@ namespace FWO.Test
             Assert.ThrowsAsync<OperationCanceledException>(async () =>
                 await (Task)importApps.Invoke(import, ["apps.json", new OwnerChangeImportTracker(apiConnection), CanceledToken()])!);
             Assert.That(apiConnection.Queries, Does.Not.Contain(OwnerQueries.deactivateOwner));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void AppDataImport_CanceledDuringFirstSource_StopsBeforeNextSourceAndDeactivation()
+        {
+            string fwoHome = Path.Combine(Path.GetTempPath(), $"fwo-app-data-cancel-{Guid.NewGuid():N}");
+            (object? Data, object? JwtPrivateKey, object? JwtPublicKey)? configSnapshot = null;
+            try
+            {
+                Directory.CreateDirectory(fwoHome);
+                configSnapshot = SnapshotConfigFileState();
+                ConfigureAllowedCustomizationRoots(fwoHome);
+                string customizationRoot = Path.Combine(fwoHome, "etc");
+                Directory.CreateDirectory(customizationRoot);
+                string sourceA = Path.Combine(customizationRoot, "apps-a");
+                string sourceB = Path.Combine(customizationRoot, "apps-b");
+                File.WriteAllText(sourceA + ".json", JsonSerializer.Serialize(new ModellingImportOwnerData { Owners = [] }));
+                File.WriteAllText(sourceB + ".json", JsonSerializer.Serialize(new ModellingImportOwnerData { Owners = [] }));
+
+                using CancellationTokenSource cancellationTokenSource = new();
+                RecordingApiConnection apiConnection = new()
+                {
+                    Responses =
+                    {
+                        [AuthQueries.getLdapConnections] = new List<Ldap>
+                        {
+                            new() { Id = 1, UserSearchPath = "dc=fworch,dc=internal", GroupSearchPath = "ou=groups,dc=fworch,dc=internal" }
+                        }
+                    },
+                    OnQuery = { [OwnerQueries.getOwnersWithNetworks] = cancellationTokenSource.Cancel }
+                };
+                SimulatedGlobalConfig globalConfig = new()
+                {
+                    ImportAppDataPath = JsonSerializer.Serialize(new List<string> { sourceA, sourceB })
+                };
+                using AppDataImport import = new(apiConnection, globalConfig);
+
+                Assert.ThrowsAsync<OperationCanceledException>(async () => await import.Run(cancellationTokenSource.Token));
+
+                Assert.Multiple(() =>
+                {
+                    Assert.That(apiConnection.Queries.Count(query => query == OwnerQueries.getOwnersWithNetworks), Is.EqualTo(1),
+                        "the second source is not imported after the cancellation");
+                    Assert.That(apiConnection.Queries, Does.Not.Contain(OwnerQueries.deactivateOwner));
+                    Assert.That(apiConnection.Queries, Does.Not.Contain(MonitorQueries.addDataImportLogEntry),
+                        "a canceled source is neither logged as imported nor as failed");
+                });
+            }
+            finally
+            {
+                if (configSnapshot is { } snapshot)
+                {
+                    RestoreConfigFileState(snapshot.Data, snapshot.JwtPrivateKey, snapshot.JwtPublicKey);
+                }
+                if (Directory.Exists(fwoHome))
+                {
+                    Directory.Delete(fwoHome, recursive: true);
+                }
+            }
         }
 
         [Test]
@@ -168,6 +230,34 @@ namespace FWO.Test
             FieldInfo field = target.GetType().GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
                 ?? throw new MissingFieldException(target.GetType().FullName, fieldName);
             field.SetValue(target, value);
+        }
+
+        private static void ConfigureAllowedCustomizationRoots(string fwoHome)
+        {
+            string configFilePath = Path.Combine(fwoHome, "config.json");
+            string privateKeyPath = Path.Combine(fwoHome, "private.pem");
+            string publicKeyPath = Path.Combine(fwoHome, "public.pem");
+            File.WriteAllText(configFilePath, $"{{\"fworch_home\":\"{fwoHome.Replace("\\", "\\\\")}\"}}");
+            File.WriteAllText(privateKeyPath, "");
+            File.WriteAllText(publicKeyPath, "");
+            TestHelper.InvokeMethod<ConfigFile, object?>("Read", [configFilePath, privateKeyPath, publicKeyPath]);
+        }
+
+        private static (object? Data, object? JwtPrivateKey, object? JwtPublicKey) SnapshotConfigFileState()
+        {
+            Type configFileType = typeof(ConfigFile);
+            object? data = configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPrivateKey = configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            object? jwtPublicKey = configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null);
+            return (data, jwtPrivateKey, jwtPublicKey);
+        }
+
+        private static void RestoreConfigFileState(object? data, object? jwtPrivateKey, object? jwtPublicKey)
+        {
+            Type configFileType = typeof(ConfigFile);
+            configFileType.GetProperty("Data", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, data);
+            configFileType.GetField("jwtPrivateKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPrivateKey);
+            configFileType.GetField("jwtPublicKey", BindingFlags.Static | BindingFlags.NonPublic)!.SetValue(null, jwtPublicKey);
         }
 
         /// <summary>

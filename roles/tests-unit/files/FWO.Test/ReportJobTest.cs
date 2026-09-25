@@ -531,6 +531,44 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GenerateReport_CompletedGeneration_ArchivesReportAndHandsItToNotifications()
+        {
+            ReportJobApiConnection schedulerConnection = new();
+            UserContextApiConnection userConnection = new();
+            UserContextReportJob reportJob = CreateUserContextReportJob(schedulerConnection, userConnection);
+            MethodInfo generateReport = GetPrivateInstanceMethod("GenerateReport");
+
+            await (Task)generateReport.Invoke(reportJob, [CreateArchivedOwnersReportSchedule(), new DateTime(2026, 4, 21, 10, 0, 0), CancellationToken.None])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConnection.Queries, Does.Contain(ReportQueries.addGeneratedReport));
+                Assert.That(schedulerConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
+        public async Task GenerateReport_CanceledDuringGeneration_NeitherArchivesNorSendsReport()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            ReportJobApiConnection schedulerConnection = new();
+            UserContextApiConnection userConnection = new()
+            {
+                OnQuery = { [ReportQueries.countReportSchedule] = cancellationTokenSource.Cancel }
+            };
+            UserContextReportJob reportJob = CreateUserContextReportJob(schedulerConnection, userConnection);
+            MethodInfo generateReport = GetPrivateInstanceMethod("GenerateReport");
+
+            await (Task)generateReport.Invoke(reportJob, [CreateArchivedOwnersReportSchedule(), new DateTime(2026, 4, 21, 10, 0, 0), cancellationTokenSource.Token])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConnection.Queries, Does.Not.Contain(ReportQueries.addGeneratedReport));
+                Assert.That(schedulerConnection.Queries, Does.Not.Contain(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
         public async Task ProcessScheduledReport_InactiveSchedule_DoesNothing()
         {
             MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
@@ -636,6 +674,63 @@ namespace FWO.Test
 
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await (Task)saveReportToArchive.Invoke(null, [reportFile, "description", apiConnection])!);
+        }
+
+        private static UserContextReportJob CreateUserContextReportJob(ApiConnection schedulerConnection, ApiConnection userConnection)
+        {
+            SetApiServerUri("http://unit-test");
+            return new UserContextReportJob(schedulerConnection, userConnection);
+        }
+
+        private static ReportSchedule CreateArchivedOwnersReportSchedule()
+        {
+            return new()
+            {
+                Id = 17,
+                Name = "scheduled-report",
+                Archive = true,
+                OutputFormat = [new() { Name = GlobalConst.kJson }],
+                Notifications = [new FwoNotification { Id = 3, Active = false }],
+                ScheduleOwningUser = new UiUser
+                {
+                    DbId = 42,
+                    Name = "report-user"
+                },
+                Template = new ReportTemplate
+                {
+                    Id = 7,
+                    ReportParams = new ReportParams
+                    {
+                        ReportType = (int)ReportType.Owners
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Generates reports with a given user context instead of authorizing the schedule owning user against the API server.
+        /// </summary>
+        private sealed class UserContextReportJob(ApiConnection schedulerConnection, ApiConnection userConnection)
+            : ReportJob(schedulerConnection, new JwtWriter(new RsaSecurityKey(RSA.Create())))
+        {
+            protected override Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
+            {
+                return Task.FromResult<(ApiConnection?, UserConfig?)>((userConnection, UserConfig.ForTextOnly(new SimulatedGlobalConfig())));
+            }
+        }
+
+        private sealed class UserContextApiConnection : JobTestApiConnectionBase
+        {
+            public Dictionary<string, Action> OnQuery { get; } = [];
+
+            protected override Task<QueryResponseType> HandleQueryAsync<QueryResponseType>(string query, object? variables, string? operationName, FWO.Api.Client.QueryChunkingOptions? chunkingOptions)
+            {
+                if (OnQuery.TryGetValue(query, out Action? onQuery))
+                {
+                    onQuery();
+                }
+                return ReturnEmptyOrDefault<QueryResponseType>();
+            }
         }
 
         private static T GetAnonymousProperty<T>(object obj, string propertyName)

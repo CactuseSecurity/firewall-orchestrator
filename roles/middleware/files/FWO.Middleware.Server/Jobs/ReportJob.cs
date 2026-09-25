@@ -178,7 +178,11 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
+        /// <summary>
+        /// Authorizes the schedule owning user and builds the API connection and user config the report is generated with.
+        /// </summary>
+        /// <returns>Both null if the report must not be generated for this user.</returns>
+        protected virtual async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
             List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);

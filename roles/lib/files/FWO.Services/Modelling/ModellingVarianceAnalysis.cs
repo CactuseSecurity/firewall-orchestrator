@@ -58,7 +58,7 @@ namespace FWO.Services.Modelling
         /// Cancels a wait for the rule_owner mapping job, for instance when the user navigates away.
         /// Callers without a token leave the default, which never cancels.
         /// </summary>
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// Writes a fall back from the rule_owner prefilter to the marker query into the database log.
@@ -206,13 +206,14 @@ namespace FWO.Services.Modelling
         /// <param name="allowWait">
         /// True where somebody waits for the result, see <see cref="AnalyseConnsForStatus"/>.
         /// </param>
-        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections, bool allowWait = false)
+        /// <param name="cancellationToken">Stops the whole analysis, see <see cref="AnalyseConnsForStatus"/>.</param>
+        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections, bool allowWait = false, CancellationToken cancellationToken = default)
         {
             appServerComparer = new(namingConvention);
             await InitManagements();
             await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait });
-            await GetNwObjectsProductionState();
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait }, cancellationToken);
+            await GetNwObjectsProductionState(cancellationToken);
             await GetDeletedConnections();
 
             TaskList = [];

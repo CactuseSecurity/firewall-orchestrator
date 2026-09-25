@@ -188,7 +188,7 @@ namespace FWO.Report
                 CancellationToken = run.Token,
                 WaitState = run.RuleOwnerWaitState
             };
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter, cancellationToken: run.Token);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;
             ownerReport.MissingAppRoles = result.MissingAppRoles;

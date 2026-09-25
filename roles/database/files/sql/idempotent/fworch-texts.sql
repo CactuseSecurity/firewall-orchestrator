@@ -589,6 +589,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
     <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
     <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
+    <li>Der Soll-Ist-Abgleich nutzt die Eigent&uuml;merzuordnung der Regeln nun deutlich h&auml;ufiger als schnellen Weg: Ein Import ohne Regel&auml;nderungen blockiert sie nicht mehr, und wo jemand auf das Ergebnis wartet, wartet der Abgleich kurz auf eine ausstehende Zuordnung, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Die Wartezeit stellt die neue Einstellung "Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung" ein, 0 schaltet sie ab. Eine laufende vollst&auml;ndige Neuberechnung der Zuordnung wird nun erkannt, sodass der Abgleich w&auml;hrenddessen keine unvollst&auml;ndigen Ergebnisse mehr liefert.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -616,6 +617,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
     <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
     <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
+    <li>The variance analysis now uses the rule owner mapping as its fast path far more often: an import without rule changes no longer blocks it, and where somebody is waiting for the result the analysis waits briefly for a pending mapping run instead of falling back to the much slower marker search. The new setting "Wait time for rule owner mapping" caps that wait, 0 disables it. A running full recalculation of the mapping is now detected, so the analysis no longer returns incomplete results while it runs.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2787,6 +2789,8 @@ INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','German',  'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (nur Quelle Namensfeld)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','English', 'Wait time for rule owner mapping (source Name field only)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'German', 	'Flow-Sync-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'English', 'Flow sync sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
@@ -4446,6 +4450,8 @@ INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht model
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
+INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
+INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -6801,6 +6807,8 @@ INSERT INTO txt VALUES ('H5485b', 'German', 'Flow-Sync-Intervall (in Sekunden): 
 INSERT INTO txt VALUES ('H5485b', 'English','Flow sync sleep time (in seconds): Time between checking the import_control table and updating the flow schema if required. 0 disables the job.');
 INSERT INTO txt VALUES ('H5485c', 'German', 'Einstellungen f&uuml;r Trigger zur Synchronisierung von Flow-Daten');
 INSERT INTO txt VALUES ('H5485c', 'English','Flow Sync Event Trigger Settings');
+INSERT INTO txt VALUES ('H5485d', 'German', 'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (in Sekunden): Wirkt nur bei der Zuordnungsquelle Namensfeld. Steht eine Zuordnung noch aus, wartet der Soll-Ist-Abgleich h&ouml;chstens so lange darauf, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Der Wert sollte zum Aktualisierungs-Intervall dar&uuml;ber passen. 0 schaltet das Warten ab.');
+INSERT INTO txt VALUES ('H5485d', 'English','Wait time for rule owner mapping (in seconds): Only effective for the Name field mapping source. While a mapping is still pending, the variance analysis waits at most this long for it instead of falling back to the much slower marker search. The value should match the update interval above. 0 disables waiting.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
 INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');

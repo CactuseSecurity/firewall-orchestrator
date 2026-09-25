@@ -1,0 +1,17 @@
+# A full reinitialize that is currently replacing the whole rule_owner mapping.
+#
+# It cannot appear in getPendingRuleOwnerImports because successful_import stays false while it
+# runs, so without this query the variance analysis would read a half-rebuilt mapping and report
+# implemented connections as not implemented.
+#
+# The cutoff ignores a control record whose completion failed: stop_time would stay null forever
+# and the prefilter would be disabled permanently. Import type 3 = admin via reinitialize button.
+query getRunningRuleOwnerRebuild($rebuildCutoff: timestamp!) {
+  import_control(where: {
+    import_type_id: {_eq: 3}
+    stop_time: {_is_null: true}
+    start_time: {_gt: $rebuildCutoff}
+  }) {
+    control_id
+  }
+}

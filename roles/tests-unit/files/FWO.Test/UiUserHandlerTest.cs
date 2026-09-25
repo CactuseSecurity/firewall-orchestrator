@@ -268,7 +268,7 @@ namespace FWO.Test
         [Test]
         public void SynchronizeUiUserContext_WhenApiCannotBeReached_PropagatesAndDoesNotUpsert()
         {
-            ThrowingUserLookupApiConnection apiConnection = new();
+            UnreachableApiConnection apiConnection = new(AuthQueries.getUserByDn);
             UiUser user = new()
             {
                 Name = "api-down-user",
@@ -282,6 +282,33 @@ namespace FWO.Test
             {
                 Assert.That(exception.Message, Does.Contain("connection reset by peer"));
                 Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getUserByDn));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        /// <summary>
+        /// Losing the API while recording the login used to be swallowed and answered with
+        /// "password must be changed", sending the user to the password form for a transport
+        /// failure. It has to surface as the API failure it is.
+        /// </summary>
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiIsLostDuringLastLoginUpdate_PropagatesInsteadOfForcingPasswordChange()
+        {
+            UnreachableApiConnection apiConnection = new(AuthQueries.updateUserLastLogin);
+            UiUser user = new()
+            {
+                Name = "api-down-user",
+                Dn = "uid=api-down-user,ou=users,dc=example,dc=com",
+                PasswordMustBeChanged = false
+            };
+
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: true, createIfMissing: true));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(user.PasswordMustBeChanged, Is.False);
+                Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.updateUserLastLogin));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
             });
         }
@@ -449,17 +476,42 @@ namespace FWO.Test
             }
         }
 
-        private sealed class ThrowingUserLookupApiConnection : SimulatedApiConnection
+        /// <summary>
+        /// Finds an existing user, then loses the API at <see cref="failingQuery"/>. Any query
+        /// after that point fails the test, because nothing may run once the API is gone.
+        /// </summary>
+        private sealed class UnreachableApiConnection : SimulatedApiConnection
         {
+            private readonly string failingQuery;
+
+            public UnreachableApiConnection(string failingQuery)
+            {
+                this.failingQuery = failingQuery;
+            }
+
             public List<string> Queries { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 Queries.Add(query);
 
-                if (query == AuthQueries.getUserByDn)
+                if (query == failingQuery)
                 {
                     throw new HttpRequestException("connection reset by peer");
+                }
+
+                if (query == AuthQueries.getUserByDn)
+                {
+                    object existingUsers = new UiUser[]
+                    {
+                        new()
+                        {
+                            DbId = 42,
+                            Name = "api-down-user",
+                            Dn = "uid=api-down-user,ou=users,dc=example,dc=com"
+                        }
+                    };
+                    return Task.FromResult((QueryResponseType)existingUsers);
                 }
 
                 throw new AssertionException($"Unexpected query after unreachable API: {query}");

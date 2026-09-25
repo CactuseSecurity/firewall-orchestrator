@@ -34,6 +34,10 @@ namespace FWO.Test
         private static readonly string[] kLoginUserCn = { "login-user" };
         private static readonly string[] kLoginUserDn = { "uid=login-user,ou=users,dc=fworch,dc=internal" };
         private static readonly string[] kReporterRoleValues = { Roles.Reporter };
+        // Upper bound for a single refresh test. Every refresh goes through the process-wide
+        // refresh-token lock, so a lock that is never released must fail the affected test
+        // instead of hanging every later test that uses the same token.
+        private const int kRefreshTestTimeoutMs = 10_000;
         private static readonly RefreshTokenInfo[] kRefreshTokenUserId7 = { new() { UserId = 7 } };
         private static readonly UiUser[] kTokenUser = { new() { DbId = 7, Name = "token-user" } };
         private static readonly UiUser[] kLoginUserResult =
@@ -175,22 +179,24 @@ namespace FWO.Test
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReturnsBadRequest_WhenTokenIsMissing()
         {
             AuthenticationTokenController controller = CreateController();
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest());
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest());
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)result.Result!).Value, Is.EqualTo("Refresh token is required"));
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReturnsBadRequest_WhenRequestIsNull()
         {
             AuthenticationTokenController controller = CreateController();
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(null!);
+            ActionResult<TokenPair> result = await RefreshAsync(controller, null!);
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
         }
@@ -216,6 +222,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReturnsUnauthorizedWhenRefreshTokenIsUnknown()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -223,13 +230,14 @@ namespace FWO.Test
                 NextResult = Array.Empty<RefreshTokenInfo>()
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
             Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("Invalid or expired refresh token"));
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReturnsUnauthorizedWhenUserCannotBeFound()
         {
             RecordingApiConnection apiConnection = new();
@@ -237,16 +245,18 @@ namespace FWO.Test
             apiConnection.QueueResult(Array.Empty<UiUser>());
             AuthenticationTokenController controller = CreateController(apiConnection);
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>());
             Assert.That(((UnauthorizedObjectResult)result.Result!).Value, Is.EqualTo("User not found"));
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_WithConcurrentRequestsForSameToken_OnlyOneRebuildsAndRotates()
         {
             const int requestCount = 40;
+            CancellationToken cancellationToken = TestContext.CurrentContext.CancellationToken;
             int tokenIsLive = 1;
             int userQueryCount = 0;
             int revokeCount = 0;
@@ -275,7 +285,7 @@ namespace FWO.Test
                         userQueryEntered.TrySetResult();
                         try
                         {
-                            releaseUserQuery.Task.GetAwaiter().GetResult();
+                            releaseUserQuery.Task.Wait(cancellationToken);
                             return kLoginUserResult;
                         }
                         finally
@@ -316,7 +326,7 @@ namespace FWO.Test
             {
                 releaseUserQuery.TrySetResult();
             }
-            ActionResult<TokenPair>[] results = await Task.WhenAll(refreshTasks);
+            ActionResult<TokenPair>[] results = await Task.WhenAll(refreshTasks).WaitAsync(cancellationToken);
 
             int successCount = results.Count(result => result.Result is OkObjectResult);
             int unauthorizedCount = results.Count(result => result.Result is UnauthorizedObjectResult);
@@ -329,10 +339,103 @@ namespace FWO.Test
                 Assert.That(revokeCount, Is.EqualTo(1));
                 Assert.That(storeCount, Is.EqualTo(1));
                 Assert.That(maxActiveUserQueries, Is.EqualTo(1));
+                Assert.That(HasRefreshTokenLock(refreshRequest.RefreshToken), Is.False,
+                    "the last lease must unregister the lock once every waiter is through");
+            });
+        }
+
+        /// <summary>
+        /// A refresh that fails half-way must still hand the lock back; otherwise every later
+        /// attempt with the same token would wait forever instead of being answered.
+        /// </summary>
+        [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
+        public async Task RefreshToken_AfterFailedAttempt_ReleasesLockForSameToken()
+        {
+            const string refreshToken = "lock-release-refresh-token";
+            int userQueryCount = 0;
+
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) =>
+                {
+                    if (query == AuthQueries.getRefreshToken)
+                    {
+                        return kRefreshTokenUserId7;
+                    }
+
+                    if (query == AuthQueries.getUserByDbId)
+                    {
+                        return Interlocked.Increment(ref userQueryCount) == 1
+                            ? throw new HttpRequestException("connection reset by peer")
+                            : kLoginUserResult;
+                    }
+
+                    if (query == AuthQueries.revokeRefreshToken)
+                    {
+                        return new ReturnId { AffectedRows = 1 };
+                    }
+
+                    if (query == AuthQueries.storeRefreshToken)
+                    {
+                        return new ReturnIdWrapper();
+                    }
+
+                    return QueryResponse(query, resultType);
+                }
+            };
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> failedResult = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = refreshToken });
+            bool lockLeftBehind = HasRefreshTokenLock(refreshToken);
+            ActionResult<TokenPair> retriedResult = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = refreshToken });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(((ObjectResult)failedResult.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(lockLeftBehind, Is.False);
+                Assert.That(retriedResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(HasRefreshTokenLock(refreshToken), Is.False);
+            });
+        }
+
+        /// <summary>
+        /// A caller that disconnects while queued behind another refresh with the same token
+        /// must stop waiting, give its place back and not be logged as a failed refresh.
+        /// </summary>
+        [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
+        public async Task RefreshToken_WhenCallerDisconnectsWhileWaiting_StopsWaitingAndLeavesNoLockBehind(CancellationToken cancellationToken)
+        {
+            const string refreshToken = "aborted-refresh-token";
+            string lockKey = GenerateTokenHash(refreshToken);
+            IDisposable holder = (await RefreshTokenLockRegistry.TryAcquireAsync(lockKey, TimeSpan.FromSeconds(1), cancellationToken))!;
+            using CancellationTokenSource requestAborted = new();
+            AuthenticationTokenController controller = CreateController(new RecordingApiConnection());
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { RequestAborted = requestAborted.Token }
+            };
+
+            Task<ActionResult<TokenPair>> waitingRefresh = controller.RefreshToken(new RefreshTokenRequest { RefreshToken = refreshToken });
+            await requestAborted.CancelAsync();
+            ActionResult<TokenPair> result = await waitingRefresh.WaitAsync(cancellationToken);
+            bool trackedWhileHolderRuns = RefreshTokenLockRegistry.IsTracked(lockKey);
+            holder.Dispose();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That((result.Result as ObjectResult)?.StatusCode ?? (result.Result as StatusCodeResult)?.StatusCode,
+                    Is.EqualTo(StatusCodes.Status499ClientClosedRequest));
+                Assert.That(trackedWhileHolderRuns, Is.True, "the holder is still registered");
+                Assert.That(HasRefreshTokenLock(refreshToken), Is.False);
             });
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_WithConcurrentRequestsForDifferentTokens_DoesNotSerializeThem()
         {
             string firstRefreshToken = "first-refresh-token";
@@ -402,7 +505,8 @@ namespace FWO.Test
 
             ActionResult<TokenPair>[] results = await Task.WhenAll(
                 Task.Run(() => controller.RefreshToken(new RefreshTokenRequest { RefreshToken = firstRefreshToken })),
-                Task.Run(() => controller.RefreshToken(new RefreshTokenRequest { RefreshToken = secondRefreshToken })));
+                Task.Run(() => controller.RefreshToken(new RefreshTokenRequest { RefreshToken = secondRefreshToken })))
+                .WaitAsync(TestContext.CurrentContext.CancellationToken);
 
             Assert.Multiple(() =>
             {
@@ -417,6 +521,7 @@ namespace FWO.Test
         /// gets a retryable 503 and a message that says nothing about the internals.
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReportsServiceUnavailableWhenTheApiCannotBeReached()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -424,7 +529,7 @@ namespace FWO.Test
                 ThrowOnQuery = new HttpRequestException("connection reset by peer")
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<ObjectResult>());
             ObjectResult objectResult = (ObjectResult)result.Result!;
@@ -442,6 +547,7 @@ namespace FWO.Test
         /// the test above covers the one in ValidateRefreshToken.
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReportsServiceUnavailableWhenTheUserQueryFails()
         {
             RecordingApiConnection apiConnection = new()
@@ -453,7 +559,7 @@ namespace FWO.Test
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(apiConnection);
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<ObjectResult>());
             Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
@@ -467,6 +573,7 @@ namespace FWO.Test
         /// session over a restart of the API.
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReportsServiceUnavailableWhenTheProxyCannotReachTheApi()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -474,7 +581,7 @@ namespace FWO.Test
                 ThrowOnQuery = CreateGraphQlHttpException(HttpStatusCode.ServiceUnavailable)
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<ObjectResult>(),
                 "a proxy failure must not be reported as a verdict on the refresh token");
@@ -488,6 +595,7 @@ namespace FWO.Test
         /// </summary>
         [TestCase(HttpStatusCode.Forbidden)]
         [TestCase(HttpStatusCode.InternalServerError)]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_DoesNotReportServiceUnavailableForAnApiSideFailure(HttpStatusCode statusCode)
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -495,7 +603,7 @@ namespace FWO.Test
                 ThrowOnQuery = CreateGraphQlHttpException(statusCode)
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             int? reportedStatus = (result.Result as ObjectResult)?.StatusCode;
 
@@ -508,6 +616,7 @@ namespace FWO.Test
         /// expired refresh token".
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_DoesNotInviteARetryAfterTheTokenWasConsumed()
         {
             RecordingApiConnection apiConnection = new()
@@ -521,7 +630,7 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<UnauthorizedObjectResult>(),
                 "the token is spent, so the answer has to be one the client acts on rather than retries");
@@ -545,6 +654,7 @@ namespace FWO.Test
         /// </summary>
         [Test]
         [NonParallelizable] // redirects the process wide Console.Out
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_AuditsTheConsumedTokenWhenNoNewPairCouldBeIssued()
         {
             RecordingApiConnection apiConnection = new()
@@ -560,7 +670,7 @@ namespace FWO.Test
 
             string log = await ConsoleOutput.CaptureAsync(async () =>
             {
-                await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+                await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
             });
 
             // Asserted as one string rather than as two independent contains: the LDAP debug
@@ -576,6 +686,7 @@ namespace FWO.Test
         /// Paired with the test above so that the two branches cannot collapse into one.
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_InvitesARetryBeforeTheTokenWasConsumed()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -583,7 +694,7 @@ namespace FWO.Test
                 ThrowOnQuery = new HttpRequestException("connection reset by peer")
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             string message = ((ObjectResult)result.Result!).Value?.ToString() ?? "";
 
@@ -597,6 +708,7 @@ namespace FWO.Test
         /// a client that believes that discards a refresh token which is perfectly good.
         /// </summary>
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_DoesNotReportAnInvalidTokenWhenTheQueryFails()
         {
             AuthenticationTokenController controller = CreateController(new RecordingApiConnection
@@ -604,7 +716,7 @@ namespace FWO.Test
                 ThrowOnQuery = new InvalidOperationException("permission denied for table refresh_token")
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.Not.TypeOf<UnauthorizedObjectResult>(),
                 "an API fault must not be reported as an invalid refresh token");
@@ -613,6 +725,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_DoesNotExposeApiErrors()
         {
             const string apiError = "permission denied for table refresh_token";
@@ -621,7 +734,7 @@ namespace FWO.Test
                 ThrowOnQuery = new InvalidOperationException(apiError)
             });
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(),
@@ -629,6 +742,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_ReportsAmbiguousConsumptionAsRetryable()
         {
             RecordingApiConnection apiConnection = new()
@@ -642,7 +756,7 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+            ActionResult<TokenPair> result = await RefreshAsync(controller, new RefreshTokenRequest { RefreshToken = "refresh-token" });
 
             Assert.That(result.Result, Is.TypeOf<ObjectResult>());
             ObjectResult response = (ObjectResult)result.Result!;
@@ -655,6 +769,7 @@ namespace FWO.Test
 
         [Test]
         [NonParallelizable] // redirects the process wide Console.Out
+        [CancelAfter(kRefreshTestTimeoutMs)]
         public async Task RefreshToken_AuditsAmbiguousConsumption()
         {
             RecordingApiConnection apiConnection = new()
@@ -668,7 +783,7 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            string log = await ConsoleOutput.CaptureAsync(() => controller.RefreshToken(
+            string log = await ConsoleOutput.CaptureAsync(() => RefreshAsync(controller, 
                 new RefreshTokenRequest { RefreshToken = "refresh-token" }));
 
             Assert.That(log, Does.Contain(
@@ -762,7 +877,64 @@ namespace FWO.Test
             {
                 Responder = (query, variables, resultType) => QueryResponse(query, resultType)
             };
-            RecordingLdapClient ldapClient = new()
+            RecordingLdapClient ldapClient = CreateLoginLdapClient();
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(ldapClient) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
+            {
+                Username = "login-user",
+                Password = "password"
+            });
+
+            TokenPair tokenPair = ExtractOkValue(result);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(tokenPair.AccessToken, Is.Not.Empty);
+                Assert.That(tokenPair.RefreshToken, Is.Not.Empty);
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.storeRefreshToken));
+                Assert.That(ldapClient.SearchCalls, Is.Not.Empty);
+            });
+        }
+
+        /// <summary>
+        /// LDAP accepted the credentials, but the API died while the user context was being
+        /// synchronized. That is not a bad login request: the caller gets a retryable 503 and
+        /// no transport details, just like on refresh.
+        /// </summary>
+        [Test]
+        public async Task GetTokenPair_ReportsServiceUnavailableWhenTheApiCannotBeReached()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, variables, resultType) => query == AuthQueries.getUserByDn
+                    ? throw new HttpRequestException("connection reset by peer")
+                    : QueryResponse(query, resultType)
+            };
+            AuthenticationTokenController controller = CreateController(
+                new List<Ldap> { CreateAuthLdap(CreateLoginLdapClient()) },
+                apiConnection);
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
+            {
+                Username = "login-user",
+                Password = "password"
+            });
+
+            Assert.That(result.Result, Is.TypeOf<ObjectResult>());
+            ObjectResult objectResult = (ObjectResult)result.Result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(objectResult.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
+                Assert.That(objectResult.Value?.ToString(), Does.Not.Contain("connection reset by peer"));
+            });
+        }
+
+        private static RecordingLdapClient CreateLoginLdapClient()
+        {
+            return new RecordingLdapClient
             {
                 SearchResponder = (baseDn, scope, filter, attributes, typesOnly) =>
                 {
@@ -786,25 +958,6 @@ namespace FWO.Test
                     return LdapTestSupport.CreateSearchResults();
                 }
             };
-            AuthenticationTokenController controller = CreateController(
-                new List<Ldap> { CreateAuthLdap(ldapClient) },
-                apiConnection);
-
-            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters
-            {
-                Username = "login-user",
-                Password = "password"
-            });
-
-            TokenPair tokenPair = ExtractOkValue(result);
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(tokenPair.AccessToken, Is.Not.Empty);
-                Assert.That(tokenPair.RefreshToken, Is.Not.Empty);
-                Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.storeRefreshToken));
-                Assert.That(ldapClient.SearchCalls, Is.Not.Empty);
-            });
         }
 
         [Test]
@@ -1160,6 +1313,14 @@ namespace FWO.Test
             return (TokenPair)((OkObjectResult)result.Result!).Value!;
         }
 
+        /// <summary>
+        /// Refreshes through the controller, bounded by the test's <see cref="CancelAfterAttribute"/> timeout.
+        /// </summary>
+        private static Task<ActionResult<TokenPair>> RefreshAsync(AuthenticationTokenController controller, RefreshTokenRequest request)
+        {
+            return controller.RefreshToken(request).WaitAsync(TestContext.CurrentContext.CancellationToken);
+        }
+
         private static void RecordMaximum(ref int target, int candidate)
         {
             int current;
@@ -1178,6 +1339,14 @@ namespace FWO.Test
         {
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
             return Convert.ToBase64String(hash);
+        }
+
+        /// <summary>
+        /// Whether the controller still holds a lock entry for the given refresh token.
+        /// </summary>
+        private static bool HasRefreshTokenLock(string refreshToken)
+        {
+            return RefreshTokenLockRegistry.IsTracked(GenerateTokenHash(refreshToken));
         }
 
         private static T GetVariableValue<T>(object? variables, string propertyName)

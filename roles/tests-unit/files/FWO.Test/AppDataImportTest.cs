@@ -704,6 +704,34 @@ namespace FWO.Test
             Assert.That(handledGroupDnsByLdap, Is.Empty);
         }
 
+        /// <summary>
+        /// Writing responsibles to uiuser only serves later email resolution. When the API
+        /// drops out there, the remaining responsibles must still be tried and the app must
+        /// not be reported as failed, which would also skip its recertification setup.
+        /// </summary>
+        [Test]
+        public async Task AddAllResponsiblesToUiUser_WhenUpsertCannotReachApi_ContinuesWithRemainingResponsibles()
+        {
+            UnreachableUpsertApiConnection apiConnection = new();
+            ResolverTestAppDataImport import = new(
+                new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, UiUser>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["cn=user1,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user1,ou=users,dc=example,dc=com", Name = "user1" },
+                    ["cn=user2,ou=users,dc=example,dc=com"] = new() { Dn = "cn=user2,ou=users,dc=example,dc=com", Name = "user2" }
+                },
+                apiConnection: apiConnection);
+            List<OwnerResponsible> responsibles =
+            [
+                new() { Dn = "cn=user1,ou=users,dc=example,dc=com" },
+                new() { Dn = "cn=user2,ou=users,dc=example,dc=com" }
+            ];
+
+            await InvokeAddAllResponsiblesToUiUser(import, responsibles);
+
+            Assert.That(apiConnection.UpsertCount, Is.EqualTo(2));
+        }
+
         [Test]
         public async Task ConvertLdapToUiUser_ReturnsNull_WhenNoUserSearchPathMatchesDn()
         {
@@ -2642,6 +2670,22 @@ namespace FWO.Test
             }
         }
 
+        private sealed class UnreachableUpsertApiConnection : SimulatedApiConnection
+        {
+            public int UpsertCount { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == AuthQueries.upsertUiUser)
+                {
+                    ++UpsertCount;
+                    throw new HttpRequestException("connection reset by peer");
+                }
+
+                throw new AssertionException($"Unexpected query: {query}");
+            }
+        }
+
         private sealed class ResolverTestAppDataImport : AppDataImport
         {
             private readonly Dictionary<string, string?> resolutions;
@@ -2655,8 +2699,9 @@ namespace FWO.Test
                 Dictionary<string, string?> resolutions,
                 Dictionary<string, UiUser>? uiUsersByDn = null,
                 Dictionary<string, List<string>>? groupMembersByDn = null,
-                Dictionary<string, string?>? groupResolutions = null)
-                : base(new SimulatedApiConnection(), new GlobalConfig())
+                Dictionary<string, string?>? groupResolutions = null,
+                ApiConnection? apiConnection = null)
+                : base(apiConnection ?? new SimulatedApiConnection(), new GlobalConfig())
             {
                 this.resolutions = resolutions;
                 this.uiUsersByDn = uiUsersByDn ?? new(StringComparer.OrdinalIgnoreCase);

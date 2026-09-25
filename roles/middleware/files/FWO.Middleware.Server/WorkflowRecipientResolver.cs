@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Logging;
@@ -84,7 +85,16 @@ namespace FWO.Middleware.Server
                 UiUser? ldapUser = await ResolveLdapUser(dn);
                 if (ldapUser != null)
                 {
-                    await UiUserHandler.UpsertUiUser(apiConnection, ldapUser, false);
+                    try
+                    {
+                        await UiUserHandler.UpsertUiUser(apiConnection, ldapUser, false);
+                    }
+                    catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+                    {
+                        // Caching the recipient in uiuser is a side effect: the LDAP address is
+                        // already known, so the mail must not be lost over it.
+                        Log.WriteWarning("Workflow Recipients", $"LDAP user '{ldapUser.Dn}' could not be cached in uiuser because the API could not be reached: {exception.Message}");
+                    }
                     if (string.IsNullOrWhiteSpace(ldapUser.Email))
                     {
                         Log.WriteWarning("Workflow Recipients", $"LDAP user '{ldapUser.Dn}' was resolved but has no email address.");

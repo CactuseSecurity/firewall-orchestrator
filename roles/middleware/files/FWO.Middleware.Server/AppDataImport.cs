@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -883,7 +884,16 @@ namespace FWO.Middleware.Server
             {
                 return true;
             }
-            await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            try
+            {
+                await UiUserHandler.UpsertUiUser(apiConnection, uiUser, false);
+            }
+            catch (Exception exception) when (ApiReachability.IndicatesUnreachableApi(exception))
+            {
+                // Only needed for later email resolution; losing it must not fail the app
+                // or skip its recertification setup. Reported by the warning below.
+                Log.WriteDebug(LogMessageTitle, $"Upsert of imported user \"{uiUser.Dn}\" could not reach the API: {exception.Message}");
+            }
             if (uiUser.DbId <= 0)
             {
                 Log.WriteWarning(LogMessageTitle, $"Resolved imported user \"{uiUser.Dn}\" could not be written to uiuser.");

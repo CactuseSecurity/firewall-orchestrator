@@ -50,12 +50,16 @@ public class WorkflowTicketController : ControllerBase
         {
             int requesterId = FWO.Basics.JwtClaimParser.ExtractIntClaimValues(User.Claims, "x-hasura-user-id").FirstOrDefault();
             string callerName = User.FindFirstValue("unique_name") ?? "";
-            CreateTicketResponse response = await workflowTicketService.CreateTicketAsync(request, requesterId, callerName);
+            CreateTicketResponse response = await workflowTicketService.CreateTicketAsync(request, requesterId, callerName, aggregateValidationErrors: true);
             return Ok(response);
+        }
+        catch (CreateTicketValidationException validationException)
+        {
+            return BadRequest(validationException.Errors);
         }
         catch (ArgumentException argumentException)
         {
-            return BadRequest(argumentException.Message);
+            return BadRequest(CreateTicketRequestValidator.BuildServiceError(argumentException.Message));
         }
         catch (Exception exception)
         {

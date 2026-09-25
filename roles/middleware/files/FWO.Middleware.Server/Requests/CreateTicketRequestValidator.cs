@@ -42,6 +42,19 @@ public static class CreateTicketRequestValidator
         return result;
     }
 
+    /// <summary>
+    /// Wraps a late request validation failure in the endpoint's standard response shape.
+    /// </summary>
+    /// <param name="message">Validation message produced by the request builder.</param>
+    /// <returns>A structured validation response.</returns>
+    public static RequestValidationErrorResponse BuildServiceError(string message)
+    {
+        return new RequestValidationErrorResponse
+        {
+            Errors = [new RequestValidationError { Path = "request", Message = message }]
+        };
+    }
+
     private static void AddRequiredError(string? value, string path, RequestValidationErrorResponse result)
     {
         if (string.IsNullOrWhiteSpace(value))

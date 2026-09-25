@@ -60,7 +60,9 @@ public sealed class WorkflowTicketService : IDisposable
     /// <param name="request">The high-level request payload.</param>
     /// <param name="requesterId">Database id of the authenticated caller.</param>
     /// <param name="callerName">Login name of the authenticated caller, recorded as changer in the change history.</param>
-    public async Task<CreateTicketResponse> CreateTicketAsync(CreateTicketRequest request, int requesterId, string? callerName = null)
+    /// <param name="aggregateValidationErrors">Whether semantic validation errors should be returned as an aggregate.</param>
+    public async Task<CreateTicketResponse> CreateTicketAsync(CreateTicketRequest request, int requesterId, string? callerName = null,
+        bool aggregateValidationErrors = false)
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateCreateTicket(request);
@@ -74,7 +76,15 @@ public sealed class WorkflowTicketService : IDisposable
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         FlowReferenceCatalog flowReferences = await flowReferenceService.ResolveAsync(request);
-        WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds, flowReferences);
+        WfTicket ticket;
+        try
+        {
+            ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds, flowReferences);
+        }
+        catch (CreateTicketValidationException exception) when (!aggregateValidationErrors)
+        {
+            throw new ArgumentException(exception.Errors.Errors[0].Message, exception);
+        }
         // requesterId is the id of the authenticated caller, so it is also the changer - but only when that
         // caller is named. An internal caller supplies a requester without being the user who made the change,
         // and attributing the change history entry to that requester would be wrong.
@@ -249,18 +259,29 @@ public sealed class WorkflowTicketService : IDisposable
 
     private sealed record RuleTaskLookups(Dictionary<int, FwoOwner> OwnersById, Dictionary<string, int> RuleActionIds);
 
+    private sealed class TicketBuildContext
+    {
+        public int TaskNumber { get; set; } = 1;
+        public List<RequestValidationError> ValidationErrors { get; } = [];
+    }
+
     /// <summary>
     /// Builds the ticket object that is persisted through the existing whole-ticket insert path.
     /// </summary>
     private WfTicket BuildTicket(CreateTicketRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
         Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
-        Dictionary<long, WorkflowTicketEntity> entities = BuildEntityIndex(request, protocolIds);
+        TicketBuildContext context = new();
+        Dictionary<long, WorkflowTicketEntity> entities = BuildEntityIndex(request, protocolIds, context.ValidationErrors);
         List<WfReqTask> tasks = [];
-        int taskNumber = 1;
 
-        tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, ref taskNumber));
-        tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, ref taskNumber));
+        tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, context));
+        tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, context));
+        if (context.ValidationErrors.Count > 0)
+        {
+            throw new CreateTicketValidationException(context.ValidationErrors);
+        }
+
         CreateRequestTaskSortConfig sortConfig = CreateRequestTaskSortConfig.Parse(globalConfig.ReqCreateRequestTaskSortConfig);
         tasks = CreateRequestTaskSorter.OrderForSave(tasks, request.Options.SortTasks ?? false, sortConfig);
 
@@ -301,42 +322,83 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds all group/entity lookup entries and checks for duplicate ids.
     /// </summary>
-    private static Dictionary<long, WorkflowTicketEntity> BuildEntityIndex(CreateTicketRequest request, Dictionary<string, int> protocolIds)
+    private static Dictionary<long, WorkflowTicketEntity> BuildEntityIndex(CreateTicketRequest request,
+        Dictionary<string, int> protocolIds, List<RequestValidationError> validationErrors)
     {
         Dictionary<long, WorkflowTicketEntity> entities = [];
 
-        foreach (CreateTicketRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
+        for (int index = 0; index < request.AddressObjects.Count; index++)
         {
-            long entityId = ParseLocalEntityId(addressObject.Id, "address object");
-            AddEntity(entities, entityId, WorkflowTicketEntity.FromAddressObject(entityId, addressObject));
+            try
+            {
+                CreateTicketRequest.CreateAddressObjectRequest addressObject = request.AddressObjects[index];
+                long entityId = ParseLocalEntityId(addressObject.Id, "address object");
+                AddEntity(entities, entityId, WorkflowTicketEntity.FromAddressObject(entityId, addressObject));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(validationErrors, $"addressObjects[{index}]", exception);
+            }
         }
 
-        foreach (CreateTicketRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
+        for (int index = 0; index < request.ServiceObjects.Count; index++)
         {
-            long entityId = ParseLocalEntityId(serviceObject.Id, "service object");
-            AddEntity(entities, entityId, WorkflowTicketEntity.FromServiceObject(entityId, serviceObject, protocolIds));
+            try
+            {
+                CreateTicketRequest.CreateServiceObjectRequest serviceObject = request.ServiceObjects[index];
+                long entityId = ParseLocalEntityId(serviceObject.Id, "service object");
+                AddEntity(entities, entityId, WorkflowTicketEntity.FromServiceObject(entityId, serviceObject, protocolIds));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(validationErrors, $"serviceObjects[{index}]", exception);
+            }
         }
 
-        foreach (CreateTicketRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
+        for (int index = 0; index < request.AddressGroups.Count; index++)
         {
-            AddEntity(
-                entities,
-                ParseLocalEntityId(addressGroup.Id, "address group"),
-                WorkflowTicketEntity.FromAddressGroup(addressGroup));
+            try
+            {
+                CreateTicketRequest.CreateAddressGroupRequest addressGroup = request.AddressGroups[index];
+                AddEntity(
+                    entities,
+                    ParseLocalEntityId(addressGroup.Id, "address group"),
+                    WorkflowTicketEntity.FromAddressGroup(addressGroup));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(validationErrors, $"addressGroups[{index}]", exception);
+            }
         }
 
-        foreach (CreateTicketRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
+        for (int index = 0; index < request.ServiceGroups.Count; index++)
         {
-            AddEntity(
-                entities,
-                ParseLocalEntityId(serviceGroup.Id, "service group"),
-                WorkflowTicketEntity.FromServiceGroup(serviceGroup));
+            try
+            {
+                CreateTicketRequest.CreateServiceGroupRequest serviceGroup = request.ServiceGroups[index];
+                AddEntity(
+                    entities,
+                    ParseLocalEntityId(serviceGroup.Id, "service group"),
+                    WorkflowTicketEntity.FromServiceGroup(serviceGroup));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(validationErrors, $"serviceGroups[{index}]", exception);
+            }
         }
 
-        foreach (CreateTicketRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
+        for (int index = 0; index < request.TimeObjects.Count; index++)
         {
-            long entityId = ParseLocalEntityId(timeObject.Id, "time object");
-            AddEntity(entities, entityId, WorkflowTicketEntity.FromTimeObject(entityId, timeObject));
+            try
+            {
+                CreateTicketRequest.CreateTimeObjectRequest timeObject = request.TimeObjects[index];
+                long entityId = ParseLocalEntityId(timeObject.Id, "time object");
+                AddEntity(entities, entityId, WorkflowTicketEntity.FromTimeObject(entityId, timeObject));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(validationErrors, $"timeObjects[{index}]", exception);
+            }
         }
 
         return entities;
@@ -346,13 +408,21 @@ public sealed class WorkflowTicketService : IDisposable
     /// Builds the access tasks for the request rules.
     /// </summary>
     private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
-        int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds, FlowReferenceCatalog flowReferences, ref int taskNumber)
+        int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
+        FlowReferenceCatalog flowReferences, TicketBuildContext context)
     {
         List<WfReqTask> tasks = [];
         RuleTaskLookups lookups = new(ownersById, ruleActionIds);
-        foreach (CreateTicketRequest.CreateTicketRuleRequest rule in request.Rules)
+        for (int index = 0; index < request.Rules.Count; index++)
         {
-            tasks.Add(BuildRuleTask(request, rule, entities, ticketStateId, lookups, flowReferences, taskNumber++));
+            try
+            {
+                tasks.Add(BuildRuleTask(request, request.Rules[index], entities, ticketStateId, lookups, flowReferences, context.TaskNumber++));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(context.ValidationErrors, $"rules[{index}]", exception);
+            }
         }
         return tasks;
     }
@@ -361,17 +431,31 @@ public sealed class WorkflowTicketService : IDisposable
     /// Builds ticket tasks that create object groups.
     /// </summary>
     private static List<WfReqTask> BuildGroupTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
-        int ticketStateId, FlowReferenceCatalog flowReferences, ref int taskNumber)
+        int ticketStateId, FlowReferenceCatalog flowReferences, TicketBuildContext context)
     {
         List<WfReqTask> tasks = [];
-        foreach (CreateTicketRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
+        for (int index = 0; index < request.AddressGroups.Count; index++)
         {
-            tasks.Add(BuildNetworkGroupTask(request, addressGroup, entities, ticketStateId, flowReferences, taskNumber++));
+            try
+            {
+                tasks.Add(BuildNetworkGroupTask(request, request.AddressGroups[index], entities, ticketStateId, flowReferences, context.TaskNumber++));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(context.ValidationErrors, $"addressGroups[{index}]", exception);
+            }
         }
 
-        foreach (CreateTicketRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
+        for (int index = 0; index < request.ServiceGroups.Count; index++)
         {
-            tasks.Add(BuildServiceGroupTask(request, serviceGroup, entities, ticketStateId, flowReferences, taskNumber++));
+            try
+            {
+                tasks.Add(BuildServiceGroupTask(request, request.ServiceGroups[index], entities, ticketStateId, flowReferences, context.TaskNumber++));
+            }
+            catch (ArgumentException exception)
+            {
+                AddValidationError(context.ValidationErrors, $"serviceGroups[{index}]", exception);
+            }
         }
         return tasks;
     }
@@ -382,7 +466,11 @@ public sealed class WorkflowTicketService : IDisposable
     private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateAddressGroupRequest group,
         Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        WorkflowTicketEntity groupEntity = entities[group.Id];
+        WorkflowTicketEntity groupEntity = GetEntity(entities, group.Id);
+        if (groupEntity.Kind != WorkflowTicketEntityKind.AddressGroup)
+        {
+            throw new ArgumentException($"Group id {group.Id} must reference an address group.");
+        }
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -403,7 +491,11 @@ public sealed class WorkflowTicketService : IDisposable
     private static WfReqTask BuildServiceGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateServiceGroupRequest group,
         Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        WorkflowTicketEntity groupEntity = entities[group.Id];
+        WorkflowTicketEntity groupEntity = GetEntity(entities, group.Id);
+        if (groupEntity.Kind != WorkflowTicketEntityKind.ServiceGroup)
+        {
+            throw new ArgumentException($"Group id {group.Id} must reference a service group.");
+        }
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -697,6 +789,12 @@ public sealed class WorkflowTicketService : IDisposable
         }
 
         throw new ArgumentException($"Duplicate request object id {id}.");
+    }
+
+    private static void AddValidationError(List<RequestValidationError> validationErrors, string path,
+        ArgumentException exception)
+    {
+        validationErrors.Add(new RequestValidationError { Path = path, Message = exception.Message });
     }
 
     /// <summary>

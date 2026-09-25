@@ -2039,7 +2039,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("non-zero integer"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("non-zero integer"));
         });
     }
 
@@ -2099,7 +2099,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Duplicate request object id -1"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("Duplicate request object id -1"));
         });
     }
 
@@ -2230,7 +2230,57 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("protocol"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("protocol"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsAllSemanticValidationErrorsTogether()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
+        {
+            RequestorName = "Payload Requester",
+            RequestorId = "payload-requester",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Multiple semantic errors",
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Id = -2,
+                    Name = "invalid-service",
+                    Protocol = "999"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    OwnerId = 999
+                }
+            ]
+        });
+
+        RequestValidationErrorResponse errors = GetValidationResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0]", "rules[0]"]));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("protocol"));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("owner"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -2303,7 +2353,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("owner"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("owner"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -2375,7 +2425,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -2447,7 +2497,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -2518,7 +2568,7 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("source"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("source"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
@@ -2589,9 +2639,14 @@ internal class WorkflowTicketServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("service"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("service"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
+    }
+
+    private static RequestValidationErrorResponse GetValidationResponse(ActionResult<CreateTicketResponse> result)
+    {
+        return (RequestValidationErrorResponse)((BadRequestObjectResult)result.Result!).Value!;
     }
 
     private static WfCommentDataHelper NewComment(string text, DateTime creationDate)

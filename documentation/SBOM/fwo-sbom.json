@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
-  "specVersion": "1.6",
-  "serialNumber": "urn:uuid:7500e272-e955-4ee5-bfcd-6d58a38e6a83",
+  "specVersion": "1.7",
+  "serialNumber": "urn:uuid:e2b66d13-9efb-4c94-9a89-78fc27c700fc",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-21T08:18:38Z",
+    "timestamp": "2026-09-25T16:31:00Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.8.1",
+      "bom-ref": "pkg:nuget/AngleSharp@1.8.2",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "234F7B8350A74EF502F7213A29F6EDF3A56150C14E3BD4626A234E427F9B04E436B47CA4D54C8E57ED3F61ABEEC13C002CA32402C0AAE6BCE39255220DEAFE91"
+          "content": "364379C71D9DA3CCDCA100FB7A68B13370637FEA977BA37DCF626F5043DDCDA3DFF1FDC6F45449C4327F485C9B21A76505FFA1B9404252226658472643842C80"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.8.1",
+      "purl": "pkg:nuget/AngleSharp@1.8.2",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -1546,20 +1546,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.10.0",
+      "bom-ref": "pkg:nuget/Microsoft.CodeCoverage@18.10.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.CodeCoverage",
-      "version": "18.10.0",
+      "version": "18.10.1",
       "description": "Microsoft.CodeCoverage package brings infra for collecting code coverage from vstest.console.exe and \u0022dotnet test\u0022.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "3EC777D7A1EDF51CD3A2CD1E2566E4E611A0AE7F1215440A5868D787E78BDEA58FDC93F128ADC3B64221AF31554BB068358E457B2A2AB687F4A4B67C2F5CA6B6"
+          "content": "5ECACCBEA2AA38877FD998B7A1C28EF6FF5A0E0C68D58A3061BFC70E0C3D110D67F67D9D035EDB978274CAE5A956C2CA26D43295BB468CDD297FD07F0A6B91FA"
         }
       ],
       "licenses": [
@@ -1570,7 +1570,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.10.0",
+      "purl": "pkg:nuget/Microsoft.CodeCoverage@18.10.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3180,20 +3180,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.22.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.23.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Abstractions",
-      "version": "8.22.0",
+      "version": "8.23.0",
       "description": "A package containing thin abstractions for Microsoft.IdentityModel.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "91EF229B1EDC39741A979C177F4D640EDFB64E41BF88BBBCDFF94E70D734ACB95D7C676198CA88A710A0F2A7CAE82163D94138CC0786DEC4C0E0CCB4D4A53404"
+          "content": "2B9E440253ACF978416C5382E7C639DBF4DB7B96B619D9C9A7385EB02CBF5D40006829C5F115BA4A50B19AE48E991DF590F32DC3E950D586EDD0C120894F7651"
         }
       ],
       "licenses": [
@@ -3204,7 +3204,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.22.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.23.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -3218,20 +3218,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.22.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.23.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.JsonWebTokens",
-      "version": "8.22.0",
+      "version": "8.23.0",
       "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. This is a newer, faster version of System.IdentityModel.Tokens.Jwt that has additional functionality.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "E68D8041535FA9D88F9C05371E06773476A5D843350267356032C43D84D00015BC823392E3BECF80578FEEC121E6139F393C07D7B5488346071D5829E6A910DD"
+          "content": "006321D0C0A05FCAE119D345D25D5DC3950B87AD30A2BC93639BB38AA75D7EBFF655D1E4AC607F459B6A27CAE82F245819D9707FE2F44C6A1D7490E4039E4378"
         }
       ],
       "licenses": [
@@ -3242,7 +3242,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.22.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.23.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -3256,20 +3256,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.22.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.23.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Logging",
-      "version": "8.22.0",
+      "version": "8.23.0",
       "description": "Includes Event Source based logging support.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6DAB1227B644262701EB98E6963A8E358D121C13B5A6B025875B111B148D37D4F15147435D57F08347D76EF097909F1045C4689AAD0BEDE08E31F1FCA9E73987"
+          "content": "5EAB50C76A0EA7EE52D777C7464F2FA1830A35518CAC4BD0B60BD78B6F892DC4B1373485454CA8BA7FF36364C93A2165FA19A4975078019AEE35C7C8F36B63E4"
         }
       ],
       "licenses": [
@@ -3280,7 +3280,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Logging@8.22.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Logging@8.23.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -3370,20 +3370,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0",
+      "bom-ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.IdentityModel.Tokens",
-      "version": "8.22.0",
+      "version": "8.23.0",
       "description": "Includes types that provide support for SecurityTokens, Cryptographic operations: Signing, Verifying Signatures, Encryption.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "99E54B13374E34C81AC5191E9C6CC037AB8A990813B11641D4770B41DFB7BC8BFD53C21FDBBE6FFEA4165AEC6FDADC72943DD58F6983436AE488A0D5A8D1DD8F"
+          "content": "2D069542D746B51DB5643C7DBB995BDDF372EF661F803C5446AF7DD684D417A7AE093458F8B78545EBEE9B1339CA218F3B80387B694DC0E7561EFF85F0B2ED6B"
         }
       ],
       "licenses": [
@@ -3394,7 +3394,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0",
+      "purl": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -3561,20 +3561,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.0",
+      "bom-ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.NET.Test.Sdk",
-      "version": "18.10.0",
+      "version": "18.10.1",
       "description": "The MSbuild targets and properties for building .NET test projects.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "121E9ABF4EF3B77C49EA271218B5F72B7A86E058A7BF6A65B6A3FC70FBDF5D15F7FCBDB775CA38A986C70730976B0DC89D3C22AB36C9275220085AC92E478A67"
+          "content": "6BAF78F26EAA5C5F5837EA27EB9E64B0436688BD24F63B58B395A523C2C023B425DEB52389DEBFCABCF199F6A693A612D462F7B9A82CBD038590D15BE069A5BE"
         }
       ],
       "licenses": [
@@ -3585,7 +3585,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.0",
+      "purl": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3866,20 +3866,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.0",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.ObjectModel",
-      "version": "18.10.0",
+      "version": "18.10.1",
       "description": "The Microsoft Test Platform Object Model.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "7BF8482EA6355B9F0BDE5B0B7756A1FAF25418F1D753E581F68A6CDB7B41E5727800FE7AF866A74A5CACCDAB47591DFF1F3A39A333CE21E864FC119B404A53BE"
+          "content": "52AE3203AD5F984264146C376A2DED92160658417AA6751052405094DFFC36D5033B1B0D61595667FA1141ACF0BD5DEA36355137820EF984A9F140825CCD745F"
         }
       ],
       "licenses": [
@@ -3890,7 +3890,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3904,20 +3904,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.0",
+      "bom-ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.1",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "Microsoft.TestPlatform.TestHost",
-      "version": "18.10.0",
+      "version": "18.10.1",
       "description": "Testplatform host executes the test using specified adapter.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "2467F9EB803D0B5591208E964681BE88E5030CCF36ED442B53320BF76FF1DFE2D3CEB9ED40B2E7430004B0A514E9F8E3D71E341F500358CDC083C7CC9E62AC49"
+          "content": "ADBF2E024825B846EC00EA90CC61CA38AE2E269A50E568548D8D80F8E5D07B1BB30AA032B8E286070F8D08CBDFC0D63B46110446CF157E93A3D4D1131F7B07A8"
         }
       ],
       "licenses": [
@@ -3928,7 +3928,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.0",
+      "purl": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.1",
       "externalReferences": [
         {
           "url": "https://github.com/microsoft/vstest",
@@ -3942,20 +3942,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MimeKit@4.18.0",
+      "bom-ref": "pkg:nuget/MimeKit@4.18.1",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MimeKit",
-      "version": "4.18.0",
+      "version": "4.18.1",
       "description": "An Open Source library for creating and parsing MIME, S/MIME and PGP messages on desktop and mobile platforms.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "127C4E162B9A1DFA2AEA705BF7543668835517311A1DE624F84B33F7D3640D60E5DDD9B63A4D34344ECE7EDFCF23C1DB488FF690835A5FF4830E9649625D4D15"
+          "content": "AEB12BAEA4AC2D4B5CEA8712265E2E4B734D34DEEFEDC07E12F3CE2F16B8B9EB76FB8A8A7B73DB0617248801B96322859E0EBB0344757271F5E4E6A2E814BF76"
         }
       ],
       "licenses": [
@@ -3966,7 +3966,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MimeKit@4.18.0",
+      "purl": "pkg:nuget/MimeKit@4.18.1",
       "externalReferences": [
         {
           "url": "https://www.mimekit.net/",
@@ -4202,20 +4202,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.10.0",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.11.0",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.10.0",
+      "version": "25.11.0",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6888CC2FF765FCF18B2254959FC7CB5CFC628130D3E0D8A813EA3C6FF183F52D179FB8BF2DB0ACE92782FAE4FF5E67E8E5DD9B620C2B1C09FE86E41964758F00"
+          "content": "FF3B0594E155C559A56EF671F2A2F9CC5CF2DE5A5424D8A0BEC123DC3A576BEA2EEA3C921874540F56C71FCF7ADF1DED75157A3B6A5B8F769A3B09F8A4A108ED"
         }
       ],
       "licenses": [
@@ -4225,7 +4225,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.10.0",
+      "purl": "pkg:nuget/PuppeteerSharp@25.11.0",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4239,20 +4239,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.1.0",
+      "bom-ref": "pkg:nuget/Quartz@4.1.1",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.1.0",
+      "version": "4.1.1",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FC16E5FD785213898BFCAB1430CC41366997F3342F09CFC3EB77F2CBADFE1DC2370E90FCC3B78A85EF0F780BE3B8627CB111DDECA04FC64DD87FFB11A91BD368"
+          "content": "181927F06EE8696B29267415A61AA5C9612923FDC2A29D1087ADBD29E1EE6577BB57FEA874564BAE7746A9EB0ABD94095E35D87E8893590E15C620B716681EA6"
         }
       ],
       "licenses": [
@@ -4263,121 +4263,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.1.0",
-      "externalReferences": [
-        {
-          "url": "https://www.quartz-scheduler.net/",
-          "type": "website"
-        },
-        {
-          "url": "https://github.com/quartznet/quartznet",
-          "type": "vcs"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:nuget/Quartz.Extensions.Hosting@4.1.0",
-      "authors": [
-        {
-          "name": "Marko Lahma, Quartz.NET"
-        }
-      ],
-      "name": "Quartz.Extensions.Hosting",
-      "version": "4.1.0",
-      "description": "Folded into Quartz in 4.0: AddQuartzHostedService, QuartzHostedService and QuartzHostedServiceOptions live in the Quartz package now. This package is empty and exists only so a grouped dependency update can move to 4.x - remove the reference, and see the migration guide.",
-      "scope": "required",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "78F9221800CBB0F617FD7882925A7E6C221DA97C616FA94D7D003AF9A3ED00E2A68557959B856B9C07CFD4933566ABAECF46FF6538AA77BA8FE2C06AA7F2EA18"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz.Extensions.Hosting@4.1.0",
-      "externalReferences": [
-        {
-          "url": "https://www.quartz-scheduler.net/",
-          "type": "website"
-        },
-        {
-          "url": "https://github.com/quartznet/quartznet",
-          "type": "vcs"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:nuget/Quartz.Serialization.Json@4.1.0",
-      "authors": [
-        {
-          "name": "Marko Lahma, Quartz.NET"
-        }
-      ],
-      "name": "Quartz.Serialization.Json",
-      "version": "4.1.0",
-      "description": "Renamed to Quartz.Serialization.Newtonsoft in 4.0. This package is empty and exists only so a grouped dependency update can move to 4.x - reference Quartz.Serialization.Newtonsoft instead, and see the migration guide.",
-      "scope": "required",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "1AE28B706F40C02DF730A450E83BA2BB6C518053439576EB8D0911DA4C470AAA402AD62EBC96E70B39383AC45447235E79D70A27A0DE143F907D00B55AE88898"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz.Serialization.Json@4.1.0",
-      "externalReferences": [
-        {
-          "url": "https://www.quartz-scheduler.net/",
-          "type": "website"
-        },
-        {
-          "url": "https://github.com/quartznet/quartznet",
-          "type": "vcs"
-        }
-      ]
-    },
-    {
-      "type": "library",
-      "bom-ref": "pkg:nuget/Quartz.Serialization.Newtonsoft@4.1.0",
-      "authors": [
-        {
-          "name": "Marko Lahma, Quartz.NET"
-        }
-      ],
-      "name": "Quartz.Serialization.Newtonsoft",
-      "version": "4.1.0",
-      "description": "Quartz.NET Json.NET serialization - the job store serializer for a database already holding Newtonsoft.Json\u0027s output. New applications use the System.Text.Json one built into Quartz; Quartz Scheduling Framework for .NET",
-      "scope": "required",
-      "hashes": [
-        {
-          "alg": "SHA-512",
-          "content": "150AED34FA9E642CFAB70A3AF6491602B90914BD8CBAFF9CE8C38DA018A24C08A04BBDAC22F1E97AC7B41DC326BF02D7D7D2853AA226F10FAC8387697A91B4D4"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "id": "Apache-2.0"
-          }
-        }
-      ],
-      "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz.Serialization.Newtonsoft@4.1.0",
+      "purl": "pkg:nuget/Quartz@4.1.1",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4504,20 +4390,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.3",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.8",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.17.3",
+      "version": "2.17.8",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "C86DD8DE116319040C4F951394C6232B1B780A33C176E09C090D204F7AF9630F5EC1B3F0B3288FF59FA8A36A1D76EB2554FAE9C3208A3EC05E3F7B81AD77221F"
+          "content": "C8A85216408BEBB0D846423A8F6F95FD9600725C3E04F96EF8A7147CFB95500B1891C93CB35C3B3D3A814831E16513853297CA381B314263502B8358F697FF20"
         }
       ],
       "licenses": [
@@ -4527,7 +4413,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.3",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.8",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4579,20 +4465,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.22.0",
+      "bom-ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
       "authors": [
         {
           "name": "Microsoft"
         }
       ],
       "name": "System.IdentityModel.Tokens.Jwt",
-      "version": "8.22.0",
+      "version": "8.23.0",
       "description": "Includes types that provide support for creating, serializing and validating JSON Web Tokens. As of IdentityModel 7x, this is a legacy tool that should be replaced with Microsoft.IdentityModel.JsonWebTokens.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "F1DC21B5234DC8DCA82413C2415E46AC6E556F8CB39A5497F76055A7A48F9E97BC9BEF9C5229E6C8C2F72FE1D791458A3B87B241A79D5242152F28A2152124D1"
+          "content": "DCA72E57F5EEB4ABDFA30BA9F911FBBFB0640AEB24189B4BE743F501FFA952E02B11517624304A0D41317723F8A0DEE0CD9ABBDABCFFB0FE7DC8C7F74948291C"
         }
       ],
       "licenses": [
@@ -4603,7 +4489,7 @@
         }
       ],
       "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
-      "purl": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.22.0",
+      "purl": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
       "externalReferences": [
         {
           "url": "https://github.com/AzureAD/azure-activedirectory-identitymodel-extensions-for-dotnet",
@@ -4693,20 +4579,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/WebDriverBiDi@0.0.54",
+      "bom-ref": "pkg:nuget/WebDriverBiDi@0.0.60",
       "authors": [
         {
           "name": "WebDriverBiDi.NET Committers"
         }
       ],
       "name": "WebDriverBiDi",
-      "version": "0.0.54",
+      "version": "0.0.60",
       "description": "A .NET client library for the WebDriver BiDi protocol.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "95E4285D2B69A9EE850CA8572E8A57F97E3D9C563DD90B0F197C1B0AF4433286B8761426E213BFEC11D005684883734796CA95DED7D2D3A9B38A5EF4AA9721DE"
+          "content": "C75196A83790D67EA43BEAF99F64EC0CED6A687933E660FE7F233221E086C35ACDE50B9D13CCB13154D1A32F87001DEDD1CE73D16222D23BDDCD2F84A46A32CC"
         }
       ],
       "licenses": [
@@ -4716,8 +4602,12 @@
           }
         }
       ],
-      "purl": "pkg:nuget/WebDriverBiDi@0.0.54",
+      "purl": "pkg:nuget/WebDriverBiDi@0.0.60",
       "externalReferences": [
+        {
+          "url": "https://github.com/webdriverbidi-net/webdriverbidi-net",
+          "type": "website"
+        },
         {
           "url": "https://github.com/webdriverbidi-net/webdriverbidi-net",
           "type": "vcs"
@@ -4736,31 +4626,29 @@
         "pkg:nuget/IPAddressRange@6.3.0",
         "pkg:nuget/IPNetwork2@4.3.0",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.12",
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
         "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
         "pkg:nuget/RestSharp@114.0.0",
         "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
-        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.22.0",
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
         "pkg:nuget/HtmlAgilityPack@1.13.0",
         "pkg:nuget/MailKit@4.18.0",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
-        "pkg:nuget/MimeKit@4.18.0",
-        "pkg:nuget/PuppeteerSharp@25.10.0",
+        "pkg:nuget/MimeKit@4.18.1",
+        "pkg:nuget/PuppeteerSharp@25.11.0",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.12",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.12",
         "pkg:nuget/Microsoft.OpenApi@2.12.2",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.1.0",
-        "pkg:nuget/Quartz.Extensions.Hosting@4.1.0",
-        "pkg:nuget/Quartz.Serialization.Json@4.1.0",
-        "pkg:nuget/Scalar.AspNetCore@2.17.3",
+        "pkg:nuget/Quartz@4.1.1",
+        "pkg:nuget/Scalar.AspNetCore@2.17.8",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.12",
-        "pkg:nuget/AngleSharp@1.8.1",
+        "pkg:nuget/AngleSharp@1.8.2",
         "pkg:nuget/bunit@2.11.3",
         "pkg:nuget/coverlet.collector@10.0.1",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.12",
-        "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.0",
+        "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.1",
         "pkg:nuget/Moq@4.20.72",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
@@ -4770,18 +4658,19 @@
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.1.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.1"
+        "pkg:nuget/AngleSharp@1.8.2"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.1",
+        "pkg:nuget/AngleSharp@1.8.2",
         "pkg:nuget/AngleSharp.Css@1.1.2"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.8.1"
+      "ref": "pkg:nuget/AngleSharp@1.8.2",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/BlazorTable@1.17.0",
@@ -4790,12 +4679,13 @@
       ]
     },
     {
-      "ref": "pkg:nuget/BouncyCastle.Cryptography@2.7.0"
+      "ref": "pkg:nuget/BouncyCastle.Cryptography@2.7.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/bunit@2.11.3",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.1",
+        "pkg:nuget/AngleSharp@1.8.2",
         "pkg:nuget/AngleSharp.Css@1.1.2",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.12",
@@ -4816,10 +4706,12 @@
       ]
     },
     {
-      "ref": "pkg:nuget/coverlet.collector@10.0.1"
+      "ref": "pkg:nuget/coverlet.collector@10.0.1",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/DnsClient@1.8.0"
+      "ref": "pkg:nuget/DnsClient@1.8.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/GraphQL.Client.Abstractions.Websocket@6.1.0",
@@ -4855,31 +4747,38 @@
       ]
     },
     {
-      "ref": "pkg:nuget/GraphQL.Primitives@6.1.0"
+      "ref": "pkg:nuget/GraphQL.Primitives@6.1.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/HtmlAgilityPack@1.13.0"
+      "ref": "pkg:nuget/HtmlAgilityPack@1.13.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/IPAddressRange@6.3.0"
+      "ref": "pkg:nuget/IPAddressRange@6.3.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/IPNetwork2@4.3.0"
+      "ref": "pkg:nuget/IPNetwork2@4.3.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/LinqKit.Core@1.1.26"
+      "ref": "pkg:nuget/LinqKit.Core@1.1.26",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/MailKit@4.18.0",
       "dependsOn": [
-        "pkg:nuget/MimeKit@4.18.0"
+        "pkg:nuget/MimeKit@4.18.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.ApplicationInsights@2.23.0"
+      "ref": "pkg:nuget/Microsoft.ApplicationInsights@2.23.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.12"
+      "ref": "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.12",
@@ -4897,7 +4796,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.12"
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Analyzers@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Components.Authorization@10.0.10",
@@ -4970,7 +4870,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.12"
+      "ref": "pkg:nuget/Microsoft.AspNetCore.Metadata@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.12",
@@ -4987,7 +4888,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.12"
+      "ref": "pkg:nuget/Microsoft.AspNetCore.TestHost@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.AspNetCore.WebUtilities@2.3.12",
@@ -4996,10 +4898,12 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2"
+      "ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.10.0"
+      "ref": "pkg:nuget/Microsoft.CodeCoverage@18.10.1",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Caching.Abstractions@10.0.10",
@@ -5080,10 +4984,12 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.12"
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@10.0.12",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.0"
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection.Abstractions@8.0.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.DependencyInjection@10.0.12",
@@ -5098,7 +5004,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.12"
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.Abstractions@10.0.12",
@@ -5108,7 +5015,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions@10.0.0"
+      "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions@10.0.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Diagnostics.HealthChecks@10.0.0",
@@ -5142,7 +5050,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.12"
+      "ref": "pkg:nuget/Microsoft.Extensions.FileSystemGlobbing@10.0.12",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Hosting.Abstractions@10.0.12",
@@ -5182,7 +5091,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10"
+      "ref": "pkg:nuget/Microsoft.Extensions.Localization.Abstractions@10.0.10",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Localization@3.1.18",
@@ -5273,7 +5183,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.ObjectPool@8.0.11"
+      "ref": "pkg:nuget/Microsoft.Extensions.ObjectPool@8.0.11",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Options.ConfigurationExtensions@10.0.12",
@@ -5300,10 +5211,12 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.12"
+      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@10.0.12",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@8.0.0"
+      "ref": "pkg:nuget/Microsoft.Extensions.Primitives@8.0.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.Validation@10.0.10",
@@ -5313,43 +5226,45 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.22.0"
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.23.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.22.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.23.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0"
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.22.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Logging@8.23.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.22.0"
+        "pkg:nuget/Microsoft.IdentityModel.Abstractions@8.23.0"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols.OpenIdConnect@8.19.2",
       "dependsOn": [
         "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
-        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.22.0"
+        "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0"
       ]
     },
     {
       "ref": "pkg:nuget/Microsoft.IdentityModel.Protocols@8.19.2",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0"
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0",
+      "ref": "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
         "pkg:nuget/Microsoft.Extensions.Logging.Abstractions@10.0.12",
-        "pkg:nuget/Microsoft.IdentityModel.Logging@8.22.0"
+        "pkg:nuget/Microsoft.IdentityModel.Logging@8.23.0"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1"
+      "ref": "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.JSInterop.WebAssembly@10.0.10",
@@ -5358,7 +5273,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.JSInterop@10.0.10"
+      "ref": "pkg:nuget/Microsoft.JSInterop@10.0.10",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Net.Http.Headers@2.3.12",
@@ -5367,14 +5283,15 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.0",
+      "ref": "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.CodeCoverage@18.10.0",
-        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.0"
+        "pkg:nuget/Microsoft.CodeCoverage@18.10.1",
+        "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.1"
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.OpenApi@2.12.2"
+      "ref": "pkg:nuget/Microsoft.OpenApi@2.12.2",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
@@ -5398,7 +5315,7 @@
     {
       "ref": "pkg:nuget/Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.0",
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1",
         "pkg:nuget/Microsoft.Testing.Extensions.Telemetry@2.3.3",
         "pkg:nuget/Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
         "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
@@ -5411,19 +5328,21 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Microsoft.Testing.Platform@2.3.3"
+      "ref": "pkg:nuget/Microsoft.Testing.Platform@2.3.3",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.0"
+      "ref": "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.0",
+      "ref": "pkg:nuget/Microsoft.TestPlatform.TestHost@18.10.1",
       "dependsOn": [
-        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.0"
+        "pkg:nuget/Microsoft.TestPlatform.ObjectModel@18.10.1"
       ]
     },
     {
-      "ref": "pkg:nuget/MimeKit@4.18.0",
+      "ref": "pkg:nuget/MimeKit@4.18.1",
       "dependsOn": [
         "pkg:nuget/BouncyCastle.Cryptography@2.7.0",
         "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.0"
@@ -5436,10 +5355,12 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Newtonsoft.Json@13.0.3"
+      "ref": "pkg:nuget/Newtonsoft.Json@13.0.3",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0"
+      "ref": "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/NSubstitute@6.2.0",
@@ -5448,7 +5369,8 @@
       ]
     },
     {
-      "ref": "pkg:nuget/NUnit@4.6.1"
+      "ref": "pkg:nuget/NUnit@4.6.1",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/NUnit3TestAdapter@6.3.0",
@@ -5459,38 +5381,21 @@
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.10.0",
+      "ref": "pkg:nuget/PuppeteerSharp@25.11.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
         "pkg:nuget/ReactiveExtensionsSharp@0.3.0",
-        "pkg:nuget/WebDriverBiDi@0.0.54"
+        "pkg:nuget/WebDriverBiDi@0.0.60"
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz.Extensions.Hosting@4.1.0",
-      "dependsOn": [
-        "pkg:nuget/Quartz@4.1.0"
-      ]
+      "ref": "pkg:nuget/Quartz@4.1.1",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Quartz.Serialization.Json@4.1.0",
-      "dependsOn": [
-        "pkg:nuget/Quartz.Serialization.Newtonsoft@4.1.0"
-      ]
-    },
-    {
-      "ref": "pkg:nuget/Quartz.Serialization.Newtonsoft@4.1.0",
-      "dependsOn": [
-        "pkg:nuget/Newtonsoft.Json@13.0.3",
-        "pkg:nuget/Quartz@4.1.0"
-      ]
-    },
-    {
-      "ref": "pkg:nuget/Quartz@4.1.0"
-    },
-    {
-      "ref": "pkg:nuget/ReactiveExtensionsSharp@0.3.0"
+      "ref": "pkg:nuget/ReactiveExtensionsSharp@0.3.0",
+      "dependsOn": []
     },
     {
       "ref": "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
@@ -5500,29 +5405,35 @@
       ]
     },
     {
-      "ref": "pkg:nuget/RestSharp@114.0.0"
+      "ref": "pkg:nuget/RestSharp@114.0.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.3"
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.8",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.12"
+      "ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.12",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.22.0",
+      "ref": "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
       "dependsOn": [
-        "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.22.0",
-        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.22.0"
+        "pkg:nuget/Microsoft.IdentityModel.JsonWebTokens@8.23.0",
+        "pkg:nuget/Microsoft.IdentityModel.Tokens@8.23.0"
       ]
     },
     {
-      "ref": "pkg:nuget/System.Reactive@6.0.0"
+      "ref": "pkg:nuget/System.Reactive@6.0.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.0"
+      "ref": "pkg:nuget/System.Security.Cryptography.Pkcs@10.0.0",
+      "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/WebDriverBiDi@0.0.54"
+      "ref": "pkg:nuget/WebDriverBiDi@0.0.60",
+      "dependsOn": []
     }
   ]
 }

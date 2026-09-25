@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Quartz;
 using Scalar.AspNetCore;
 
 object changesLock = new(); // LOCK
@@ -70,23 +69,12 @@ GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, tru
 TimeProvider timeProvider = TimeProvider.System;
 builder.Services.AddSingleton(timeProvider);
 
-builder.Services.AddQuartz(q =>
-{
-    q.UseTimeProvider(timeProvider);
-    // Signal cancellation to running jobs on shutdown, then wait for them to unwind (default is Never)
-    q.ConfigureScheduler(s => s.ShutdownJobInterruption = ShutdownJobInterruption.WhenWaitingForJobs);
-    q.AddJobListener(serviceProvider => serviceProvider.GetRequiredService<JobExecutionTracker>(), [GroupMatcher<JobKey>.AnyGroup()]);
-});
-builder.Services.AddQuartzHostedService(options =>
-{
-    options.WaitForJobsToComplete = true;
-});
+builder.Services.AddMiddlewareQuartz(timeProvider);
 
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<FlowSync>();
-builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);

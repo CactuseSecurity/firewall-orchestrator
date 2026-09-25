@@ -73,6 +73,8 @@ builder.Services.AddSingleton(timeProvider);
 builder.Services.AddQuartz(q =>
 {
     q.UseTimeProvider(timeProvider);
+    // Signal cancellation to running jobs on shutdown, then wait for them to unwind (default is Never)
+    q.ConfigureScheduler(s => s.ShutdownJobInterruption = ShutdownJobInterruption.WhenWaitingForJobs);
     q.AddJobListener(serviceProvider => serviceProvider.GetRequiredService<JobExecutionTracker>(), [GroupMatcher<JobKey>.AnyGroup()]);
 });
 builder.Services.AddQuartzHostedService(options =>

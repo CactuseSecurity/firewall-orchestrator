@@ -165,7 +165,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConvertRuleList_ShouldExposeDestinationPortAndProtocolForServices()
+        public void ConvertRuleList_ShouldExposeDestinationPortRangeAndProtocolForServices()
         {
             List<RuleDetail> rules = InvokeConvertRuleList(
                 [CreateRuleWithPortAndProtocolService()]);
@@ -173,8 +173,48 @@ namespace FWO.Test
             ClassicAssert.AreEqual(1, rules.Count);
             ClassicAssert.AreEqual(1, rules[0].Service.Count);
             ClassicAssert.AreEqual(443, rules[0].Service[0].Port);
+            ClassicAssert.AreEqual(445, rules[0].Service[0].PortEnd);
             ClassicAssert.AreEqual("TCP", rules[0].Service[0].Protocol);
-            ClassicAssert.AreEqual("Ported Service (443/TCP)", rules[0].ServiceShort);
+            ClassicAssert.AreEqual("Ported Service (443-445/TCP)", rules[0].ServiceShort);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement service = document.RootElement.GetProperty("service")[0];
+            ClassicAssert.AreEqual(443, service.GetProperty("port").GetInt32());
+            ClassicAssert.AreEqual(445, service.GetProperty("portEnd").GetInt32());
+        }
+
+        [TestCase(null)]
+        [TestCase(0)]
+        [TestCase(443)]
+        public void ConvertRuleList_ShouldOmitPortEndWithoutDistinctRange(int? destinationPortEnd)
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithPortAndProtocolService(destinationPortEnd: destinationPortEnd)]);
+
+            ClassicAssert.AreEqual(443, rules[0].Service[0].Port);
+            ClassicAssert.IsNull(rules[0].Service[0].PortEnd);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement service = document.RootElement.GetProperty("service")[0];
+            ClassicAssert.IsFalse(service.TryGetProperty("portEnd", out _));
+        }
+
+        [Test]
+        public void ConvertRuleList_ShouldKeepLegacyPortValueWhenServiceHasNoPort()
+        {
+            List<RuleDetail> rules = InvokeConvertRuleList(
+                [CreateRuleWithPortAndProtocolService(destinationPort: null, destinationPortEnd: 445)]);
+
+            ClassicAssert.AreEqual(-1, rules[0].Service[0].Port);
+            ClassicAssert.IsNull(rules[0].Service[0].PortEnd);
+
+            string json = JsonSerializer.Serialize(rules[0], WebJsonSerializerOptions);
+            using JsonDocument document = JsonDocument.Parse(json);
+            JsonElement service = document.RootElement.GetProperty("service")[0];
+            ClassicAssert.AreEqual(-1, service.GetProperty("port").GetInt32());
+            ClassicAssert.IsFalse(service.TryGetProperty("portEnd", out _));
         }
 
         private static List<RuleDetail> InvokeConvertRuleList(List<Rule> rules, UserConfig? userConfig = null)
@@ -296,7 +336,8 @@ namespace FWO.Test
             };
         }
 
-        private static Rule CreateRuleWithPortAndProtocolService()
+        private static Rule CreateRuleWithPortAndProtocolService(int? destinationPort = 443,
+            int? destinationPortEnd = 445)
         {
             return new Rule
             {
@@ -304,19 +345,21 @@ namespace FWO.Test
                 [
                     new ServiceWrapper
                     {
-                        Content = CreateServiceObject(401, "Ported Service", 443, 6, "TCP")
+                        Content = CreateServiceObject(401, "Ported Service", destinationPort, 6, "TCP", destinationPortEnd)
                     }
                 ]
             };
         }
 
-        private static NetworkService CreateServiceObject(long id, string name, int destinationPort, int protocolId, string protocol)
+        private static NetworkService CreateServiceObject(long id, string name, int? destinationPort, int protocolId,
+            string protocol, int? destinationPortEnd = null)
         {
             return new NetworkService
             {
                 Id = id,
                 Name = name,
                 DestinationPort = destinationPort,
+                DestinationPortEnd = destinationPortEnd,
                 Protocol = new NetworkProtocol { Id = protocolId, Name = protocol },
                 Type = new NetworkServiceType { Name = "tcp" }
             };

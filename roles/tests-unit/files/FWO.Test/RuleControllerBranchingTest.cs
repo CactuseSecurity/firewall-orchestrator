@@ -18,8 +18,8 @@ namespace FWO.Test
     [Parallelizable]
     internal class RuleControllerBranchingTest
     {
-        private static readonly string[] kExpectedSourceRuleNames = ["Source", "MatchingGroup"];
-        private static readonly string[] kExpectedBothRuleNames = ["Source", "MatchingGroup", "Destination"];
+        private static readonly string[] kExpectedBothRuleNames = ["Source", "Destination"];
+        private static readonly string[] kExpectedZeroMinPrefixRuleNames = ["Source", "AnySource"];
 
         [Test]
         public async Task GetRulesByFilter_ShouldWorkWithOwnerId()
@@ -86,7 +86,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task GetRulesByFilter_ShouldIncludeRuleWhenAnyFlattenedSourceObjectMatches()
+        public async Task GetRulesByFilter_ShouldExcludeRuleWhenAnyFlattenedSourceObjectViolatesMinPrefix()
         {
             RuleController controller = CreateController(new BranchingApiConnection(), "req-group");
 
@@ -108,8 +108,95 @@ namespace FWO.Test
 
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-group", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Source", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldApplyMinPrefixToDestinationWhenInFieldIsSource()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadDestinationRule: true),
+                "req-global-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "source"
+                        }
+                    }
+                }, "req-global-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-global-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual("Source", response.Result.Rules[0].Name);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldApplyMinPrefixToSourceWhenInFieldIsDestination()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadSourceRule: true),
+                "req-global-prefix-mirror");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "destination"
+                        }
+                    }
+                }, "req-global-prefix-mirror");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-global-prefix-mirror", response.RequestId);
+            ClassicAssert.AreEqual(0, response.Result.Count);
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldTreatZeroMinPrefixAsNoPrefixRestriction()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeAnyRule: true),
+                "req-zero-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 0,
+                            InField = "source"
+                        }
+                    }
+                }, "req-zero-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-zero-prefix", response.RequestId);
             ClassicAssert.AreEqual(2, response.Result.Count);
-            CollectionAssert.AreEquivalent(kExpectedSourceRuleNames, response.Result.Rules.Select(rule => rule.Name));
+            CollectionAssert.AreEquivalent(kExpectedZeroMinPrefixRuleNames,
+                response.Result.Rules.Select(rule => rule.Name));
         }
 
         [Test]
@@ -162,8 +249,68 @@ namespace FWO.Test
 
             RulesByFilterResponse response = ExtractResponse(actionResult);
             ClassicAssert.AreEqual("req-both", response.RequestId);
-            ClassicAssert.AreEqual(3, response.Result.Count);
+            ClassicAssert.AreEqual(2, response.Result.Count);
             CollectionAssert.AreEquivalent(kExpectedBothRuleNames, response.Result.Rules.Select(rule => rule.Name));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectSourcePrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadSourceRule: true),
+                "req-both-source-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-source-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-source-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "DestinationWithBroadSource"));
+        }
+
+        [Test]
+        public async Task GetRulesByFilter_ShouldRejectDestinationPrefixViolationWhenInFieldIsBoth()
+        {
+            RuleController controller = CreateController(
+                new BranchingApiConnection(includeGroupRule: false, includeBroadDestinationRule: true),
+                "req-both-destination-prefix");
+
+            ActionResult<RulesByFilterResponse> actionResult = await controller.GetRulesByFilter(
+                new RulesByFilterRequest
+                {
+                    RequestContext = new RequestContext { UserName = "debug", UserID = "42" },
+                    Query = new RulesByFilterQuery
+                    {
+                        IpAddress = "10.1.2.3",
+                        Filter = new RuleFilter
+                        {
+                            Action = "any",
+                            MinPrefixLength = 24,
+                            InField = "both"
+                        }
+                    }
+                }, "req-both-destination-prefix");
+
+            RulesByFilterResponse response = ExtractResponse(actionResult);
+            ClassicAssert.AreEqual("req-both-destination-prefix", response.RequestId);
+            ClassicAssert.AreEqual(1, response.Result.Count);
+            ClassicAssert.AreEqual(0,
+                response.Result.Rules.Count(rule => rule.Name == "SourceWithBroadDestination"));
         }
 
         [Test]
@@ -251,11 +398,19 @@ namespace FWO.Test
         {
             private readonly bool _includeDestinationRule;
             private readonly bool _includeGroupRule;
+            private readonly bool _includeBroadDestinationRule;
+            private readonly bool _includeBroadSourceRule;
+            private readonly bool _includeAnyRule;
 
-            public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false)
+            public BranchingApiConnection(bool includeGroupRule = true, bool includeDestinationRule = false,
+                bool includeBroadDestinationRule = false, bool includeBroadSourceRule = false,
+                bool includeAnyRule = false)
             {
                 _includeGroupRule = includeGroupRule;
                 _includeDestinationRule = includeDestinationRule;
+                _includeBroadDestinationRule = includeBroadDestinationRule;
+                _includeBroadSourceRule = includeBroadSourceRule;
+                _includeAnyRule = includeAnyRule;
             }
 
             public override void SetAuthHeader(string jwt)
@@ -339,6 +494,21 @@ namespace FWO.Test
                     if (_includeDestinationRule)
                     {
                         rules.Add(BuildDestinationRule(404));
+                    }
+
+                    if (_includeBroadDestinationRule)
+                    {
+                        rules.Add(BuildSourceMatchWithBroadDestinationRule(505));
+                    }
+
+                    if (_includeBroadSourceRule)
+                    {
+                        rules.Add(BuildDestinationMatchWithBroadSourceRule(606));
+                    }
+
+                    if (_includeAnyRule)
+                    {
+                        rules.Add(BuildAnySourceRule(707));
                     }
 
                     return Task.FromResult((QueryResponseType)(object)rules);
@@ -542,6 +712,105 @@ namespace FWO.Test
                                 Type = new NetworkObjectType { Name = ObjectType.Network }
                             })
                     ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildSourceMatchWithBroadDestinationRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "SourceWithBroadDestination",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 50,
+                                Name = "MatchingSource",
+                                IP = "10.1.2.3",
+                                IpEnd = "10.1.2.3",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 51,
+                                Name = "BroadDestination",
+                                IP = "10.0.0.0",
+                                IpEnd = "10.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildDestinationMatchWithBroadSourceRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "DestinationWithBroadSource",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 60,
+                                Name = "BroadSource",
+                                IP = "10.0.0.0",
+                                IpEnd = "10.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "destination" },
+                            new NetworkObject
+                            {
+                                Id = 61,
+                                Name = "MatchingDestination",
+                                IP = "10.1.2.3",
+                                IpEnd = "10.1.2.3",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
+                };
+            }
+
+            private static Rule BuildAnySourceRule(long ruleId)
+            {
+                return new Rule
+                {
+                    Id = ruleId,
+                    Name = "AnySource",
+                    RuleOwner = [new RuleOwner { OwnerId = 42, OwnerMappingSourceId = (int)OwnerMappingSourceStm.CustomField }],
+                    Froms =
+                    [
+                        new NetworkLocation(
+                            new NetworkUser { Name = "source" },
+                            new NetworkObject
+                            {
+                                Id = 70,
+                                Name = "Any",
+                                IP = "0.0.0.0",
+                                IpEnd = "255.255.255.255",
+                                Type = new NetworkObjectType { Name = ObjectType.Network }
+                            })
+                    ],
+                    Tos = [],
                     CustomFields = "{'owner_key':'owner-from-custom','change_key':'chg-4711'}"
                 };
             }

@@ -58,7 +58,7 @@ namespace FWO.Middleware.Server
                         apiConnectionMiddlewareServer);
                     JwtWriter jwtWriter = new(ConfigFile.JwtPrivateKey);
                     ApiConnection apiConnectionReporter = new GraphQlApiConnection(ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup."), jwtWriter.CreateJWTReporterViewall(tokenLifetimeProvider.GetInternalServiceTokenLifetime()));
-                    await ForEachOwnerUpdatingLastSent(owners, notificationService, cancellationToken, async owner =>
+                    await ForEachOwnerUpdatingLastSent(owners, notificationService, async owner =>
                     {
                         int ownerEmailsSent = await CheckRuleByRule(owner, apiConnectionReporter, notificationService);
                         emailsSent += ownerEmailsSent;
@@ -66,7 +66,7 @@ namespace FWO.Middleware.Server
                         {
                             await SetOwnerLastCheck(owner);
                         }
-                    });
+                    }, cancellationToken);
                 }
                 else
                 {
@@ -78,7 +78,7 @@ namespace FWO.Middleware.Server
                         globalConfig,
                         apiConnectionMiddlewareServer,
                         globalConfig.DefaultLanguage);
-                    await ForEachOwnerUpdatingLastSent(owners.Where(o => IsRecertCheckTime(o)), notificationService, cancellationToken, async owner =>
+                    await ForEachOwnerUpdatingLastSent(owners.Where(o => IsRecertCheckTime(o)), notificationService, async owner =>
                     {
                         int ownerEmailsSent = await notificationService.SendNotificationsIfDue(
                             owner,
@@ -90,7 +90,7 @@ namespace FWO.Middleware.Server
                         {
                             await SetOwnerLastCheck(owner);
                         }
-                    });
+                    }, cancellationToken);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -109,7 +109,7 @@ namespace FWO.Middleware.Server
         /// also when stopped between two owners, so already sent notifications are not repeated.
         /// </summary>
         private static async Task ForEachOwnerUpdatingLastSent(IEnumerable<FwoOwner> ownersToCheck, NotificationService notificationService,
-            CancellationToken cancellationToken, Func<FwoOwner, Task> checkOwner)
+            Func<FwoOwner, Task> checkOwner, CancellationToken cancellationToken)
         {
             try
             {

@@ -93,7 +93,13 @@ namespace FWO.Api.Client
 
             try
             {
-                return X509Certificate2.CreateFromPemFile(certificatePath, privateKeyPath);
+                // On Windows, SChannel rejects the ephemeral CNG key produced when an EC
+                // certificate is loaded directly from PEM: AcquireCredentialsHandle fails
+                // with "The credentials supplied to the package were not recognized."
+                // Round-tripping through PKCS#12 puts the key in a container SChannel
+                // accepts; Linux's OpenSSL-based stack works with either form.
+                using X509Certificate2 pemCertificate = X509Certificate2.CreateFromPemFile(certificatePath, privateKeyPath);
+                return X509CertificateLoader.LoadPkcs12(pemCertificate.Export(X509ContentType.Pkcs12), password: null);
             }
             catch (Exception exception)
             {

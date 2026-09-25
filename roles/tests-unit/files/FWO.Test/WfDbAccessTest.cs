@@ -76,7 +76,10 @@ namespace FWO.Test
             public int UpdateTicketStateCallCount { get; private set; }
             public int AddHistoryEntryCallCount { get; private set; }
             public object? LastHistoryVariables { get; private set; }
+            public List<object?> HistoryVariables { get; } = [];
             public string? LastHistoryQuery { get; private set; }
+            public string? LastTicketQuery { get; private set; }
+            public object? LastTicketQueryVariables { get; private set; }
             public long NewApprovalId { get; set; } = 301;
             public int GetTicketByIdCallCount { get; private set; }
             public bool ThrowOnGetTicketById { get; set; }
@@ -93,6 +96,7 @@ namespace FWO.Test
                 {
                     AddHistoryEntryCallCount++;
                     LastHistoryVariables = variables;
+                    HistoryVariables.Add(variables);
                     LastHistoryQuery = query;
                     if (ThrowOnAddHistoryEntry)
                     {
@@ -272,8 +276,12 @@ namespace FWO.Test
                     DeleteReqElementCallCount++;
                     return Task.FromResult((T)(object)new ReturnId { DeletedIdLong = DeletedReqElementId });
                 }
-                if (query == RequestQueries.getTickets || query == RequestQueries.getFullTickets || query == RequestQueries.getTicketsByParameters)
+                if (query == RequestQueries.getTickets || query == RequestQueries.getTicketsByTicketState
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState
+                    || query == RequestQueries.getTicketsByParameters)
                 {
+                    LastTicketQuery = query;
+                    LastTicketQueryVariables = variables;
                     return Task.FromResult((T)(object)Tickets);
                 }
                 if (query == ConfigQueries.getConfigItemsByUser)
@@ -297,6 +305,60 @@ namespace FWO.Test
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesTicketQuery_WhenVisibilityModeIsTicket()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10, VisibilityMode = PhaseVisibilityMode.TicketState };
+
+            await dbAccess.FetchTickets(matrix);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTicketsByTicketState));
+                Assert.That(apiConn.LastTicketQueryVariables, Is.Not.Null);
+                Assert.That(apiConn.LastTicketQueryVariables!.GetType().GetProperty("fromState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(1));
+                Assert.That(apiConn.LastTicketQueryVariables.GetType().GetProperty("toState")!.GetValue(apiConn.LastTicketQueryVariables), Is.EqualTo(10));
+            });
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesAnyTaskQuery_ByDefault()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10 };
+
+            await dbAccess.FetchTickets(matrix);
+
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getTickets));
+        }
+
+        [Test]
+        public async Task FetchTickets_UsesFullTicketStateQuery_WhenFullTicketsAndTicketStateAreRequested()
+        {
+            WfDbAccessTestApiConn apiConn = new();
+            UserConfig userConfig = new();
+            await userConfig.InitWithUserId(apiConn, 100, false);
+            WfHandler wfHandler = new();
+            ActionHandler actionHandler = new(apiConn, wfHandler);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
+            StateMatrix matrix = new() { LowestInputState = 1, LowestEndState = 10, VisibilityMode = PhaseVisibilityMode.TicketState };
+
+            await dbAccess.FetchTickets(matrix, null, false, true);
+
+            Assert.That(apiConn.LastTicketQuery, Is.EqualTo(RequestQueries.getFullTicketsByTicketState));
         }
 
         [Test]
@@ -590,6 +652,44 @@ namespace FWO.Test
                 Assert.That(result.Tasks.All(task => task.StateId == 100), Is.True);
                 Assert.That(apiConn.UpdateReqTaskStateCallCount, Is.EqualTo(3));
                 Assert.That(apiConn.UpdateTicketStateCallCount, Is.EqualTo(3));
+            });
+        }
+
+        [Test]
+        public async Task AddTicketToDb_LogsInsertForEachCreatedRequestTask()
+        {
+            WfDbAccessTestApiConn apiConn = new()
+            {
+                NewTicketId = 101,
+                Ticket = new WfTicket
+                {
+                    Id = 101,
+                    StateId = 1,
+                    Requester = new UiUser { DbId = 42 },
+                    Tasks = new List<WfReqTask>
+                    {
+                        new WfReqTask { Id = 11, TicketId = 101, StateId = 1, Title = "First task" },
+                        new WfReqTask { Id = 12, TicketId = 101, StateId = 1, Title = "Second task" }
+                    }
+                }
+            };
+            WfDbAccess dbAccess = await CreateHistoryDbAccess(apiConn, WorkflowPhases.request);
+
+            await dbAccess.AddTicketToDb(new WfTicket { Id = 0, StateId = 1, Requester = new UiUser { DbId = 42 } });
+
+            List<object?> insertEntries = apiConn.HistoryVariables
+                .Where(entry => HistoryEntryValue(entry, "changeType") == ((int)ModellingTypes.ChangeType.Insert).ToString())
+                .ToList();
+            Assert.Multiple(() =>
+            {
+                Assert.That(insertEntries, Has.Count.EqualTo(2));
+                Assert.That(insertEntries.Select(entry => HistoryEntryValue(entry, "objectType")),
+                    Is.All.EqualTo(((int)ChangeHistoryObjectType.RequestTask).ToString()));
+                Assert.That(insertEntries.Select(entry => HistoryEntryValue(entry, "objectId")), Is.EqualTo(ExpectedCreatedTaskIds));
+                Assert.That(insertEntries.Select(entry => HistoryEntryValue(entry, "ticketId")), Is.All.EqualTo("101"));
+                // created by the requester, so the insert is not audit-proof critical
+                Assert.That(insertEntries.Select(entry => HistoryEntryValue(entry, "auditProofCritical")), Is.All.EqualTo(bool.FalseString));
+                Assert.That(insertEntries.Select(entry => JsonConvert.SerializeObject(HistoryEntryProperty(entry, "oldData"))), Is.All.EqualTo("null"));
             });
         }
 
@@ -2889,6 +2989,18 @@ namespace FWO.Test
             return new WfDbAccess(DefaultInit.DoNothing, userConfig, apiConnection, actionHandler, false, phase, isUiContext) { ChangerId = changerId };
         }
 
+        private static object? HistoryEntryProperty(object? entry, string name)
+        {
+            PropertyInfo? property = entry?.GetType().GetProperty(name);
+            Assert.That(property, Is.Not.Null);
+            return property!.GetValue(entry);
+        }
+
+        private static string? HistoryEntryValue(object? entry, string name)
+        {
+            return HistoryEntryProperty(entry, name)?.ToString();
+        }
+
         private static string? HistoryRawValue(WfDbAccessTestApiConn apiConnection, string name)
         {
             PropertyInfo? property = apiConnection.LastHistoryVariables?.GetType().GetProperty(name);
@@ -2923,6 +3035,7 @@ namespace FWO.Test
 
         // reflection argument list, kept in a field so no inline array argument is introduced
         private static readonly object[] WithoutTriggerActions = [false];
+        private static readonly List<string> ExpectedCreatedTaskIds = ["11", "12"];
         private const int kCallerUserId = 93;
 
         private static void SetWorkflowContext(WfHandler wfHandler, WfDbAccess dbAccess)

@@ -167,10 +167,19 @@ class FwConfigImportRule:
             changed_rule_uids | xlate_fk_repoint_uids
         )
 
+        changed_rules_for_changelog, moved_between_rulebases_uids = self.collect_changed_rules_for_changelog(
+            prev_rules,
+            curr_rules,
+            changed_rule_uids,
+            xlate_fk_repoint_uids,
+            prev_rule_to_rulebase,
+            curr_rule_to_rulebase,
+        )
         num_security_relevant_rule_changes = self.write_changelog_rules(
             [curr_rules[rule_uid] for rule_uid in added_rule_uids],
             [prev_rules[rule_uid] for rule_uid in removed_rule_uids],
-            [(prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids],
+            changed_rules_for_changelog,
+            moved_between_rulebases_uids,
         )
 
         num_moved_rules = self.count_moved_rules(
@@ -1269,24 +1278,62 @@ class FwConfigImportRule:
             xlate_rule=xlate_rule_id,
         )
 
+    @staticmethod
+    def collect_changed_rules_for_changelog(
+        prev_rules: dict[str, RuleNormalized],
+        curr_rules: dict[str, RuleNormalized],
+        changed_rule_uids: set[str],
+        xlate_fk_repoint_uids: set[str],
+        prev_rule_to_rulebase: dict[str, str],
+        curr_rule_to_rulebase: dict[str, str],
+    ) -> tuple[list[tuple[RuleNormalized, RuleNormalized]], set[str]]:
+        """
+        Collects the (old, new) rule pairs that need a changelog entry of type change.
+
+        Every new rule version needs a changelog entry, as the incremental rule owner mapping
+        only sees rules through the changelog. Besides the changed rules this includes the NAT
+        rules that got a new version only because their xlate_rule FK had to be repointed.
+
+        Returns:
+            tuple: The (old, new) rule pairs and the uids of the rules moved to another rulebase.
+
+        """
+        changed_rules = [
+            (prev_rules[rule_uid], curr_rules[rule_uid]) for rule_uid in changed_rule_uids | xlate_fk_repoint_uids
+        ]
+        moved_between_rulebases_uids = {
+            rule_uid
+            for rule_uid in changed_rule_uids
+            if prev_rule_to_rulebase.get(rule_uid) != curr_rule_to_rulebase.get(rule_uid)
+        }
+        return changed_rules, moved_between_rulebases_uids
+
     def write_changelog_rules(
         self,
         added_rules: list[RuleNormalized],
         removed_rules: list[RuleNormalized],
         changed_rules: list[tuple[RuleNormalized, RuleNormalized]],
+        moved_between_rulebases_uids: set[str] | None = None,
     ) -> int:
         """
         Writes changelog entries for added, removed, and changed rules.
 
         Args:
-            new_rules (list[RuleNormalized]): List of newly added rules.
+            added_rules (list[RuleNormalized]): List of newly added rules.
             removed_rules (list[RuleNormalized]): List of removed rules.
             changed_rules (list[tuple[RuleNormalized, RuleNormalized]]): List of tuples containing old and new versions of changed rules.
+            moved_between_rulebases_uids (set[str] | None): Uids of changed rules moved to another rulebase.
+                Such a move is always security-relevant, even if the rule itself is unchanged.
 
         Returns:
             int: The number of changed rules whose change is security-relevant.
 
+        Raises:
+            FwoImporterError: If the changelog entries could not be written. Without them the new
+                rule versions would be invisible to the incremental rule owner mapping.
+
         """
+        moved_uids = moved_between_rulebases_uids or set()
         added_rules_ids = [
             self.uid2id_mapper.get_rule_id(rule.rule_uid) for rule in added_rules if rule.rule_uid is not None
         ]
@@ -1301,7 +1348,7 @@ class FwConfigImportRule:
                     (
                         self.uid2id_mapper.get_rule_id(rule_uid),
                         self.uid2id_mapper.get_rule_id(rule_uid, before_update=True),
-                        self.is_change_security_relevant(old_rule, new_rule),
+                        rule_uid in moved_uids or self.is_change_security_relevant(old_rule, new_rule),
                     )
                 )
 
@@ -1322,13 +1369,12 @@ class FwConfigImportRule:
                     query_variables=query_variables,
                     analyze_payload=True,
                 )
-                if "errors" in update_changelog_rules_result:
-                    FWOLogger.exception(
-                        f"error while adding changelog entries for objects: {update_changelog_rules_result['errors']!s}"
-                    )
             except Exception:
-                FWOLogger.exception(
-                    f"fatal error while adding changelog entries for objects: {traceback.format_exc()!s}"
+                FWOLogger.exception(f"fatal error while adding changelog entries for rules: {traceback.format_exc()!s}")
+                raise FwoImporterError("failed to add changelog entries for rules") from None
+            if "errors" in update_changelog_rules_result:
+                raise FwoImporterError(
+                    f"error while adding changelog entries for rules: {update_changelog_rules_result['errors']!s}"
                 )
 
         return sum(1 for _, _, security_relevant in changed_rules_ids if security_relevant)

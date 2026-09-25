@@ -592,7 +592,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task CreateRequestTaskSortConfigPopup_BlocksSavingWhenAccessWouldSortBeforeCreateGroup()
+        public async Task CreateRequestTaskSortConfigPopup_AllowsAccessBeforeCreateGroup()
         {
             await using BunitContext context = new();
             SimulatedUserConfig userConfig = new();
@@ -626,8 +626,6 @@ namespace FWO.Test
                 AllowTaskSplit = true
             };
             bool display = true;
-            Exception? displayedException = null;
-
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddSingleton<UserConfig>(userConfig);
             context.Services.AddSingleton<ApiConnection>(apiConnection);
@@ -637,18 +635,19 @@ namespace FWO.Test
             IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = context.Render<CreateRequestTaskSortConfigPopup>(parameters => parameters
                 .Add(p => p.Display, true)
                 .Add(p => p.DisplayChanged, EventCallback.Factory.Create<bool>(this, value => display = value))
-                .Add(p => p.ConfigValue, invalidSortConfig.ToConfigValue())
-                .Add(p => p.DisplayMessageInUi, (Exception? exception, string _, string __, bool ___) => displayedException = exception));
+                .Add(p => p.ConfigValue, invalidSortConfig.ToConfigValue()));
 
             popup.Find("button.btn.btn-primary").Click();
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
-                Assert.That(display, Is.True);
-                Assert.That(displayedException, Is.Not.Null);
-                Assert.That(displayedException!.Message, Is.EqualTo(userConfig.GetText("E5310")));
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
+                Assert.That(display, Is.False);
             });
+
+            CreateRequestTaskSortConfig saved = CreateRequestTaskSortConfig.Parse(
+                FindConfigItem(apiConnection.LastConfigItems, "reqCreateRequestTaskSortConfig").Value);
+            Assert.That(saved.AccessPriority, Is.EqualTo(0));
         }
 
         [Test]

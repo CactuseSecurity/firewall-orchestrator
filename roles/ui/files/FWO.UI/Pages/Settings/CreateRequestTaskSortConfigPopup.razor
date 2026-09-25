@@ -102,7 +102,6 @@
 
         try
         {
-            ValidateOrder();
             ApplyOrderToConfig();
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
             editableConfig.ReqCreateRequestTaskSortConfig = actConfig.ToConfigValue();
@@ -115,23 +114,6 @@
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
         }
-    }
-
-    private void ValidateOrder()
-    {
-        int groupCreateIndex = GetItemIndex(SortItemKind.GroupCreate);
-        int groupModifyAddIndex = GetItemIndex(SortItemKind.GroupModifyAdd);
-        int accessIndex = GetItemIndex(SortItemKind.Access);
-
-        if (groupCreateIndex > accessIndex || groupModifyAddIndex > accessIndex)
-        {
-            throw new InvalidOperationException(userConfig.GetText("E5310"));
-        }
-    }
-
-    private int GetItemIndex(SortItemKind kind)
-    {
-        return sortItems.FindIndex(item => item.Kind == kind);
     }
 
     private bool CanMoveUp(int index)

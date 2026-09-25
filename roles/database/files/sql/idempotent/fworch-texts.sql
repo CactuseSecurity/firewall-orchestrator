@@ -4700,8 +4700,6 @@ INSERT INTO txt VALUES ('E5298', 'English', 'Duplicate zone patterns cannot be s
 
 INSERT INTO txt VALUES ('E5301', 'German',  'Konfiguration konnte nicht gelesen oder verarbeitet werden.');
 INSERT INTO txt VALUES ('E5301', 'English', 'Error reading or processing Config.');
-INSERT INTO txt VALUES ('E5310', 'German',  'Das Anlegen von Gruppen und das Hinzuf&uuml;gen von Gruppenmitgliedern m&uuml;ssen vor den Zugriffsaufgaben erfolgen.');
-INSERT INTO txt VALUES ('E5310', 'English', 'Group creation and adding group members must be sorted before access tasks.');
 
 INSERT INTO txt VALUES ('E5401', 'German',  'Bitte das alte Passwort eintragen');
 INSERT INTO txt VALUES ('E5401', 'English', 'Please insert the old password');

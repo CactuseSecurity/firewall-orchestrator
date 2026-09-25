@@ -36,16 +36,18 @@ public class WorkflowTicketController : ControllerBase
     [Authorize(Roles = $"{Roles.Admin}")]
     [HttpPost("createTicket")]
     [ProducesResponseType(typeof(CreateTicketResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateTicketResponse>> CreateTicket([FromBody] CreateTicketRequest request)
     {
+        RequestValidationErrorResponse validationErrors = CreateTicketRequestValidator.Validate(request);
+        if (validationErrors.Errors.Count > 0)
+        {
+            return BadRequest(validationErrors);
+        }
+
         try
         {
-            if (request == null)
-            {
-                return BadRequest("Request body is missing.");
-            }
             int requesterId = FWO.Basics.JwtClaimParser.ExtractIntClaimValues(User.Claims, "x-hasura-user-id").FirstOrDefault();
             string callerName = User.FindFirstValue("unique_name") ?? "";
             CreateTicketResponse response = await workflowTicketService.CreateTicketAsync(request, requesterId, callerName);

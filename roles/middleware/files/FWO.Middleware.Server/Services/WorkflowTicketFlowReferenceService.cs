@@ -102,8 +102,12 @@ internal sealed class FlowReferenceCatalog
 
         return new WfReqElement
         {
-            Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkObject.Name,
-            IpString = networkObject.IpStart, IpEnd = networkObject.IpEnd, FlowNetworkObjectId = id
+            Field = field.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = networkObject.Name,
+            IpString = networkObject.IpStart,
+            IpEnd = networkObject.IpEnd,
+            FlowNetworkObjectId = id
         };
     }
 
@@ -116,8 +120,11 @@ internal sealed class FlowReferenceCatalog
 
         return new WfReqElement
         {
-            Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkGroup.Name,
-            GroupName = networkGroup.Name, FlowNetworkGroupId = id
+            Field = field.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = networkGroup.Name,
+            GroupName = networkGroup.Name,
+            FlowNetworkGroupId = id
         };
     }
 
@@ -130,8 +137,13 @@ internal sealed class FlowReferenceCatalog
 
         return new WfReqElement
         {
-            Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceObject.Name,
-            Port = serviceObject.PortStart, PortEnd = serviceObject.PortEnd, ProtoId = serviceObject.ProtoId, FlowServiceObjectId = id
+            Field = field.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = serviceObject.Name,
+            Port = serviceObject.PortStart,
+            PortEnd = serviceObject.PortEnd,
+            ProtoId = serviceObject.ProtoId,
+            FlowServiceObjectId = id
         };
     }
 
@@ -144,8 +156,11 @@ internal sealed class FlowReferenceCatalog
 
         return new WfReqElement
         {
-            Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceGroup.Name,
-            GroupName = serviceGroup.Name, FlowServiceGroupId = id
+            Field = field.ToString(),
+            RequestAction = RequestAction.create.ToString(),
+            Name = serviceGroup.Name,
+            GroupName = serviceGroup.Name,
+            FlowServiceGroupId = id
         };
     }
 }

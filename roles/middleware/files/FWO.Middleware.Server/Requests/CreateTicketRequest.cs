@@ -7,6 +7,8 @@ namespace FWO.Middleware.Server.Requests;
 /// </summary>
 public sealed class CreateTicketRequest
 {
+    private CreateTicketOptions options = new();
+
     /// <summary>
     /// Gets the RequestorName value.
     /// </summary>
@@ -41,7 +43,11 @@ public sealed class CreateTicketRequest
     /// Gets the optional create-ticket behavior settings. Defaults to an empty object.
     /// </summary>
     [JsonPropertyName("options")]
-    public CreateTicketOptions Options { get; set; } = new();
+    public CreateTicketOptions Options
+    {
+        get => options;
+        set => options = value ?? new CreateTicketOptions();
+    }
 
     /// <summary>
     /// Gets the Rules value.

@@ -785,5 +785,5 @@ Not supported any longer are:
 - variance analysis: every fall back to the marker query is written to the log with its reason and shown
   to the user once per analysis, so the remaining cases can be found without debug logging
 
-## 9.5.6 - 25.09.2026
+## 9.5.7 - 25.09.2026
 - add upgrade seed for request task sort configuration

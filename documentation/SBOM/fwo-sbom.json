@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:e2b66d13-9efb-4c94-9a89-78fc27c700fc",
+  "serialNumber": "urn:uuid:7fc8e3af-7c2d-4145-bad8-f11e8d2b9cb9",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-25T16:31:00Z",
+    "timestamp": "2026-09-25T16:31:37Z",
     "tools": {
       "components": [
         {
@@ -1508,6 +1508,44 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Bcl.AsyncInterfaces",
+      "version": "6.0.0",
+      "description": "Provides the IAsyncEnumerable\u003CT\u003E and IAsyncDisposable interfaces and helper types for .NET Standard 2.0. This package is not required starting with .NET Standard 2.1 and .NET Core 3.0.\n\nCommonly Used Types:\nSystem.IAsyncDisposable\nSystem.Collections.Generic.IAsyncEnumerable\nSystem.Collections.Generic.IAsyncEnumerator",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "221A05A0C910F7A87B620D8F3831ED392B4EB95D112BEE274D35F27009AD2A26445DE9D7CD235FE6FB4A03F2550874BDA3BE3DDDD96EDAF9C0852A9C23D7B099"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
       "authors": [
         {
@@ -2148,6 +2186,44 @@
         },
         {
           "url": "https://github.com/dotnet/dotnet",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@8.0.2",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Extensions.DependencyModel",
+      "version": "8.0.2",
+      "description": "Provides abstractions for reading \u0060.deps\u0060 files. When a .NET application is compiled, the SDK generates a JSON manifest file (\u0060\u003CApplicationName\u003E.deps.json\u0060) that contains information about application dependencies. You can use \u0060Microsoft.Extensions.DependencyModel\u0060 to read information from this manifest at run time. This is useful when you want to dynamically compile code (for example, using Roslyn Emit API) referencing the same dependencies as your main application.\n\nBy default, the dependency manifest contains information about the application\u0027s target framework and runtime dependencies. Set the PreserveCompilationContext project property to \u0060true\u0060 to additionally include information about reference assemblies used during compilation.",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "42A9E54C51B5F99A1D26AE79CE21ACCB5218A600B2534632AA2C2A4CDCAC5D2942D2976F2C915FE8523EC5E390043607AC6B0A530DE9E7CBBAD9E1841ECEA37E"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Extensions.DependencyModel@8.0.2",
+      "externalReferences": [
+        {
+          "url": "https://dot.net/",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/dotnet/runtime",
           "type": "vcs"
         }
       ]
@@ -3637,6 +3713,44 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "Microsoft.Playwright",
+      "version": "1.63.0",
+      "description": "Playwright enables reliable end-to-end testing for modern web apps. It is built to enable cross-browser web automation that is ever-green, capable, reliable and fast. Learn more at https://playwright.dev/dotnet/.",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "2E74B28CDCFDB6AD039D21EE872D39E7D8B8B7E7E41A1943AA35ECC5B9F9B96EAD86C24B8A627549047D8E03885514687DCE1CE0A013E9158AC178B2699C7A20"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/microsoft/playwright-dotnet",
+          "type": "website"
+        },
+        {
+          "url": "https://github.com/microsoft/playwright-dotnet.git",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
       "authors": [
         {
@@ -4427,6 +4541,44 @@
     },
     {
       "type": "library",
+      "bom-ref": "pkg:nuget/System.ComponentModel.Annotations@5.0.0",
+      "authors": [
+        {
+          "name": "Microsoft"
+        }
+      ],
+      "name": "System.ComponentModel.Annotations",
+      "version": "5.0.0",
+      "description": "Provides attributes that are used to define metadata for objects used as data sources.\n\nCommonly Used Types:\nSystem.ComponentModel.DataAnnotations.ValidationResult\nSystem.ComponentModel.DataAnnotations.IValidatableObject\nSystem.ComponentModel.DataAnnotations.ValidationAttribute\nSystem.ComponentModel.DataAnnotations.RequiredAttribute\nSystem.ComponentModel.DataAnnotations.StringLengthAttribute\nSystem.ComponentModel.DataAnnotations.DisplayAttribute\nSystem.ComponentModel.DataAnnotations.RegularExpressionAttribute\nSystem.ComponentModel.DataAnnotations.DataTypeAttribute\nSystem.ComponentModel.DataAnnotations.RangeAttribute\nSystem.ComponentModel.DataAnnotations.KeyAttribute\n \nWhen using NuGet 3.x this package requires at least version 3.4.",
+      "scope": "excluded",
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "589AAC4C669701CE7910F1A327294F15788D3ECFF1D6DF5D9255651E5201C5411C2312286FAB111A6F549FB4DE864C8414CFAF2A365DEEB6F068C1FFCE7C353C"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "copyright": "\u00A9 Microsoft Corporation. All rights reserved.",
+      "purl": "pkg:nuget/System.ComponentModel.Annotations@5.0.0",
+      "externalReferences": [
+        {
+          "url": "https://github.com/dotnet/runtime",
+          "type": "website"
+        },
+        {
+          "url": "git://github.com/dotnet/runtime",
+          "type": "vcs"
+        }
+      ]
+    },
+    {
+      "type": "library",
       "bom-ref": "pkg:nuget/System.Diagnostics.EventLog@10.0.12",
       "authors": [
         {
@@ -4652,7 +4804,8 @@
         "pkg:nuget/Moq@4.20.72",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
-        "pkg:nuget/NUnit3TestAdapter@6.3.0"
+        "pkg:nuget/NUnit3TestAdapter@6.3.0",
+        "pkg:nuget/Microsoft.Playwright@1.63.0"
       ]
     },
     {
@@ -4898,6 +5051,10 @@
       ]
     },
     {
+      "ref": "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "dependsOn": []
+    },
+    {
       "ref": "pkg:nuget/Microsoft.Bcl.Cryptography@10.0.2",
       "dependsOn": []
     },
@@ -5005,6 +5162,10 @@
     },
     {
       "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@10.0.12",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/Microsoft.Extensions.DependencyModel@8.0.2",
       "dependsOn": []
     },
     {
@@ -5294,6 +5455,13 @@
       "dependsOn": []
     },
     {
+      "ref": "pkg:nuget/Microsoft.Playwright@1.63.0",
+      "dependsOn": [
+        "pkg:nuget/Microsoft.Bcl.AsyncInterfaces@6.0.0",
+        "pkg:nuget/System.ComponentModel.Annotations@5.0.0"
+      ]
+    },
+    {
       "ref": "pkg:nuget/Microsoft.Rest.ClientRuntime@2.3.24",
       "dependsOn": [
         "pkg:nuget/Newtonsoft.Json@13.0.3"
@@ -5410,6 +5578,10 @@
     },
     {
       "ref": "pkg:nuget/Scalar.AspNetCore@2.17.8",
+      "dependsOn": []
+    },
+    {
+      "ref": "pkg:nuget/System.ComponentModel.Annotations@5.0.0",
       "dependsOn": []
     },
     {

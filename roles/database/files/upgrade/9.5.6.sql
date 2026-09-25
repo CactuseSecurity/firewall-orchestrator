@@ -1,1 +1,4 @@
-insert into config (config_key, config_value, config_user) VALUES ('reqCreateRequestTaskSortConfig', '{"group_create_priority":0,"group_modify_add_priority":1,"access_priority":2,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}', 0) ON CONFLICT DO NOTHING;
+-- Wait time of the variance analysis for a pending rule_owner mapping run.
+-- Only relevant for the NameField mapping source; 0 keeps the previous behaviour of
+-- falling back to the marker query right away.
+insert into config (config_key, config_value, config_user) VALUES ('varianceNameFieldWaitTime', '0', 0) ON CONFLICT DO NOTHING;

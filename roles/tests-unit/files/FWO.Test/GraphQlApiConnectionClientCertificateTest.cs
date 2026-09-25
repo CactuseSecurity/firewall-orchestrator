@@ -19,6 +19,7 @@ namespace FWO.Test
     /// </summary>
     [TestFixture]
     [NonParallelizable] // mutates the static ConfigFile paths that ConfigFileTest also writes
+    [UseSystemTimeZone] // X509Chain.Build needs it to set its verification time
     internal class GraphQlApiConnectionClientCertificateTest
     {
         private const string kClientCertificateSubject = "CN=fwo-client-certificate-test";

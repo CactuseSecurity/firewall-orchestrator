@@ -1,0 +1,15 @@
+# Whether a rule_owner mapping exists at all for the configured mapping source.
+#
+# Asked by the variance analysis to read an empty prefilter result correctly: it only means
+# "this owner has nothing on this management" once the mapping has been built at least once.
+# Without any mapping it says nothing and the marker query has to answer instead.
+#
+# limit 1 because the existence is the answer, not the number of rows.
+query getAnyActiveRuleOwnerMapping($ownerMappingSourceId: smallint!) {
+  rule_owner(where: {
+    owner_mapping_source_id: {_eq: $ownerMappingSourceId}
+    removed: {_is_null: true}
+  }, limit: 1) {
+    rule_id
+  }
+}

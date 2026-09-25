@@ -582,13 +582,16 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die Log-Daten einer Verbindung in der Modellierung f&uuml;llen nun das Browser-Fenster: die Tabelle zeigt so viele Zeilen pro Seite, wie das Fenster zul&auml;sst, und folgt einer &Auml;nderung der Fenstergr&ouml;&szlig;e. Eine neue Seitengr&ouml;&szlig;e wird nur auf der ersten Seite &uuml;bernommen und springt damit nie an eine andere Stelle der Log-Daten.</li>
     <li>Auditoren k&ouml;nnen die Modellierungs-Formulare aller Applikationen - Verbindungen, bereitgestellte Schnittstellen und Common Services - nun &ouml;ffnen und die dort angezeigten Log-Daten einsehen. Speichern, L&ouml;schen und das Beantragen von Firewall-&Auml;nderungen bleiben den Verantwortlichen mit der Rolle Modellierer vorbehalten.</li>
     <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
-    <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
+    <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist. Zus&auml;tzlich zeigt er f&uuml;r jede Request-Task, deren Inhalt vom urspr&uuml;nglichen Antrag abweicht, den urspr&uuml;nglichen und den aktuellen Stand sowie die manuellen revisionskritischen &Auml;nderungen an Implementierungs-Tasks mit ihrem Stand davor und danach.</li>
+    <li>Der neue REST-Endpunkt workflow/getTicket liefert ein Workflow-Ticket mit allen Details - Request Tasks samt Elementen, Genehmigungen, Implementierungs-Tasks, Eigent&uuml;mern und Kommentaren - im JSON-Format. Er steht Administratoren und Auditoren zur Verf&uuml;gung; die zur&uuml;ckgegebenen Request Tasks lassen sich optional filtern.</li>
     <li>Importierte Logdaten zeigen nun f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen.</li>
     <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
     <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
     <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
     <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
+    <li>&Auml;nderungen an den Dokumentationsfeldern einer Regel (Name, Kommentar, Zusatzfelder) werden nun ebenfalls in der Regel-&Auml;nderungshistorie protokolliert, dort aber als nicht sicherheitsrelevant gekennzeichnet. &Auml;nderungsreports und Benachrichtigungen &uuml;ber Regel&auml;nderungen ber&uuml;cksichtigen weiterhin nur sicherheitsrelevante &Auml;nderungen.</li>
     <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
+    <li>Der Soll-Ist-Abgleich nutzt die Eigent&uuml;merzuordnung der Regeln nun deutlich h&auml;ufiger als schnellen Weg: Ein Import ohne Regel&auml;nderungen blockiert sie nicht mehr, und wo jemand auf das Ergebnis wartet, wartet der Abgleich kurz auf eine ausstehende Zuordnung, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Die Wartezeit stellt die neue Einstellung "Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung" ein, 0 schaltet sie ab. Eine laufende vollst&auml;ndige Neuberechnung der Zuordnung wird nun erkannt, sodass der Abgleich w&auml;hrenddessen keine unvollst&auml;ndigen Ergebnisse mehr liefert.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -609,13 +612,16 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The log data shown with a connection in the modelling ui now fills the browser window: the table takes as many rows per page as the window allows and follows a window resize. A new page size is only applied while the first page is shown, so it never moves you to a different part of the log.</li>
     <li>Auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.</li>
     <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
-    <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
+    <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof. In addition it shows, for each request task whose content differs from the original request, the original and the current state, and the manual audit proof critical changes of implementation tasks with their state before and after.</li>
+    <li>The new REST endpoint workflow/getTicket returns a workflow ticket with all its details - request tasks with their elements, approvals, implementation tasks, owners and comments - in JSON format. It is available to administrators and auditors; the returned request tasks can optionally be filtered.</li>
     <li>Imported log data now shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses.</li>
     <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
     <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
     <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
     <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
+    <li>Changes to the documentation fields of a rule (name, comment, custom fields) are now recorded in the rule change history as well, but flagged as not security-relevant. Change reports and rule change notifications still cover security-relevant changes only.</li>
     <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
+    <li>The variance analysis now uses the rule owner mapping as its fast path far more often: an import without rule changes no longer blocks it, and where somebody is waiting for the result the analysis waits briefly for a pending mapping run instead of falling back to the much slower marker search. The new setting "Wait time for rule owner mapping" caps that wait, 0 disables it. A running full recalculation of the mapping is now detected, so the analysis no longer returns incomplete results while it runs.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2787,6 +2793,8 @@ INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','German',  'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (nur Quelle Namensfeld)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','English', 'Wait time for rule owner mapping (source Name field only)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'German', 	'Flow-Sync-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'English', 'Flow sync sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
@@ -3910,6 +3918,8 @@ INSERT INTO txt VALUES ('flow_compliance_api',  'German',   'Flow-Compliance');
 INSERT INTO txt VALUES ('flow_compliance_api',  'English',  'Flow Compliance');
 INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge');
 INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
+INSERT INTO txt VALUES ('workflow_api',         'German',   'Workflow API');
+INSERT INTO txt VALUES ('workflow_api',         'English',  'Workflow API');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -4456,6 +4466,8 @@ INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht model
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
+INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
+INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -6811,6 +6823,8 @@ INSERT INTO txt VALUES ('H5485b', 'German', 'Flow-Sync-Intervall (in Sekunden): 
 INSERT INTO txt VALUES ('H5485b', 'English','Flow sync sleep time (in seconds): Time between checking the import_control table and updating the flow schema if required. 0 disables the job.');
 INSERT INTO txt VALUES ('H5485c', 'German', 'Einstellungen f&uuml;r Trigger zur Synchronisierung von Flow-Daten');
 INSERT INTO txt VALUES ('H5485c', 'English','Flow Sync Event Trigger Settings');
+INSERT INTO txt VALUES ('H5485d', 'German', 'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (in Sekunden): Wirkt nur bei der Zuordnungsquelle Namensfeld. Steht eine Zuordnung noch aus, wartet der Soll-Ist-Abgleich h&ouml;chstens so lange darauf, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Der Wert sollte zum Aktualisierungs-Intervall dar&uuml;ber passen. 0 schaltet das Warten ab.');
+INSERT INTO txt VALUES ('H5485d', 'English','Wait time for rule owner mapping (in seconds): Only effective for the Name field mapping source. While a mapping is still pending, the variance analysis waits at most this long for it instead of falling back to the much slower marker search. The value should match the update interval above. 0 disables waiting.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
 INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
@@ -7926,6 +7940,48 @@ INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> pr
             <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+');
+INSERT INTO txt VALUES ('H6944', 'German',  'Die Workflow-REST-API stellt lesende Funktionen f&uuml;r Workflow-Tickets unter <code>/api/workflow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code> und stehen Administratoren und Auditoren zur Verf&uuml;gung.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>getTicket</code></td><td>Liefert ein vorhandenes Ticket mit allen Details: Kopfdaten, Request Tasks samt Elementen, Genehmigungen, Implementierungs-Tasks, Eigent&uuml;mern und Kommentaren sowie die Ticket-Kommentare.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"taskType": "access"}}}</code><br />Response: <code>{"id": 42, "title": "...", "stateId": 49, "state": "...", "status": "...", "tasks": [{"id": 501, "taskNumber": 1, "elements": [...], "approvals": [...], "implementationTasks": [...], "owners": [...], "comments": [...]}], "comments": [...]}</code></td></tr>
+            <tr><td><code>getAuditProofCriticalChanges</code></td><td>Liefert die revisionskritischen &Auml;nderungen eines Tickets, neueste zuerst: inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"changeUserName": "abc"}}}</code><br />Response: <code>{"changes": [{"changeTime": "2026-09-11T08:11:00", "changeUserName": "abc", "changeUserId": 7, "changeContent": "..."}]}</code></td></tr>
+        </tbody>
+    </table>
+    Gemeinsame Regeln beider Endpunkte:
+    <ul>
+        <li><code>ticketId</code> ist Pflicht und muss gr&ouml;&szlig;er als 0 sein. <code>options</code> ist optional und hat den Standardwert <code>{}</code>.</li>
+        <li>Alle Schl&uuml;ssel in <code>options.filter</code> sind optional; ein fehlender Schl&uuml;ssel oder <code>null</code> schr&auml;nkt das Ergebnis nicht ein. Mehrere Schl&uuml;ssel werden mit UND verkn&uuml;pft.
+            Texte werden exakt und ohne Beachtung der Gro&szlig;-/Kleinschreibung verglichen, Zeitstempel exakt auf der Uhrzeit der Installation; ein Offset oder ein abschlie&szlig;endes Z wird vorher umgerechnet.</li>
+        <li>Bei <code>getTicket</code> schr&auml;nkt der Filter nur die zur&uuml;ckgegebenen Request Tasks ein. Filterbar sind alle einfachen Felder eines Tasks, z.B. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> oder <code>targetBeginDate</code>. Schlie&szlig;t der Filter alle Tasks aus, wird das Ticket mit leerer Task-Liste geliefert.</li>
+        <li><code>state</code> enth&auml;lt den internen Workflow-Status, <code>status</code> den Status, den auch <code>/api/flow/getRequestStatus</code> meldet (bevorzugt der externe Statusname).</li>
+        <li>Zeitstempel werden ohne Offset in der Uhrzeit der Installation geliefert, da die zugrunde liegenden Spalten keine Zeitzone speichern.</li>
+        <li>Bei <code>getTicket</code> sind Request Tasks und Implementierungs-Tasks nach Task-Nummer sortiert, Elemente, Genehmigungen und Eigent&uuml;mer nach ihrer Id und Kommentare nach Erstellungszeit (&auml;lteste zuerst). Die Reihenfolge ist damit bei wiederholten Abfragen stabil.</li>
+        <li>Ung&uuml;ltige Requests werden mit 400 beantwortet, eine unbekannte <code>ticketId</code> mit 404. Beide liefern alle gefundenen Fehler gemeinsam im Format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read access to workflow tickets below <code>/api/workflow</code>.
+    All endpoints use <code>POST</code> and are available to administrators and auditors.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>getTicket</code></td><td>Returns an existing ticket with all its details: header data, request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"taskType": "access"}}}</code><br />Response: <code>{"id": 42, "title": "...", "stateId": 49, "state": "...", "status": "...", "tasks": [{"id": 501, "taskNumber": 1, "elements": [...], "approvals": [...], "implementationTasks": [...], "owners": [...], "comments": [...]}], "comments": [...]}</code></td></tr>
+            <tr><td><code>getAuditProofCriticalChanges</code></td><td>Returns the audit proof critical changes of a ticket, newest first: content changes made in a user session by someone other than the requester.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"changeUserName": "abc"}}}</code><br />Response: <code>{"changes": [{"changeTime": "2026-09-11T08:11:00", "changeUserName": "abc", "changeUserId": 7, "changeContent": "..."}]}</code></td></tr>
+        </tbody>
+    </table>
+    Rules shared by both endpoints:
+    <ul>
+        <li><code>ticketId</code> is required and must be greater than 0. <code>options</code> is optional and defaults to <code>{}</code>.</li>
+        <li>Every key in <code>options.filter</code> is optional; an omitted key or <code>null</code> does not restrict the result. Several keys are combined with AND.
+            Text is matched exactly and case-insensitively, timestamps exactly on the wall clock of the installation; an offset or a trailing Z is converted to it first.</li>
+        <li>For <code>getTicket</code> the filter only restricts the returned request tasks. Every simple field of a task can be filtered, e.g. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> or <code>targetBeginDate</code>. If the filter excludes every task, the ticket is returned with an empty task list.</li>
+        <li><code>state</code> holds the internal workflow state, <code>status</code> the status that <code>/api/flow/getRequestStatus</code> reports as well (the external state name where one is mapped).</li>
+        <li>Timestamps are returned without an offset on the wall clock of the installation, because the underlying columns store no time zone.</li>
+        <li>For <code>getTicket</code>, request tasks and implementation tasks are ordered by task number, elements, approvals and owners by their id, and comments by creation time (oldest first), so repeated calls return the same order.</li>
+        <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:

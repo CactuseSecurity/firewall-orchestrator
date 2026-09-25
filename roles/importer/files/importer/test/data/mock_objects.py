@@ -102,6 +102,9 @@ class MockObjectsFactory:
                 "unique_name": str(object_id)
                 if change_action != ChangelogChangeAction.CHANGE
                 else str(int(f"{object_id}0")),
+                # object changelog entries are always security-relevant, unlike rule changes
+                # which can be flagged as documentation-only
+                "security_relevant": True,
             }
         )
 

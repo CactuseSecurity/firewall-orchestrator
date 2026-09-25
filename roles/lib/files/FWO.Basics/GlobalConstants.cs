@@ -49,6 +49,7 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
+        public const string kVarianceRuleOwnerPrefilter = "varianceRuleOwnerPrefilter";
         public const string kManual = "manual";
         // change_history.module: names the subsystem that wrote a history row and therefore
         // which enum its object_type has to be read against. Workflow rows use the same literal as

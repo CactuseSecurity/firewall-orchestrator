@@ -463,6 +463,7 @@ namespace FWO.Test
             {"save","Save"},
             {"api_ticket_initial_state","API ticket initial state"},
             {"reqCreateRequestTaskSortConfig","Request task sort priorities"},
+            {"E5310","Group creation and adding group members must be sorted before access tasks."},
             {"allow_task_split","Allow task split"},
             {"use_default","Use default"},
             {"H5546","API tickets: Here the optional initial state for tickets created via the API is defined. If no state is set, the default start state is still used."},

@@ -46,7 +46,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
+            <button type="button" class="btn btn-sm btn-primary" disabled="@(!CanEdit)" @onclick="Confirm">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
             <button type="button" class="btn btn-sm btn-secondary" @onclick="Close">@(DisplayService.DisplayButton(userConfig, "cancel", Icons.Cancel))</button>
         </div>
     </Footer>
@@ -71,6 +71,7 @@
 
     private CreateRequestTaskSortConfig actConfig = new();
     private List<SortItem> sortItems = [];
+    private bool CanEdit => userConfig.CanUseAnyRole(Roles.Admin);
 
     protected override void OnParametersSet()
     {
@@ -94,6 +95,11 @@
 
     private async Task Confirm()
     {
+        if (!CanEdit)
+        {
+            return;
+        }
+
         try
         {
             ValidateOrder();
@@ -119,7 +125,7 @@
 
         if (groupCreateIndex > accessIndex || groupModifyAddIndex > accessIndex)
         {
-            throw new InvalidOperationException($"{userConfig.GetText("create_group")} and {userConfig.GetText("group_modify")}{userConfig.GetText("add_members")} must be sorted before {userConfig.GetText("access")}.");
+            throw new InvalidOperationException(userConfig.GetText("E5310"));
         }
     }
 

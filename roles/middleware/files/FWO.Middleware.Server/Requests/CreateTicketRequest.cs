@@ -38,11 +38,10 @@ public sealed class CreateTicketRequest
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets whether request tasks are sorted before the ticket is saved.
-    /// Defaults to false so the existing build order stays unchanged unless callers opt in.
+    /// Gets the optional create-ticket behavior settings. Defaults to an empty object.
     /// </summary>
-    [JsonPropertyName("sortTasks")]
-    public bool SortTasks { get; set; } = false;
+    [JsonPropertyName("options")]
+    public CreateTicketOptions Options { get; set; } = new();
 
     /// <summary>
     /// Gets the Rules value.
@@ -81,6 +80,19 @@ public sealed class CreateTicketRequest
     public List<CreateTimeObjectRequest> TimeObjects { get; set; } = [];
 
     /// <summary>
+    /// Represents optional behavior settings for creating a workflow ticket.
+    /// </summary>
+    public sealed class CreateTicketOptions
+    {
+        /// <summary>
+        /// Gets or sets whether request tasks are sorted before the ticket is saved.
+        /// Omitted or null means false, preserving the request's declared build order.
+        /// </summary>
+        [JsonPropertyName("sortTasks")]
+        public bool? SortTasks { get; set; }
+    }
+
+    /// <summary>
     /// Represents the CreateTicketRuleRequest type.
     /// </summary>
     public sealed class CreateTicketRuleRequest
@@ -98,25 +110,46 @@ public sealed class CreateTicketRequest
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the SourceObjects value. Negative ids reference objects declared in this request;
-        /// positive ids reference existing Flow network objects or groups.
+        /// Gets the SourceObjects value. Negative ids reference address objects declared in this request;
+        /// positive ids reference existing Flow address objects.
         /// </summary>
         [JsonPropertyName("sourceObjects")]
         public List<long> SourceObjects { get; set; } = [];
 
         /// <summary>
-        /// Gets the DestinationObjects value. Negative ids reference objects declared in this request;
-        /// positive ids reference existing Flow network objects or groups.
+        /// Gets the SourceGroups value. Negative ids reference address groups declared in this request;
+        /// positive ids reference existing Flow address groups.
+        /// </summary>
+        [JsonPropertyName("sourceGroups")]
+        public List<long> SourceGroups { get; set; } = [];
+
+        /// <summary>
+        /// Gets the DestinationObjects value. Negative ids reference address objects declared in this request;
+        /// positive ids reference existing Flow address objects.
         /// </summary>
         [JsonPropertyName("destinationObjects")]
         public List<long> DestinationObjects { get; set; } = [];
 
         /// <summary>
-        /// Gets the ServiceObjects value. Negative ids reference objects declared in this request;
-        /// positive ids reference existing Flow service objects or groups.
+        /// Gets the DestinationGroups value. Negative ids reference address groups declared in this request;
+        /// positive ids reference existing Flow address groups.
+        /// </summary>
+        [JsonPropertyName("destinationGroups")]
+        public List<long> DestinationGroups { get; set; } = [];
+
+        /// <summary>
+        /// Gets the ServiceObjects value. Negative ids reference service objects declared in this request;
+        /// positive ids reference existing Flow service objects.
         /// </summary>
         [JsonPropertyName("serviceObjects")]
         public List<long> ServiceObjects { get; set; } = [];
+
+        /// <summary>
+        /// Gets the ServiceGroups value. Negative ids reference service groups declared in this request;
+        /// positive ids reference existing Flow service groups.
+        /// </summary>
+        [JsonPropertyName("serviceGroups")]
+        public List<long> ServiceGroups { get; set; } = [];
 
         /// <summary>
         /// Gets the TimeObjectId value. Negative ids reference a time object declared in this request;

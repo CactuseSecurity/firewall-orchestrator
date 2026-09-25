@@ -26,16 +26,20 @@ internal class FlowRequestContractTest
     }
 
     [Test]
-    public void CreateTicketRequest_DefaultsSortTasksToFalse()
+    public void CreateTicketRequest_UsesEmptyOptionsAndDefaultsSortTasksToFalse()
     {
         CreateTicketRequest? request = JsonSerializer.Deserialize<CreateTicketRequest>(
             """{"requestorName":"Alice Example","requestorId":"alice","ruleContactName":"Bob Approver","ruleContactId":"bob","title":"Allow HTTPS"}""");
 
-        Assert.That(request?.SortTasks, Is.False);
+        Assert.Multiple(() =>
+        {
+            Assert.That(request?.Options, Is.Not.Null);
+            Assert.That(request?.Options.SortTasks, Is.Null);
+        });
     }
 
     [Test]
-    public void CreateTicketRequest_SerializesSortTasks()
+    public void CreateTicketRequest_SerializesExplicitSortTasksInsideOptions()
     {
         CreateTicketRequest request = new()
         {
@@ -44,12 +48,17 @@ internal class FlowRequestContractTest
             RuleContactName = "Bob Approver",
             RuleContactId = "bob",
             Title = "Allow HTTPS",
-            SortTasks = true
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
         };
 
         string json = JsonSerializer.Serialize(request);
 
-        Assert.That(json, Does.Contain("\"sortTasks\":true"));
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"options\":{"));
+            Assert.That(json, Does.Contain("\"sortTasks\":true"));
+            Assert.That(json, Does.Not.Contain("\"sortTasks\":false"));
+        });
     }
 
     [Test]

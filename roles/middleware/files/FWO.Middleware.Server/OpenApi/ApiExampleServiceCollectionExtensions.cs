@@ -74,7 +74,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
         RuleContactName = "Bob Approver",
         RuleContactId = "bob",
         Title = "Allow HTTPS to application server",
-        SortTasks = false,
+        Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = false },
         Rules =
         [
             new CreateTicketRequest.CreateTicketRuleRequest
@@ -82,8 +82,9 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
                 Action = "accept",
                 Name = "Allow app HTTPS",
                 SourceObjects = [-1],
-                DestinationObjects = [-3],
+                DestinationGroups = [-3],
                 ServiceObjects = [-2],
+                ServiceGroups = [-5],
                 TimeObjectId = -4,
                 OwnerId = 42,
                 ViolationJustification = "Business-approved application traffic."

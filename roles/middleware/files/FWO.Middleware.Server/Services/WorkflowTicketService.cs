@@ -1,7 +1,6 @@
 using FWO.Api.Client;
 using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
-using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data.Workflow;
@@ -23,6 +22,7 @@ public sealed class WorkflowTicketService : IDisposable
 {
     private readonly ApiConnection apiConnection;
     private readonly GlobalConfig globalConfig;
+    private readonly WorkflowTicketFlowReferenceService flowReferenceService;
     private readonly ApiSubscription? configSubscription;
 
     /// <summary>
@@ -32,6 +32,7 @@ public sealed class WorkflowTicketService : IDisposable
     {
         this.apiConnection = apiConnection;
         this.globalConfig = globalConfig;
+        flowReferenceService = new WorkflowTicketFlowReferenceService(apiConnection);
         try
         {
             configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
@@ -72,7 +73,7 @@ public sealed class WorkflowTicketService : IDisposable
         Dictionary<int, FwoOwner> ownersById = await ResolveOwnersAsync();
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
-        FlowReferenceCatalog flowReferences = await ResolveFlowReferencesAsync(request);
+        FlowReferenceCatalog flowReferences = await flowReferenceService.ResolveAsync(request);
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds, flowReferences);
         // requesterId is the id of the authenticated caller, so it is also the changer - but only when that
         // caller is named. An internal caller supplies a requester without being the user who made the change,
@@ -246,118 +247,7 @@ public sealed class WorkflowTicketService : IDisposable
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<FlowReferenceCatalog> ResolveFlowReferencesAsync(CreateTicketRequest request)
-    {
-        List<long> networkIds = request.Rules.SelectMany(rule => rule.SourceObjects.Concat(rule.DestinationObjects))
-            .Concat(request.AddressGroups.SelectMany(group => group.MemberIds))
-            .Where(id => id > 0).Distinct().ToList();
-        List<long> serviceIds = request.Rules.SelectMany(rule => rule.ServiceObjects)
-            .Concat(request.ServiceGroups.SelectMany(group => group.MemberIds))
-            .Where(id => id > 0).Distinct().ToList();
-        List<long> timeIds = request.Rules.Where(rule => rule.TimeObjectId > 0).Select(rule => rule.TimeObjectId).Distinct().ToList();
-
-        Task<List<FlowNwObject>> networkObjectsTask = LoadFlowReferencesAsync<FlowNwObject>(FlowQueries.getFlowAddressObjects, "nwobj_id", networkIds);
-        Task<List<FlowNwGroup>> networkGroupsTask = LoadFlowReferencesAsync<FlowNwGroup>(FlowQueries.getFlowAddressGroups, "nwgrp_id", networkIds);
-        Task<List<FlowSvcObject>> serviceObjectsTask = LoadFlowReferencesAsync<FlowSvcObject>(FlowQueries.getFlowServiceObjects, "svcobj_id", serviceIds);
-        Task<List<FlowSvcGroup>> serviceGroupsTask = LoadFlowReferencesAsync<FlowSvcGroup>(FlowQueries.getFlowServiceGroups, "svcgrp_id", serviceIds);
-        Task<List<FlowTimeObject>> timeObjectsTask = LoadFlowReferencesAsync<FlowTimeObject>(FlowQueries.getFlowTimeObjects, "timeobj_id", timeIds);
-        await Task.WhenAll(networkObjectsTask, networkGroupsTask, serviceObjectsTask, serviceGroupsTask, timeObjectsTask);
-
-        return new FlowReferenceCatalog(await networkObjectsTask, await networkGroupsTask, await serviceObjectsTask, await serviceGroupsTask, await timeObjectsTask);
-    }
-
-    private async Task<List<T>> LoadFlowReferencesAsync<T>(string query, string idField, List<long> ids)
-    {
-        if (ids.Count == 0)
-        {
-            return [];
-        }
-
-        Dictionary<string, object> where = new()
-        {
-            [idField] = new Dictionary<string, object> { ["_in"] = ids }
-        };
-        return await apiConnection.SendQueryAsync<List<T>>(query, new { where }) ?? [];
-    }
-
     private sealed record RuleTaskLookups(Dictionary<int, FwoOwner> OwnersById, Dictionary<string, int> RuleActionIds);
-
-    private sealed class FlowReferenceCatalog
-    {
-        public Dictionary<long, FlowNwObject> NetworkObjects { get; }
-        public Dictionary<long, FlowNwGroup> NetworkGroups { get; }
-        public Dictionary<long, FlowSvcObject> ServiceObjects { get; }
-        public Dictionary<long, FlowSvcGroup> ServiceGroups { get; }
-        public Dictionary<long, FlowTimeObject> TimeObjects { get; }
-
-        public FlowReferenceCatalog(IEnumerable<FlowNwObject> networkObjects, IEnumerable<FlowNwGroup> networkGroups,
-            IEnumerable<FlowSvcObject> serviceObjects, IEnumerable<FlowSvcGroup> serviceGroups, IEnumerable<FlowTimeObject> timeObjects)
-        {
-            NetworkObjects = networkObjects.ToDictionary(item => item.Id);
-            NetworkGroups = networkGroups.ToDictionary(item => item.Id);
-            ServiceObjects = serviceObjects.ToDictionary(item => item.Id);
-            ServiceGroups = serviceGroups.ToDictionary(item => item.Id);
-            TimeObjects = timeObjects.ToDictionary(item => item.Id);
-        }
-
-        public WfReqElement BuildElement(long id, ElemFieldType field)
-        {
-            return field switch
-            {
-                ElemFieldType.source or ElemFieldType.destination => BuildNetworkElement(id, field),
-                ElemFieldType.service => BuildServiceElement(id, field),
-                _ => throw new ArgumentException($"Flow reference id {id} is not valid for field '{field}'.")
-            };
-        }
-
-        private WfReqElement BuildNetworkElement(long id, ElemFieldType field)
-        {
-            bool hasObject = NetworkObjects.TryGetValue(id, out FlowNwObject? networkObject);
-            bool hasGroup = NetworkGroups.TryGetValue(id, out FlowNwGroup? networkGroup);
-            EnsureSingleReference(hasObject, hasGroup, id, "network", "network object or group");
-
-            return hasObject
-                ? new WfReqElement
-                {
-                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkObject!.Name,
-                    IpString = networkObject.IpStart, IpEnd = networkObject.IpEnd, FlowNetworkObjectId = id
-                }
-                : new WfReqElement
-                {
-                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = networkGroup!.Name,
-                    GroupName = networkGroup.Name, FlowNetworkGroupId = id
-                };
-        }
-
-        private WfReqElement BuildServiceElement(long id, ElemFieldType field)
-        {
-            bool hasObject = ServiceObjects.TryGetValue(id, out FlowSvcObject? serviceObject);
-            bool hasGroup = ServiceGroups.TryGetValue(id, out FlowSvcGroup? serviceGroup);
-            EnsureSingleReference(hasObject, hasGroup, id, "service", "service object or group");
-
-            return hasObject
-                ? new WfReqElement
-                {
-                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceObject!.Name,
-                    Port = serviceObject.PortStart, PortEnd = serviceObject.PortEnd, ProtoId = serviceObject.ProtoId, FlowServiceObjectId = id
-                }
-                : new WfReqElement
-                {
-                    Field = field.ToString(), RequestAction = RequestAction.create.ToString(), Name = serviceGroup!.Name,
-                    GroupName = serviceGroup.Name, FlowServiceGroupId = id
-                };
-        }
-
-        private static void EnsureSingleReference(bool hasObject, bool hasGroup, long id, string referenceType, string referenceDescription)
-        {
-            if (hasObject == hasGroup)
-            {
-                throw new ArgumentException(hasObject
-                    ? $"Flow {referenceType} id {id} is ambiguous between an object and a group."
-                    : $"Unknown Flow {referenceDescription} id {id}.");
-            }
-        }
-    }
 
     /// <summary>
     /// Builds the ticket object that is persisted through the existing whole-ticket insert path.
@@ -365,14 +255,14 @@ public sealed class WorkflowTicketService : IDisposable
     private WfTicket BuildTicket(CreateTicketRequest request, int ticketStateId, int requesterId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds,
         Dictionary<string, int> protocolIds, FlowReferenceCatalog flowReferences)
     {
-        Dictionary<long, CreateTicketEntity> entities = BuildEntityIndex(request, protocolIds);
+        Dictionary<long, WorkflowTicketEntity> entities = BuildEntityIndex(request, protocolIds);
         List<WfReqTask> tasks = [];
         int taskNumber = 1;
 
         tasks.AddRange(BuildGroupTasks(request, entities, ticketStateId, flowReferences, ref taskNumber));
         tasks.AddRange(BuildRuleTasks(request, entities, ticketStateId, ownersById, ruleActionIds, flowReferences, ref taskNumber));
         CreateRequestTaskSortConfig sortConfig = CreateRequestTaskSortConfig.Parse(globalConfig.ReqCreateRequestTaskSortConfig);
-        tasks = CreateRequestTaskSorter.OrderForSave(tasks, request.SortTasks, sortConfig);
+        tasks = CreateRequestTaskSorter.OrderForSave(tasks, request.Options.SortTasks ?? false, sortConfig);
 
         return new WfTicket
         {
@@ -411,36 +301,42 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds all group/entity lookup entries and checks for duplicate ids.
     /// </summary>
-    private static Dictionary<long, CreateTicketEntity> BuildEntityIndex(CreateTicketRequest request, Dictionary<string, int> protocolIds)
+    private static Dictionary<long, WorkflowTicketEntity> BuildEntityIndex(CreateTicketRequest request, Dictionary<string, int> protocolIds)
     {
-        Dictionary<long, CreateTicketEntity> entities = [];
+        Dictionary<long, WorkflowTicketEntity> entities = [];
 
         foreach (CreateTicketRequest.CreateAddressObjectRequest addressObject in request.AddressObjects)
         {
             long entityId = ParseLocalEntityId(addressObject.Id, "address object");
-            AddEntity(entities, entityId, CreateTicketEntity.FromAddressObject(entityId, addressObject));
+            AddEntity(entities, entityId, WorkflowTicketEntity.FromAddressObject(entityId, addressObject));
         }
 
         foreach (CreateTicketRequest.CreateServiceObjectRequest serviceObject in request.ServiceObjects)
         {
             long entityId = ParseLocalEntityId(serviceObject.Id, "service object");
-            AddEntity(entities, entityId, CreateTicketEntity.FromServiceObject(entityId, serviceObject, protocolIds));
+            AddEntity(entities, entityId, WorkflowTicketEntity.FromServiceObject(entityId, serviceObject, protocolIds));
         }
 
         foreach (CreateTicketRequest.CreateAddressGroupRequest addressGroup in request.AddressGroups)
         {
-            AddEntity(entities, ParseLocalEntityId(addressGroup.Id, "address group"), CreateTicketEntity.FromAddressGroup(addressGroup));
+            AddEntity(
+                entities,
+                ParseLocalEntityId(addressGroup.Id, "address group"),
+                WorkflowTicketEntity.FromAddressGroup(addressGroup));
         }
 
         foreach (CreateTicketRequest.CreateServiceGroupRequest serviceGroup in request.ServiceGroups)
         {
-            AddEntity(entities, ParseLocalEntityId(serviceGroup.Id, "service group"), CreateTicketEntity.FromServiceGroup(serviceGroup));
+            AddEntity(
+                entities,
+                ParseLocalEntityId(serviceGroup.Id, "service group"),
+                WorkflowTicketEntity.FromServiceGroup(serviceGroup));
         }
 
         foreach (CreateTicketRequest.CreateTimeObjectRequest timeObject in request.TimeObjects)
         {
             long entityId = ParseLocalEntityId(timeObject.Id, "time object");
-            AddEntity(entities, entityId, CreateTicketEntity.FromTimeObject(entityId, timeObject));
+            AddEntity(entities, entityId, WorkflowTicketEntity.FromTimeObject(entityId, timeObject));
         }
 
         return entities;
@@ -449,7 +345,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds the access tasks for the request rules.
     /// </summary>
-    private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, CreateTicketEntity> entities,
+    private static List<WfReqTask> BuildRuleTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
         int ticketStateId, Dictionary<int, FwoOwner> ownersById, Dictionary<string, int> ruleActionIds, FlowReferenceCatalog flowReferences, ref int taskNumber)
     {
         List<WfReqTask> tasks = [];
@@ -464,7 +360,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds ticket tasks that create object groups.
     /// </summary>
-    private static List<WfReqTask> BuildGroupTasks(CreateTicketRequest request, Dictionary<long, CreateTicketEntity> entities,
+    private static List<WfReqTask> BuildGroupTasks(CreateTicketRequest request, Dictionary<long, WorkflowTicketEntity> entities,
         int ticketStateId, FlowReferenceCatalog flowReferences, ref int taskNumber)
     {
         List<WfReqTask> tasks = [];
@@ -484,9 +380,9 @@ public sealed class WorkflowTicketService : IDisposable
     /// Creates a task for an address group.
     /// </summary>
     private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateAddressGroupRequest group,
-        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
+        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        CreateTicketEntity groupEntity = entities[group.Id];
+        WorkflowTicketEntity groupEntity = entities[group.Id];
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -505,9 +401,9 @@ public sealed class WorkflowTicketService : IDisposable
     /// Creates a task for a service group.
     /// </summary>
     private static WfReqTask BuildServiceGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateServiceGroupRequest group,
-        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
+        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber)
     {
-        CreateTicketEntity groupEntity = entities[group.Id];
+        WorkflowTicketEntity groupEntity = entities[group.Id];
         return new WfReqTask
         {
             Title = groupEntity.DisplayName,
@@ -526,20 +422,23 @@ public sealed class WorkflowTicketService : IDisposable
     /// Creates an access task for one request rule.
     /// </summary>
     private static WfReqTask BuildRuleTask(CreateTicketRequest request, CreateTicketRequest.CreateTicketRuleRequest rule,
-        Dictionary<long, CreateTicketEntity> entities, int ticketStateId, RuleTaskLookups lookups,
+        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, RuleTaskLookups lookups,
         FlowReferenceCatalog flowReferences, int taskNumber)
     {
         List<WfReqElement> elements =
         [
-            .. BuildReferencedElements(rule.SourceObjects, entities, ElemFieldType.source, flowReferences),
-            .. BuildReferencedElements(rule.DestinationObjects, entities, ElemFieldType.destination, flowReferences),
-            .. BuildReferencedElements(rule.ServiceObjects, entities, ElemFieldType.service, flowReferences)
+            .. BuildReferencedElements(rule.SourceObjects, entities, ElemFieldType.source, WorkflowTicketEntityKind.AddressObject, flowReferences),
+            .. BuildReferencedElements(rule.SourceGroups, entities, ElemFieldType.source, WorkflowTicketEntityKind.AddressGroup, flowReferences),
+            .. BuildReferencedElements(rule.DestinationObjects, entities, ElemFieldType.destination, WorkflowTicketEntityKind.AddressObject, flowReferences),
+            .. BuildReferencedElements(rule.DestinationGroups, entities, ElemFieldType.destination, WorkflowTicketEntityKind.AddressGroup, flowReferences),
+            .. BuildReferencedElements(rule.ServiceObjects, entities, ElemFieldType.service, WorkflowTicketEntityKind.ServiceObject, flowReferences),
+            .. BuildReferencedElements(rule.ServiceGroups, entities, ElemFieldType.service, WorkflowTicketEntityKind.ServiceGroup, flowReferences)
         ];
 
         int ruleActionId = ResolveRuleActionId(rule.Action, lookups.RuleActionIds);
         FwoOwner? taskOwner = ResolveRuleOwner(rule.OwnerId, lookups.OwnersById);
 
-        CreateTicketEntity? timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
+        WorkflowTicketEntity? timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
 
         return new WfReqTask
         {
@@ -601,7 +500,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Resolves the referenced time object, if any.
     /// </summary>
-    private static CreateTicketEntity? ResolveTimeObject(long timeObjectId, Dictionary<long, CreateTicketEntity> entities, FlowReferenceCatalog flowReferences)
+    private static WorkflowTicketEntity? ResolveTimeObject(long timeObjectId, Dictionary<long, WorkflowTicketEntity> entities, FlowReferenceCatalog flowReferences)
     {
         if (timeObjectId == 0)
         {
@@ -612,13 +511,13 @@ public sealed class WorkflowTicketService : IDisposable
         {
             if (flowReferences.TimeObjects.TryGetValue(timeObjectId, out FlowTimeObject? flowTimeObject))
             {
-                return CreateTicketEntity.FromFlowTimeObject(flowTimeObject);
+                return WorkflowTicketEntity.FromFlowTimeObject(flowTimeObject);
             }
 
             throw new ArgumentException($"Unknown Flow time object id {timeObjectId}.");
         }
 
-        if (!entities.TryGetValue(timeObjectId, out CreateTicketEntity? entity) || entity.Kind != CreateTicketEntityKind.TimeObject)
+        if (!entities.TryGetValue(timeObjectId, out WorkflowTicketEntity? entity) || entity.Kind != WorkflowTicketEntityKind.TimeObject)
         {
             throw new ArgumentException($"Time object id {timeObjectId} must reference a time object.");
         }
@@ -629,32 +528,39 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Builds elements for rule references.
     /// </summary>
-    private static IEnumerable<WfReqElement> BuildReferencedElements(IEnumerable<long> references, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
-        FlowReferenceCatalog flowReferences)
+    private static IEnumerable<WfReqElement> BuildReferencedElements(IEnumerable<long> references, Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field,
+        WorkflowTicketEntityKind expectedKind, FlowReferenceCatalog flowReferences)
     {
         foreach (long reference in references)
         {
-            yield return BuildReferencedElement(reference, entities, field, flowReferences);
+            yield return BuildReferencedElement(reference, entities, field, expectedKind, flowReferences);
         }
     }
 
     /// <summary>
     /// Converts a single reference into a workflow element.
     /// </summary>
-    private static WfReqElement BuildReferencedElement(long reference, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
-        FlowReferenceCatalog flowReferences)
+    private static WfReqElement BuildReferencedElement(long reference, Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field,
+        WorkflowTicketEntityKind expectedKind, FlowReferenceCatalog flowReferences)
     {
         if (reference > 0)
         {
-            return flowReferences.BuildElement(reference, field);
+            return expectedKind is WorkflowTicketEntityKind.AddressGroup or WorkflowTicketEntityKind.ServiceGroup
+                ? flowReferences.BuildGroupElement(reference, field)
+                : flowReferences.BuildObjectElement(reference, field);
         }
 
-        CreateTicketEntity entity = GetEntity(entities, reference);
+        WorkflowTicketEntity entity = GetEntity(entities, reference);
+        if (entity.Kind != expectedKind)
+        {
+            throw new ArgumentException($"Reference id {reference} in field '{field}' must reference a {expectedKind.ToString().ToLowerInvariant()}.");
+        }
+
         if (field == ElemFieldType.service)
         {
             return entity.Kind switch
             {
-                CreateTicketEntityKind.ServiceObject => new WfReqElement
+                WorkflowTicketEntityKind.ServiceObject => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -663,7 +569,7 @@ public sealed class WorkflowTicketService : IDisposable
                     PortEnd = entity.PortEnd,
                     ProtoId = entity.ProtocolId
                 },
-                CreateTicketEntityKind.ServiceGroup => new WfReqElement
+                WorkflowTicketEntityKind.ServiceGroup => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -678,7 +584,7 @@ public sealed class WorkflowTicketService : IDisposable
         {
             return entity.Kind switch
             {
-                CreateTicketEntityKind.AddressObject => new WfReqElement
+                WorkflowTicketEntityKind.AddressObject => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -686,7 +592,7 @@ public sealed class WorkflowTicketService : IDisposable
                     IpString = entity.IpStart,
                     IpEnd = entity.IpEnd
                 },
-                CreateTicketEntityKind.AddressGroup => new WfReqElement
+                WorkflowTicketEntityKind.AddressGroup => new WfReqElement
                 {
                     Field = field.ToString(),
                     RequestAction = RequestAction.create.ToString(),
@@ -703,18 +609,26 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Creates one element for a group member reference.
     /// </summary>
-    private static WfReqElement BuildGroupMemberElement(long memberId, Dictionary<long, CreateTicketEntity> entities, ElemFieldType field,
+    private static WfReqElement BuildGroupMemberElement(long memberId, Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field,
         FlowReferenceCatalog flowReferences)
     {
         if (memberId > 0)
         {
-            return flowReferences.BuildElement(memberId, field);
+            return flowReferences.BuildObjectElement(memberId, field);
         }
 
-        CreateTicketEntity entity = GetEntity(entities, memberId);
+        WorkflowTicketEntity entity = GetEntity(entities, memberId);
+        WorkflowTicketEntityKind expectedKind = field == ElemFieldType.service
+            ? WorkflowTicketEntityKind.ServiceObject
+            : WorkflowTicketEntityKind.AddressObject;
+        if (entity.Kind != expectedKind)
+        {
+            throw new ArgumentException($"Member id {memberId} must reference a {expectedKind.ToString().ToLowerInvariant()}.");
+        }
+
         return entity.Kind switch
         {
-            CreateTicketEntityKind.AddressObject => new WfReqElement
+            WorkflowTicketEntityKind.AddressObject => new WfReqElement
             {
                 Field = field.ToString(),
                 RequestAction = RequestAction.create.ToString(),
@@ -722,7 +636,7 @@ public sealed class WorkflowTicketService : IDisposable
                 IpString = entity.IpStart,
                 IpEnd = entity.IpEnd
             },
-            CreateTicketEntityKind.ServiceObject => new WfReqElement
+            WorkflowTicketEntityKind.ServiceObject => new WfReqElement
             {
                 Field = field.ToString(),
                 RequestAction = RequestAction.create.ToString(),
@@ -775,7 +689,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Adds an entity to the request index and rejects duplicate ids.
     /// </summary>
-    private static void AddEntity(Dictionary<long, CreateTicketEntity> entities, long id, CreateTicketEntity entity)
+    private static void AddEntity(Dictionary<long, WorkflowTicketEntity> entities, long id, WorkflowTicketEntity entity)
     {
         if (entities.TryAdd(id, entity))
         {
@@ -788,9 +702,9 @@ public sealed class WorkflowTicketService : IDisposable
     /// <summary>
     /// Looks up a request entity or fails with a readable error.
     /// </summary>
-    private static CreateTicketEntity GetEntity(Dictionary<long, CreateTicketEntity> entities, long id)
+    private static WorkflowTicketEntity GetEntity(Dictionary<long, WorkflowTicketEntity> entities, long id)
     {
-        if (entities.TryGetValue(id, out CreateTicketEntity? entity))
+        if (entities.TryGetValue(id, out WorkflowTicketEntity? entity))
         {
             return entity;
         }
@@ -857,7 +771,7 @@ public sealed class WorkflowTicketService : IDisposable
     /// Serializes the metadata we want to keep alongside the ticket task.
     /// </summary>
     private static string BuildAdditionalInfo(string requestContactName, string requestContactId, string requestorName, string requestorId,
-        CreateTicketEntity? timeEntity)
+        WorkflowTicketEntity? timeEntity)
     {
         Dictionary<string, string> additionalInfo = BuildRequestContactInfo(requestContactName, requestContactId, requestorName, requestorId);
         if (timeEntity != null)
@@ -878,148 +792,6 @@ public sealed class WorkflowTicketService : IDisposable
         }
 
         throw new ArgumentException($"The {entityType} id '{id}' must be a negative, non-zero integer because positive ids reference existing Flow objects.");
-    }
-
-    private sealed record CreateTicketEntity(
-        long Id,
-        CreateTicketEntityKind Kind,
-        string DisplayName,
-        string? IpStart = null,
-        string? IpEnd = null,
-        int? ProtocolId = null,
-        int? PortStart = null,
-        int? PortEnd = null,
-        DateTime? TimeStart = null,
-        DateTime? TimeEnd = null)
-    {
-        public static CreateTicketEntity FromAddressObject(long id, CreateTicketRequest.CreateAddressObjectRequest request)
-        {
-            return new CreateTicketEntity(
-                id,
-                CreateTicketEntityKind.AddressObject,
-                request.Name,
-                request.IpStart,
-                request.IpEnd);
-        }
-
-        public static CreateTicketEntity FromAddressGroup(CreateTicketRequest.CreateAddressGroupRequest request)
-        {
-            return new CreateTicketEntity(request.Id, CreateTicketEntityKind.AddressGroup, request.Name);
-        }
-
-        public static CreateTicketEntity FromServiceObject(long id, CreateTicketRequest.CreateServiceObjectRequest request, Dictionary<string, int> protocolIds)
-        {
-            int protocolId = ResolveProtocolId(request.Protocol, protocolIds, request.PortStart, request.PortEnd);
-            return new CreateTicketEntity(
-                id,
-                CreateTicketEntityKind.ServiceObject,
-                request.Name,
-                ProtocolId: protocolId,
-                PortStart: request.PortStart,
-                PortEnd: request.PortEnd);
-        }
-
-        public static CreateTicketEntity FromServiceGroup(CreateTicketRequest.CreateServiceGroupRequest request)
-        {
-            return new CreateTicketEntity(request.Id, CreateTicketEntityKind.ServiceGroup, request.Name);
-        }
-
-        public static CreateTicketEntity FromTimeObject(long id, CreateTicketRequest.CreateTimeObjectRequest request)
-        {
-            DateTime? startTime = ParseDateTime(request.StartTime, "startTime");
-            DateTime? endTime = ParseDateTime(request.EndTime, "endTime");
-            return new CreateTicketEntity(
-                id,
-                CreateTicketEntityKind.TimeObject,
-                request.Name,
-                TimeStart: startTime,
-                TimeEnd: endTime);
-        }
-
-        public static CreateTicketEntity FromFlowTimeObject(FlowTimeObject flowObject)
-        {
-            return new CreateTicketEntity(
-                flowObject.Id,
-                CreateTicketEntityKind.TimeObject,
-                flowObject.Name,
-                TimeStart: flowObject.StartTime,
-                TimeEnd: flowObject.EndTime);
-        }
-
-        private static DateTime? ParseDateTime(string value, string fieldName)
-        {
-            try
-            {
-                DateTime parsedDateTime = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-                if (parsedDateTime.Kind == DateTimeKind.Unspecified)
-                {
-                    TimeSpan utcOffset = TimeZoneInfo.Local.GetUtcOffset(parsedDateTime);
-                    Log.WriteWarning(
-                        "Flow Request",
-                        $"Time object {fieldName} '{value}' has no timezone offset. Interpreting it as middleware local time with UTC offset {utcOffset}.");
-                }
-
-                return parsedDateTime;
-            }
-            catch (FormatException exception)
-            {
-                throw new ArgumentException($"The time object {fieldName} '{value}' must be a valid date/time value.", fieldName, exception);
-            }
-        }
-
-        private static int ResolveProtocolId(string protocol, Dictionary<string, int> protocolIds, int? portStart, int? portEnd)
-        {
-            if (int.TryParse(protocol, out int protocolId))
-            {
-                return ValidateResolvedProtocolId(protocol, protocolId, protocolIds.ContainsValue(protocolId), portStart, portEnd);
-            }
-
-            if (protocolIds.TryGetValue(protocol, out protocolId))
-            {
-                return ValidateResolvedProtocolId(protocol, protocolId, true, portStart, portEnd);
-            }
-
-            throw new ArgumentException($"The service object protocol '{protocol}' must match a configured STM protocol name or id.");
-        }
-
-        private static int ValidateResolvedProtocolId(string protocol, int protocolId, bool isConfigured, int? portStart, int? portEnd)
-        {
-            if (isConfigured && protocolId >= 0)
-            {
-                ValidatePortRange(protocol, portStart, portEnd);
-                return protocolId;
-            }
-
-            bool isCanonicalAnyIpProtocol = isConfigured && protocolId == GlobalConst.kAnyIpProtocolId && portStart is null && portEnd is null;
-            if (isCanonicalAnyIpProtocol)
-            {
-                return protocolId;
-            }
-
-            throw new ArgumentException($"The service object protocol '{protocol}' must match a non-negative configured STM protocol name or id, or be the canonical any-IP-protocol service without ports.");
-        }
-
-        /// <summary>
-        /// Rejects a 'portEnd' without a 'portStart': it cannot be resolved to a deterministic
-        /// service hash and would otherwise be persisted as an internally inconsistent service.
-        /// A 'portStart' without a 'portEnd' is a valid single-port shorthand and is left as-is.
-        /// </summary>
-        private static void ValidatePortRange(string protocol, int? portStart, int? portEnd)
-        {
-            if (portStart is null && portEnd is not null)
-            {
-                throw new ArgumentException($"The service object protocol '{protocol}' has a 'portEnd' value without a 'portStart' value.");
-            }
-        }
-    }
-
-    private enum CreateTicketEntityKind
-    {
-        AddressObject,
-        AddressGroup,
-        ServiceObject,
-        ServiceGroup,
-        TimeObject
     }
 
     /// <summary>

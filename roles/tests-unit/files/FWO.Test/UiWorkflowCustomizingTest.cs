@@ -412,6 +412,52 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SettingsCustomizing_DisablesTaskSortSaveForAuditor()
+        {
+            await using BunitContext context = new();
+            WorkflowCustomizingApiConn apiConnection = new();
+            SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Auditor];
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                ReqAvailableTaskTypes = "[]",
+                ReqPriorities = "[]",
+                ReqCreateRequestTaskSortConfig = new CreateRequestTaskSortConfig().ToConfigValue()
+            };
+
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddSingleton<ApiConnection>(apiConnection);
+            context.Services.AddSingleton<GlobalConfig>(globalConfig);
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<DomEventService>();
+            context.Services.AddLocalization();
+            context.Services.AddAuthorizationCore();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new WorkflowCustomizingAuthStateProvider(Roles.Auditor));
+
+            IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters =>
+                parameters.AddChildContent<SettingsCustomizing>());
+
+            wrapper.WaitForAssertion(() =>
+            {
+                IRenderedComponent<SettingsCustomizing> settings = wrapper.FindComponent<SettingsCustomizing>();
+                string sortLabelText = userConfig.GetText("reqCreateRequestTaskSortConfig");
+                List<AngleSharp.Dom.IElement> sortLabels = [.. settings.FindAll("label")];
+                AngleSharp.Dom.IElement sortLabel = FindElementByText(sortLabels, sortLabelText);
+                sortLabel.ParentElement!.ParentElement!.QuerySelector("button")!.Click();
+            });
+
+            IRenderedComponent<CreateRequestTaskSortConfigPopup> popup = wrapper.FindComponent<CreateRequestTaskSortConfigPopup>();
+            AngleSharp.Dom.IElement saveButton = popup.Find("button.btn.btn-primary");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
+                saveButton.Click();
+                Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
+            });
+        }
+
+        [Test]
         public async Task CreateRequestTaskSortConfigPopup_RendersRowsAndAllowSplitTooltip()
         {
             await using BunitContext context = new();
@@ -454,6 +500,7 @@ namespace FWO.Test
         {
             await using BunitContext context = new();
             SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
             WorkflowCustomizingApiConn apiConnection = new()
             {
                 States = [new WfState { Id = 0, Name = "draft" }]
@@ -549,6 +596,7 @@ namespace FWO.Test
         {
             await using BunitContext context = new();
             SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
             WorkflowCustomizingApiConn apiConnection = new();
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -599,8 +647,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(0));
                 Assert.That(display, Is.True);
                 Assert.That(displayedException, Is.Not.Null);
-                Assert.That(displayedException!.Message, Does.Contain(userConfig.GetText("create_group")));
-                Assert.That(displayedException.Message, Does.Contain(userConfig.GetText("access")));
+                Assert.That(displayedException!.Message, Is.EqualTo(userConfig.GetText("E5310")));
             });
         }
 
@@ -609,6 +656,7 @@ namespace FWO.Test
         {
             await using BunitContext context = new();
             SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
             WorkflowCustomizingApiConn apiConnection = new()
             {
                 ThrowOnUpsertConfig = true
@@ -663,6 +711,7 @@ namespace FWO.Test
         {
             await using BunitContext context = new();
             SimulatedUserConfig userConfig = new();
+            userConfig.User.Roles = [Roles.Admin];
             WorkflowCustomizingApiConn apiConnection = new()
             {
                 States = [new WfState { Id = 0, Name = "draft" }]

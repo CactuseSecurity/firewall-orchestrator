@@ -152,7 +152,7 @@ internal class WorkflowTicketServiceTest
     public async Task GetTicketStatus_ReturnsBadRequestForInvalidTicketId()
     {
         WorkflowTicketServiceApiConn apiConnection = new();
-WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
 
         ActionResult<GetTicketStatusResponse> result = await controller.GetTicketStatus(new GetTicketStatusRequest { TicketId = 0 });
 
@@ -320,8 +320,9 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             FlowNetworkObjects = [new FlowNwObject { Id = 101, Name = "server", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }],
-            FlowNetworkGroups = [new FlowNwGroup { Id = 202, Name = "servers" }],
+            FlowNetworkGroups = [new FlowNwGroup { Id = 101, Name = "servers" }],
             FlowServiceObjects = [new FlowSvcObject { Id = 303, Name = "https", ProtoId = 6, PortStart = 443, PortEnd = 443 }],
+            FlowServiceGroups = [new FlowSvcGroup { Id = 303, Name = "web-services" }],
             FlowTimeObjects = [new FlowTimeObject { Id = 404, Name = "maintenance", StartTime = startTime, EndTime = endTime }]
         };
 
@@ -339,8 +340,9 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                 {
                     Action = "accept",
                     SourceObjects = [101],
-                    DestinationObjects = [202],
+                    DestinationGroups = [101],
                     ServiceObjects = [303],
+                    ServiceGroups = [303],
                     TimeObjectId = 404
                 }
             ]
@@ -350,12 +352,54 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
         Assert.Multiple(() =>
         {
             Assert.That(elements.Single(element => element.Field == ElemFieldType.source.ToString()).FlowNetworkObjectId, Is.EqualTo(101));
-            Assert.That(elements.Single(element => element.Field == ElemFieldType.destination.ToString()).FlowNetworkGroupId, Is.EqualTo(202));
-            Assert.That(elements.Single(element => element.Field == ElemFieldType.service.ToString()).FlowServiceObjectId, Is.EqualTo(303));
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.destination.ToString()).FlowNetworkGroupId, Is.EqualTo(101));
+            Assert.That(elements.Count(element => element.Field == ElemFieldType.service.ToString()), Is.EqualTo(2));
+            Assert.That(elements.Single(element => element.FlowServiceObjectId == 303).FlowServiceObjectId, Is.EqualTo(303));
+            Assert.That(elements.Single(element => element.FlowServiceGroupId == 303).FlowServiceGroupId, Is.EqualTo(303));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
         });
+    }
+
+    [Test]
+    public void CreateTicket_RejectsInternalObjectIdUsedAsGroupReference()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        ArgumentException exception = Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Invalid group reference",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceGroups = [-1]
+                }
+            ]
+        }, 77))!;
+
+        Assert.That(exception.Message, Does.Contain("addressgroup"));
     }
 
     [Test]
@@ -592,7 +636,7 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                     Action = "accept",
                     Name = "Allow app HTTPS",
                     SourceObjects = [-1],
-                    DestinationObjects = [-3],
+                    DestinationGroups = [-3],
                     ServiceObjects = [-2]
                 }
             ]
@@ -1183,9 +1227,9 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ]
         }, 77);
@@ -1270,12 +1314,12 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ],
-            SortTasks = true
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
         }, 77);
 
         Assert.Multiple(() =>
@@ -1354,12 +1398,12 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ],
-            SortTasks = true
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
         }, 77);
 
         Assert.Multiple(() =>
@@ -1449,9 +1493,9 @@ WorkflowTicketController controller = new(new WorkflowTicketService(apiConnectio
                 {
                     Action = "accept",
                     OwnerId = 42,
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ]
         });

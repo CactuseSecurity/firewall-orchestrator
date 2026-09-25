@@ -200,7 +200,7 @@ public sealed class WorkflowChangeHistoryService
             .Select(entry => new ManualImplementationTaskChangeResponse
             {
                 ImplementationTaskId = entry.ObjectId,
-                ChangeTime = NormalizeStoredTime(entry.ChangeTime),
+                ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
                 ChangeUserId = entry.ChangerId,
                 ChangeUserName = entry.Changer ?? string.Empty,
                 ChangeContent = entry.ChangeText ?? string.Empty,

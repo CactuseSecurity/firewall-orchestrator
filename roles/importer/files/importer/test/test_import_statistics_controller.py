@@ -21,8 +21,8 @@ class TestImportStatisticsController:
         assert stats.get_total_change_number() == 1
 
     def test_collect_rule_change_details_reports_security_relevant_changes(self) -> None:
-        # The import overview reads rule_change_count_security_relevant from the import details,
-        # so the counter has to be collected there once it is set.
+        # The change details are written to the import result log line, so the security-relevant
+        # counter has to be collected there once it is set.
         stats = ImportStatisticsController()
         stats.increment_rule_change_count(3)
         stats.increment_rule_change_count_security_relevant(2)

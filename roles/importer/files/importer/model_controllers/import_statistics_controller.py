@@ -174,7 +174,7 @@ class ImportStatisticsController:
     def increment_rule_change_count(self, increment: int = 1):
         self.statistics.rule_change_count += increment
 
-    def increment_rule_change_count_security_relevant(self, increment: int = 1):
+    def increment_rule_change_count_security_relevant(self, increment: int = 1) -> None:
         self.statistics.rule_change_count_security_relevant += increment
 
     def increment_rule_move_count(self, increment: int = 1):

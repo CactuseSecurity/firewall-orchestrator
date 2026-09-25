@@ -33,6 +33,8 @@ namespace FWO.Middleware.Server.Controllers
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
+        private const string kStateChangeRefusalTitleKey = "actions";
+        private const string kStateChangeRefusalMessageKey = "E8018";
 
         /// <summary>
         /// Constructor.
@@ -456,8 +458,10 @@ namespace FWO.Middleware.Server.Controllers
             result.Success = true;
             result.Messages.Add(new()
             {
-                Title = userConfig.GetText("actions"),
-                Message = userConfig.GetText("E8018"),
+                Title = userConfig.GetText(kStateChangeRefusalTitleKey),
+                Message = userConfig.GetText(kStateChangeRefusalMessageKey),
+                TitleTextKey = kStateChangeRefusalTitleKey,
+                MessageTextKey = kStateChangeRefusalMessageKey,
                 ErrorFlag = true
             });
             return false;

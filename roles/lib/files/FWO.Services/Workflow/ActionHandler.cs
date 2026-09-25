@@ -486,12 +486,23 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Displays the messages the middleware returned. A message carrying a text key is shown in the
+        /// language of this handler's user, because the middleware resolves its texts in the default
+        /// language only; a message without one is shown as sent.
+        /// </summary>
         private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
         {
             foreach (WorkflowActionMessage message in messages ?? [])
             {
-                wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
+                wfHandler.DisplayMessage(null, LocalizeWorkflowActionText(message.TitleTextKey, message.Title),
+                    LocalizeWorkflowActionText(message.MessageTextKey, message.Message), message.ErrorFlag);
             }
+        }
+
+        private string LocalizeWorkflowActionText(string textKey, string sentText)
+        {
+            return string.IsNullOrWhiteSpace(textKey) ? sentText : wfHandler.userConfig.GetText(textKey);
         }
 
         private string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)

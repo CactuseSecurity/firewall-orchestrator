@@ -1595,7 +1595,10 @@ namespace FWO.Test
             List<WorkflowActionMessage> middlewareMessages =
             [
                 new() { Title = "Info", Message = "ok", ErrorFlag = false },
-                new() { Title = "Warning", Message = "check", ErrorFlag = true }
+                new() { Title = "Warning", Message = "check", ErrorFlag = true },
+                // resolved by the middleware in its default language; the keys have to win
+                new() { Title = "Aktionen", Message = "Die Aktionen wurden nicht ausgeführt", ErrorFlag = true,
+                    TitleTextKey = "actions", MessageTextKey = "E8018" }
             ];
 
             GetPrivateMethod("DisplayWorkflowActionMessages").Invoke(handler, [middlewareMessages]);
@@ -1603,9 +1606,14 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(messages, Has.Count.EqualTo(2));
+                Assert.That(messages, Has.Count.EqualTo(3));
                 Assert.That(messages[0].Title, Is.EqualTo("Info"));
+                Assert.That(messages[0].Message, Is.EqualTo("ok"), "a message without a text key is shown as sent");
                 Assert.That(messages[1].ErrorFlag, Is.True);
+                Assert.That(messages[2].Title, Is.EqualTo("Actions"),
+                    "a message with a text key is shown in the language of the ui user, not the middleware default");
+                Assert.That(messages[2].Message, Is.EqualTo("The actions of this state change were not executed"));
+                Assert.That(messages[2].ErrorFlag, Is.True);
             });
         }
 

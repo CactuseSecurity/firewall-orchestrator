@@ -510,6 +510,7 @@ namespace FWO.Test
             {"no_open_alerts","No open alerts"},
             {"acknowledge_all","Acknowledge all"},
             {"actions","Actions"},
+            {"E8018","The actions of this state change were not executed"},
             {"details","Details"},
             {"acknowledge","Acknowledge"},
             {"timestamp","Timestamp"},

@@ -558,6 +558,11 @@ namespace FWO.Test
                     // and whoever asked for it has to see that its side effects did not run
                     Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.True,
                         "a refused claim must reach the caller rather than being swallowed");
+                    // the middleware only knows the default language, so the keys travel along for the
+                    // ui to show the refusal in the language of its own user
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag
+                        && message.TitleTextKey == "actions" && message.MessageTextKey == "E8018"), Is.True,
+                        "a refused claim must carry the text keys of its title and message");
                     Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.claimStateChangeExecution), Is.EqualTo(1),
                         "the claim is the single decision point and must be attempted exactly once");
                 });

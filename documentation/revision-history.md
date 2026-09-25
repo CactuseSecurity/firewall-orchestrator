@@ -16,9 +16,12 @@
   requested, so the endpoint could only check that the object already stands in the requested state,
   which stays true after the transition happened and therefore let the same request be replayed to
   send mails, raise external requests or create flows again. The new table
-  request.state_change_execution records which transition the actions of an object were last
-  executed for; the middleware claims it in a single statement and a repeated request now returns
-  without executing anything
+  request.state_change_execution records which state the actions of an object were last executed
+  for; the middleware claims it in a single statement, and a repeated request now executes nothing
+  and shows the warning E8018 instead. Known limitation: workflow monitoring in the modes that
+  suppress state actions sets a state without recording it, so the next legitimate return to that
+  state is refused the same way and shows E8018 - mail, external request and flow creation for it
+  then have to be triggered again by hand
 - security fix (SEC-09): the flow catalog tables were readable without restriction by every workflow
   role, and a request element could be pointed at any flow entry by id. A requester could therefore
   enumerate flow objects an administrator had hidden or retired, attach them to a task, and reference
@@ -37,7 +40,7 @@
   generated document without being encoded for the place they land in. The headless browser that renders
   an export to pdf loaded subresources, so markup smuggled into such a value made the server itself issue
   outbound requests. The renderer now runs with scripting off and aborts every request except the document
-  it starts from, its host name resolution is disabled, and exported documents carry a content security
+  it starts from, and exported documents carry a content security
   policy that denies everything but their own inline styling. The link a report builds around an object
   encodes each part for its own context and refuses a target that does not stay on the document, the table
   of contents no longer turns encoded markup from the body back into live markup, and the headings and

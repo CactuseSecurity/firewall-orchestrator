@@ -18,6 +18,10 @@ namespace FWO.Middleware.Server.Services
         /// Global configuration for scheduler settings.
         /// </summary>
         protected readonly GlobalConfig globalConfig;
+        /// <summary>
+        /// Clock used for schedule calculations.
+        /// </summary>
+        protected readonly TimeProvider timeProvider;
         private readonly QuartzSchedulerOptions options;
         private GraphQlApiSubscription<List<ConfigItem>>? configSubscription;
         private IScheduler? scheduler;
@@ -32,17 +36,20 @@ namespace FWO.Middleware.Server.Services
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="appLifetime">Application lifetime for startup hook.</param>
         /// <param name="options">Options for scheduler identifiers and subscription.</param>
+        /// <param name="timeProvider">Clock used for schedule calculations.</param>
         protected QuartzSchedulerServiceBase(
             ISchedulerFactory schedulerFactory,
             ApiConnection apiConnection,
             GlobalConfig globalConfig,
             IHostApplicationLifetime appLifetime,
-            QuartzSchedulerOptions options)
+            QuartzSchedulerOptions options,
+            TimeProvider? timeProvider = null)
         {
             this.schedulerFactory = schedulerFactory;
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             this.options = options;
+            this.timeProvider = timeProvider ?? TimeProvider.System;
 
             // Attach after application started
             appLifetime.ApplicationStarted.Register(OnStarted);
@@ -150,13 +157,13 @@ namespace FWO.Middleware.Server.Services
             var triggerKey = new TriggerKey(options.TriggerKeyName);
 
             // Ensure durable job exists for manual triggering
-            if (!await scheduler.CheckExists(jobKey))
+            if (!await scheduler.Exists(jobKey))
             {
                 IJobDetail durableJob = JobBuilder.Create<TJob>()
                     .WithIdentity(jobKey)
                     .StoreDurably()
                     .Build();
-                await scheduler.AddJob(durableJob, replace: true);
+                await scheduler.AddJob(durableJob, new AddJobOptions { Replace = true });
                 Log.WriteInfo(options.SchedulerName, "Added durable job for manual triggering");
             }
 
@@ -197,9 +204,9 @@ namespace FWO.Middleware.Server.Services
         /// <param name="configuredStartTime">Configured start time.</param>
         /// <param name="interval">Schedule interval.</param>
         /// <returns>Next start time in the future.</returns>
-        protected static DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
+        protected DateTimeOffset CalculateStartTime(DateTime configuredStartTime, TimeSpan interval)
         {
-            return CalculateStartTime(configuredStartTime, interval, DateTime.Now);
+            return CalculateStartTime(configuredStartTime, interval, timeProvider.GetUtcNow().LocalDateTime);
         }
 
         /// <summary>

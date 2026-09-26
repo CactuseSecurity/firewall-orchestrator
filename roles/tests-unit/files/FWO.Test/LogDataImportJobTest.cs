@@ -29,6 +29,23 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutImporting()
+        {
+            LogDataJobTestApiConn apiConnection = new();
+            ImportLogDataJob job = new(apiConnection, new SimulatedGlobalConfig { ImportLogDataPath = "[]" });
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.DeleteExpiredCalls, Is.Zero);
+                Assert.That(apiConnection.AlertCalls, Is.Zero);
+            });
+        }
+
+        [Test]
         public async Task Execute_AlertsWhenTheImportFails()
         {
             LogDataJobTestApiConn apiConnection = new();

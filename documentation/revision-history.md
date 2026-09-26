@@ -784,3 +784,15 @@ Not supported any longer are:
   running the full marker query for every owner that has nothing on a management
 - variance analysis: every fall back to the marker query is written to the log with its reason and shown
   to the user once per analysis, so the remaining cases can be found without debug logging
+
+## 9.6.0 - 25.09.2026
+- middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and
+  Quartz.Serialization.Json are no longer separate packages), together with updated NuGet packages for
+  MailKit/MimeKit, PuppeteerSharp, Scalar, IdentityModel and the test tooling; SBOM regenerated
+- middleware: stopping the middleware now signals cancellation to running scheduled jobs instead of waiting
+  for them to finish. Each job stops at its next checkpoint and leaves no half-done result behind: a
+  cancelled report is neither archived nor sent, an interrupted app data import closes its import control as
+  unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery
+  does not report the managements it has not reached as deleted
+- middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
+  180 seconds (TimeoutStopSec) before killing the process

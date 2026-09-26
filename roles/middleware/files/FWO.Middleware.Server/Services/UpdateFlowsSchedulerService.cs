@@ -23,11 +23,13 @@ namespace FWO.Middleware.Server.Services
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="appLifetime">Application lifetime handle.</param>
+        /// <param name="timeProvider">Clock used for schedule calculations.</param>
         public UpdateFlowsSchedulerService(
             ISchedulerFactory schedulerFactory,
             ApiConnection apiConnection,
             GlobalConfig globalConfig,
-            IHostApplicationLifetime appLifetime)
+            IHostApplicationLifetime appLifetime,
+            TimeProvider? timeProvider = null)
             : base(
                 schedulerFactory,
                 apiConnection,
@@ -37,14 +39,15 @@ namespace FWO.Middleware.Server.Services
                     SchedulerName,
                     JobKeyName,
                     TriggerKeyName,
-                    ConfigQueries.subscribeFlowSyncConfigChanges))
+                    ConfigQueries.subscribeFlowSyncConfigChanges),
+                timeProvider)
         { }
 
         /// <inheritdoc />
         protected override int SleepTime => globalConfig.FlowSyncSleepTime;
 
         /// <inheritdoc />
-        protected override DateTime StartAt => DateTime.Now.AddSeconds(1);
+        protected override DateTime StartAt => timeProvider.GetUtcNow().LocalDateTime.AddSeconds(1);
 
         /// <inheritdoc />
         protected override DateTime? StartAtScheduleKey => null;

@@ -173,6 +173,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            CountingApiConnection apiConnection = new();
+            DailyCheckJob dailyCheckJob = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await dailyCheckJob.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
+        }
+
+        [Test]
         public async Task Execute_SkipsRecertChecks_WhenDisabled()
         {
             CountingApiConnection apiConnection = new();
@@ -201,7 +214,7 @@ namespace FWO.Test
             MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("CheckRecerts method not found.");
 
-            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
                 ?? throw new InvalidOperationException("CheckRecerts returned null task."));
             await task;
 
@@ -238,7 +251,7 @@ namespace FWO.Test
             MethodInfo checkRecerts = typeof(DailyCheckJob).GetMethod("CheckRecerts", BindingFlags.Instance | BindingFlags.NonPublic)
                 ?? throw new InvalidOperationException("CheckRecerts method not found.");
 
-            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, null)
+            Task task = (Task)(checkRecerts.Invoke(dailyCheckJob, [CancellationToken.None])
                 ?? throw new InvalidOperationException("CheckRecerts returned null task."));
             await task;
 
@@ -400,15 +413,12 @@ namespace FWO.Test
                 DummyEmailAddress = "dummy@example.test"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
             try
             {
-                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 Assert.Multiple(() =>
                 {
                     Assert.That(apiConnection.LdapQueryCount, Is.EqualTo(1));
@@ -448,15 +458,12 @@ namespace FWO.Test
                 DummyEmailAddress = "dummy@example.test"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
             try
             {
-                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 List<long> expectedUpdatedNotificationIds = [11];
 
                 Assert.Multiple(() =>
@@ -501,15 +508,12 @@ namespace FWO.Test
                 DummyEmailAddress = "dummy@example.test"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
             try
             {
-                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 List<long> expectedUpdatedNotificationIds = [11];
 
                 Assert.Multiple(() =>
@@ -550,8 +554,6 @@ namespace FWO.Test
                 DummyEmailAddress = "dummy@example.test"
             };
             DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
-            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
             Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
             GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
 
@@ -559,8 +561,7 @@ namespace FWO.Test
             {
                 string output = await ConsoleOutput.CaptureAsync(async () =>
                 {
-                    await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
-                        ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+                    await InvokeCheckUnansweredInterfaceRequests(dailyCheckJob);
                 });
                 List<long> expectedUpdatedNotificationIds = [11];
 
@@ -810,6 +811,15 @@ namespace FWO.Test
 
             return (HashSet<DailyCheckModule>)(loadEnabledModules.Invoke(dailyCheckJob, null)
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
+        }
+
+        private static Task InvokeCheckUnansweredInterfaceRequests(DailyCheckJob dailyCheckJob)
+        {
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequestsCore", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore method not found.");
+
+            return (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, [CancellationToken.None])
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequestsCore returned null task."));
         }
 
         private static FwoNotification CreateInterfaceRequestNotification(int id, string logging = NotificationLoggingMode.LogOnly)

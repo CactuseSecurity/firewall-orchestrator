@@ -8,6 +8,7 @@ using FWO.Middleware.Server;
 using FWO.Middleware.Server.Jobs;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Test.Helpers;
 using Microsoft.IdentityModel.Tokens;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
@@ -28,6 +29,7 @@ namespace FWO.Test
             internal object? LastVariables { get; private set; }
             internal int GetDevicesByManagementCalls { get; private set; }
             internal int QueryCount { get; private set; }
+            internal List<string> Queries { get; } = [];
             internal List<ReportSchedule> ReportSchedules { get; set; } = [];
             internal List<Ldap> LdapConnections { get; set; } = [];
             internal bool ThrowOnReportSchedules { get; set; }
@@ -48,6 +50,7 @@ namespace FWO.Test
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
                 QueryCount++;
+                Queries.Add(query);
                 LastQuery = query;
                 LastVariables = variables;
                 if (ThrowOnReportSchedules && query == ReportQueries.getReportSchedules)
@@ -141,10 +144,36 @@ namespace FWO.Test
                 ?? throw new MissingMethodException(typeof(ReportJob).FullName, name);
         }
 
-        private static ReportJob CreateReportJob(ApiConnection? apiConnection = null)
+        private static ReportJob CreateReportJob(ApiConnection? apiConnection = null, TimeProvider? timeProvider = null)
         {
             SetApiServerUri("http://unit-test");
-            return new ReportJob(apiConnection ?? new ReportJobApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create())));
+            return new ReportJob(apiConnection ?? new ReportJobApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create())), timeProvider: timeProvider);
+        }
+
+        private static ReportSchedule CreateDailyTicketReportSchedule(DateTime startTime)
+        {
+            return new()
+            {
+                Id = 17,
+                Name = "scheduled-report",
+                Active = true,
+                StartTime = startTime,
+                RepeatInterval = SchedulerInterval.Days,
+                RepeatOffset = 1,
+                ScheduleOwningUser = new UiUser
+                {
+                    DbId = 42,
+                    Name = "report-user"
+                },
+                Template = new ReportTemplate
+                {
+                    Id = 7,
+                    ReportParams = new ReportParams
+                    {
+                        ReportType = (int)ReportType.TicketReport
+                    }
+                }
+            };
         }
 
         private static void SetApiServerUri(string apiServerUri)
@@ -183,8 +212,9 @@ namespace FWO.Test
                 new() { Name = GlobalConst.kPdf },
                 new() { Name = GlobalConst.kJson }
             ];
+            DateTime generationEnd = new(2026, 4, 21, 10, 5, 0);
 
-            await (Task)writeReportFile.Invoke(null, [report, fileFormats, reportFile])!;
+            await (Task)writeReportFile.Invoke(null, [report, fileFormats, reportFile, new FixedTimeProvider(generationEnd)])!;
 
             ClassicAssert.AreEqual("json-content", reportFile.Json);
             ClassicAssert.AreEqual("csv-content", reportFile.Csv);
@@ -192,7 +222,7 @@ namespace FWO.Test
             ClassicAssert.AreEqual("pdf-content", reportFile.Pdf);
             Assert.That(report.PdfInputs, Has.Count.EqualTo(1));
             ClassicAssert.AreEqual("html-content", report.PdfInputs[0]);
-            Assert.That(reportFile.GenerationDateEnd, Is.Not.EqualTo(default(DateTime)));
+            Assert.That(reportFile.GenerationDateEnd, Is.EqualTo(generationEnd));
         }
 
         [Test]
@@ -207,7 +237,7 @@ namespace FWO.Test
                 new() { Name = GlobalConst.kJson }
             ];
 
-            await (Task)writeReportFile.Invoke(null, [report, fileFormats, reportFile])!;
+            await (Task)writeReportFile.Invoke(null, [report, fileFormats, reportFile, TimeProvider.System])!;
 
             ClassicAssert.AreEqual("json-content", reportFile.Json);
             ClassicAssert.IsTrue(string.IsNullOrEmpty(reportFile.Csv));
@@ -222,7 +252,7 @@ namespace FWO.Test
             ReportFile reportFile = new();
 
             Assert.ThrowsAsync<NotSupportedException>(async () =>
-                await (Task)writeReportFile.Invoke(null, [report, new List<FileFormat> { new() { Name = "xml" } }, reportFile])!);
+                await (Task)writeReportFile.Invoke(null, [report, new List<FileFormat> { new() { Name = "xml" } }, reportFile, TimeProvider.System])!);
         }
 
         [Test]
@@ -334,7 +364,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Execute_SwallowsCancellation()
+        public void Execute_TimeoutWithoutRequestedCancellation_IsReportedAsJobFailure()
         {
             ReportJobApiConnection apiConnection = new()
             {
@@ -342,13 +372,12 @@ namespace FWO.Test
             };
             ReportJob reportJob = CreateReportJob(apiConnection);
 
-            await reportJob.Execute(null!);
-
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await reportJob.Execute(null!));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
         }
 
         [Test]
-        public async Task Execute_SwallowsOperationCancellation()
+        public void Execute_OperationCanceledWithoutRequestedCancellation_IsReportedAsJobFailure()
         {
             ReportJobApiConnection apiConnection = new()
             {
@@ -356,9 +385,114 @@ namespace FWO.Test
             };
             ReportJob reportJob = CreateReportJob(apiConnection);
 
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await reportJob.Execute(null!));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Execute_RequestedCancellation_StopsWithoutError()
+        {
+            ReportJobApiConnection apiConnection = new()
+            {
+                ThrowOnGetReportSchedulesAsOperationCanceled = true
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection);
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            Assert.DoesNotThrowAsync(async () => await reportJob.Execute(null!, cancellationTokenSource.Token));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Execute_ScheduleDueAtCurrentTime_StartsReportGeneration()
+        {
+            DateTime scheduleTime = new(2026, 4, 21, 10, 0, 0);
+            ReportJobApiConnection apiConnection = new()
+            {
+                ReportSchedules = [CreateDailyTicketReportSchedule(scheduleTime)],
+                LdapConnections = []
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection, new FixedTimeProvider(scheduleTime.AddSeconds(30)));
+
+            await reportJob.Execute(null!);
+
+            Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.getLdapConnections));
+        }
+
+        [Test]
+        public async Task Execute_ScheduleNotDue_AdvancesStartTimeWithoutGeneratingReport()
+        {
+            DateTime scheduleTime = new(2026, 4, 21, 10, 0, 0);
+            ReportSchedule reportSchedule = CreateDailyTicketReportSchedule(scheduleTime);
+            ReportJobApiConnection apiConnection = new()
+            {
+                ReportSchedules = [reportSchedule]
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection, new FixedTimeProvider(scheduleTime.AddHours(1)));
+
             await reportJob.Execute(null!);
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+            Assert.That(reportSchedule.StartTime, Is.EqualTo(scheduleTime.AddDays(1)));
+        }
+
+        [Test]
+        public async Task Execute_CanceledTokenIsForwardedToScheduleProcessing()
+        {
+            // A due schedule would start report generation (LDAP query) if the job token were not
+            // forwarded through ParallelOptions, because the loop body would get an uncanceled token.
+            DateTime scheduleTime = new(2026, 4, 21, 10, 0, 0);
+            ReportJobApiConnection apiConnection = new()
+            {
+                ReportSchedules = [CreateDailyTicketReportSchedule(scheduleTime)],
+                LdapConnections = []
+            };
+            ReportJob reportJob = CreateReportJob(apiConnection, new FixedTimeProvider(scheduleTime.AddSeconds(30)));
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await reportJob.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
+            Assert.That(apiConnection.LastQuery, Is.EqualTo(ReportQueries.getReportSchedules));
+        }
+
+        [Test]
+        public async Task ProcessScheduledReport_CanceledTokenStopsBeforeGeneratingReport()
+        {
+            ReportJobApiConnection apiConnection = new();
+            ReportJob reportJob = CreateReportJob(apiConnection);
+            MethodInfo processScheduledReport = GetPrivateInstanceMethod("ProcessScheduledReport");
+            DateTime currentTimeRounded = new(2026, 4, 21, 10, 0, 0);
+            ReportSchedule reportSchedule = new()
+            {
+                Id = 17,
+                Name = "scheduled-report",
+                Active = true,
+                StartTime = currentTimeRounded,
+                RepeatInterval = SchedulerInterval.Days,
+                RepeatOffset = 1,
+                ScheduleOwningUser = new UiUser
+                {
+                    DbId = 42,
+                    Name = "report-user"
+                },
+                Template = new ReportTemplate
+                {
+                    Id = 7,
+                    ReportParams = new ReportParams
+                    {
+                        ReportType = (int)ReportType.TicketReport
+                    }
+                }
+            };
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await (Task)processScheduledReport.Invoke(reportJob, [reportSchedule, currentTimeRounded, cancellationTokenSource.Token])!;
+
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0));
         }
 
         [Test]
@@ -394,6 +528,44 @@ namespace FWO.Test
 
             Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
             Assert.That(apiConnection.LastQuery, Is.EqualTo(AuthQueries.getLdapConnections));
+        }
+
+        [Test]
+        public async Task GenerateReport_CompletedGeneration_ArchivesReportAndHandsItToNotifications()
+        {
+            ReportJobApiConnection schedulerConnection = new();
+            UserContextApiConnection userConnection = new();
+            UserContextReportJob reportJob = CreateUserContextReportJob(schedulerConnection, userConnection);
+            MethodInfo generateReport = GetPrivateInstanceMethod("GenerateReport");
+
+            await (Task)generateReport.Invoke(reportJob, [CreateArchivedOwnersReportSchedule(), new DateTime(2026, 4, 21, 10, 0, 0), CancellationToken.None])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConnection.Queries, Does.Contain(ReportQueries.addGeneratedReport));
+                Assert.That(schedulerConnection.Queries, Does.Contain(NotificationQueries.getNotifications));
+            });
+        }
+
+        [Test]
+        public async Task GenerateReport_CanceledDuringGeneration_NeitherArchivesNorSendsReport()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            ReportJobApiConnection schedulerConnection = new();
+            UserContextApiConnection userConnection = new()
+            {
+                OnQuery = { [ReportQueries.countReportSchedule] = cancellationTokenSource.Cancel }
+            };
+            UserContextReportJob reportJob = CreateUserContextReportJob(schedulerConnection, userConnection);
+            MethodInfo generateReport = GetPrivateInstanceMethod("GenerateReport");
+
+            await (Task)generateReport.Invoke(reportJob, [CreateArchivedOwnersReportSchedule(), new DateTime(2026, 4, 21, 10, 0, 0), cancellationTokenSource.Token])!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(userConnection.Queries, Does.Not.Contain(ReportQueries.addGeneratedReport));
+                Assert.That(schedulerConnection.Queries, Does.Not.Contain(NotificationQueries.getNotifications));
+            });
         }
 
         [Test]
@@ -502,6 +674,63 @@ namespace FWO.Test
 
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await (Task)saveReportToArchive.Invoke(null, [reportFile, "description", apiConnection])!);
+        }
+
+        private static UserContextReportJob CreateUserContextReportJob(ApiConnection schedulerConnection, ApiConnection userConnection)
+        {
+            SetApiServerUri("http://unit-test");
+            return new UserContextReportJob(schedulerConnection, userConnection);
+        }
+
+        private static ReportSchedule CreateArchivedOwnersReportSchedule()
+        {
+            return new()
+            {
+                Id = 17,
+                Name = "scheduled-report",
+                Archive = true,
+                OutputFormat = [new() { Name = GlobalConst.kJson }],
+                Notifications = [new FwoNotification { Id = 3, Active = false }],
+                ScheduleOwningUser = new UiUser
+                {
+                    DbId = 42,
+                    Name = "report-user"
+                },
+                Template = new ReportTemplate
+                {
+                    Id = 7,
+                    ReportParams = new ReportParams
+                    {
+                        ReportType = (int)ReportType.Owners
+                    }
+                }
+            };
+        }
+
+        /// <summary>
+        /// Generates reports with a given user context instead of authorizing the schedule owning user against the API server.
+        /// </summary>
+        private sealed class UserContextReportJob(ApiConnection schedulerConnection, ApiConnection userConnection)
+            : ReportJob(schedulerConnection, new JwtWriter(new RsaSecurityKey(RSA.Create())))
+        {
+            protected override Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
+            {
+                return Task.FromResult<(ApiConnection?, UserConfig?)>((userConnection, UserConfig.ForTextOnly(new SimulatedGlobalConfig())));
+            }
+        }
+
+        private sealed class UserContextApiConnection : JobTestApiConnectionBase
+        {
+            public Dictionary<string, Action> OnQuery { get; } = [];
+
+            protected override Task<QueryResponseType> HandleQueryAsync<QueryResponseType>(string query, object? variables, string? operationName, FWO.Api.Client.QueryChunkingOptions? chunkingOptions)
+            {
+                if (OnQuery.TryGetValue(query, out Action? onQuery))
+                {
+                    onQuery();
+                }
+                return ReturnEmptyOrDefault<QueryResponseType>();
+            }
         }
 
         private static T GetAnonymousProperty<T>(object obj, string propertyName)

@@ -14,6 +14,19 @@ namespace FWO.Test
     internal class AutoDiscoverJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            AutoDiscoverJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoManagementsAreAvailable()
         {
             EmptyListJobApiConnection apiConnection = new();
@@ -38,11 +51,68 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries[1], Is.EqualTo(MonitorQueries.addLogEntry));
             Assert.That(apiConnection.Queries[2], Is.EqualTo(MonitorQueries.getOpenAlerts));
         }
+
+        [Test]
+        public async Task Execute_CanceledWhileCalculatingDeltas_RaisesNoAlertsForDetectedChanges()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            AutoDiscoveryDeltaApiConnection apiConnection = new()
+            {
+                OnDeltaQuery = cancellationTokenSource.Cancel
+            };
+            AutoDiscoverJob job = new(apiConnection, new SimulatedGlobalConfig());
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.EqualTo(new[] { DeviceQueries.getManagementsDetails, DeviceQueries.getManagementsDetails }),
+                "the deleted management found by the delta is neither alerted nor logged");
+        }
+
+        /// <summary>
+        /// Returns a super management whose only sub management is missing from the discovery,
+        /// so the delta calculation reports it as deleted.
+        /// </summary>
+        private sealed class AutoDiscoveryDeltaApiConnection : JobTestApiConnectionBase
+        {
+            public Action? OnDeltaQuery { get; init; }
+            private int managementQueries;
+
+            protected override Task<QueryResponseType> HandleQueryAsync<QueryResponseType>(string query, object? variables, string? operationName, FWO.Api.Client.QueryChunkingOptions? chunkingOptions)
+            {
+                if (query == DeviceQueries.getManagementsDetails)
+                {
+                    if (++managementQueries > 1)
+                    {
+                        OnDeltaQuery?.Invoke();
+                    }
+                    List<Management> managements =
+                    [
+                        new() { Id = 1, Name = "mds", Hostname = "mds.example.test", DeviceType = new DeviceType { Id = 13, Name = "CheckPoint" } },
+                        new() { Id = 2, Name = "domain-a", Hostname = "mds.example.test", ConfigPath = "domain-a", SuperManagerId = 1, DeviceType = new DeviceType { Id = 9 } }
+                    ];
+                    return Task.FromResult((QueryResponseType)(object)managements);
+                }
+                return ReturnEmptyOrDefault<QueryResponseType>();
+            }
+        }
     }
 
     [TestFixture]
     internal class ComplianceJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ComplianceJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_HandlesFailuresWithoutThrowing()
         {
@@ -61,6 +131,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportAppDataJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportAppDataJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_WithEmptyPathInitializesAndReturns()
         {
@@ -105,6 +188,19 @@ namespace FWO.Test
     internal class ExternalRequestJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ExternalRequestJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoOpenRequestsExist()
         {
             ExternalRequestNoOpApiConnection apiConnection = new();
@@ -133,6 +229,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportChangeNotifyJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportChangeNotifyJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoImportsNeedNotification()
         {
@@ -167,6 +276,19 @@ namespace FWO.Test
     [TestFixture]
     internal class ImportIpDataJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            ImportIpDataJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoImportPathsAreConfigured()
         {
@@ -203,6 +325,19 @@ namespace FWO.Test
     internal class VarianceAnalysisJobTest
     {
         [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            VarianceAnalysisJob job = new(apiConnection, new SimulatedGlobalConfig());
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
+        [Test]
         public async Task Execute_ReturnsWhenNoOwnersAreAvailable()
         {
             EmptyListJobApiConnection apiConnection = new();
@@ -217,6 +352,22 @@ namespace FWO.Test
     [TestFixture]
     internal class UpdateRuleOwnerMappingJobTest
     {
+        [Test]
+        public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
+        {
+            EmptyListJobApiConnection apiConnection = new();
+            UpdateRuleOwnerMappingJob job = new(apiConnection, new SimulatedGlobalConfig
+            {
+                OwnerSoruceMappingID = (int)OwnerMappingSourceStm.NameField
+            });
+            using CancellationTokenSource cancellationTokenSource = new();
+            await cancellationTokenSource.CancelAsync();
+
+            await job.Execute(null!, cancellationTokenSource.Token);
+
+            Assert.That(apiConnection.Queries, Is.Empty);
+        }
+
         [Test]
         public async Task Execute_ReturnsWhenNoOwnerMappingSourceIsConfigured()
         {

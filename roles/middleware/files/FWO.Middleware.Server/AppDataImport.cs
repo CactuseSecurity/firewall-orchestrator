@@ -73,9 +73,11 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the App Data Import
         /// </summary>
-        public async Task<List<string>> Run()
+        /// <param name="cancellationToken">Stops before the next source or app; missing apps are then not deactivated.</param>
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
             NamingConvention = ModellingNamingConvention.FromJson(globalConfig.ModNamingConvention);
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportAppDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             userConfig.Dispose();
@@ -86,19 +88,30 @@ namespace FWO.Middleware.Server
             await InitResponsibleTypes();
             await InitOwnerLifeCycleStates();
             hasImmediateAppDecommNotificationForImport = await LoadHasImmediateAppDecommNotification();
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> failedImports = [];
             var ownerChangeTracker = new OwnerChangeImportTracker(apiConnection);
 
-            foreach (var importfilePathAndName in importfilePathAndNames)
+            try
             {
-                string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
-                List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
-                string scriptPath = importSourcePath + ".py";
-                if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
+                foreach (var importfilePathAndName in importfilePathAndNames)
                 {
-                    Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
+                    cancellationToken.ThrowIfCancellationRequested();
+                    string importSourcePath = FWO.Basics.ImportPathPolicy.RemoveAllowedExtension(importfilePathAndName);
+                    List<string> validatedImportFiles = ValidateConfiguredImportSource(importSourcePath);
+                    string scriptPath = importSourcePath + ".py";
+                    if (validatedImportFiles.Contains(scriptPath) && !RunImportScript(scriptPath, globalConfig.ImportAppDataScriptArgs))
+                    {
+                        Log.WriteInfo(LogMessageTitle, $"Script {scriptPath} failed but trying to import from existing file.");
+                    }
+                    await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker, cancellationToken);
                 }
-                await ImportSingleSource(importSourcePath + ".json", failedImports, ownerChangeTracker);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // close the owner import control as unsuccessful instead of leaving it open
+                await ownerChangeTracker.CompleteImport(false);
+                throw;
             }
 
             await ownerChangeTracker.CompleteImport(failedImports.Count == 0);
@@ -142,7 +155,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task ImportSingleSource(string importfileName, List<string> failedImports, OwnerChangeImportTracker ownerChangeTracker, CancellationToken cancellationToken)
         {
             try
             {
@@ -151,8 +164,12 @@ namespace FWO.Middleware.Server
                 if (importedOwnerData != null && importedOwnerData.Owners != null)
                 {
                     ImportedApps = importedOwnerData.Owners;
-                    await ImportApps(importfileName, ownerChangeTracker);
+                    await ImportApps(importfileName, ownerChangeTracker, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exc)
             {
@@ -163,7 +180,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker)
+        private async Task ImportApps(string importfileName, OwnerChangeImportTracker ownerChangeTracker, CancellationToken cancellationToken)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -173,6 +190,7 @@ namespace FWO.Middleware.Server
             ExistingApps = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getOwnersWithNetworks);
             foreach (var incomingApp in ImportedApps)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (await SaveApp(incomingApp, ownerChangeTracker))
                 {
                     ++successCounter;
@@ -182,6 +200,8 @@ namespace FWO.Middleware.Server
                     ++failCounter;
                 }
             }
+            // deactivating apps missing from the import is only valid after all imported apps were saved
+            cancellationToken.ThrowIfCancellationRequested();
             string? importSource = ImportedApps.FirstOrDefault()?.ImportSource;
             if (importSource != null)
             {

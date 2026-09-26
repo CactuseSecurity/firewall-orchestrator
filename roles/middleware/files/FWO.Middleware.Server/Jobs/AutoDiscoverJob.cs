@@ -36,24 +36,27 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 List<Management> managements = await apiConnection.SendQueryAsync<List<Management>>(DeviceQueries.getManagementsDetails);
                 foreach (Management superManagement in managements.Where(x => x.DeviceType.CanBeSupermanager() || x.DeviceType.CanBeAutodiscovered(x)))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
                         AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection);
 
-                        List<Management> diffList = await autodiscovery.Run();
+                        List<Management> diffList = await autodiscovery.Run(cancellationToken);
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);
 
                         int changeCounter = 0;
 
                         foreach (ActionItem action in actions)
                         {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (action.ActionType == ActionCode.AddGatewayToNewManagement.ToString())
                             {
                                 action.RefAlertId = lastMgmtAlertId;
@@ -64,6 +67,10 @@ namespace FWO.Middleware.Server.Jobs
                         await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("scheduled_autodiscovery"),
                             changeCounter > 0 ? changeCounter + globalConfig.GetText("changes_found") : globalConfig.GetText("found_no_changes"),
                             GlobalConst.kAutodiscovery, superManagement.Id);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
                     }
                     catch (Exception excMgm)
                     {
@@ -82,6 +89,10 @@ namespace FWO.Middleware.Server.Jobs
                             GlobalConst.kAutodiscovery, superManagement.Id);
                     }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(AutoDiscoverJob)} stopped.");
             }
             catch (Exception exc)
             {

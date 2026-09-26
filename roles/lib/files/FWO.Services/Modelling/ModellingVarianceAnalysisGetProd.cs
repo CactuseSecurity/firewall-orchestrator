@@ -47,7 +47,7 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter)
+        private async Task<bool> GetModelledRulesProductionState(ModellingFilter modellingFilter, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -57,6 +57,7 @@ namespace FWO.Services.Modelling
 
                 foreach (Management mgt in RelevantManagements)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     varianceResult.UnModelledRules.Add(mgt.Id, []);
                     List<Rule>? rulesByMgt = await GetRules(mgt.Id, modellingFilter);
                     if (rulesByMgt != null)
@@ -67,6 +68,10 @@ namespace FWO.Services.Modelling
                     }
                 }
                 Log.WriteDebug("GetModelledRulesProductionState", $"Found {modelledRulesCount} modelled rules, {notModelledRulesCount} others.");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {
@@ -565,7 +570,7 @@ namespace FWO.Services.Modelling
             }
         }
 
-        private async Task GetNwObjectsProductionState()
+        private async Task GetNwObjectsProductionState(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -573,10 +578,15 @@ namespace FWO.Services.Modelling
                 int aSCount = 0;
                 foreach (var mgtId in RelevantManagements.Select(m => m.Id))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     aRCount += await CollectGroupObjects(mgtId);
                     aSCount += await CollectAppServers(mgtId);
                 }
                 Log.WriteDebug("GetNwObjectsProductionState", $"Found {aRCount} AppRoles, {aSCount} AppServer.");
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {

@@ -25,6 +25,7 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnection;
         private readonly GlobalConfig globalConfig;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly TimeProvider timeProvider;
 
         /// <summary>
         /// Creates a new daily check job.
@@ -32,48 +33,62 @@ namespace FWO.Middleware.Server.Jobs
         /// <param name="apiConnection">GraphQL API connection.</param>
         /// <param name="globalConfig">Global configuration.</param>
         /// <param name="tokenLifetimeProvider">Provider for internal token lifetime defaults.</param>
-        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        /// <param name="timeProvider">Clock used for import age checks.</param>
+        public DailyCheckJob(ApiConnection apiConnection, GlobalConfig globalConfig, TokenLifetimeProvider? tokenLifetimeProvider = null, TimeProvider? timeProvider = null)
         {
             this.apiConnection = apiConnection;
             this.globalConfig = globalConfig;
             this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
+            this.timeProvider = timeProvider ?? TimeProvider.System;
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 HashSet<DailyCheckModule> enabledModules = LoadEnabledModules();
 
                 if (enabledModules.Contains(DailyCheckModule.DemoData))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckDemoData();
                 }
                 if (enabledModules.Contains(DailyCheckModule.Imports))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await CheckImports();
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertRefresh) && globalConfig.RecRefreshDaily)
                 {
-                    await RefreshRecert();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await RefreshRecert(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RecertCheck))
                 {
-                    await CheckRecerts();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckRecerts(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.UnansweredInterfaceRequests))
                 {
-                    await CheckUnansweredInterfaceRequests();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckUnansweredInterfaceRequestsCore(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.RuleExpiryCheck))
                 {
-                    await CheckRuleExpiry();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckRuleExpiry(cancellationToken);
                 }
                 if (enabledModules.Contains(DailyCheckModule.OwnerActiveRules))
                 {
-                    await CheckOwnerActiveRules();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await CheckOwnerActiveRules(cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(DailyCheckJob)} stopped.");
             }
             catch (Exception exc)
             {
@@ -102,35 +117,35 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task RefreshRecert()
+        private async Task RefreshRecert(CancellationToken cancellationToken)
         {
             Log.WriteDebug(LogMessageTitle, "Refresh recert ownerships");
-            await RecertRefresh.RecalcRecerts(apiConnection);
+            await RecertRefresh.RecalcRecerts(apiConnection, cancellationToken);
         }
 
-        private async Task CheckRecerts()
+        private async Task CheckRecerts(CancellationToken cancellationToken)
         {
             if (globalConfig.RecCheckActive)
             {
                 RecertCheck recertCheck = new(apiConnection, globalConfig, tokenLifetimeProvider);
-                int emailsSent = await recertCheck.CheckRecertifications();
+                int emailsSent = await recertCheck.CheckRecertifications(cancellationToken);
                 Log.WriteDebug(LogMessageTitle, $"Recert Check: Sent {emailsSent} emails.");
                 await AlertHelper.AddLogEntry(apiConnection, 0, globalConfig.GetText("daily_recert_check"), emailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
             }
         }
 
-        private async Task CheckRuleExpiry()
+        private async Task CheckRuleExpiry(CancellationToken cancellationToken)
         {
             RuleExpiryCheck ruleExpiryCheck = new(apiConnection, globalConfig);
-            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry();
+            int ruleExpiryEmailsSent = await ruleExpiryCheck.CheckRuleExpiry(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Rule Expiry Check: Sent {ruleExpiryEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Rule Expiry Check", ruleExpiryEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckOwnerActiveRules()
+        private async Task CheckOwnerActiveRules(CancellationToken cancellationToken)
         {
             OwnerActiveRuleCheck ownerActiveRuleCheck = new(apiConnection, globalConfig);
-            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler();
+            int ownerActiveRuleEmailsSent = await ownerActiveRuleCheck.CheckActiveRulesByScheduler(cancellationToken);
             Log.WriteDebug(LogMessageTitle, $"Owner Active Rule Check: Sent {ownerActiveRuleEmailsSent} emails.");
             await AlertHelper.AddLogEntry(apiConnection, 0, "Scheduled Daily Owner Active Rule Check", ownerActiveRuleEmailsSent + globalConfig.GetText("emails_sent"), GlobalConst.kDailyCheck);
         }
@@ -210,7 +225,7 @@ namespace FWO.Middleware.Server.Jobs
             {
                 if (imp.LastIncompleteImport != null && imp.LastIncompleteImport.Length > 0)
                 {
-                    if (imp.LastIncompleteImport[0].StartTime < DateTime.Now.AddHours(-globalConfig.MaxImportDuration))
+                    if (imp.LastIncompleteImport[0].StartTime < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportDuration))
                     {
                         jsonData = imp.LastIncompleteImport;
                         await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7011"), GlobalConst.kDailyCheck, AlertCode.ImportRunningTooLong, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
@@ -223,7 +238,7 @@ namespace FWO.Middleware.Server.Jobs
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7012"), GlobalConst.kDailyCheck, AlertCode.NoImport, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
                     importIssues++;
                 }
-                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < DateTime.Now.AddHours(-globalConfig.MaxImportInterval))
+                else if (imp.LastImportAttempt != null && imp.LastImportAttempt < timeProvider.GetUtcNow().LocalDateTime.AddHours(-globalConfig.MaxImportInterval))
                 {
                     jsonData = imp;
                     await AlertHelper.SetAlert(apiConnection, globalConfig.GetText("import"), globalConfig.GetText("E7013"), GlobalConst.kDailyCheck, AlertCode.SuccessfulImportOverdue, new AlertHelper.AdditionalAlertData { MgmtId = imp.MgmId, JsonData = jsonData });
@@ -234,7 +249,7 @@ namespace FWO.Middleware.Server.Jobs
                 importIssues != 0 ? importIssues + globalConfig.GetText("import_issues_found") : globalConfig.GetText("no_import_issues_found"), GlobalConst.kDailyCheck);
         }
 
-        private async Task CheckUnansweredInterfaceRequests()
+        private async Task CheckUnansweredInterfaceRequestsCore(CancellationToken cancellationToken)
         {
             int emailsSent = 0;
             List<Ldap> connectedLdaps = await apiConnection.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
@@ -254,6 +269,7 @@ namespace FWO.Middleware.Server.Jobs
             foreach (var notification in notificationService.Notifications
                 .Where(notification => notification.Deadline == NotificationDeadline.RequestDate))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
                 List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
@@ -261,6 +277,7 @@ namespace FWO.Middleware.Server.Jobs
                     repeatInterval);
                 foreach (var ticket in unansweredTickets)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
                     if (owner == null)
                     {

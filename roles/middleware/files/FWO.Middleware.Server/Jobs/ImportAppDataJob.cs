@@ -33,24 +33,38 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
-        {
-            Log.WriteDebug(LogMessageTitleImport, "Process started");
-
-            await ImportAppData();
-            await AdjustAppServerNames();
-        }
-
-        private async Task ImportAppData()
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                Log.WriteDebug(LogMessageTitleImport, "Process started");
+
+                await ImportAppData(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                await AdjustAppServerNames(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitleImport, $"{nameof(ImportAppDataJob)} stopped.");
+            }
+        }
+
+        private async Task ImportAppData(CancellationToken cancellationToken)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 using AppDataImport import = new(apiConnection, globalConfig);
-                List<string> failedImports = await import.Run();
+                List<string> failedImports = await import.Run(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (failedImports.Count > 0)
                 {
                     throw new ProcessingFailedException($"{LogMessageTitleImport} failed for {string.Join(", ", failedImports)}.");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exc)
             {
@@ -58,16 +72,21 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task AdjustAppServerNames()
+        private async Task AdjustAppServerNames(CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (globalConfig.DnsLookup)
                 {
                     using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection);
                     userConfig.User.Name = Roles.MiddlewareServer;
-                    await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig);
+                    await AppServerHelper.AdjustAppServerNames(apiConnection, userConfig, cancellationToken);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exc)
             {

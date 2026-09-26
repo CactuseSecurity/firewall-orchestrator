@@ -16,6 +16,9 @@ ExecStartPre=/bin/sleep 10
 ExecStart={{ middleware_server_start_dir }}/bin/{{ dotnet_mode }}/net{{ dotnet_version }}/FWO.Middleware.Server
 Restart=on-failure
 RestartSec={{ fworch_systemd_restart_sec }}
+# longer than the 2 minutes HostOptions.ShutdownTimeout of the middleware, so running jobs can
+# persist their state after being cancelled before systemd kills the process
+TimeoutStopSec=180
 # bound a runaway inside this service's own cgroup, so the kernel does not get to pick the victim
 MemoryMax={{ fworch_middleware_memory_max }}
 OOMPolicy=stop

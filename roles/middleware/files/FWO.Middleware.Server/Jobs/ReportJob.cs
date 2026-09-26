@@ -26,6 +26,7 @@ namespace FWO.Middleware.Server.Jobs
         private readonly ApiConnection apiConnectionScheduler;
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
+        private readonly TimeProvider timeProvider;
         private readonly string apiServerUri;
 
         /// <summary>
@@ -34,21 +35,23 @@ namespace FWO.Middleware.Server.Jobs
         /// <param name="apiConnectionScheduler">API connection used by the scheduler.</param>
         /// <param name="jwtWriter">JWT writer to authorize users.</param>
         /// <param name="tokenLifetimeProvider">Provider for token lifetime defaults.</param>
-        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, TokenLifetimeProvider? tokenLifetimeProvider = null)
+        /// <param name="timeProvider">Clock used to detect due schedules and stamp generated reports.</param>
+        public ReportJob(ApiConnection apiConnectionScheduler, JwtWriter jwtWriter, TokenLifetimeProvider? tokenLifetimeProvider = null, TimeProvider? timeProvider = null)
         {
             this.apiConnectionScheduler = apiConnectionScheduler;
             this.jwtWriter = jwtWriter;
             this.tokenLifetimeProvider = tokenLifetimeProvider ?? new TokenLifetimeProvider();
+            this.timeProvider = timeProvider ?? TimeProvider.System;
             apiServerUri = ConfigFile.ApiServerUri ?? throw new ArgumentException("Missing api server url on startup.");
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
                 Log.WriteDebug(LogMessageTitle, "Process started");
-                DateTime dateTimeNowRounded = RoundDown(DateTime.Now, CheckScheduleInterval);
+                DateTime dateTimeNowRounded = RoundDown(timeProvider.GetUtcNow().LocalDateTime, CheckScheduleInterval);
                 List<ReportSchedule> scheduledReports = await apiConnectionScheduler.SendQueryAsync<List<ReportSchedule>>(ReportQueries.getReportSchedules);
 
                 if (scheduledReports is null || scheduledReports.Count == 0)
@@ -56,14 +59,10 @@ namespace FWO.Middleware.Server.Jobs
                     return;
                 }
 
-                await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount },
+                await Parallel.ForEachAsync(scheduledReports, new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = cancellationToken },
                     async (reportSchedule, ct) => await ProcessScheduledReport(reportSchedule, dateTimeNowRounded, ct));
             }
-            catch (TaskCanceledException)
-            {
-                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
-            }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
             }
@@ -91,15 +90,12 @@ namespace FWO.Middleware.Server.Jobs
 
                     if (RoundDown(reportSchedule.StartTime, CheckScheduleInterval) == dateTimeNowRounded)
                     {
+                        ct.ThrowIfCancellationRequested();
                         await GenerateReport(reportSchedule, dateTimeNowRounded, ct);
                     }
                 }
             }
-            catch (TaskCanceledException)
-            {
-                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
-            }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
                 Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
             }
@@ -127,7 +123,7 @@ namespace FWO.Middleware.Server.Jobs
                 ReportFile reportFile = new()
                 {
                     Name = $"{reportSchedule.Name}_{dateTimeNowRounded.ToShortDateString()}",
-                    GenerationDateStart = DateTime.Now,
+                    GenerationDateStart = timeProvider.GetUtcNow().LocalDateTime,
                     TemplateId = reportSchedule.Template.Id,
                     OwningUserId = reportSchedule.ScheduleOwningUser.DbId,
                     Type = reportSchedule.Template.ReportParams.ReportType,
@@ -137,11 +133,15 @@ namespace FWO.Middleware.Server.Jobs
                 await AdaptDeviceFilter(reportSchedule.Template.ReportParams, apiConnectionUserContext);
 
                 ReportBase? report = await ReportGenerator.GenerateFromTemplate(reportSchedule.Template, apiConnectionUserContext, userConfig, DefaultInit.DoNothing, token);
+                // a canceled generation returns a partial report, which must neither be archived nor sent
+                token.ThrowIfCancellationRequested();
                 if (report != null)
                 {
                     await report.GetObjectsInReport(int.MaxValue, apiConnectionUserContext, _ => Task.CompletedTask);
+                    token.ThrowIfCancellationRequested();
 
-                    await WriteReportFile(report, reportSchedule.OutputFormat, reportFile);
+                    await WriteReportFile(report, reportSchedule.OutputFormat, reportFile, timeProvider);
+                    token.ThrowIfCancellationRequested();
 
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" successfully generated.");
 
@@ -152,6 +152,7 @@ namespace FWO.Middleware.Server.Jobs
 
                     if (reportSchedule.Notifications.Any())
                     {
+                        token.ThrowIfCancellationRequested();
                         await TrySendReportViaEmail(reportSchedule, report, userConfig);
                     }
                 }
@@ -160,11 +161,7 @@ namespace FWO.Middleware.Server.Jobs
                     Log.WriteInfo(LogMessageTitle, $"Scheduled report \"{reportSchedule.Name}\" with id \"{reportSchedule.Id}\" for user \"{reportSchedule.ScheduleOwningUser.Name}\" with id \"{reportSchedule.ScheduleOwningUser.DbId}\" was empty.");
                 }
             }
-            catch (TaskCanceledException)
-            {
-                Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
-            }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 Log.WriteDebug(LogMessageTitle, $"{nameof(ReportJob)} stopped.");
             }
@@ -181,7 +178,11 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
+        /// <summary>
+        /// Authorizes the schedule owning user and builds the API connection and user config the report is generated with.
+        /// </summary>
+        /// <returns>Both null if the report must not be generated for this user.</returns>
+        protected virtual async Task<(ApiConnection?, UserConfig?)> InitUserEnvironment(ReportSchedule reportSchedule)
         {
             List<Ldap> connectedLdaps = await apiConnectionScheduler.SendQueryAsync<List<Ldap>>(AuthQueries.getLdapConnections);
             AuthManager authManager = new(jwtWriter, connectedLdaps, apiConnectionScheduler, tokenLifetimeProvider);
@@ -238,7 +239,7 @@ namespace FWO.Middleware.Server.Jobs
             }
         }
 
-        private static async Task WriteReportFile(ReportBase report, List<FileFormat> fileFormats, ReportFile reportFile)
+        private static async Task WriteReportFile(ReportBase report, List<FileFormat> fileFormats, ReportFile reportFile, TimeProvider timeProvider)
         {
             reportFile.Json = report.ExportToJson();
             foreach (FileFormat format in fileFormats)
@@ -273,7 +274,7 @@ namespace FWO.Middleware.Server.Jobs
                 }
             }
 
-            reportFile.GenerationDateEnd = DateTime.Now;
+            reportFile.GenerationDateEnd = timeProvider.GetUtcNow().LocalDateTime;
         }
 
         private static async Task SaveReportToArchive(ReportFile reportFile, string desc, ApiConnection apiConnectionUser)

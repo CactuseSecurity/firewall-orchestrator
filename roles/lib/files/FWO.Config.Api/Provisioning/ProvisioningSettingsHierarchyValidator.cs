@@ -273,6 +273,11 @@ internal static class ProvisioningSettingsHierarchyValidator
             return $"Provisioning parent node ID '{scope.ParentNodeId}' must be positive.";
         }
 
+        return GetParentError(scope, requireParent) ?? GetObjectKeyFormatError(scope);
+    }
+
+    private static string? GetParentError(ProvisioningSettingsScope scope, bool requireParent)
+    {
         if (scope.ScopeType == ProvisioningScopeType.Global)
         {
             if (!string.Equals(scope.ObjectKey, ProvisioningSettingsScopeFactory.GlobalNodeType, StringComparison.Ordinal))
@@ -290,6 +295,11 @@ internal static class ProvisioningSettingsHierarchyValidator
             return $"Provisioning scope type '{scope.ScopeType}' requires a parent node ID.";
         }
 
+        return null;
+    }
+
+    private static string? GetObjectKeyFormatError(ProvisioningSettingsScope scope)
+    {
         if (scope.ScopeType is ProvisioningScopeType.Management or ProvisioningScopeType.Gateway
             && (!long.TryParse(scope.ObjectKey, NumberStyles.None, CultureInfo.InvariantCulture, out long objectId)
                 || objectId <= 0

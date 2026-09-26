@@ -13,7 +13,7 @@ public abstract class ProvisioningSettingKey
 
     public IReadOnlySet<ProvisioningScopeType> AllowedScopes => allowedScopes;
 
-    internal ProvisioningSettingKey(
+    private protected ProvisioningSettingKey(
         string databaseKey,
         Type valueType,
         IEnumerable<ProvisioningScopeType> allowedScopes)

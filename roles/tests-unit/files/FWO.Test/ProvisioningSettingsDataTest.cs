@@ -12,6 +12,14 @@ namespace FWO.Test;
 [Parallelizable]
 internal class ProvisioningSettingsDataTest
 {
+    private static readonly string[] ExpectedDeviceTypeNames = ["Check Point R8x", "FortiADOM 5ff"];
+    private static readonly string[] ExpectedDeviceTypeKeys = ["9", "11"];
+    private static readonly string[] ExpectedManagementNames = ["cp-mgr"];
+    private static readonly string[] ExpectedGatewayKeys = ["200", "201"];
+    private static readonly string[] ExpectedScopeChain = ["Gateway:210", "Management:101", "DeviceType:11", "Global:global"];
+    private static readonly string[] ExpectedParsedList = ["a", "b"];
+    private static readonly string[] ExpectedParsedListWithEmpty = ["a", ""];
+
     internal static List<Management> SampleManagements() =>
     [
         new()
@@ -61,10 +69,10 @@ internal class ProvisioningSettingsDataTest
         {
             Assert.That(root.Level, Is.EqualTo(ProvisioningScopeType.Global));
             Assert.That(root.Scope.ObjectKey, Is.EqualTo(ProvisioningSettingsData.GlobalObjectKey));
-            Assert.That(root.Children.Select(n => n.Name), Is.EqualTo(new[] { "Check Point R8x", "FortiADOM 5ff" }));
-            Assert.That(root.Children.Select(n => n.Scope.ObjectKey), Is.EqualTo(new[] { "9", "11" }));
-            Assert.That(root.Children[0].Children.Select(n => n.Name), Is.EqualTo(new[] { "cp-mgr" }));
-            Assert.That(root.Children[0].Children[0].Children.Select(n => n.Scope.ObjectKey), Is.EqualTo(new[] { "200", "201" }));
+            Assert.That(root.Children.Select(n => n.Name), Is.EqualTo(ExpectedDeviceTypeNames));
+            Assert.That(root.Children.Select(n => n.Scope.ObjectKey), Is.EqualTo(ExpectedDeviceTypeKeys));
+            Assert.That(root.Children[0].Children.Select(n => n.Name), Is.EqualTo(ExpectedManagementNames));
+            Assert.That(root.Children[0].Children[0].Children.Select(n => n.Scope.ObjectKey), Is.EqualTo(ExpectedGatewayKeys));
             Assert.That(root.SelfAndDescendants().Any(n => n.Name is "hidden-mgr" or "router-mgr"), Is.False);
             Assert.That(root.SelfAndDescendants().All(n => !n.IsPersisted), Is.True);
         }
@@ -121,7 +129,7 @@ internal class ProvisioningSettingsDataTest
 
         IEnumerable<string> chain = Node(root, ProvisioningScopeType.Gateway, "210").SelfAndAncestors().Select(n => n.Id);
 
-        Assert.That(chain, Is.EqualTo(new[] { "Gateway:210", "Management:101", "DeviceType:11", "Global:global" }));
+        Assert.That(chain, Is.EqualTo(ExpectedScopeChain));
     }
 
     [Test]
@@ -220,8 +228,8 @@ internal class ProvisioningSettingsDataTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(ProvisioningSettingsData.ParseStringList(""), Is.Empty);
-            Assert.That(ProvisioningSettingsData.ParseStringList("a, b"), Is.EqualTo(new[] { "a", "b" }));
-            Assert.That(ProvisioningSettingsData.ParseStringList("a,"), Is.EqualTo(new[] { "a", "" }));
+            Assert.That(ProvisioningSettingsData.ParseStringList("a, b"), Is.EqualTo(ExpectedParsedList));
+            Assert.That(ProvisioningSettingsData.ParseStringList("a,"), Is.EqualTo(ExpectedParsedListWithEmpty));
         }
     }
 

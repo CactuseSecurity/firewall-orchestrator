@@ -87,7 +87,6 @@ public sealed class ProvisioningSettingValueSerializer
 
             string enumName = value.Value<string>() ?? "";
             if (!Enum.TryParse(key.ValueType, enumName, ignoreCase: false, out object? parsed)
-                || parsed is null
                 || !Enum.IsDefined(key.ValueType, parsed))
             {
                 throw InvalidValue(key, value, $"'{enumName}' is not a defined {key.ValueType.Name} value");

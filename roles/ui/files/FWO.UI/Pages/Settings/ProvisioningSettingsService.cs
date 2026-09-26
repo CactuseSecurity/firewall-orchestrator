@@ -126,8 +126,11 @@ namespace FWO.Ui.Pages.Settings
         public async Task<ProvisioningLevelForm> LoadFormAsync(ProvisioningNode node)
         {
             ResolvedLevel level = await ResolveAsync(node);
-            ResolvedLevel? parentLevel = level.DirectOverrides.Count == 0 ? null
-                : node.Parent == null ? ResolveDefaults(node.Level) : await ResolveAsync(node.Parent);
+            ResolvedLevel? parentLevel = null;
+            if (level.DirectOverrides.Count > 0)
+            {
+                parentLevel = node.Parent == null ? ResolveDefaults(node.Level) : await ResolveAsync(node.Parent);
+            }
 
             List<ProvisioningFieldState> fields = [];
             foreach (ProvisioningFieldDefinition field in ProvisioningSettingsData.FieldsFor(node))

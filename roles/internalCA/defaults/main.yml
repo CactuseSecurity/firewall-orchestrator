@@ -9,9 +9,10 @@
 internalca_crypto_packages:
   - python3-cryptography
 
-# A single CA is retained on the middleware server. Its private key never
-# leaves that host; only the public CA certificate is installed elsewhere.
-internalca_ca_host: "{{ groups['middlewareserver'] | first }}"
+# A single CA is retained on the middleware server. Its private key never leaves that
+# host; only the public CA certificate is installed elsewhere. The host itself is
+# internalca_ca_host in inventory/group_vars/all.yml, because roles/tests-integration
+# reads it too.
 internalca_ca_dir: "{{ fworch_secrets_dir }}/ca"
 internalca_ca_private_key: "{{ internalca_ca_dir }}/ca.key"
 internalca_ca_csr: "{{ internalca_ca_dir }}/ca.csr"
@@ -21,6 +22,10 @@ internalca_ca_common_name_prefix: "{{ product_name }} Internal CA"
 internalca_ca_common_name: "{{ internalca_ca_common_name_prefix }}"
 internalca_ca_validity_days: 3650
 internalca_certificate_validity_days: 825
+# One-shot rotation switch. Do not persist it in the host-wide settings file:
+# true deliberately creates new FWO-managed key material on every invocation.
+# Customer-managed server identities are classified and excluded from issuance.
+internalca_reset_certificates: false
 # An installer run this close to expiry re-signs the issued certificates.
 internalca_renewal_threshold_days: 30
 

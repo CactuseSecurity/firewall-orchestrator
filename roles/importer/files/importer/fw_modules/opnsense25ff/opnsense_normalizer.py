@@ -29,8 +29,9 @@ from fw_modules.opnsense25ff.opnsense_normalize_services import (
     rule_service_names,
 )
 from fw_modules.opnsense25ff.opnsense_parser import parse_opnsense_config
-from fwo_base import ConfigAction, sort_and_join
 from fwo_base import generate_hash_from_dict as fwo_base_generate_hash_from_dict
+from fwo_base import sort_and_join
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwoImporterError
 from fwo_log import FWOLogger
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController

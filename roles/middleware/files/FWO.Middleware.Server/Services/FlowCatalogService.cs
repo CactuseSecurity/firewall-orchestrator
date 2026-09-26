@@ -1,11 +1,16 @@
 using System.Globalization;
 using System.Net;
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Flow;
+using FWO.Data.Middleware;
 using FWO.Logging;
 using FWO.Middleware.Server.Responses;
+using FWO.Services.Workflow;
 using NetTools;
 
 namespace FWO.Middleware.Server.Services;
@@ -13,11 +18,16 @@ namespace FWO.Middleware.Server.Services;
 /// <summary>
 /// Represents the FlowCatalogService type.
 /// </summary>
-public sealed class FlowCatalogService
+public sealed class FlowCatalogService : IFlowGroupResolver, IDisposable
 {
     private readonly ApiConnection apiConnection;
+    private readonly GlobalConfig globalConfig;
+    private readonly ApiSubscription? configSubscription;
     private readonly SemaphoreSlim ipProtocolCacheLock = new(1, 1);
+    private readonly object zonePatternCacheLock = new();
     private IpProtocolCache? ipProtocolCache;
+    private IReadOnlyList<FlowZoneGroupPattern> zonePatterns = [];
+    private string? parsedZonePatternConfig;
 
     private sealed class IpProtocolCache(Dictionary<int, string> names, Dictionary<string, int> idsByName)
     {
@@ -28,9 +38,59 @@ public sealed class FlowCatalogService
     /// <summary>
     /// Initializes a new instance of the type.
     /// </summary>
-    public FlowCatalogService(ApiConnection apiConnection)
+    public FlowCatalogService(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         this.apiConnection = apiConnection;
+        this.globalConfig = globalConfig;
+        try
+        {
+            configSubscription = this.apiConnection.GetSubscription<ConfigItem[]>(
+                GraphqlExceptionHandler.Handle,
+                OnGlobalConfigChange,
+                ConfigQueries.subscribeFlowCatalogConfigChanges);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteError("Flow catalog config", "Could not start flow-catalog config subscription.", exception);
+        }
+    }
+
+    /// <summary>
+    /// Applies refreshed flow-catalog config values to the shared config snapshot.
+    /// </summary>
+    private void OnGlobalConfigChange(ConfigItem[] configItems)
+    {
+        globalConfig.MergeSubscriptionUpdateHandler(configItems);
+    }
+
+    /// <summary>
+    /// Returns the configured zone name patterns, parsing the config value only when it changed.
+    /// The parse reports unusable entries to the log, so it must not run once per request.
+    /// The cache is shared by every caller of this singleton and the list is replaced rather than modified.
+    /// The list is handed out read-only, but callers must treat its mutable pattern elements as immutable.
+    /// </summary>
+    /// <returns>The configured zone name patterns.</returns>
+    private IReadOnlyList<FlowZoneGroupPattern> GetZonePatterns()
+    {
+        string serializedPatterns = globalConfig.FlowZoneGroupNamePatterns ?? "";
+
+        lock (zonePatternCacheLock)
+        {
+            if (!string.Equals(serializedPatterns, parsedZonePatternConfig, StringComparison.Ordinal))
+            {
+                zonePatterns = FlowZoneGroupMatcher.ParsePatterns(serializedPatterns);
+                parsedZonePatternConfig = serializedPatterns;
+            }
+
+            return zonePatterns;
+        }
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        configSubscription?.Dispose();
+        ipProtocolCacheLock.Dispose();
     }
 
     /// <summary>
@@ -52,6 +112,34 @@ public sealed class FlowCatalogService
     }
 
     /// <summary>
+    /// Returns the address groups split into groups that are not zones and groups that are zones.
+    /// Zone groups are identified by the zone name patterns configured in the general flow settings.
+    /// </summary>
+    /// <param name="visibleInRequest">Optional filter for the request module visibility.</param>
+    /// <returns>The address groups separated into standard groups and zone groups.</returns>
+    public async Task<SeparatedAddressGroupsResponse> GetSeparatedAddressGroupsAsync(bool? visibleInRequest)
+    {
+        List<FlowNwGroup> flowGroups = await LoadFlowNwGroupsAsync(visibleInRequest);
+        IReadOnlyList<FlowZoneGroupPattern> configuredZonePatterns = GetZonePatterns();
+        SeparatedAddressGroupsResponse separatedGroups = new();
+
+        foreach (FlowNwGroup flowGroup in flowGroups)
+        {
+            AddressGroupResponse groupResponse = ToAddressGroupResponse(flowGroup);
+            if (FlowZoneGroupMatcher.IsZoneGroupName(flowGroup.Name, configuredZonePatterns))
+            {
+                separatedGroups.ZoneGroups.Add(groupResponse);
+            }
+            else
+            {
+                separatedGroups.StandardGroups.Add(groupResponse);
+            }
+        }
+
+        return separatedGroups;
+    }
+
+    /// <summary>
     /// Performs the GetServiceObjectsAsync operation.
     /// </summary>
     public async Task<List<ServiceObjectResponse>> GetServiceObjectsAsync(bool? visibleInRequest)
@@ -68,6 +156,36 @@ public sealed class FlowCatalogService
     {
         List<FlowSvcGroup> flowGroups = await LoadFlowSvcGroupsAsync(visibleInRequest);
         return flowGroups.Select(ToServiceGroupResponse).ToList();
+    }
+
+    /// <summary>
+    /// Resolves only the requested, request-visible Flow groups and their active members.
+    /// </summary>
+    public async Task<FlowGroupResolutionResult> ResolveFlowGroupMembersAsync(FlowGroupResolutionParameters parameters)
+    {
+        parameters.NetworkGroupIds ??= [];
+        parameters.NetworkGroupNames ??= [];
+        parameters.ServiceGroupIds ??= [];
+        parameters.ServiceGroupNames ??= [];
+        Task<List<FlowNwGroup>> networkGroupsTask = parameters.NetworkGroupIds.Count == 0 && parameters.NetworkGroupNames.Count == 0
+            ? Task.FromResult<List<FlowNwGroup>>([])
+            : apiConnection.SendQueryAsync<List<FlowNwGroup>>(FlowQueries.getFlowAddressGroups, BuildGroupResolutionVariables(
+                "nwgrp_id", parameters.NetworkGroupIds, parameters.NetworkGroupNames));
+        Task<List<FlowSvcGroup>> serviceGroupsTask = parameters.ServiceGroupIds.Count == 0 && parameters.ServiceGroupNames.Count == 0
+            ? Task.FromResult<List<FlowSvcGroup>>([])
+            : apiConnection.SendQueryAsync<List<FlowSvcGroup>>(FlowQueries.getFlowServiceGroups, BuildGroupResolutionVariables(
+                "svcgrp_id", parameters.ServiceGroupIds, parameters.ServiceGroupNames));
+        await Task.WhenAll(networkGroupsTask, serviceGroupsTask);
+
+        return new FlowGroupResolutionResult
+        {
+            NetworkGroups = ResolveGroupMatches(await networkGroupsTask ?? [], parameters.NetworkGroupIds, parameters.NetworkGroupNames)
+                .Select(ToNetworkGroupResolution)
+                .ToList(),
+            ServiceGroups = ResolveGroupMatches(await serviceGroupsTask ?? [], parameters.ServiceGroupIds, parameters.ServiceGroupNames)
+                .Select(ToServiceGroupResolution)
+                .ToList()
+        };
     }
 
     /// <summary>
@@ -136,6 +254,114 @@ public sealed class FlowCatalogService
         return await apiConnection.SendQueryAsync<List<FlowNwObject>>(
             FlowQueries.getFlowAddressObjects,
             BuildCatalogQueryVariables(visibleInRequest)) ?? [];
+    }
+
+    private static Dictionary<string, object> BuildGroupResolutionVariables(string idFieldName, IEnumerable<long> ids, IEnumerable<string> names)
+    {
+        List<Dictionary<string, object>> selectors = ids.Select(id =>
+                new Dictionary<string, object> { [idFieldName] = BuildLookupExpression(id) })
+            .Concat(names.Where(name => !string.IsNullOrWhiteSpace(name)).Select(name =>
+                new Dictionary<string, object> { ["name"] = BuildLookupExpression(name) }))
+            .ToList();
+        return new Dictionary<string, object>
+        {
+            ["where"] = new Dictionary<string, object>
+            {
+                ["show_in_request_module"] = BuildLookupExpression(true),
+                ["_or"] = selectors
+            }
+        };
+    }
+
+    private static bool IsActiveAndVisible(FlowGroup group)
+    {
+        return !string.IsNullOrWhiteSpace(group.Name)
+            && group.ShowInRequestModule
+            && !string.Equals(group.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(group.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
+            && group.RemovedDate == null;
+    }
+
+    private static bool IsActiveAndVisible(FlowNwObject flowObject)
+    {
+        return flowObject.ShowInRequestModule
+            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
+            && flowObject.RemovedDate == null;
+    }
+
+    private static bool IsActiveAndVisible(FlowSvcObject flowObject)
+    {
+        return flowObject.ShowInRequestModule
+            && !string.Equals(flowObject.State, FlowState.Removed, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(flowObject.State, FlowState.Denied, StringComparison.OrdinalIgnoreCase)
+            && flowObject.RemovedDate == null;
+    }
+
+    private static FlowNetworkGroupResolution ToNetworkGroupResolution(FlowNwGroup group)
+    {
+        return new FlowNetworkGroupResolution
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Members = group.NwGroupMembers
+                .Where(member => IsActiveAndVisible(member.NwObject))
+                .Select(member => new FlowNetworkMemberResolution
+                {
+                    Id = member.NwObject.Id,
+                    Name = member.NwObject.Name ?? string.Empty,
+                    IpStart = member.NwObject.IpStart ?? string.Empty,
+                    IpEnd = member.NwObject.IpEnd ?? string.Empty
+                })
+                .ToList()
+        };
+    }
+
+    private static FlowServiceGroupResolution ToServiceGroupResolution(FlowSvcGroup group)
+    {
+        return new FlowServiceGroupResolution
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Members = group.SvcGroupMembers
+                .Where(member => IsActiveAndVisible(member.SvcObject))
+                .Select(member => new FlowServiceMemberResolution
+                {
+                    Id = member.SvcObject.Id,
+                    Name = member.SvcObject.Name,
+                    PortStart = member.SvcObject.PortStart,
+                    PortEnd = member.SvcObject.PortEnd,
+                    ProtoId = member.SvcObject.ProtoId
+                })
+                .ToList()
+        };
+    }
+
+    private static IEnumerable<TGroup> ResolveGroupMatches<TGroup>(IEnumerable<TGroup> groups, IEnumerable<long> ids, IEnumerable<string> names)
+        where TGroup : FlowGroup
+    {
+        List<TGroup> activeGroups = groups.Where(IsActiveAndVisible).ToList();
+        List<TGroup> idMatches = activeGroups.Where(group => ids.Contains(group.Id)).ToList();
+        foreach (TGroup group in idMatches)
+        {
+            yield return group;
+        }
+
+        foreach (string name in names.Where(name => !string.IsNullOrWhiteSpace(name)))
+        {
+            if (idMatches.Any(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            List<TGroup> nameMatches = activeGroups
+                .Where(group => string.Equals(group.Name, name, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (nameMatches.Count == 1)
+            {
+                yield return nameMatches[0];
+            }
+        }
     }
 
     private async Task<List<FlowNwGroup>> LoadFlowNwGroupsAsync(bool? visibleInRequest)

@@ -406,6 +406,8 @@ namespace FWO.Report
             List<ComplianceViolation> violations,
             bool retainRulesWithoutViolations = false)
         {
+            // ReportCompliance later groups real violations before assessability issues; this chronological sort
+            // therefore determines the report order only among violations of the same kind.
             Dictionary<RuleIdentity, List<ComplianceViolation>> violationsByRule = violations
                 .GroupBy(CreateRuleIdentity)
                 .ToDictionary(group => group.Key, group => group.OrderBy(violation => violation.FoundDate).ThenBy(violation => violation.Id).ToList());

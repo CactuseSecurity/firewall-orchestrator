@@ -1,8 +1,5 @@
 # Firewall Orchestrator Revision History
 
-pre-5, a product called IT Security Organizer and was closed source. It was developed starting in 2005.
-In 2020 we decided to re-launch a new
-
 ## 8.0 - 19.02.2024 MAIN
 - Introducing new Network Modelling module
   - allows your organisation to define the target state of all network connection on a per-application basis (or other distributed ownerships)
@@ -642,8 +639,148 @@ Not supported any longer are:
 - Flow sync now recalculates the hashes stored in the flow database when they no longer match the current hash logic, instead of skipping the affected management. Entries whose hash was generated randomly keep their hash, groups and accesses are recalculated from their members, and only changed hashes are written. Creating a flow from a request while such a recalculation runs can fail or reuse a wrong entry, because flow entries are identified by their hash; repeat the action in that case. Hashes are only recalculated when the hash logic itself changes.
 - Flow time objects created by the request module before 9.4.5 stored their start and end time shifted by the UTC offset of the middleware server. The hash recalculation takes the stored times as they are, so these time objects keep the shifted period and get a new hash, which also changes the hash of every flow access using them. They are not repaired automatically: check time restrictions of flows created before 9.4.5 and request them again if the period is wrong.
 
-## 9.4.6 - 02.09.2026
+
+## 9.4.7 - 07.09.2026
+- enforce host-address masks for flow network-object range endpoints
+- require both endpoints of a flow network-object range to be of the same address family
+- store the range endpoints of flow network objects created from a request in CIDR notation
+- widen a requested network endpoint to the first and the last host address of that network
+- name the refused addresses in the message of a failed flow creation
+- normalize existing flow network-object endpoints carrying a network mask during the upgrade
+- warn during the upgrade about flow network objects sharing a range, they have to be merged manually
+- stop the upgrade and name the affected flow network objects when their endpoints mix address families
+
+## 9.5.0 - 09.09.2026
+- introducing
+  - an internal CA and certificate checks for all internal communication
+  - client certificates for graphql API access to prevent unauthorized access
+  - validated Apache intermediate certificate-chain references for administrator-managed certificates
+  - the Settings Defaults page displays the public internal CA certificate and allows copying or downloading it
+  - a per-installation internal CA name, so that a browser or trust store can hold the anchors of
+    several FWO installations at once; existing installations keep the name their CA was created with,
+    and a browser still holding an anchor of the same name from another installation has to have it
+    deleted before the new one is imported
+- application roles may now only be changed by an owner holding the modeller role
+- the ldap connection passwords are no longer readable via the API, not even for auditors
+- **the middleware now verifies LDAP server certificates instead of accepting any of them.**
+  This applies to every LDAP connection using TLS, internal and external alike. A connection
+  whose certificate is issued by FWO's internal CA, or by a CA the middleware host already
+  trusts, keeps working untouched. A connection whose certificate is self-signed, issued by a
+  private CA that is not in the host trust store, or does not carry the address the connection
+  is configured with, was silently accepted before and is now rejected - which means those
+  users can no longer log in. Add the issuing CA to the middleware host's trust store, or have
+  the certificate reissued for the address FWO connects to. The middleware names the server and
+  the reason in its log (category LdapTls). The installer refuses the upgrade up front if a
+  retained administrator-managed OpenLDAP certificate does not cover the configured address,
+  if its issuing root CA is not configured as `internalca_peer_ca_certificate`, or if the
+  certificate cannot be built to one of the configured anchors at all - a leaf whose issuing
+  intermediate the certificate file does not carry, for instance
+- installer: all endpoint names (api, middleware, ui) are derived from inventory/hosts.yml,
+  so an installation that must be addressed under a specific DNS name - a name an
+  administrator-managed certificate was issued for, above all - is configured in one place
+- installer: new host-wide settings file /etc/fworch/fwo-install-settings.yml,
+  read by every installer run from any clone on the host, whichever way ansible was started,
+  and outside the git repository, so
+  local settings survive git pull and every administrator upgrades with the same endpoints;
+  fwo_endpoint_hostname there names all endpoints of a single-host installation at once,
+  and a commented fwo-install-settings.template.yml is installed beside it for reference
+- the middleware no longer waits for an unreachable API forever before starting its web server;
+  it now names the endpoint and what to check in the log and exits, instead of reporting itself
+  as running while its reverse proxy answers 503
+- installer: an internal CA certificate is now reissued as soon as it stops covering a name
+  the installation addresses its endpoint under, not only when it approaches expiry, so
+  renaming an endpoint or setting fwo_endpoint_hostname on an existing installation no longer
+  leaves every FWO client failing on a TLS host name mismatch
+- versioning: **breaking change** upgrades from versions older than 8.0 are not supported any more.
+  Every upgrade step below 8.0 has been removed - the database migrations, the version numbered
+  upgrade tasks of the other roles and the LDAP tree ldif templates alike - and the installer now
+  stops an upgrade from an older version before it changes anything, naming the two-step path
+  (upgrade with a v8.9.6 checkout first, then with this one) instead of skipping the missing
+  schema changes silently
+
+## 9.5.1 - 12.09.2026
+- installer: the one-shot `internalca_reset_certificates` upgrade switch rotates the internal
+  CA and every FWO-managed client and server identity, including the self-signed identities
+  from versions before 9.5.0, while preserving customer-managed certificate/key pairs. The
+  subject of every retired CA is recorded, so a host that misses the rotation still has its
+  FWO-issued identity recognised as such on its next upgrade instead of being taken for a
+  customer certificate, and the installer refuses the switch when it is left in
+  /etc/fworch/fwo-install-settings.yml rather than passed for the single run that rotates.
+  The reset stops before replacing the old CA key when neither the CA nor its client leaf
+  can provide the retired issuer name, and `internalca_issue_ldap_certificate=false` keeps
+  FWO from issuing or replacing an externally managed OpenLDAP identity, while the trust,
+  address and chain checks FWO clients depend on still apply to it. Client identities
+  exported to a browser or issued to a person from the old CA are copies and are not
+  rotated by the run - re-export or re-issue them, see documentation/certificates.md
+- installer: `internalca_issue_apache_certificate=false` now also keeps the FWO Apache vhosts
+  on the certificate and key the installed vhost already names, instead of pointing them at
+  an identity the installer has just been told not to create
+- UI fix: the start page shows its quick start section again and the English "What's new"
+  panel ends in English - a merge had dropped both getting_started texts and appended the
+  German menu list to the English whats_new_facts entry
 - move compliance.ip_range to new schema network_zone.ip_range and compliance.network_zone to network_zone.zone
 - add central setting for path analysis algorithm
 - move many compliance settings regarding matrix and internet to their own setting page in new section network topology
 - prepare network zone tree algorithm in database
+- general flow settings define via name patterns which flow network groups are zones; REST endpoint flow/getAddressGroups returns zone groups as a separate list when called with option.separateZoneGroups=true
+- extend the flow compliance REST endpoints to accept IPv4 and IPv6 ranges as well as CIDR networks
+- report rules containing objects that cannot be assigned to a compliance network zone as `NOT ASSESSABLE` instead of compliant; real violations of the same rule remain decisive and visible
+- new import matrix format with path_to_root and path_to_internet, while old format is still supported
+- validation checks for matrix import
+
+## 9.5.2 - 21.09.2026
+- centralize modelling and workflow change history in the public schema. The modelling change history table moves from modelling.change_history to public.change_history, so the GraphQL root field is renamed from modelling_change_history to change_history. Scripts and external integrations querying the old field name have to be adapted. Existing entries are migrated, the modelling history views are unaffected and continue to show modelling changes only.
+- changes to workflow tickets are recorded in the same table after ticket creation, with the workflow phase and the previous and new values. Content changes made in the user interface by a user other than the requester are marked as audit proof critical. The recording is available to auditors via the API and is not shown in the user interface.
+- change_history entries carry a module column naming the subsystem that wrote them, currently modelling or workflow. It selects which enum the object_type column uses and limits the modelling roles to modelling entries. Existing entries are migrated as modelling.
+- change history entries written through the REST workflow endpoints name the authenticated caller instead of the middleware server, and carry that caller's user id in changer_id. changer_id therefore stays empty only for changes made by automation - background jobs and unauthenticated internal callers - so an audit can tell an automated change from a human one and resolve the human one to a user record even after a directory rename.
+
+- new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries of that ticket which are marked as audit proof critical, meaning a content change made in a user session by someone other than the requester. It is available to admins and auditors and reports change time, change user name, change user id and the recorded change text, newest first. The change user id is the trustworthy attribution, as the change user name is free text supplied by the writer of the change; it stays empty for changes made by automation. Change times carry the wall clock of the installation and no offset, because the underlying column is timezone naive. A ticketId that names no workflow ticket is answered with 404 and the error message "Workflow ticket with 'ticketId' <id> does not exist." instead of an empty changes list, so a mistyped or already deleted ticket id cannot be read as a ticket without audit proof critical changes; an existing ticket without such changes, or one whose changes the supplied filter excludes, still answers 200 with an empty list.
+- matrix import now stores the network zone tree paths it already validated: for every subnet of a zone, the firewalls on its path to root and to the internet are written to network_zone.device_ip_range_root and network_zone.device_ip_range_internet, in the order the import file lists them. An import replaces all paths of the matrix it imports. A subnet listed twice within one zone is now rejected instead of imported.
+
+## 9.5.3 - 17.09.2026
+- rule owner mapping: an owner import no longer collides with the unique index on rule_owner and no longer
+  blocks the incremental processing; a failed run is no longer reported as a successful one
+- rule owner mapping: a failing import no longer holds up the imports behind it and raises an alert
+- rule owner mapping: an import that fails twice in a row is repaired by a full reinitialize. Where the run
+  history the repair relies on cannot be decoded or cannot be written, the repeat is never established and
+  the blocked repair is reported as its own alert, naming the config entry and saying whether it has to be
+  reset or whether the middleware is missing write access. A run history that could only not be fetched is
+  left as the transient case it usually is: the repair is one run late rather than gone
+- rule owner mapping: a full reinitialize that matches no rule removes the obsolete mappings and alerts,
+  instead of leaving the previous state in place. Without any rule base the stored mappings are kept
+- rule owner mapping: a mapping setting saved while its rebuild failed is remembered for up to a week, so
+  the next rebuild no longer reports its intended effect as a deviation
+- rule owner mapping: a run history entry that cannot be read is no longer written over, and the monitoring
+  page says so instead of showing it as an empty history. An entry that cannot be written raises an alert,
+  because it stays perfectly readable while the recording has stopped - the page would keep showing the last
+  run that was written as if it were the current state
+- rule owner mapping: a problem that is still present is reported again and replaces its own earlier alert,
+  so the open alert carries the time of the latest occurrence rather than the first one
+- rule owner mapping: new page monitoring/rule_owner_mapping shows the last full reinitialize runs, the
+  affected rules and what caused a difference
+- rule owner mapping: new setting for the log level of mapping issues
+- rule owner mapping: new AlertCode RuleOwnerMapping (52) for every alert of this area
+
+## 9.5.4 - 23.09.2026
+- rework modelling notifications and move interface-request notifications to centralized notification entries
+- interface-request notifications now support separate request and reminder bodies plus optional CC to the requester
+- UI: the log data shown with a modelling connection now fills the browser window. The table takes as many rows per page as the window allows instead of a fixed 25 and follows a window resize, so a maximised window no longer shows a quarter-filled table with a pager below it. A new page size reaches the table only while the first page is shown, so it never moves the user to a different part of the log.
+- UI: auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.
+
+## 9.5.5 - 23.09.2026
+- workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
+- REST endpoint workflow/getAuditProofCriticalChanges now also returns a taskDiff for a ticket with audit proof critical changes: for each request task whose content differs from what was originally requested, the original and the current snapshot (a deleted task has no current snapshot; start, stop, additional info and the order of owners and elements do not count as a difference), and the manual audit proof critical implementation task changes with change time, user, change text and the snapshots before and after. The request filter applies to the implementation task changes; the request task comparison describes the ticket as a whole and is not filtered.
+- new REST endpoint workflow/getTicket returns a workflow ticket with all its details in JSON: ticket header data, the request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments. It is available to admins and auditors. Besides the workflow state ids and names, the ticket carries the same status that flow/getRequestStatus reports. The optional options.filter restricts the returned request tasks by any of their scalar fields; the ticket itself is always returned when it exists, so a filter that excludes every task yields an empty task list, while a ticketId that names no ticket is answered with 404. All validation errors of a request are reported together.
+
+## 9.5.6 - 24.09.2026
+- variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import
+  without policy changes cannot have changed a marker and is ignored, and where somebody is waiting for the
+  result the analysis waits briefly for the mapping run instead of falling back to the much slower marker
+  query. The wait is capped by the new setting varianceNameFieldWaitTime (0 disables it) and never happens
+  in the background job
+- variance analysis: a running full reinitialize of the rule_owner mapping is now detected, so the analysis
+  no longer reads a half-rebuilt mapping and silently reports implemented connections as not implemented
+- variance analysis: an empty prefilter result is accepted once the mapping exists at all, instead of
+  running the full marker query for every owner that has nothing on a management
+- variance analysis: every fall back to the marker query is written to the log with its reason and shown
+  to the user once per analysis, so the remaining cases can be found without debug logging

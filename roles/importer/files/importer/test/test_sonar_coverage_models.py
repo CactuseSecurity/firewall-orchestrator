@@ -4,7 +4,7 @@ from fw_modules.fortiadom5ff.fmgr_user import normalize_users
 from fw_modules.fortiosmanagementREST import fos_const
 from fw_modules.nsx4ff.fwcommon import Nsx4ffCommon
 from fw_modules.paloaltomanagement2023ff.fwcommon import PaloAltoManagement2023ffCommon
-from fwo_base import ConfFormat
+from fwo_enums import ConfFormat
 from model_controllers.fwconfigmanager_controller import FwConfigManagerController
 from model_controllers.gateway_controller import GatewayController
 from models.fwconfig import FwConfig

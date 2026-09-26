@@ -2,8 +2,13 @@
 collections:
   - name: ansible.posix
     version: 1.5.4
+  # 2.26.7 or newer is required: cryptography 46.0.5 stopped exposing the
+  # elliptic curve classes in ec.__dict__, which is where older releases look
+  # them up, so openssl_privatekey fails with "Your cryptography version does
+  # not support SECP256R1" on distributions shipping that cryptography
+  # (Ubuntu 26.04). See ansible-collections/community.crypto#981.
   - name: community.crypto
-    version: 2.14.0
+    version: 2.26.9
   - name: community.general
     version: 11.4.2
   - name: community.postgresql

@@ -315,7 +315,7 @@ namespace FWO.Test
 
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
-                    ComplianceQueries.getNetworkZonesForMatrix,
+                    NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Any<object>())
                 .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
 
@@ -325,7 +325,7 @@ namespace FWO.Test
 
             // Assert
 
-            (string, object) addedInternetZone = mock.SentQueries.Single(query => query.Item1 == ComplianceQueries.addNetworkZone);
+            (string, object) addedInternetZone = mock.SentQueries.Single(query => query.Item1 == NetworkZoneQueries.addNetworkZone);
             IEnumerable addedRanges = (IEnumerable)GetFromGeneric(addedInternetZone.Item2, "ipRanges")!;
             List<IPAddressRange> internetRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
                 IPAddress.Parse(GetFromGeneric(range, "ip_range_start")!.ToString()!),
@@ -346,14 +346,14 @@ namespace FWO.Test
             };
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
-                    ComplianceQueries.getNetworkZonesForMatrix,
+                    NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Any<object>())
                 .Returns(Task.FromResult(new List<ComplianceNetworkZone>()));
 
             await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
 
             List<(string Query, object Variables)> addedZones = mock.SentQueries
-                .Where(query => query.Query == ComplianceQueries.addNetworkZone)
+                .Where(query => query.Query == NetworkZoneQueries.addNetworkZone)
                 .ToList();
 
             Assert.Multiple(() =>
@@ -394,13 +394,13 @@ namespace FWO.Test
             };
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
-                    ComplianceQueries.getNetworkZonesForMatrix,
+                    NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Any<object>())
                 .Returns(Task.FromResult(existingZones));
 
             await NetworkZoneService.AddAutoCalculatedInternetZone(1, apiConnection, globalConfig);
 
-            (string, object) updatedInternetZone = mock.SentQueries.Single(query => query.Item1 == ComplianceQueries.updateNetworkZone);
+            (string, object) updatedInternetZone = mock.SentQueries.Single(query => query.Item1 == NetworkZoneQueries.updateNetworkZone);
             IEnumerable addedRanges = (IEnumerable)GetFromGeneric(updatedInternetZone.Item2, "addIpRanges")!;
             IEnumerable deletedRanges = (IEnumerable)GetFromGeneric(updatedInternetZone.Item2, "deleteIpRangesExp")!;
             List<IPAddressRange> calculatedRanges = addedRanges.Cast<object>().Select(range => new IPAddressRange(
@@ -435,13 +435,13 @@ namespace FWO.Test
 
             mock.Sub
                 .SendQueryAsync<List<ComplianceNetworkZone>>(
-                    ComplianceQueries.getNetworkZonesForMatrix,
+                    NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Any<object>())
                 .Returns(Task.FromResult(predefinedZones));
 
             mock.Sub
                 .SendQueryAsync<dynamic>(
-                    Arg.Is<string>(q => q == ComplianceQueries.addNetworkZone),
+                    Arg.Is<string>(q => q == NetworkZoneQueries.addNetworkZone),
                     Arg.Any<object>())
                 .Returns(ci =>
                 {
@@ -464,11 +464,11 @@ namespace FWO.Test
             Assert.That(mock.SentQueries.Count == 2);
 
             (string, object) firstSentQuery = mock.SentQueries.ElementAt(0);
-            Assert.That(firstSentQuery.Item1 == ComplianceQueries.addNetworkZone);
+            Assert.That(firstSentQuery.Item1 == NetworkZoneQueries.addNetworkZone);
             AssertThatGeneric.PropertyIsTrue(firstSentQuery.Item2, "isAutoCalculatedUndefinedInternalZone");
 
             (string, object) secondSentQuery = mock.SentQueries.ElementAt(1);
-            Assert.That(secondSentQuery.Item1 == ComplianceQueries.updateNetworkZone);
+            Assert.That(secondSentQuery.Item1 == NetworkZoneQueries.updateNetworkZone);
             AssertThatGeneric.PropertyIsTrue(secondSentQuery.Item2, "isAutoCalculatedInternetZone");
             AssertThatGeneric.PropertyIsEqual(secondSentQuery.Item2, "networkZoneId", 4);
             IEnumerable addedRanges = (IEnumerable)GetFromGeneric(secondSentQuery.Item2, "addIpRanges")!;

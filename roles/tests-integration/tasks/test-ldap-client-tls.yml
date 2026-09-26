@@ -1,0 +1,487 @@
+---
+# Pins the LDAP client TLS policy of this installation, and the preflight that keeps a
+# retained slapd certificate from being pointed at while nothing can validate it.
+#
+# Worth asserting rather than trusting the install to prove: every installer LDAP call
+# carries the Manager bind password, and the whole protection of that channel is six
+# lines of inventory plus one template. A regression back to TLS_REQCERT=never - the
+# value two released upgrade files still set a same-named fact to - breaks nothing
+# visible, so nothing else in this suite would notice it.
+- name: Derive the system wide LDAP client configuration path
+  set_fact:
+    test_ldap_client_configuration: >-
+      {{ '/etc/openldap' if ansible_facts['os_family'] == 'RedHat' else '/etc/ldap' }}/ldap.conf
+
+- name: Assert the LDAP command line options verify against the trust bundle
+  assert:
+    that:
+      - "'-o TLS_REQCERT=demand' in fwo_ldap_tls_opts"
+      - "'-o TLS_CACERT=' ~ internalca_trust_bundle in fwo_ldap_tls_opts"
+      - "'never' not in fwo_ldap_tls_opts"
+    fail_msg: >-
+      fwo_ldap_tls_opts is "{{ fwo_ldap_tls_opts }}" instead of verifying against
+      {{ internalca_trust_bundle }}. Every ldapsearch/ldapmodify call of the installer
+      passes these options and each one carries the Manager bind password.
+  when: openldap_server_enable_ssl | bool
+
+- name: Assert the Ansible ldap_* modules verify against the trust bundle
+  assert:
+    that:
+      - ldap_verify_certs | bool
+      - ldap_module_ca_path == internalca_trust_bundle
+    fail_msg: >-
+      The Ansible ldap_* modules are configured with validate_certs={{ ldap_verify_certs }}
+      and ca_path={{ ldap_module_ca_path }} instead of verifying against
+      {{ internalca_trust_bundle }}.
+  when: openldap_server_enable_ssl | bool
+
+- name: Read the system wide LDAP client configuration
+  slurp:
+    src: "{{ test_ldap_client_configuration }}"
+  register: test_ldap_client_configuration_content
+  become: true
+
+- name: Assert the system wide LDAP client configuration verifies against the trust bundle
+  assert:
+    that:
+      - "'TLS_REQCERT demand' in test_ldap_client_configuration_installed"
+      - "'TLS_CACERT ' ~ internalca_trust_bundle in test_ldap_client_configuration_installed"
+      - "'TLS_REQCERT never' not in test_ldap_client_configuration_installed"
+    fail_msg: >-
+      {{ test_ldap_client_configuration }} does not point every libldap client on this
+      host at {{ internalca_trust_bundle }} with verification on.
+  vars:
+    test_ldap_client_configuration_installed: >-
+      {{ test_ldap_client_configuration_content.content | b64decode }}
+  when: openldap_server_enable_ssl | bool
+
+# The retained-certificate chain preflight below runs against generated certificates, so
+# it can be exercised on an installation that retained nothing - which is every
+# installation CI ever builds. It drives the production task file rather than a copy of
+# its openssl invocation: the defect it exists for is an upgrade that keeps a customer
+# managed slapd certificate no client can validate, and a test reimplementing the check
+# would stay green through a regression in the real one.
+- name: Set the retained chain preflight test inputs
+  set_fact:
+    retained_chain_preflight: "{{ role_path }}/../internalCA/tasks/validate-retained-chain.yml"
+
+- name: Create a temporary directory for retained chain preflight tests
+  tempfile:
+    state: directory
+    prefix: fworch-retained-chain-
+  register: test_retained_chain_directory
+
+- name: Write certificate extension files for retained chain preflight tests
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ test_retained_chain_directory.path }}/{{ item.name }}"
+    mode: "0600"
+  loop:
+    - name: intermediate-extensions.cnf
+      content: |
+        basicConstraints=critical,CA:TRUE,pathlen:0
+        keyUsage=critical,keyCertSign,cRLSign
+        subjectKeyIdentifier=hash
+        authorityKeyIdentifier=keyid,issuer
+    - name: leaf-extensions.cnf
+      content: |
+        basicConstraints=critical,CA:FALSE
+        keyUsage=critical,digitalSignature,keyEncipherment
+        extendedKeyUsage=serverAuth
+        subjectKeyIdentifier=hash
+        authorityKeyIdentifier=keyid,issuer
+
+- name: Create a customer root CA for retained chain preflight tests
+  command:
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -days
+      - "1"
+      - -keyout
+      - "{{ test_retained_chain_directory.path }}/root.key"
+      - -out
+      - "{{ test_retained_chain_directory.path }}/root.crt"
+      - -subj
+      - /CN=FWO retained chain test root
+      - -addext
+      - basicConstraints=critical,CA:TRUE
+      - -addext
+      - keyUsage=critical,keyCertSign,cRLSign
+  changed_when: false
+
+- name: Create the certificate requests for retained chain preflight tests
+  command:
+    argv:
+      - openssl
+      - req
+      - -new
+      - -newkey
+      - rsa:2048
+      - -nodes
+      - -keyout
+      - "{{ test_retained_chain_directory.path }}/{{ item }}.key"
+      - -out
+      - "{{ test_retained_chain_directory.path }}/{{ item }}.csr"
+      - -subj
+      - /CN=FWO retained chain test {{ item }}
+  loop:
+    - intermediate
+    - direct-leaf
+    - deep-leaf
+  changed_when: false
+
+- name: Sign the intermediate CA for retained chain preflight tests
+  command:
+    argv:
+      - openssl
+      - x509
+      - -req
+      - -in
+      - "{{ test_retained_chain_directory.path }}/intermediate.csr"
+      - -CA
+      - "{{ test_retained_chain_directory.path }}/root.crt"
+      - -CAkey
+      - "{{ test_retained_chain_directory.path }}/root.key"
+      - -CAcreateserial
+      - -out
+      - "{{ test_retained_chain_directory.path }}/intermediate.crt"
+      - -days
+      - "1"
+      - -sha256
+      - -extfile
+      - "{{ test_retained_chain_directory.path }}/intermediate-extensions.cnf"
+  changed_when: false
+
+# One leaf issued by the root directly, one issued through the intermediate. The second
+# is the shape a customer certificate usually has, and the shape the previous version of
+# this preflight could not tell apart from an unusable one.
+- name: Sign the leaves for retained chain preflight tests
+  command:
+    argv:
+      - openssl
+      - x509
+      - -req
+      - -in
+      - "{{ test_retained_chain_directory.path }}/{{ item.leaf }}.csr"
+      - -CA
+      - "{{ test_retained_chain_directory.path }}/{{ item.issuer }}.crt"
+      - -CAkey
+      - "{{ test_retained_chain_directory.path }}/{{ item.issuer }}.key"
+      - -CAcreateserial
+      - -out
+      - "{{ test_retained_chain_directory.path }}/{{ item.leaf }}.crt"
+      - -days
+      - "1"
+      - -sha256
+      - -extfile
+      - "{{ test_retained_chain_directory.path }}/leaf-extensions.cnf"
+  loop:
+    - leaf: direct-leaf
+      issuer: root
+    - leaf: deep-leaf
+      issuer: intermediate
+  changed_when: false
+
+# slapd presents exactly what olcTLSCertificateFile holds, so an operator whose leaf sits
+# behind an intermediate makes the chain work by putting both into that file. The
+# preflight has to accept that, which is why it passes the certificate file as -untrusted
+# as well.
+- name: Assemble a retained certificate file carrying its intermediate
+  assemble:
+    src: "{{ test_retained_chain_directory.path }}"
+    dest: "{{ test_retained_chain_directory.path }}/served-chain.crt"
+    regexp: '^(deep-leaf|intermediate)\.crt$'
+    delimiter: "\n"
+  changed_when: false
+
+- name: Verify the preflight accepts a leaf issued by the configured root
+  include_tasks: "{{ retained_chain_preflight }}"
+  vars:
+    retained_chain_subject: OpenLDAP
+    retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
+    retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+    retained_chain_remedy: unused in the positive case
+
+- name: Verify the preflight accepts a leaf whose file carries its intermediate
+  include_tasks: "{{ retained_chain_preflight }}"
+  vars:
+    retained_chain_subject: OpenLDAP
+    retained_chain_certificate: "{{ test_retained_chain_directory.path }}/served-chain.crt"
+    retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+    retained_chain_remedy: unused in the positive case
+
+# The case that used to pass the gate and then fail at every LDAP call: the certificate
+# file holds the leaf alone, so nothing bridges it to the configured root.
+- name: Verify the preflight rejects a leaf whose intermediate is missing
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/deep-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Append the issuing intermediate to the certificate file.
+        # Passed so the assertions below can prove which of the two remedies was chosen.
+        # Without it both branches would print the same text and a selection that always
+        # picked the replacement would look correct here.
+        retained_chain_replacement_remedy: Have this certificate replaced instead.
+    - set_fact:
+        test_retained_chain_gap_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_gap_rejected: true
+        test_retained_chain_gap_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the missing intermediate was rejected with a usable message
+  assert:
+    that:
+      - test_retained_chain_gap_rejected | bool
+      - "'OpenLDAP certificate' in test_retained_chain_gap_message"
+      - "'cannot be built to any anchor' in test_retained_chain_gap_message"
+      # The anchor set that was searched has to be named: it is the file the operator
+      # extends to fix this, and there are two of them on every host.
+      - "test_retained_chain_directory.path ~ '/root.crt' in test_retained_chain_gap_message"
+      # What OpenSSL concluded, not just that something failed. "OpenSSL reported: ."
+      # would mean the report was joined out of existence.
+      - "'OpenSSL reported: .' not in test_retained_chain_gap_message"
+      - "'Append the issuing intermediate to the certificate file.' in test_retained_chain_gap_message"
+      # The claim has to stay inside what was established. A retained certificate whose
+      # CA the middleware host trusts is still accepted by the middleware on its platform
+      # route, so the message must not tell the operator that logins are down.
+      - "'logins may still be working' in test_retained_chain_gap_message"
+      # The two verdicts are mutually exclusive: this one is about anchors, so the
+      # unusable-certificate wording and its remedy must not appear.
+      - "'cannot be used at all' not in test_retained_chain_gap_message"
+      - "'Have this certificate replaced instead.' not in test_retained_chain_gap_message"
+      # openssl writes its verdict over several lines; a fail message assembled from
+      # folded scalars must not carry any of those line breaks into the operator's log.
+      - "'\n' not in test_retained_chain_gap_message"
+    fail_msg: >-
+      The retained chain preflight did not usably reject a leaf without its intermediate:
+      {{ test_retained_chain_gap_message | default('it did not fail at all') }}
+
+# The second reachable shape: internalca_peer_ca_certificate names one root, and the
+# retained slapd leaf came from another. The peer CA guard is satisfied either way.
+- name: Verify the preflight rejects a leaf from an unrelated root
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
+        retained_chain_trust_bundle: "{{ internalca_ca_certificate_local }}"
+        retained_chain_remedy: Configure the root that issued it.
+    - set_fact:
+        test_retained_chain_root_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_root_rejected: true
+
+- name: Assert a leaf from an unrelated root was rejected
+  assert:
+    that:
+      - test_retained_chain_root_rejected | bool
+    fail_msg: >-
+      The retained chain preflight accepted a certificate none of the configured anchors
+      issued, so an installation naming the wrong root would pass the gate and then fail
+      at every LDAP call.
+
+# The other half of the validity window, and it is not covered by the expired case: a
+# mutation that drops the not-yet-valid phrase survived until this case existed.
+- name: Create a not yet valid leaf for retained chain preflight tests
+  community.crypto.x509_certificate:
+    path: "{{ test_retained_chain_directory.path }}/future-leaf.crt"
+    csr_path: "{{ test_retained_chain_directory.path }}/direct-leaf.csr"
+    provider: ownca
+    ownca_path: "{{ test_retained_chain_directory.path }}/root.crt"
+    ownca_privatekey_path: "{{ test_retained_chain_directory.path }}/root.key"
+    ownca_not_before: "+1d"
+    ownca_not_after: "+3d"
+  changed_when: false
+
+- name: Verify the preflight rejects a not yet valid retained certificate
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/future-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_future_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_future_rejected: true
+        test_retained_chain_future_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert a not yet valid certificate was rejected with the replacement remedy
+  assert:
+    that:
+      - test_retained_chain_future_rejected | bool
+      - "'cannot be used at all' in test_retained_chain_future_message"
+      - "'is not yet valid' in test_retained_chain_future_message"
+      - "'Have the certificate reissued.' in test_retained_chain_future_message"
+      - "'Configure the root that issued it.' not in test_retained_chain_future_message"
+    fail_msg: >-
+      The retained chain preflight did not reject a not yet valid certificate with the
+      replacement remedy:
+      {{ test_retained_chain_future_message | default('it did not fail at all') }}
+
+# openssl refuses an expired certificate before it looks for an anchor, so the advice has
+# to change with it: telling the operator to configure the issuing root would send them
+# after a setting that cannot help. community.crypto rather than openssl here, because
+# openssl x509 -req cannot backdate a certificate on the versions this installer supports.
+- name: Create an expired leaf for retained chain preflight tests
+  community.crypto.x509_certificate:
+    path: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+    csr_path: "{{ test_retained_chain_directory.path }}/direct-leaf.csr"
+    provider: ownca
+    ownca_path: "{{ test_retained_chain_directory.path }}/root.crt"
+    ownca_privatekey_path: "{{ test_retained_chain_directory.path }}/root.key"
+    ownca_not_before: "-3d"
+    ownca_not_after: "-1d"
+  changed_when: false
+
+- name: Verify the preflight rejects an expired retained certificate
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_expiry_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_expiry_rejected: true
+        test_retained_chain_expiry_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert an expired certificate was rejected with the replacement remedy
+  assert:
+    that:
+      - test_retained_chain_expiry_rejected | bool
+      - "'cannot be used at all' in test_retained_chain_expiry_message"
+      # openssl's own verdict has to survive into the message, since it is what tells the
+      # operator that the dates are the problem.
+      - "'has expired' in test_retained_chain_expiry_message"
+      - "'Have the certificate reissued.' in test_retained_chain_expiry_message"
+      # The misdirection this case exists for: the chain remedy must not be offered for a
+      # certificate that no trust configuration can rescue.
+      - "'Configure the root that issued it.' not in test_retained_chain_expiry_message"
+      - "'cannot be built to any anchor' not in test_retained_chain_expiry_message"
+      - "'\n' not in test_retained_chain_expiry_message"
+    fail_msg: >-
+      The retained chain preflight did not reject an expired certificate with the
+      replacement remedy:
+      {{ test_retained_chain_expiry_message | default('it did not fail at all') }}
+
+# A caller that passes no replacement remedy has to keep working: the fallback is the
+# chain remedy, so the message stays useful rather than trailing off into nothing.
+- name: Verify the preflight falls back to the chain remedy when no replacement is given
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/expired-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: The only remedy this caller offers.
+    - set_fact:
+        test_retained_chain_fallback_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_fallback_rejected: true
+        test_retained_chain_fallback_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert the remedy fallback is used when no replacement remedy is given
+  assert:
+    that:
+      - test_retained_chain_fallback_rejected | bool
+      - "'The only remedy this caller offers.' in test_retained_chain_fallback_message"
+    fail_msg: >-
+      The retained chain preflight dropped the caller's remedy when no replacement remedy
+      was given:
+      {{ test_retained_chain_fallback_message | default('it did not fail at all') }}
+
+# openssl answers a file it cannot read in wording of its own, and a preflight that does
+# not recognise it answers a missing file with advice about the issuing CA. Both shapes
+# are covered: an anchor file openssl cannot load, and a certificate file holding no
+# certificate - openssl phrases those two differently.
+- name: Write a certificate file holding no certificate
+  copy:
+    content: this file holds no PEM certificate
+    dest: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
+    mode: "0600"
+
+- name: Verify the preflight reports an unreadable anchor file as such
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/direct-leaf.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/absent-bundle.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_anchor_read_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_anchor_read_rejected: true
+        test_retained_chain_anchor_read_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert an unreadable anchor file is not blamed on the issuing CA
+  assert:
+    that:
+      - test_retained_chain_anchor_read_rejected | bool
+      - "'could not be checked at all' in test_retained_chain_anchor_read_message"
+      # Both paths are named, since openssl points at one of them and the operator has to
+      # know which is which.
+      - "test_retained_chain_directory.path ~ '/absent-bundle.crt' in test_retained_chain_anchor_read_message"
+      - "test_retained_chain_directory.path ~ '/direct-leaf.crt' in test_retained_chain_anchor_read_message"
+      # Neither caller remedy applies to a file that cannot be read.
+      - "'Configure the root that issued it.' not in test_retained_chain_anchor_read_message"
+      - "'Have the certificate reissued.' not in test_retained_chain_anchor_read_message"
+      - "'cannot be built to any anchor' not in test_retained_chain_anchor_read_message"
+      - "'\n' not in test_retained_chain_anchor_read_message"
+    fail_msg: >-
+      The retained chain preflight did not recognise an unreadable anchor file:
+      {{ test_retained_chain_anchor_read_message | default('it did not fail at all') }}
+
+- name: Verify the preflight reports a certificate file holding no certificate as such
+  block:
+    - include_tasks: "{{ retained_chain_preflight }}"
+      vars:
+        retained_chain_subject: OpenLDAP
+        retained_chain_certificate: "{{ test_retained_chain_directory.path }}/not-a-certificate.crt"
+        retained_chain_trust_bundle: "{{ test_retained_chain_directory.path }}/root.crt"
+        retained_chain_remedy: Configure the root that issued it.
+        retained_chain_replacement_remedy: Have the certificate reissued.
+    - set_fact:
+        test_retained_chain_cert_read_rejected: false
+  rescue:
+    - set_fact:
+        test_retained_chain_cert_read_rejected: true
+        test_retained_chain_cert_read_message: "{{ ansible_failed_result.msg }}"
+
+- name: Assert a certificate file holding no certificate is not blamed on the issuing CA
+  assert:
+    that:
+      - test_retained_chain_cert_read_rejected | bool
+      - "'could not be checked at all' in test_retained_chain_cert_read_message"
+      - "'Configure the root that issued it.' not in test_retained_chain_cert_read_message"
+      - "'Have the certificate reissued.' not in test_retained_chain_cert_read_message"
+      - "'\n' not in test_retained_chain_cert_read_message"
+    fail_msg: >-
+      The retained chain preflight did not recognise a certificate file that holds no
+      certificate:
+      {{ test_retained_chain_cert_read_message | default('it did not fail at all') }}
+
+- name: Remove the retained chain preflight test directory
+  file:
+    path: "{{ test_retained_chain_directory.path }}"
+    state: absent

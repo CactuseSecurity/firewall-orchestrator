@@ -57,7 +57,11 @@ namespace FWO.Middleware.Server.Jobs
                 }
                 foreach (OwnerConnectionReport owner in report.ReportData.OwnerData)
                 {
-                    varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing);
+                    // a prefilter fall back only reaches the debug log here, see LogPrefilterFallbackToDb
+                    varianceAnalysis = new(apiConnection, extStateHandler, userConfig, owner.Owner, DefaultInit.DoNothing)
+                    {
+                        LogPrefilterFallbackToDb = false
+                    };
                     if (!await varianceAnalysis.AnalyseConnsForStatusAsync(owner.Connections))
                     {
                         Log.WriteError(LogMessageTitle, $"Variance Analysis failed for owner {owner.Name}.");

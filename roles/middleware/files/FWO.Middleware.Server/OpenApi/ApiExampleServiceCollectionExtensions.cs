@@ -19,9 +19,12 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, CreateRequestRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
+        services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketRequestExample>();
         services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
@@ -36,6 +39,8 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, AddressObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, ServiceObjectIdResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnerResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketResponseExample>();
         services.AddOpenApiEndpointDocumentationProviders();
         return services;
     }
@@ -160,6 +165,26 @@ public sealed class VisibleInRequestFilterExample : ApiExampleProvider<VisibleIn
 }
 
 /// <summary>
+/// Provides a typed example for <see cref="GetAddressGroupsRequest"/>.
+/// The example documents the default response shape, so zone separation is switched off.
+/// </summary>
+public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddressGroupsRequest>
+{
+    /// <inheritdoc />
+    public override GetAddressGroupsRequest GetExample() => new()
+    {
+        Filter = new VisibleInRequestFilter
+        {
+            VisibleInRequest = true
+        },
+        Option = new AddressGroupsOption
+        {
+            SeparateZoneGroups = false
+        }
+    };
+}
+
+/// <summary>
 /// Provides a typed example for <see cref="GetFlowComplianceStateRequest"/>.
 /// </summary>
 public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<GetFlowComplianceStateRequest>
@@ -171,8 +196,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpNetwork = "192.0.2.0/24"
             }
         ],
         Destination =
@@ -180,7 +204,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
                 IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.20"
+                IpEnd = "198.51.100.29"
             }
         ],
         Service =
@@ -541,5 +565,132 @@ public sealed class GetOwnerResponseExample : ApiExampleProvider<GetOwnerRespons
         RecertActive = true,
         DecommDate = new DateTime(2027, 6, 30, 0, 0, 0, DateTimeKind.Utc),
         AdditionalInfo = new Dictionary<string, string> { ["costCenter"] = "CC-42" }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAuditProofCriticalChangesRequest"/>.
+/// </summary>
+public sealed class GetAuditProofCriticalChangesRequestExample : ApiExampleProvider<GetAuditProofCriticalChangesRequest>
+{
+    /// <inheritdoc />
+    public override GetAuditProofCriticalChangesRequest GetExample() => new()
+    {
+        TicketId = 1234,
+        Options = new GetAuditProofCriticalChangesOptions
+        {
+            Filter = new AuditProofCriticalChangeFilter
+            {
+                ChangeTime = null,
+                ChangeUserName = null,
+                ChangeContent = null
+            }
+        }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAuditProofCriticalChangesResponse"/>.
+/// </summary>
+public sealed class GetAuditProofCriticalChangesResponseExample : ApiExampleProvider<GetAuditProofCriticalChangesResponse>
+{
+    /// <inheritdoc />
+    public override GetAuditProofCriticalChangesResponse GetExample() => new()
+    {
+        Changes =
+        [
+            new AuditProofCriticalChangeResponse
+            {
+                // Unspecified on purpose: the stored column is timezone-naive, so the endpoint emits
+                // no offset and the documented example has to render the same way.
+                ChangeTime = new DateTime(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified),
+                ChangeUserName = "abc",
+                ChangeUserId = 42,
+                ChangeContent = "Updated workflow ticket"
+            }
+        ]
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetTicketRequest"/>.
+/// </summary>
+public sealed class GetTicketRequestExample : ApiExampleProvider<GetTicketRequest>
+{
+    /// <inheritdoc />
+    public override GetTicketRequest GetExample() => new()
+    {
+        TicketId = 1234,
+        Options = new GetTicketOptions
+        {
+            Filter = new TicketTaskFilter
+            {
+                TaskType = "access"
+            }
+        }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetTicketResponse"/>.
+/// </summary>
+public sealed class GetTicketResponseExample : ApiExampleProvider<GetTicketResponse>
+{
+    // Unspecified on purpose: the stored columns are timezone-naive, so the endpoint emits no offset.
+    private static readonly DateTime kCreationDate = new(2026, 9, 11, 8, 11, 0, DateTimeKind.Unspecified);
+
+    /// <inheritdoc />
+    public override GetTicketResponse GetExample() => new()
+    {
+        Id = 1234,
+        Title = "Allow HTTPS to application server",
+        StateId = 49,
+        State = "Approval",
+        Status = "in_progress",
+        CreationDate = kCreationDate,
+        Priority = 3,
+        RequesterName = "alice",
+        RequesterDn = "uid=alice,ou=users,dc=example,dc=com",
+        Reason = "Alice Example (alice)",
+        Locked = true,
+        Tasks =
+        [
+            new TicketTaskResponse
+            {
+                Id = 5678,
+                TaskNumber = 1,
+                Title = "HTTPS to app server",
+                TaskType = "access",
+                StateId = 49,
+                State = "Approval",
+                RequestAction = "create",
+                RuleActionId = 1,
+                TrackingId = 1,
+                ManagementId = 3,
+                ManagementName = "Checkpoint R8x",
+                DeviceIds = [7],
+                Locked = true,
+                Elements =
+                [
+                    new TicketElementResponse { Id = 1, Field = "source", Action = "create", Name = "client-net", Ip = "10.0.0.0/32", IpEnd = "10.0.0.255/32" },
+                    new TicketElementResponse { Id = 2, Field = "destination", Action = "create", Name = "app-server", Ip = "192.168.1.10/32", IpEnd = "192.168.1.10/32" },
+                    new TicketElementResponse { Id = 3, Field = "service", Action = "create", Name = "https", Port = 443, PortEnd = 443, ProtocolId = 6 }
+                ],
+                Approvals =
+                [
+                    new TicketApprovalResponse
+                    {
+                        Id = 91,
+                        StateId = 49,
+                        State = "Approval",
+                        DateOpened = kCreationDate,
+                        ApproverGroup = "cn=approvers,ou=groups,dc=example,dc=com",
+                        InitialApproval = true
+                    }
+                ],
+                Owners = [new TicketOwnerResponse { Id = 12, Name = "Payments", ExtAppId = "APP-4711" }],
+                Comments = [new TicketCommentResponse { Id = 300, CreationDate = kCreationDate, CreatorName = "alice", Text = "Needed for go-live" }]
+            }
+        ]
     };
 }

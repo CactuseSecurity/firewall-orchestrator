@@ -44,6 +44,9 @@ namespace FWO.Data
     {
         [JsonProperty("affected_rows"), JsonPropertyName("affected_rows")]
         public int AffectedRows { get; set; }
+
+        [JsonProperty("returning"), JsonPropertyName("returning")]
+        public List<RuleOwner> Returning { get; set; } = [];
     }
 
     public class InsertRuleOwnerResult

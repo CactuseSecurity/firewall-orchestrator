@@ -29,6 +29,11 @@ ALTER TABLE owner_network ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_is_host CHECK (is_single_ip(ip));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_end_is_host CHECK (is_single_ip(ip_end));
 ALTER TABLE owner_network ADD CONSTRAINT owner_network_ip_unique UNIQUE (owner_id, ip, ip_end, import_source);
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_start_is_host CHECK (is_single_ip(ip_start));
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_end_is_host CHECK (is_single_ip(ip_end));
+-- IPv4 addresses sort before IPv6 ones, so ip_start <= ip_end alone still admits a range which starts
+-- in one address family and ends in the other
+ALTER TABLE flow.nwobject ADD CONSTRAINT flow_nwobject_ip_same_family CHECK (family(ip_start) = family(ip_end));
 ALTER TABLE request.reqelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 ALTER TABLE request.implelement ADD CONSTRAINT port_in_valid_range CHECK (port > 0 and port <= 65535);
 -- Alter Table "rule" add Constraint "rule_altkey" UNIQUE ("dev_id","rule_uid","rule_create",xlate_rule);

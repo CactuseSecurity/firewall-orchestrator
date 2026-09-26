@@ -1338,7 +1338,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ]
                   },
                   "comment": ""
@@ -1359,7 +1360,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1380,7 +1382,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -1401,7 +1404,8 @@
                       "removed_date",
                       "risk_score",
                       "rule_id",
-                      "rule_uid"
+                      "rule_uid",
+                      "violation_type"
                     ],
                     "filter": {},
                     "allow_aggregations": true
@@ -2978,13 +2982,19 @@
             {
               "table": {
                 "name": "change_history",
-                "schema": "modelling"
+                "schema": "public"
               },
               "object_relationships": [
                 {
                   "name": "owner",
                   "using": {
                     "foreign_key_constraint_on": "app_id"
+                  }
+                },
+                {
+                  "name": "ticket",
+                  "using": {
+                    "foreign_key_constraint_on": "ticket_id"
                   }
                 }
               ],
@@ -2994,16 +3004,171 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
+                      "object_id",
+                      "changer",
+                      "changer_id",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ]
+                  },
+                  "comment": "changer_id is a writable column instead of a preset: internal middleware JWTs (JwtWriter.CreateJWTInternal) carry no x-hasura-user-id session variable, so a preset would make every history insert of a background job fail. REST entry points acting for an authenticated human pass that user's id explicitly through addHistoryEntryAsService, so the row stays resolvable to the uiuser record. Background jobs pass nothing and keep changer_id NULL, which is what marks a row as automated. The role is reachable only with an internally issued service JWT, never with a user JWT, so this cannot be used to forge another user's id."
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "approver",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "module",
+                      "object_id",
+                      "changer",
+                      "change_text",
+                      "app_id",
+                      "change_type",
+                      "object_type",
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 },
@@ -3012,16 +3177,23 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 },
@@ -3030,16 +3202,23 @@
                   "permission": {
                     "check": {},
                     "columns": [
-                      "id",
+                      "module",
                       "object_id",
                       "changer",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
-                      "change_time",
-                      "change_source"
-                    ]
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "set": {
+                      "changer_id": "x-hasura-user-id"
+                    }
                   },
                   "comment": ""
                 }
@@ -3050,24 +3229,21 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "module",
                       "object_id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
-                    ],
-                    "filter": {}
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "middleware-server",
-                  "permission": {
-                    "columns": [
-                      "id"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
                     ],
                     "filter": {}
                   },
@@ -3078,16 +3254,27 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "module",
                       "object_id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "module": {
+                        "_eq": "modelling"
+                      }
+                    }
                   },
                   "comment": ""
                 },
@@ -3096,14 +3283,107 @@
                   "permission": {
                     "columns": [
                       "id",
+                      "module",
                       "object_id",
                       "changer",
+                      "changer_id",
                       "change_text",
                       "app_id",
                       "change_type",
                       "object_type",
                       "change_time",
-                      "change_source"
+                      "change_source",
+                      "ticket_id",
+                      "workflow_phase",
+                      "old_data",
+                      "new_data",
+                      "audit_proof_critical"
+                    ],
+                    "filter": {
+                      "module": {
+                        "_eq": "modelling"
+                      }
+                    }
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "changer",
+                      "changer_id",
+                      "change_text",
+                      "change_time",
+                      "ticket_id",
+                      "module",
+                      "audit_proof_critical",
+                      "change_type",
+                      "object_type",
+                      "object_id",
+                      "old_data",
+                      "new_data"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "approver",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "planner",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "implementer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "reviewer",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id"
                     ],
                     "filter": {}
                   },
@@ -8785,28 +9065,6 @@
                     ]
                   },
                   "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "check": {},
-                    "columns": [
-                      "create_date",
-                      "ext_query_variables",
-                      "ext_request_content",
-                      "ext_request_state",
-                      "ext_request_type",
-                      "ext_ticket_system",
-                      "finish_date",
-                      "id",
-                      "locked",
-                      "owner_id",
-                      "task_number",
-                      "ticket_id",
-                      "wait_cycles"
-                    ]
-                  },
-                  "comment": ""
                 }
               ],
               "select_permissions": [
@@ -8911,19 +9169,6 @@
                       "task_number",
                       "ticket_id",
                       "wait_cycles"
-                    ],
-                    "filter": {},
-                    "check": null
-                  },
-                  "comment": ""
-                },
-                {
-                  "role": "modeller",
-                  "permission": {
-                    "columns": [
-                      "ext_request_state",
-                      "finish_date",
-                      "locked"
                     ],
                     "filter": {},
                     "check": null
@@ -9896,7 +10141,10 @@
                         },
                         {
                           "import_type_id": {
-                            "_eq": 2
+                            "_in": [
+                              2,
+                              3
+                            ]
                           }
                         }
                       ]
@@ -9932,7 +10180,10 @@
                         },
                         {
                           "import_type_id": {
-                            "_eq": 2
+                            "_in": [
+                              2,
+                              3
+                            ]
                           }
                         }
                       ]
@@ -9961,9 +10212,21 @@
                       "stop_time"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_or": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "import_type_id": {
+                            "_in": [
+                              2,
+                              3
+                            ]
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   },
@@ -10542,7 +10805,6 @@
                       "ldap_pattern_length",
                       "ldap_port",
                       "ldap_search_user",
-                      "ldap_search_user_pwd",
                       "ldap_searchpath_for_groups",
                       "ldap_searchpath_for_roles",
                       "ldap_searchpath_for_users",
@@ -10551,7 +10813,6 @@
                       "ldap_tls",
                       "ldap_type",
                       "ldap_write_user",
-                      "ldap_write_user_pwd",
                       "ldap_writepath_for_groups",
                       "tenant_id"
                     ],
@@ -12272,7 +12533,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12307,7 +12570,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12342,7 +12607,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12377,7 +12644,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12412,7 +12681,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12447,7 +12718,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ]
                   },
                   "comment": ""
@@ -12483,7 +12756,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12522,7 +12797,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {}
                   },
@@ -12557,7 +12834,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12605,7 +12884,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12644,7 +12925,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {}
                   },
@@ -12679,7 +12962,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12727,7 +13012,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12766,7 +13053,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12814,7 +13103,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12862,7 +13153,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -12910,7 +13203,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12949,7 +13244,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "notification_client": {
@@ -12990,7 +13287,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_and": [
@@ -13070,7 +13369,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13107,7 +13408,9 @@
                   "role": "middleware-server",
                   "permission": {
                     "columns": [
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {},
                     "check": {}
@@ -13143,7 +13446,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13205,7 +13510,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13267,7 +13574,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13329,7 +13638,9 @@
                       "repetitions_after_deadline",
                       "schedule_id",
                       "user_id",
-                      "last_sent"
+                      "last_sent",
+                      "logging",
+                      "active"
                     ],
                     "filter": {
                       "_or": [
@@ -13490,6 +13801,149 @@
                         }
                       ]
                     }
+                  },
+                  "comment": ""
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "notification_log",
+                "schema": "public"
+              },
+              "insert_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
+                    ]
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": ["status", "error", "timestamp"],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": ["status", "error", "timestamp"],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "fw-admin",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "id",
+                      "timestamp",
+                      "notification_id",
+                      "notification_type",
+                      "to",
+                      "cc",
+                      "bcc",
+                      "subject",
+                      "deadline_type",
+                      "deadline",
+                      "status",
+                      "error"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
+                  "role": "modeller",
+                  "permission": {
+                    "columns": [
+                      "id"
+                    ],
+                    "filter": {}
                   },
                   "comment": ""
                 }
@@ -14589,7 +15043,7 @@
                       "column": "app_id",
                       "table": {
                         "name": "change_history",
-                        "schema": "modelling"
+                        "schema": "public"
                       }
                     }
                   }
@@ -35675,6 +36129,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35691,6 +36146,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35707,6 +36163,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35723,6 +36180,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35739,6 +36197,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35755,6 +36214,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35771,6 +36231,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -35787,6 +36248,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",

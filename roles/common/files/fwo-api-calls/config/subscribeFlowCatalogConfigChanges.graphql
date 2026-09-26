@@ -1,0 +1,10 @@
+subscription subscribeFlowCatalogConfigChanges {
+  config(where: {
+    _or: [
+      {config_key: {_eq: "flowZoneGroupNamePatterns"}, config_user: {_eq: 0}}
+    ]
+  }) {
+    config_key
+    config_value
+  }
+}

@@ -153,7 +153,7 @@ else
 }
 
 <EditConnPopup @bind-Display="ShowDisplayPopup" ConnHandler="DisplayConnHandler" />
-<RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
+<RejectInterfacePopup @bind-Display="ShowRejectPopup" ConnHandler="RejectConnHandler" RequestingApp="RejectRequestingApp" RefreshParent="FetchRequestedInterfaces" AllowAdminReject="true" />
 <OrphanedRequestedInterfaceTicketsPopup @bind-Display="ShowOrphanedTicketsPopup" OpenTicket="DisplayTicketById" />
 <PopUp Title="@(userConfig.GetText("reject_tickets"))" Show="@ConfirmRejectRemovedTickets" Size=PopupSize.Medium OnClose="CloseRejectRemovedTicketsConfirm">
     <Body>
@@ -212,6 +212,7 @@ else
     private ModellingConnectionHandler? DisplayConnHandler { get; set; }
     private bool ShowDisplayPopup { get; set; } = false;
     private ModellingConnectionHandler? RejectConnHandler { get; set; }
+    private FwoOwner? RejectRequestingApp { get; set; }
     private bool ShowRejectPopup { get; set; } = false;
     private bool ShowOrphanedTicketsPopup { get; set; } = false;
     private bool ConfirmRejectRemovedTickets { get; set; } = false;
@@ -575,6 +576,7 @@ else
 
     private async Task RejectInterface(ModellingConnection connection)
     {
+        RejectRequestingApp = GetRequestingApp(connection);
         FwoOwner? application = connection.App;
         if ((application == null || application.Id <= 0) && connection.AppId != null &&
             OwnersById.TryGetValue(connection.AppId.Value, out FwoOwner? resolvedOwner))
@@ -604,7 +606,7 @@ else
                 .ToDictionary(group => group.Key, group => group.First());
 
             TicketCreator ticketCreator = new(apiConnection, userConfig, authenticationStateTask!.Result.User,
-                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection));
+                middlewareClient, WorkflowPhases.implementation, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient));
             int rejectedCount = 0;
             foreach (long ticketId in OpenRemovedTicketIds)
             {
@@ -665,7 +667,7 @@ else
         WorkInProgress = true;
         await states.Init(apiConnection);
         wfHandler = new(DisplayMessageInUi, userConfig, authenticationStateTask!.Result.User,
-            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection)) { };
+            apiConnection, middlewareClient, WorkflowPhases.request, new ComplianceRequestedRulePolicyChecker(userConfig, apiConnection, middlewareClient)) { };
         wfHandler.ReadOnlyMode = true;
         await wfHandler.Init();
         WfTicket? ticket = await wfHandler.ResolveTicket(ticketId);

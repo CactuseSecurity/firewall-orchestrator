@@ -55,7 +55,10 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Creates a new workflow ticket from the high-level request payload.
     /// </summary>
-    public async Task<CreateRequestResponse> CreateRequestAsync(CreateRequestRequest request, int requesterId)
+    /// <param name="request">The high-level request payload.</param>
+    /// <param name="requesterId">Database id of the authenticated caller.</param>
+    /// <param name="callerName">Login name of the authenticated caller, recorded as changer in the change history.</param>
+    public async Task<CreateRequestResponse> CreateRequestAsync(CreateRequestRequest request, int requesterId, string? callerName = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         ValidateCreateRequest(request);
@@ -69,7 +72,11 @@ public sealed class FlowRequestService : IDisposable
         Dictionary<string, int> ruleActionIds = await ResolveRuleActionIdsAsync();
         Dictionary<string, int> protocolIds = await ResolveProtocolIdsAsync();
         WfTicket ticket = BuildTicket(request, ticketStateId, requesterId, ownersById, ruleActionIds, protocolIds);
-        ticket = await SaveTicketAsync(ticket, ticketPhase);
+        // requesterId is the id of the authenticated caller, so it is also the changer - but only when that
+        // caller is named. An internal caller supplies a requester without being the user who made the change,
+        // and attributing the change history entry to that requester would be wrong.
+        int? changerId = string.IsNullOrWhiteSpace(callerName) ? null : requesterId;
+        ticket = await SaveTicketAsync(ticket, ticketPhase, callerName, changerId);
         string status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: true);
 
         return new CreateRequestResponse
@@ -95,6 +102,30 @@ public sealed class FlowRequestService : IDisposable
             Status = await BuildRequestStatusAsync(ticket.StateId, tolerateExternalStateErrors: false),
             StatusComment = GetLatestTicketComment(ticket)
         };
+    }
+
+    /// <summary>
+    /// Returns a workflow ticket with all of its tasks, approvals, implementation tasks, elements,
+    /// owners and comments.
+    /// </summary>
+    /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <param name="filter">Optional request task filter; null returns every task.</param>
+    /// <returns>The ticket, or null when no workflow ticket with that id exists.</returns>
+    /// <remarks>
+    /// The filter restricts the returned tasks only: a ticket whose tasks the filter excludes is
+    /// still returned, with an empty task list, so it cannot be mistaken for a missing ticket.
+    /// </remarks>
+    public async Task<GetTicketResponse?> GetTicketAsync(long ticketId, TicketTaskFilter? filter)
+    {
+        WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+        if (ticket == null)
+        {
+            return null;
+        }
+
+        WfStateDict states = await GetStateDictAsync();
+        string status = await BuildRequestStatusAsync(ticket.StateId, states, tolerateExternalStateErrors: false);
+        return TicketResponseMapper.Map(ticket, states, status, filter);
     }
 
     /// <summary>
@@ -628,16 +659,20 @@ public sealed class FlowRequestService : IDisposable
     /// <summary>
     /// Persists the created ticket through the workflow save path so request actions are executed consistently.
     /// </summary>
-    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase)
+    /// <param name="ticket">Ticket to persist.</param>
+    /// <param name="phase">Workflow phase the ticket is created in.</param>
+    /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
+    /// <param name="changerId">Database id of the authenticated caller, null for unauthenticated internal callers.</param>
+    private async Task<WfTicket> SaveTicketAsync(WfTicket ticket, WorkflowPhases phase, string? callerName, int? changerId)
     {
-        using UserConfig userConfig = new();
-        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null);
+        using UserConfig userConfig = CreateWorkflowUserConfig(callerName);
+        WfHandler wfHandler = new(userConfig, apiConnection, phase, (List<UserGroup>?)null) { SystemContext = true, ChangerId = changerId };
         if (!await wfHandler.InitForActionExecution() || wfHandler.ActionHandler == null)
         {
             throw new InvalidOperationException($"Could not initialize workflow actions for request ticket creation in phase {phase}.");
         }
 
-        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true);
+        WfDbAccess dbAccess = new((_, _, _, _) => { }, userConfig, apiConnection, wfHandler.ActionHandler, true, phase, false) { ChangerId = changerId };
 
         WfTicket createdTicket = await dbAccess.AddTicketToDb(ticket);
 
@@ -648,6 +683,20 @@ public sealed class FlowRequestService : IDisposable
         }
 
         return createdTicket;
+    }
+
+    /// <summary>
+    /// Builds the workflow config used to save a ticket. It carries the global settings like every other
+    /// middleware entry point, plus the login name of the authenticated caller so the change history names
+    /// that caller instead of the middleware server. It is created per request because the name differs
+    /// between concurrent callers.
+    /// </summary>
+    /// <param name="callerName">Login name of the authenticated caller, empty for unauthenticated internal callers.</param>
+    private UserConfig CreateWorkflowUserConfig(string? callerName)
+    {
+        UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
+        userConfig.User.Name = callerName ?? "";
+        return userConfig;
     }
 
     /// <summary>
@@ -836,7 +885,14 @@ public sealed class FlowRequestService : IDisposable
     /// </summary>
     private async Task<string> BuildRequestStatusAsync(int stateId, bool tolerateExternalStateErrors)
     {
-        WfStateDict states = await GetStateDictAsync();
+        return await BuildRequestStatusAsync(stateId, await GetStateDictAsync(), tolerateExternalStateErrors);
+    }
+
+    /// <summary>
+    /// Builds the public status string for a workflow request from already loaded state names.
+    /// </summary>
+    private async Task<string> BuildRequestStatusAsync(int stateId, WfStateDict states, bool tolerateExternalStateErrors)
+    {
         string status = states.GetName(stateId);
         ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
         if (extStateResponse.HasErrors || extStateResponse.Result == null)

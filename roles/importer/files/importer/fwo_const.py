@@ -42,6 +42,8 @@ GRAPHQL_QUERY_PATH = _graphql_query_path
 # >25.000 rules exceed this limit
 API_CALL_CHUNK_SIZE = 1000
 RULE_NUM_NUMERIC_STEPS = 1024.0
+# import_errors is shown in a table cell in the monitoring ui, so a full traceback is truncated
+MAX_IMPORT_ERROR_LENGTH = 2000
 
 EMPTY_NORMALIZED_FW_CONFIG_JSON_DICT: dict[str, list[Any]] = {  # TYPING: DO NOT USE THIS!!!!
     "network_objects": [],

@@ -591,6 +591,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>&Auml;nderungen an den Dokumentationsfeldern einer Regel (Name, Kommentar, Zusatzfelder) werden nun ebenfalls in der Regel-&Auml;nderungshistorie protokolliert, dort aber als nicht sicherheitsrelevant gekennzeichnet. &Auml;nderungsreports und Benachrichtigungen &uuml;ber Regel&auml;nderungen ber&uuml;cksichtigen weiterhin nur sicherheitsrelevante &Auml;nderungen.</li>
     <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
     <li>Der Soll-Ist-Abgleich nutzt die Eigent&uuml;merzuordnung der Regeln nun deutlich h&auml;ufiger als schnellen Weg: Ein Import ohne Regel&auml;nderungen blockiert sie nicht mehr, und wo jemand auf das Ergebnis wartet, wartet der Abgleich kurz auf eine ausstehende Zuordnung, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Die Wartezeit stellt die neue Einstellung "Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung" ein, 0 schaltet sie ab. Eine laufende vollst&auml;ndige Neuberechnung der Zuordnung wird nun erkannt, sodass der Abgleich w&auml;hrenddessen keine unvollst&auml;ndigen Ergebnisse mehr liefert.</li>
+    <li>Ein Import, der nach dem Schreiben von Daten fehlschl&auml;gt, bleibt nun mit seiner Fehlermeldung in der Import-&Uuml;bersicht sichtbar, statt vollst&auml;ndig entfernt zu werden.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -620,6 +621,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Changes to the documentation fields of a rule (name, comment, custom fields) are now recorded in the rule change history as well, but flagged as not security-relevant. Change reports and rule change notifications still cover security-relevant changes only.</li>
     <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
     <li>The variance analysis now uses the rule owner mapping as its fast path far more often: an import without rule changes no longer blocks it, and where somebody is waiting for the result the analysis waits briefly for a pending mapping run instead of falling back to the much slower marker search. The new setting "Wait time for rule owner mapping" caps that wait, 0 disables it. A running full recalculation of the mapping is now detected, so the analysis no longer returns incomplete results while it runs.</li>
+    <li>An import that fails after it has already written data now stays visible with its error message in the import monitoring view instead of being removed completely.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');

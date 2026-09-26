@@ -178,6 +178,25 @@ public sealed class ProvisioningSettingsManager
         return persistedScope;
     }
 
+    /// <summary>
+    /// Persists the node of a scope without storing any override, so that child scopes can reference it
+    /// as their parent. Returns the canonical scope of the existing or newly created node.
+    /// </summary>
+    public async Task<ProvisioningSettingsScope> EnsureNodeAsync(ProvisioningSettingsScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ProvisioningSettingsHierarchyValidator.ValidateLocator(scope);
+
+        LoadedHierarchy? persistedHierarchy = await TryLoadPersistedHierarchyAsync(scope);
+        if (persistedHierarchy is not null)
+        {
+            return persistedHierarchy.Scope;
+        }
+
+        LoadedHierarchy hierarchy = await LoadUnpersistedHierarchyAsync(scope);
+        return await UpsertNodeAsync(CreateNodeForUpsert(scope, hierarchy));
+    }
+
     public async Task<IReadOnlyList<ProvisioningSettingsScope>> GetChildrenAsync(long parentNodeId)
     {
         if (parentNodeId <= 0)
@@ -430,37 +449,46 @@ public sealed class ProvisioningSettingsManager
 
             foreach (ProvisioningConfigValueData storedValue in node.Values)
             {
-                if (storedValue.NodeId != node.Id)
-                {
-                    throw new InvalidOperationException(
-                        $"Provisioning value '{storedValue.ConfigKey}' references node '{storedValue.NodeId}' "
-                        + $"but was returned for node '{node.Id}'.");
-                }
-
-                if (!keys.Add(storedValue.ConfigKey))
-                {
-                    throw new InvalidOperationException(
-                        $"Provisioning node '{node.Id}' contains duplicate setting key '{storedValue.ConfigKey}'.");
-                }
-
-                if (!ProvisioningSettingKeys.ByDatabaseKey.TryGetValue(storedValue.ConfigKey, out ProvisioningSettingKey? key))
-                {
-                    throw new InvalidOperationException(
-                        $"Provisioning node '{node.Id}' contains unknown setting key '{storedValue.ConfigKey}'.");
-                }
-
-                if (!key.IsAllowedAt(scope.ScopeType))
-                {
-                    throw new InvalidOperationException(
-                        $"Provisioning setting '{key.DatabaseKey}' is not valid at scope type '{scope.ScopeType}'.");
-                }
-
-                if (storedValue.ConfigValue is null)
-                {
-                    throw new InvalidOperationException(
-                        $"Provisioning setting '{key.DatabaseKey}' on node '{node.Id}' has no JSON value.");
-                }
+                ValidateStoredValue(node, scope, storedValue, keys);
             }
+        }
+    }
+
+    private static void ValidateStoredValue(
+        ProvisioningConfigNodeData node,
+        ProvisioningSettingsScope scope,
+        ProvisioningConfigValueData storedValue,
+        HashSet<string> seenKeys)
+    {
+        if (storedValue.NodeId != node.Id)
+        {
+            throw new InvalidOperationException(
+                $"Provisioning value '{storedValue.ConfigKey}' references node '{storedValue.NodeId}' "
+                + $"but was returned for node '{node.Id}'.");
+        }
+
+        if (!seenKeys.Add(storedValue.ConfigKey))
+        {
+            throw new InvalidOperationException(
+                $"Provisioning node '{node.Id}' contains duplicate setting key '{storedValue.ConfigKey}'.");
+        }
+
+        if (!ProvisioningSettingKeys.ByDatabaseKey.TryGetValue(storedValue.ConfigKey, out ProvisioningSettingKey? key))
+        {
+            throw new InvalidOperationException(
+                $"Provisioning node '{node.Id}' contains unknown setting key '{storedValue.ConfigKey}'.");
+        }
+
+        if (!key.IsAllowedAt(scope.ScopeType))
+        {
+            throw new InvalidOperationException(
+                $"Provisioning setting '{key.DatabaseKey}' is not valid at scope type '{scope.ScopeType}'.");
+        }
+
+        if (storedValue.ConfigValue is null)
+        {
+            throw new InvalidOperationException(
+                $"Provisioning setting '{key.DatabaseKey}' on node '{node.Id}' has no JSON value.");
         }
     }
 

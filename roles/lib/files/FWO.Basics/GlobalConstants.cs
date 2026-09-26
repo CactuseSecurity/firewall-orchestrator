@@ -40,6 +40,7 @@ namespace FWO.Basics
 
         public const string kAutodiscovery = "autodiscovery";
         public const string kDailyCheck = "dailycheck";
+        public const string kWorkflow = "workflow";
         public const string kUi = "ui";
         public const string kCertification = "Certification";
         public const string kImportAppData = "importAppData";
@@ -48,7 +49,14 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
+        public const string kVarianceRuleOwnerPrefilter = "varianceRuleOwnerPrefilter";
         public const string kManual = "manual";
+        // change_history.module: names the subsystem that wrote a history row and therefore
+        // which enum its object_type has to be read against. Workflow rows use the same literal as
+        // their change_source, because the workflow module has exactly one provenance. Keeping it a
+        // single constant avoids two identical literals that would silently drift apart.
+        public const string kModuleModelling = "modelling";
+        public const string kModuleWorkflow = "workflow";
         public const string kCSV_ = "CSV_";
         public const string kDoku_ = "Doku_";
         public const string k_user = "_user";
@@ -61,6 +69,7 @@ namespace FWO.Basics
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+        public const string kRuleOwnerMapping = "ruleOwnerMapping";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
         public const long kPathAnalysisAlgorithmNone = 1;
@@ -161,6 +170,7 @@ namespace FWO.Basics
         public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string CONTENT = "@@CONTENT@@";
         public const string COUNT = "@@COUNT@@";
+        public const string DATE = "@@DATE@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";
@@ -205,6 +215,7 @@ namespace FWO.Basics
 
     public enum OwnerMappingSourceStm
     {
+        Disabled = 0,
         IpBased = 1,
         CustomField = 2,
         NameField = 3,

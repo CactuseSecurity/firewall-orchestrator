@@ -36,6 +36,18 @@ namespace FWO.Test
             Assert.That(apiConnection.SetImportsNotifiedCalls, Is.EqualTo(0));
         }
 
+        /// <summary>
+        /// Rule change notifications have to be based on the security-relevant change counter:
+        /// policy_changes_found also covers documentation-only rule changes (e.g. comment or name),
+        /// which do not show up in the attached change report.
+        /// </summary>
+        [Test]
+        public void RuleChangeNotificationQuery_FiltersOnSecurityRelevantChanges()
+        {
+            Assert.That(ReportQueries.getImportsToNotifyForRuleChanges, Does.Contain("security_relevant_changes_counter: {_gt: 0}"));
+            Assert.That(ReportQueries.getImportsToNotifyForRuleChanges, Does.Not.Contain("policy_changes_found"));
+        }
+
         [Test]
         public async Task Run_ReturnsWithoutNotificationsConfigured_WhenImportsExist()
         {

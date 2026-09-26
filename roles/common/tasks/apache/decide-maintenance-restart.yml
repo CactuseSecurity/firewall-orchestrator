@@ -1,0 +1,22 @@
+---
+# Whether Apache can be restarted with the maintenance site yet. Kept apart from the
+# restart itself so the decision can be exercised for both outcomes without starting or
+# stopping the web server of the installation under test.
+- name: Check whether the maintenance Apache identity is ready
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ maintenance_apache_certificate }}"
+    - "{{ maintenance_apache_private_key }}"
+  register: maintenance_apache_identity
+
+# Carried into the roles/internalCA play as a host fact, because that is where the
+# deferred restart has to be made good. Deciding it there from whether the vhost file
+# changed is not enough: when the template was written with the very paths internalCA
+# ends up issuing - no installed vhost to read them from, or one already naming them -
+# the reconciliation is a no-op, and the reload that the maintenance site is still
+# waiting for would never happen.
+- name: Record whether the maintenance Apache restart was deferred
+  set_fact:
+    maintenance_apache_restart_deferred: >-
+      {{ not (maintenance_apache_identity.results | map(attribute='stat.exists') | min) }}

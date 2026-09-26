@@ -173,7 +173,7 @@
         {
             matrixLoaded = false;
             StateHasChanged();
-            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
+            networkZoneService.NetworkZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = selectedMatrix.Id });
         }
         matrixLoaded = true;
         StateHasChanged();

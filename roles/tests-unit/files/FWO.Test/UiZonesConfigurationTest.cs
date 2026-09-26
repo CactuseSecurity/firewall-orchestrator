@@ -106,9 +106,9 @@ namespace FWO.Test
                 await updateTask;
             });
 
-            Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
-            Assert.That(apiConnection.SentQueries, Does.Contain(ComplianceQueries.removeNetworkZone));
-            Assert.That(apiConnection.SentQueries.Count(query => query == ComplianceQueries.addNetworkZone), Is.EqualTo(1));
+            Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(NetworkZoneQueries.updateNetworkZone));
+            Assert.That(apiConnection.SentQueries, Does.Contain(NetworkZoneQueries.removeNetworkZone));
+            Assert.That(apiConnection.SentQueries.Count(query => query == NetworkZoneQueries.addNetworkZone), Is.EqualTo(1));
         }
 
         [Test]
@@ -145,7 +145,7 @@ namespace FWO.Test
                 await updateTask;
             });
 
-            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.updateNetworkZone }));
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { NetworkZoneQueries.updateNetworkZone }));
         }
 
         [Test]
@@ -234,7 +234,7 @@ namespace FWO.Test
                 await updateTask;
             });
 
-            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.updateNetworkZone }));
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { NetworkZoneQueries.updateNetworkZone }));
         }
 
         [Test]
@@ -289,7 +289,7 @@ namespace FWO.Test
                 await deleteTask;
             });
 
-            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { ComplianceQueries.removeNetworkZone }));
+            Assert.That(apiConnection.SentQueries, Is.EqualTo(new List<string> { NetworkZoneQueries.removeNetworkZone }));
         }
 
         [Test]
@@ -327,7 +327,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.updateNetworkZone));
+                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(NetworkZoneQueries.updateNetworkZone));
                 Assert.That(configChangedCalls, Is.EqualTo(1));
             });
         }
@@ -367,7 +367,7 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(ComplianceQueries.removeNetworkZone));
+                Assert.That(apiConnection.SentQueries.First(), Is.EqualTo(NetworkZoneQueries.removeNetworkZone));
                 Assert.That(configChangedCalls, Is.EqualTo(1));
             });
         }

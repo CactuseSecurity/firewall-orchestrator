@@ -14,9 +14,39 @@ namespace FWO.Test
     /// </summary>
     [TestFixture]
     [NonParallelizable]
+    [UseSystemTimeZone] // X509Chain.Build needs it to set its verification time
     internal class LdapTlsCertificateTest
     {
         private static readonly string kCertificateAuthorityPath = Path.Combine(Path.GetTempPath(), "fwo_ldap_ca_test.crt");
+
+        /// <summary>
+        /// Anchor for every certificate validity window in this fixture. Reading DateTimeOffset.UtcNow
+        /// once per certificate made the windows drift apart: X509 validity has one second granularity,
+        /// so a clock tick between issuing an authority and issuing its child produced a child that
+        /// outlives its issuer, which CertificateRequest.Create rejects.
+        /// </summary>
+        private static readonly DateTimeOffset kValidityStart = DateTimeOffset.UtcNow.AddDays(-1);
+
+        /// <summary>
+        /// End of an end-entity certificate's validity window, the shortest of the three tiers.
+        /// </summary>
+        private static readonly DateTimeOffset kLeafValidityEnd = kValidityStart.AddDays(2);
+
+        /// <summary>
+        /// End of an intermediate authority's validity window, outliving anything it issues.
+        /// </summary>
+        private static readonly DateTimeOffset kIntermediateValidityEnd = kValidityStart.AddDays(3);
+
+        /// <summary>
+        /// End of a root authority's validity window, outliving every certificate below it.
+        /// </summary>
+        private static readonly DateTimeOffset kRootValidityEnd = kValidityStart.AddDays(4);
+
+        /// <summary>
+        /// Length of the random serial number given to an issued certificate.
+        /// </summary>
+        private static readonly int kSerialNumberBytes = 16;
+
         private object? originalConfigFileData;
 
         /// <summary>
@@ -185,9 +215,7 @@ namespace FWO.Test
             using ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
             CertificateRequest request = new(subject, key, HashAlgorithmName.SHA256);
             request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
-            return request.CreateSelfSigned(
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddDays(1));
+            return request.CreateSelfSigned(kValidityStart, kLeafValidityEnd);
         }
 
         /// <summary>
@@ -196,9 +224,7 @@ namespace FWO.Test
         private static X509Certificate2 CreateCertificateAuthority(string subject, ECDsa key)
         {
             CertificateRequest request = CreateCertificateAuthorityRequest(subject, key);
-            return request.CreateSelfSigned(
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddDays(2));
+            return request.CreateSelfSigned(kValidityStart, kRootValidityEnd);
         }
 
         /// <summary>
@@ -212,9 +238,9 @@ namespace FWO.Test
             CertificateRequest request = CreateCertificateAuthorityRequest(subject, key);
             return request.Create(
                 issuer,
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddDays(1),
-                RandomNumberGenerator.GetBytes(16));
+                kValidityStart,
+                kIntermediateValidityEnd,
+                RandomNumberGenerator.GetBytes(kSerialNumberBytes));
         }
 
         /// <summary>
@@ -230,9 +256,9 @@ namespace FWO.Test
             request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
             return request.Create(
                 issuer,
-                DateTimeOffset.UtcNow.AddDays(-1),
-                DateTimeOffset.UtcNow.AddDays(1),
-                RandomNumberGenerator.GetBytes(16));
+                kValidityStart,
+                kLeafValidityEnd,
+                RandomNumberGenerator.GetBytes(kSerialNumberBytes));
         }
 
         /// <summary>

@@ -33,6 +33,7 @@ namespace FWO.Services
         private string? ScopedUserEmailTo;
         private string? ScopedUserEmailCc;
         private string? ScopedUserEmailBcc;
+        private string? ScopedUserName;
 
 
         public EmailHelper(ApiConnection apiConnection, MiddlewareClient? middlewareClient, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi,
@@ -48,7 +49,8 @@ namespace FWO.Services
         }
 
         public virtual async Task Init(string? scopedUserTo = null, string? scopedUserCc = null, string? scopedUserBcc = null,
-            string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null)
+            string? scopedUserEmailTo = null, string? scopedUserEmailCc = null, string? scopedUserEmailBcc = null,
+            string? scopedUserName = null)
         {
             if (!useInMwServer && middlewareClient != null)
             {
@@ -72,26 +74,69 @@ namespace FWO.Services
             ScopedUserEmailTo = scopedUserEmailTo;
             ScopedUserEmailCc = scopedUserEmailCc;
             ScopedUserEmailBcc = scopedUserEmailBcc;
+            ScopedUserName = scopedUserName;
         }
 
-        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, EmailRecipientOption recOpt, bool reqInCc = false)
+        /// <summary>
+        /// Sends a notification email using the notification recipient fields.
+        /// </summary>
+        /// <param name="notification">Notification template and recipient configuration.</param>
+        /// <param name="owner">Owner context used to resolve configured responsibles.</param>
+        /// <param name="subject">Rendered notification subject.</param>
+        /// <param name="body">Rendered notification body.</param>
+        /// <returns>True when an email was sent; otherwise false.</returns>
+        public virtual async Task<bool> SendEmailToNotificationRecipients(FwoNotification notification, FwoOwner? owner, string subject, string body)
         {
-            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            return await SendEmail(await GetRecipients(recOpt, null, owner, null, null), subject, body, requester);
+            return await SendEmailToNotificationRecipientsWithResult(notification, owner, subject, body) == NotificationDeliveryResult.Delivered;
         }
 
-        public virtual async Task<bool> SendEmailToOwnerResponsibles(FwoOwner owner, string subject, string body, string recipientConfig, bool reqInCc = false, List<string>? otherAddresses = null)
+        /// <summary>
+        /// Sends a notification email and reports whether it was delivered, suppressed, or could not be sent.
+        /// </summary>
+        /// <param name="notification">Notification template and recipient configuration.</param>
+        /// <param name="owner">Owner context used to resolve configured responsibles.</param>
+        /// <param name="subject">Rendered notification subject.</param>
+        /// <param name="body">Rendered notification body.</param>
+        /// <returns>The explicit notification delivery outcome.</returns>
+        public virtual async Task<NotificationDeliveryResult> SendEmailToNotificationRecipientsWithResult(FwoNotification notification, FwoOwner? owner, string subject, string body)
         {
-            List<string>? requester = reqInCc ? new() { GetEmailAddress(userConfig.User.Dn) } : null;
-            List<string> recipients = await GetRecipients(recipientConfig, owner, otherAddresses);
-            return await SendEmail(recipients, subject, body, requester);
+            List<string> tos = await GetNotificationRecipients(notification.RecipientTo, notification.EmailAddressTo, owner);
+            List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
+                ? null
+                : await GetNotificationRecipients(notification.RecipientCc, notification.EmailAddressCc, owner);
+            List<string>? bccs = notification.RecipientBcc == EmailRecipientOption.None
+                ? null
+                : await GetNotificationRecipients(notification.RecipientBcc, notification.EmailAddressBcc, owner);
+
+            int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
+
+            if (!NotificationLoggingMode.ShouldSend(notification.Logging))
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
+                return NotificationDeliveryResult.Suppressed;
+            }
+
+            try
+            {
+                bool sent = await SendEmail(tos, subject, body, ccs, bccs, notification.Layout == NotificationLayout.HtmlInBody);
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed or no To recipients resolved.");
+                return sent ? NotificationDeliveryResult.Delivered : NotificationDeliveryResult.Failed;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
         }
 
         /// <summary>
         /// Sends an immediate workflow action email using notification recipient fields.
         /// </summary>
-        public async Task<bool> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
-            WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null)
+        /// <returns>Whether the workflow email was delivered, had no recipients, or failed.</returns>
+        public async Task<WorkflowEmailDeliveryResult> SendWorkflowActionEmail(FwoNotification notification, WfStatefulObject statefulObject, FwoOwner? owner, string? userGrpDn = null,
+            WorkflowEmailContent? workflowContent = null, WfStatefulObject? placeholderObject = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             List<string> tos = await GetWorkflowActionRecipients(notification.RecipientTo, notification.EmailAddressTo, statefulObject, owner, ScopedUserTo, ScopedUserEmailTo, userGrpDn);
             List<string>? ccs = notification.RecipientCc == EmailRecipientOption.None
@@ -101,11 +146,67 @@ namespace FWO.Services
                 ? null
                 : await GetWorkflowActionRecipients(notification.RecipientBcc, notification.EmailAddressBcc, statefulObject, owner, ScopedUserBcc, ScopedUserEmailBcc, userGrpDn);
             WfStatefulObject placeholderContext = placeholderObject ?? statefulObject;
-            string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner);
-            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(NotificationEmailLayoutHelper.BuildBody(notification, workflowContent), placeholderContext, owner);
+            string subject = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(notification.EmailSubject, placeholderContext, owner, placeholderData);
+            string body = NotificationPlaceholderResolver.ReplaceWorkflowPlaceholders(BuildWorkflowActionBody(notification, workflowContent, placeholderData), placeholderContext, owner,
+                placeholderData, renderHtmlLinks: notification.Layout == NotificationLayout.HtmlInBody);
             FormFile? attachment = await NotificationEmailLayoutHelper.BuildAttachment(notification.Layout, workflowContent, subject);
-            return await SendEmail(tos, subject, body, ccs, bccs,
-                notification.Layout == NotificationLayout.HtmlInBody, attachment);
+            int logId = await LogNotificationIfConfigured(notification, tos, ccs, bccs, subject);
+            if (!NotificationLoggingMode.ShouldSend(notification.Logging))
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Suppressed);
+                return WorkflowEmailDeliveryResult.Suppressed;
+            }
+            try
+            {
+                WorkflowEmailDeliveryResult deliveryResult = await SendEmailWithResult(tos, subject, body, ccs, bccs,
+                    notification.Layout == NotificationLayout.HtmlInBody, attachment);
+                bool sent = deliveryResult == WorkflowEmailDeliveryResult.Delivered;
+                await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
+                    sent ? "" : "SMTP delivery failed or no To recipients resolved.");
+                return deliveryResult;
+            }
+            catch (Exception exception)
+            {
+                await CompleteNotificationLog(logId, NotificationLogStatus.Failed, exception.Message);
+                throw;
+            }
+        }
+
+        private static string BuildWorkflowActionBody(FwoNotification notification, WorkflowEmailContent? workflowContent,
+            NotificationPlaceholderData? placeholderData)
+        {
+            if (!string.IsNullOrWhiteSpace(placeholderData?.Content))
+            {
+                return NotificationEmailLayoutHelper.BuildBody(notification, placeholderData.Content);
+            }
+
+            return NotificationEmailLayoutHelper.BuildBody(notification, workflowContent);
+        }
+
+        private async Task<int> LogNotificationIfConfigured(FwoNotification notification, List<string> tos, List<string>? ccs,
+            List<string>? bccs, string subject)
+        {
+            if (!NotificationLoggingMode.ShouldLog(notification.Logging))
+            {
+                return 0;
+            }
+
+            List<string> loggedTos = [.. tos];
+            List<string>? loggedCcs = ccs == null ? null : [.. ccs];
+            List<string>? loggedBccs = bccs == null ? null : [.. bccs];
+            ApplyDummyRecipientOverride(ref loggedTos, ref loggedCcs, ref loggedBccs);
+            NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, loggedTos, loggedCcs, loggedBccs, subject);
+            return await NotificationLogHelper.InsertAsync(apiConnection, entry);
+        }
+
+        private async Task CompleteNotificationLog(int logId, NotificationLogStatus status, string error = "")
+        {
+            if (logId == 0)
+            {
+                return;
+            }
+
+            await NotificationLogHelper.UpdateAsync(apiConnection, logId, status, error);
         }
 
         private async Task<List<string>> GetWorkflowActionRecipients(
@@ -135,7 +236,18 @@ namespace FWO.Services
             return new WfStatefulObject(statefulObject) { AssignedGroup = assignedGroupDn };
         }
 
-        private async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
+        protected virtual async Task<bool> SendEmail(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
+            bool mailFormatHtml = true, FormFile? attachment = null)
+        {
+            return await SendEmailWithResult(tos, subject, body, ccs, bccs, mailFormatHtml, attachment) == WorkflowEmailDeliveryResult.Delivered;
+        }
+
+        /// <summary>
+        /// Sends one email and reports the outcome in the detail a workflow action needs: a failed send has
+        /// to be surfaced, while an email with no resolvable recipient is a property of the configuration.
+        /// </summary>
+        /// <returns>Whether the email was delivered, had no recipients, or failed to send</returns>
+        protected virtual async Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null,
             bool mailFormatHtml = true, FormFile? attachment = null)
         {
             EmailConnection emailConnection = new(userConfig.EmailServerAddress, userConfig.EmailPort,
@@ -145,7 +257,7 @@ namespace FWO.Services
             if (tos.Count == 0)
             {
                 Log.WriteWarning("SendEmail", $"No email sent because no To recipients could be resolved. Subject: '{subject}'.");
-                return false;
+                return WorkflowEmailDeliveryResult.NoRecipients;
             }
             ccs = ccs?.Where(c => c != "").ToList();
             bccs = bccs?.Where(bcc => bcc != "").ToList();
@@ -159,8 +271,9 @@ namespace FWO.Services
             if (!sent)
             {
                 Log.WriteWarning("SendEmail", $"MailKit returned false while sending workflow email. To recipients: {tos.Count}, subject: '{subject}'.");
+                return WorkflowEmailDeliveryResult.Failed;
             }
-            return sent;
+            return WorkflowEmailDeliveryResult.Delivered;
         }
 
         public async Task<List<string>> GetRecipients(EmailRecipientOption recipientOption, WfStatefulObject? statefulObject, FwoOwner? owner, string? scopedUser,
@@ -186,6 +299,7 @@ namespace FWO.Services
             string? scopedUserEmail)
         {
             Func<Task<List<string>>> scopedUserHandler = () => CollectEmailAddressesFromScopedUser(scopedUser, scopedUserEmail);
+            Func<Task<List<string>>> requesterHandler = () => CollectEmailAddressesFromScopedUser(scopedUser, scopedUserEmail, ScopedUserName);
             return new Dictionary<EmailRecipientOption, Func<Task<List<string>>>>
             {
                 { EmailRecipientOption.CurrentHandler, () => CollectEmailAddressesFromUser(statefulObject?.CurrentHandler) },
@@ -195,7 +309,7 @@ namespace FWO.Services
                 { EmailRecipientOption.AllOwnerResponsibles, () => CollectEmailAddressesFromDns(owner?.GetAllOwnerResponsibles()) },
                 { EmailRecipientOption.OwnerGroupOnly, () => CollectOwnerAddressesByType(owner, GlobalConst.kOwnerResponsibleTypeSupporting) },
                 { EmailRecipientOption.ConfiguredResponsibles, () => Task.FromResult(new List<string>()) },
-                { EmailRecipientOption.Requester, scopedUserHandler },
+                { EmailRecipientOption.Requester, requesterHandler },
                 { EmailRecipientOption.Approver, scopedUserHandler },
                 { EmailRecipientOption.LastCommenter, scopedUserHandler },
                 { EmailRecipientOption.FallbackToMainResponsibleIfOwnerGroupEmpty, () => GetOwnerGroupOrMainResponsibleRecipients(owner) },
@@ -231,7 +345,8 @@ namespace FWO.Services
             return mainResponsibleAddresses;
         }
 
-        public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(EmailRecipientSelection selection, FwoOwner? owner, List<string>? otherAddresses,
+            UiUser? requester = null)
         {
             if (!selection.HasAnyRecipientOption())
             {
@@ -244,6 +359,7 @@ namespace FWO.Services
 
             HashSet<string> recipients = new(StringComparer.OrdinalIgnoreCase);
             AddOtherAddresses(selection, otherAddresses, recipients);
+            await AddRequesterRecipients(selection, recipients, requester);
             if (owner != null)
             {
                 await AddOwnerTypeRecipients(owner, selection.OwnerResponsibleTypeIds.Distinct(), recipients);
@@ -253,10 +369,29 @@ namespace FWO.Services
             return recipients.ToList();
         }
 
-        public async Task<List<string>> GetRecipients(string recipientConfig, FwoOwner? owner, List<string>? otherAddresses)
+        public async Task<List<string>> GetRecipients(string recipientConfig, FwoOwner? owner, List<string>? otherAddresses,
+            UiUser? requester = null)
         {
             EmailRecipientSelection selection = EmailRecipientSelection.Parse(recipientConfig, GetActiveOwnerResponsibleTypeIds());
-            return await GetRecipients(selection, owner, otherAddresses);
+            return await GetRecipients(selection, owner, otherAddresses, requester);
+        }
+
+        private async Task<List<string>> GetNotificationRecipients(EmailRecipientOption recipientOption, string addressList, FwoOwner? owner)
+        {
+            if (recipientOption == EmailRecipientOption.ConfiguredResponsibles)
+            {
+                return await GetRecipients(addressList, owner, null);
+            }
+            if (recipientOption == EmailRecipientOption.OtherAddresses && LooksLikeRecipientSelectionJson(addressList))
+            {
+                return await GetRecipients(addressList, null, null);
+            }
+            return await GetRecipients(recipientOption, null, owner, null, SplitAddresses(addressList));
+        }
+
+        private static bool LooksLikeRecipientSelectionJson(string? recipientValue)
+        {
+            return recipientValue?.TrimStart().StartsWith('{') == true;
         }
 
         private static void AddOtherAddresses(EmailRecipientSelection selection, List<string>? otherAddresses, HashSet<string> recipients)
@@ -266,6 +401,19 @@ namespace FWO.Services
                 AddAddresses(recipients, selection.OtherAddressList);
                 AddAddresses(recipients, otherAddresses);
             }
+        }
+
+        private async Task AddRequesterRecipients(EmailRecipientSelection selection, HashSet<string> recipients, UiUser? requester)
+        {
+            if (!selection.Requester)
+            {
+                return;
+            }
+
+            List<string> requesterRecipients = requester == null
+                ? await CollectEmailAddressesFromUser(userConfig.User)
+                : await CollectEmailAddressesFromUser(requester);
+            AddAddresses(recipients, requesterRecipients);
         }
 
         private async Task AddOwnerTypeRecipients(FwoOwner owner, IEnumerable<int> responsibleTypeIds, HashSet<string> recipients)
@@ -389,7 +537,7 @@ namespace FWO.Services
             return await CollectEmailAddressesFromDns(dn == null ? null : [dn]);
         }
 
-        private async Task<List<string>> CollectEmailAddressesFromScopedUser(string? dn, string? email)
+        private async Task<List<string>> CollectEmailAddressesFromScopedUser(string? dn, string? email, string? userName = null)
         {
             if (userConfig.UseDummyEmailAddress)
             {
@@ -399,12 +547,24 @@ namespace FWO.Services
             {
                 return [email];
             }
-            return await CollectEmailAddressesFromUserOrGroup(dn);
+            if (!string.IsNullOrWhiteSpace(dn))
+            {
+                return await CollectEmailAddressesFromUserOrGroup(dn);
+            }
+            UiUser? cachedUser = uiUsers.FirstOrDefault(user =>
+                !string.IsNullOrWhiteSpace(userName)
+                && string.Equals(user.Name, userName, StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(user.Email));
+            if (cachedUser != null)
+            {
+                return [cachedUser.Email!];
+            }
+            return await CollectEmailAddressesFromUserOrGroup(null);
         }
 
         private async Task<List<string>> CollectEmailAddressesFromUser(UiUser? user)
         {
-            if (user == null || string.IsNullOrWhiteSpace(user.Dn))
+            if (user == null)
             {
                 return [];
             }
@@ -415,6 +575,10 @@ namespace FWO.Services
             if (!string.IsNullOrWhiteSpace(user.Email))
             {
                 return [user.Email];
+            }
+            if (string.IsNullOrWhiteSpace(user.Dn))
+            {
+                return [];
             }
             return await CollectEmailAddressesFromUserOrGroup(user.Dn);
         }

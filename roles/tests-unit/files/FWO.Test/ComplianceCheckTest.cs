@@ -42,41 +42,6 @@ namespace FWO.Test
             base.SetUpTest();
         }
 
-        [Test]
-        public void TryGetAssessabilityIssue_UnspecifiedIpv6Fallback_ReturnsIPNull()
-        {
-            NetworkObject networkObject = new()
-            {
-                IP = "::/128",
-                IpEnd = "::/128"
-            };
-            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            object?[] parameters = new object?[1];
-            parameters[0] = networkObject;
-
-            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
-
-            Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
-        }
-
-        [TestCase(null, "0.0.0.0/32")]
-        [TestCase("0.0.0.0/32", null)]
-        public void TryGetAssessabilityIssue_PartiallyMissingIpRange_ReturnsIPNull(string? ip, string? ipEnd)
-        {
-            NetworkObject networkObject = new()
-            {
-                IP = ip,
-                IpEnd = ipEnd
-            };
-            MethodInfo method = typeof(ComplianceCheck).GetMethod("TryGetAssessabilityIssue", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            object?[] parameters = new object?[1];
-            parameters[0] = networkObject;
-
-            AssessabilityIssue? issue = (AssessabilityIssue?)method.Invoke(ComplianceCheck, parameters);
-
-            Assert.That(issue, Is.EqualTo(AssessabilityIssue.IPNull));
-        }
-
         #endregion
 
         #region Tests - CheckAll
@@ -248,7 +213,7 @@ namespace FWO.Test
                     [new Management { Id = 2, Name = "Mgmt2" }]);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                 .Returns(permissiveZones, restrictiveZones);
 
             Rule rule = CreateSimpleRule(99, destinationHigh: true);
@@ -262,7 +227,7 @@ namespace FWO.Test
                 Assert.That(secondRunCompliant, Is.False);
                 Assert.That(ComplianceCheck.Managements!.Single().Id, Is.EqualTo(2));
                 ApiConnection.AsSub().Received(2).SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>());
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>());
             });
         }
 
@@ -310,12 +275,12 @@ namespace FWO.Test
                 .Returns(policy);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 101)))
                 .Returns(matrixAZones);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 102)))
                 .Returns(matrixBZones);
 

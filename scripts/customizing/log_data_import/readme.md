@@ -26,3 +26,18 @@ The generated JSON interface is:
 ```json
 {"logs":[{"app_id":"APP-1","log_count":42,"source":"192.0.2.1","destination":"198.51.100.10","protocol":6,"port":443,"action":"accept","log_time":"2026-07-28T10:30:00Z","rule_name":"web"}]}
 ```
+
+## Generate test log data
+
+`generate_log_data.py` creates a CSV accepted by this importer from normalized app-data JSON (the
+`{"owners":[...]}` output of an app-data import script). It uses each eligible owner's
+`app_id_external` and first valid `app_servers[].ip`, distributing the requested number of distinct
+flows round-robin across the applications. Owners without a server IP are skipped.
+
+```bash
+python3 generate_log_data.py 500 /path/to/app-data.json /path/to/log-data.csv
+```
+
+Each generated flow has log count `1`, TCP port `443`, and action `accept`. Source addresses are
+unique test-network addresses so entries are not merged by the importer. The script refuses to
+replace an existing output file unless `--overwrite` is supplied.

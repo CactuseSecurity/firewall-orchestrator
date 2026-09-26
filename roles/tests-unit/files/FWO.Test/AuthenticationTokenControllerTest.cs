@@ -21,6 +21,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -373,6 +374,7 @@ namespace FWO.Test
         /// naming who lost the session, which the failing scope no longer has in hand.
         /// </summary>
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RefreshToken_AuditsTheConsumedTokenWhenNoNewPairCouldBeIssued()
         {
             RecordingApiConnection apiConnection = new()
@@ -386,23 +388,14 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-            try
+            string log = await ConsoleOutput.CaptureAsync(async () =>
             {
-                Console.SetOut(logOutput);
                 await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
+            });
 
             // Asserted as one string rather than as two independent contains: the LDAP debug
             // lines of the same run also mention the user, so a separate name check would
             // pass even if the audit entry had lost the identity.
-            string log = logOutput.ToString();
-
             Assert.That(log, Does.Contain(
                 $"Refresh token for User \"login-user\" with DN: \"{kRoleUserDn}\" was consumed, " +
                 "but no new token pair could be issued because the API could not be reached."));
@@ -491,6 +484,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RefreshToken_AuditsAmbiguousConsumption()
         {
             RecordingApiConnection apiConnection = new()
@@ -504,7 +498,7 @@ namespace FWO.Test
                 new List<Ldap> { CreateAuthLdap(CreateRefreshLdapClient()) },
                 apiConnection);
 
-            string log = await CaptureConsoleOutputAsync(() => controller.RefreshToken(
+            string log = await ConsoleOutput.CaptureAsync(() => controller.RefreshToken(
                 new RefreshTokenRequest { RefreshToken = "refresh-token" }));
 
             Assert.That(log, Does.Contain(
@@ -542,6 +536,7 @@ namespace FWO.Test
         }
 
         [Test]
+        [NonParallelizable] // redirects the process wide Console.Out
         public async Task RevokeToken_AuditsAmbiguousRevocation()
         {
             RecordingApiConnection apiConnection = new()
@@ -553,7 +548,7 @@ namespace FWO.Test
             apiConnection.QueueResult(kRefreshTokenUserId7);
             AuthenticationTokenController controller = CreateController(apiConnection);
 
-            string log = await CaptureConsoleOutputAsync(() => controller.RevokeToken(
+            string log = await ConsoleOutput.CaptureAsync(() => controller.RevokeToken(
                 new RefreshTokenRequest { RefreshToken = "refresh-token" }));
 
             Assert.That(log, Does.Contain(
@@ -981,23 +976,6 @@ namespace FWO.Test
             MethodInfo method = typeof(AuthenticationTokenController).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new MissingMethodException(typeof(AuthenticationTokenController).FullName, methodName);
             return (T)method.Invoke(null, arguments)!;
-        }
-
-        private static async Task<string> CaptureConsoleOutputAsync(Func<Task> action)
-        {
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-            try
-            {
-                Console.SetOut(logOutput);
-                await action();
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
-
-            return logOutput.ToString();
         }
 
         private static string ExtractOkString(ActionResult<string> result)

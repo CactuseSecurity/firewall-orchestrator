@@ -17,6 +17,13 @@ internal class ProvisioningSettingsServiceTest
     private const long kManagementNodeId = 3;
     private const long kGatewayNodeId = 4;
 
+    private static readonly (string NodeType, string ObjectKey)[] kExpectedCreatedChain =
+        [("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")];
+    private static readonly string[] kExpectedZoneFromKeys = [ProvisioningSettingKeys.ZoneFrom.DatabaseKey];
+    private static readonly string[] kExpectedLoggingKeys = [ProvisioningSettingKeys.Logging.DatabaseKey];
+    private static readonly string[] kExpectedRuleTypeKeys = [ProvisioningSettingKeys.RuleType.DatabaseKey];
+    private static readonly string[] kExpectedTemplatesKeys = [ProvisioningSettingKeys.Templates.DatabaseKey];
+
     [Test]
     public async Task LoadHierarchy_WithoutPersistedNodes_BuildsUnpersistedTree()
     {
@@ -153,12 +160,9 @@ internal class ProvisioningSettingsServiceTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(gateway.SelfAndAncestors().All(n => n.IsPersisted), Is.True);
-            Assert.That(api.Nodes.Select(n => (n.NodeType, n.ObjectKey)), Is.EquivalentTo(new[]
-            {
-                ("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")
-            }));
+            Assert.That(api.Nodes.Select(n => (n.NodeType, n.ObjectKey)), Is.EquivalentTo(kExpectedCreatedChain));
             Assert.That(api.Nodes.Single(n => n.Id == gateway.Scope.NodeId).DisplayName, Is.EqualTo("fgt-1"));
-            Assert.That(api.Nodes.SelectMany(n => n.Values).Select(v => v.ConfigKey), Is.EqualTo(new[] { ProvisioningSettingKeys.ZoneFrom.DatabaseKey }));
+            Assert.That(api.Nodes.SelectMany(n => n.Values).Select(v => v.ConfigKey), Is.EqualTo(kExpectedZoneFromKeys));
         }
 
         ProvisioningLevelForm reloaded = await service.LoadFormAsync(gateway);
@@ -178,7 +182,7 @@ internal class ProvisioningSettingsServiceTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Logging.DatabaseKey }));
+            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedLoggingKeys));
             Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.Logging)?.ToString(), Is.EqualTo(nameof(ProvisioningLoggingMode.Log)));
         }
     }
@@ -202,8 +206,8 @@ internal class ProvisioningSettingsServiceTest
         using (Assert.EnterMultipleScope())
         {
             Assert.That(api.PatchCallCount, Is.EqualTo(1));
-            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.RuleType.DatabaseKey }));
-            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Templates.DatabaseKey }));
+            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedRuleTypeKeys));
+            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedTemplatesKeys));
             Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("keep-me"));
             Assert.That(api.ReadValue(kGatewayNodeId, ProvisioningSettingKeys.Templates), Is.Null);
         }

@@ -649,6 +649,7 @@ Not supported any longer are:
 - normalize existing flow network-object endpoints carrying a network mask during the upgrade
 - warn during the upgrade about flow network objects sharing a range, they have to be merged manually
 - stop the upgrade and name the affected flow network objects when their endpoints mix address families
+- Importer: long-running imports no longer fail when the access token expires - the importer now refreshes it via refresh token (proactively and on demand) and resumes, including mid-way through a chunked API call
 
 ## 9.5.0 - 09.09.2026
 - introducing

@@ -51,7 +51,8 @@ namespace FWO.Test
                 {
                     return Task.FromResult((T)(object)Ticket);
                 }
-                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets || query == RequestQueries.getFullTickets)
+                if (query == RequestQueries.getTicketsByParameters || query == RequestQueries.getTickets
+                    || query == RequestQueries.getFullTickets || query == RequestQueries.getFullTicketsByTicketState)
                 {
                     if (query == RequestQueries.getTicketsByParameters)
                     {
@@ -89,7 +90,7 @@ namespace FWO.Test
                 SystemContext = systemContext
             };
             ActionHandler actionHandler = new(apiConn, handler);
-            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false);
+            WfDbAccess dbAccess = new(DefaultInit.DoNothing, userConfig, apiConn, actionHandler, false, WorkflowPhases.request);
             FieldInfo? dbAccField = typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(dbAccField, Is.Not.Null);
             dbAccField!.SetValue(handler, dbAccess);

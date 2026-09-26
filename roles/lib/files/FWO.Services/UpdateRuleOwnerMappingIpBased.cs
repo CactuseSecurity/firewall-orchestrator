@@ -23,8 +23,7 @@ namespace FWO.Services
 
         public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
         {
-            bool isFullReInitialize = eventArgs?.isFullReInitialize ?? false;
-            return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, isFullReInitialize);
+            return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, eventArgs);
         }
 
         /// <summary>
@@ -50,7 +49,7 @@ namespace FWO.Services
 
             foreach (var rule in rulesToMap)
             {
-                var matchesByOwner = GetMatchingOwnerIds(rule, ownerNetworksPrepared);
+                var matchesByOwner = GetMatchingOwnerIds(rule, ownerNetworksPrepared, MappingLog);
 
                 foreach (var matchByOwner in matchesByOwner)
                 {
@@ -115,26 +114,27 @@ namespace FWO.Services
             return (rulesToMap, ownersToAdd, ruleOwnersToRemove);
         }
 
-        public static (IPAddressRange? range, AddressFamily? ipVersion) GetIpRangeAndVersion(string ipStart, string ipEnd)
+        public static (IPAddressRange? range, AddressFamily? ipVersion) GetIpRangeAndVersion(string ipStart, string ipEnd, RuleOwnerMappingLogger? mappingLog = null)
         {
+            RuleOwnerMappingLogger log = mappingLog ?? RuleOwnerMappingLogger.Default;
             var start = ipStart.StripOffUnnecessaryNetmask();
             var end = ipEnd.StripOffUnnecessaryNetmask();
 
             if (!IPAddress.TryParse(start, out var startIp))
             {
-                Log.WriteError(LogMessageTitle, $"Invalid start IP: {start}");
+                log.Warning($"Invalid start IP: {start}");
                 return (null, null);
             }
 
             if (!IPAddress.TryParse(end, out var endIp))
             {
-                Log.WriteError(LogMessageTitle, $"Invalid end IP: {end}");
+                log.Warning($"Invalid end IP: {end}");
                 return (null, null);
             }
 
             if (startIp.AddressFamily != endIp.AddressFamily)
             {
-                Log.WriteError(LogMessageTitle, $"IP families do not match: {start}-{end}");
+                log.Warning($"IP families do not match: {start}-{end}");
                 return (null, null);
             }
 
@@ -150,13 +150,13 @@ namespace FWO.Services
             }
             else
             {
-                Log.WriteError(LogMessageTitle, "Unsupported AddressFamily");
+                log.Error("Unsupported AddressFamily");
                 return (null, null);
             }
 
             if (cmp > 0)
             {
-                Log.WriteError(LogMessageTitle, $"Invalid range: {start}-{end} (start > end)");
+                log.Warning($"Invalid range: {start}-{end} (start > end)");
                 return (null, null);
             }
 
@@ -177,14 +177,14 @@ namespace FWO.Services
                             {
                                 if (!nw.IP.TryParseIPStringToRange(out var _))
                                 {
-                                    Log.WriteWarning(LogMessageTitle, $"Invalid owner network format for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
+                                    MappingLog.Error($"Invalid owner network format for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
                                 }
 
-                                var (range, version) = GetIpRangeAndVersion(nw.IP, nw.IpEnd);
+                                var (range, version) = GetIpRangeAndVersion(nw.IP, nw.IpEnd, MappingLog);
 
                                 if (range == null || version == null)
                                 {
-                                    Log.WriteWarning(LogMessageTitle, $"Skipping owner network with invalid IP range for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
+                                    MappingLog.Error($"Skipping owner network with invalid IP range for owner {o.Id}: {nw.IP}-{nw.IpEnd}");
                                     return null;
                                 }
 
@@ -200,8 +200,9 @@ namespace FWO.Services
                     .ToList();
         }
 
-        public static Dictionary<int, Dictionary<string, List<NetworkObject>>> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared)
+        public static Dictionary<int, Dictionary<string, List<NetworkObject>>> GetMatchingOwnerIds(Rule rule, List<OwnerNetworkPrepared> ownerNetworksPrepared, RuleOwnerMappingLogger? mappingLog = null)
         {
+            RuleOwnerMappingLogger log = mappingLog ?? RuleOwnerMappingLogger.Default;
             var matchesByOwner = new Dictionary<int, Dictionary<string, List<NetworkObject>>>();
 
             var ruleNetworksWithDirections = rule.Froms.Where(n => n?.Object != null).Select(n => (Obj: n.Object!, Direction: "From"))
@@ -210,7 +211,7 @@ namespace FWO.Services
 
             if (!ruleNetworksWithDirections.Any())
             {
-                Log.WriteWarning(LogMessageTitle, $"Rule {rule.Id} has no network locations and will be skipped.");
+                log.Info($"Rule {rule.Id} has no network locations and will be skipped.");
                 return matchesByOwner;
             }
 
@@ -222,7 +223,7 @@ namespace FWO.Services
                     continue;
                 }
 
-                var (ruleRange, ruleIpVersion) = GetIpRangeAndVersion(obj.IP, obj.IpEnd);
+                var (ruleRange, ruleIpVersion) = GetIpRangeAndVersion(obj.IP, obj.IpEnd, log);
 
                 if (ruleRange == null || ruleIpVersion == null)
                 {

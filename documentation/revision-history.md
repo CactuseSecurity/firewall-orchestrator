@@ -769,3 +769,18 @@ Not supported any longer are:
 
 ## 9.5.5 - 23.09.2026
 - workflow phase visibility can be configured per phase as `AnyTask` (the backward-compatible default) or `TicketState` (based on the ticket state).
+- REST endpoint workflow/getAuditProofCriticalChanges now also returns a taskDiff for a ticket with audit proof critical changes: for each request task whose content differs from what was originally requested, the original and the current snapshot (a deleted task has no current snapshot; start, stop, additional info and the order of owners and elements do not count as a difference), and the manual audit proof critical implementation task changes with change time, user, change text and the snapshots before and after. The request filter applies to the implementation task changes; the request task comparison describes the ticket as a whole and is not filtered.
+- new REST endpoint workflow/getTicket returns a workflow ticket with all its details in JSON: ticket header data, the request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments. It is available to admins and auditors. Besides the workflow state ids and names, the ticket carries the same status that flow/getRequestStatus reports. The optional options.filter restricts the returned request tasks by any of their scalar fields; the ticket itself is always returned when it exists, so a filter that excludes every task yields an empty task list, while a ticketId that names no ticket is answered with 404. All validation errors of a request are reported together.
+
+## 9.5.6 - 24.09.2026
+- variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import
+  without policy changes cannot have changed a marker and is ignored, and where somebody is waiting for the
+  result the analysis waits briefly for the mapping run instead of falling back to the much slower marker
+  query. The wait is capped by the new setting varianceNameFieldWaitTime (0 disables it) and never happens
+  in the background job
+- variance analysis: a running full reinitialize of the rule_owner mapping is now detected, so the analysis
+  no longer reads a half-rebuilt mapping and silently reports implemented connections as not implemented
+- variance analysis: an empty prefilter result is accepted once the mapping exists at all, instead of
+  running the full marker query for every owner that has nothing on a management
+- variance analysis: every fall back to the marker query is written to the log with its reason and shown
+  to the user once per analysis, so the remaining cases can be found without debug logging

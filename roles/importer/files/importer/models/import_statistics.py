@@ -16,6 +16,8 @@ class ImportStatistics:
     rule_add_count: int = 0
     rule_delete_count: int = 0
     rule_change_count: int = 0
+    # subset of rule_change_count: only changes flagged security_relevant in the changelog
+    rule_change_count_security_relevant: int = 0
     rule_move_count: int = 0  # when a rule is moved. implies rule_change_count
     rule_ref_add_count: int = 0  # e.g. rule_to, rule_nwobj_resolved, rule_enforced_on_gateway
     rule_ref_delete_count: int = 0

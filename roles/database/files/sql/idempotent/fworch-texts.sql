@@ -584,6 +584,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
     <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist. Zus&auml;tzlich zeigt er f&uuml;r jede Request-Task, deren Inhalt vom urspr&uuml;nglichen Antrag abweicht, den urspr&uuml;nglichen und den aktuellen Stand sowie die manuellen revisionskritischen &Auml;nderungen an Implementierungs-Tasks mit ihrem Stand davor und danach.</li>
     <li>Der neue REST-Endpunkt workflow/getTicket liefert ein Workflow-Ticket mit allen Details - Request Tasks samt Elementen, Genehmigungen, Implementierungs-Tasks, Eigent&uuml;mern und Kommentaren - im JSON-Format. Er steht Administratoren und Auditoren zur Verf&uuml;gung; die zur&uuml;ckgegebenen Request Tasks lassen sich optional filtern.</li>
+    <li>Importierte Logdaten zeigen nun f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen.</li>
     <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
     <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
     <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
@@ -613,6 +614,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
     <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof. In addition it shows, for each request task whose content differs from the original request, the original and the current state, and the manual audit proof critical changes of implementation tasks with their state before and after.</li>
     <li>The new REST endpoint workflow/getTicket returns a workflow ticket with all its details - request tasks with their elements, approvals, implementation tasks, owners and comments - in JSON format. It is available to administrators and auditors; the returned request tasks can optionally be filtered.</li>
+    <li>Imported log data now shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses.</li>
     <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
     <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
     <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
@@ -3241,6 +3243,18 @@ INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbi
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
 INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('source_app_ids', 'German', 'Quell-App-IDs');
+INSERT INTO txt VALUES ('source_app_ids', 'English', 'Source App IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'German', 'Ziel-App-IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'English', 'Destination App IDs');
+INSERT INTO txt VALUES ('source_network_areas', 'German', 'Quell-Netzwerk-Areas');
+INSERT INTO txt VALUES ('source_network_areas', 'English', 'Source Network Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'German', 'Ziel-Netzwerk-Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'English', 'Destination Network Areas');
+INSERT INTO txt VALUES ('source_name', 'German', 'Quellname');
+INSERT INTO txt VALUES ('source_name', 'English', 'Source Name');
+INSERT INTO txt VALUES ('destination_name', 'German', 'Zielname');
+INSERT INTO txt VALUES ('destination_name', 'English', 'Destination Name');
 INSERT INTO txt VALUES ('log_count', 'German', 'Anzahl');
 INSERT INTO txt VALUES ('log_count', 'English', 'Log count');
 INSERT INTO txt VALUES ('log_time', 'German', 'Zeitpunkt');
@@ -7242,8 +7256,8 @@ INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest,
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation: Aus jeder Importdatei werden f&uuml;r jede bekannte Applikation nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per application: From each import file, only this many entries with the highest log counts are taken for each known application; the remaining entries are discarded.');
-INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
-INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
+INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein. F&uuml;r Quell- und Zieladresse werden zus&auml;tzlich zugeh&ouml;rige externe App-IDs, Netzwerk-Areas und der per Reverse-DNS ermittelte Name angezeigt, sofern diese Informationen verf&uuml;gbar sind.');
+INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog. For source and destination, matching external application IDs, network areas, and the name found by reverse DNS are also shown when available.');
 INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');
 INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
 INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');

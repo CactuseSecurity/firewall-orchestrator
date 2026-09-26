@@ -2,6 +2,14 @@
 
 CREATE SCHEMA logging;
 
+CREATE TABLE logging.ip_metadata
+(
+    ip_address CIDR PRIMARY KEY,
+    app_ids TEXT[] NOT NULL DEFAULT '{}',
+    area_ids TEXT[] NOT NULL DEFAULT '{}',
+    dns TEXT NOT NULL DEFAULT ''
+);
+
 CREATE TABLE logging.log_entry
 (
     id BIGSERIAL PRIMARY KEY,

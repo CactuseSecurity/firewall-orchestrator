@@ -784,3 +784,13 @@ Not supported any longer are:
   running the full marker query for every owner that has nothing on a management
 - variance analysis: every fall back to the marker query is written to the log with its reason and shown
   to the user once per analysis, so the remaining cases can be found without debug logging
+
+## 9.5.8 - 29.09.2026
+- enrich imported log data with the external application IDs and network areas containing each
+  source and destination address, plus reverse-DNS names. The connection log table displays the
+  six new values and leaves unavailable metadata empty. The values are calculated once per import
+  batch from the owner networks and area address ranges and stored per address in
+  logging.ip_metadata, so an address logged by several owners is enriched once and carries the
+  applications of every owner it belongs to. An address the log entries no longer refer to loses
+  its metadata with the next import run, so the enrichment does not outlive the configured log
+  data retention.

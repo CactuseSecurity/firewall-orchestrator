@@ -53,6 +53,156 @@ Before creating the release tag:
 Never reuse a released version number or modify an existing release tag to
 point to another commit.
 
+## Reserving versions in pull requests
+
+Versioned changes can reserve their patch version before they are merged into
+`develop`. This prevents two open pull requests from using the same upgrade
+file name, while avoiding repeated manual rebases when another versioned pull
+request merges.
+
+The workflow applies only to same-repository pull requests targeting `develop`.
+Fork pull requests cannot be updated by the workflow token and must first be
+moved to a maintainer-owned branch.
+
+### Repository setup
+
+Create the `versioned-change` repository label. In **Settings → Actions →
+General**, allow workflows to have read/write repository permissions. Keep
+`develop` protected; if feature-branch rules prevent direct pushes, allow only
+`github-actions[bot]` to update those branches. The allocator never pushes to
+`develop` and accepts the command only from a collaborator with `write`,
+`maintain`, or `admin` permission. Add **Validate FWO PR version** (job
+`validate`) as a required status check for pull requests targeting `develop`
+so uniqueness and merge order are enforced.
+
+### Activation order
+
+GitHub runs `issue_comment` workflows only from the default branch, which is
+`main`. The allocator therefore stays inactive after it is merged into
+`develop`, until the next stable release fast-forwards `main`. The validator
+and the requeue workflow run from `develop` immediately. Until the allocator
+is active:
+
+- do not make **Validate FWO PR version** a required check, and
+- keep preparing versions manually; the validator reports unlabelled version
+  changes, but the report does not block merging while the check is optional.
+
+Make the check required only after `main` contains
+`allocate-fwo-pr-version.yml`.
+
+### Workflows
+
+| Workflow | Trigger | Purpose |
+| --- | --- | --- |
+| **Allocate FWO PR version** | `/allocate-fwo-version` comment | Reserves the next free version, commits it to the PR branch, and starts validation of that commit |
+| **Validate FWO PR version** | PR events, or dispatch on the PR branch | Checks the versioned files, uniqueness, and merge order |
+| **Requeue FWO PR version checks** | Push to `develop`; closing or unlabelling a labelled same-repository PR | Re-runs validation on every other labelled same-repository PR |
+| **Test FWO versioning tooling** | Changes to the tooling | Runs the shell and Python tests of the tooling |
+
+Pushes made with the workflow token do not trigger `pull_request` workflows.
+The allocator and the requeue workflow therefore start the validator with
+`workflow_dispatch` on the PR branch. Its check run is attached to the branch
+head and satisfies the required check. Dispatch requires the PR branch to
+contain the validator workflow; rebase older branches onto `develop` first.
+To re-run validation manually, re-run the last **Validate FWO PR version**
+job of the PR.
+
+The shared version logic lives in
+[`scripts/fwo_version_reservations.py`](../../scripts/fwo_version_reservations.py)
+and the file edits in
+[`scripts/allocate-fwo-version.sh`](../../scripts/allocate-fwo-version.sh). The
+validator loads both from `develop` rather than from the PR, so a PR cannot
+weaken the checks applied to itself by editing them. The validator workflow
+file itself still comes from the PR, as with every `pull_request` workflow;
+changes to `.github/workflows/` need careful review.
+
+### Author workflow
+
+1. Add the `versioned-change` label to the pull request.
+2. Prepare all three versioned files with the literal testing placeholder
+   `999.0.0`:
+   - `inventory/group_vars/all.yml` contains `product_version: "999.0.0"`.
+   - The new, idempotent migration is
+     `roles/database/files/upgrade/999.0.0.sql`.
+   - `documentation/revision-history.md` contains one heading `## 999.0.0`.
+     A date is optional; for example, `## 999.0.0`, `## 999.0.0 MAIN`, and
+     `## 999.0.0 - 01.01.1970 MAIN` are all accepted.
+3. Ask a repository maintainer to comment `/allocate-fwo-version` on the pull
+   request.
+4. Wait for **Allocate FWO PR version** to commit the allocated patch. It then
+   starts **Validate FWO PR version**, which confirms that the product version,
+   migration file, and revision-history heading match.
+
+A pull request without the label fails validation when it adds or renames an
+upgrade script or changes `product_version`. This prevents bypassing the
+reservation by omitting the label.
+
+The allocator considers the version on `develop` and reservations on every
+other open, labelled pull request. It therefore assigns each pull request a
+unique patch number. Closing a PR may leave a gap; gaps are safe because the
+installer selects and version-sorts the upgrade files that exist.
+
+Only the lowest open reservation can pass the version check. This preserves
+the migration order: for example, `9.5.5` must merge before `9.5.6`. After it
+merges, the requeue workflow re-runs validation on the remaining labelled PRs,
+so the next reservation passes without any renumbering. The same happens when
+a labelled PR is closed without merging or loses its label.
+
+`999.0.0` is deliberately higher than released versions. During an
+installer upgrade test, its migration is therefore selected and version-sorted
+after all real migrations, rather than being skipped as a low placeholder
+would be. The allocation workflow replaces it before the PR can pass version
+validation or merge.
+
+The allocator rewrites the placeholder revision-history heading to
+`## <version> - <allocation date>`, using the allocation date in the
+`Europe/Berlin` time zone. A date already in the placeholder heading is
+replaced, and any suffix such as `MAIN` is preserved.
+
+### Changing the release line
+
+The command accepts an optional bump:
+
+| Command | Allocated version, with `develop` at `9.5.4` |
+| --- | --- |
+| `/allocate-fwo-version` or `/allocate-fwo-version patch` | Next free `9.5.x` |
+| `/allocate-fwo-version minor` | `9.6.0`, or the next free `9.6.x` if `9.6.0` is reserved |
+| `/allocate-fwo-version major` | `10.0.0`, or the next free `10.0.x` if `10.0.0` is reserved |
+
+The validator accepts versions on the release line of `develop` and on the
+next minor or major line. Open reservations on the old line are lower and must
+merge first.
+
+After `develop` has moved to a new line, an allocated version that is no
+longer above `develop` is stale, for example `9.5.7` when `develop` is at
+`9.6.0`. Its validation fails. Rebase the PR onto `develop`, keep the stale
+version in all three files, and comment `/allocate-fwo-version` again. The
+allocator then moves the version, migration file, and revision-history heading
+to a new version above `develop`. This is the only case in which an allocated
+version changes.
+
+### Example
+
+Assume `develop` is `9.5.4` and another labelled open PR has already reserved
+`9.5.5`. A new database PR starts with:
+
+```text
+inventory/group_vars/all.yml                    product_version: "999.0.0"
+roles/database/files/upgrade/999.0.0.sql        idempotent SQL for this PR
+documentation/revision-history.md               ## 999.0.0
+```
+
+After a maintainer comments `/allocate-fwo-version`, the workflow commits:
+
+```text
+inventory/group_vars/all.yml                    product_version: "9.5.6"
+roles/database/files/upgrade/9.5.6.sql          same idempotent SQL, renamed
+documentation/revision-history.md               ## 9.5.6 - <allocation date>
+```
+
+Do not change an allocated version manually. If the PR is closed, its number
+remains unused; do not reuse it for a different migration.
+
 ## Upgrade scripts
 
 Add a new database upgrade script under `roles/database/files/upgrade/` when a

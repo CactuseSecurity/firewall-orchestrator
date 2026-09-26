@@ -1,0 +1,84 @@
+name: Allocate FWO PR version
+# issue_comment workflows always run from the default branch (main). This
+# workflow is therefore only active once a release has fast-forwarded main;
+# see documentation/developer-docs/versioning.md.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  contents: write
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: allocate-fwo-pr-version
+  cancel-in-progress: false
+
+jobs:
+  allocate:
+    if: >-
+      github.event.issue.pull_request && (
+        github.event.comment.body == '/allocate-fwo-version' ||
+        github.event.comment.body == '/allocate-fwo-version patch' ||
+        github.event.comment.body == '/allocate-fwo-version minor' ||
+        github.event.comment.body == '/allocate-fwo-version major')
+    runs-on: ubuntu-latest
+    steps:
+      # The tooling comes from the same trusted default-branch commit as this
+      # workflow file, never from the pull request.
+      - name: Check out trusted allocation tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.sha }}
+          path: fwo-version-tooling
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Authorize and select next unreserved version
+        id: version
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
+          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py plan-allocation --pull-request "$PULL_REQUEST_NUMBER"
+
+      - name: Check out pull request head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ steps.version.outputs.head_sha }}
+          path: pull-request
+          fetch-depth: 0
+
+      - name: Allocate versioned files
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+          TARGET_VERSION: ${{ steps.version.outputs.target_version }}
+        run: |
+          cd pull-request
+          ../fwo-version-tooling/scripts/allocate-fwo-version.sh --allocate --target "$TARGET_VERSION" --base-version "$BASE_VERSION"
+
+      - name: Commit allocation
+        env:
+          HEAD_REF: ${{ steps.version.outputs.head_ref }}
+          TARGET_VERSION: ${{ steps.version.outputs.target_version }}
+        run: |
+          set -euo pipefail
+          cd pull-request
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all inventory/group_vars/all.yml documentation/revision-history.md roles/database/files/upgrade
+          git commit -m "chore: allocate FWO version $TARGET_VERSION"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
+
+      # Pushes made with GITHUB_TOKEN do not trigger pull_request workflows, so
+      # the validation of the allocation commit is started explicitly.
+      - name: Validate allocation commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ steps.version.outputs.head_ref }}
+          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+        run: python3 fwo-version-tooling/scripts/fwo_version_reservations.py dispatch-validation --pull-request "$PULL_REQUEST_NUMBER" --ref "$HEAD_REF"

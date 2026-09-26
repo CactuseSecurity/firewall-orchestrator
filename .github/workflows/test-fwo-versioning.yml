@@ -1,0 +1,44 @@
+name: Test FWO versioning tooling
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - scripts/allocate-fwo-version.sh
+      - scripts/fwo_version_reservations.py
+      - scripts/tests/test-allocate-fwo-version.sh
+      - scripts/tests/test_fwo_version_reservations.py
+      - .github/workflows/*fwo-pr-version*.yml
+      - .github/workflows/test-fwo-versioning.yml
+  pull_request:
+    paths:
+      - scripts/allocate-fwo-version.sh
+      - scripts/fwo_version_reservations.py
+      - scripts/tests/test-allocate-fwo-version.sh
+      - scripts/tests/test_fwo_version_reservations.py
+      - .github/workflows/*fwo-pr-version*.yml
+      - .github/workflows/test-fwo-versioning.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Test allocation helper
+        run: scripts/tests/test-allocate-fwo-version.sh
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+
+      - name: Test reservation logic
+        run: |
+          python -m pip install --quiet --only-binary :all: pytest==9.1.1
+          python -m pytest -q scripts/tests/test_fwo_version_reservations.py

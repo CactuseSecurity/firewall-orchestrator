@@ -38,7 +38,7 @@ else
                     @foreach (ProvisioningNode crumb in form.Node.SelfAndAncestors().Reverse())
                     {
                         bool isLast = crumb == form.Node;
-                        <span class="fw-@(isLast ? "bold" : "normal")">@crumb.Name</span>
+                        <span class="fw-@(isLast ? "bold" : "normal")">@NodeName(crumb)</span>
                         @if (!isLast)
                         {
                             <span class="text-muted">&gt;</span>
@@ -80,7 +80,7 @@ else
                                         @(userConfig.GetText("prov_inherited_from"))
                                         <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@form.HasChanges"
                                                 @onclick="() => NavigateToSource(state.Field, sourceNode)">
-                                            <strong>@LevelLabel(sourceNode.Level)</strong> "@sourceNode.Name" <span class="@Icons.Use"></span>
+                                            <strong>@LevelLabel(sourceNode.Level)</strong> "@NodeName(sourceNode)" <span class="@Icons.Use"></span>
                                         </button>
                                     }
                                     else
@@ -162,7 +162,7 @@ else
         @<li class="nav-item @(node.Parent == null ? "" : "ms-2")">
             <button type="button" class="btn btn-sm w-100 text-start mb-1 @(form?.Node == node ? "btn-primary" : "btn-light")"
                     disabled="@(form?.HasChanges == true && form.Node != node)" @onclick="() => SelectNode(node)">
-                <span class="@NodeIcon(node.Level)"></span> @(node.Parent == null ? userConfig.GetText("prov_global") : node.Name)
+                <span class="@NodeIcon(node.Level)"></span> @NodeName(node)
             </button>
             @if (node.Children.Count > 0 && (node.Parent == null || expandedNodeIds.Contains(node.Id)))
             {
@@ -256,6 +256,9 @@ else
         pendingHighlightFieldId = field.Id;
     }
 
+    /// <summary>The root's stored name is a fixed technical label, so it is shown localized.</summary>
+    private string NodeName(ProvisioningNode node) => node.Parent == null ? userConfig.GetText("prov_global") : node.Name;
+
     private string LevelLabel(ProvisioningScopeType level) => level switch
     {
         ProvisioningScopeType.Global => userConfig.GetText("prov_global"),
@@ -286,7 +289,7 @@ else
                 {
                     builder.OpenElement(5, "option");
                     builder.AddAttribute(6, "value", option.Value);
-                    builder.AddContent(7, option.DisplayName);
+                    builder.AddContent(7, userConfig.GetText(option.TextKey));
                     builder.CloseElement();
                 }
                 builder.CloseElement();

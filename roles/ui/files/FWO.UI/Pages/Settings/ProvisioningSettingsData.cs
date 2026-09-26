@@ -15,12 +15,13 @@ namespace FWO.Ui.Pages.Settings
     }
 
     /// <summary>
-    /// One selectable option for a SingleSelect field. Value is the name of the underlying data-layer enum member.
+    /// One selectable option for a SingleSelect field. Value is the name of the underlying data-layer enum member,
+    /// TextKey the UI text key of its display name.
     /// </summary>
-    public sealed class ProvisioningFieldOption(string value, string displayName)
+    public sealed class ProvisioningFieldOption(string value, string textKey)
     {
         public string Value { get; } = value;
-        public string DisplayName { get; } = displayName;
+        public string TextKey { get; } = textKey;
     }
 
     /// <summary>
@@ -119,45 +120,45 @@ namespace FWO.Ui.Pages.Settings
         [
             EnumField(ProvisioningSettingKeys.ImplementationMode, "prov_implementation_mode", s => s.ImplementationMode,
                 EnumOptions(
-                    (ProvisioningImplementationMode.FwoAuto, "FWO automatic"),
-                    (ProvisioningImplementationMode.Manual, "Manual"),
-                    (ProvisioningImplementationMode.TufinSc, "Tufin SecureChange"),
-                    (ProvisioningImplementationMode.None, "None (no implementation task)"))),
+                    (ProvisioningImplementationMode.FwoAuto, "prov_opt_fwo_auto"),
+                    (ProvisioningImplementationMode.Manual, "prov_opt_manual"),
+                    (ProvisioningImplementationMode.TufinSc, "prov_opt_tufin_sc"),
+                    (ProvisioningImplementationMode.None, "prov_opt_no_implementation"))),
             TextField(ProvisioningSettingKeys.InstallOn, "prov_install_on", s => s.InstallOn),
             EnumField(ProvisioningSettingKeys.PathAnalysisAlgorithm, "prov_path_analysis_algorithm", s => s.PathAnalysisAlgorithm,
                 EnumOptions(
-                    (ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet, "Static lists per subnet"),
-                    (ProvisioningPathAnalysisAlgorithm.ManualPlanning, "Manual planning"),
-                    (ProvisioningPathAnalysisAlgorithm.AskExternalApi, "Ask external API")),
+                    (ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet, "prov_opt_static_lists_per_subnet"),
+                    (ProvisioningPathAnalysisAlgorithm.ManualPlanning, "prov_opt_manual_planning"),
+                    (ProvisioningPathAnalysisAlgorithm.AskExternalApi, "prov_opt_ask_external_api")),
                 maxLevel: ProvisioningScopeType.Global),
             EnumField(ProvisioningSettingKeys.Logging, "prov_logging", s => s.Logging,
                 EnumOptions(
-                    (ProvisioningLoggingMode.Log, "Log"),
-                    (ProvisioningLoggingMode.LogTrack, "Log and track"),
-                    (ProvisioningLoggingMode.None, "None"))),
+                    (ProvisioningLoggingMode.Log, "prov_opt_log"),
+                    (ProvisioningLoggingMode.LogTrack, "prov_opt_log_track"),
+                    (ProvisioningLoggingMode.None, "prov_opt_none"))),
             EnumField(ProvisioningSettingKeys.ServiceObjectCreation, "prov_service_object_creation", s => s.ServiceObjectCreation,
                 ObjectCreationOptions(), maxLevel: ProvisioningScopeType.Management),
             EnumField(ProvisioningSettingKeys.AddressObjectCreation, "prov_address_object_creation", s => s.AddressObjectCreation,
                 ObjectCreationOptions(), maxLevel: ProvisioningScopeType.Management),
             EnumField(ProvisioningSettingKeys.RuleType, "prov_rule_type", s => s.RuleType,
                 EnumOptions(
-                    (ProvisioningRuleType.AlwaysAccess, "Always access (standard)"),
-                    (ProvisioningRuleType.HandleAccessAndNat, "Handle access and NAT"),
-                    (ProvisioningRuleType.HandleAccessAndIps, "Handle access and IPS"),
-                    (ProvisioningRuleType.HandleAccessNatIps, "Handle access, NAT and IPS"))),
+                    (ProvisioningRuleType.AlwaysAccess, "prov_opt_always_access"),
+                    (ProvisioningRuleType.HandleAccessAndNat, "prov_opt_access_nat"),
+                    (ProvisioningRuleType.HandleAccessAndIps, "prov_opt_access_ips"),
+                    (ProvisioningRuleType.HandleAccessNatIps, "prov_opt_access_nat_ips"))),
             TextField(ProvisioningSettingKeys.Templates, "prov_templates", s => s.Templates, ProvisioningFieldKind.TemplateText),
             EnumField(ProvisioningSettingKeys.PositioningAlgorithm, "prov_positioning_algorithm", s => AsDevice(s).PositioningAlgorithm,
                 EnumOptions(
-                    (ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair, "Check Point: inline layer per zone pair"),
-                    (ProvisioningPositioningAlgorithm.FortinetEndOfZone, "Fortinet: end of zone"),
-                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "Check Point: end of app section"),
-                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "Check Point: end of app section, distinguish common services"),
-                    (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "Default: end of rulebase")),
+                    (ProvisioningPositioningAlgorithm.CheckPointInlineLayerPerZonePair, "prov_opt_cp_inline_layer_zone_pair"),
+                    (ProvisioningPositioningAlgorithm.FortinetEndOfZone, "prov_opt_fortinet_end_of_zone"),
+                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSection, "prov_opt_cp_end_of_app_section"),
+                    (ProvisioningPositioningAlgorithm.CheckPointEndOfAppSectionDistinguishCommonServices, "prov_opt_cp_end_of_app_section_common_svc"),
+                    (ProvisioningPositioningAlgorithm.DefaultEndOfRulebase, "prov_opt_default_end_of_rulebase")),
                 minLevel: ProvisioningScopeType.DeviceType),
             EnumField(ProvisioningSettingKeys.RuleCategory, "prov_rule_category", s => AsDevice(s).RuleCategory,
                 EnumOptions(
-                    (ProvisioningRuleCategory.App, "Application"),
-                    (ProvisioningRuleCategory.CommonService, "Common service")),
+                    (ProvisioningRuleCategory.App, "prov_opt_app"),
+                    (ProvisioningRuleCategory.CommonService, "prov_opt_common_service")),
                 minLevel: ProvisioningScopeType.DeviceType),
             new()
             {
@@ -296,13 +297,13 @@ namespace FWO.Ui.Pages.Settings
             };
 
         /// <summary>Builds the option list of a select field from the real data-layer enum members.</summary>
-        private static List<ProvisioningFieldOption> EnumOptions<TEnum>(params (TEnum Value, string DisplayName)[] entries) where TEnum : struct, Enum =>
-            [.. entries.Select(e => new ProvisioningFieldOption(e.Value.ToString(), e.DisplayName))];
+        private static List<ProvisioningFieldOption> EnumOptions<TEnum>(params (TEnum Value, string TextKey)[] entries) where TEnum : struct, Enum =>
+            [.. entries.Select(e => new ProvisioningFieldOption(e.Value.ToString(), e.TextKey))];
 
         private static List<ProvisioningFieldOption> ObjectCreationOptions() =>
             EnumOptions(
-                (ProvisioningObjectCreationMode.Supermanager, "Supermanager"),
-                (ProvisioningObjectCreationMode.Submanager, "Submanager"));
+                (ProvisioningObjectCreationMode.Supermanager, "prov_opt_supermanager"),
+                (ProvisioningObjectCreationMode.Submanager, "prov_opt_submanager"));
 
         /// <summary>Device-level fields are only offered from device type downwards, where the DTO always carries them.</summary>
         private static DeviceTypeProvisioningSettings AsDevice(GlobalProvisioningSettings settings) =>

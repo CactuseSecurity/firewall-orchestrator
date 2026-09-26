@@ -5,4 +5,25 @@
       <FWO_RUN_INTEGRATION_TESTS>false</FWO_RUN_INTEGRATION_TESTS>
     </EnvironmentVariables>
   </RunConfiguration>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <!-- Exclude compiler-generated sources, such as GeneratedRegex implementations. -->
+      <DataCollector friendlyName="Code Coverage">
+        <Configuration>
+          <CodeCoverage>
+            <Sources>
+              <Exclude>
+                <Source>.*[\\/]obj[\\/].*</Source>
+              </Exclude>
+            </Sources>
+          </CodeCoverage>
+        </Configuration>
+      </DataCollector>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <ExcludeByFile>**/obj/**</ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
 </RunSettings>

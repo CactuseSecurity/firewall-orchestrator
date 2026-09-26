@@ -234,6 +234,7 @@ internal class FlowRequestServiceTest
             RequestorId = "alice",
             RuleContactName = "Bob Approver",
             RuleContactId = "bob",
+            PreWorkflowTicketReference = "Ticket-12345",
             Title = "Allow HTTPS to app server",
             AddressObjects =
             [
@@ -292,6 +293,8 @@ internal class FlowRequestServiceTest
             Assert.That(apiConnection.SentQueries, Contains.Item(RequestQueries.getTicketById));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(1));
+            Assert.That(GetVariable(apiConnection.NewTicketVariables, "preWorkflowTicketReference"), Is.EqualTo("Ticket-12345"));
+            Assert.That(apiConnection.CreatedTicket!.PreWorkflowTicketReference, Is.EqualTo("Ticket-12345"));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].RuleAction, Is.EqualTo(1));
             Assert.That(apiConnection.LastTicketWriter.Tasks[0].Elements.WfElementList, Has.Count.EqualTo(3));
@@ -2807,6 +2810,7 @@ internal class FlowRequestServiceTest
                 Title = Convert.ToString(GetVariable(variables, "title")) ?? "",
                 StateId = Convert.ToInt32(GetVariable(variables, "state") ?? 0),
                 Reason = Convert.ToString(GetVariable(variables, "reason")) ?? "",
+                PreWorkflowTicketReference = Convert.ToString(GetVariable(variables, "preWorkflowTicketReference")),
                 Locked = Convert.ToBoolean(GetVariable(variables, "locked") ?? false),
                 Priority = Convert.ToInt32(GetVariable(variables, "priority") ?? 0),
                 Deadline = GetVariable(variables, "deadline") is DateTime deadline ? deadline : null,

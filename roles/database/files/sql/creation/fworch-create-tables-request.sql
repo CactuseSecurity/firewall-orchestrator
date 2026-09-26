@@ -98,6 +98,7 @@ create table request.ticket
     reason text,
 	external_ticket_id varchar,
 	external_ticket_source int,
+	pre_workflow_ticket_reference varchar,
 	ticket_deadline Timestamp,
 	ticket_priority int,
 	locked boolean NOT NULL DEFAULT FALSE

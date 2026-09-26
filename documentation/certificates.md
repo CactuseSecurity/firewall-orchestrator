@@ -503,6 +503,27 @@ Keep the original encrypted key in a secure backup location, then provide Apache
 
 After the change restart apache2
 
+```
+ sudo systemctl restart apache2
+```
+
+
+## Change Root Certificate
+
+Copy root cert to
+
+```
+/usr/local/share/ca-certificates/
+```
+
+and update
+
+```
+sudo update-ca-certificates
+```
+
+## Dealing with Client Certificats in Scripts
+
 The Guardicore provisioning scripts load these three TLS paths from the local
 `fworch.json`. When they run on another host, pass `--fwo-ca-cert`,
 `--fwo-client-cert`, and `--fwo-client-key` explicitly. The certificate and key

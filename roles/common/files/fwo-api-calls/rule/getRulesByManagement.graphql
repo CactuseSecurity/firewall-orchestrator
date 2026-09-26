@@ -3,6 +3,8 @@ query getRulesByManagement (
   $active: Boolean
   $import_id_start: bigint
   $import_id_end: bigint
+  $limit: Int
+  $offset: Int
 ) {
   firewall_rule (
   where: {
@@ -14,7 +16,10 @@ query getRulesByManagement (
     action_id: { _nin: [2,3,7] }
     import_control: {control_id: {_lte: $import_id_end}}, _or: [{removed: {_is_null: true}}, {removed: {_gt: $import_id_start}}]
   }
-  order_by: { rule_num_numeric: asc }){
+  order_by: [{ rule_num_numeric: asc }, { rule_id: asc }]
+  limit: $limit
+  offset: $offset
+  ){
     ...ruleDetails
     ...ruleEnforcedOnGateways
   }

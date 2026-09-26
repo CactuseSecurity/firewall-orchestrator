@@ -38,7 +38,7 @@ Before creating the release tag:
 1. Set `product_version` in
    [`inventory/group_vars/all.yml`](../../inventory/group_vars/all.yml) to the
    new version without a `v` prefix.
-2. Add the version and its changes to the end of
+2. Add the version and its changes to the top of
    [`documentation/revision-history.md`](../revision-history.md).
 3. Update
    [`documentation/version-feature-overview.md`](../version-feature-overview.md)

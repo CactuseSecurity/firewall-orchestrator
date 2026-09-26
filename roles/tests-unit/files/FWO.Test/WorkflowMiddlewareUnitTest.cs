@@ -85,6 +85,31 @@ namespace FWO.Test
             public List<WfState> States { get; set; } = [];
             public WfTicket Ticket { get; set; } = new();
 
+            /// <summary>
+            /// Rows the state-change execution claim reports as written. One means the transition
+            /// was claimed by this request, zero that it had already been executed.
+            /// </summary>
+            public int StateChangeClaimAffectedRows { get; set; } = 1;
+
+            /// <summary>
+            /// Variables of the last state-change execution claim, so a test can check what the
+            /// claim was keyed on.
+            /// </summary>
+            public object? LastStateChangeClaimVariables { get; private set; }
+
+            /// <summary>
+            /// When set, the claim is answered from <see cref="claimedStates"/> the way
+            /// request.state_change_execution answers it, instead of from the fixed
+            /// <see cref="StateChangeClaimAffectedRows"/>. That lets a test submit several requests in
+            /// a row and see which of them the guard actually grants.
+            /// </summary>
+            public bool EmulateStateChangeExecutionTable { get; set; }
+
+            /// <summary>
+            /// The transition each object's actions last ran for, keyed as the table's primary key is.
+            /// </summary>
+            private readonly Dictionary<string, string> claimedTransitions = [];
+
             public override GraphQlApiSubscription<SubscriptionResponseType> GetSubscription<SubscriptionResponseType>(Action<Exception> exceptionHandler,
                 GraphQlApiSubscription<SubscriptionResponseType>.SubscriptionUpdate subscriptionUpdateHandler, string subscription, object? variables = null,
                 string? operationName = null)
@@ -105,6 +130,18 @@ namespace FWO.Test
                     return Task.FromResult((T)(object)Ticket);
                 }
 
+                if (query == RequestQueries.claimStateChangeExecution)
+                {
+                    LastStateChangeClaimVariables = variables;
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = ClaimStateChangeExecution(variables) });
+                }
+
+                if (query == RequestQueries.recordStateChangeExecution)
+                {
+                    RecordStateChangeExecution(variables);
+                    return Task.FromResult((T)(object)new ReturnId { AffectedRows = 1 });
+                }
+
                 if (query.Contains("getConfigItemsByUser", StringComparison.OrdinalIgnoreCase)
                     || query.Contains("getConfigItemByKey", StringComparison.OrdinalIgnoreCase))
                 {
@@ -117,6 +154,55 @@ namespace FWO.Test
             public override Task<ApiResponse<T>> SendQuerySafeAsync<T>(string query, object? variables = null, string? operationName = null)
             {
                 throw new NotImplementedException();
+            }
+
+            /// <summary>
+            /// Answers a claim the way request.state_change_execution does: one row per object, and the
+            /// row is rewritten only when the guard of the mutation holds against what is recorded there.
+            /// The guard is read out of the mutation itself rather than restated here, so that a guard
+            /// which brings the caller-supplied origin state back into the comparison is emulated as
+            /// such and the test that varies it fails.
+            /// </summary>
+            /// <param name="variables">The claim variables the controller sent.</param>
+            /// <returns>The number of rows the claim reports as written.</returns>
+            private int ClaimStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return StateChangeClaimAffectedRows;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                string comparedTransition = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
+                if (claimedTransitions.TryGetValue(key, out string? claimedTransition) && claimedTransition == comparedTransition)
+                {
+                    return 0;
+                }
+
+                claimedTransitions[key] = comparedTransition;
+                return 1;
+            }
+
+            /// <summary>
+            /// Writes the row the way recordStateChangeExecution does: unguarded, so the record keeps up
+            /// with a state change executed inside the middleware that never reaches the action endpoint.
+            /// </summary>
+            /// <param name="variables">The record variables.</param>
+            private void RecordStateChangeExecution(object? variables)
+            {
+                if (!EmulateStateChangeExecutionTable || variables == null)
+                {
+                    return;
+                }
+
+                string key = $"{ReadVariable(variables, "objectScope")}:{ReadVariable(variables, "objectId")}";
+                string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+                claimedTransitions[key] = guard.Contains("from_state_id", StringComparison.Ordinal)
+                    ? $"{ReadVariable(variables, "fromStateId")}->{ReadVariable(variables, "toStateId")}"
+                    : $"{ReadVariable(variables, "toStateId")}";
             }
 
             public override void SetAuthHeader(string jwt)
@@ -420,6 +506,248 @@ namespace FWO.Test
             {
                 SetApiServerUri(previousApiServerUri);
             }
+        }
+
+        /// <summary>
+        /// SEC-06: the object's state is persisted before its actions are requested, so a request
+        /// that only claims "the object stands in the new state" stays valid after the transition
+        /// happened and could be submitted again to fire the side effects a second time. Once the
+        /// transition is claimed, the repeated request must execute nothing.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_ExecuteActionsInMiddlewareContext_ExecutesNothingForAnAlreadyClaimedTransition()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new()
+            {
+                States = [],
+                // what the claim reports once the transition was executed by an earlier request
+                StateChangeClaimAffectedRows = 0
+            };
+            apiConnection.Ticket = new WfTicket
+            {
+                Id = 42,
+                StateId = 8,
+                Requester = new UiUser { Dn = "uid=requester,dc=fworch,dc=internal" }
+            };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                Phase = WorkflowPhases.request.ToString(),
+                ExecutionMode = Roles.Admin,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+            WorkflowActionResult result = new();
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                WorkflowActionResult executed = await InvokePrivateAsync<WorkflowActionResult>(controller, "ExecuteActionsInMiddlewareContext",
+                    apiConnection, parameters, WfObjectScopes.Ticket, WorkflowPhases.request, 42L, result);
+
+                Assert.Multiple(() =>
+                {
+                    // the state change itself did happen, so the promote does not fail - throwing would
+                    // turn an accidental double submit into an error
+                    Assert.That(executed.Success, Is.True);
+                    Assert.That(executed.ErrorMessage, Is.Null.Or.Empty);
+                    // but the caller is told, because a refusal is not always a replay: a state change
+                    // that persisted without its actions leaves a record the next promote runs into,
+                    // and whoever asked for it has to see that its side effects did not run
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag), Is.True,
+                        "a refused claim must reach the caller rather than being swallowed");
+                    // the middleware only knows the default language, so the keys travel along for the
+                    // ui to show the refusal in the language of its own user
+                    Assert.That(executed.Messages.Any(message => message.ErrorFlag
+                        && message.TitleTextKey == "actions" && message.MessageTextKey == "E8018"), Is.True,
+                        "a refused claim must carry the text keys of its title and message");
+                    Assert.That(apiConnection.Queries.Count(query => query == RequestQueries.claimStateChangeExecution), Is.EqualTo(1),
+                        "the claim is the single decision point and must be attempted exactly once");
+                });
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
+        /// <summary>
+        /// The claim decides whether the side effects run, so it must be keyed on the object the
+        /// server resolved rather than on the id the caller happened to send.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_KeysTheClaimOnTheResolvedTicket()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ObjectId = 999,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+
+            object variables = apiConnection.LastStateChangeClaimVariables!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(ReadVariable(variables, "objectId"), Is.EqualTo(42L),
+                    "the ticket scope must be keyed on the resolved ticket, not on the caller's object id");
+                Assert.That(ReadVariable(variables, "objectScope"), Is.EqualTo(WfObjectScopes.Ticket.ToString()));
+                Assert.That(ReadVariable(variables, "fromStateId"), Is.EqualTo(5));
+                Assert.That(ReadVariable(variables, "toStateId"), Is.EqualTo(8));
+            });
+        }
+
+        /// <summary>
+        /// The origin state of the transition arrives in the request body and is never established
+        /// against the state the object actually held, so the guard must not compare it. A guard that
+        /// did would be re-armed by a replay that simply names a different origin state.
+        /// </summary>
+        [Test]
+        public void ClaimStateChangeExecution_GuardsOnTheStateTheServerVerified()
+        {
+            string guard = RequestQueries.claimStateChangeExecution[RequestQueries.claimStateChangeExecution.IndexOf("where:", StringComparison.Ordinal)..];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(guard, Does.Contain("to_state_id"));
+                Assert.That(guard, Does.Not.Contain("from_state_id"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+                Assert.That(guard, Does.Not.Contain("$fromStateId"),
+                    "the caller-supplied origin state must not decide whether the claim is granted");
+            });
+        }
+
+        /// <summary>
+        /// A replay that varies only the origin state must stay refused: the object still stands in
+        /// the state its actions already ran for, so nothing may be executed a second time.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_StaysRefusedWhenTheOriginStateIsVaried()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 8 };
+
+            bool firstClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedClaim = await ClaimTransition(controller, apiConnection, ticket, 5, 8);
+            bool replayedWithOtherOriginClaim = await ClaimTransition(controller, apiConnection, ticket, 6, 8);
+            bool nextTransitionClaim = await ClaimTransition(controller, apiConnection, ticket, 8, 9);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(replayedClaim, Is.False, "the identical replay is refused");
+                Assert.That(replayedWithOtherOriginClaim, Is.False,
+                    "varying the origin state must not re-arm the guard for a transition that already ran");
+                Assert.That(nextTransitionClaim, Is.True, "moving the object on is a transition of its own");
+            });
+        }
+
+        /// <summary>
+        /// Not every state change reaches this endpoint: the external request chain promotes a request
+        /// task from inside the middleware. Those executions record the state they ran for, so the guard
+        /// keeps up with the object and a later legitimate move back into an earlier state is still
+        /// claimable rather than being taken for a replay.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_ClaimsAfterAStateChangeExecutedInsideTheMiddleware()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new() { EmulateStateChangeExecutionTable = true };
+            WfTicket ticket = new() { Id = 42, StateId = 200 };
+
+            bool promoteClaim = await ClaimTransition(controller, apiConnection, ticket, 100, 200);
+            // the external request chain moves the object on without passing through the endpoint
+            await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+            {
+                objectScope = WfObjectScopes.Ticket.ToString(),
+                objectId = 42L,
+                fromStateId = 200,
+                toStateId = 300,
+                executedBy = "",
+                executedAt = DateTime.UtcNow
+            });
+            bool moveBackClaim = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+            bool replayOfTheMoveBack = await ClaimTransition(controller, apiConnection, ticket, 300, 200);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(promoteClaim, Is.True, "the first request of a transition executes its actions");
+                Assert.That(moveBackClaim, Is.True,
+                    "moving back into a state the object had left is a first execution, not a replay");
+                Assert.That(replayOfTheMoveBack, Is.False, "the replay of that move is still refused");
+            });
+        }
+
+        /// <summary>
+        /// Attempts one claim for the given transition of the given ticket.
+        /// </summary>
+        /// <param name="controller">The controller under test.</param>
+        /// <param name="apiConnection">Api connection answering the claim.</param>
+        /// <param name="ticket">The resolved ticket the claim is keyed on.</param>
+        /// <param name="oldStateId">Origin state as the request names it.</param>
+        /// <param name="newStateId">State the object is being moved into.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private static async Task<bool> ClaimTransition(WorkflowController controller, WorkflowExecutionApiConn apiConnection,
+            WfTicket ticket, int oldStateId, int newStateId)
+        {
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                OldStateId = oldStateId,
+                NewStateId = newStateId
+            };
+
+            return await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, ticket, new WorkflowActionResult());
+        }
+
+        /// <summary>
+        /// A request naming an action explicitly carries no transition to key a claim on, and is
+        /// validated against the actions currently offered instead. It must not consume the claim of
+        /// the transition the object last went through.
+        /// </summary>
+        [Test]
+        public async Task WorkflowController_TryClaimStateChangeExecution_DoesNotClaimForAnExplicitAction()
+        {
+            WorkflowController controller = CreateWorkflowController(PrincipalWithRoles(Roles.Admin));
+            WorkflowExecutionApiConn apiConnection = new();
+            WorkflowActionParameters parameters = new()
+            {
+                Scope = WfObjectScopes.Ticket.ToString(),
+                ActionId = 3,
+                OldStateId = 5,
+                NewStateId = 8
+            };
+
+            bool claimed = await InvokePrivateAsync<bool>(controller, "TryClaimStateChangeExecution",
+                apiConnection, new UserConfig(), parameters, WfObjectScopes.Ticket, new WfTicket { Id = 42 }, new WorkflowActionResult());
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(claimed, Is.True);
+                Assert.That(apiConnection.Queries, Has.None.EqualTo(RequestQueries.claimStateChangeExecution));
+            });
+        }
+
+        /// <summary>
+        /// Reads one property of the anonymous variables object handed to the api connection.
+        /// </summary>
+        /// <param name="variables">The variables object of a recorded query.</param>
+        /// <param name="name">Name of the property to read.</param>
+        private static object? ReadVariable(object variables, string name)
+        {
+            return variables.GetType().GetProperty(name)?.GetValue(variables);
         }
 
         [Test]

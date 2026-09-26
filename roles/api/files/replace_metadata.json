@@ -3318,7 +3318,12 @@
                       "change_time",
                       "ticket_id",
                       "module",
-                      "audit_proof_critical"
+                      "audit_proof_critical",
+                      "change_type",
+                      "object_type",
+                      "object_id",
+                      "old_data",
+                      "new_data"
                     ],
                     "filter": {}
                   },
@@ -10136,7 +10141,10 @@
                         },
                         {
                           "import_type_id": {
-                            "_eq": 2
+                            "_in": [
+                              2,
+                              3
+                            ]
                           }
                         }
                       ]
@@ -10172,7 +10180,10 @@
                         },
                         {
                           "import_type_id": {
-                            "_eq": 2
+                            "_in": [
+                              2,
+                              3
+                            ]
                           }
                         }
                       ]
@@ -10201,9 +10212,21 @@
                       "stop_time"
                     ],
                     "filter": {
-                      "mgm_id": {
-                        "_in": "x-hasura-visible-managements"
-                      }
+                      "_or": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "import_type_id": {
+                            "_in": [
+                              2,
+                              3
+                            ]
+                          }
+                        }
+                      ]
                     },
                     "allow_aggregations": true
                   },
@@ -36106,6 +36129,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36122,6 +36146,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36138,6 +36163,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36154,6 +36180,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36170,6 +36197,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36186,6 +36214,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36202,6 +36231,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",
@@ -36218,6 +36248,7 @@
                   "permission": {
                     "columns": [
                       "active",
+                      "phase_visibility_mode",
                       "name",
                       "phase",
                       "id",

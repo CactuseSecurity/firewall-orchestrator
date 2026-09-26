@@ -10,25 +10,61 @@ internal class FlowRequestContractTest
 {
 
     [Test]
-    public void GetRequestStatusRequest_RequiresTicketId()
+    public void GetTicketStatusRequest_RequiresTicketId()
     {
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetRequestStatusRequest>("{}"));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<GetTicketStatusRequest>("{}"));
     }
 
     [Test]
-    public void GetRequestStatusRequest_SupportsBigintTicketId()
+    public void GetTicketStatusRequest_SupportsBigintTicketId()
     {
         const long ticketId = (long)int.MaxValue + 1;
 
-        GetRequestStatusRequest? request = JsonSerializer.Deserialize<GetRequestStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
+        GetTicketStatusRequest? request = JsonSerializer.Deserialize<GetTicketStatusRequest>($$"""{"ticketId":{{ticketId}}}""");
 
         Assert.That(request?.TicketId, Is.EqualTo(ticketId));
     }
 
     [Test]
-    public void GetRequestStatusResponse_UsesExpectedJsonNames()
+    public void CreateTicketRequest_UsesEmptyOptionsAndDefaultsSortTasksToFalse()
     {
-        GetRequestStatusResponse response = new()
+        CreateTicketRequest? request = JsonSerializer.Deserialize<CreateTicketRequest>(
+            """{"requestorName":"Alice Example","requestorId":"alice","ruleContactName":"Bob Approver","ruleContactId":"bob","title":"Allow HTTPS"}""");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(request?.Options, Is.Not.Null);
+            Assert.That(request?.Options.SortTasks, Is.Null);
+        });
+    }
+
+    [Test]
+    public void CreateTicketRequest_SerializesExplicitSortTasksInsideOptions()
+    {
+        CreateTicketRequest request = new()
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow HTTPS",
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
+        };
+
+        string json = JsonSerializer.Serialize(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(json, Does.Contain("\"options\":{"));
+            Assert.That(json, Does.Contain("\"sortTasks\":true"));
+            Assert.That(json, Does.Not.Contain("\"sortTasks\":false"));
+        });
+    }
+
+    [Test]
+    public void GetTicketStatusResponse_UsesExpectedJsonNames()
+    {
+        GetTicketStatusResponse response = new()
         {
             Status = "implementation",
             StatusComment = "latest"

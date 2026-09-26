@@ -4,6 +4,7 @@ using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Config.Api.Data;
 using FWO.Data;
+using FWO.Data.Flow;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
@@ -22,14 +23,14 @@ using System.Security.Claims;
 namespace FWO.Test;
 
 [TestFixture]
-internal class FlowRequestServiceTest
+internal class WorkflowTicketServiceTest
 {
     private const int kTrustedCallerId = 77;
 
     [Test]
-    public async Task GetRequestStatusAsync_ReturnsStateNameAndLatestComment()
+    public async Task GetTicketStatusAsync_ReturnsStateNameAndLatestComment()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             Ticket = new WfTicket
             {
@@ -51,10 +52,10 @@ internal class FlowRequestServiceTest
                 new WfExtState { Name = "external_implementation", StateId = 7 }
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
         List<string> expectedQueries = [RequestQueries.getTicketById, RequestQueries.getStates, RequestQueries.getExtStates];
 
-        GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? result = await service.GetTicketStatusAsync(42);
 
         Assert.Multiple(() =>
         {
@@ -67,18 +68,18 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task GetRequestStatusAsync_RefreshesWorkflowStateNamesOnEachCall()
+    public async Task GetTicketStatusAsync_RefreshesWorkflowStateNamesOnEachCall()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             Ticket = new WfTicket { Id = 42, StateId = 7 },
             States = [new WfState { Id = 7, Name = "implementation" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        GetRequestStatusResponse? first = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? first = await service.GetTicketStatusAsync(42);
         apiConnection.States = [new WfState { Id = 7, Name = "changed" }];
-        GetRequestStatusResponse? second = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? second = await service.GetTicketStatusAsync(42);
 
         Assert.Multiple(() =>
         {
@@ -89,45 +90,45 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task GetRequestStatusAsync_ReturnsNullForUnknownTicket()
+    public async Task GetTicketStatusAsync_ReturnsNullForUnknownTicket()
     {
-        FlowRequestService service = new(new FlowRequestServiceApiConn(), new GlobalConfig());
+        WorkflowTicketService service = new(new WorkflowTicketServiceApiConn(), new GlobalConfig());
 
-        GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? result = await service.GetTicketStatusAsync(42);
 
         Assert.That(result, Is.Null);
     }
 
     [Test]
-    public async Task GetRequestStatusAsync_FallsBackToStateIdWhenStateNameMissing()
+    public async Task GetTicketStatusAsync_FallsBackToStateIdWhenStateNameMissing()
     {
-        FlowRequestService service = new(new FlowRequestServiceApiConn
+        WorkflowTicketService service = new(new WorkflowTicketServiceApiConn
         {
             Ticket = new WfTicket { Id = 42, StateId = 99 }
         }, new GlobalConfig());
 
-        GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? result = await service.GetTicketStatusAsync(42);
 
         Assert.That(result?.Status, Is.EqualTo("99"));
     }
 
     [Test]
-    public void GetRequestStatusAsync_ThrowsWhenExternalStatesCannotBeLoaded()
+    public void GetTicketStatusAsync_ThrowsWhenExternalStatesCannotBeLoaded()
     {
-        FlowRequestService service = new(new FlowRequestServiceApiConn
+        WorkflowTicketService service = new(new WorkflowTicketServiceApiConn
         {
             Ticket = new WfTicket { Id = 42, StateId = 7 },
             States = [new WfState { Id = 7, Name = "implementation" }],
             ExtStateErrors = ["external state query failed"]
         }, new GlobalConfig());
 
-        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.GetRequestStatusAsync(42));
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await service.GetTicketStatusAsync(42));
     }
 
     [Test]
-    public async Task GetRequestStatusAsync_IgnoresNullCommentWrappers()
+    public async Task GetTicketStatusAsync_IgnoresNullCommentWrappers()
     {
-        FlowRequestService service = new(new FlowRequestServiceApiConn
+        WorkflowTicketService service = new(new WorkflowTicketServiceApiConn
         {
             Ticket = new WfTicket
             {
@@ -142,18 +143,18 @@ internal class FlowRequestServiceTest
             States = [new WfState { Id = 7, Name = "implementation" }]
         }, new GlobalConfig());
 
-        GetRequestStatusResponse? result = await service.GetRequestStatusAsync(42);
+        GetTicketStatusResponse? result = await service.GetTicketStatusAsync(42);
 
         Assert.That(result?.StatusComment, Is.EqualTo("latest"));
     }
 
     [Test]
-    public async Task GetRequestStatus_ReturnsBadRequestForInvalidTicketId()
+    public async Task GetTicketStatus_ReturnsBadRequestForInvalidTicketId()
     {
-        FlowRequestServiceApiConn apiConnection = new();
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketServiceApiConn apiConnection = new();
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
 
-        ActionResult<GetRequestStatusResponse> result = await controller.GetRequestStatus(new GetRequestStatusRequest { TicketId = 0 });
+        ActionResult<GetTicketStatusResponse> result = await controller.GetTicketStatus(new GetTicketStatusRequest { TicketId = 0 });
 
         Assert.Multiple(() =>
         {
@@ -164,9 +165,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task GetRequestStatus_ReturnsOkResponseForExistingTicket()
+    public async Task GetTicketStatus_ReturnsOkResponseForExistingTicket()
     {
-        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
             Ticket = new WfTicket
             {
@@ -177,11 +178,11 @@ internal class FlowRequestServiceTest
             States = [new WfState { Id = 7, Name = "implementation" }]
         }, new GlobalConfig()));
 
-        ActionResult<GetRequestStatusResponse> result = await controller.GetRequestStatus(new GetRequestStatusRequest { TicketId = 42 });
+        ActionResult<GetTicketStatusResponse> result = await controller.GetTicketStatus(new GetTicketStatusRequest { TicketId = 42 });
 
         Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
         OkObjectResult okResult = (OkObjectResult)result.Result!;
-        GetRequestStatusResponse response = (GetRequestStatusResponse)okResult.Value!;
+        GetTicketStatusResponse response = (GetTicketStatusResponse)okResult.Value!;
         Assert.Multiple(() =>
         {
             Assert.That(response.Status, Is.EqualTo("implementation"));
@@ -190,16 +191,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task GetRequestStatus_ReturnsInternalServerErrorWhenExternalStatesCannotBeLoaded()
+    public async Task GetTicketStatus_ReturnsInternalServerErrorWhenExternalStatesCannotBeLoaded()
     {
-        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
             Ticket = new WfTicket { Id = 42, StateId = 7 },
             States = [new WfState { Id = 7, Name = "implementation" }],
             ExtStateErrors = ["external state query failed"]
         }, new GlobalConfig()));
 
-        ActionResult<GetRequestStatusResponse> result = await controller.GetRequestStatus(new GetRequestStatusRequest { TicketId = 42 });
+        ActionResult<GetTicketStatusResponse> result = await controller.GetTicketStatus(new GetTicketStatusRequest { TicketId = 42 });
 
         Assert.That(result.Result, Is.TypeOf<ObjectResult>());
         ObjectResult errorResult = (ObjectResult)result.Result!;
@@ -214,21 +215,21 @@ internal class FlowRequestServiceTest
     [TestCase("2026-07-01T08:00:00", "2026-07-01T18:00:00", DateTimeKind.Unspecified, "tcp", 6)]
     [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "0", 0)]
     [TestCase("2026-07-01T08:00:00Z", "2026-07-01T18:00:00Z", DateTimeKind.Utc, "HOPOPT", 0)]
-    public async Task CreateRequest_ReturnsCreatedTicketAndResolvesTemporaryIds(
+    public async Task CreateTicket_ReturnsCreatedTicketAndResolvesTemporaryIds(
         string startTime,
         string endTime,
         DateTimeKind expectedDateTimeKind,
         string protocol,
         int expectedProtocolId)
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 0, Name = "HOPOPT" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -237,9 +238,9 @@ internal class FlowRequestServiceTest
             Title = "Allow HTTPS to app server",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -247,9 +248,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = protocol,
                     PortStart = 443,
@@ -258,9 +259,9 @@ internal class FlowRequestServiceTest
             ],
             TimeObjects =
             [
-                new CreateRequestRequest.CreateTimeObjectRequest
+                new CreateTicketRequest.CreateTimeObjectRequest
                 {
-                    Id = "-3",
+                    Id = -3,
                     Name = "business-hours",
                     StartTime = startTime,
                     EndTime = endTime
@@ -268,7 +269,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     Name = "Allow app traffic",
@@ -284,7 +285,7 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(response.Status, Is.EqualTo("draft"));
-            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getStates));
             Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getRuleActions));
             Assert.That(apiConnection.SentQueries, Does.Contain(StmQueries.getIpProtocols));
@@ -310,16 +311,108 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_AcceptsCanonicalAnyIpProtocolServiceWithNullPorts()
+    public async Task CreateTicket_ResolvesPositiveFlowObjectIdsIntoWorkflowElements()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        DateTime startTime = new(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime endTime = new(2026, 8, 31, 23, 59, 59, DateTimeKind.Utc);
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            FlowNetworkObjects = [new FlowNwObject { Id = 101, Name = "server", IpStart = "192.0.2.10", IpEnd = "192.0.2.10" }],
+            FlowNetworkGroups = [new FlowNwGroup { Id = 101, Name = "servers" }],
+            FlowServiceObjects = [new FlowSvcObject { Id = 303, Name = "https", ProtoId = 6, PortStart = 443, PortEnd = 443 }],
+            FlowServiceGroups = [new FlowSvcGroup { Id = 303, Name = "web-services" }],
+            FlowTimeObjects = [new FlowTimeObject { Id = 404, Name = "maintenance", StartTime = startTime, EndTime = endTime }]
+        };
+
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+        await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Allow existing Flow objects",
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceObjects = [101],
+                    DestinationGroups = [101],
+                    ServiceObjects = [303],
+                    ServiceGroups = [303],
+                    TimeObjectId = 404
+                }
+            ]
+        }, kTrustedCallerId);
+
+        List<WfReqElementWriter> elements = apiConnection.LastTicketWriter!.Tasks[0].Elements.WfElementList;
+        Assert.Multiple(() =>
+        {
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.source.ToString()).FlowNetworkObjectId, Is.EqualTo(101));
+            Assert.That(elements.Single(element => element.Field == ElemFieldType.destination.ToString()).FlowNetworkGroupId, Is.EqualTo(101));
+            Assert.That(elements.Count(element => element.Field == ElemFieldType.service.ToString()), Is.EqualTo(2));
+            Assert.That(elements.Single(element => element.FlowServiceObjectId == 303).FlowServiceObjectId, Is.EqualTo(303));
+            Assert.That(elements.Single(element => element.FlowServiceGroupId == 303).FlowServiceGroupId, Is.EqualTo(303));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].GetAddInfoValue(AdditionalInfoKeys.TimeObjectId), Is.EqualTo("404"));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetBeginDate, Is.EqualTo(startTime));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TargetEndDate, Is.EqualTo(endTime));
+        });
+    }
+
+    [Test]
+    public void CreateTicket_RejectsInternalObjectIdUsedAsGroupReference()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
+
+        ArgumentException exception = Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Invalid group reference",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceGroups = [-1]
+                }
+            ]
+        }, 77))!;
+
+        Assert.That(exception.Message, Does.Contain("addressgroup"));
+    }
+
+    [Test]
+    public async Task CreateTicket_AcceptsCanonicalAnyIpProtocolServiceWithNullPorts()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -328,9 +421,9 @@ internal class FlowRequestServiceTest
             Title = "Allow any IP protocol to app server",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -338,9 +431,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "any-ip",
                     Protocol = "ANY",
                     PortStart = null,
@@ -349,7 +442,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -372,16 +465,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public void CreateRequest_RejectsPortEndWithoutPortStart()
+    public void CreateTicket_RejectsPortEndWithoutPortStart()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        ArgumentException exception = Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateRequestAsync(new CreateRequestRequest
+        ArgumentException exception = Assert.ThrowsAsync<ArgumentException>(async () => await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -390,9 +483,9 @@ internal class FlowRequestServiceTest
             Title = "Port end without port start",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -400,9 +493,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = null,
@@ -411,7 +504,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -429,16 +522,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_AllowsPortStartWithoutPortEndAsSinglePortShorthand()
+    public async Task CreateTicket_AllowsPortStartWithoutPortEndAsSinglePortShorthand()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -447,9 +540,9 @@ internal class FlowRequestServiceTest
             Title = "Port start without port end",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -457,9 +550,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -468,7 +561,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -490,16 +583,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_KeepsAddressIpsOnWrittenElements()
+    public async Task CreateTicket_KeepsAddressIpsOnWrittenElements()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        await service.CreateRequestAsync(new CreateRequestRequest
+        await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -508,9 +601,9 @@ internal class FlowRequestServiceTest
             Title = "Allow HTTPS to application server",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -518,7 +611,7 @@ internal class FlowRequestServiceTest
             ],
             AddressGroups =
             [
-                new CreateRequestRequest.CreateAddressGroupRequest
+                new CreateTicketRequest.CreateAddressGroupRequest
                 {
                     Id = -3,
                     Name = "app-servers",
@@ -527,9 +620,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -538,12 +631,12 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     Name = "Allow app HTTPS",
                     SourceObjects = [-1],
-                    DestinationObjects = [-3],
+                    DestinationGroups = [-3],
                     ServiceObjects = [-2]
                 }
             ]
@@ -564,9 +657,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_UsesConfiguredInitialTicketState()
+    public async Task CreateTicket_UsesConfiguredInitialTicketState()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = new List<WfState>
             {
@@ -580,9 +673,9 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
             }
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -591,9 +684,9 @@ internal class FlowRequestServiceTest
             Title = "Configured state request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -601,9 +694,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -612,7 +705,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -633,9 +726,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_UsesConfiguredInitialStateFromGlobalConfig()
+    public async Task CreateTicket_UsesConfiguredInitialStateFromGlobalConfig()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -651,9 +744,9 @@ internal class FlowRequestServiceTest
             ]
         };
         GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = 49 };
-        FlowRequestService service = new(apiConnection, globalConfig);
+        WorkflowTicketService service = new(apiConnection, globalConfig);
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -662,9 +755,9 @@ internal class FlowRequestServiceTest
             Title = "Updated config request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -672,9 +765,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -683,7 +776,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -703,9 +796,9 @@ internal class FlowRequestServiceTest
     [Test]
     public void GlobalConfigSubscription_UpdatesSharedConfigAndRaisesChange()
     {
-        FlowRequestServiceApiConn apiConnection = new();
+        WorkflowTicketServiceApiConn apiConnection = new();
         GlobalConfig globalConfig = new() { ReqApiTicketInitialStateId = -1 };
-        FlowRequestService service = new(apiConnection, globalConfig);
+        WorkflowTicketService service = new(apiConnection, globalConfig);
         int onChangeCount = 0;
         globalConfig.OnChange += (_, _) => onChangeCount++;
 
@@ -731,7 +824,7 @@ internal class FlowRequestServiceTest
     [Test]
     public void GlobalConfigSubscription_MergesRawSnapshotWithoutDroppingUnrelatedItems()
     {
-        FlowRequestServiceApiConn apiConnection = new();
+        WorkflowTicketServiceApiConn apiConnection = new();
         GlobalConfig globalConfig = new()
         {
             ReqApiTicketInitialStateId = -1
@@ -740,7 +833,7 @@ internal class FlowRequestServiceTest
         [
             new ConfigItem { Key = "welcomeMessage", Value = "keep-me", User = 0 }
         ];
-        FlowRequestService service = new(apiConnection, globalConfig);
+        WorkflowTicketService service = new(apiConnection, globalConfig);
 
         apiConnection.EmitGlobalConfigChange(new ConfigItem
         {
@@ -763,8 +856,8 @@ internal class FlowRequestServiceTest
     [Test]
     public async Task GlobalConfigSubscription_RebindAndDisposeUsesSingleHandle()
     {
-        FlowRequestServiceApiConn apiConnection = new();
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketServiceApiConn apiConnection = new();
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
         await apiConnection.ReconnectSubscriptionsAsync("jwt", default);
         service.Dispose();
@@ -781,7 +874,7 @@ internal class FlowRequestServiceTest
     [Test]
     public async Task Constructor_IgnoresConfigSubscriptionFailures()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             ThrowOnConfigSubscriptionInit = true,
             States =
@@ -795,9 +888,9 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 71))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -806,9 +899,9 @@ internal class FlowRequestServiceTest
             Title = "Config subscription failure fallback",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -816,9 +909,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -827,7 +920,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -842,9 +935,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_UsesFirstActivePhaseWhenRequestIsInactive()
+    public async Task CreateTicket_UsesFirstActivePhaseWhenRequestIsInactive()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -859,9 +952,9 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 22))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(CreateBaseRequest("Approval phase request"), 77);
+        CreateTicketResponse response = await service.CreateTicketAsync(CreateBaseRequest("Approval phase request"), 77);
 
         Assert.Multiple(() =>
         {
@@ -873,9 +966,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public void CreateRequest_RejectsWhenNoActiveWorkflowPhaseExists()
+    public void CreateTicket_RejectsWhenNoActiveWorkflowPhaseExists()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -890,18 +983,18 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.approval, false, 11, 12, 32))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
         InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.CreateRequestAsync(CreateBaseRequest("Inactive workflow"), 77))!;
+            async () => await service.CreateTicketAsync(CreateBaseRequest("Inactive workflow"), 77))!;
 
         Assert.That(exception.Message, Does.Contain("No active workflow phase is configured"));
     }
 
     [Test]
-    public async Task CreateRequest_RejectsConfiguredInitialStateWhenConfiguredStateBelongsToInactivePhase()
+    public async Task CreateTicket_RejectsConfiguredInitialStateWhenConfiguredStateBelongsToInactivePhase()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -916,18 +1009,18 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.approval, true, 11, 12, 42))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 1 });
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 1 });
 
         InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.CreateRequestAsync(CreateBaseRequest("Invalid initial state"), 77))!;
+            async () => await service.CreateTicketAsync(CreateBaseRequest("Invalid initial state"), 77))!;
 
         Assert.That(exception.Message, Does.Contain("does not belong to any active workflow phase"));
     }
 
     [Test]
-    public void CreateRequest_RejectsConfiguredInitialStateWhenStateIsUnknown()
+    public void CreateTicket_RejectsConfiguredInitialStateWhenStateIsUnknown()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -935,10 +1028,10 @@ internal class FlowRequestServiceTest
             ],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
         InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.CreateRequestAsync(new CreateRequestRequest
+            async () => await service.CreateTicketAsync(new CreateTicketRequest
             {
                 RequestorName = "Alice Example",
                 RequestorId = "alice",
@@ -947,9 +1040,9 @@ internal class FlowRequestServiceTest
                 Title = "Unknown state request",
                 AddressObjects =
                 [
-                    new CreateRequestRequest.CreateAddressObjectRequest
+                    new CreateTicketRequest.CreateAddressObjectRequest
                     {
-                        Id = "-1",
+                        Id = -1,
                         Name = "app-server-1",
                         IpStart = "192.0.2.10",
                         IpEnd = "192.0.2.10"
@@ -957,9 +1050,9 @@ internal class FlowRequestServiceTest
                 ],
                 ServiceObjects =
                 [
-                    new CreateRequestRequest.CreateServiceObjectRequest
+                    new CreateTicketRequest.CreateServiceObjectRequest
                     {
-                        Id = "-2",
+                        Id = -2,
                         Name = "https",
                         Protocol = "tcp",
                         PortStart = 443,
@@ -968,7 +1061,7 @@ internal class FlowRequestServiceTest
                 ],
                 Rules =
                 [
-                    new CreateRequestRequest.CreateRequestRuleRequest
+                    new CreateTicketRequest.CreateTicketRuleRequest
                     {
                         Action = "accept",
                         SourceObjects = [-1],
@@ -982,9 +1075,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public void CreateRequest_RejectsConfiguredInitialStateWhenMultipleActivePhasesMatch()
+    public void CreateTicket_RejectsConfiguredInitialStateWhenMultipleActivePhasesMatch()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -1000,18 +1093,18 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.planning, true, 15, 25, 53))
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
         InvalidOperationException exception = Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await service.CreateRequestAsync(CreateBaseRequest("Overlapping phase request"), 77))!;
+            async () => await service.CreateTicketAsync(CreateBaseRequest("Overlapping phase request"), 77))!;
 
         Assert.That(exception.Message, Does.Contain("matches multiple active workflow phases"));
     }
 
     [Test]
-    public async Task CreateRequest_MapsDropActionToConfiguredRuleActionId()
+    public async Task CreateTicket_MapsDropActionToConfiguredRuleActionId()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
@@ -1021,9 +1114,9 @@ internal class FlowRequestServiceTest
                 new RuleAction { Id = 2, Name = "drop", Allowed = false }
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1032,9 +1125,9 @@ internal class FlowRequestServiceTest
             Title = "Drop blocked traffic",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1042,9 +1135,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1053,7 +1146,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "drop",
                     SourceObjects = [-1],
@@ -1073,17 +1166,17 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_AllowsGroupCreateTasks()
+    public async Task CreateTicket_AllowsGroupCreateTasks()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             RuleActions = [new RuleAction { Id = 1, Name = "accept", Allowed = true }]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1092,9 +1185,9 @@ internal class FlowRequestServiceTest
             Title = "Grouped request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1102,9 +1195,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1113,7 +1206,7 @@ internal class FlowRequestServiceTest
             ],
             AddressGroups =
             [
-                new CreateRequestRequest.CreateAddressGroupRequest
+                new CreateTicketRequest.CreateAddressGroupRequest
                 {
                     Id = -3,
                     Name = "app-servers",
@@ -1122,7 +1215,7 @@ internal class FlowRequestServiceTest
             ],
             ServiceGroups =
             [
-                new CreateRequestRequest.CreateServiceGroupRequest
+                new CreateTicketRequest.CreateServiceGroupRequest
                 {
                     Id = -4,
                     Name = "web-services",
@@ -1131,12 +1224,12 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ]
         }, 77);
@@ -1155,15 +1248,185 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsOkResponseAndUsesPayloadRequester()
+    public async Task CreateTicket_UsesStoredTaskSortConfigWhenValid()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            RuleActions = [new RuleAction { Id = 1, Name = "accept", Allowed = true }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig
+        {
+            ReqCreateRequestTaskSortConfig = """
+                {"group_create_priority":1,"group_modify_add_priority":2,"access_priority":0,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}
+                """
+        });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Sorted request",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Id = -2,
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateTicketRequest.CreateAddressGroupRequest
+                {
+                    Id = -3,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            ServiceGroups =
+            [
+                new CreateTicketRequest.CreateServiceGroupRequest
+                {
+                    Id = -4,
+                    Name = "web-services",
+                    MemberIds = [-2]
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
+                }
+            ],
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_FallsBackToDefaultTaskSortConfigWhenStoredConfigIsInvalid()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
+            RuleActions = [new RuleAction { Id = 1, Name = "accept", Allowed = true }]
+        };
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig
+        {
+            ReqCreateRequestTaskSortConfig = "{not valid json"
+        });
+
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
+        {
+            RequestorName = "Alice Example",
+            RequestorId = "alice",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Fallback request",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Id = -2,
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            AddressGroups =
+            [
+                new CreateTicketRequest.CreateAddressGroupRequest
+                {
+                    Id = -3,
+                    Name = "app-servers",
+                    MemberIds = [-1]
+                }
+            ],
+            ServiceGroups =
+            [
+                new CreateTicketRequest.CreateServiceGroupRequest
+                {
+                    Id = -4,
+                    Name = "web-services",
+                    MemberIds = [-2]
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
+                }
+            ],
+            Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = true }
+        }, 77);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.Status, Is.EqualTo("draft"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
+            Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[0].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[1].TaskType, Is.EqualTo(WfTaskType.group_create.ToString()));
+            Assert.That(apiConnection.LastTicketWriter.Tasks[2].TaskType, Is.EqualTo(WfTaskType.access.ToString()));
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsOkResponseAndUsesPayloadRequester()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             Owners = [new FwoOwner { Id = 42, Name = "Finance" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -1178,7 +1441,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -1187,9 +1450,9 @@ internal class FlowRequestServiceTest
             Title = "Allow HTTPS to app server",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1197,9 +1460,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1208,7 +1471,7 @@ internal class FlowRequestServiceTest
             ],
             AddressGroups =
             [
-                new CreateRequestRequest.CreateAddressGroupRequest
+                new CreateTicketRequest.CreateAddressGroupRequest
                 {
                     Id = -3,
                     Name = "app-servers",
@@ -1217,7 +1480,7 @@ internal class FlowRequestServiceTest
             ],
             ServiceGroups =
             [
-                new CreateRequestRequest.CreateServiceGroupRequest
+                new CreateTicketRequest.CreateServiceGroupRequest
                 {
                     Id = -4,
                     Name = "web-services",
@@ -1226,13 +1489,13 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     OwnerId = 42,
-                    SourceObjects = [-3],
-                    DestinationObjects = [-3],
-                    ServiceObjects = [-4]
+                    SourceGroups = [-3],
+                    DestinationGroups = [-3],
+                    ServiceGroups = [-4]
                 }
             ]
         });
@@ -1240,9 +1503,9 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-            CreateRequestResponse response = (CreateRequestResponse)((OkObjectResult)result.Result!).Value!;
+            CreateTicketResponse response = (CreateTicketResponse)((OkObjectResult)result.Result!).Value!;
             Assert.That(response.Status, Is.EqualTo("draft"));
-            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(apiConnection.LastTicketWriter!.Tasks, Has.Count.EqualTo(3));
             Assert.That(apiConnection.CreatedTicket!.Requester?.DbId, Is.EqualTo(77));
@@ -1254,9 +1517,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_UsesMatrixLowestInputStateWhenInitialStateIsUnset()
+    public async Task CreateTicket_UsesMatrixLowestInputStateWhenInitialStateIsUnset()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -1291,9 +1554,9 @@ internal class FlowRequestServiceTest
                 }
             ]
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1302,9 +1565,9 @@ internal class FlowRequestServiceTest
             Title = "Unset state request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1312,9 +1575,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1323,7 +1586,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1336,16 +1599,16 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(response.Status, Is.EqualTo("open"));
-            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(3));
             Assert.That(apiConnection.SentQueries, Does.Contain(RequestQueries.getActiveStateMatrixConfiguration));
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsConfiguredInitialStateFromController()
+    public async Task CreateTicket_ReturnsConfiguredInitialStateFromController()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -1359,13 +1622,13 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
             ]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1374,9 +1637,9 @@ internal class FlowRequestServiceTest
             Title = "Configured state request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1384,9 +1647,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1395,7 +1658,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1408,9 +1671,9 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-            CreateRequestResponse response = (CreateRequestResponse)((OkObjectResult)result.Result!).Value!;
+            CreateTicketResponse response = (CreateTicketResponse)((OkObjectResult)result.Result!).Value!;
             Assert.That(response.Status, Is.EqualTo("requested"));
-            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(apiConnection.LastTicketWriter, Is.Not.Null);
             Assert.That(GetVariable(apiConnection.NewTicketVariables, "state"), Is.EqualTo(17));
             Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
@@ -1419,16 +1682,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_LogsTheAuthenticatedCallerAsChanger()
+    public async Task CreateTicket_LogsTheAuthenticatedCallerAsChanger()
     {
-        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        WorkflowTicketServiceApiConn apiConnection = CreatePromotingApiConn();
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(CreateAccessRequest("Caller attributed request"));
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(CreateAccessRequest("Caller attributed request"));
 
         Assert.Multiple(() =>
         {
@@ -1439,12 +1702,12 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_LogsTheMiddlewareServerAsChangerWhenTheCallerIsUnknown()
+    public async Task CreateTicket_LogsTheMiddlewareServerAsChangerWhenTheCallerIsUnknown()
     {
-        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketServiceApiConn apiConnection = CreatePromotingApiConn();
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
-        await service.CreateRequestAsync(CreateAccessRequest("Unattributed request"), 77);
+        await service.CreateTicketAsync(CreateAccessRequest("Unattributed request"), 77);
 
         Assert.Multiple(() =>
         {
@@ -1454,16 +1717,16 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_LogsTheAuthenticatedCallerIdAsChangerId()
+    public async Task CreateTicket_LogsTheAuthenticatedCallerIdAsChangerId()
     {
-        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        WorkflowTicketServiceApiConn apiConnection = CreatePromotingApiConn();
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(CreateAccessRequest("Caller attributed request"));
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(CreateAccessRequest("Caller attributed request"));
 
         Assert.Multiple(() =>
         {
@@ -1476,12 +1739,12 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_LeavesTheChangerIdEmptyWhenTheCallerIsUnknown()
+    public async Task CreateTicket_LeavesTheChangerIdEmptyWhenTheCallerIsUnknown()
     {
-        FlowRequestServiceApiConn apiConnection = CreatePromotingApiConn();
-        FlowRequestService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
+        WorkflowTicketServiceApiConn apiConnection = CreatePromotingApiConn();
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 });
 
-        await service.CreateRequestAsync(CreateAccessRequest("Unattributed request"), kTrustedCallerId);
+        await service.CreateTicketAsync(CreateAccessRequest("Unattributed request"), kTrustedCallerId);
 
         Assert.Multiple(() =>
         {
@@ -1492,20 +1755,20 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
+    public async Task CreateTicket_ReturnsInternalServerErrorWhenConfiguredInitialStateIsMissing()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1514,9 +1777,9 @@ internal class FlowRequestServiceTest
             Title = "Missing configured state",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1524,9 +1787,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1535,7 +1798,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1556,9 +1819,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsSuccessWhenWorkflowActionsFail()
+    public async Task CreateTicket_ReturnsSuccessWhenWorkflowActionsFail()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States =
             [
@@ -1591,7 +1854,7 @@ internal class FlowRequestServiceTest
                     CreateWorkflowConfigurationPhase(WorkflowPhases.request, true, 17, 18, 17))
             ]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig { ReqApiTicketInitialStateId = 17 }));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -1606,7 +1869,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1615,9 +1878,9 @@ internal class FlowRequestServiceTest
             Title = "Configured state request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1625,9 +1888,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1636,7 +1899,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1649,18 +1912,18 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
-            CreateRequestResponse response = (CreateRequestResponse)((OkObjectResult)result.Result!).Value!;
+            CreateTicketResponse response = (CreateTicketResponse)((OkObjectResult)result.Result!).Value!;
             Assert.That(response.Status, Is.EqualTo("requested"));
-            Assert.That(response.RequestId, Is.EqualTo(100));
+            Assert.That(response.TicketId, Is.EqualTo(100));
             Assert.That(apiConnection.CreatedTicket, Is.Not.Null);
             Assert.That(apiConnection.CreatedTicket!.StateId, Is.EqualTo(17));
         });
     }
 
     [Test]
-    public async Task CreateRequest_UsesNumericProtocolIdWhenConfiguredProtocolExists()
+    public async Task CreateTicket_UsesNumericProtocolIdWhenConfiguredProtocolExists()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol>
@@ -1669,9 +1932,9 @@ internal class FlowRequestServiceTest
                 new() { Id = 17, Name = "udp" }
             }
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1680,9 +1943,9 @@ internal class FlowRequestServiceTest
             Title = "Numeric protocol request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1690,9 +1953,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "17",
                     PortStart = 443,
@@ -1701,7 +1964,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1721,9 +1984,9 @@ internal class FlowRequestServiceTest
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForZeroEntityId()
+    public async Task CreateTicket_ReturnsBadRequestForZeroEntityId()
     {
-        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
@@ -1733,7 +1996,7 @@ internal class FlowRequestServiceTest
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -1742,9 +2005,9 @@ internal class FlowRequestServiceTest
             Title = "Invalid entity id request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "0",
+                    Id = 0,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1752,9 +2015,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1763,7 +2026,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1776,14 +2039,14 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("non-zero integer"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("non-zero integer"));
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForDuplicateEntityId()
+    public async Task CreateTicket_ReturnsBadRequestForDuplicateEntityId()
     {
-        FlowRequestController controller = new(new FlowRequestService(new FlowRequestServiceApiConn
+        WorkflowTicketController controller = new(new WorkflowTicketService(new WorkflowTicketServiceApiConn
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } }
@@ -1793,7 +2056,7 @@ internal class FlowRequestServiceTest
             HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -1802,9 +2065,9 @@ internal class FlowRequestServiceTest
             Title = "Duplicate entity request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1812,9 +2075,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1823,7 +2086,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1836,22 +2099,22 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Duplicate request object id -1"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("Duplicate request object id -1"));
         });
     }
 
     [Test]
-    public async Task CreateRequest_FallsBackToStateNameWhenExternalStateLookupFails()
+    public async Task CreateTicket_FallsBackToStateNameWhenExternalStateLookupFails()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = new List<WfState> { new() { Id = 0, Name = "draft" } },
             Protocols = new List<IpProtocol> { new() { Id = 6, Name = "tcp" } },
             ExtStateErrors = new List<string> { "external state query failed" }.ToArray()
         };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
-        CreateRequestResponse response = await service.CreateRequestAsync(new CreateRequestRequest
+        CreateTicketResponse response = await service.CreateTicketAsync(new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -1860,9 +2123,9 @@ internal class FlowRequestServiceTest
             Title = "External state fallback request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1870,9 +2133,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -1881,7 +2144,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1902,14 +2165,14 @@ internal class FlowRequestServiceTest
     [TestCase("999")]
     [TestCase("-1")]
     [TestCase("ANY")]
-    public async Task CreateRequest_ReturnsBadRequestForInvalidProtocol(string protocol)
+    public async Task CreateTicket_ReturnsBadRequestForInvalidProtocol(string protocol)
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = -1, Name = "ANY" }, new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -1924,7 +2187,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -1933,9 +2196,9 @@ internal class FlowRequestServiceTest
             Title = "Invalid protocol request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -1943,9 +2206,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = protocol,
                     PortStart = 443,
@@ -1954,7 +2217,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -1967,21 +2230,71 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("protocol"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("protocol"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForUnknownOwnerId()
+    public async Task CreateTicket_ReturnsAllSemanticValidationErrorsTogether()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
+        {
+            RequestorName = "Payload Requester",
+            RequestorId = "payload-requester",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Multiple semantic errors",
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Id = -2,
+                    Name = "invalid-service",
+                    Protocol = "999"
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "accept",
+                    OwnerId = 999
+                }
+            ]
+        });
+
+        RequestValidationErrorResponse errors = GetValidationResponse(result);
+        Assert.Multiple(() =>
+        {
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0]", "rules[0]"]));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("protocol"));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("owner"));
+            Assert.That(apiConnection.LastTicketWriter, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsBadRequestForUnknownOwnerId()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }],
             Owners = [new FwoOwner { Id = 42, Name = "Finance" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -1996,7 +2309,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -2005,9 +2318,9 @@ internal class FlowRequestServiceTest
             Title = "Unknown owner request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2015,9 +2328,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2026,7 +2339,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     OwnerId = 999,
@@ -2040,20 +2353,20 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("owner"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("owner"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForUnknownTimeObjectId()
+    public async Task CreateTicket_ReturnsBadRequestForUnknownTimeObjectId()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2068,7 +2381,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -2077,9 +2390,9 @@ internal class FlowRequestServiceTest
             Title = "Unknown time object request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2087,9 +2400,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2098,7 +2411,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -2112,20 +2425,20 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForWrongKindTimeObjectId()
+    public async Task CreateTicket_ReturnsBadRequestForWrongKindTimeObjectId()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2140,7 +2453,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -2149,9 +2462,9 @@ internal class FlowRequestServiceTest
             Title = "Wrong kind time object request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2159,9 +2472,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2170,7 +2483,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -2184,20 +2497,20 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("time object"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("time object"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForServiceObjectInSourceObjects()
+    public async Task CreateTicket_ReturnsBadRequestForServiceObjectInSourceObjects()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2212,7 +2525,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -2221,9 +2534,9 @@ internal class FlowRequestServiceTest
             Title = "Wrong source kind request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2231,9 +2544,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2242,7 +2555,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-2],
@@ -2255,20 +2568,20 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("source"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("source"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
     }
 
     [Test]
-    public async Task CreateRequest_ReturnsBadRequestForAddressObjectInServiceObjects()
+    public async Task CreateTicket_ReturnsBadRequestForAddressObjectInServiceObjects()
     {
-        FlowRequestServiceApiConn apiConnection = new()
+        WorkflowTicketServiceApiConn apiConnection = new()
         {
             States = [new WfState { Id = 0, Name = "draft" }],
             Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
         };
-        FlowRequestController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext
@@ -2283,7 +2596,7 @@ internal class FlowRequestServiceTest
             }
         };
 
-        ActionResult<CreateRequestResponse> result = await controller.CreateRequest(new CreateRequestRequest
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
         {
             RequestorName = "Payload Requester",
             RequestorId = "payload-requester",
@@ -2292,9 +2605,9 @@ internal class FlowRequestServiceTest
             Title = "Wrong service kind request",
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2302,9 +2615,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2313,7 +2626,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -2326,9 +2639,14 @@ internal class FlowRequestServiceTest
         Assert.Multiple(() =>
         {
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("service"));
+            Assert.That(GetValidationResponse(result).Errors[0].Message, Does.Contain("service"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
+    }
+
+    private static RequestValidationErrorResponse GetValidationResponse(ActionResult<CreateTicketResponse> result)
+    {
+        return (RequestValidationErrorResponse)((BadRequestObjectResult)result.Result!).Value!;
     }
 
     private static WfCommentDataHelper NewComment(string text, DateTime creationDate)
@@ -2344,9 +2662,9 @@ internal class FlowRequestServiceTest
     /// Builds a simulated api connection whose initial ticket state promotes the created request task,
     /// because only the follow-up state update writes a change history entry.
     /// </summary>
-    private static FlowRequestServiceApiConn CreatePromotingApiConn()
+    private static WorkflowTicketServiceApiConn CreatePromotingApiConn()
     {
-        return new FlowRequestServiceApiConn
+        return new WorkflowTicketServiceApiConn
         {
             States =
             [
@@ -2393,9 +2711,9 @@ internal class FlowRequestServiceTest
     /// <summary>
     /// Builds the smallest valid access request payload.
     /// </summary>
-    private static CreateRequestRequest CreateAccessRequest(string title)
+    private static CreateTicketRequest CreateAccessRequest(string title)
     {
-        return new CreateRequestRequest
+        return new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -2404,9 +2722,9 @@ internal class FlowRequestServiceTest
             Title = title,
             AddressObjects =
             [
-                new CreateRequestRequest.CreateAddressObjectRequest
+                new CreateTicketRequest.CreateAddressObjectRequest
                 {
-                    Id = "-1",
+                    Id = -1,
                     Name = "app-server-1",
                     IpStart = "192.0.2.10",
                     IpEnd = "192.0.2.10"
@@ -2414,9 +2732,9 @@ internal class FlowRequestServiceTest
             ],
             ServiceObjects =
             [
-                new CreateRequestRequest.CreateServiceObjectRequest
+                new CreateTicketRequest.CreateServiceObjectRequest
                 {
-                    Id = "-2",
+                    Id = -2,
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -2425,7 +2743,7 @@ internal class FlowRequestServiceTest
             ],
             Rules =
             [
-                new CreateRequestRequest.CreateRequestRuleRequest
+                new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
                     SourceObjects = [-1],
@@ -2460,11 +2778,11 @@ internal class FlowRequestServiceTest
     }
 
     /// <summary>
-    /// Builds a minimal create-request payload used by the workflow phase tests.
+    /// Builds a minimal create-ticket payload used by the workflow phase tests.
     /// </summary>
-    private static CreateRequestRequest CreateBaseRequest(string title)
+    private static CreateTicketRequest CreateBaseRequest(string title)
     {
-        return new CreateRequestRequest
+        return new CreateTicketRequest
         {
             RequestorName = "Alice Example",
             RequestorId = "alice",
@@ -2480,11 +2798,11 @@ internal class FlowRequestServiceTest
     /// <summary>
     /// Creates the default address object used by the workflow phase tests.
     /// </summary>
-    private static CreateRequestRequest.CreateAddressObjectRequest CreateAddressObjectRequest()
+    private static CreateTicketRequest.CreateAddressObjectRequest CreateAddressObjectRequest()
     {
-        return new CreateRequestRequest.CreateAddressObjectRequest
+        return new CreateTicketRequest.CreateAddressObjectRequest
         {
-            Id = "-1",
+            Id = -1,
             Name = "app-server-1",
             IpStart = "192.0.2.10",
             IpEnd = "192.0.2.10"
@@ -2494,11 +2812,11 @@ internal class FlowRequestServiceTest
     /// <summary>
     /// Creates the default service object used by the workflow phase tests.
     /// </summary>
-    private static CreateRequestRequest.CreateServiceObjectRequest CreateServiceObjectRequest()
+    private static CreateTicketRequest.CreateServiceObjectRequest CreateServiceObjectRequest()
     {
-        return new CreateRequestRequest.CreateServiceObjectRequest
+        return new CreateTicketRequest.CreateServiceObjectRequest
         {
-            Id = "-2",
+            Id = -2,
             Name = "https",
             Protocol = "tcp",
             PortStart = 443,
@@ -2509,9 +2827,9 @@ internal class FlowRequestServiceTest
     /// <summary>
     /// Creates the default accept rule used by the workflow phase tests.
     /// </summary>
-    private static CreateRequestRequest.CreateRequestRuleRequest CreateAcceptRuleRequest()
+    private static CreateTicketRequest.CreateTicketRuleRequest CreateAcceptRuleRequest()
     {
-        return new CreateRequestRequest.CreateRequestRuleRequest
+        return new CreateTicketRequest.CreateTicketRuleRequest
         {
             Action = "accept",
             SourceObjects = [-1],
@@ -2555,7 +2873,7 @@ internal class FlowRequestServiceTest
         };
     }
 
-    private sealed class FlowRequestServiceApiConn : SimulatedApiConnection
+    private sealed class WorkflowTicketServiceApiConn : SimulatedApiConnection
     {
         public List<string> SentQueries { get; } = [];
         public List<object?> SentVariables { get; } = [];
@@ -2564,6 +2882,11 @@ internal class FlowRequestServiceTest
         public List<IpProtocol> Protocols { get; set; } = [];
         public List<FwoOwner> Owners { get; set; } = [];
         public List<RuleAction> RuleActions { get; set; } = [new RuleAction { Id = 1, Name = "accept", Allowed = true }];
+        public List<FlowNwObject> FlowNetworkObjects { get; set; } = [];
+        public List<FlowNwGroup> FlowNetworkGroups { get; set; } = [];
+        public List<FlowSvcObject> FlowServiceObjects { get; set; } = [];
+        public List<FlowSvcGroup> FlowServiceGroups { get; set; } = [];
+        public List<FlowTimeObject> FlowTimeObjects { get; set; } = [];
         public List<WfExtState> ExtStates { get; set; } = [];
         public List<WorkflowConfiguration> WorkflowConfigurations { get; set; } =
         [
@@ -2659,6 +2982,31 @@ internal class FlowRequestServiceTest
             if (responseType == typeof(List<RuleAction>))
             {
                 return Task.FromResult((QueryResponseType)(object)RuleActions);
+            }
+
+            if (responseType == typeof(List<FlowNwObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowNetworkObjects);
+            }
+
+            if (responseType == typeof(List<FlowNwGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowNetworkGroups);
+            }
+
+            if (responseType == typeof(List<FlowSvcObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowServiceObjects);
+            }
+
+            if (responseType == typeof(List<FlowSvcGroup>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowServiceGroups);
+            }
+
+            if (responseType == typeof(List<FlowTimeObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)FlowTimeObjects);
             }
 
             if (responseType == typeof(List<WorkflowConfiguration>))

@@ -590,6 +590,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
     <li>&Auml;nderungen an den Dokumentationsfeldern einer Regel (Name, Kommentar, Zusatzfelder) werden nun ebenfalls in der Regel-&Auml;nderungshistorie protokolliert, dort aber als nicht sicherheitsrelevant gekennzeichnet. &Auml;nderungsreports und Benachrichtigungen &uuml;ber Regel&auml;nderungen ber&uuml;cksichtigen weiterhin nur sicherheitsrelevante &Auml;nderungen.</li>
     <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
+    <li>Die Reihenfolge von Antragsaufgaben kann in den Workflow-Einstellungen konfiguriert werden; gemischte Gruppen&auml;nderungen k&ouml;nnen dabei optional aufgeteilt werden.</li>
     <li>Der Soll-Ist-Abgleich nutzt die Eigent&uuml;merzuordnung der Regeln nun deutlich h&auml;ufiger als schnellen Weg: Ein Import ohne Regel&auml;nderungen blockiert sie nicht mehr, und wo jemand auf das Ergebnis wartet, wartet der Abgleich kurz auf eine ausstehende Zuordnung, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Die Wartezeit stellt die neue Einstellung "Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung" ein, 0 schaltet sie ab. Eine laufende vollst&auml;ndige Neuberechnung der Zuordnung wird nun erkannt, sodass der Abgleich w&auml;hrenddessen keine unvollst&auml;ndigen Ergebnisse mehr liefert.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -619,6 +620,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
     <li>Changes to the documentation fields of a rule (name, comment, custom fields) are now recorded in the rule change history as well, but flagged as not security-relevant. Change reports and rule change notifications still cover security-relevant changes only.</li>
     <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
+    <li>Request task order can be configured in the workflow settings; mixed group modifications can optionally be split.</li>
     <li>The variance analysis now uses the rule owner mapping as its fast path far more often: an import without rule changes no longer blocks it, and where somebody is waiting for the result the analysis waits briefly for a pending mapping run instead of falling back to the much slower marker search. The new setting "Wait time for rule owner mapping" caps that wait, 0 disables it. A running full recalculation of the mapping is now detected, so the analysis no longer returns incomplete results while it runs.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -2895,6 +2897,8 @@ INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;m
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'English', 'Request task sort priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
@@ -3179,6 +3183,8 @@ INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben'
 INSERT INTO txt VALUES ('allow_modelling',      'English',  'Allow modelling');
 INSERT INTO txt VALUES ('allow_recertification','German',   'Rezertifizierung erlauben');
 INSERT INTO txt VALUES ('allow_recertification','English',  'Allow recertification');
+INSERT INTO txt VALUES ('allow_task_split',     'German',   'Aufgabenteilung erlauben');
+INSERT INTO txt VALUES ('allow_task_split',     'English',  'Allow task split');
 INSERT INTO txt VALUES ('add_responsible_type', 'German',   'Verantwortlichkeitsstufe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_responsible_type', 'English',  'Add responsible type');
 INSERT INTO txt VALUES ('edit_responsible_type','German',   'Verantwortlichkeitsstufe bearbeiten');
@@ -5050,6 +5056,10 @@ INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle recert
 INSERT INTO txt VALUES ('C9031', 'English', 'You need the recertifier role to recertify this owner.');
 INSERT INTO txt VALUES ('C9032', 'German',  'Sie sind diesem Owner nicht als rezertifizierbare verantwortliche Person zugewiesen.');
 INSERT INTO txt VALUES ('C9032', 'English', 'You are not assigned to this owner as a recertifiable responsible person.');
+INSERT INTO txt VALUES ('C9033', 'German',  'Aufgabenteilung erlauben: Wenn deaktiviert, werden gemischte Gruppen&auml;nderungen nicht aufgespalten. Sie erhalten dann die fr&uuml;heste der beiden Priorit&auml;ten f&uuml;r "Mitglieder hinzuf&uuml;gen" oder "Mitglieder entfernen". Wenn aktiviert, werden gemischte Gruppen&auml;nderungen vor dem Sortieren in zwei separate Teilaufgaben aufgeteilt.');
+INSERT INTO txt VALUES ('C9033', 'English', 'Allow task split: If disabled, mixed group modifications are not split. They then get the earlier of the two priorities for "added members" or "removed members". If enabled, mixed group modifications are split into two separate tasks before sorting.');
+INSERT INTO txt VALUES ('C9034', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben: Hier kann die Reihenfolge festgelegt werden, in der neue Antragsaufgaben vor dem Speichern sortiert werden. Die Reihenfolge gilt von oben nach unten; gemischte Gruppen&auml;nderungen k&ouml;nnen optional in getrennte Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('C9034', 'English', 'Request task sort priorities: Defines the order used to sort newly created request tasks before saving. The order applies from top to bottom; mixed group modifications can optionally be split into separate subtasks.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -7173,6 +7183,8 @@ INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellun
 INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
+INSERT INTO txt VALUES ('H5600', 'German',  'Antragsauftrags-Sortierung: Hier werden die Speichern-Priorit&auml;ten f&uuml;r Gruppenanlage, Gruppen&auml;nderung mit Hinzuf&uuml;gen, Zugriff, Regel&auml;nderung, Regel l&ouml;schen, Gruppen&auml;nderung mit Entfernen und Gruppenl&ouml;schung festgelegt. Wenn eine Gruppen&auml;nderung gleichzeitig Mitglieder hinzuf&uuml;gt und entfernt, kann sie in zwei Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('H5600', 'English', 'Request task sorting: Defines the save priorities for group creation, group modification with added members, access, rule modification, rule deletion, group modification with removed members, and group deletion. If a group modification both adds and removes members, it can be split into two separate tasks.');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die allgemeinen Modellierungseinstellungen verwaltet.
     Dies betrifft vordefinierte Dienste, Anzeigeoptionen, Namenskonventionen und die restlichen Modelleinstellungen.
@@ -7806,13 +7818,13 @@ INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem ge
     <ul>
         <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
         <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
-        <li><b>FlowRequestController</b>: Endpunkte f&uuml;r Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
+        <li><b>WorkflowTicketController</b>: Endpunkte f&uuml;r Workflow-Ticket-Erzeugung und Statusabfrage.</li>
     </ul>
     Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow-Katalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow-Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow-Antr&auml;ge</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow-Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below the shared <code>/api/flow</code> prefix.
@@ -7820,13 +7832,13 @@ INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below 
     <ul>
         <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
         <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
-        <li><b>FlowRequestController</b>: Endpoints for flow-related request creation and status lookups.</li>
+        <li><b>WorkflowTicketController</b>: Endpoints for workflow ticket creation and status lookups.</li>
     </ul>
     The following pages document the three controllers separately so the individual endpoints stay easy to find.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow Catalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow Requests</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> stellt lesende Katalogabfragen unter <code>/api/flow</code> bereit.
@@ -7909,21 +7921,21 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
 ');
 INSERT INTO txt VALUES ('H9085', 'German',  'Kann ein Objekt keiner konfigurierten Netzwerkzone zugeordnet werden, wird dies in geplanten Compliance-Pr&uuml;fungen und Berichten als nicht bewertbar gemeldet. Dies gilt insbesondere f&uuml;r IPv6-Objekte, wenn keine passende IPv6-Zone konfiguriert ist. Als nicht bewertbar wird eine Regel nur dann ausgewiesen, wenn f&uuml;r sie kein einziger echter Versto&szlig; festgestellt wurde; andernfalls bleiben die festgestellten Verst&ouml;&szlig;e der Regel ma&szlig;geblich und im Bericht sichtbar, zusammen mit dem Hinweis auf das nicht bewertbare Objekt.');
 INSERT INTO txt VALUES ('H9085', 'English', 'When an object cannot be assigned to a configured network zone, scheduled compliance checks and reports mark that object as not assessable. This applies especially to IPv6 objects when no matching IPv6 zone is configured. A rule is labelled not assessable only when no real violation was found for it at all; otherwise its detected violations stay decisive and visible in the report, together with the note about the object that could not be assessed.');
-INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b> stellt die Workflow-Ticket-Funktionen unter <code>/api/workflow</code> bereit.
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Erzeugt ein neues Workflow-Ticket.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
 ');
-INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> provides flow-related request functions below <code>/api/flow</code>.
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b> provides workflow ticket functions below <code>/api/workflow</code>.
     <table class="table table-sm">
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Creates a new workflow ticket.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
 ');

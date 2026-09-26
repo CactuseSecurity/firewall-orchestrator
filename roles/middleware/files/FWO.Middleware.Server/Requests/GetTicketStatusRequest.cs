@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Requests;
 
 /// <summary>
-/// Represents the GetRequestStatusRequest type.
+/// Represents the GetTicketStatusRequest type.
 /// </summary>
-public sealed class GetRequestStatusRequest
+public sealed class GetTicketStatusRequest
 {
     /// <summary>
     /// Gets the TicketId value.

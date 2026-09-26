@@ -784,3 +784,6 @@ Not supported any longer are:
   running the full marker query for every owner that has nothing on a management
 - variance analysis: every fall back to the marker query is written to the log with its reason and shown
   to the user once per analysis, so the remaining cases can be found without debug logging
+
+## 9.5.7 - 25.09.2026
+- add upgrade seed for request task sort configuration

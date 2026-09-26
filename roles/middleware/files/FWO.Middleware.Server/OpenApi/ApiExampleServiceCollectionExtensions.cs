@@ -16,17 +16,17 @@ public static class ApiExampleServiceCollectionExtensions
     {
         services.AddSingleton<ApiExampleObjectFactory>();
         services.AddSingleton<ApiExampleCatalog>();
-        services.AddSingleton<IApiExampleProvider, CreateRequestRequestExample>();
-        services.AddSingleton<IApiExampleProvider, GetRequestStatusRequestExample>();
+        services.AddSingleton<IApiExampleProvider, CreateTicketRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetAuditProofCriticalChangesRequestExample>();
+        services.AddSingleton<IApiExampleProvider, CreateTicketResponseExample>();
+        services.AddSingleton<IApiExampleProvider, GetTicketStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetTicketRequestExample>();
-        services.AddSingleton<IApiExampleProvider, CreateRequestResponseExample>();
-        services.AddSingleton<IApiExampleProvider, GetRequestStatusResponseExample>();
         services.AddSingleton<IApiExampleProvider, FlowComplianceStateResponseExample>();
         services.AddSingleton<IApiExampleProvider, ComplianceDesignatedZoneResponseExample>();
         services.AddSingleton<IApiExampleProvider, GetPolicyIdsResponseExample>();
@@ -62,27 +62,29 @@ public static class ApiExampleServiceCollectionExtensions
 }
 
 /// <summary>
-/// Provides a typed example for <see cref="CreateRequestRequest"/>.
+/// Provides a typed example for <see cref="CreateTicketRequest"/>.
 /// </summary>
-public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateRequestRequest>
+public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicketRequest>
 {
     /// <inheritdoc />
-    public override CreateRequestRequest GetExample() => new()
+    public override CreateTicketRequest GetExample() => new()
     {
         RequestorName = "Alice Example",
         RequestorId = "alice",
         RuleContactName = "Bob Approver",
         RuleContactId = "bob",
         Title = "Allow HTTPS to application server",
+        Options = new CreateTicketRequest.CreateTicketOptions { SortTasks = false },
         Rules =
         [
-            new CreateRequestRequest.CreateRequestRuleRequest
+            new CreateTicketRequest.CreateTicketRuleRequest
             {
                 Action = "accept",
                 Name = "Allow app HTTPS",
                 SourceObjects = [-1],
-                DestinationObjects = [-3],
+                DestinationGroups = [-3],
                 ServiceObjects = [-2],
+                ServiceGroups = [-5],
                 TimeObjectId = -4,
                 OwnerId = 42,
                 ViolationJustification = "Business-approved application traffic."
@@ -90,9 +92,9 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         ],
         AddressObjects =
         [
-            new CreateRequestRequest.CreateAddressObjectRequest
+            new CreateTicketRequest.CreateAddressObjectRequest
             {
-                Id = "-1",
+                Id = -1,
                 Name = "app-server-1",
                 IpStart = "192.0.2.10",
                 IpEnd = "192.0.2.10"
@@ -100,7 +102,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         ],
         AddressGroups =
         [
-            new CreateRequestRequest.CreateAddressGroupRequest
+            new CreateTicketRequest.CreateAddressGroupRequest
             {
                 Id = -3,
                 Name = "app-servers",
@@ -109,9 +111,9 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         ],
         ServiceObjects =
         [
-            new CreateRequestRequest.CreateServiceObjectRequest
+            new CreateTicketRequest.CreateServiceObjectRequest
             {
-                Id = "-2",
+                Id = -2,
                 Name = "https",
                 Protocol = "tcp",
                 PortStart = 443,
@@ -120,7 +122,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         ],
         ServiceGroups =
         [
-            new CreateRequestRequest.CreateServiceGroupRequest
+            new CreateTicketRequest.CreateServiceGroupRequest
             {
                 Id = -5,
                 Name = "web-services",
@@ -129,9 +131,9 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
         ],
         TimeObjects =
         [
-            new CreateRequestRequest.CreateTimeObjectRequest
+            new CreateTicketRequest.CreateTimeObjectRequest
             {
-                Id = "-4",
+                Id = -4,
                 Name = "Temporary rule window",
                 StartTime = "2026-08-01T00:00:00Z",
                 EndTime = "2026-08-31T23:59:59Z"
@@ -141,12 +143,12 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
 }
 
 /// <summary>
-/// Provides a typed example for <see cref="GetRequestStatusRequest"/>.
+/// Provides a typed example for <see cref="GetTicketStatusRequest"/>.
 /// </summary>
-public sealed class GetRequestStatusRequestExample : ApiExampleProvider<GetRequestStatusRequest>
+public sealed class GetTicketStatusRequestExample : ApiExampleProvider<GetTicketStatusRequest>
 {
     /// <inheritdoc />
-    public override GetRequestStatusRequest GetExample() => new()
+    public override GetTicketStatusRequest GetExample() => new()
     {
         TicketId = 12345
     };
@@ -281,25 +283,25 @@ public sealed class GetOwnersRequestExample : ApiExampleProvider<GetOwnersReques
 }
 
 /// <summary>
-/// Provides a typed example for <see cref="CreateRequestResponse"/>.
+/// Provides a typed example for <see cref="CreateTicketResponse"/>.
 /// </summary>
-public sealed class CreateRequestResponseExample : ApiExampleProvider<CreateRequestResponse>
+public sealed class CreateTicketResponseExample : ApiExampleProvider<CreateTicketResponse>
 {
     /// <inheritdoc />
-    public override CreateRequestResponse GetExample() => new()
+    public override CreateTicketResponse GetExample() => new()
     {
         Status = "created",
-        RequestId = 12345
+        TicketId = 12345
     };
 }
 
 /// <summary>
-/// Provides a typed example for <see cref="GetRequestStatusResponse"/>.
+/// Provides a typed example for <see cref="GetTicketStatusResponse"/>.
 /// </summary>
-public sealed class GetRequestStatusResponseExample : ApiExampleProvider<GetRequestStatusResponse>
+public sealed class GetTicketStatusResponseExample : ApiExampleProvider<GetTicketStatusResponse>
 {
     /// <inheritdoc />
-    public override GetRequestStatusResponse GetExample() => new() { Status = "in_progress" };
+    public override GetTicketStatusResponse GetExample() => new() { Status = "in_progress" };
 }
 
 /// <summary>

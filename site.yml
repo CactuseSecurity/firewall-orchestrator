@@ -219,8 +219,13 @@
 # play above this one may still restart such a dependency - finalize restarts apache, the
 # middleware and the UI, and the integration tests restart the middleware (sample-auth-data) and
 # apache (test-auth). So keep this play last and do not start the importer anywhere before it.
-# It carries the same tags as the finalize play: every tag selection which restarts a dependency
-# selects finalize, and finalize clears a failed start limit before this play restarts the service.
+# It carries the same tags as the finalize play, so it runs whenever finalize does, after finalize
+# has cleared a failed start limit. That covers every tag selection which installs or upgrades the
+# stack, but not every one which restarts a dependency: "--tags api" restarts apache and the api,
+# and "--tags certificates" restarts the middleware and reloads apache after a renewal (see
+# roles/internalCA/tasks/restart-consumers.yml). Neither selects finalize or this play, so the
+# importer keeps running across them - and an upgrade limited to "--tags api" leaves it stopped,
+# as the common play stops it on every upgrade.
 - hosts: importers
   tasks:
     # a host can be listed in the importers group without the importer having been deployed to it

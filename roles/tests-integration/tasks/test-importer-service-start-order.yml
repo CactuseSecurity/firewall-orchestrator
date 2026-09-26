@@ -31,29 +31,35 @@
 - debug:
     msg: >-
       comparing the activation time of {{ importer_service_name }} against
-      {{ importer_dependency_service_names | default([]) | join(', ') | default('no dependency on this host', true) }}
+      {{ importer_dependency_service_names | join(', ') | default('no dependency on this host', true) }}
 
-- name: read the activation times of the importer and of its dependencies
-  command: "systemctl show {{ item }}.service --property=ActiveEnterTimestampMonotonic --value"
-  loop: "{{ [importer_service_name] + (importer_dependency_service_names | default([])) }}"
-  register: service_activation_times
+# the state has to be read on its own: the activation timestamp keeps its last value when a unit
+# stops or fails, so a service which was started earlier in this run and has died since still
+# reports one. a unit name which systemd does not know reports "inactive"
+- name: read the state of the importer and of its dependencies
+  command: "systemctl show {{ item }}.service --property=ActiveState --value"
+  loop: "{{ [importer_service_name] + importer_dependency_service_names }}"
+  register: service_active_states
   changed_when: false
   become: true
-  when: "'importers' in group_names"
 
-# systemd reports an activation time of 0 for a service which is inactive, failed or unknown, and
-# comparing two of those would let this test pass while nothing is running at all
 - name: the importer and all of its dependencies must be active
   assert:
     that:
-      - item.stdout | trim | int > 0
+      - item.stdout | trim == 'active'
     fail_msg: >-
-      {{ item.item }} reports no activation timestamp and is therefore not running - check
-      'systemctl status {{ item.item }}' (a unit name which does not exist reports the same)
-  loop: "{{ service_activation_times.results | default([]) }}"
+      {{ item.item }} is '{{ item.stdout | trim }}' instead of active - check
+      'systemctl status {{ item.item }}' and 'journalctl -u {{ item.item }}'
+  loop: "{{ service_active_states.results }}"
   loop_control:
     label: "{{ item.item }}"
-  when: "'importers' in group_names"
+
+- name: read the activation times of the importer and of its dependencies
+  command: "systemctl show {{ item }}.service --property=ActiveEnterTimestampMonotonic --value"
+  loop: "{{ [importer_service_name] + importer_dependency_service_names }}"
+  register: service_activation_times
+  changed_when: false
+  become: true
 
 - name: the importer must have been activated after all of its dependencies
   assert:
@@ -72,7 +78,6 @@
       {{ service_activation_times.results
          | selectattr('item', 'equalto', importer_service_name)
          | map(attribute='stdout') | first | trim }}
-  loop: "{{ service_activation_times.results | default([]) | rejectattr('item', 'equalto', importer_service_name) | list }}"
+  loop: "{{ service_activation_times.results | rejectattr('item', 'equalto', importer_service_name) | list }}"
   loop_control:
     label: "{{ item.item }}"
-  when: "'importers' in group_names"

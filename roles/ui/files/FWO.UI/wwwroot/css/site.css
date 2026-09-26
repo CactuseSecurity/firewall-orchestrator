@@ -619,3 +619,11 @@ div.modal-content .sticky-header thead {
     font-weight: 600;
     line-height: 1.2;
 }
+
+.sticky-collapse {
+    padding-left: 0.5rem;
+    padding-bottom: 0.5rem;
+    position: sticky;
+    top: 6rem;
+    z-index: 14;
+}

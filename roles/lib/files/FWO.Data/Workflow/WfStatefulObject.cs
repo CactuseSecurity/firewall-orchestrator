@@ -40,7 +40,6 @@ namespace FWO.Data.Workflow
         [JsonProperty("assigned_group"), JsonPropertyName("assigned_group")]
         public string? AssignedGroup { get; set; }
 
-
         // need private declarations, else we get problems with request_reqtask_arr_rel_insert_input in newTicket
         private int stateId;
         private int oldStateId;

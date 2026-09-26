@@ -111,6 +111,11 @@
 
                 foreach (ModellingConnection @interface in SelectedInterfaces)
                 {
+                    if (PreselectedInterfaces.Any(selected => selected.Id == @interface.Id))
+                    {
+                        continue;
+                    }
+
                     var Variables = new
                     {
                         appId = Application.Id,
@@ -118,7 +123,7 @@
                     };
 
                     await apiConnection.SendQueryAsync<ReturnIdWrapper>(ModellingQueries.addSelectedConnection, Variables);
-                    PreselectedInterfaces.Add(@interface ?? throw new ArgumentException("No Interface selected."));
+                    PreselectedInterfaces.Add(@interface);
                 }
 
                 RefreshSelectionList();

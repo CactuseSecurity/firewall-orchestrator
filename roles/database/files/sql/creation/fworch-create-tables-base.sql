@@ -336,8 +336,29 @@ create table notification
 	bundle_type Varchar,
 	bundle_id Varchar,
 	recipient_bcc Varchar,
-	email_address_bcc Varchar
+	email_address_bcc Varchar,
+	logging Varchar NOT NULL DEFAULT 'send_only',
+	active Boolean NOT NULL DEFAULT TRUE
   );
+
+create table notification_log
+(
+    id SERIAL PRIMARY KEY,
+    "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notification_id INTEGER NOT NULL,
+    notification_type Varchar NOT NULL,
+    "to" Varchar NOT NULL DEFAULT '',
+    cc Varchar NOT NULL DEFAULT '',
+    bcc Varchar NOT NULL DEFAULT '',
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
+ );
+
+create index if not exists notification_log_timestamp_id_idx
+    on notification_log ("timestamp" desc, id desc);
 
 -- configuration
 
@@ -385,4 +406,40 @@ create table time_object
     removed BIGINT,
 	flow_timeobj_id BIGINT,
 	flow_active BOOLEAN NOT NULL Default FALSE
+);
+
+-- central, append-only history for modelling and workflow changes
+CREATE TABLE change_history
+(
+    id BIGSERIAL PRIMARY KEY,
+    app_id INTEGER,
+    ticket_id BIGINT,
+    -- Names the subsystem that wrote the row. It is the discriminator for object_type
+    -- and the basis of the read permissions of the modelling roles, so it is set by the
+    -- API and never derived from imported data.
+    module VARCHAR NOT NULL DEFAULT 'modelling',
+    change_type INTEGER,
+    -- Holds two disjoint enums, selected by module:
+    -- FWO.Data.Modelling.ModellingTypes.ModObjectType (1-31) for module = 'modelling',
+    -- FWO.Data.ChangeHistoryObjectType (100 and above) for module = 'workflow'.
+    object_type INTEGER,
+    object_id BIGINT,
+    change_text TEXT,
+    -- Free text supplied by the client. changer_id is set by the API from the
+    -- authenticated session and is the trustworthy identity of the two. It stays null for rows
+    -- written outside a user session, because the middleware-server role carries no user id; in
+    -- that case changer names the automation, see FWO.Basics.Roles.MiddlewareServer.
+    changer VARCHAR,
+    changer_id INTEGER,
+    -- Kept timezone-naive for compatibility with migrated modelling history.
+    change_time TIMESTAMP DEFAULT NOW(),
+    -- Provenance within the module, e.g. manual, adjustAppServerNames or an import source
+    -- name configured by the customer. Never used to tell modules apart, see module.
+    change_source VARCHAR NOT NULL DEFAULT 'manual',
+    -- FWO.Data.Workflow.WorkflowPhases, null for modelling changes. Note that request = 0.
+    workflow_phase INTEGER,
+    old_data JSONB,
+    new_data JSONB,
+    audit_proof_critical BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT change_history_module_check CHECK (module IN ('modelling', 'workflow'))
 );

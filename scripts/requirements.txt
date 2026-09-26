@@ -6,5 +6,5 @@ GitPython==3.1.62
 # HTTP / GraphQL stack
 # Note: Requests >=2.34.2 is compatible with urllib3 2.x
 requests==2.34.2
-urllib3==2.7.0
+urllib3==2.8.0
 graphql-core==3.2.12

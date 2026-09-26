@@ -4,11 +4,12 @@ query getModelledRulesByManagementName (
   $import_id_start: bigint
   $import_id_end: bigint
   $marker: String
+  $limit: Int
+  $offset: Int
 ) {
   firewall_rule (
   where: {
     mgm_id: { _eq: $mgmId }
-    active: { _eq: true }
     access_rule: { _eq: true }
     rule_head_text: { _is_null: true }
     rule_disabled: { _eq: false }
@@ -16,7 +17,10 @@ query getModelledRulesByManagementName (
     import_control: {control_id: {_lte: $import_id_end}}, _or: [{removed: {_is_null: true}}, {removed: {_gt: $import_id_start}}]
     rule_name: { _ilike: $marker }
   }
-  order_by: { rule_num_numeric: asc }){
+  order_by: [{ rule_num_numeric: asc }, { rule_id: asc }]
+  limit: $limit
+  offset: $offset
+  ){
     ...ruleDetailsForReport
   }
 }

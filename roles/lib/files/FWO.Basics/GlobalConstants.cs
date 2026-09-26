@@ -49,6 +49,7 @@ namespace FWO.Basics
         public const string kImportAreaSubnetData = "importAreaSubnetData";
         public const string kImportZoneMatrixData = "importZoneMatrixData";
         public const string kVarianceAnalysis = "varianceAnalysis";
+        public const string kVarianceRuleOwnerPrefilter = "varianceRuleOwnerPrefilter";
         public const string kManual = "manual";
         // change_history.module: names the subsystem that wrote a history row and therefore
         // which enum its object_type has to be read against. Workflow rows use the same literal as
@@ -68,6 +69,7 @@ namespace FWO.Basics
         public const string kPlaceholderMarker = "@@";
         public const string kModellerGroup = "ModellerGroup_";
         public const string kImportChangeNotify = "importChangeNotify";
+        public const string kRuleOwnerMapping = "ruleOwnerMapping";
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
         public const long kPathAnalysisAlgorithmNone = 1;
@@ -168,6 +170,7 @@ namespace FWO.Basics
         public const string CONN_NUMBER = "@@CONN_NUMBER@@";
         public const string CONTENT = "@@CONTENT@@";
         public const string COUNT = "@@COUNT@@";
+        public const string DATE = "@@DATE@@";
         public const string DAYS = "@@DAYS@@";
         public const string DESTINATIONS = "@@DESTINATIONS@@";
         public const string FAIL_NUMBER = "@@FAIL_NUMBER@@";

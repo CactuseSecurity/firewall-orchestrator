@@ -1,9 +1,14 @@
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
+using FWO.Data;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
+using FWO.Services.Workflow;
+using GraphQL.Client.Serializer.Newtonsoft;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace FWO.Middleware.Server.Services;
 
@@ -12,6 +17,32 @@ namespace FWO.Middleware.Server.Services;
 /// </summary>
 public sealed class WorkflowChangeHistoryService
 {
+    /// <summary>
+    /// Serializer with the settings the GraphQL client uses to write change-history snapshots.
+    /// </summary>
+    /// <remarks>
+    /// Snapshots reach change_history.new_data as GraphQL variables, so their keys are camelCased by
+    /// the client's contract resolver. A current state converted with any other settings would never
+    /// compare equal to the stored snapshot, nor match its key names in the response.
+    /// </remarks>
+    private static readonly JsonSerializer kHistorySnapshotSerializer = JsonSerializer.Create(NewtonsoftJsonSerializer.DefaultJsonSerializerSettings);
+
+    /// <summary>
+    /// Stored request-task snapshot keys that workflow actions write, not the requester or an editor.
+    /// </summary>
+    /// <remarks>
+    /// Start and stop follow the state transitions of the task, additional info holds bookkeeping keys
+    /// of workflow actions. Neither is request content, so they are left out when deciding whether a
+    /// request task differs from what was requested. The names are the camelCased keys the history
+    /// serializer writes.
+    /// </remarks>
+    private static readonly List<string> kNonContentRequestTaskFields = new() { "start", "stop", "additionalInfo" };
+
+    /// <summary>
+    /// Stored request-task snapshot keys whose arrays carry no meaningful order.
+    /// </summary>
+    private static readonly List<string> kUnorderedRequestTaskFields = new() { "owners", "elements" };
+
     private readonly ApiConnection apiConnection;
 
     /// <summary>
@@ -53,10 +84,152 @@ public sealed class WorkflowChangeHistoryService
             return null;
         }
 
+        List<AuditProofCriticalChangeResponse> changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList();
+        AuditProofTaskDiffResponse? taskDiff = changes.Count == 0
+            ? null
+            : await GetTaskDiffAsync(ticketId, filter);
+
         return new GetAuditProofCriticalChangesResponse
         {
-            Changes = entries.Select(Map).Where(change => Matches(change, filter)).ToList()
+            Changes = changes,
+            TaskDiff = taskDiff
         };
+    }
+
+    /// <summary>
+    /// Builds the task-state evidence attached to a non-empty audit-proof trail.
+    /// </summary>
+    /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <param name="filter">Response filter, applied to the manual implementation-task changes.</param>
+    /// <returns>The request-task diff and the manual implementation-task history entries.</returns>
+    private async Task<AuditProofTaskDiffResponse> GetTaskDiffAsync(long ticketId, AuditProofCriticalChangeFilter? filter)
+    {
+        List<ModellingHistoryEntry> history = await apiConnection.SendQueryAsync<List<ModellingHistoryEntry>>(
+            RequestQueries.getWorkflowTaskHistoryForTicket, new { ticketId });
+        WfTicket currentTicket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+
+        return new AuditProofTaskDiffResponse
+        {
+            RequestTaskDiffs = BuildRequestTaskDiffs(history, currentTicket.Tasks),
+            ManualImplementationTaskChanges = BuildManualImplementationTaskChanges(history, filter)
+        };
+    }
+
+    /// <summary>
+    /// Compares each request task's creation snapshot with its current database state.
+    /// </summary>
+    /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <param name="currentTasks">Current request tasks loaded from the ticket.</param>
+    /// <returns>Only request tasks whose current state has changed since creation.</returns>
+    private static List<RequestTaskDiffResponse> BuildRequestTaskDiffs(List<ModellingHistoryEntry> history, List<WfReqTask> currentTasks)
+    {
+        return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.RequestTask)
+            .GroupBy(entry => entry.ObjectId)
+            .Select(entries => BuildRequestTaskDiff(entries, currentTasks.FirstOrDefault(task => task.Id == entries.Key)))
+            .Where(diff => diff != null)
+            .Select(diff => diff!)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Builds one request-task diff when its history includes a creation snapshot and a change.
+    /// </summary>
+    /// <param name="entries">Chronologically ordered history entries for one request task.</param>
+    /// <param name="currentTask">Current request-task state, or null when the task was deleted.</param>
+    /// <returns>The diff, or null when the original state is unavailable or unchanged.</returns>
+    private static RequestTaskDiffResponse? BuildRequestTaskDiff(IGrouping<long, ModellingHistoryEntry> entries, WfReqTask? currentTask)
+    {
+        ModellingHistoryEntry? creation = entries.FirstOrDefault(entry => entry.ChangeType == (int)ModellingTypes.ChangeType.Insert);
+        if (creation?.NewData == null)
+        {
+            return null;
+        }
+
+        JToken? currentData = currentTask == null ? null : ToJsonToken(WfDbAccess.RequestTaskHistorySnapshot(currentTask));
+        if (currentData != null && JToken.DeepEquals(RequestContentOf(ToJsonToken(creation.NewData)), RequestContentOf(currentData)))
+        {
+            return null;
+        }
+
+        return new RequestTaskDiffResponse
+        {
+            RequestTaskId = entries.Key,
+            Original = ToJsonElement(creation.NewData),
+            Current = currentData == null ? null : ToJsonElement(currentData)
+        };
+    }
+
+    /// <summary>
+    /// Reduces a stored request-task snapshot to the request content that is compared.
+    /// </summary>
+    /// <param name="snapshot">A request-task snapshot in the stored shape.</param>
+    /// <returns>A copy without the workflow-written fields and with unordered arrays in a fixed order.</returns>
+    private static JToken RequestContentOf(JToken snapshot)
+    {
+        if (snapshot is not JObject stored)
+        {
+            return snapshot;
+        }
+
+        JObject content = (JObject)stored.DeepClone();
+        foreach (string field in kNonContentRequestTaskFields)
+        {
+            content.Remove(field);
+        }
+        foreach (string field in kUnorderedRequestTaskFields)
+        {
+            if (content[field] is JArray items)
+            {
+                content[field] = new JArray(items.OrderBy(item => item.ToString(Formatting.None), StringComparer.Ordinal));
+            }
+        }
+        return content;
+    }
+
+    /// <summary>
+    /// Projects the audit-proof-critical implementation-task history entries that match the filter as manual changes.
+    /// </summary>
+    /// <param name="history">Chronologically ordered workflow task history for one ticket.</param>
+    /// <param name="filter">Response filter; null applies no restriction.</param>
+    /// <returns>The recorded manual implementation-task changes.</returns>
+    private static List<ManualImplementationTaskChangeResponse> BuildManualImplementationTaskChanges(List<ModellingHistoryEntry> history,
+        AuditProofCriticalChangeFilter? filter)
+    {
+        return history.Where(entry => entry.ObjectType == (int)ChangeHistoryObjectType.ImplementationTask && entry.AuditProofCritical)
+            .Where(entry => Matches(Map(entry), filter))
+            .Select(entry => new ManualImplementationTaskChangeResponse
+            {
+                ImplementationTaskId = entry.ObjectId,
+                ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
+                ChangeUserId = entry.ChangerId,
+                ChangeUserName = entry.Changer ?? string.Empty,
+                ChangeContent = entry.ChangeText ?? string.Empty,
+                Original = entry.OldData == null ? null : ToJsonElement(entry.OldData),
+                Current = entry.NewData == null ? null : ToJsonElement(entry.NewData)
+            })
+            .ToList();
+    }
+
+    /// <summary>
+    /// Converts the Newtonsoft value returned for a jsonb field to the response serializer's JSON type.
+    /// </summary>
+    /// <param name="value">A non-null jsonb value from the API response.</param>
+    /// <returns>An independent JSON element preserving the stored snapshot.</returns>
+    private static System.Text.Json.JsonElement ToJsonElement(object value)
+    {
+        using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(ToJsonToken(value).ToString(Formatting.None));
+        return document.RootElement.Clone();
+    }
+
+    /// <summary>
+    /// Normalizes a jsonb value to a token so snapshots can be compared structurally.
+    /// </summary>
+    /// <param name="value">A non-null jsonb value returned by Newtonsoft, or a snapshot object that is
+    /// serialized the way the GraphQL client stores it.</param>
+    /// <returns>The equivalent JSON token.</returns>
+    private static JToken ToJsonToken(object value)
+    {
+        return value as JToken ?? JToken.FromObject(value, kHistorySnapshotSerializer);
     }
 
     /// <summary>
@@ -83,7 +256,7 @@ public sealed class WorkflowChangeHistoryService
     {
         return new AuditProofCriticalChangeResponse
         {
-            ChangeTime = NormalizeStoredTime(entry.ChangeTime),
+            ChangeTime = WallClockTimestamp.NormalizeStored(entry.ChangeTime),
             ChangeUserName = entry.Changer ?? string.Empty,
             ChangeUserId = entry.ChangerId,
             ChangeContent = entry.ChangeText ?? string.Empty
@@ -97,51 +270,9 @@ public sealed class WorkflowChangeHistoryService
             return true;
         }
 
-        return MatchesTime(change.ChangeTime, filter.ChangeTime)
+        return WallClockTimestamp.Matches(change.ChangeTime, filter.ChangeTime)
             && MatchesText(change.ChangeUserName, filter.ChangeUserName)
             && MatchesText(change.ChangeContent, filter.ChangeContent);
-    }
-
-    /// <summary>
-    /// Compares a stored timestamp against the filter value on the wall clock both sides describe.
-    /// </summary>
-    /// <remarks>
-    /// The stored column is timezone-naive, so a direct comparison would depend on which spelling the
-    /// caller happened to use: DateTime equality compares ticks and ignores the kind, while the
-    /// request deserializer leaves a trailing Z unshifted but converts an explicit offset to local
-    /// time. Both sides are therefore reduced to the same wall clock before they are compared.
-    /// </remarks>
-    private static bool MatchesTime(DateTime? value, DateTime? expected)
-    {
-        return expected == null || value == NormalizeFilterTime(expected.Value);
-    }
-
-    /// <summary>
-    /// Reduces a filter timestamp to the wall clock the stored column uses.
-    /// </summary>
-    /// <param name="expected">Timestamp as bound from the request.</param>
-    /// <returns>The same point in time expressed as an unspecified-kind local wall clock.</returns>
-    private static DateTime NormalizeFilterTime(DateTime expected)
-    {
-        return expected.Kind switch
-        {
-            // A trailing Z keeps UTC ticks, so it has to be moved onto the local clock the column stores.
-            DateTimeKind.Utc => DateTime.SpecifyKind(expected.ToLocalTime(), DateTimeKind.Unspecified),
-            // An explicit offset was already converted to local time while binding.
-            DateTimeKind.Local => DateTime.SpecifyKind(expected, DateTimeKind.Unspecified),
-            // No offset given: taken as the wall clock of the installation, like the stored value.
-            _ => expected
-        };
-    }
-
-    /// <summary>
-    /// Drops the kind of a stored timestamp so it cannot depend on how the row was deserialized.
-    /// </summary>
-    /// <param name="value">Timestamp as read from the database.</param>
-    /// <returns>The same wall clock with an unspecified kind, or null.</returns>
-    private static DateTime? NormalizeStoredTime(DateTime? value)
-    {
-        return value == null ? null : DateTime.SpecifyKind(value.Value, DateTimeKind.Unspecified);
     }
 
     private static bool MatchesText(string value, string? expected)

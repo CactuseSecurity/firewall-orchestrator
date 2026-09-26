@@ -21,6 +21,13 @@ namespace FWO.Test
         private const int kManagementId = 1;
         private const int kPageSize = 2;
         private const int kDefaultRulesPerFetch = 100;
+        private const int kTwoFullPagesRuleCount = 4;
+        private const int kOneAndAHalfPagesRuleCount = 3;
+        private const int kNonPositiveElementsPerFetch = 0;
+        private const string kRuleFilterStart = "firewall_rule(where:";
+        private const string kRuleFilterEnd = "order_by:";
+        private const string kActivePredicate = "active:";
+        private const string kRemovedAfterImportPredicate = "{removed:{_gt:$import_id_start}}";
         private static readonly List<int> kThreePageOffsets = [0, 2, 4];
         private static readonly List<int> kTwoPageOffsets = [0, 2];
         private static readonly List<int> kSingleOffset = [0];
@@ -59,19 +66,19 @@ namespace FWO.Test
         [Test]
         public async Task ExactMultipleOfPageSizeEndsOnEmptyPage()
         {
-            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("Rule", 4));
+            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("Rule", kTwoFullPagesRuleCount));
             ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, CreateUserConfig(kPageSize), Application, DefaultInit.DoNothing);
 
             ModellingVarianceResult result = await analysis.AnalyseRulesVsModelledConnections(kNoConnections, new() { AnalyseRemainingRules = true }, false);
 
             Assert.That(apiConnection.OffsetsFor(RuleQueries.getRulesByManagement), Is.EqualTo(kThreePageOffsets));
-            Assert.That(result.UnModelledRules[kManagementId], Has.Count.EqualTo(4));
+            Assert.That(result.UnModelledRules[kManagementId], Has.Count.EqualTo(kTwoFullPagesRuleCount));
         }
 
         [Test]
         public async Task MarkerQueryIsLoadedInPages()
         {
-            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", 3));
+            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", kOneAndAHalfPagesRuleCount));
             ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, CreateUserConfig(kPageSize), Application, DefaultInit.DoNothing);
 
             await analysis.AnalyseRulesVsModelledConnections(kNoConnections, new(), false);
@@ -85,7 +92,7 @@ namespace FWO.Test
         {
             SimulatedUserConfig config = CreateUserConfig(kPageSize);
             config.ModModelledMarkerLocation = MarkerLocation.Comment;
-            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", 3));
+            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", kOneAndAHalfPagesRuleCount));
             ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
             await analysis.AnalyseRulesVsModelledConnections(kNoConnections, new(), false);
@@ -96,7 +103,7 @@ namespace FWO.Test
         [Test]
         public async Task NameFieldPreFilterQueryIsLoadedInPages()
         {
-            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", 3));
+            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", kOneAndAHalfPagesRuleCount));
             SimulatedUserConfig config = CreateUserConfig(kPageSize, (int)OwnerMappingSourceStm.NameField);
             ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
 
@@ -109,13 +116,57 @@ namespace FWO.Test
         [Test]
         public async Task NonPositiveElementsPerFetchFallsBackToDefaultPageSize()
         {
-            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", 3));
-            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, CreateUserConfig(0), Application, DefaultInit.DoNothing);
+            RulePagingApiConn apiConnection = new(RulePagingApiConn.CreateRules("FWOC", kOneAndAHalfPagesRuleCount));
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, CreateUserConfig(kNonPositiveElementsPerFetch), Application, DefaultInit.DoNothing);
 
             await analysis.AnalyseRulesVsModelledConnections(kNoConnections, new(), false);
 
             Assert.That(apiConnection.OffsetsFor(RuleQueries.getModelledRulesByManagementName), Is.EqualTo(kSingleOffset));
             Assert.That(apiConnection.LimitsFor(RuleQueries.getModelledRulesByManagementName), Is.All.EqualTo(kDefaultRulesPerFetch));
+        }
+
+        /// <summary>
+        /// Offset paging only returns every rule if the filtered rule set does not change between two pages.
+        /// An import sets active=false on the rules it removes, so a filter on active would drop such a rule
+        /// from the set while pages are read and shift every following page by one. The paged queries
+        /// therefore have to select the rule state of the import by the import id window alone.
+        /// </summary>
+        [Test]
+        public void PagedRuleQueriesDoNotFilterOnActiveFlag()
+        {
+            // resolved inside the test body, see the note on RuleOwnerMappingRuleQueryTest
+            Dictionary<string, string> pagedRuleQueries = new()
+            {
+                [nameof(RuleQueries.getRulesByManagement)] = RuleQueries.getRulesByManagement,
+                [nameof(RuleQueries.getModelledRulesByManagementName)] = RuleQueries.getModelledRulesByManagementName,
+                [nameof(RuleQueries.getModelledRulesByManagementComment)] = RuleQueries.getModelledRulesByManagementComment,
+                [nameof(RuleQueries.getModelledRulesByRuleOwnerNameField)] = RuleQueries.getModelledRulesByRuleOwnerNameField
+            };
+
+            Assert.Multiple(() =>
+            {
+                foreach (KeyValuePair<string, string> pagedRuleQuery in pagedRuleQueries)
+                {
+                    string ruleFilter = RuleFilterOf(pagedRuleQuery.Value);
+                    Assert.That(ruleFilter, Does.Contain(kRemovedAfterImportPredicate),
+                        $"{pagedRuleQuery.Key} does not select the rules still present after the relevant import");
+                    Assert.That(ruleFilter, Does.Not.Contain(kActivePredicate),
+                        $"{pagedRuleQuery.Key} filters on the active flag, which a concurrent import changes between two pages");
+                }
+            });
+        }
+
+        /// <summary>
+        /// Cuts the firewall_rule filter out of a rule query, from its where clause up to its order_by.
+        /// </summary>
+        /// <param name="query">Query text.</param>
+        /// <returns>The whitespace free rule filter, or an empty string if the query has none.</returns>
+        private static string RuleFilterOf(string query)
+        {
+            string queryWithoutWhitespace = string.Concat(query.Where(character => !char.IsWhiteSpace(character)));
+            int filterStart = queryWithoutWhitespace.IndexOf(kRuleFilterStart, StringComparison.Ordinal);
+            int filterEnd = filterStart < 0 ? -1 : queryWithoutWhitespace.IndexOf(kRuleFilterEnd, filterStart, StringComparison.Ordinal);
+            return filterEnd < 0 ? "" : queryWithoutWhitespace[filterStart..filterEnd];
         }
 
         /// <summary>

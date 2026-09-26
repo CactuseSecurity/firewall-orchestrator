@@ -9,7 +9,6 @@ query getRulesByManagement (
   firewall_rule (
   where: {
     mgm_id: { _eq: $mgmId }
-    active: { _eq: true }
     access_rule: { _eq: true }
     rule_head_text: { _is_null: true }
     rule_disabled: { _eq: false }

@@ -208,9 +208,12 @@ namespace FWO.Services.Modelling
         /// members of every referenced object, so a single unpaged response grows with rulebase size times
         /// group size and can reach a size the transport does not deliver (#5301). Paging bounds each
         /// response by the page size instead. All pages are read for the same import, so the result is
-        /// the same as that of one unpaged query.
+        /// the same as that of one unpaged query - provided the query selects the rules by the import id
+        /// window only. A filter on a flag an import changes in place, like active, would let a concurrent
+        /// import shrink the rule set between two pages and skip rules at the page borders.
         /// </summary>
-        /// <param name="query">Rule query accepting $limit and $offset, with a total order on its result.</param>
+        /// <param name="query">Rule query accepting $limit and $offset, with a total order on its result
+        /// and a rule set that does not change while its pages are read.</param>
         /// <param name="variables">Query variables without limit and offset, which are set here.</param>
         /// <returns>All rules matching the query.</returns>
         private async Task<List<Rule>> SendPagedRuleQuery(string query, Dictionary<string, object?> variables)

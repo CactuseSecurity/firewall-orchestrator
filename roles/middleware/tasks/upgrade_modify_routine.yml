@@ -23,7 +23,8 @@
 
 - name: test if distinguished name exists
   # error code 32, when searchbase not existing
-  command: "ldapsearch {{ fwo_ldap_tls_opts }} -o ldif-wrap=no -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -b {{ distinguished_name }}"
+  # -x binds with the manager password like every ldapmodify call here; without it ldapsearch tries a SASL bind and fails
+  command: "ldapsearch {{ fwo_ldap_tls_opts }} -o ldif-wrap=no -H {{ ldap_cmd_url }} -D {{ openldap_superuser_dn }} -y {{ ldap_manager_pwd_file }} -x -b {{ distinguished_name }}"
   #become: true
   register: search_existence
   no_log: true

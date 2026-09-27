@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import json
-from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import fwo_base
 import pytest
 from fwo_base import (
     cidr_to_range,
-    deserialize_class_to_dict_rec,
     ensure_device_name,
     extend_string_list,
     find_all_diffs,
@@ -24,7 +22,6 @@ from fwo_base import (
     write_native_config_to_file,
 )
 from fwo_const import LIST_DELIMITER
-from fwo_enums import ConfFormat
 from fwo_log import FWOLogger
 from services.enums import Services
 from services.global_state import GlobalState
@@ -38,18 +35,6 @@ if TYPE_CHECKING:
     from services.service_provider import ServiceProvider
 
 NATIVE_CONFIG_DEBUG_LEVEL = 7
-
-
-class _Color(Enum):
-    RED = "red"
-
-
-class _Node:
-    def __init__(self, name: str, color: _Color | None = None) -> None:
-        self.name = name
-        self.color = color
-        self.children: list[_Node] = []
-        self.parent: _Node | None = None
 
 
 class TestStringHelpers:
@@ -101,46 +86,6 @@ class TestStringHelpers:
     def test_generate_hash_from_dict_ignores_key_order(self) -> None:
         assert generate_hash_from_dict({"a": 1, "b": 2}) == generate_hash_from_dict({"b": 2, "a": 1})
         assert generate_hash_from_dict({"a": 1}) != generate_hash_from_dict({"a": 2})
-
-
-class TestDeserializeClassToDict:
-    def test_simple_values_are_returned_unchanged(self) -> None:
-        assert deserialize_class_to_dict_rec(None) is None
-        assert deserialize_class_to_dict_rec(5) == 5
-        assert deserialize_class_to_dict_rec("s") == "s"
-        assert deserialize_class_to_dict_rec(ConfFormat.NORMALIZED) is ConfFormat.NORMALIZED
-
-    def test_objects_lists_dicts_and_enums_are_converted(self) -> None:
-        root = _Node("root", _Color.RED)
-        root.children.append(_Node("child"))
-
-        result = deserialize_class_to_dict_rec({"nodes": [root]})
-
-        assert result == {
-            "nodes": [
-                {
-                    "name": "root",
-                    "color": "red",
-                    "children": [{"name": "child", "color": None, "children": [], "parent": None}],
-                    "parent": None,
-                }
-            ]
-        }
-
-    def test_circular_references_are_marked(self) -> None:
-        root = _Node("root")
-        child = _Node("child")
-        child.parent = root
-        root.children.append(child)
-
-        result: Any = deserialize_class_to_dict_rec(root)
-
-        assert result["children"][0]["parent"] == "<Circular reference to _Node>"
-
-    def test_objects_without_dict_are_returned_as_is(self) -> None:
-        value = (1, 2)
-
-        assert deserialize_class_to_dict_rec(value) is value
 
 
 class TestIpHelpers:

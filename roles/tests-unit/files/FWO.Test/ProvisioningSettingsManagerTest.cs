@@ -18,6 +18,8 @@ internal class ProvisioningSettingsManagerTest
     private static readonly List<string> kExpectedLoggingKeys = [ProvisioningSettingKeys.Logging.DatabaseKey];
     private static readonly List<string> kExpectedZoneFromKeys = [ProvisioningSettingKeys.ZoneFrom.DatabaseKey];
     private static readonly List<long> kExpectedChildNodeIds = [4, 5];
+    private static readonly DeviceType kFortiGateType = new() { Id = 10, Name = "FortiGate", Version = "5ff", Manufacturer = "Fortinet" };
+    private static readonly DeviceType kFortiAdomType = new() { Id = 11, Name = "FortiADOM", Version = "5ff", Manufacturer = "Fortinet" };
 
     [Test]
     public async Task LoadLevel_ResolvesNearestOverridesAndReportsTheirSources()
@@ -31,7 +33,7 @@ internal class ProvisioningSettingsManagerTest
         ProvisioningSettingsManager manager = new(api);
 
         ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
-            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayScope());
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath());
 
         using (Assert.EnterMultipleScope())
         {
@@ -58,7 +60,7 @@ internal class ProvisioningSettingsManagerTest
         ProvisioningSettingsManager manager = new(api);
 
         ResolvedProvisioningValue<ProvisioningLoggingMode> result =
-            await manager.LoadEffectiveValueAsync(GatewayScope(), ProvisioningSettingKeys.Logging);
+            await manager.LoadEffectiveValueAsync(GatewayPath(), ProvisioningSettingKeys.Logging);
 
         using (Assert.EnterMultipleScope())
         {
@@ -207,10 +209,9 @@ internal class ProvisioningSettingsManagerTest
         api.SetValue(2, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
         api.SetValue(3, ProvisioningSettingKeys.InstallOn, "parent-management");
         ProvisioningSettingsManager manager = new(api);
-        ProvisioningSettingsScope missingGateway = GatewayScope(nodeId: 0);
 
         ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
-            await manager.LoadLevelAsync<GatewayProvisioningSettings>(missingGateway);
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath());
 
         using (Assert.EnterMultipleScope())
         {
@@ -231,7 +232,7 @@ internal class ProvisioningSettingsManagerTest
         ProvisioningSettingsManager manager = new(api);
 
         InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayScope()));
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath()));
 
         Assert.That(exception?.Message, Does.Contain("returned 2 nodes"));
     }
@@ -266,7 +267,7 @@ internal class ProvisioningSettingsManagerTest
         ProvisioningSettingsManager manager = new(api);
 
         InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayScope()));
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath()));
 
         Assert.That(exception, Is.SameAs(failure));
     }
@@ -340,17 +341,17 @@ internal class ProvisioningSettingsManagerTest
     }
 
     [Test]
-    public async Task LoadLevelAlongChain_InheritsAlongTheGivenChainInsteadOfTheStoredParent()
+    public async Task LoadLevel_InheritsAlongThePathInsteadOfTheStoredParent()
     {
         InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
-        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "fortiadom", parentId: 1, displayName: "FortiADOM"));
+        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "11", parentId: 1, displayName: "FortiADOM"));
         api.SetValue(2, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
         api.SetValue(5, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
         api.SetValue(4, ProvisioningSettingKeys.ZoneTo, "dmz");
         ProvisioningSettingsManager manager = new(api);
 
         ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
-            await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(ChainBelow("fortiadom"));
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath(kFortiAdomType));
 
         using (Assert.EnterMultipleScope())
         {
@@ -364,14 +365,14 @@ internal class ProvisioningSettingsManagerTest
     }
 
     [Test]
-    public async Task LoadLevelAlongChain_UnpersistedLevelsContributeNothing()
+    public async Task LoadLevel_UnpersistedLevelsContributeNothing()
     {
         InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy(includeGateway: false);
         api.SetValue(3, ProvisioningSettingKeys.InstallOn, "management-target");
         ProvisioningSettingsManager manager = new(api);
 
         ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
-            await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(ChainBelow("fortigate"));
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath());
 
         using (Assert.EnterMultipleScope())
         {
@@ -382,21 +383,19 @@ internal class ProvisioningSettingsManagerTest
     }
 
     [Test]
-    public void LoadLevelAlongChain_RejectsAChainWithAGap()
+    public void LoadLevel_RejectsSettingsOfAnotherLevel()
     {
         ProvisioningSettingsManager manager = new(CreateFourLevelHierarchy());
-        List<ProvisioningSettingsScope> chain = ChainBelow("fortigate");
-        chain.RemoveAt(1);
 
         Assert.ThrowsAsync<ArgumentException>(async () =>
-            await manager.LoadLevelAlongChainAsync<ManagementProvisioningSettings>(chain));
+            await manager.LoadLevelAsync<ManagementProvisioningSettings>(GatewayPath()));
     }
 
     [Test]
     public async Task MoveNode_PlacesTheNodeBelowTheNewParentAndKeepsItsValues()
     {
         InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
-        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "fortiadom", parentId: 1, displayName: "FortiADOM"));
+        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "11", parentId: 1, displayName: "FortiADOM"));
         api.SetValue(3, ProvisioningSettingKeys.InstallOn, "keep-me");
         ProvisioningSettingsManager manager = new(api);
 
@@ -453,16 +452,12 @@ internal class ProvisioningSettingsManagerTest
         Assert.ThrowsAsync<KeyNotFoundException>(async () => await manager.MoveNodeAsync(GatewayScope(nodeId: 0), 3));
     }
 
-    /// <summary>The chain Global / device type / management 100 / gateway 200 below the given device type.</summary>
-    private static List<ProvisioningSettingsScope> ChainBelow(string deviceTypeKey)
+    /// <summary>The path Global / device type / management 100 / gateway 200, by default below device type 10.</summary>
+    private static ProvisioningScopePath GatewayPath(DeviceType? deviceType = null)
     {
-        return
-        [
-            new() { ScopeType = ProvisioningScopeType.Global, ObjectKey = "global" },
-            new() { ScopeType = ProvisioningScopeType.DeviceType, ObjectKey = deviceTypeKey },
-            new() { ScopeType = ProvisioningScopeType.Management, ObjectKey = "100" },
-            new() { ScopeType = ProvisioningScopeType.Gateway, ObjectKey = "200" }
-        ];
+        Device gateway = new() { Id = 200, Name = "Gateway" };
+        Management management = new() { Id = 100, Name = "Management", DeviceType = deviceType ?? kFortiGateType, Devices = [gateway] };
+        return ProvisioningScopePath.ForGateway(management, gateway);
     }
 
     private static ProvisioningSettingsScope ManagementScope(long parentNodeId)
@@ -481,7 +476,7 @@ internal class ProvisioningSettingsManagerTest
     {
         InMemoryProvisioningApiConnection api = new();
         api.Nodes.Add(Node(1, ProvisioningScopeType.Global, "global", displayName: "Global"));
-        api.Nodes.Add(Node(2, ProvisioningScopeType.DeviceType, "fortigate", parentId: 1, displayName: "FortiGate"));
+        api.Nodes.Add(Node(2, ProvisioningScopeType.DeviceType, "10", parentId: 1, displayName: "FortiGate"));
         api.Nodes.Add(Node(3, ProvisioningScopeType.Management, "100", parentId: 2, displayName: "Management"));
         if (includeGateway)
         {

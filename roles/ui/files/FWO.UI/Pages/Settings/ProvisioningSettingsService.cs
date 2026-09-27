@@ -198,7 +198,7 @@ namespace FWO.Ui.Pages.Settings
         private async Task<List<ProvisioningSettingsScope>> LoadPersistedScopesAsync()
         {
             ProvisioningSettingsLevel<GlobalProvisioningSettings> global =
-                await manager.LoadLevelAsync<GlobalProvisioningSettings>(GlobalRequestScope());
+                await manager.LoadLevelAsync<GlobalProvisioningSettings>(ProvisioningScopePath.Global());
             if (global.Scope.NodeId == 0)
             {
                 return [];
@@ -225,10 +225,9 @@ namespace FWO.Ui.Pages.Settings
         /// </summary>
         private async Task<ResolvedLevel> ResolveAsync(ProvisioningNode node)
         {
-            List<ProvisioningSettingsScope> chain = [.. node.SelfAndAncestors().Reverse().Select(RequestScope)];
             (GlobalProvisioningSettings settings, IReadOnlySet<ProvisioningSettingKey> direct,
                 IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource> sources) =
-                await LoadLevelAlongChainAsync(chain);
+                await LoadLevelAsync(node.Path);
 
             Dictionary<ProvisioningSettingKey, string> values = [];
             Dictionary<ProvisioningSettingKey, ProvisioningSettingsScope?> valueSources = [];
@@ -260,17 +259,15 @@ namespace FWO.Ui.Pages.Settings
         }
 
         private async Task<(GlobalProvisioningSettings, IReadOnlySet<ProvisioningSettingKey>,
-            IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource>)> LoadLevelAlongChainAsync(
-            List<ProvisioningSettingsScope> chain)
+            IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource>)> LoadLevelAsync(ProvisioningScopePath path)
         {
-            ProvisioningScopeType level = chain[^1].ScopeType;
-            return level switch
+            return path.ScopeType switch
             {
-                ProvisioningScopeType.Global => Unpack(await manager.LoadLevelAlongChainAsync<GlobalProvisioningSettings>(chain)),
-                ProvisioningScopeType.DeviceType => Unpack(await manager.LoadLevelAlongChainAsync<DeviceTypeProvisioningSettings>(chain)),
-                ProvisioningScopeType.Management => Unpack(await manager.LoadLevelAlongChainAsync<ManagementProvisioningSettings>(chain)),
-                ProvisioningScopeType.Gateway => Unpack(await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(chain)),
-                _ => throw new ArgumentOutOfRangeException(nameof(chain), level, "A defined provisioning scope type is required.")
+                ProvisioningScopeType.Global => Unpack(await manager.LoadLevelAsync<GlobalProvisioningSettings>(path)),
+                ProvisioningScopeType.DeviceType => Unpack(await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(path)),
+                ProvisioningScopeType.Management => Unpack(await manager.LoadLevelAsync<ManagementProvisioningSettings>(path)),
+                ProvisioningScopeType.Gateway => Unpack(await manager.LoadLevelAsync<GatewayProvisioningSettings>(path)),
+                _ => throw new ArgumentOutOfRangeException(nameof(path), path.ScopeType, "A defined provisioning scope type is required.")
             };
         }
 
@@ -299,12 +296,5 @@ namespace FWO.Ui.Pages.Settings
         }
 
         private static long? NullIfUnpersisted(ProvisioningNode? node) => node is { IsPersisted: true } ? node.Scope.NodeId : null;
-
-        private static ProvisioningSettingsScope GlobalRequestScope() => new()
-        {
-            ScopeType = ProvisioningScopeType.Global,
-            ObjectKey = ProvisioningSettingsData.GlobalObjectKey,
-            DisplayName = ProvisioningSettingsData.GlobalDisplayName
-        };
     }
 }

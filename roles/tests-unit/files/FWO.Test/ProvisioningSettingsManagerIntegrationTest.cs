@@ -21,6 +21,9 @@ internal class ProvisioningSettingsManagerIntegrationTest
 {
     private static readonly string[] kExpectedSecurityProfiles = ["Strict", "ScanAll"];
 
+    /// <summary>Smoke device types use IDs far above any real device type, so they never meet a real node.</summary>
+    private const int kSmokeDeviceTypeIdMin = 1_000_000_000;
+
     private const string DeleteSmokeNode = """
         mutation deleteProvisioningSettingsSmokeNode($nodeType: String!, $objectKey: String!) {
           delete_provisioning_config_node(
@@ -39,7 +42,14 @@ internal class ProvisioningSettingsManagerIntegrationTest
     [Category("Integration")]
     public async Task Manager_RoundTripsJsonbAndUsesProvisioningPermissions(string role)
     {
-        string objectKey = $"fwo-integration-smoke-{role}-{Guid.NewGuid():N}";
+        DeviceType smokeDeviceType = new()
+        {
+            Id = Random.Shared.Next(kSmokeDeviceTypeIdMin, int.MaxValue),
+            Name = "Provisioning integration smoke",
+            Version = role
+        };
+        ProvisioningScopePath smokePath = ProvisioningScopePath.ForDeviceType(smokeDeviceType);
+        string objectKey = smokePath.ObjectKey;
         string jwt = CreateRoleToken(role);
         using GraphQlApiConnection api = new(ConfigFile.ApiServerUri, jwt);
         ProvisioningSettingsManager manager = new(api);
@@ -48,11 +58,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
         try
         {
             ProvisioningSettingsLevel<GlobalProvisioningSettings> global =
-                await manager.LoadLevelAsync<GlobalProvisioningSettings>(new ProvisioningSettingsScope
-                {
-                    ScopeType = ProvisioningScopeType.Global,
-                    ObjectKey = "global"
-                });
+                await manager.LoadLevelAsync<GlobalProvisioningSettings>(ProvisioningScopePath.Global());
 
             ProvisioningSettingsScope requested = new()
             {
@@ -78,7 +84,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
                 ProvisioningLoggingMode.None);
 
             ProvisioningSettingsLevel<DeviceTypeProvisioningSettings> loaded =
-                await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(persisted);
+                await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(smokePath);
 
             using (Assert.EnterMultipleScope())
             {
@@ -93,7 +99,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
 
             await manager.ClearOverrideAsync(persisted, ProvisioningSettingKeys.Logging);
             ProvisioningSettingsLevel<DeviceTypeProvisioningSettings> afterClear =
-                await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(persisted);
+                await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(smokePath);
 
             using (Assert.EnterMultipleScope())
             {

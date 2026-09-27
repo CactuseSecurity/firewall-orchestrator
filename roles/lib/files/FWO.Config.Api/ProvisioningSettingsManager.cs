@@ -29,20 +29,19 @@ public sealed class ProvisioningSettingsManager
     }
 
     /// <summary>
-    /// Resolves the settings in effect at a scope, together with the overrides stored directly on it and the
-    /// source of every value. A scope without a persisted node is resolved from its persisted parent.
+    /// Resolves the settings in effect at the most specific level of a path, together with the overrides stored
+    /// directly on that level and the source of every value. Values are inherited along the path, i.e. along the
+    /// current device hierarchy, and never along the stored parent links of the provisioning nodes, which are
+    /// outdated for a management or gateway moved since its node was stored. Levels without a stored node
+    /// contribute no values.
     /// </summary>
-    public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAsync<TSettings>(
-        ProvisioningSettingsScope scope)
+    public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAsync<TSettings>(ProvisioningScopePath path)
         where TSettings : GlobalProvisioningSettings
     {
-        ArgumentNullException.ThrowIfNull(scope);
-        ProvisioningSettingsHierarchyValidator.ValidateLocator(scope);
-        ProvisioningSettingsHierarchyValidator.ValidateSettingsType(scope.ScopeType, typeof(TSettings));
+        ArgumentNullException.ThrowIfNull(path);
+        ProvisioningSettingsHierarchyValidator.ValidateSettingsType(path.ScopeType, typeof(TSettings));
 
-        LoadedHierarchy hierarchy = await LoadHierarchyAsync(scope);
-        ResolvedSettings resolved = ResolveSettings(hierarchy);
-
+        ResolvedSettings resolved = await ResolveAlongPathAsync(path);
         return new ProvisioningSettingsLevel<TSettings>(
             resolved.Scope,
             (TSettings)resolved.Settings,
@@ -51,21 +50,19 @@ public sealed class ProvisioningSettingsManager
     }
 
     /// <summary>
-    /// Resolves the value of a single setting in effect at a scope and the scope it comes from.
+    /// Resolves the value of a single setting in effect at the most specific level of a path and the level it
+    /// comes from. Like <see cref="LoadLevelAsync{TSettings}"/>, the value is inherited along the path.
     /// </summary>
     public async Task<ResolvedProvisioningValue<TValue>> LoadEffectiveValueAsync<TValue>(
-        ProvisioningSettingsScope scope,
+        ProvisioningScopePath path,
         ProvisioningSettingKey<TValue> key)
     {
-        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(key);
-        ProvisioningSettingsHierarchyValidator.ValidateLocator(scope);
-        ValidateKeyForScope(key, scope.ScopeType);
+        ValidateKeyForScope(key, path.ScopeType);
 
-        LoadedHierarchy hierarchy = await LoadHierarchyAsync(scope);
-        ResolvedSettings resolved = ResolveSettings(hierarchy);
+        ResolvedSettings resolved = await ResolveAlongPathAsync(path);
         TValue value = (TValue)ProvisioningSettingsMapper.GetValue(resolved.Settings, key);
-
         return new ResolvedProvisioningValue<TValue>(key, value, resolved.ValueSources[key]);
     }
 
@@ -212,51 +209,6 @@ public sealed class ProvisioningSettingsManager
     }
 
     /// <summary>
-    /// Resolves the settings in effect at the last scope of a chain that runs from Global down to that scope.
-    /// Unlike <see cref="LoadLevelAsync{TSettings}"/>, values are inherited along the given chain and not along the
-    /// stored parent links. A caller that knows the current device hierarchy therefore gets the correct values even
-    /// for a node whose management or gateway has been moved since the node was stored. Scopes of the chain without
-    /// a persisted node contribute no values.
-    /// </summary>
-    public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAlongChainAsync<TSettings>(
-        IReadOnlyList<ProvisioningSettingsScope> chain)
-        where TSettings : GlobalProvisioningSettings
-    {
-        ProvisioningSettingsHierarchyValidator.ValidateRequestedChain(chain);
-        ProvisioningSettingsScope requestedScope = chain[^1];
-        ProvisioningSettingsHierarchyValidator.ValidateSettingsType(requestedScope.ScopeType, typeof(TSettings));
-
-        List<ProvisioningConfigNodeData> nodes = [];
-        ProvisioningSettingsScope resolvedScope = ProvisioningSettingsScopeFactory.Copy(requestedScope);
-        bool selectedNodeExists = false;
-        foreach (ProvisioningSettingsScope scope in chain)
-        {
-            ProvisioningConfigNodeData? node = await TryLoadNodeByNaturalKeyAsync(scope);
-            if (node is null)
-            {
-                continue;
-            }
-
-            ProvisioningSettingsScope persistedScope = ProvisioningSettingsScopeFactory.Create(node);
-            ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(ScopeWithoutParent(scope), persistedScope);
-            ValidateSingleNodeValues(node, persistedScope);
-            nodes.Add(node);
-            if (ReferenceEquals(scope, requestedScope))
-            {
-                resolvedScope = persistedScope;
-                selectedNodeExists = true;
-            }
-        }
-
-        ResolvedSettings resolved = ResolveSettings(new LoadedHierarchy(resolvedScope, nodes, selectedNodeExists));
-        return new ProvisioningSettingsLevel<TSettings>(
-            resolved.Scope,
-            (TSettings)resolved.Settings,
-            resolved.DirectOverrides,
-            resolved.ValueSources);
-    }
-
-    /// <summary>
     /// Moves a persisted node below another persisted node, e.g. after the node's management was assigned to another
     /// device type. The node keeps its own overrides; the new parent must be of the level directly above the node.
     /// Returns the canonical scope of the moved node.
@@ -339,10 +291,39 @@ public sealed class ProvisioningSettingsManager
         return children;
     }
 
-    private async Task<LoadedHierarchy> LoadHierarchyAsync(ProvisioningSettingsScope requestedScope)
+    /// <summary>
+    /// Merges the values stored on the levels of a path, Global first, looking every level's node up by its
+    /// scope type and object key.
+    /// </summary>
+    private async Task<ResolvedSettings> ResolveAlongPathAsync(ProvisioningScopePath path)
     {
-        return await TryLoadPersistedHierarchyAsync(requestedScope)
-            ?? await LoadUnpersistedHierarchyAsync(requestedScope);
+        List<ProvisioningSettingsScope> chain = path.ToScopes();
+        ProvisioningSettingsHierarchyValidator.ValidateRequestedChain(chain);
+        ProvisioningSettingsScope requestedScope = chain[^1];
+
+        List<ProvisioningConfigNodeData> nodes = [];
+        ProvisioningSettingsScope resolvedScope = ProvisioningSettingsScopeFactory.Copy(requestedScope);
+        bool selectedNodeExists = false;
+        foreach (ProvisioningSettingsScope scope in chain)
+        {
+            ProvisioningConfigNodeData? node = await TryLoadNodeByNaturalKeyAsync(scope);
+            if (node is null)
+            {
+                continue;
+            }
+
+            ProvisioningSettingsScope persistedScope = ProvisioningSettingsScopeFactory.Create(node);
+            ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(ScopeWithoutParent(scope), persistedScope);
+            ValidateSingleNodeValues(node, persistedScope);
+            nodes.Add(node);
+            if (ReferenceEquals(scope, requestedScope))
+            {
+                resolvedScope = persistedScope;
+                selectedNodeExists = true;
+            }
+        }
+
+        return ResolveSettings(new LoadedHierarchy(resolvedScope, nodes, selectedNodeExists));
     }
 
     private async Task<LoadedHierarchy?> TryLoadPersistedHierarchyAsync(

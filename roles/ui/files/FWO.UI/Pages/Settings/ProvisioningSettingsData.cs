@@ -67,6 +67,9 @@ namespace FWO.Ui.Pages.Settings
     {
         public required ProvisioningSettingsScope Scope { get; set; }
 
+        /// <summary>Path of the node through the current device hierarchy; settings are resolved along it.</summary>
+        public required ProvisioningScopePath Path { get; init; }
+
         /// <summary>Current name of the underlying object (device type, management, gateway).</summary>
         public required string Name { get; init; }
 
@@ -107,8 +110,8 @@ namespace FWO.Ui.Pages.Settings
     /// </summary>
     public static class ProvisioningSettingsData
     {
-        public const string GlobalObjectKey = "global";
-        public const string GlobalDisplayName = "Global";
+        public const string GlobalObjectKey = ProvisioningScopePath.GlobalObjectKey;
+        public const string GlobalDisplayName = ProvisioningScopePath.GlobalDisplayName;
         public const string FortinetManufacturer = "Fortinet";
 
         private const char kListSeparator = ',';
@@ -204,7 +207,7 @@ namespace FWO.Ui.Pages.Settings
             Dictionary<(ProvisioningScopeType, string), ProvisioningSettingsScope> persisted =
                 persistedScopes.ToDictionary(scope => (scope.ScopeType, scope.ObjectKey));
 
-            ProvisioningNode global = NewNode(persisted, ProvisioningScopeType.Global, GlobalObjectKey, GlobalDisplayName, null, false);
+            ProvisioningNode global = NewNode(persisted, ProvisioningScopePath.Global(), GlobalDisplayName, null, false);
 
             IEnumerable<IGrouping<int, Management>> byDeviceType = managements
                 .Where(m => !m.HideInUi && !m.DeviceType.IsPureRoutingDevice)
@@ -215,17 +218,17 @@ namespace FWO.Ui.Pages.Settings
             {
                 DeviceType deviceType = group.First().DeviceType;
                 bool isFortinet = deviceType.Manufacturer == FortinetManufacturer;
-                ProvisioningNode deviceTypeNode = NewNode(persisted, ProvisioningScopeType.DeviceType,
-                    ObjectKey(deviceType.Id), deviceType.NameVersion(), global, isFortinet);
+                ProvisioningNode deviceTypeNode = NewNode(persisted, ProvisioningScopePath.ForDeviceType(deviceType),
+                    deviceType.NameVersion(), global, isFortinet);
 
                 foreach (Management management in group.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
                 {
-                    ProvisioningNode managementNode = NewNode(persisted, ProvisioningScopeType.Management,
-                        ObjectKey(management.Id), management.Name, deviceTypeNode, isFortinet);
+                    ProvisioningNode managementNode = NewNode(persisted, ProvisioningScopePath.ForManagement(management),
+                        management.Name, deviceTypeNode, isFortinet);
 
                     foreach (Device device in management.Devices.OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
                     {
-                        NewNode(persisted, ProvisioningScopeType.Gateway, ObjectKey(device.Id), device.Name ?? ObjectKey(device.Id), managementNode, isFortinet);
+                        NewNode(persisted, ProvisioningScopePath.ForGateway(management, device), device.Name ?? ObjectKey(device.Id), managementNode, isFortinet);
                     }
                 }
             }
@@ -240,17 +243,16 @@ namespace FWO.Ui.Pages.Settings
 
         private static ProvisioningNode NewNode(
             Dictionary<(ProvisioningScopeType, string), ProvisioningSettingsScope> persisted,
-            ProvisioningScopeType scopeType,
-            string objectKey,
+            ProvisioningScopePath path,
             string name,
             ProvisioningNode? parent,
             bool isFortinet)
         {
-            ProvisioningSettingsScope scope = persisted.TryGetValue((scopeType, objectKey), out ProvisioningSettingsScope? stored)
+            ProvisioningSettingsScope scope = persisted.TryGetValue((path.ScopeType, path.ObjectKey), out ProvisioningSettingsScope? stored)
                 ? stored
-                : new() { ScopeType = scopeType, ObjectKey = objectKey, DisplayName = name };
+                : new() { ScopeType = path.ScopeType, ObjectKey = path.ObjectKey, DisplayName = name };
 
-            ProvisioningNode node = new() { Scope = scope, Name = name, Parent = parent, IsFortinet = isFortinet };
+            ProvisioningNode node = new() { Scope = scope, Path = path, Name = name, Parent = parent, IsFortinet = isFortinet };
             parent?.Children.Add(node);
             return node;
         }

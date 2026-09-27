@@ -18,6 +18,7 @@ internal class ProvisioningSettingsDataTest
     private static readonly string[] ExpectedGatewayKeys = ["200", "201"];
     private static readonly string[] ExpectedScopeChain = ["Gateway:210", "Management:101", "DeviceType:11", "Global:global"];
     private static readonly string[] ExpectedParsedList = ["a", "b"];
+    private static readonly List<ProvisioningSettingsScope> kNoPersistedScopes = [];
     private static readonly string[] ExpectedParsedListWithEmpty = ["a", ""];
 
     internal static List<Management> SampleManagements() =>
@@ -119,6 +120,20 @@ internal class ProvisioningSettingsDataTest
             Assert.That(management.Scope.NodeId, Is.EqualTo(3));
             Assert.That(management.Name, Is.EqualTo("cp-mgr"));
             Assert.That(Node(root, ProvisioningScopeType.Management, "101").IsPersisted, Is.False);
+        }
+    }
+
+    [Test]
+    public void BuildHierarchy_GivesEveryNodeThePathOfItsPlaceInTheTree()
+    {
+        ProvisioningNode root = ProvisioningSettingsData.BuildHierarchy(SampleManagements(), kNoPersistedScopes);
+
+        foreach (ProvisioningNode node in root.SelfAndDescendants())
+        {
+            List<ProvisioningSettingsScope> path = node.Path.ToScopes();
+            List<ProvisioningNode> treePath = [.. node.SelfAndAncestors().Reverse()];
+            Assert.That(path.Select(scope => (scope.ScopeType, scope.ObjectKey)),
+                Is.EqualTo(treePath.Select(treeNode => (treeNode.Level, treeNode.Scope.ObjectKey))), node.Id);
         }
     }
 

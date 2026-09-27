@@ -623,6 +623,7 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateServiceObjectRequest
                 {
                     Id = -2,
+                    Predicate = "create",
                     Name = "https",
                     Protocol = "tcp",
                     PortStart = 443,
@@ -646,6 +647,7 @@ internal class WorkflowTicketServiceTest
         WfReqTaskWriter accessTask = apiConnection.LastTicketWriter.Tasks.Single(task => task.TaskType == WfTaskType.access.ToString());
         WfReqElementWriter groupMember = groupTask.Elements.WfElementList.Single();
         WfReqElementWriter accessSource = accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.source.ToString());
+        WfReqElementWriter accessService = accessTask.Elements.WfElementList.Single(element => element.Field == ElemFieldType.service.ToString());
 
         Assert.Multiple(() =>
         {
@@ -653,6 +655,9 @@ internal class WorkflowTicketServiceTest
             Assert.That(accessSource.IpEnd, Is.EqualTo("192.0.2.10/32"));
             Assert.That(groupMember.IpString, Is.EqualTo("192.0.2.10/32"));
             Assert.That(groupMember.IpEnd, Is.EqualTo("192.0.2.10/32"));
+            Assert.That(groupMember.RequestAction, Is.EqualTo(RequestAction.create.ToString()));
+            Assert.That(accessSource.RequestAction, Is.EqualTo(RequestAction.create.ToString()));
+            Assert.That(accessService.RequestAction, Is.EqualTo(RequestAction.create.ToString()));
         });
     }
 

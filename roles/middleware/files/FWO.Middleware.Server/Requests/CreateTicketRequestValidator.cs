@@ -39,6 +39,9 @@ public static class CreateTicketRequestValidator
             }
         }
 
+        ValidatePredicates(request.AddressObjects.Select(objectRequest => objectRequest.Predicate), "addressObjects", result);
+        ValidatePredicates(request.ServiceObjects.Select(objectRequest => objectRequest.Predicate), "serviceObjects", result);
+
         return result;
     }
 
@@ -73,6 +76,27 @@ public static class CreateTicketRequestValidator
         ValidateReferences(rule.DestinationGroups, $"{path}.destinationGroups", result);
         ValidateReferences(rule.ServiceObjects, $"{path}.serviceObjects", result);
         ValidateReferences(rule.ServiceGroups, $"{path}.serviceGroups", result);
+    }
+
+    private static void ValidatePredicates(IEnumerable<string?> predicates, string path,
+        RequestValidationErrorResponse result)
+    {
+        int index = 0;
+        foreach (string? predicate in predicates)
+        {
+            string normalizedPredicate = predicate?.Trim().ToLowerInvariant() ?? "create";
+            if (normalizedPredicate is "modify" or "delete")
+            {
+                result.Errors.Add(BuildError($"{path}[{index}].predicate", "not implemented yet"));
+            }
+            else if (normalizedPredicate is not "create")
+            {
+                result.Errors.Add(BuildError($"{path}[{index}].predicate",
+                    "predicate must be one of: Create, Modify, Delete."));
+            }
+
+            index++;
+        }
     }
 
     private static void ValidateReferences(List<long>? references, string path,

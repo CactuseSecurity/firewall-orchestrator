@@ -1,6 +1,7 @@
 using System.Globalization;
 using FWO.Basics;
 using FWO.Data.Flow;
+using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Requests;
 
@@ -31,11 +32,13 @@ internal sealed record WorkflowTicketEntity(
     int? PortStart = null,
     int? PortEnd = null,
     DateTime? TimeStart = null,
-    DateTime? TimeEnd = null)
+    DateTime? TimeEnd = null,
+    string LeafRequestAction = "create")
 {
     public static WorkflowTicketEntity FromAddressObject(long id, CreateTicketRequest.CreateAddressObjectRequest request)
     {
-        return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.AddressObject, request.Name, request.IpStart, request.IpEnd);
+        return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.AddressObject, request.Name, request.IpStart, request.IpEnd,
+            LeafRequestAction: ResolveRequestAction(request.Predicate));
     }
 
     public static WorkflowTicketEntity FromAddressGroup(CreateTicketRequest.CreateAddressGroupRequest request)
@@ -47,7 +50,8 @@ internal sealed record WorkflowTicketEntity(
     {
         int protocolId = ResolveProtocolId(request.Protocol, protocolIds, request.PortStart, request.PortEnd);
         return new WorkflowTicketEntity(id, WorkflowTicketEntityKind.ServiceObject, request.Name,
-            ProtocolId: protocolId, PortStart: request.PortStart, PortEnd: request.PortEnd);
+            ProtocolId: protocolId, PortStart: request.PortStart, PortEnd: request.PortEnd,
+            LeafRequestAction: ResolveRequestAction(request.Predicate));
     }
 
     public static WorkflowTicketEntity FromServiceGroup(CreateTicketRequest.CreateServiceGroupRequest request)
@@ -125,5 +129,15 @@ internal sealed record WorkflowTicketEntity(
         {
             throw new ArgumentException($"The service object protocol '{protocol}' has a 'portEnd' value without a 'portStart' value.");
         }
+    }
+
+    private static string ResolveRequestAction(string? predicate)
+    {
+        return predicate?.Trim().ToLowerInvariant() switch
+        {
+            null or "" or "create" => RequestAction.create.ToString(),
+            "modify" or "delete" => throw new ArgumentException("not implemented yet"),
+            _ => throw new ArgumentException($"Unknown predicate '{predicate}'.")
+        };
     }
 }

@@ -183,6 +183,12 @@ public sealed class CreateTicketRequest
     public sealed class CreateAddressObjectRequest
     {
         /// <summary>
+        /// Gets the requested leaf-object predicate. Defaults to <c>create</c>.
+        /// </summary>
+        [JsonPropertyName("predicate")]
+        public string Predicate { get; set; } = "create";
+
+        /// <summary>
         /// Gets the Id value.
         /// </summary>
         [JsonPropertyName("id")]
@@ -236,6 +242,12 @@ public sealed class CreateTicketRequest
     /// </summary>
     public sealed class CreateServiceObjectRequest
     {
+        /// <summary>
+        /// Gets the requested leaf-object predicate. Defaults to <c>create</c>.
+        /// </summary>
+        [JsonPropertyName("predicate")]
+        public string Predicate { get; set; } = "create";
+
         /// <summary>
         /// Gets the Id value.
         /// </summary>

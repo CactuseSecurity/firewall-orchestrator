@@ -95,6 +95,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
             new CreateTicketRequest.CreateAddressObjectRequest
             {
                 Id = -1,
+                Predicate = "create",
                 Name = "app-server-1",
                 IpStart = "192.0.2.10",
                 IpEnd = "192.0.2.10"
@@ -114,6 +115,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
             new CreateTicketRequest.CreateServiceObjectRequest
             {
                 Id = -2,
+                Predicate = "create",
                 Name = "https",
                 Protocol = "tcp",
                 PortStart = 443,

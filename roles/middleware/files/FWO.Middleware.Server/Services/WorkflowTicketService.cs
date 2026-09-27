@@ -655,7 +655,7 @@ public sealed class WorkflowTicketService : IDisposable
                 WorkflowTicketEntityKind.ServiceObject => new WfReqElement
                 {
                     Field = field.ToString(),
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
                     Port = entity.PortStart,
                     PortEnd = entity.PortEnd,
@@ -679,7 +679,7 @@ public sealed class WorkflowTicketService : IDisposable
                 WorkflowTicketEntityKind.AddressObject => new WfReqElement
                 {
                     Field = field.ToString(),
-                    RequestAction = RequestAction.create.ToString(),
+                    RequestAction = entity.LeafRequestAction,
                     Name = entity.DisplayName,
                     IpString = entity.IpStart,
                     IpEnd = entity.IpEnd
@@ -723,7 +723,7 @@ public sealed class WorkflowTicketService : IDisposable
             WorkflowTicketEntityKind.AddressObject => new WfReqElement
             {
                 Field = field.ToString(),
-                RequestAction = RequestAction.create.ToString(),
+                RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
                 IpString = entity.IpStart,
                 IpEnd = entity.IpEnd
@@ -731,7 +731,7 @@ public sealed class WorkflowTicketService : IDisposable
             WorkflowTicketEntityKind.ServiceObject => new WfReqElement
             {
                 Field = field.ToString(),
-                RequestAction = RequestAction.create.ToString(),
+                RequestAction = entity.LeafRequestAction,
                 Name = entity.DisplayName,
                 Port = entity.PortStart,
                 PortEnd = entity.PortEnd,

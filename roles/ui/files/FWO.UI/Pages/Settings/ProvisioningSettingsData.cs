@@ -54,6 +54,7 @@ namespace FWO.Ui.Pages.Settings
 
         public string Id => Key.DatabaseKey;
 
+        /// <summary>Whether the field is offered at the given level.</summary>
         public bool AppliesToLevel(ProvisioningScopeType level) => level >= MinLevel && level <= MaxLevel;
     }
 
@@ -113,8 +114,8 @@ namespace FWO.Ui.Pages.Settings
         private const char kListSeparator = ',';
 
         /// <summary>
-        /// Field definitions. Path analysis is only offered globally and object creation only down to
-        /// management level, even though the setting keys would technically allow more specific scopes.
+        /// Field definitions. Object creation is only offered down to management level, even though the
+        /// setting keys would technically allow more specific scopes.
         /// </summary>
         public static readonly IReadOnlyList<ProvisioningFieldDefinition> Fields =
         [
@@ -125,12 +126,6 @@ namespace FWO.Ui.Pages.Settings
                     (ProvisioningImplementationMode.TufinSc, "prov_opt_tufin_sc"),
                     (ProvisioningImplementationMode.None, "prov_opt_no_implementation"))),
             TextField(ProvisioningSettingKeys.InstallOn, "prov_install_on", s => s.InstallOn),
-            EnumField(ProvisioningSettingKeys.PathAnalysisAlgorithm, "prov_path_analysis_algorithm", s => s.PathAnalysisAlgorithm,
-                EnumOptions(
-                    (ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet, "prov_opt_static_lists_per_subnet"),
-                    (ProvisioningPathAnalysisAlgorithm.ManualPlanning, "prov_opt_manual_planning"),
-                    (ProvisioningPathAnalysisAlgorithm.AskExternalApi, "prov_opt_ask_external_api")),
-                maxLevel: ProvisioningScopeType.Global),
             EnumField(ProvisioningSettingKeys.Logging, "prov_logging", s => s.Logging,
                 EnumOptions(
                     (ProvisioningLoggingMode.Log, "prov_opt_log"),
@@ -178,6 +173,7 @@ namespace FWO.Ui.Pages.Settings
                 minLevel: ProvisioningScopeType.DeviceType, fortinetOnly: true)
         ];
 
+        /// <summary>Returns the field definition of a setting key, or null if the key is not edited in the UI.</summary>
         public static ProvisioningFieldDefinition? FindField(ProvisioningSettingKey key) => Fields.FirstOrDefault(f => f.Key == key);
 
         /// <summary>Fields offered at the given node, honouring the level range and the Fortinet restriction.</summary>

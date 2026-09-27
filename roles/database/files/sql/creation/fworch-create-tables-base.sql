@@ -403,7 +403,9 @@ Create table "provisioning_config_node"
 	"display_name" Varchar NOT NULL Default '',
 	"sort_order" Integer,
 	primary key ("id"),
-	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key")
+	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
 );
 
 Create table "provisioning_config_value"

@@ -16,6 +16,7 @@ internal class ProvisioningSettingsServiceTest
     private const long kCheckPointNodeId = 2;
     private const long kManagementNodeId = 3;
     private const long kGatewayNodeId = 4;
+    private const long kFortiAdomNodeId = 5;
 
     private static readonly (string NodeType, string ObjectKey)[] kExpectedCreatedChain =
         [("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")];
@@ -249,6 +250,90 @@ internal class ProvisioningSettingsServiceTest
             local.Reset();
             Assert.That(local.DisplayedValue, Is.EqualTo("stored"));
         }
+    }
+
+    [Test]
+    public async Task LoadForm_MovedManagement_InheritsFromItsCurrentDeviceType()
+    {
+        InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
+        api.SetValue(kCheckPointNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(kFortiAdomNodeId, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
+
+        ProvisioningLevelForm managementForm = await service.LoadFormAsync(management);
+        ProvisioningLevelForm gatewayForm = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ProvisioningSettingsService.IsMisplaced(management), Is.True);
+            Assert.That(State(managementForm, ProvisioningSettingKeys.Logging).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
+            Assert.That(State(managementForm, ProvisioningSettingKeys.Logging).InheritedSource?.NodeId, Is.EqualTo(kCheckPointNodeId));
+            Assert.That(State(gatewayForm, ProvisioningSettingKeys.Logging).DisplayedValue, Is.EqualTo(nameof(ProvisioningLoggingMode.LogTrack)));
+            Assert.That(api.UpsertCallCount, Is.Zero);
+        }
+    }
+
+    [Test]
+    public async Task Save_MovedManagement_IsMovedBelowItsCurrentDeviceType()
+    {
+        InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: false);
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, "keep-me");
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
+        ProvisioningLevelForm form = await service.LoadFormAsync(management);
+        ProvisioningFieldState ruleType = State(form, ProvisioningSettingKeys.RuleType);
+        ruleType.Override();
+        ruleType.LocalValue = nameof(ProvisioningRuleType.HandleAccessAndNat);
+
+        await service.SaveAsync(form);
+
+        long checkPointNodeId = api.Nodes.Single(n => n.NodeType == "device_type" && n.ObjectKey == "9").Id;
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.Nodes.Single(n => n.Id == kManagementNodeId).ParentId, Is.EqualTo(checkPointNodeId));
+            Assert.That(ProvisioningSettingsService.IsMisplaced(management), Is.False);
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn)?.ToString(), Is.EqualTo("keep-me"));
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.RuleType)?.ToString(), Is.EqualTo(nameof(ProvisioningRuleType.HandleAccessAndNat)));
+        }
+    }
+
+    [Test]
+    public async Task Save_OnlyRemovalOnMovedManagement_AlsoMovesIt()
+    {
+        InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn, "remove-me");
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Management, "100"));
+        State(form, ProvisioningSettingKeys.InstallOn).Inherit();
+
+        await service.SaveAsync(form);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.Nodes.Single(n => n.Id == kManagementNodeId).ParentId, Is.EqualTo(kCheckPointNodeId));
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn), Is.Null);
+        }
+    }
+
+    /// <summary>
+    /// Management 100 is a Check Point management in the tree, but its node is still stored below the node of
+    /// device type 11, as if its device type had been changed after the node was stored.
+    /// </summary>
+    private static InMemoryProvisioningApiConnection MovedCheckPointManagement(bool currentDeviceTypePersisted)
+    {
+        InMemoryProvisioningApiConnection api = new();
+        api.AddNode(kGlobalNodeId, ProvisioningScopeType.Global, "global", displayName: "Global");
+        if (currentDeviceTypePersisted)
+        {
+            api.AddNode(kCheckPointNodeId, ProvisioningScopeType.DeviceType, "9", kGlobalNodeId, "Check Point R8x");
+        }
+        api.AddNode(kFortiAdomNodeId, ProvisioningScopeType.DeviceType, "11", kGlobalNodeId, "FortiADOM 5ff");
+        api.AddNode(kManagementNodeId, ProvisioningScopeType.Management, "100", kFortiAdomNodeId, "cp-mgr");
+        return api;
     }
 
     private static ProvisioningSettingsService Service(InMemoryProvisioningApiConnection api) => new(new ProvisioningSettingsManager(api));

@@ -61,7 +61,34 @@ BEGIN
     END IF;
 END $$;
 
-DROP INDEX IF EXISTS idx_provisioning_config_node_type_key;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'provisioning_config_node_node_type_check'
+        AND conrelid = 'provisioning_config_node'::regclass
+    ) THEN
+        ALTER TABLE "provisioning_config_node"
+        ADD CONSTRAINT provisioning_config_node_node_type_check
+        CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway'));
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'provisioning_config_node_parent_check'
+        AND conrelid = 'provisioning_config_node'::regclass
+    ) THEN
+        ALTER TABLE "provisioning_config_node"
+        ADD CONSTRAINT provisioning_config_node_parent_check
+        CHECK (("node_type" = 'global') = ("parent_id" IS NULL));
+    END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_provisioning_config_node_single_global
+    ON provisioning_config_node (node_type) WHERE node_type = 'global';
 
 CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key
     ON provisioning_config_value (config_key);
@@ -69,3 +96,7 @@ CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key
 INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
 VALUES ('global', 'global', 'Global', 0)
 ON CONFLICT (node_type, object_key) DO NOTHING;
+
+-- the path analysis algorithm is configured in the general settings (config.pathAnalysisAlgorithm) only;
+-- remove overrides stored by pre-release versions of the provisioning settings
+DELETE FROM provisioning_config_value WHERE config_key = 'pathAnalysisAlgorithm';

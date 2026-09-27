@@ -39,6 +39,7 @@ public sealed class ProvisioningSettingsChangeSet
         Scope = scope;
     }
 
+    /// <summary>Stores the value as override of the key on this level.</summary>
     public ProvisioningSettingsChangeSet Set<TValue>(ProvisioningSettingKey<TValue> key, TValue value)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -50,6 +51,7 @@ public sealed class ProvisioningSettingsChangeSet
         return this;
     }
 
+    /// <summary>Removes the override of the key from this level, so that the level inherits the value again.</summary>
     public ProvisioningSettingsChangeSet Remove(ProvisioningSettingKey key)
     {
         ArgumentNullException.ThrowIfNull(key);

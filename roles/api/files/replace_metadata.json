@@ -7652,7 +7652,6 @@
                     "check": {},
                     "columns": [
                       "display_name",
-                      "id",
                       "node_type",
                       "object_key",
                       "parent_id",
@@ -7667,7 +7666,6 @@
                     "check": {},
                     "columns": [
                       "display_name",
-                      "id",
                       "node_type",
                       "object_key",
                       "parent_id",
@@ -7730,8 +7728,6 @@
                   "permission": {
                     "columns": [
                       "display_name",
-                      "node_type",
-                      "object_key",
                       "parent_id",
                       "sort_order"
                     ],
@@ -7745,8 +7741,6 @@
                   "permission": {
                     "columns": [
                       "display_name",
-                      "node_type",
-                      "object_key",
                       "parent_id",
                       "sort_order"
                     ],
@@ -7760,14 +7754,22 @@
                 {
                   "role": "fw-admin",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "node_type": {
+                        "_neq": "global"
+                      }
+                    }
                   },
                   "comment": ""
                 },
                 {
                   "role": "middleware-server",
                   "permission": {
-                    "filter": {}
+                    "filter": {
+                      "node_type": {
+                        "_neq": "global"
+                      }
+                    }
                   },
                   "comment": ""
                 }

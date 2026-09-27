@@ -1,5 +1,8 @@
 namespace FWO.Data.Provisioning;
 
+/// <summary>
+/// Provisioning settings that can be set from the global level downwards, initialized with their compiled defaults.
+/// </summary>
 public class GlobalProvisioningSettings
 {
     public ProvisioningSettingsScope Scope { get; set; } = new();
@@ -7,8 +10,6 @@ public class GlobalProvisioningSettings
     public ProvisioningImplementationMode ImplementationMode { get; set; } = ProvisioningImplementationMode.FwoAuto;
 
     public string InstallOn { get; set; } = "ANY";
-
-    public ProvisioningPathAnalysisAlgorithm PathAnalysisAlgorithm { get; set; } = ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet;
 
     public ProvisioningLoggingMode Logging { get; set; } = ProvisioningLoggingMode.Log;
 
@@ -26,6 +27,9 @@ public class GlobalProvisioningSettings
     }
 }
 
+/// <summary>
+/// Provisioning settings of a device type; adds the device-level settings that are not available globally.
+/// </summary>
 public class DeviceTypeProvisioningSettings : GlobalProvisioningSettings
 {
     public ProvisioningPositioningAlgorithm PositioningAlgorithm { get; set; } = ProvisioningPositioningAlgorithm.DefaultEndOfRulebase;
@@ -44,6 +48,7 @@ public class DeviceTypeProvisioningSettings : GlobalProvisioningSettings
     }
 }
 
+/// <summary>Provisioning settings of a management.</summary>
 public class ManagementProvisioningSettings : DeviceTypeProvisioningSettings
 {
     public ManagementProvisioningSettings()
@@ -52,6 +57,7 @@ public class ManagementProvisioningSettings : DeviceTypeProvisioningSettings
     }
 }
 
+/// <summary>Provisioning settings of a gateway.</summary>
 public class GatewayProvisioningSettings : ManagementProvisioningSettings
 {
     public GatewayProvisioningSettings()

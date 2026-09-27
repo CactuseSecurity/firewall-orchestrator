@@ -13,6 +13,7 @@ public static class ProvisioningSettingsScopeFactory
     public const string ManagementNodeType = "management";
     public const string GatewayNodeType = "gateway";
 
+    /// <summary>Creates the scope of a node read from the database.</summary>
     public static ProvisioningSettingsScope Create(ProvisioningConfigNodeData node)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -28,6 +29,7 @@ public static class ProvisioningSettingsScopeFactory
         };
     }
 
+    /// <summary>Creates an independent copy of a scope.</summary>
     public static ProvisioningSettingsScope Copy(ProvisioningSettingsScope scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
@@ -43,6 +45,7 @@ public static class ProvisioningSettingsScopeFactory
         };
     }
 
+    /// <summary>Returns the database node type of a scope type.</summary>
     public static string ToNodeType(ProvisioningScopeType scopeType)
     {
         return scopeType switch
@@ -55,6 +58,7 @@ public static class ProvisioningSettingsScopeFactory
         };
     }
 
+    /// <summary>Returns the scope type of a database node type; throws for unknown node types.</summary>
     public static ProvisioningScopeType ParseNodeType(string nodeType)
     {
         return nodeType switch

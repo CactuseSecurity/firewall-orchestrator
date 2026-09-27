@@ -28,9 +28,6 @@ public static class ProvisioningSettingKeys
     public static readonly ProvisioningSettingKey<string> InstallOn =
         new("installOn", AllScopeTypes);
 
-    public static readonly ProvisioningSettingKey<ProvisioningPathAnalysisAlgorithm> PathAnalysisAlgorithm =
-        new("pathAnalysisAlgorithm", AllScopeTypes);
-
     public static readonly ProvisioningSettingKey<ProvisioningLoggingMode> Logging =
         new("logging", AllScopeTypes);
 
@@ -65,7 +62,6 @@ public static class ProvisioningSettingKeys
     [
         ImplementationMode,
         InstallOn,
-        PathAnalysisAlgorithm,
         Logging,
         ServiceObjectCreation,
         AddressObjectCreation,

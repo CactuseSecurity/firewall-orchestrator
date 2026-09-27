@@ -2,8 +2,12 @@ using FWO.Data.Provisioning;
 
 namespace FWO.Config.Api.Provisioning;
 
+/// <summary>
+/// Reads and writes the DTO property that belongs to a provisioning setting key.
+/// </summary>
 internal static class ProvisioningSettingsMapper
 {
+    /// <summary>Creates the settings DTO of a scope type holding only the compiled defaults.</summary>
     public static GlobalProvisioningSettings CreateDefaults(ProvisioningScopeType scopeType)
     {
         return scopeType switch
@@ -16,6 +20,7 @@ internal static class ProvisioningSettingsMapper
         };
     }
 
+    /// <summary>Sets the DTO property of a setting key to the given value.</summary>
     public static void SetValue(
         GlobalProvisioningSettings settings,
         ProvisioningSettingKey key,
@@ -32,9 +37,6 @@ internal static class ProvisioningSettingsMapper
                 break;
             case "installOn":
                 settings.InstallOn = (string)value;
-                break;
-            case "pathAnalysisAlgorithm":
-                settings.PathAnalysisAlgorithm = (ProvisioningPathAnalysisAlgorithm)value;
                 break;
             case "logging":
                 settings.Logging = (ProvisioningLoggingMode)value;
@@ -71,6 +73,7 @@ internal static class ProvisioningSettingsMapper
         }
     }
 
+    /// <summary>Returns the value of the DTO property of a setting key.</summary>
     public static object GetValue(GlobalProvisioningSettings settings, ProvisioningSettingKey key)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -80,7 +83,6 @@ internal static class ProvisioningSettingsMapper
         {
             "implementationMode" => settings.ImplementationMode,
             "installOn" => settings.InstallOn,
-            "pathAnalysisAlgorithm" => settings.PathAnalysisAlgorithm,
             "logging" => settings.Logging,
             "serviceObjectCreation" => settings.ServiceObjectCreation,
             "addressObjectCreation" => settings.AddressObjectCreation,

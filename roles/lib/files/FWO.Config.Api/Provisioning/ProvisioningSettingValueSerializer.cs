@@ -9,6 +9,7 @@ namespace FWO.Config.Api.Provisioning;
 /// </summary>
 public static class ProvisioningSettingValueSerializer
 {
+    /// <summary>Converts a typed setting value to its JSONB representation.</summary>
     public static JToken Serialize<TValue>(ProvisioningSettingKey<TValue> key, TValue value)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -16,6 +17,7 @@ public static class ProvisioningSettingValueSerializer
         return Serialize(key, (object)value);
     }
 
+    /// <summary>Converts a setting value to its JSONB representation after checking it against the key's value type.</summary>
     public static JToken Serialize(ProvisioningSettingKey key, object value)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -62,12 +64,16 @@ public static class ProvisioningSettingValueSerializer
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB serializer.");
     }
 
+    /// <summary>Converts a stored JSONB value back to the typed setting value.</summary>
     public static TValue Deserialize<TValue>(ProvisioningSettingKey<TValue> key, JToken value)
     {
         object deserialized = Deserialize((ProvisioningSettingKey)key, value);
         return (TValue)deserialized;
     }
 
+    /// <summary>
+    /// Converts a stored JSONB value back to a value of the key's type. Throws when the stored value does not match that type.
+    /// </summary>
     public static object Deserialize(ProvisioningSettingKey key, JToken value)
     {
         ArgumentNullException.ThrowIfNull(key);

@@ -14,6 +14,11 @@ namespace FWO.Test;
 [Parallelizable]
 internal class ProvisioningSettingsManagerTest
 {
+    private static readonly List<ProvisioningSettingKey> kExpectedZoneToKey = [ProvisioningSettingKeys.ZoneTo];
+    private static readonly List<string> kExpectedLoggingKeys = [ProvisioningSettingKeys.Logging.DatabaseKey];
+    private static readonly List<string> kExpectedZoneFromKeys = [ProvisioningSettingKeys.ZoneFrom.DatabaseKey];
+    private static readonly List<long> kExpectedChildNodeIds = [4, 5];
+
     [Test]
     public async Task LoadLevel_ResolvesNearestOverridesAndReportsTheirSources()
     {
@@ -35,7 +40,7 @@ internal class ProvisioningSettingsManagerTest
             Assert.That(result.Settings.InstallOn, Is.EqualTo("management-cluster"));
             Assert.That(result.Settings.ZoneTo, Is.EqualTo("dmz"));
             Assert.That(result.Settings.Templates, Is.Empty);
-            Assert.That(result.DirectOverrides, Is.EquivalentTo(new[] { ProvisioningSettingKeys.ZoneTo }));
+            Assert.That(result.DirectOverrides, Is.EquivalentTo(kExpectedZoneToKey));
             Assert.That(result.ValueSources[ProvisioningSettingKeys.ImplementationMode].Scope?.NodeId, Is.EqualTo(1));
             Assert.That(result.ValueSources[ProvisioningSettingKeys.Logging].Scope?.NodeId, Is.EqualTo(2));
             Assert.That(result.ValueSources[ProvisioningSettingKeys.InstallOn].Scope?.NodeId, Is.EqualTo(3));
@@ -80,7 +85,7 @@ internal class ProvisioningSettingsManagerTest
         {
             Assert.That(result.NodeId, Is.EqualTo(4));
             Assert.That(api.PatchCallCount, Is.EqualTo(1));
-            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Logging.DatabaseKey }));
+            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedLoggingKeys));
             Assert.That(api.LastPatchRemoveKeys, Is.Empty);
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.Logging), Is.EqualTo(new JValue("None")));
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.ZoneTo), Is.EqualTo(new JValue("existing-zone")));
@@ -105,8 +110,8 @@ internal class ProvisioningSettingsManagerTest
         {
             Assert.That(api.PatchCallCount, Is.EqualTo(1));
             Assert.That(api.DeleteCallCount, Is.Zero);
-            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Logging.DatabaseKey }));
-            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.ZoneFrom.DatabaseKey }));
+            Assert.That(api.LastPatchUpsertKeys, Is.EqualTo(kExpectedLoggingKeys));
+            Assert.That(api.LastPatchRemoveKeys, Is.EqualTo(kExpectedZoneFromKeys));
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.Logging), Is.EqualTo(new JValue("LogTrack")));
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.ZoneFrom), Is.Null);
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.ZoneTo), Is.EqualTo(new JValue("existing-to")));
@@ -129,7 +134,7 @@ internal class ProvisioningSettingsManagerTest
         {
             Assert.That(api.PatchCallCount, Is.Zero);
             Assert.That(api.DeleteCallCount, Is.EqualTo(1));
-            Assert.That(api.LastDeletedKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Logging.DatabaseKey }));
+            Assert.That(api.LastDeletedKeys, Is.EqualTo(kExpectedLoggingKeys));
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.Logging), Is.Null);
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.ZoneTo), Is.EqualTo(new JValue("keep-me")));
         }
@@ -149,7 +154,7 @@ internal class ProvisioningSettingsManagerTest
         {
             Assert.That(api.UpsertCallCount, Is.Zero);
             Assert.That(api.DeleteCallCount, Is.EqualTo(1));
-            Assert.That(api.LastDeletedKeys, Is.EqualTo(new[] { ProvisioningSettingKeys.Logging.DatabaseKey }));
+            Assert.That(api.LastDeletedKeys, Is.EqualTo(kExpectedLoggingKeys));
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.Logging), Is.Null);
             Assert.That(api.ReadValue(4, ProvisioningSettingKeys.ZoneTo), Is.EqualTo(new JValue("keep-me")));
         }
@@ -328,10 +333,148 @@ internal class ProvisioningSettingsManagerTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(children.Select(child => child.NodeId), Is.EquivalentTo(new long[] { 4, 5 }));
+            Assert.That(children.Select(child => child.NodeId), Is.EquivalentTo(kExpectedChildNodeIds));
             Assert.That(children, Has.All.Property(nameof(ProvisioningSettingsScope.ScopeType)).EqualTo(ProvisioningScopeType.Gateway));
             Assert.That(children, Has.All.Property(nameof(ProvisioningSettingsScope.ParentNodeId)).EqualTo(3));
         }
+    }
+
+    [Test]
+    public async Task LoadLevelAlongChain_InheritsAlongTheGivenChainInsteadOfTheStoredParent()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "fortiadom", parentId: 1, displayName: "FortiADOM"));
+        api.SetValue(2, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.LogTrack);
+        api.SetValue(5, ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.None);
+        api.SetValue(4, ProvisioningSettingKeys.ZoneTo, "dmz");
+        ProvisioningSettingsManager manager = new(api);
+
+        ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
+            await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(ChainBelow("fortiadom"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Settings.Logging, Is.EqualTo(ProvisioningLoggingMode.None));
+            Assert.That(result.ValueSources[ProvisioningSettingKeys.Logging].Scope?.NodeId, Is.EqualTo(5));
+            Assert.That(result.Settings.ZoneTo, Is.EqualTo("dmz"));
+            Assert.That(result.DirectOverrides, Is.EquivalentTo(kExpectedZoneToKey));
+            Assert.That(result.Scope.NodeId, Is.EqualTo(4));
+            Assert.That(api.UpsertCallCount, Is.Zero);
+        }
+    }
+
+    [Test]
+    public async Task LoadLevelAlongChain_UnpersistedLevelsContributeNothing()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy(includeGateway: false);
+        api.SetValue(3, ProvisioningSettingKeys.InstallOn, "management-target");
+        ProvisioningSettingsManager manager = new(api);
+
+        ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
+            await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(ChainBelow("fortigate"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Settings.InstallOn, Is.EqualTo("management-target"));
+            Assert.That(result.Scope.NodeId, Is.Zero);
+            Assert.That(result.DirectOverrides, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void LoadLevelAlongChain_RejectsAChainWithAGap()
+    {
+        ProvisioningSettingsManager manager = new(CreateFourLevelHierarchy());
+        List<ProvisioningSettingsScope> chain = ChainBelow("fortigate");
+        chain.RemoveAt(1);
+
+        Assert.ThrowsAsync<ArgumentException>(async () =>
+            await manager.LoadLevelAlongChainAsync<ManagementProvisioningSettings>(chain));
+    }
+
+    [Test]
+    public async Task MoveNode_PlacesTheNodeBelowTheNewParentAndKeepsItsValues()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        api.Nodes.Add(Node(5, ProvisioningScopeType.DeviceType, "fortiadom", parentId: 1, displayName: "FortiADOM"));
+        api.SetValue(3, ProvisioningSettingKeys.InstallOn, "keep-me");
+        ProvisioningSettingsManager manager = new(api);
+
+        ProvisioningSettingsScope moved = await manager.MoveNodeAsync(ManagementScope(parentNodeId: 2), 5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(moved.NodeId, Is.EqualTo(3));
+            Assert.That(moved.ParentNodeId, Is.EqualTo(5));
+            Assert.That(api.Nodes.Single(node => node.Id == 3).ParentId, Is.EqualTo(5));
+            Assert.That(api.ReadValue(3, ProvisioningSettingKeys.InstallOn), Is.EqualTo(new JValue("keep-me")));
+        }
+    }
+
+    [Test]
+    public async Task MoveNode_BelowTheCurrentParent_DoesNotWrite()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        ProvisioningSettingsManager manager = new(api);
+
+        ProvisioningSettingsScope result = await manager.MoveNodeAsync(ManagementScope(parentNodeId: 2), 2);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.ParentNodeId, Is.EqualTo(2));
+            Assert.That(api.UpsertCallCount, Is.Zero);
+        }
+    }
+
+    [Test]
+    public void MoveNode_RejectsAParentOfTheWrongLevel()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        ProvisioningSettingsManager manager = new(api);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await manager.MoveNodeAsync(ManagementScope(parentNodeId: 2), 1));
+        Assert.That(api.UpsertCallCount, Is.Zero);
+    }
+
+    [Test]
+    public void MoveNode_RejectsTheGlobalNode()
+    {
+        ProvisioningSettingsManager manager = new(CreateFourLevelHierarchy());
+        ProvisioningSettingsScope global = new() { ScopeType = ProvisioningScopeType.Global, ObjectKey = "global", NodeId = 1 };
+
+        Assert.ThrowsAsync<ArgumentException>(async () => await manager.MoveNodeAsync(global, 1));
+    }
+
+    [Test]
+    public void MoveNode_WithoutPersistedNode_Fails()
+    {
+        ProvisioningSettingsManager manager = new(CreateFourLevelHierarchy(includeGateway: false));
+
+        Assert.ThrowsAsync<KeyNotFoundException>(async () => await manager.MoveNodeAsync(GatewayScope(nodeId: 0), 3));
+    }
+
+    /// <summary>The chain Global / device type / management 100 / gateway 200 below the given device type.</summary>
+    private static List<ProvisioningSettingsScope> ChainBelow(string deviceTypeKey)
+    {
+        return
+        [
+            new() { ScopeType = ProvisioningScopeType.Global, ObjectKey = "global" },
+            new() { ScopeType = ProvisioningScopeType.DeviceType, ObjectKey = deviceTypeKey },
+            new() { ScopeType = ProvisioningScopeType.Management, ObjectKey = "100" },
+            new() { ScopeType = ProvisioningScopeType.Gateway, ObjectKey = "200" }
+        ];
+    }
+
+    private static ProvisioningSettingsScope ManagementScope(long parentNodeId)
+    {
+        return new ProvisioningSettingsScope
+        {
+            ScopeType = ProvisioningScopeType.Management,
+            ObjectKey = "100",
+            DisplayName = "Management",
+            NodeId = 3,
+            ParentNodeId = parentNodeId
+        };
     }
 
     private static InMemoryProvisioningApiConnection CreateFourLevelHierarchy(bool includeGateway = true)

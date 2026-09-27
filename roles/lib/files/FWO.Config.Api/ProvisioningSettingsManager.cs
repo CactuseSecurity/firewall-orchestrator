@@ -13,8 +13,14 @@ namespace FWO.Config.Api;
 /// </summary>
 public sealed class ProvisioningSettingsManager
 {
+    /// <summary>Global, device type, management and gateway.</summary>
+    private const int kMaxHierarchyDepth = 4;
+
     private readonly ApiConnection apiConnection;
 
+    /// <summary>
+    /// Creates a manager that reads and writes the provisioning configuration through the given API connection.
+    /// </summary>
     public ProvisioningSettingsManager(ApiConnection apiConnection)
     {
         ArgumentNullException.ThrowIfNull(apiConnection);
@@ -22,6 +28,10 @@ public sealed class ProvisioningSettingsManager
         this.apiConnection = apiConnection;
     }
 
+    /// <summary>
+    /// Resolves the settings in effect at a scope, together with the overrides stored directly on it and the
+    /// source of every value. A scope without a persisted node is resolved from its persisted parent.
+    /// </summary>
     public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAsync<TSettings>(
         ProvisioningSettingsScope scope)
         where TSettings : GlobalProvisioningSettings
@@ -40,6 +50,9 @@ public sealed class ProvisioningSettingsManager
             resolved.ValueSources);
     }
 
+    /// <summary>
+    /// Resolves the value of a single setting in effect at a scope and the scope it comes from.
+    /// </summary>
     public async Task<ResolvedProvisioningValue<TValue>> LoadEffectiveValueAsync<TValue>(
         ProvisioningSettingsScope scope,
         ProvisioningSettingKey<TValue> key)
@@ -56,6 +69,9 @@ public sealed class ProvisioningSettingsManager
         return new ResolvedProvisioningValue<TValue>(key, value, resolved.ValueSources[key]);
     }
 
+    /// <summary>
+    /// Stores an override of a single setting at a scope, creating the scope's node if needed.
+    /// </summary>
     public Task<ProvisioningSettingsScope> SetOverrideAsync<TValue>(
         ProvisioningSettingsScope scope,
         ProvisioningSettingKey<TValue> key,
@@ -69,6 +85,10 @@ public sealed class ProvisioningSettingsManager
         return ApplyChangesAsync(changes);
     }
 
+    /// <summary>
+    /// Removes the override of a single setting from a scope, so that the scope inherits the value again.
+    /// Does nothing if the scope has no persisted node.
+    /// </summary>
     public async Task ClearOverrideAsync(
         ProvisioningSettingsScope scope,
         ProvisioningSettingKey key)
@@ -89,10 +109,14 @@ public sealed class ProvisioningSettingsManager
             new
             {
                 nodeId = hierarchy.Scope.NodeId,
-                configKeys = new[] { key.DatabaseKey }
+                configKeys = new List<string> { key.DatabaseKey }
             });
     }
 
+    /// <summary>
+    /// Applies an explicit patch of upserts and removals to one scope and returns the persisted scope.
+    /// The scope's node is only created when the patch stores at least one value.
+    /// </summary>
     public async Task<ProvisioningSettingsScope> ApplyChangesAsync(
         ProvisioningSettingsChangeSet changes)
     {
@@ -130,20 +154,20 @@ public sealed class ProvisioningSettingsManager
         ProvisioningSettingsScope nodeToUpsert = CreateNodeForUpsert(changes.Scope, hierarchy);
         ProvisioningSettingsScope persistedScope = await UpsertNodeAsync(nodeToUpsert);
 
-        string[] removeKeys = changes.Removals
+        List<string> removeKeys = changes.Removals
             .Select(key => key.DatabaseKey)
-            .ToArray();
+            .ToList();
 
         if (serializedUpserts.Count > 0)
         {
-            object[] upserts = serializedUpserts
+            List<object> upserts = serializedUpserts
                 .Select(upsert => (object)new
                 {
                     node_id = persistedScope.NodeId,
                     config_key = upsert.Key.DatabaseKey,
                     config_value = upsert.Value
                 })
-                .ToArray();
+                .ToList();
 
             await apiConnection.SendQueryAsync<ReturnId>(
                 ProvisioningQueries.applyPatch,
@@ -187,6 +211,91 @@ public sealed class ProvisioningSettingsManager
         return await UpsertNodeAsync(CreateNodeForUpsert(scope, hierarchy));
     }
 
+    /// <summary>
+    /// Resolves the settings in effect at the last scope of a chain that runs from Global down to that scope.
+    /// Unlike <see cref="LoadLevelAsync{TSettings}"/>, values are inherited along the given chain and not along the
+    /// stored parent links. A caller that knows the current device hierarchy therefore gets the correct values even
+    /// for a node whose management or gateway has been moved since the node was stored. Scopes of the chain without
+    /// a persisted node contribute no values.
+    /// </summary>
+    public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAlongChainAsync<TSettings>(
+        IReadOnlyList<ProvisioningSettingsScope> chain)
+        where TSettings : GlobalProvisioningSettings
+    {
+        ProvisioningSettingsHierarchyValidator.ValidateRequestedChain(chain);
+        ProvisioningSettingsScope requestedScope = chain[^1];
+        ProvisioningSettingsHierarchyValidator.ValidateSettingsType(requestedScope.ScopeType, typeof(TSettings));
+
+        List<ProvisioningConfigNodeData> nodes = [];
+        ProvisioningSettingsScope resolvedScope = ProvisioningSettingsScopeFactory.Copy(requestedScope);
+        bool selectedNodeExists = false;
+        foreach (ProvisioningSettingsScope scope in chain)
+        {
+            ProvisioningConfigNodeData? node = await TryLoadNodeByNaturalKeyAsync(scope);
+            if (node is null)
+            {
+                continue;
+            }
+
+            ProvisioningSettingsScope persistedScope = ProvisioningSettingsScopeFactory.Create(node);
+            ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(ScopeWithoutParent(scope), persistedScope);
+            ValidateSingleNodeValues(node, persistedScope);
+            nodes.Add(node);
+            if (ReferenceEquals(scope, requestedScope))
+            {
+                resolvedScope = persistedScope;
+                selectedNodeExists = true;
+            }
+        }
+
+        ResolvedSettings resolved = ResolveSettings(new LoadedHierarchy(resolvedScope, nodes, selectedNodeExists));
+        return new ProvisioningSettingsLevel<TSettings>(
+            resolved.Scope,
+            (TSettings)resolved.Settings,
+            resolved.DirectOverrides,
+            resolved.ValueSources);
+    }
+
+    /// <summary>
+    /// Moves a persisted node below another persisted node, e.g. after the node's management was assigned to another
+    /// device type. The node keeps its own overrides; the new parent must be of the level directly above the node.
+    /// Returns the canonical scope of the moved node.
+    /// </summary>
+    public async Task<ProvisioningSettingsScope> MoveNodeAsync(ProvisioningSettingsScope scope, long newParentNodeId)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ProvisioningSettingsHierarchyValidator.ValidateLocator(scope);
+        ProvisioningScopeType expectedParentType = ProvisioningSettingsHierarchyValidator.GetParentType(scope.ScopeType)
+            ?? throw new ArgumentException("The global provisioning node cannot be moved.", nameof(scope));
+
+        ProvisioningConfigNodeData node = await TryLoadNodeByNaturalKeyAsync(scope)
+            ?? throw new KeyNotFoundException($"Provisioning scope '{scope.ScopeType}:{scope.ObjectKey}' has no persisted node.");
+        ProvisioningSettingsScope currentScope = ProvisioningSettingsScopeFactory.Create(node);
+        ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(ScopeWithoutParent(scope), currentScope);
+
+        IReadOnlyList<ProvisioningConfigNodeData> parentNodes = BuildNodeChain(await LoadNodeByIdAsync(newParentNodeId));
+        IReadOnlyList<ProvisioningSettingsScope> parentScopes = CreateScopeChain(parentNodes);
+        ProvisioningSettingsHierarchyValidator.ValidatePersistedChain(parentScopes, expectedParentType);
+
+        if (currentScope.ParentNodeId == newParentNodeId)
+        {
+            return currentScope;
+        }
+
+        return await UpsertNodeAsync(new ProvisioningSettingsScope
+        {
+            ScopeType = currentScope.ScopeType,
+            ObjectKey = currentScope.ObjectKey,
+            DisplayName = scope.DisplayName ?? currentScope.DisplayName ?? "",
+            NodeId = currentScope.NodeId,
+            ParentNodeId = newParentNodeId,
+            SortOrder = currentScope.SortOrder
+        });
+    }
+
+    /// <summary>
+    /// Returns the validated scopes of the persisted child nodes of a node.
+    /// </summary>
     public async Task<IReadOnlyList<ProvisioningSettingsScope>> GetChildrenAsync(long parentNodeId)
     {
         if (parentNodeId <= 0)
@@ -239,32 +348,47 @@ public sealed class ProvisioningSettingsManager
     private async Task<LoadedHierarchy?> TryLoadPersistedHierarchyAsync(
         ProvisioningSettingsScope requestedScope)
     {
+        ProvisioningConfigNodeData? match = await TryLoadNodeByNaturalKeyAsync(requestedScope);
+        if (match is null)
+        {
+            return null;
+        }
+
+        IReadOnlyList<ProvisioningConfigNodeData> nodes = BuildNodeChain(match);
+        IReadOnlyList<ProvisioningSettingsScope> scopes = CreateScopeChain(nodes);
+        ProvisioningSettingsHierarchyValidator.ValidatePersistedChain(scopes, requestedScope.ScopeType);
+        ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(requestedScope, scopes[^1]);
+        ValidateNodeValues(nodes, scopes);
+        return new LoadedHierarchy(scopes[^1], nodes, SelectedNodeExists: true);
+    }
+
+    /// <summary>Loads the node of a scope by node type and object key, together with its stored ancestors.</summary>
+    private async Task<ProvisioningConfigNodeData?> TryLoadNodeByNaturalKeyAsync(ProvisioningSettingsScope scope)
+    {
         List<ProvisioningConfigNodeData> matches = await apiConnection.SendQueryAsync<List<ProvisioningConfigNodeData>>(
             ProvisioningQueries.getNodeWithAncestors,
             new
             {
-                nodeType = ProvisioningSettingsScopeFactory.ToNodeType(requestedScope.ScopeType),
-                objectKey = requestedScope.ObjectKey
+                nodeType = ProvisioningSettingsScopeFactory.ToNodeType(scope.ScopeType),
+                objectKey = scope.ObjectKey
             });
 
         if (matches.Count > 1)
         {
             throw new InvalidOperationException(
                 $"Database returned {matches.Count} nodes for provisioning scope "
-                + $"'{requestedScope.ScopeType}:{requestedScope.ObjectKey}'.");
+                + $"'{scope.ScopeType}:{scope.ObjectKey}'.");
         }
 
-        if (matches.Count == 1)
-        {
-            IReadOnlyList<ProvisioningConfigNodeData> nodes = BuildNodeChain(matches[0]);
-            IReadOnlyList<ProvisioningSettingsScope> scopes = CreateScopeChain(nodes);
-            ProvisioningSettingsHierarchyValidator.ValidatePersistedChain(scopes, requestedScope.ScopeType);
-            ProvisioningSettingsHierarchyValidator.ValidateRequestedScope(requestedScope, scopes[^1]);
-            ValidateNodeValues(nodes, scopes);
-            return new LoadedHierarchy(scopes[^1], nodes, SelectedNodeExists: true);
-        }
+        return matches.Count == 1 ? matches[0] : null;
+    }
 
-        return null;
+    /// <summary>A copy of a scope that does not constrain the stored parent, for matching a node that may have been moved.</summary>
+    private static ProvisioningSettingsScope ScopeWithoutParent(ProvisioningSettingsScope scope)
+    {
+        ProvisioningSettingsScope copy = ProvisioningSettingsScopeFactory.Copy(scope);
+        copy.ParentNodeId = null;
+        return copy;
     }
 
     private async Task<LoadedHierarchy> LoadUnpersistedHierarchyAsync(
@@ -410,9 +534,9 @@ public sealed class ProvisioningSettingsManager
         while (current is not null)
         {
             reversed.Add(current);
-            if (reversed.Count > 4)
+            if (reversed.Count > kMaxHierarchyDepth)
             {
-                throw new InvalidOperationException("Provisioning hierarchy contains more than four levels.");
+                throw new InvalidOperationException($"Provisioning hierarchy contains more than {kMaxHierarchyDepth} levels.");
             }
             current = current.ParentNode;
         }
@@ -433,14 +557,16 @@ public sealed class ProvisioningSettingsManager
     {
         for (int index = 0; index < nodes.Count; index++)
         {
-            ProvisioningConfigNodeData node = nodes[index];
-            ProvisioningSettingsScope scope = scopes[index];
-            HashSet<string> keys = new(StringComparer.Ordinal);
+            ValidateSingleNodeValues(nodes[index], scopes[index]);
+        }
+    }
 
-            foreach (ProvisioningConfigValueData storedValue in node.Values)
-            {
-                ValidateStoredValue(node, scope, storedValue, keys);
-            }
+    private static void ValidateSingleNodeValues(ProvisioningConfigNodeData node, ProvisioningSettingsScope scope)
+    {
+        HashSet<string> keys = new(StringComparer.Ordinal);
+        foreach (ProvisioningConfigValueData storedValue in node.Values)
+        {
+            ValidateStoredValue(node, scope, storedValue, keys);
         }
     }
 

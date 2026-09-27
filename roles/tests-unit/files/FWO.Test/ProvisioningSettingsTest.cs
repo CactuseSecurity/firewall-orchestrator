@@ -28,7 +28,6 @@ namespace FWO.Test
             {
                 Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.FwoAuto));
                 Assert.That(settings.InstallOn, Is.EqualTo("ANY"));
-                Assert.That(settings.PathAnalysisAlgorithm, Is.EqualTo(ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet));
                 Assert.That(settings.Logging, Is.EqualTo(ProvisioningLoggingMode.Log));
                 Assert.That(settings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
                 Assert.That(settings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Supermanager));
@@ -43,8 +42,8 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Every controlled value can be reset to Undefined, which is what the settings UI uses to mean
-        /// "not set at this scope - inherit it from the parent scope".
+        /// Every controlled value can be set to Undefined. Inheritance from the parent scope is not expressed
+        /// by this value but by not storing an override on the scope at all.
         /// </summary>
         [Test]
         public void Settings_CanExpressUndefinedForEveryControlledValue()
@@ -52,7 +51,6 @@ namespace FWO.Test
             GatewayProvisioningSettings settings = new()
             {
                 ImplementationMode = ProvisioningImplementationMode.Undefined,
-                PathAnalysisAlgorithm = ProvisioningPathAnalysisAlgorithm.Undefined,
                 Logging = ProvisioningLoggingMode.Undefined,
                 ServiceObjectCreation = ProvisioningObjectCreationMode.Undefined,
                 AddressObjectCreation = ProvisioningObjectCreationMode.Undefined,
@@ -65,7 +63,6 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Undefined));
-                Assert.That(settings.PathAnalysisAlgorithm, Is.EqualTo(ProvisioningPathAnalysisAlgorithm.Undefined));
                 Assert.That(settings.Logging, Is.EqualTo(ProvisioningLoggingMode.Undefined));
                 Assert.That(settings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
                 Assert.That(settings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
@@ -97,7 +94,6 @@ namespace FWO.Test
                 },
                 ImplementationMode = ProvisioningImplementationMode.FwoAuto,
                 InstallOn = "ANY",
-                PathAnalysisAlgorithm = ProvisioningPathAnalysisAlgorithm.StaticListsPerSubnet,
                 Logging = ProvisioningLoggingMode.LogTrack,
                 ServiceObjectCreation = ProvisioningObjectCreationMode.Supermanager,
                 AddressObjectCreation = ProvisioningObjectCreationMode.Submanager,

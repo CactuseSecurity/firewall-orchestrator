@@ -1,15 +1,15 @@
+const kProvisioningHighlightClass = "provisioning-field-highlight";
+const kProvisioningHighlightDurationMs = 1600;
+
 function scrollToElementAndHighlight(htmlObjId) {
     let obj = document.getElementById(htmlObjId);
     if (!obj) {
         return false;
     }
     obj.scrollIntoView({ behavior: "smooth", block: "center" });
-    obj.style.transition = "background-color 500ms linear, box-shadow 500ms linear";
-    obj.style.backgroundColor = "#fff3cd";
-    obj.style.boxShadow = "0 0 0 2px #ffc107";
+    obj.classList.add(kProvisioningHighlightClass);
     setTimeout(() => {
-        obj.style.backgroundColor = "";
-        obj.style.boxShadow = "";
-    }, 1600);
+        obj.classList.remove(kProvisioningHighlightClass);
+    }, kProvisioningHighlightDurationMs);
     return true;
 }

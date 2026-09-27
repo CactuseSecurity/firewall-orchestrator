@@ -80,6 +80,36 @@ internal static class ProvisioningSettingsHierarchyValidator
         }
     }
 
+    /// <summary>
+    /// Validates a requested chain of scopes that runs from Global down to the scope to resolve,
+    /// one scope per level and without gaps. Persistence and stored parent links are not checked.
+    /// </summary>
+    public static void ValidateRequestedChain(IReadOnlyList<ProvisioningSettingsScope> chain)
+    {
+        ArgumentNullException.ThrowIfNull(chain);
+
+        if (chain.Count == 0 || chain.Count > OrderedScopeTypes.Length)
+        {
+            throw new ArgumentException(
+                $"A provisioning scope chain must contain between 1 and {OrderedScopeTypes.Length} scopes, but contains {chain.Count}.",
+                nameof(chain));
+        }
+
+        for (int index = 0; index < chain.Count; index++)
+        {
+            ProvisioningSettingsScope scope = chain[index]
+                ?? throw new ArgumentException($"Provisioning scope chain position {index} is empty.", nameof(chain));
+            ValidateLocator(scope);
+
+            if (scope.ScopeType != OrderedScopeTypes[index])
+            {
+                throw new ArgumentException(
+                    $"Provisioning scope chain position {index} must be '{OrderedScopeTypes[index]}', but is '{scope.ScopeType}'.",
+                    nameof(chain));
+            }
+        }
+    }
+
     public static void ValidateRequestedScope(
         ProvisioningSettingsScope requested,
         ProvisioningSettingsScope persisted)

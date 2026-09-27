@@ -1,5 +1,8 @@
 namespace FWO.Data.Provisioning;
 
+/// <summary>
+/// Level of the provisioning settings hierarchy, from the most general (Global) to the most specific (Gateway).
+/// </summary>
 public enum ProvisioningScopeType
 {
     Undefined,
@@ -9,6 +12,9 @@ public enum ProvisioningScopeType
     Gateway
 }
 
+/// <summary>
+/// How implementation tasks are created for a level.
+/// </summary>
 public enum ProvisioningImplementationMode
 {
     Undefined,
@@ -18,14 +24,9 @@ public enum ProvisioningImplementationMode
     None
 }
 
-public enum ProvisioningPathAnalysisAlgorithm
-{
-    Undefined,
-    StaticListsPerSubnet,
-    ManualPlanning,
-    AskExternalApi
-}
-
+/// <summary>
+/// Logging behaviour of generated rules.
+/// </summary>
 public enum ProvisioningLoggingMode
 {
     Undefined,
@@ -34,6 +35,9 @@ public enum ProvisioningLoggingMode
     None
 }
 
+/// <summary>
+/// Whether objects are created in the supermanager or in the submanager.
+/// </summary>
 public enum ProvisioningObjectCreationMode
 {
     Undefined,
@@ -41,6 +45,9 @@ public enum ProvisioningObjectCreationMode
     Submanager
 }
 
+/// <summary>
+/// Which rule kinds (access, NAT, IPS) are handled for a level.
+/// </summary>
 public enum ProvisioningRuleType
 {
     Undefined,
@@ -50,6 +57,9 @@ public enum ProvisioningRuleType
     HandleAccessNatIps
 }
 
+/// <summary>
+/// Where new rules are placed in the rulebase.
+/// </summary>
 public enum ProvisioningPositioningAlgorithm
 {
     Undefined,
@@ -60,6 +70,9 @@ public enum ProvisioningPositioningAlgorithm
     DefaultEndOfRulebase
 }
 
+/// <summary>
+/// Whether a rule is treated as an application rule or as a common-service rule.
+/// </summary>
 public enum ProvisioningRuleCategory
 {
     Undefined,

@@ -144,8 +144,9 @@ namespace FWO.Ui.Pages.Settings
         }
 
         /// <summary>
-        /// Saves the form as one patch. Before the first override of a level is written, all of its ancestors
-        /// are persisted, so the new node can reference its parent. Updates the tree node's scope afterwards.
+        /// Saves the form as one patch. Before the level is written, every level above it is persisted and every
+        /// persisted level on the way down is placed below its current parent in the tree - a management whose device
+        /// type changed or a gateway assigned to another management is moved there. Updates the tree node's scope afterwards.
         /// </summary>
         public async Task SaveAsync(ProvisioningLevelForm form)
         {
@@ -155,11 +156,11 @@ namespace FWO.Ui.Pages.Settings
             }
 
             ProvisioningNode node = form.Node;
-            if (form.Fields.Any(f => f.IsChanged && f.IsLocal))
+            if (node.IsPersisted || form.Fields.Any(f => f.IsChanged && f.IsLocal))
             {
-                foreach (ProvisioningNode ancestor in node.SelfAndAncestors().Skip(1).Reverse().Where(a => !a.IsPersisted))
+                foreach (ProvisioningNode level in node.SelfAndAncestors().Reverse())
                 {
-                    ancestor.Scope = await manager.EnsureNodeAsync(RequestScope(ancestor));
+                    await PlaceBelowTreeParentAsync(level, level != node);
                 }
             }
 
@@ -167,6 +168,29 @@ namespace FWO.Ui.Pages.Settings
             if (persisted.NodeId > 0)
             {
                 node.Scope = persisted;
+            }
+        }
+
+        /// <summary>True if the node is persisted below another node than its parent in the tree.</summary>
+        public static bool IsMisplaced(ProvisioningNode node) =>
+            node.IsPersisted && node.Parent != null && node.Scope.ParentNodeId != node.Parent.Scope.NodeId;
+
+        /// <summary>
+        /// Persists the node if requested and it is not stored yet, and moves a stored node below its tree parent
+        /// if it is stored below another node. Expects the tree parent to be persisted already.
+        /// </summary>
+        private async Task PlaceBelowTreeParentAsync(ProvisioningNode node, bool persistIfMissing)
+        {
+            if (!node.IsPersisted)
+            {
+                if (persistIfMissing)
+                {
+                    node.Scope = await manager.EnsureNodeAsync(RequestScope(node));
+                }
+            }
+            else if (IsMisplaced(node))
+            {
+                node.Scope = await manager.MoveNodeAsync(RequestScope(node), node.Parent!.Scope.NodeId);
             }
         }
 
@@ -196,33 +220,25 @@ namespace FWO.Ui.Pages.Settings
         }
 
         /// <summary>
-        /// Resolves the values in effect at a node. The manager can resolve a node that is persisted or whose parent
-        /// is persisted. Further down, nothing below the nearest persisted ancestor can have overrides yet, so that
-        /// ancestor's values apply, completed by the compiled defaults of the node's own level.
+        /// Resolves the values in effect at a node along its path in the tree, i.e. along the current device hierarchy
+        /// and not along the stored parent links, which are outdated for a management or gateway moved since it was stored.
         /// </summary>
         private async Task<ResolvedLevel> ResolveAsync(ProvisioningNode node)
         {
-            ProvisioningNode loadable = node;
-            while (!loadable.IsPersisted && loadable.Parent is { IsPersisted: false })
-            {
-                loadable = loadable.Parent;
-            }
-
+            List<ProvisioningSettingsScope> chain = [.. node.SelfAndAncestors().Reverse().Select(RequestScope)];
             (GlobalProvisioningSettings settings, IReadOnlySet<ProvisioningSettingKey> direct,
                 IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource> sources) =
-                await LoadLevelAsync(RequestScope(loadable));
+                await LoadLevelAlongChainAsync(chain);
 
-            GlobalProvisioningSettings defaults = ProvisioningSettingsData.CreateDefaults(node.Level);
             Dictionary<ProvisioningSettingKey, string> values = [];
             Dictionary<ProvisioningSettingKey, ProvisioningSettingsScope?> valueSources = [];
             foreach (ProvisioningFieldDefinition field in ProvisioningSettingsData.Fields.Where(f => f.Key.IsAllowedAt(node.Level)))
             {
-                bool resolvedAtLoadable = sources.TryGetValue(field.Key, out ProvisioningSettingValueSource? source);
-                values[field.Key] = field.Read(resolvedAtLoadable ? settings : defaults);
-                valueSources[field.Key] = source?.Scope;
+                values[field.Key] = field.Read(settings);
+                valueSources[field.Key] = sources.TryGetValue(field.Key, out ProvisioningSettingValueSource? source) ? source.Scope : null;
             }
 
-            return new ResolvedLevel(values, valueSources, loadable == node ? direct : new HashSet<ProvisioningSettingKey>());
+            return new ResolvedLevel(values, valueSources, direct);
         }
 
         private static ResolvedLevel ResolveDefaults(ProvisioningScopeType level)
@@ -244,15 +260,17 @@ namespace FWO.Ui.Pages.Settings
         }
 
         private async Task<(GlobalProvisioningSettings, IReadOnlySet<ProvisioningSettingKey>,
-            IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource>)> LoadLevelAsync(ProvisioningSettingsScope scope)
+            IReadOnlyDictionary<ProvisioningSettingKey, ProvisioningSettingValueSource>)> LoadLevelAlongChainAsync(
+            List<ProvisioningSettingsScope> chain)
         {
-            return scope.ScopeType switch
+            ProvisioningScopeType level = chain[^1].ScopeType;
+            return level switch
             {
-                ProvisioningScopeType.Global => Unpack(await manager.LoadLevelAsync<GlobalProvisioningSettings>(scope)),
-                ProvisioningScopeType.DeviceType => Unpack(await manager.LoadLevelAsync<DeviceTypeProvisioningSettings>(scope)),
-                ProvisioningScopeType.Management => Unpack(await manager.LoadLevelAsync<ManagementProvisioningSettings>(scope)),
-                ProvisioningScopeType.Gateway => Unpack(await manager.LoadLevelAsync<GatewayProvisioningSettings>(scope)),
-                _ => throw new ArgumentOutOfRangeException(nameof(scope), scope.ScopeType, "A defined provisioning scope type is required.")
+                ProvisioningScopeType.Global => Unpack(await manager.LoadLevelAlongChainAsync<GlobalProvisioningSettings>(chain)),
+                ProvisioningScopeType.DeviceType => Unpack(await manager.LoadLevelAlongChainAsync<DeviceTypeProvisioningSettings>(chain)),
+                ProvisioningScopeType.Management => Unpack(await manager.LoadLevelAlongChainAsync<ManagementProvisioningSettings>(chain)),
+                ProvisioningScopeType.Gateway => Unpack(await manager.LoadLevelAlongChainAsync<GatewayProvisioningSettings>(chain)),
+                _ => throw new ArgumentOutOfRangeException(nameof(chain), level, "A defined provisioning scope type is required.")
             };
         }
 

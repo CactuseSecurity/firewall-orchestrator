@@ -32,6 +32,7 @@ public abstract class ProvisioningSettingKey
         ValueType = valueType;
     }
 
+    /// <summary>Whether an override of this setting may be stored at the given scope type.</summary>
     public bool IsAllowedAt(ProvisioningScopeType scopeType)
     {
         return allowedScopes.Contains(scopeType);

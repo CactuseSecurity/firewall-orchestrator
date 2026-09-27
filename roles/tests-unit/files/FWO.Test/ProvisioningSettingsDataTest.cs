@@ -143,9 +143,8 @@ internal class ProvisioningSettingsDataTest
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(global, Does.Contain(ProvisioningSettingKeys.PathAnalysisAlgorithm));
+            Assert.That(global, Does.Contain(ProvisioningSettingKeys.ServiceObjectCreation));
             Assert.That(global, Does.Not.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
-            Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.PathAnalysisAlgorithm));
             Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.ServiceObjectCreation));
             Assert.That(checkPointGateway, Does.Contain(ProvisioningSettingKeys.PositioningAlgorithm));
             Assert.That(checkPointGateway, Does.Not.Contain(ProvisioningSettingKeys.ZoneFrom));

@@ -49,7 +49,7 @@ else
                 <form onsubmit="return false">
                     @foreach (ProvisioningFieldState state in form.Fields)
                     {
-                        <div id="@FieldRowId(state.Field)" class="border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(state.Field.HelpTextKey))">
+                        <div id="@FieldRowId(state.Field)" class="provisioning-field border rounded p-3 mb-3" data-toggle="tooltip" title="@(userConfig.GetText(state.Field.HelpTextKey))">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div class="fw-semibold">@(userConfig.GetText(state.Field.LabelTextKey))</div>
                                 <div class="d-flex align-items-center gap-2">

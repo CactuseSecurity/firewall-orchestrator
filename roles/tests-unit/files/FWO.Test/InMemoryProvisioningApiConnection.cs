@@ -190,18 +190,18 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
         }
 
         long removalNodeId = RequiredProperty<long>(vars, "nodeId");
-        string[] removeKeys = RequiredProperty<string[]>(vars, "removeKeys");
+        List<string> removeKeys = RequiredProperty<List<string>>(vars, "removeKeys");
         RemoveValues(removalNodeId, removeKeys);
         LastPatchUpsertKeys = upsertKeys;
         LastPatchRemoveKeys = removeKeys;
-        return new ReturnId { AffectedRows = upsertKeys.Count + removeKeys.Length };
+        return new ReturnId { AffectedRows = upsertKeys.Count + removeKeys.Count };
     }
 
     private ReturnId DeleteOverrides(object? variables)
     {
         object vars = RequiredVariables(variables);
         long nodeId = RequiredProperty<long>(vars, "nodeId");
-        string[] configKeys = RequiredProperty<string[]>(vars, "configKeys");
+        List<string> configKeys = RequiredProperty<List<string>>(vars, "configKeys");
         int removed = RemoveValues(nodeId, configKeys);
         LastDeletedKeys = configKeys;
         return new ReturnId { AffectedRows = removed };

@@ -1,6 +1,6 @@
 ﻿@page "/compliance/policies"
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject ApiConnection apiConnection
@@ -53,7 +53,7 @@
     {
         try
         {
-            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
             {
                 return;
             }

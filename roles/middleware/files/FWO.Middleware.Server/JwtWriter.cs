@@ -168,8 +168,6 @@ namespace FWO.Middleware.Server
                     defaultRole = Roles.Admin;
                 else if (hasuraRolesList.Contains(Roles.Auditor))
                     defaultRole = Roles.Auditor;
-                else if (hasuraRolesList.Contains(Roles.FwAdmin))
-                    defaultRole = Roles.FwAdmin;
                 else if (hasuraRolesList.Contains(Roles.ReporterViewAll))
                     defaultRole = Roles.ReporterViewAll;
                 else if (hasuraRolesList.Contains(Roles.Reporter))

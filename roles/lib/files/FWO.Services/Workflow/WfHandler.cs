@@ -139,7 +139,7 @@ namespace FWO.Services.Workflow
                     }
                     else if (AuthUser != null)
                     {
-                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
+                        await apiConnection.RunWithBestRole(AuthUser, [Roles.Admin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Modeller, Roles.Auditor],
                             async () => await LoadInitialData(apiConnection, fetchData, ownerIds, allStates, fullTickets));
                     }
                     else

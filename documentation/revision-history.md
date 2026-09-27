@@ -14,6 +14,19 @@
   The upgrade binds local users that belong to no LDAP connection to their directory where it is
   unambiguous and lists the remaining ones as a warning: such a user gets a new local user at the
   next login unless uiuser.ldap_connection_id is set by hand before
+- security fix (SEC-15): the fw-admin role could change tenants, managements and credentials of all
+  tenants: its Hasura permissions had no tenant restriction, and the tenant update endpoint of the
+  middleware (which writes with the middleware's own role) accepted it as well. The role was not
+  assigned by default and is removed from every layer: LDAP, JWT default role, middleware
+  endpoints, Hasura permissions, UI and help texts. The upgrade deletes cn=fw-admin from the
+  internal LDAP and lists its former members in the installer output; they need another role or
+  group where they still need access
+- security fix (SEC-15): deleting credentials a management still used deleted that management with
+  all of its imported data (import credential) or silently unbound them (export credential). Both
+  foreign keys refuse such a deletion now, and the credential settings name the managements that
+  have to get other credentials first, also when removing sample data. A management can still be
+  pointed to another host while keeping its credentials; this is left to the admin role, see
+  documentation/auth/rbac.md
 
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define

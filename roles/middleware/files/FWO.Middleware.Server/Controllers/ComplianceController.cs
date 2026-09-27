@@ -50,7 +50,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">ComplianceReportParameters</param>
         /// <returns>Report as json string</returns>
         [HttpPost("Report")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.FwAdmin}, {Roles.Recertifier}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Recertifier}")]
         public async Task<string> Get([FromBody] ComplianceReportParameters parameters)
         {
             try

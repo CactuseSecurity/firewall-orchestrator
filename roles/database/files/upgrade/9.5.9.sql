@@ -58,3 +58,27 @@ BEGIN
 END $$;
 
 ALTER TABLE uiuser DROP CONSTRAINT IF EXISTS uiuser_uuid_key;
+
+-- SEC-15: deleting credentials that a management still used deleted the management together with all
+-- of its imported data (import credential) or silently unbound them (export credential). Such a
+-- deletion is refused now: the credentials of a management have to be replaced before the old ones
+-- can be deleted.
+DO $$
+DECLARE
+    v_constraint RECORD;
+BEGIN
+    FOR v_constraint IN
+        SELECT conname, CASE conname
+            WHEN 'management_import_credential_id_foreign_key' THEN 'import_credential_id'
+            ELSE 'export_credential_id' END AS column_name
+        FROM (VALUES ('management_import_credential_id_foreign_key'), ('management_export_credential_id_foreign_key')) AS fk(conname)
+        WHERE NOT EXISTS (
+            SELECT 1 FROM pg_constraint c
+            WHERE c.conname = fk.conname AND c.conrelid = 'management'::regclass AND c.confdeltype = 'r'
+        )
+    LOOP
+        EXECUTE format('ALTER TABLE management DROP CONSTRAINT IF EXISTS %I', v_constraint.conname);
+        EXECUTE format('ALTER TABLE management ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT',
+            v_constraint.conname, v_constraint.column_name);
+    END LOOP;
+END $$;

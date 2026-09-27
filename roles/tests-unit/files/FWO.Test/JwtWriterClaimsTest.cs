@@ -107,7 +107,6 @@ namespace FWO.Test
 
         [TestCase(Roles.Admin, Roles.Admin)]
         [TestCase(Roles.Auditor, Roles.Auditor)]
-        [TestCase(Roles.FwAdmin, Roles.FwAdmin)]
         [TestCase(Roles.ReporterViewAll, Roles.ReporterViewAll)]
         [TestCase(Roles.Reporter, Roles.Reporter)]
         [TestCase(Roles.Recertifier, Roles.Recertifier)]

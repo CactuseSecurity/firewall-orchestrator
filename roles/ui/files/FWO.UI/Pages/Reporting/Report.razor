@@ -11,7 +11,7 @@
 @using System.Text.Json
 
 @page "/report/generation/{appId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
 
 @implements IDisposable
 
@@ -314,7 +314,7 @@
 
     private bool resetToEmptyDevFilter = false;
 
-    private bool tenantFilteringAllowed => userConfig.CanUseAnyRole(Roles.ReporterViewAll, Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+    private bool tenantFilteringAllowed => userConfig.CanUseAnyRole(Roles.ReporterViewAll, Roles.Admin, Roles.Auditor);
     private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
     private bool _showAnyRulesInComplianceReport = true;

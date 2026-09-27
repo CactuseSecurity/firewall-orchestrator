@@ -207,11 +207,11 @@ namespace FWO.Config.Api
         public ReportVisibility GetReportVisibility()
         {
             return new ReportVisibility(
-                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.FwAdmin, Roles.Admin, Roles.Auditor, Roles.Recertifier),
+                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.Admin, Roles.Auditor, Roles.Recertifier),
                 ModellingRelated: CanUseAnyRole(Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester, Roles.Approver,
+                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
+                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
+                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.Requester, Roles.Approver,
                     Roles.Planner, Roles.Implementer, Roles.Reviewer));
         }
 

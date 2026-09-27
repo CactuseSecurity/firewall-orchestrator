@@ -715,7 +715,6 @@ namespace FWO.Test
         }
 
         [TestCase(Roles.Auditor)]
-        [TestCase(Roles.FwAdmin)]
         public async Task StateChangePopup_NonAdminGetsDisabledSaveButton(string role)
         {
             await using BunitContext context = CreatePopupContext(role, out _);

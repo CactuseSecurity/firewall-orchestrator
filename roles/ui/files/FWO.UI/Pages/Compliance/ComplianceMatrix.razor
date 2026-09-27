@@ -3,7 +3,7 @@
 
 @page "/compliance/matrix"
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject ApiConnection apiConnection
@@ -63,7 +63,7 @@
                 {
                     <div class="btn-group" role="group">
                         <button type="button" class="btn btn-sm btn-secondary" @onclick="() => ToggleEditMode(false)">@userConfig.GetText("cancel")</button>
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick="CommitChanges">@userConfig.GetText("commit_changes")</button>
                             </Authorized>
@@ -75,7 +75,7 @@
                 }
                 else
                 {
-                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")">
+                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
 
                         <div data-toggle="tooltip" title="@(userConfig.PureLine(readonlyMode ? "H5838" : "H5837"))">
                             <button type="button" class="btn btn-sm btn-warning" disabled="@readonlyMode" @onclick="() => ToggleEditMode(true)">@userConfig.GetText("edit")</button>
@@ -126,7 +126,7 @@
     {
         try
         {
-            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+            if (!userConfig.CanUseAnyRole(Roles.Admin, Roles.ReporterViewAll, Roles.Reporter,
                 Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor))
             {
                 matrixLoaded = true;

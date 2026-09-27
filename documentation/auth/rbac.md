@@ -20,13 +20,16 @@ The following roles are defined in ascending order of permissions:
 - auditor - users that can view all data & settings (in the UI) but cannot make any changes
 - modeller - users who can model applications
 - recertifier - users who can re-certify or de-certify firewall rules
-- fw-admin - users who can document open changes
 - requester - users that have the right to create requests
 - approver - users that have the right to approve requests
 - planner - users that have the right to plan requests
 - implementer - users that have the right to implement requests
 - reviewer - users that have the right to review requests
 - admin - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
+
+The former role fw-admin was removed in 9.5.9. It could change tenants, managements and credentials of all tenants without any tenant restriction. The upgrade to 9.5.9 deletes the role from the internal LDAP directory and lists its former members in the installer output; give them another role or group where they still need access.
+
+Admin is trusted with the managements and their credentials. An admin cannot read a stored secret in plaintext, but can point a management to another host (including the Firewall Orchestrator host itself) while keeping its credentials, and the next import sends those credentials there. Grant the admin role only to users who may use every stored firewall credential. Credentials that a management still uses cannot be deleted; the management has to get other credentials first.
 
 The above mentioned access rights are implemented on the following levels 
 1. as grants within the database. E.g. a reporter does not have the right to change any of the tables rule, object, service.

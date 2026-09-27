@@ -1,5 +1,7 @@
 using FWO.Basics;
 using FWO.Config.Api.Data;
+using FWO.Services;
+using FWO.Data.Enums;
 using FWO.Logging;
 using System.Text.Json;
 
@@ -65,7 +67,28 @@ namespace FWO.Ui.Services
         /// </summary>
         public string ModelledMarker { get; set; } = "";
 
+        /// <summary>
+        /// Log levels offered for selection.
+        /// </summary>
+        public List<RuleOwnerMappingLogLevel?> LogLevels { get; } =
+            [.. Enum.GetValues<RuleOwnerMappingLogLevel>().Cast<RuleOwnerMappingLogLevel?>()];
+
+        /// <summary>
+        /// How much detail about single unmappable rules is written to the log. Changing it never requires a
+        /// rule owner rebuild, because it does not influence the mappings themselves.
+        /// </summary>
+        public RuleOwnerMappingLogLevel LogLevel { get; set; } = RuleOwnerMappingLogLevel.Warning;
+
+        /// <summary>
+        /// Settings changed by the last <see cref="ApplyTo"/> that require a rule owner rebuild. Passed on with
+        /// the rebuild so its result can be told apart from a run where the incremental mapping failed. Kept
+        /// until <see cref="ConfirmRuleOwnerRebuild"/> reports the rebuild as done, so a retry after a failed
+        /// save still names what was changed.
+        /// </summary>
+        public List<RuleOwnerMappingChange> AppliedChanges { get; private set; } = [];
+
         private bool ruleOwnerRebuildPending;
+        private RuleOwnerMappingLogLevel storedLogLevel = RuleOwnerMappingLogLevel.Warning;
         private bool appliedSettingsRequireRuleOwnerRebuild;
         private int storedSource;
         private string storedModelledMarker = "";
@@ -95,6 +118,7 @@ namespace FWO.Ui.Services
             storedSource = configData.OwnerSoruceMappingID;
             rawOwnerKeys = configData.CustomFieldOwnerKey ?? "";
             storedModelledMarker = configData.ModModelledMarker ?? "";
+            storedLogLevel = configData.RuleOwnerMappingLogLevel;
             ruleOwnerRebuildPending |= appliedSettingsRequireRuleOwnerRebuild;
             appliedSettingsRequireRuleOwnerRebuild = false;
         }
@@ -111,6 +135,7 @@ namespace FWO.Ui.Services
             OwnerKeysToAdd = [];
             OwnerKeysToDelete = [];
             ModelledMarker = storedModelledMarker;
+            LogLevel = storedLogLevel;
         }
 
         /// <summary>
@@ -208,11 +233,20 @@ namespace FWO.Ui.Services
                 ? ModelledMarker
                 : storedModelledMarker;
 
+            // the log level applies to every source and never changes the mappings, so it is not part of the
+            // comparison deciding whether a rule owner rebuild is required
+            configData.RuleOwnerMappingLogLevel = LogLevel;
+
             // the stored settings are compared, not the ones of the given configuration: a retry after a failed
             // write would otherwise compare the configuration the previous attempt already changed against itself
             // the requirement is only remembered once the settings are stored, so a write which failed leaves no
             // rebuild outstanding for settings the database never received
-            appliedSettingsRequireRuleOwnerRebuild = NeedsRuleOwnerReinitialize(storedSource, rawOwnerKeys, storedModelledMarker, configData);
+            List<RuleOwnerMappingChange> changes = CollectChanges(storedSource, rawOwnerKeys, storedModelledMarker, configData);
+            appliedSettingsRequireRuleOwnerRebuild = changes.Count > 0;
+            if (changes.Count > 0)
+            {
+                AppliedChanges = changes;
+            }
             return ruleOwnerRebuildPending || appliedSettingsRequireRuleOwnerRebuild;
         }
 
@@ -224,29 +258,65 @@ namespace FWO.Ui.Services
         public void ConfirmRuleOwnerRebuild()
         {
             ruleOwnerRebuildPending = false;
+            AppliedChanges = [];
         }
 
         /// <summary>
-        /// Decides whether the saved settings require a full rule owner mapping rebuild.
+        /// Collects the saved settings that require a full rule owner mapping rebuild. An empty result means
+        /// nothing mapping-relevant was changed, so it also answers whether a rebuild is needed at all.
         /// </summary>
         /// <param name="oldSource">Mapping source before the change.</param>
         /// <param name="oldOwnerKeys">Serialized owner keys before the change.</param>
         /// <param name="oldModelledMarker">Name field marker before the change.</param>
         /// <param name="configData">Configuration holding the saved settings.</param>
-        /// <returns>True if a rebuild is required.</returns>
-        private static bool NeedsRuleOwnerReinitialize(int oldSource, string oldOwnerKeys, string oldModelledMarker, ConfigData configData)
+        /// <returns>The mapping-relevant changes, newest state first.</returns>
+        private static List<RuleOwnerMappingChange> CollectChanges(int oldSource, string oldOwnerKeys, string oldModelledMarker, ConfigData configData)
         {
+            List<RuleOwnerMappingChange> changes = [];
+
             if (oldSource != configData.OwnerSoruceMappingID)
             {
-                return true;
+                changes.Add(new RuleOwnerMappingChange
+                {
+                    Setting = RuleOwnerMappingChangeSetting.kSource,
+                    From = DescribeSource(oldSource),
+                    To = DescribeSource(configData.OwnerSoruceMappingID)
+                });
             }
 
             if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.CustomField && oldOwnerKeys != configData.CustomFieldOwnerKey)
             {
-                return true;
+                changes.Add(new RuleOwnerMappingChange
+                {
+                    Setting = RuleOwnerMappingChangeSetting.kCustomFieldKeys,
+                    From = oldOwnerKeys,
+                    To = configData.CustomFieldOwnerKey ?? ""
+                });
             }
 
-            return configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && oldModelledMarker != configData.ModModelledMarker;
+            if (configData.OwnerSoruceMappingID == (int)OwnerMappingSourceStm.NameField && oldModelledMarker != configData.ModModelledMarker)
+            {
+                changes.Add(new RuleOwnerMappingChange
+                {
+                    Setting = RuleOwnerMappingChangeSetting.kMarker,
+                    From = oldModelledMarker,
+                    To = configData.ModModelledMarker ?? ""
+                });
+            }
+
+            return changes;
+        }
+
+        /// <summary>
+        /// Names a mapping source by its enum name, which the display resolves to a localized text.
+        /// </summary>
+        /// <param name="source">Stored mapping source id.</param>
+        /// <returns>The enum name, or the raw id when it is not a known source.</returns>
+        private static string DescribeSource(int source)
+        {
+            return Enum.IsDefined(typeof(OwnerMappingSourceStm), source)
+                ? ((OwnerMappingSourceStm)source).ToString()
+                : source.ToString();
         }
 
         /// <summary>

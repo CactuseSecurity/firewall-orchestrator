@@ -46,7 +46,12 @@ namespace FWO.Services
         /// <summary>
         /// Sending was attempted and did not succeed.
         /// </summary>
-        Failed = 2
+        Failed = 2,
+
+        /// <summary>
+        /// Sending was intentionally skipped by the notification logging mode.
+        /// </summary>
+        Suppressed = 3
     }
 
     public class EmailActionParams

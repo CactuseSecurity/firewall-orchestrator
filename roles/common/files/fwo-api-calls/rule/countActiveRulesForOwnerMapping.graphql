@@ -1,0 +1,10 @@
+# counts the rules a mapping source could theoretically map, without any source specific narrowing.
+# Used by RunFullReinitialize to tell "the configured source matched nothing" from "there is no rule
+# base at all", which the pre-filtered rule queries cannot answer by themselves.
+query countActiveRulesForOwnerMapping {
+  firewall_rule_aggregate(where: { removed: { _is_null: true } access_rule: { _eq: true } }) {
+    aggregate {
+      count
+    }
+  }
+}

@@ -194,6 +194,26 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Notification log writes are restricted to trusted application roles because the table has no
+        /// ownership column with which a modeller write could be scoped.
+        /// </summary>
+        [Test]
+        public void NotificationLog_WritesAreRestrictedToTrustedRoles()
+        {
+            TableMetadata notificationLog = ReadMetadata()["notification_log"];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(notificationLog.RolesByOperation["insert"],
+                    Is.EquivalentTo(new List<string> { "fw-admin", "middleware-server" }));
+                Assert.That(notificationLog.RolesByOperation["update"],
+                    Is.EquivalentTo(new List<string> { "fw-admin", "middleware-server" }));
+                Assert.That(notificationLog.RolesByOperation["insert"], Does.Not.Contain("modeller"));
+                Assert.That(notificationLog.RolesByOperation["update"], Does.Not.Contain("modeller"));
+            });
+        }
+
+        /// <summary>
         /// A query filtering on columns no role at all may select cannot be issued by anybody, so it is
         /// broken however it is called. Which role issues a query is recorded nowhere, which is why only
         /// this direction of the check is decidable.

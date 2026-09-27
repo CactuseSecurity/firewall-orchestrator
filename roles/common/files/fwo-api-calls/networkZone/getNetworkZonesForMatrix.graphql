@@ -1,4 +1,4 @@
-query getNetworkZonesForMatrix ($criterionId: Int!){
+query getNetworkZonesForMatrix ($criterionId: Int!) {
   network_zone_zone (where: { criterion_id: {_eq: $criterionId}, removed: {_is_null: true} } order_by: {name: asc}) {
     id
     name

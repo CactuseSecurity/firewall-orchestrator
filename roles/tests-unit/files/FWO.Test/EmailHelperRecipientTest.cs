@@ -3,11 +3,14 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
+using FWO.Middleware.Client;
 using FWO.Services;
 using Microsoft.AspNetCore.Http;
 using NUnit.Framework;
+using System.Net;
 using System.IO;
 using System.Reflection;
 using FWO.Test.Helpers;
@@ -43,7 +46,8 @@ namespace FWO.Test
         private static readonly string[] kResolverDns = ["cn=existing,dc=test", "cn=fresh,dc=test"];
         private static readonly string[] kOwnerGroupDns = ["cn=network-team,dc=test", "cn=external,dc=test"];
         private static readonly string[] kResolvedRecipients = ["new@example.test", "fresh@example.test"];
-        private static readonly Type[] kCollectRecipientsParameterTypes = [typeof(FwoNotification), typeof(FwoOwner), typeof(bool), typeof(bool)];
+        private static readonly Type[] kCollectRecipientsParameterTypes =
+            [typeof(FwoNotification), typeof(FwoOwner), typeof(UiUser), typeof(bool), typeof(bool)];
 
         private static EmailHelper CreateEmailHelper(List<UserGroup>? ownerGroups = null, bool useDummyEmailAddress = true,
             IWorkflowRecipientResolver? recipientResolver = null)
@@ -72,6 +76,375 @@ namespace FWO.Test
                 null);
 
             Assert.That(recipients, Is.EqualTo(kDummyRecipients));
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_UsesNotificationRecipientsAndLayout()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                UseDummyEmailAddress = false
+            };
+            CapturingEmailHelper helper = new(userConfig);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=main,dc=test", Email = "main@example.test" },
+                new() { Dn = "cn=cc,dc=test", Email = "cc@example.test" },
+                new() { Dn = "cn=bcc,dc=test", Email = "bcc@example.test" }
+            });
+
+            FwoOwner owner = new()
+            {
+                Name = "Selected",
+                ExtAppId = "APP-1"
+            };
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlInBody,
+                RecipientTo = EmailRecipientOption.OwnerMainResponsible,
+                RecipientCc = EmailRecipientOption.OtherAddresses,
+                EmailAddressCc = "cc@example.test",
+                RecipientBcc = EmailRecipientOption.OtherAddresses,
+                EmailAddressBcc = "bcc@example.test",
+                EmailSubject = "Subject",
+                EmailBody = "Body",
+                Deadline = NotificationDeadline.RequestDate
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, owner, "Rendered subject", "Rendered body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.True);
+                Assert.That(helper.CapturedTo, Is.EqualTo(new List<string> { "main@example.test" }));
+                Assert.That(helper.CapturedCc, Is.EqualTo(new List<string> { "cc@example.test" }));
+                Assert.That(helper.CapturedBcc, Is.EqualTo(new List<string> { "bcc@example.test" }));
+                Assert.That(helper.CapturedSubject, Is.EqualTo("Rendered subject"));
+                Assert.That(helper.CapturedBody, Is.EqualTo("Rendered body"));
+                Assert.That(helper.CapturedMailFormatHtml, Is.True);
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_ResolvesRequesterCcFromNotificationSelection()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                UseDummyEmailAddress = false
+            };
+            userConfig.User.Email = "requester@example.test";
+            CapturingEmailHelper helper = new(userConfig);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=main,dc=test", Email = "main@example.test" },
+                new() { Dn = "cn=cc,dc=test", Email = "cc@example.test" },
+            });
+
+            FwoOwner owner = new()
+            {
+                Name = "Selected",
+                ExtAppId = "APP-1"
+            };
+            owner.AddOwnerResponsible(GlobalConst.kOwnerResponsibleTypeMain, "cn=main,dc=test");
+            EmailRecipientSelection ccSelection = new()
+            {
+                Requester = true,
+                OtherAddresses = true,
+                OtherAddressList = new List<string> { "cc@example.test" }
+            };
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.OwnerMainResponsible,
+                RecipientCc = EmailRecipientOption.ConfiguredResponsibles,
+                EmailAddressCc = ccSelection.ToConfigValue(),
+                EmailSubject = "Subject",
+                EmailBody = "Body"
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, owner, "Rendered subject", "Rendered body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.True);
+                Assert.That(helper.CapturedCc, Is.EqualTo(new List<string> { "cc@example.test", "requester@example.test" }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_SendAndLog_WritesNotificationLogAndSendsEmail()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                UseDummyEmailAddress = false
+            };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection);
+
+            FwoNotification notification = new()
+            {
+                Id = 41,
+                NotificationClient = NotificationClient.InterfaceRequest,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test",
+                RecipientCc = EmailRecipientOption.OtherAddresses,
+                EmailAddressCc = "cc@example.test",
+                RecipientBcc = EmailRecipientOption.OtherAddresses,
+                EmailAddressBcc = "bcc@example.test",
+                EmailSubject = "Subject",
+                EmailBody = "Body",
+                Deadline = NotificationDeadline.RequestDate
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Rendered subject", "Rendered body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.True);
+                Assert.That(helper.SendEmailCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.InsertCalls[0].NotificationId, Is.EqualTo(41));
+                Assert.That(apiConnection.InsertCalls[0].NotificationType, Is.EqualTo(NotificationClient.InterfaceRequest.ToString()));
+                Assert.That(apiConnection.InsertCalls[0].To, Is.EqualTo("to@example.test"));
+                Assert.That(apiConnection.InsertCalls[0].Cc, Is.EqualTo("cc@example.test"));
+                Assert.That(apiConnection.InsertCalls[0].Bcc, Is.EqualTo("bcc@example.test"));
+                Assert.That(apiConnection.InsertCalls[0].Subject, Is.EqualTo("Rendered subject"));
+                Assert.That(apiConnection.InsertCalls[0].DeadlineType, Is.EqualTo(NotificationDeadline.RequestDate));
+                Assert.That(apiConnection.InsertCalls[0].Deadline, Is.Null);
+                Assert.That(apiConnection.InsertCalls[0].Timestamp, Is.GreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1)));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Sent.ToString(), "")
+                }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_LogOnly_WritesNotificationLogWithoutSendingEmail()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                UseDummyEmailAddress = false
+            };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection);
+
+            FwoNotification notification = new()
+            {
+                Id = 42,
+                NotificationClient = NotificationClient.AppDecomm,
+                Logging = NotificationLoggingMode.LogOnly,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test",
+                EmailSubject = "Subject",
+                EmailBody = "Body"
+            };
+
+            NotificationDeliveryResult deliveryResult = await helper.SendEmailToNotificationRecipientsWithResult(notification, null, "Rendered subject", "Rendered body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(deliveryResult, Is.EqualTo(NotificationDeliveryResult.Suppressed));
+                Assert.That(helper.SendEmailCallCount, Is.Zero);
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.InsertCalls[0].NotificationId, Is.EqualTo(42));
+                Assert.That(apiConnection.InsertCalls[0].Subject, Is.EqualTo("Rendered subject"));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Suppressed.ToString(), "")
+                }));
+            });
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_MarksLogFailed_WhenMailerReturnsFalse()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection) { SendResult = false };
+            FwoNotification notification = new()
+            {
+                Id = 43,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test"
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.False);
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Failed.ToString(), "SMTP delivery failed or no To recipients resolved.")
+                }));
+            });
+        }
+
+        [Test]
+        public void SendEmailToNotificationRecipients_MarksLogFailed_WhenMailerThrows()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection)
+            {
+                SendException = new InvalidOperationException("SMTP unavailable")
+            };
+            FwoNotification notification = new()
+            {
+                Id = 44,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "to@example.test"
+            };
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body"));
+
+            Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+            {
+                (1, NotificationLogStatus.Failed.ToString(), "SMTP unavailable")
+            }));
+        }
+
+        [Test]
+        public async Task SendEmailToNotificationRecipients_MarksLogFailed_WhenNoRecipientsResolve()
+        {
+            SimulatedUserConfig userConfig = new() { UseDummyEmailAddress = false };
+            RecordingNotificationLogApiConnection apiConnection = new();
+            CapturingEmailHelper helper = new(userConfig, apiConnection);
+            FwoNotification notification = new()
+            {
+                Id = 45,
+                Logging = NotificationLoggingMode.SendAndLog,
+                RecipientTo = EmailRecipientOption.None
+            };
+
+            bool sent = await helper.SendEmailToNotificationRecipients(notification, null, "Subject", "Body");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(sent, Is.False);
+                Assert.That(helper.SendEmailCallCount, Is.EqualTo(1));
+                Assert.That(apiConnection.InsertCalls, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.UpdateCalls, Is.EqualTo(new List<(int Id, string Status, string Error)>
+                {
+                    (1, NotificationLogStatus.Failed.ToString(), "SMTP delivery failed or no To recipients resolved.")
+                }));
+            });
+        }
+
+        [Test]
+        public async Task SendWorkflowActionEmail_UsesWorkflowRecipientsAndPlaceholderObject()
+        {
+            SimulatedUserConfig userConfig = new()
+            {
+                UseDummyEmailAddress = false
+            };
+            CapturingEmailHelper helper = new(userConfig);
+            SetPrivateField(helper, "ownerGroups", new List<UserGroup>
+            {
+                new()
+                {
+                    Dn = "cn=workflow-group,dc=test",
+                    Users =
+                    [
+                        new UiUser { Dn = "cn=group-user,dc=test" }
+                    ]
+                }
+            });
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "cn=requester,dc=test", Email = "requester@example.test" },
+                new() { Dn = "cn=group-user,dc=test", Email = "group@example.test" }
+            });
+            SetPrivateField(helper, "ScopedUserTo", "cn=requester,dc=test");
+            SetPrivateField(helper, "ScopedUserEmailTo", "requester@example.test");
+
+            FwoOwner owner = new()
+            {
+                Name = "Owner A",
+                ExtAppId = "APP-42"
+            };
+            WfTicket placeholderTicket = new()
+            {
+                Requester = new UiUser
+                {
+                    Name = "Requester A",
+                    Dn = "cn=requester,dc=test"
+                },
+                RequesterDn = "cn=requester,dc=test"
+            };
+            FwoNotification notification = new()
+            {
+                Layout = NotificationLayout.HtmlAsAttachment,
+                RecipientTo = EmailRecipientOption.Requester,
+                RecipientCc = EmailRecipientOption.AssignedGroup,
+                RecipientBcc = EmailRecipientOption.OtherAddresses,
+                EmailAddressBcc = "bcc@example.test",
+                EmailSubject = $"{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}",
+                EmailBody = $"Body:{Placeholder.REQUESTER}|{Placeholder.APPNAME}|{Placeholder.APPID}|{Placeholder.REQUESTING_APPNAME}|{Placeholder.REQUESTING_APPID}"
+            };
+            WorkflowEmailContent workflowContent = new()
+            {
+                Html = "<p>Workflow content</p>",
+                PlainText = "Workflow content",
+                Json = "{}",
+                Csv = "workflow"
+            };
+
+            WorkflowEmailDeliveryResult deliveryResult = await helper.SendWorkflowActionEmail(
+                notification,
+                new WfStatefulObject(),
+                owner,
+                "cn=workflow-group,dc=test",
+                workflowContent,
+                placeholderTicket,
+                new NotificationPlaceholderData
+                {
+                    RequestingAppName = "Requesting App",
+                    RequestingAppId = "REQ-APP"
+                });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(deliveryResult, Is.EqualTo(WorkflowEmailDeliveryResult.Delivered));
+                Assert.That(helper.CapturedTo, Is.EqualTo(new List<string> { "requester@example.test" }));
+                Assert.That(helper.CapturedCc, Is.EqualTo(new List<string> { "group@example.test" }));
+                Assert.That(helper.CapturedBcc, Is.EqualTo(new List<string> { "bcc@example.test" }));
+                Assert.That(helper.CapturedSubject, Is.EqualTo("Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
+                Assert.That(helper.CapturedBody, Is.EqualTo("Body:Requester A|Owner A|APP-42|Requesting App|REQ-APP"));
+                Assert.That(helper.CapturedMailFormatHtml, Is.False);
+                Assert.That(helper.CapturedAttachment, Is.Not.Null);
+                Assert.That(helper.CapturedAttachment!.ContentType, Is.EqualTo("application/html"));
+                Assert.That(helper.CapturedAttachment.FileName, Does.EndWith(".html"));
+            });
+        }
+
+        [Test]
+        public async Task SendWorkflowActionEmail_UsesCallerContentForContentPlaceholder()
+        {
+            CapturingEmailHelper helper = new(new SimulatedUserConfig());
+            FwoNotification notification = new()
+            {
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "owner@example.test",
+                EmailBody = $"Reject reason: {Placeholder.CONTENT}"
+            };
+            WorkflowEmailContent workflowContent = new()
+            {
+                PlainText = "workflow content",
+                Html = "<p>workflow content</p>"
+            };
+            NotificationPlaceholderData placeholderData = new() { Content = "not approved" };
+
+            await helper.SendWorkflowActionEmail(notification, new WfStatefulObject(), null,
+                workflowContent: workflowContent, placeholderData: placeholderData);
+
+            Assert.That(helper.CapturedBody, Is.EqualTo("Reject reason: not approved"));
         }
 
         [Test]
@@ -296,7 +669,7 @@ namespace FWO.Test
                     null)
                     ?? throw new MissingMethodException(typeof(NotificationService).FullName, "CollectRecipients");
 
-                object?[] args = new object?[] { notification, null, false, false };
+                object?[] args = new object?[] { notification, null, null, false, false };
                 Task<List<string>> task = (Task<List<string>>)method.Invoke(notificationService, args)!;
                 List<string> recipients = await task;
 
@@ -753,13 +1126,30 @@ namespace FWO.Test
                 new() { Dn = "cn=scoped,dc=test", Email = "scoped@example.test" }
             });
 
-            List<string> dummyRecipients = await InvokePrivateAsync<List<string>>(dummyHelper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test" });
-            List<string> explicitRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test" });
-            List<string> fallbackRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", null });
+            List<string> dummyRecipients = await InvokePrivateAsync<List<string>>(dummyHelper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test", null });
+            List<string> explicitRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", "scoped@example.test", null });
+            List<string> fallbackRecipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser", new object?[] { "cn=scoped,dc=test", null, null });
 
             Assert.That(dummyRecipients, Is.EqualTo(kDummyRecipients));
             Assert.That(explicitRecipients, Is.EqualTo(kScopedRecipients));
             Assert.That(fallbackRecipients, Is.EqualTo(kScopedRecipients));
+        }
+
+        [Test]
+        public async Task CollectEmailAddressesFromScopedUserPrefersDnOverDuplicateUsername()
+        {
+            EmailHelper helper = CreateEmailHelper(useDummyEmailAddress: false);
+            SetPrivateField(helper, "uiUsers", new List<UiUser>
+            {
+                new() { Dn = "uid=requester,ou=tenant-a,dc=test", Name = "requester", Email = "tenant-a@example.test" },
+                new() { Dn = "uid=requester,ou=tenant-b,dc=test", Name = "requester", Email = "tenant-b@example.test" }
+            });
+
+            List<string> recipients = await InvokePrivateAsync<List<string>>(helper, "CollectEmailAddressesFromScopedUser",
+                new object?[] { "uid=requester,ou=tenant-b,dc=test", null, "requester" });
+            List<string> expectedRecipients = ["tenant-b@example.test"];
+
+            Assert.That(recipients, Is.EqualTo(expectedRecipients));
         }
 
         [Test]
@@ -991,6 +1381,98 @@ namespace FWO.Test
                 }
 
                 throw new NotImplementedException($"Query not implemented in notification service test api: {query}");
+            }
+        }
+
+        private sealed class CapturingEmailHelper : EmailHelper
+        {
+            public bool SendResult { get; set; } = true;
+            public Exception? SendException { get; set; }
+            public int SendEmailCallCount { get; private set; }
+            public List<string> CapturedTo { get; private set; } = [];
+            public List<string>? CapturedCc { get; private set; }
+            public List<string>? CapturedBcc { get; private set; }
+            public string CapturedSubject { get; private set; } = "";
+            public string CapturedBody { get; private set; } = "";
+            public bool CapturedMailFormatHtml { get; private set; }
+            public FormFile? CapturedAttachment { get; private set; }
+
+            public CapturingEmailHelper(UserConfig userConfig, ApiConnection? apiConnection = null)
+                : base(apiConnection ?? new SimulatedApiConnection(), null, userConfig, DefaultInit.DoNothing)
+            {
+            }
+
+            protected override Task<WorkflowEmailDeliveryResult> SendEmailWithResult(List<string> tos, string subject, string body, List<string>? ccs = null, List<string>? bccs = null, bool mailFormatHtml = true, Microsoft.AspNetCore.Http.FormFile? attachment = null)
+            {
+                SendEmailCallCount++;
+                CapturedTo = [.. tos];
+                CapturedCc = ccs == null ? null : [.. ccs];
+                CapturedBcc = bccs == null ? null : [.. bccs];
+                CapturedSubject = subject;
+                CapturedBody = body;
+                CapturedMailFormatHtml = mailFormatHtml;
+                CapturedAttachment = attachment;
+                if (SendException != null)
+                {
+                    throw SendException;
+                }
+                return Task.FromResult(SendResult && tos.Any(recipient => recipient != "")
+                    ? WorkflowEmailDeliveryResult.Delivered
+                    : WorkflowEmailDeliveryResult.Failed);
+            }
+        }
+
+        private sealed class RecordingNotificationLogApiConnection : SimulatedApiConnection
+        {
+            public List<NotificationLogEntry> InsertCalls { get; } = [];
+            public List<(int Id, string Status, string Error)> UpdateCalls { get; } = [];
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
+                {
+                    if (variables != null)
+                    {
+                        PropertyInfo? entriesProperty = variables.GetType().GetProperty("entries");
+                        if (entriesProperty?.GetValue(variables) is IEnumerable<NotificationLogInsertEntry> entries)
+                        {
+                            InsertCalls.AddRange(entries.Select(entry => new NotificationLogEntry
+                            {
+                                Timestamp = entry.Timestamp,
+                                NotificationId = entry.NotificationId,
+                                NotificationType = entry.NotificationType,
+                                To = entry.To,
+                                Cc = entry.Cc,
+                                Bcc = entry.Bcc,
+                                Subject = entry.Subject,
+                                DeadlineType = entry.DeadlineType,
+                                Deadline = entry.Deadline,
+                                Status = entry.Status,
+                                Error = entry.Error
+                            }));
+                        }
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = 1 }]
+                    });
+                }
+
+                if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
+                {
+                    if (variables != null)
+                    {
+                        int id = (int)(variables.GetType().GetProperty("id")?.GetValue(variables) ?? 0);
+                        string status = (string)(variables.GetType().GetProperty("status")?.GetValue(variables) ?? "");
+                        string error = (string)(variables.GetType().GetProperty("error")?.GetValue(variables) ?? "");
+                        UpdateCalls.Add((id, status, error));
+                    }
+
+                    return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
+                }
+
+                throw new NotImplementedException();
             }
         }
 

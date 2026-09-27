@@ -35,6 +35,7 @@ namespace FWO.Services.Workflow
 
                 int newStateId = ticket.StateId;
                 ticket = await GetTicket(returnIds[0].NewIdLong);
+                await LogCreatedRequestTasks(ticket);
                 ticket.MarkCreatedStateChanged(newStateId);
             }
             catch (Exception exception)
@@ -55,6 +56,22 @@ namespace FWO.Services.Workflow
             }
 
             return ticket;
+        }
+
+        /// <summary>
+        /// Records an insert history entry for each request task created together with the ticket.
+        /// </summary>
+        /// <remarks>
+        /// The tasks are inserted by the nested ticket mutation, so AddReqTaskToDb and its logging are bypassed.
+        /// The ticket is new, hence there is no previous state and its requester is taken from the reloaded ticket.
+        /// </remarks>
+        private async Task LogCreatedRequestTasks(WfTicket ticket)
+        {
+            foreach (WfReqTask reqTask in ticket.Tasks)
+            {
+                await LogWorkflowChange(new(ticket.Id, ModellingTypes.ChangeType.Insert, ChangeHistoryObjectType.RequestTask, reqTask.Id),
+                    "Added workflow request task", null, RequestTaskHistorySnapshot(reqTask), ticket.Requester, true);
+            }
         }
 
         /// <summary>

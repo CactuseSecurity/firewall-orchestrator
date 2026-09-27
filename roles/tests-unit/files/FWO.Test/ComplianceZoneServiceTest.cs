@@ -333,7 +333,7 @@ internal class ComplianceZoneServiceTest
                 return Task.FromResult((QueryResponseType)(object)matrices);
             }
 
-            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+            if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
             {
                 NetworkZoneQueryCount++;
                 return Task.FromResult((QueryResponseType)(object)zones);

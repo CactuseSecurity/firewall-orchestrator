@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.ExceptionHandling;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api.Data;
@@ -148,6 +149,8 @@ namespace FWO.Middleware.Server
         /// <param name="updateLastLogin">True to update the persisted last-login timestamp.</param>
         /// <param name="createIfMissing">True to create the user in the local database if no record exists yet.</param>
         /// <returns>The given user enriched with local database id, password-change flag, and ownership information.</returns>
+        /// <exception cref="InvalidOperationException">The workflow visibility groups could not be determined.</exception>
+        /// <exception cref="Exception">Rethrown unchanged when the API could not be reached.</exception>
         public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true)
         {
             bool userSetInDb = false;
@@ -173,7 +176,9 @@ namespace FWO.Middleware.Server
                 workflowVisibilityGroupsAttempted = true;
                 workflowVisibilityGroupsLoaded = await GetWorkflowVisibilityGroupIds(apiConnection, user);
             }
-            catch (Exception exeption)
+            // An unreachable API must stay recognizable as such, so that callers can answer
+            // "retry" instead of reporting the request itself as failed.
+            catch (Exception exeption) when (!ApiReachability.IndicatesUnreachableApi(exeption))
             {
                 Log.WriteError("Get User Error", $"Error while trying to find {user.Name} in database.", exeption);
             }
@@ -261,6 +266,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Resolves workflow visibility group memberships for the given user from the database.
         /// </summary>
+        /// <param name="apiConn">API connection used to read the workflow visibility groups.</param>
+        /// <param name="user">User whose workflow visibility group ids are resolved.</param>
+        /// <returns>True if the visibility groups could be determined, otherwise false.</returns>
+        /// <exception cref="Exception">Rethrown unchanged when the API could not be reached.</exception>
         public static async Task<bool> GetWorkflowVisibilityGroupIds(ApiConnection apiConn, UiUser user)
         {
             try
@@ -298,6 +307,10 @@ namespace FWO.Middleware.Server
             catch (Exception exeption)
             {
                 Log.WriteError("Get workflow visibility groups", $"Workflow visibility groups could not be determined for User {user.Name}.", exeption);
+                if (ApiReachability.IndicatesUnreachableApi(exeption))
+                {
+                    throw;
+                }
                 return false;
             }
         }

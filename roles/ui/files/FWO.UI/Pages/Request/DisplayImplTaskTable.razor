@@ -38,11 +38,17 @@
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
+                        @{
+                            var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
+                            bool canActOnTask = CanActOnImplTaskInPhase(implTask);
+                            bool showReadOnlyActions = WfHandler.MasterStateMatrix.VisibilityMode == PhaseVisibilityMode.AnyTask;
+                        }
+                        @if (canActOnTask || showReadOnlyActions)
+                        {
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
                                 @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             @{
-                                var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
                                 bool planningActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningPhaseActive) && planningPhaseActive;
                                 bool approvalActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
                             }
@@ -51,7 +57,7 @@
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
                                     @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
-                            @if (!WfHandler.ReadOnlyMode && IsEditable(implTask))
+                            @if (canActOnTask && !WfHandler.ReadOnlyMode && IsEditable(implTask))
                             {
                                 @if (WfHandler.PlanReqTaskMode && implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
@@ -85,6 +91,7 @@
                                 }
                             }
                         </div>
+                        }
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -253,6 +260,11 @@
             return ticket != null && ticket.Editable;
         }
         return true;
+    }
+
+    private bool CanActOnImplTaskInPhase(WfImplTask implTask)
+    {
+        return WfHandler.CanActOnImplTaskInCurrentPhase(implTask);
     }
 
     private string GetOwnerName(WfImplTask implTask)

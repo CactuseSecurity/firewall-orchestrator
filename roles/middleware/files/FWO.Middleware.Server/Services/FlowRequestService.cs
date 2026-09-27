@@ -105,6 +105,30 @@ public sealed class FlowRequestService : IDisposable
     }
 
     /// <summary>
+    /// Returns a workflow ticket with all of its tasks, approvals, implementation tasks, elements,
+    /// owners and comments.
+    /// </summary>
+    /// <param name="ticketId">Database id of the workflow ticket.</param>
+    /// <param name="filter">Optional request task filter; null returns every task.</param>
+    /// <returns>The ticket, or null when no workflow ticket with that id exists.</returns>
+    /// <remarks>
+    /// The filter restricts the returned tasks only: a ticket whose tasks the filter excludes is
+    /// still returned, with an empty task list, so it cannot be mistaken for a missing ticket.
+    /// </remarks>
+    public async Task<GetTicketResponse?> GetTicketAsync(long ticketId, TicketTaskFilter? filter)
+    {
+        WfTicket? ticket = await apiConnection.SendQueryAsync<WfTicket>(RequestQueries.getTicketById, new { id = ticketId });
+        if (ticket == null)
+        {
+            return null;
+        }
+
+        WfStateDict states = await GetStateDictAsync();
+        string status = await BuildRequestStatusAsync(ticket.StateId, states, tolerateExternalStateErrors: false);
+        return TicketResponseMapper.Map(ticket, states, status, filter);
+    }
+
+    /// <summary>
     /// Validates the create-request payload before the ticket is built.
     /// </summary>
     private static void ValidateCreateRequest(CreateRequestRequest request)
@@ -861,7 +885,14 @@ public sealed class FlowRequestService : IDisposable
     /// </summary>
     private async Task<string> BuildRequestStatusAsync(int stateId, bool tolerateExternalStateErrors)
     {
-        WfStateDict states = await GetStateDictAsync();
+        return await BuildRequestStatusAsync(stateId, await GetStateDictAsync(), tolerateExternalStateErrors);
+    }
+
+    /// <summary>
+    /// Builds the public status string for a workflow request from already loaded state names.
+    /// </summary>
+    private async Task<string> BuildRequestStatusAsync(int stateId, WfStateDict states, bool tolerateExternalStateErrors)
+    {
         string status = states.GetName(stateId);
         ApiResponse<List<WfExtState>> extStateResponse = await apiConnection.SendQuerySafeAsync<List<WfExtState>>(RequestQueries.getExtStates);
         if (extStateResponse.HasErrors || extStateResponse.Result == null)

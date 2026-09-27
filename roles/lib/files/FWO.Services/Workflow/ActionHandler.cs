@@ -85,7 +85,8 @@ namespace FWO.Services.Workflow
             return offeredActions;
         }
 
-        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+        public async Task DoStateChangeActions(WfStatefulObject statefulObject, WfObjectScopes scope, FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null,
+            NotificationPlaceholderData? placeholderData = null)
         {
             if (!statefulObject.StateChanged())
             {
@@ -97,7 +98,7 @@ namespace FWO.Services.Workflow
             {
                 try
                 {
-                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId));
+                    await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, placeholderData: placeholderData));
                 }
                 finally
                 {
@@ -105,6 +106,8 @@ namespace FWO.Services.Workflow
                 }
                 return;
             }
+
+            await RecordStateChangeExecution(statefulObject, scope);
 
             if (scope == WfObjectScopes.Ticket)
             {
@@ -115,8 +118,9 @@ namespace FWO.Services.Workflow
             List<WfStateAction> onLeaveActions = StateActionsForEvent(statefulObject, scope, StateActionEvents.OnLeave, false);
             statefulObject.ResetStateChanged();
 
-            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, owner, ticketId, userGrpDn);
-            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, owner, ticketId, userGrpDn);
+            StateActionExecutionContext context = new(owner, ticketId, userGrpDn, placeholderData);
+            await PerformStateActions(onSetActions, StateActionEvents.OnSet, statefulObject, scope, context);
+            await PerformStateActions(onLeaveActions, StateActionEvents.OnLeave, statefulObject, scope, context);
         }
 
         /// <summary>
@@ -198,8 +202,11 @@ namespace FWO.Services.Workflow
             return [.. GetRelevantActions(statefulObject, scope, currentState).Where(action => action.Event == actionEvent.ToString())];
         }
 
+        private sealed record StateActionExecutionContext(FwoOwner? Owner, long? TicketId, string? UserGrpDn,
+            NotificationPlaceholderData? PlaceholderData);
+
         private async Task PerformStateActions(List<WfStateAction> actions, StateActionEvents actionEvent, WfStatefulObject statefulObject,
-            WfObjectScopes scope, FwoOwner? owner, long? ticketId, string? userGrpDn)
+            WfObjectScopes scope, StateActionExecutionContext context)
         {
             foreach (var action in actions.Where(IsActionInCurrentPhase))
             {
@@ -207,7 +214,7 @@ namespace FWO.Services.Workflow
                 Log.WriteDebug("DoStateChangeActions", $"Perform {actionEvent} action '{action.Name}' ({action.ActionType}) for {scope} state {stateText}.");
                 try
                 {
-                    await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+                    await PerformAction(action, statefulObject, scope, context.Owner, context.TicketId, context.UserGrpDn, context.PlaceholderData);
                 }
                 catch (Exception exc)
                 {
@@ -254,12 +261,12 @@ namespace FWO.Services.Workflow
         }
 
         public async Task PerformAction(WfStateAction action, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             if (scope != WfObjectScopes.None && !useInMwServer && wfHandler.MiddlewareClient != null && !WfStateAction.IsReadonlyType(action.ActionType))
             {
                 Log.WriteDebug("PerformAction", $"Delegating action '{action.Name}' ({action.ActionType}) to middleware.");
-                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id));
+                await ExecuteInMiddleware(BuildWorkflowActionParameters(statefulObject, scope, ticketId, action.Id, placeholderData));
                 return;
             }
 
@@ -287,7 +294,7 @@ namespace FWO.Services.Workflow
                     await CallExternal(action);
                     break;
                 case nameof(StateActionTypes.SendEmail):
-                    await SendEmail(action, statefulObject, scope, owner, userGrpDn);
+                    await SendEmail(action, statefulObject, scope, owner, userGrpDn, placeholderData);
                     break;
                 case nameof(StateActionTypes.CreateFlow):
                     await CreateFlow(action, statefulObject, scope, owner, ticketId);
@@ -322,7 +329,7 @@ namespace FWO.Services.Workflow
         }
 
         public async Task<bool> PerformActionById(int actionId, WfStatefulObject statefulObject, WfObjectScopes scope,
-            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null)
+            FwoOwner? owner = null, long? ticketId = null, string? userGrpDn = null, NotificationPlaceholderData? placeholderData = null)
         {
             WfStateAction? action = GetOfferedActions(statefulObject, scope, wfHandler.Phase).FirstOrDefault(action => action.Id == actionId);
             if (action == null)
@@ -330,11 +337,12 @@ namespace FWO.Services.Workflow
                 Log.WriteError("Workflow Actions", $"Action id {actionId} is not offered for {scope} in state {statefulObject.StateId} and phase {wfHandler.Phase}.");
                 return false;
             }
-            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn);
+            await PerformAction(action, statefulObject, scope, owner, ticketId, userGrpDn, placeholderData);
             return true;
         }
 
-        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0)
+        private WorkflowActionParameters BuildWorkflowActionParameters(WfStatefulObject statefulObject, WfObjectScopes scope, long? ticketId, int actionId = 0,
+            NotificationPlaceholderData? placeholderData = null)
         {
             return new()
             {
@@ -347,8 +355,58 @@ namespace FWO.Services.Workflow
                 StateChangedByCreation = statefulObject.StateChangedByCreation(),
                 Phase = wfHandler.Phase.ToString(),
                 ExecutionMode = wfHandler.userConfig.ExecutionMode,
+                NotificationPlaceholders = placeholderData,
                 EmailBundleId = wfHandler.WorkflowEmailBundleId ?? ""
             };
+        }
+
+        /// <summary>
+        /// Records the state whose actions are about to run, for every state change executed inside the
+        /// middleware server.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: claimStateChangeExecution refuses a request naming the state an object's actions last
+        /// ran for, and that is what stops a replay. The comparison only holds while the recorded state
+        /// keeps up with the object. Not every state change passes through the action endpoint - the
+        /// external request chain promotes a request task from inside the middleware, for one - so
+        /// without this write the record would go on naming a state the object had long left, and the
+        /// next legitimate move back into that state would be taken for a replay and execute nothing.
+        /// Only executions inside the middleware server write here: a user role has no permission on the
+        /// table, and a client that delegates to the endpoint has its transition recorded by the claim
+        /// there. The write is unguarded, because it decides nothing - it only keeps the record current
+        /// for the claim that does.
+        /// A failure is logged and swallowed. The state is already persisted and the actions are about to
+        /// run, so aborting a state change over a bookkeeping write would turn a lost guard into a broken
+        /// promote. What is lost is one transition that could be executed twice, which is where this
+        /// stood before the record existed.
+        /// </remarks>
+        /// <param name="statefulObject">The object whose state changed, still carrying the state it left.</param>
+        /// <param name="scope">Scope of that object.</param>
+        private async Task RecordStateChangeExecution(WfStatefulObject statefulObject, WfObjectScopes scope)
+        {
+            long objectId = GetStatefulObjectId(statefulObject, scope);
+            if (!useInMwServer || objectId <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                await apiConnection.SendQueryAsync<ReturnId>(RequestQueries.recordStateChangeExecution, new
+                {
+                    objectScope = scope.ToString(),
+                    objectId,
+                    fromStateId = statefulObject.ChangedFrom(),
+                    toStateId = statefulObject.StateId,
+                    executedBy = wfHandler.userConfig.User.Dn,
+                    executedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError("Workflow Actions", $"The executed state change of {scope} {objectId} could not be recorded. " +
+                    "A later move back into this state may be taken for a replay and execute nothing.", exception);
+            }
         }
 
         private async Task ExecuteInMiddleware(WorkflowActionParameters parameters)
@@ -428,12 +486,23 @@ namespace FWO.Services.Workflow
             }
         }
 
+        /// <summary>
+        /// Displays the messages the middleware returned. A message carrying a text key is shown in the
+        /// language of this handler's user, because the middleware resolves its texts in the default
+        /// language only; a message without one is shown as sent.
+        /// </summary>
         private void DisplayWorkflowActionMessages(List<WorkflowActionMessage>? messages)
         {
             foreach (WorkflowActionMessage message in messages ?? [])
             {
-                wfHandler.DisplayMessage(null, message.Title, message.Message, message.ErrorFlag);
+                wfHandler.DisplayMessage(null, LocalizeWorkflowActionText(message.TitleTextKey, message.Title),
+                    LocalizeWorkflowActionText(message.MessageTextKey, message.Message), message.ErrorFlag);
             }
+        }
+
+        private string LocalizeWorkflowActionText(string textKey, string sentText)
+        {
+            return string.IsNullOrWhiteSpace(textKey) ? sentText : wfHandler.userConfig.GetText(textKey);
         }
 
         private string BuildMiddlewareDelegationKey(WorkflowActionParameters parameters)
@@ -626,7 +695,7 @@ namespace FWO.Services.Workflow
                 return [];
             }
 
-            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
+            return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId.Value }) ?? [];
         }
 
         private WfTicket? GetTicketForBundling(WfStatefulObject statefulObject, WfObjectScopes scope)

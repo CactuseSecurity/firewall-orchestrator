@@ -80,7 +80,7 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
         }
 
         return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-            ComplianceQueries.getNetworkZonesForMatrix,
+            NetworkZoneQueries.getNetworkZonesForMatrix,
             new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
     }
 

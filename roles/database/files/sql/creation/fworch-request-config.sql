@@ -89,21 +89,23 @@ WITH phase_data AS (
     JOIN tmp_state_matrix_seed c ON c.config_key = mk.config_key
     CROSS JOIN LATERAL jsonb_each((c.config_value::jsonb)->'config_value') AS phase
 )
-INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state, lowest_end_state)
+INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state, lowest_end_state, phase_visibility_mode)
 SELECT
     phase_name,
     phase,
     COALESCE((phase_config->>'active')::boolean, FALSE),
     (phase_config->>'lowest_input_state')::int,
     (phase_config->>'lowest_start_state')::int,
-    (phase_config->>'lowest_end_state')::int
+    (phase_config->>'lowest_end_state')::int,
+    COALESCE(phase_config->>'phase_visibility_mode', 'AnyTask')
 FROM phase_data
 ON CONFLICT (name) DO UPDATE SET
     phase = EXCLUDED.phase,
     active = EXCLUDED.active,
     lowest_input_state = EXCLUDED.lowest_input_state,
     lowest_start_state = EXCLUDED.lowest_start_state,
-    lowest_end_state = EXCLUDED.lowest_end_state;
+    lowest_end_state = EXCLUDED.lowest_end_state,
+    phase_visibility_mode = EXCLUDED.phase_visibility_mode;
 
 WITH phase_data AS (
     SELECT

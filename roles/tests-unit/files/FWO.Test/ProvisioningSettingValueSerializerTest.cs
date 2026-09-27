@@ -39,10 +39,8 @@ internal class ProvisioningSettingValueSerializerTest
         ProvisioningSettingKey key,
         object originalValue)
     {
-        ProvisioningSettingValueSerializer serializer = new();
-
-        JToken serialized = serializer.Serialize(key, originalValue);
-        object roundTripped = serializer.Deserialize(key, serialized);
+        JToken serialized = ProvisioningSettingValueSerializer.Serialize(key, originalValue);
+        object roundTripped = ProvisioningSettingValueSerializer.Deserialize(key, serialized);
 
         if (key.ValueType == typeof(List<string>))
         {

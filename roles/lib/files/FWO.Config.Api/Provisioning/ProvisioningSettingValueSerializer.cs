@@ -7,16 +7,16 @@ namespace FWO.Config.Api.Provisioning;
 /// Converts typed provisioning values to and from their JSONB representation.
 /// Enum values are deliberately represented by their names rather than ordinals.
 /// </summary>
-public sealed class ProvisioningSettingValueSerializer
+public static class ProvisioningSettingValueSerializer
 {
-    public JToken Serialize<TValue>(ProvisioningSettingKey<TValue> key, TValue value)
+    public static JToken Serialize<TValue>(ProvisioningSettingKey<TValue> key, TValue value)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(value);
         return Serialize(key, (object)value);
     }
 
-    public JToken Serialize(ProvisioningSettingKey key, object value)
+    public static JToken Serialize(ProvisioningSettingKey key, object value)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(value);
@@ -62,13 +62,13 @@ public sealed class ProvisioningSettingValueSerializer
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB serializer.");
     }
 
-    public TValue Deserialize<TValue>(ProvisioningSettingKey<TValue> key, JToken value)
+    public static TValue Deserialize<TValue>(ProvisioningSettingKey<TValue> key, JToken value)
     {
         object deserialized = Deserialize((ProvisioningSettingKey)key, value);
         return (TValue)deserialized;
     }
 
-    public object Deserialize(ProvisioningSettingKey key, JToken value)
+    public static object Deserialize(ProvisioningSettingKey key, JToken value)
     {
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(value);

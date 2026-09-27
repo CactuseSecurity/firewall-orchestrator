@@ -19,6 +19,8 @@ namespace FWO.Test;
 [RequiresIntegrationEnvironment]
 internal class ProvisioningSettingsManagerIntegrationTest
 {
+    private static readonly string[] kExpectedSecurityProfiles = ["Strict", "ScanAll"];
+
     private const string DeleteSmokeNode = """
         mutation deleteProvisioningSettingsSmokeNode($nodeType: String!, $objectKey: String!) {
           delete_provisioning_config_node(
@@ -83,7 +85,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
                 Assert.That(persisted.NodeId, Is.GreaterThan(0));
                 Assert.That(loaded.Settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Manual));
                 Assert.That(loaded.Settings.Logging, Is.EqualTo(ProvisioningLoggingMode.None));
-                Assert.That(loaded.Settings.SecurityProfiles, Is.EqualTo(new[] { "Strict", "ScanAll" }));
+                Assert.That(loaded.Settings.SecurityProfiles, Is.EqualTo(kExpectedSecurityProfiles));
                 Assert.That(loaded.Settings.ZoneFrom, Is.EqualTo("integration-zone"));
                 Assert.That(loaded.DirectOverrides, Does.Contain(ProvisioningSettingKeys.SecurityProfiles));
                 Assert.That(loaded.ValueSources[ProvisioningSettingKeys.Logging].Scope?.NodeId, Is.EqualTo(persisted.NodeId));

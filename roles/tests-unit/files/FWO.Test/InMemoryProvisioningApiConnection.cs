@@ -61,7 +61,7 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
         ProvisioningSettingKey<TValue> key,
         TValue value)
     {
-        JToken serialized = new ProvisioningSettingValueSerializer().Serialize(key, value);
+        JToken serialized = ProvisioningSettingValueSerializer.Serialize(key, value);
         ProvisioningConfigNodeData node = Nodes.Single(node => node.Id == nodeId);
         ProvisioningConfigValueData? existing = node.Values.SingleOrDefault(item => item.ConfigKey == key.DatabaseKey);
         if (existing is null)

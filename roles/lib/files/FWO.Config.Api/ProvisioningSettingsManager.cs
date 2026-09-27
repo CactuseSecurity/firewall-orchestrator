@@ -14,22 +14,12 @@ namespace FWO.Config.Api;
 public sealed class ProvisioningSettingsManager
 {
     private readonly ApiConnection apiConnection;
-    private readonly ProvisioningSettingValueSerializer valueSerializer;
 
     public ProvisioningSettingsManager(ApiConnection apiConnection)
-        : this(apiConnection, new ProvisioningSettingValueSerializer())
-    {
-    }
-
-    public ProvisioningSettingsManager(
-        ApiConnection apiConnection,
-        ProvisioningSettingValueSerializer valueSerializer)
     {
         ArgumentNullException.ThrowIfNull(apiConnection);
-        ArgumentNullException.ThrowIfNull(valueSerializer);
 
         this.apiConnection = apiConnection;
-        this.valueSerializer = valueSerializer;
     }
 
     public async Task<ProvisioningSettingsLevel<TSettings>> LoadLevelAsync<TSettings>(
@@ -121,7 +111,7 @@ public sealed class ProvisioningSettingsManager
             ValidateKeyForScope(upsert.Key, changes.Scope.ScopeType);
             serializedUpserts.Add(new SerializedOverride(
                 upsert.Key,
-                valueSerializer.Serialize(upsert.Key, upsert.Value)));
+                ProvisioningSettingValueSerializer.Serialize(upsert.Key, upsert.Value)));
         }
 
         foreach (ProvisioningSettingKey removal in changes.Removals)
@@ -357,7 +347,7 @@ public sealed class ProvisioningSettingsManager
             foreach (ProvisioningConfigValueData storedValue in node.Values)
             {
                 ProvisioningSettingKey key = ProvisioningSettingKeys.ByDatabaseKey[storedValue.ConfigKey];
-                object value = valueSerializer.Deserialize(key, storedValue.ConfigValue);
+                object value = ProvisioningSettingValueSerializer.Deserialize(key, storedValue.ConfigValue);
                 ProvisioningSettingsMapper.SetValue(settings, key, value);
                 sources[key] = new ProvisioningSettingValueSource(sourceScope);
 
@@ -412,7 +402,7 @@ public sealed class ProvisioningSettingsManager
         };
     }
 
-    private static IReadOnlyList<ProvisioningConfigNodeData> BuildNodeChain(ProvisioningConfigNodeData leaf)
+    private static List<ProvisioningConfigNodeData> BuildNodeChain(ProvisioningConfigNodeData leaf)
     {
         List<ProvisioningConfigNodeData> reversed = [];
         ProvisioningConfigNodeData? current = leaf;
@@ -431,7 +421,7 @@ public sealed class ProvisioningSettingsManager
         return reversed;
     }
 
-    private static IReadOnlyList<ProvisioningSettingsScope> CreateScopeChain(
+    private static List<ProvisioningSettingsScope> CreateScopeChain(
         IReadOnlyList<ProvisioningConfigNodeData> nodes)
     {
         return nodes.Select(ProvisioningSettingsScopeFactory.Create).ToList();

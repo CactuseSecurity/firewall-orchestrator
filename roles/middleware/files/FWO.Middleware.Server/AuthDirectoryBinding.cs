@@ -2,6 +2,7 @@ using System.Security.Authentication;
 using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Logging;
 
 namespace FWO.Middleware.Server
@@ -16,6 +17,37 @@ namespace FWO.Middleware.Server
     public static class AuthDirectoryBinding
     {
         private const string kLogTitle = "User Authentication";
+
+        /// <summary>
+        /// Builds a delegated-token target with an optional, explicit LDAP connection binding.
+        /// </summary>
+        /// <param name="parameters">Delegated-token request with an optional target LDAP ID.</param>
+        /// <returns>The target to authenticate in the selected directory, if given.</returns>
+        /// <exception cref="ArgumentException">The options object is null or the LDAP ID is not positive.</exception>
+        public static UiUser BuildDelegatedTargetUser(AuthenticationTokenGetForUserParameters parameters)
+        {
+            if (parameters.Options == null)
+            {
+                throw new ArgumentException("options must be an object.");
+            }
+
+            int? targetLdapId = parameters.Options.TargetLdapId;
+            if (targetLdapId.HasValue && targetLdapId.Value <= 0)
+            {
+                throw new ArgumentException("options.targetLdapId must be a positive LDAP connection ID when supplied.");
+            }
+
+            UiUser targetUser = new()
+            {
+                Name = parameters.TargetUserName,
+                Dn = parameters.TargetUserDn
+            };
+            if (targetLdapId.HasValue)
+            {
+                targetUser.LdapConnection.Id = targetLdapId.Value;
+            }
+            return targetUser;
+        }
 
         /// <summary>
         /// Determines the LDAP connection a user is bound to: the one given with the user, or else the

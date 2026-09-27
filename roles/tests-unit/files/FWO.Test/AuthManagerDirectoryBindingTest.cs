@@ -5,6 +5,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
+using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
@@ -136,6 +137,77 @@ namespace FWO.Test
                 Assert.That(apiConnection.LookedUpLdapIds, Is.EqualTo(kSecondLdapIdOnly));
                 Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.getUserByDbId));
             });
+        }
+
+        [Test]
+        public async Task DelegatedTarget_WithSelectedDirectory_UsesSecondAccount()
+        {
+            RecordingLdapClient firstDirectory = CreateDirectoryHoldingSharedDn();
+            RecordingLdapClient secondDirectory = CreateDirectoryHoldingSharedDn();
+            DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
+            object authManager = CreateAuthManager(apiConnection, CreateLdap(kFirstLdapId, firstDirectory), CreateLdap(kSecondLdapId, secondDirectory));
+            AuthenticationTokenGetForUserParameters parameters = new()
+            {
+                TargetUserDn = kSharedDn,
+                Options = new() { TargetLdapId = kSecondLdapId }
+            };
+
+            UiUser? result = await AuthenticateAndBuildUser(authManager, AuthDirectoryBinding.BuildDelegatedTargetUser(parameters));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result?.LdapConnection.Id, Is.EqualTo(kSecondLdapId));
+                Assert.That(firstDirectory.ReadCalls, Is.Empty);
+                Assert.That(secondDirectory.ReadCalls, Does.Contain(kSharedDn));
+                Assert.That(apiConnection.LookedUpLdapIds, Is.EqualTo(kSecondLdapIdOnly));
+            });
+        }
+
+        [Test]
+        public void DelegatedTarget_WithoutDirectory_RejectsAmbiguousAccount()
+        {
+            DirectoryApiConnection apiConnection = new() { ResolvedUserId = kStoredUserId };
+            object authManager = CreateAuthManager(apiConnection,
+                CreateLdap(kFirstLdapId, CreateDirectoryHoldingSharedDn()),
+                CreateLdap(kSecondLdapId, CreateDirectoryHoldingSharedDn()));
+            AuthenticationTokenGetForUserParameters parameters = new() { TargetUserDn = kSharedDn };
+
+            AuthenticationException exception = Assert.ThrowsAsync<AuthenticationException>(async () =>
+                await AuthenticateAndBuildUser(authManager, AuthDirectoryBinding.BuildDelegatedTargetUser(parameters)))!;
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(exception.Message, Does.StartWith("A0005"));
+                Assert.That(apiConnection.Queries, Is.Empty, "an ambiguous target must not update either local user");
+            });
+        }
+
+        [Test]
+        public void DelegatedTarget_WithInvalidDirectoryId_RejectsBeforeAuthentication()
+        {
+            AuthenticationTokenGetForUserParameters parameters = new()
+            {
+                TargetUserDn = kSharedDn,
+                Options = new() { TargetLdapId = 0 }
+            };
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => AuthDirectoryBinding.BuildDelegatedTargetUser(parameters))!;
+
+            Assert.That(exception.Message, Does.Contain("options.targetLdapId"));
+        }
+
+        [Test]
+        public void DelegatedTarget_WithNullOptions_RejectsBeforeAuthentication()
+        {
+            AuthenticationTokenGetForUserParameters parameters = new()
+            {
+                TargetUserDn = kSharedDn,
+                Options = null
+            };
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => AuthDirectoryBinding.BuildDelegatedTargetUser(parameters))!;
+
+            Assert.That(exception.Message, Does.Contain("options must be an object"));
         }
 
         private static async Task<UiUser?> AuthenticateAndBuildUser(object authManager, UiUser user)

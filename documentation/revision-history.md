@@ -11,6 +11,9 @@
   locally is only authenticated in its own directory and must resolve to the same local user again;
   the UI loads the session user and the self-service permissions of uiuser match the local user id
   of the token instead of the dn; and the password change flag is set by local user id.
+  Admin-delegated token requests can select the target's LDAP connection with
+  options.targetLdapId; without it, a target found in multiple directories is rejected instead of
+  silently choosing the first account.
   The upgrade binds local users that belong to no LDAP connection to their directory where it is
   unambiguous and lists the remaining ones as a warning: such a user gets a new local user at the
   next login unless uiuser.ldap_connection_id is set by hand before

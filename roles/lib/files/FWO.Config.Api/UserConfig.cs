@@ -50,7 +50,7 @@ namespace FWO.Config.Api
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {
@@ -138,7 +138,7 @@ namespace FWO.Config.Api
                 OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             }
             Log.WriteDebug("Get User Data", $"Get user data from user with id: {userDbId}");
-            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userDbId });
+            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userDbId });
             if (users.Length > 0)
             {
                 User = users[0];

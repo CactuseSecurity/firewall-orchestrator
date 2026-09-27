@@ -418,7 +418,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(restored, Is.True);
-                Assert.That(query, Is.EqualTo(AuthQueries.getUserByDbId));
+                Assert.That(query, Is.EqualTo(AuthQueries.getOwnUser));
                 Assert.That(variables?.GetType().GetProperty("userId")?.GetValue(variables), Is.EqualTo(TestApiConnection.TestUserDbId));
                 Assert.That(apiConnection.UserQueries.Select(userQuery => userQuery.Query), Does.Not.Contain(AuthQueries.getUserByDn));
                 Assert.That(userConfig.User.DbId, Is.EqualTo(TestApiConnection.TestUserDbId));

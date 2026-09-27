@@ -49,6 +49,16 @@ These tenant-based permissions are assigned during login as follows:
 - The devices a tenant has access to are read from the database table tenent_to_device.
 - This information is written to a JWT (visible_devices, visible_managements) and signed by the Middleware-Module.
 
+### Visibility of users
+Local users (table uiuser) are visible to the roles admin and auditor in full, except for the password history, which only the middleware reads. Every other role sees:
+- its own user,
+- the users of its own tenant,
+- all users, when it belongs to tenant0.
+
+Of these users it sees directory fields only: id, user name, first and last name, email, dn and language. The dn is kept because workflows assign tasks and send notifications by it. Login time, password change time, password change flag, start and end date, tenant and LDAP connection of other users are not visible. A user reads its own login time, password change time and password change flag through the computed fields own_last_login, own_last_password_change and own_password_must_be_changed, which return NULL for every other user. These roles also see only the LDAP connection they belong to. A user relationship pointing to a user outside that scope (for example the handler of a workflow task in another tenant) is returned as null.
+
+A user whose tenant cannot be resolved at login gets the tenant id 0 in its JWT, which no tenant has, so tenant-scoped permissions match nothing for that user.
+
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.
 - When using a remote LDAP server, the user <--> role matching is done on the local ldap.

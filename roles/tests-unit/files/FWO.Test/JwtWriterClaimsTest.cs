@@ -29,6 +29,8 @@ namespace FWO.Test
 
             Assert.That(claimsIdentity.FindFirst("x-hasura-visible-managements")?.Value, Is.EqualTo("{}"));
             Assert.That(claimsIdentity.FindFirst("x-hasura-visible-devices")?.Value, Is.EqualTo("{}"));
+            // the uiuser permissions compare the tenant of the session, which Hasura refuses when it is missing (SEC-19)
+            Assert.That(claimsIdentity.FindFirst("x-hasura-tenant-id")?.Value, Is.EqualTo(GlobalConst.kUnresolvedTenantId.ToString()));
         }
 
         [Test]

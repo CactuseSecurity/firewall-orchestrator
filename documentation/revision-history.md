@@ -27,6 +27,17 @@
   have to get other credentials first, also when removing sample data. A management can still be
   pointed to another host while keeping its credentials; this is left to the admin role, see
   documentation/auth/rbac.md
+- security fix (SEC-19): every role reachable from a UI session could list all local users of all
+  tenants together with their dn, tenant, LDAP connection, last login, password flags and password
+  history. Roles other than admin and auditor now see their own user, the users of their tenant, or
+  all users when they belong to tenant0, and of these only id, user name, first and last name, email,
+  dn and language; they see only their own LDAP connection. Their own login time, password change
+  time and password change flag are read through the new self-only computed fields own_last_login,
+  own_last_password_change and own_password_must_be_changed (new query getOwnUser used by UI login,
+  user settings and report generation). The auditor no longer reads the password history. The JWT
+  always carries x-hasura-tenant-id (0 when no tenant could be resolved). In installations with
+  several tenants, a user of one tenant no longer sees the name of a workflow handler, requester or
+  comment author, or the owner of a report, who belongs to another tenant
 
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define

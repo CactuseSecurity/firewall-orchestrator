@@ -10276,7 +10276,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10311,7 +10317,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10352,7 +10364,13 @@
                       "ldap_tenant_level",
                       "tenant_id"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10362,7 +10380,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10372,7 +10396,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10382,7 +10412,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10392,7 +10428,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10402,7 +10444,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 },
                 {
@@ -10412,7 +10460,13 @@
                       "ldap_connection_id",
                       "ldap_tenant_level"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "uiusers": {
+                        "uiuser_id": {
+                          "_eq": "X-Hasura-User-Id"
+                        }
+                      }
+                    }
                   }
                 }
               ],
@@ -26824,6 +26878,38 @@
                   }
                 }
               ],
+              "computed_fields": [
+                {
+                  "name": "own_last_login",
+                  "definition": {
+                    "function": {
+                      "name": "uiuser_own_last_login",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "own_last_password_change",
+                  "definition": {
+                    "function": {
+                      "name": "uiuser_own_last_password_change",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                },
+                {
+                  "name": "own_password_must_be_changed",
+                  "definition": {
+                    "function": {
+                      "name": "uiuser_own_password_must_be_changed",
+                      "schema": "public"
+                    },
+                    "session_argument": "hasura_session"
+                  }
+                }
+              ],
               "insert_permissions": [
                 {
                   "role": "middleware-server",
@@ -26854,23 +26940,55 @@
                   "role": "approver",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
@@ -26888,35 +27006,71 @@
                       "uiuser_last_name",
                       "uiuser_last_password_change",
                       "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
                       "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {},
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "implementer",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
@@ -26957,161 +27111,385 @@
                   "role": "modeller",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "planner",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "recertifier",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "reporter",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "reporter-viewall",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "requester",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 },
                 {
                   "role": "reviewer",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
                       "uiuser_email",
-                      "uiuser_end_date",
                       "uiuser_first_name",
                       "uiuser_id",
                       "uiuser_language",
-                      "uiuser_last_login",
                       "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
                       "uiuser_username",
                       "uuid"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_or": [
+                        {
+                          "_exists": {
+                            "_table": {
+                              "name": "tenant",
+                              "schema": "public"
+                            },
+                            "_where": {
+                              "_and": [
+                                {
+                                  "tenant_id": {
+                                    "_eq": "x-hasura-tenant-id"
+                                  }
+                                },
+                                {
+                                  "tenant_id": {
+                                    "_eq": 1
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "uiuser_id": {
+                            "_eq": "X-Hasura-User-Id"
+                          }
+                        },
+                        {
+                          "tenant_id": {
+                            "_eq": "x-hasura-tenant-id"
+                          }
+                        }
+                      ]
+                    },
+                    "computed_fields": [
+                      "own_last_login",
+                      "own_last_password_change",
+                      "own_password_must_be_changed"
+                    ]
                   }
                 }
               ],

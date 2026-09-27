@@ -100,6 +100,62 @@
       - api_query_anonymous_with_JWT.content is search('id')
     fail_msg: "unexpected version test result (does not contain id): {{ api_query_anonymous_with_JWT.content }}"
 
+# SEC-19: a UI role must not read the security state or directory binding of any user, and reads
+# its own security state through the self-only own_* computed fields
+- name: test that a UI role cannot read the password history of users
+  uri:
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      Authorization: Bearer {{ sample_JWT.content }}
+    body:
+      query: "query { uiuser { uiuser_id uiuser_pwd_history } }"
+    body_format: json
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
+    return_content: true
+  register: api_query_uiuser_security_state
+  become: true
+  changed_when: false
+  environment: "{{ proxy_env }}"
+
+- name: UI role password history access output
+  assert:
+    that:
+      - api_query_uiuser_security_state.content is search('uiuser_pwd_history')
+      - api_query_uiuser_security_state.content is search('not found')
+    fail_msg: "a UI role could read uiuser_pwd_history: {{ api_query_uiuser_security_state.content }}"
+
+- name: test that a UI role reads its own security state
+  uri:
+    url: https://{{ api_network_listening_ip_address }}:{{ api_web_port }}/api/v1/graphql
+    method: POST
+    headers:
+      Content-Type: application/json
+      Authorization: Bearer {{ sample_JWT.content }}
+    body:
+      query: "query { uiuser { uiuser_id own_password_must_be_changed } }"
+    body_format: json
+    validate_certs: true
+    ca_path: "{{ internalca_trust_bundle }}"
+    client_cert: "{{ internalca_client_certificate }}"
+    client_key: "{{ internalca_client_private_key }}"
+    return_content: true
+  register: api_query_uiuser_own_state
+  become: true
+  changed_when: false
+  environment: "{{ proxy_env }}"
+
+- name: UI role own security state output
+  assert:
+    that:
+      - api_query_uiuser_own_state.content is search('own_password_must_be_changed')
+      - api_query_uiuser_own_state.content is not search('errors')
+    fail_msg: "a UI role could not read its own security state: {{ api_query_uiuser_own_state.content }}"
+
 # Todo: this only works if the hasura key is actually installed on the machine running the tests
 - name: read hasura admin secret from file for tests
   slurp:

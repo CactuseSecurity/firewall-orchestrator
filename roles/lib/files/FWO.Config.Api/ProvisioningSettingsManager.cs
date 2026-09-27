@@ -330,7 +330,7 @@ public sealed class ProvisioningSettingsManager
         return matches[0];
     }
 
-    private ResolvedSettings ResolveSettings(LoadedHierarchy hierarchy)
+    private static ResolvedSettings ResolveSettings(LoadedHierarchy hierarchy)
     {
         GlobalProvisioningSettings settings = ProvisioningSettingsMapper.CreateDefaults(hierarchy.Scope.ScopeType);
         settings.Scope = hierarchy.Scope;

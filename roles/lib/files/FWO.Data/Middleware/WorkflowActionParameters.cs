@@ -80,5 +80,19 @@ namespace FWO.Data.Middleware
         public string Title { get; set; } = "";
         public string Message { get; set; } = "";
         public bool ErrorFlag { get; set; }
+
+        /// <summary>
+        /// Text key of the title, empty when the title has no localized text. The middleware only knows
+        /// the default language, so a caller holding its own user configuration displays the text of
+        /// this key instead of Title.
+        /// </summary>
+        public string TitleTextKey { get; set; } = "";
+
+        /// <summary>
+        /// Text key of the message, empty when the message has no localized text. The middleware only
+        /// knows the default language, so a caller holding its own user configuration displays the
+        /// text of this key instead of Message.
+        /// </summary>
+        public string MessageTextKey { get; set; } = "";
     }
 }

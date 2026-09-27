@@ -27,7 +27,7 @@ namespace FWO.Report
             foreach (var managementReport in ReportData.ManagementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
             {
                 chapterNumber++;
-                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{managementReport.Name}</h3>");
+                report.AppendLine($"<h3 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(managementReport.Name)}</h3>");
                 report.AppendLine("<hr>");
 
                 foreach (var device in managementReport.Devices)
@@ -66,7 +66,7 @@ namespace FWO.Report
 
         private void AppendNatRuleHeadlineHtml(ref StringBuilder report, string? deviceName)
         {
-            report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{deviceName}</h4>");
+            report.AppendLine($"<h4 id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(deviceName)}</h4>");
             report.AppendLine("<table>");
             report.AppendLine("<tr>");
             foreach (string headerKey in HeaderKeys)
@@ -100,7 +100,7 @@ namespace FWO.Report
             else
             {
                 report.AppendLine("<tr>");
-                report.AppendLine($"<td class=\"bg-gray\" colspan=\"{HeaderKeys.Length}\">{rule.SectionHeader}</td>");
+                report.AppendLine($"<td class=\"bg-gray\" colspan=\"{HeaderKeys.Length}\">{HtmlOutputEncoder.EncodeText(rule.SectionHeader)}</td>");
                 report.AppendLine("</tr>");
             }
         }

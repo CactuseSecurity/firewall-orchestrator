@@ -7352,6 +7352,21 @@
               ],
               "select_permissions": [
                 {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "display_name",
+                      "id",
+                      "node_type",
+                      "object_key",
+                      "parent_id",
+                      "sort_order"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
+                {
                   "role": "fw-admin",
                   "permission": {
                     "columns": [
@@ -7471,6 +7486,18 @@
                 }
               ],
               "select_permissions": [
+                {
+                  "role": "auditor",
+                  "permission": {
+                    "columns": [
+                      "config_key",
+                      "config_value",
+                      "node_id"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                },
                 {
                   "role": "fw-admin",
                   "permission": {

@@ -258,12 +258,18 @@ class TestMain:
         self, mocker: MockerFixture, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         # the script runs in a fresh namespace, so its dependencies are patched at their source modules
-        mocker.patch.object(fwo_log, "FWOLogger")
+        mock_logger = mocker.patch.object(fwo_log, "FWOLogger")
         mocker.patch.object(fwo_base, "init_service_provider", return_value=_fake_service_provider())
-        mocker.patch("urllib3.disable_warnings")
+        mock_set_global_values = mocker.patch.object(fwo_globals, "set_global_values")
+        mock_disable_warnings = mocker.patch("urllib3.disable_warnings")
         monkeypatch.setattr(fwo_const, "BASE_DIR", str(tmp_path))
-        monkeypatch.setattr(sys, "argv", [str(MAIN_LOOP_SCRIPT), "-d", "0", "-s", "-c"])
+        monkeypatch.setattr(sys, "argv", [str(MAIN_LOOP_SCRIPT), "-d", "3", "-s", "-c"])
 
         # no importer password file below the patched base dir: the single clearing cycle stops there
         with pytest.raises(FileNotFoundError):
             runpy.run_path(str(MAIN_LOOP_SCRIPT), run_name="__main__")
+
+        mock_logger.assert_called_once_with(3)
+        # -v not given, -s given
+        mock_set_global_values.assert_called_once_with(None, True)
+        mock_disable_warnings.assert_called_once()

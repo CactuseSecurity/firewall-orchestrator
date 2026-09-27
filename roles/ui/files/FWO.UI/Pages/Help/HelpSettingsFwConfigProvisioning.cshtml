@@ -1,0 +1,23 @@
+@page "/help/settings/fwconfigprovisioning"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpSettingsSidebar.cshtml");
+    }
+}
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@(userConfig.GetText("prov_settings"))</h3>
+    <p>@(userConfig.GetText("prov_settings_intro"))</p>
+    <p>@(userConfig.GetText("prov_hierarchy_hint"))</p>
+    <ul>
+        <li>@(userConfig.GetText("prov_inherited")): @(userConfig.GetText("prov_inherited_from")) ...</li>
+        <li>@(userConfig.GetText("prov_set_here"))</li>
+    </ul>
+    <p>@(userConfig.GetText("prov_help_override"))</p>
+</div>

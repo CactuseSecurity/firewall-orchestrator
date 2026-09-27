@@ -84,6 +84,7 @@ namespace FWO.Test
             "settings/passwordpolicy",
             "settings/customtexts",
             "settings/fwconfigchangegeneral",
+            "settings/fwconfigprovisioning",
             "settings/exttickettemplates",
             "settings/password",
             "settings/personal"

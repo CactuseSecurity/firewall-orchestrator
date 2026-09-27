@@ -10,6 +10,7 @@ using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -35,22 +36,6 @@ namespace FWO.Test
             handler.ActionHandler = actionHandler;
             WfDbAccess dbAccess = new(DefaultInit.DoNothing, handler.userConfig, apiConnection, actionHandler, true, WorkflowPhases.request);
             typeof(WfHandler).GetField("dbAcc", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(handler, dbAccess);
-        }
-
-        private static async Task<string> CaptureConsoleOutput(Func<Task> action)
-        {
-            using StringWriter logOutput = new();
-            TextWriter originalConsoleOut = Console.Out;
-            try
-            {
-                Console.SetOut(logOutput);
-                await action();
-                return logOutput.ToString();
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
         }
 
         [Test]
@@ -895,7 +880,7 @@ namespace FWO.Test
             WfTicket ticket = new() { Id = 42, StateId = 1 };
             ticket.ResetStateChanged();
 
-            string logOutput = await CaptureConsoleOutput(async () =>
+            string logOutput = await ConsoleOutput.CaptureAsync(async () =>
                 await handler.ChangeTicketStateForMonitoring(ticket, 2, MonitoringStateChangeMode.LocalOnly));
 
             Assert.Multiple(() =>
@@ -936,7 +921,7 @@ namespace FWO.Test
             };
             WfTicket ticket = new() { Id = 42, Tasks = [reqTask] };
 
-            string logOutput = await CaptureConsoleOutput(async () =>
+            string logOutput = await ConsoleOutput.CaptureAsync(async () =>
                 await handler.AutoCreateInitialImplTasksForMonitoring(ticket, reqTask));
 
             Assert.Multiple(() =>

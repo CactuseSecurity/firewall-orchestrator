@@ -1,71 +1,32 @@
-CREATE TABLE IF NOT EXISTS "provisioning_config_node"
+-- SEC-06: the workflow action endpoint executes the side effects of a state change (mail, external
+-- request, flow creation) for a transition the caller describes. The object's state is persisted by
+-- the caller before the actions are requested, so the only check available was that the object
+-- already stands in the requested new state - which stays true once the transition happened, and
+-- therefore let the same request be submitted again to fire the side effects a second time.
+-- This table records which state the actions of an object were last executed for. The middleware
+-- claims it in one statement before it runs anything, so the execution can be claimed exactly once.
+-- The guard compares to_state_id only. from_state_id is kept for the audit trail but is taken from
+-- the request body and never established against the state the object actually held, so it must not
+-- decide whether a claim is granted - otherwise a replay could re-arm the guard by naming a
+-- different origin state.
+-- One row per object is enough: a replay repeats the state the object was last moved into, while
+-- legitimately entering a state again requires leaving it first, which records the state it was
+-- left for here in between. That holds because every execution of state-change actions inside the
+-- middleware writes this row, not only the ones requested through the action endpoint - a request
+-- task promoted by the external request chain writes it too. A row that lagged behind the object
+-- would turn the next legitimate move back into a refusal.
+CREATE TABLE IF NOT EXISTS request.state_change_execution
 (
-    "id" BIGSERIAL,
-    "node_type" Varchar NOT NULL,
-    "object_key" Varchar NOT NULL,
-    "parent_id" BIGINT,
-    "display_name" Varchar NOT NULL Default '',
-    "sort_order" Integer,
-    primary key ("id")
+    object_scope VARCHAR NOT NULL,
+    object_id BIGINT NOT NULL,
+    from_state_id INT NOT NULL,
+    to_state_id INT NOT NULL,
+    executed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    executed_by VARCHAR,
+    CONSTRAINT state_change_execution_pkey PRIMARY KEY (object_scope, object_id)
 );
 
-CREATE TABLE IF NOT EXISTS "provisioning_config_value"
-(
-    "node_id" BIGINT NOT NULL,
-    "config_key" Varchar NOT NULL,
-    "config_value" Jsonb NOT NULL,
-    primary key ("node_id","config_key")
-);
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'provisioning_config_node_parent_id_fkey'
-        AND conrelid = 'provisioning_config_node'::regclass
-    ) THEN
-        ALTER TABLE "provisioning_config_node"
-        ADD CONSTRAINT provisioning_config_node_parent_id_fkey
-        FOREIGN KEY ("parent_id") REFERENCES "provisioning_config_node" ("id")
-        ON UPDATE RESTRICT ON DELETE CASCADE;
-    END IF;
-END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'provisioning_config_value_node_id_fkey'
-        AND conrelid = 'provisioning_config_value'::regclass
-    ) THEN
-        ALTER TABLE "provisioning_config_value"
-        ADD CONSTRAINT provisioning_config_value_node_id_fkey
-        FOREIGN KEY ("node_id") REFERENCES "provisioning_config_node" ("id")
-        ON UPDATE RESTRICT ON DELETE CASCADE;
-    END IF;
-END $$;
-
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_node_parent
-    ON provisioning_config_node (parent_id);
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'provisioning_config_node_node_type_object_key_key'
-        AND conrelid = 'provisioning_config_node'::regclass
-    ) THEN
-        ALTER TABLE "provisioning_config_node"
-        ADD CONSTRAINT provisioning_config_node_node_type_object_key_key
-        UNIQUE ("node_type", "object_key");
-    END IF;
-END $$;
-
-DROP INDEX IF EXISTS idx_provisioning_config_node_type_key;
-
-CREATE INDEX IF NOT EXISTS idx_provisioning_config_value_key
-    ON provisioning_config_value (config_key);
-
-INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
-VALUES ('global', 'global', 'Global', 0)
-ON CONFLICT (node_type, object_key) DO NOTHING;
+-- Existing objects have no recorded execution, so the first transition after this upgrade is
+-- claimable for each of them. That is the safe direction: it can let one already executed
+-- transition be re-requested once, exactly as before this upgrade, rather than blocking a
+-- legitimate promote of every ticket that is currently in flight.

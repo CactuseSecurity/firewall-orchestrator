@@ -1,8 +1,56 @@
 # Firewall Orchestrator Revision History
 
-## 9.5.7 - 27.09.2026
+## 9.5.8 - 28.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
+
+## 9.5.7 - 28.09.2026
+- security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
+  who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.
+  A login and a token refresh derive the roles of a user by resolving uiuser.uuid against LDAP, so
+  rewriting that column let an auditor have its authorization rebuilt as a different, more
+  privileged subject. Self-service updates of uiuser are now limited to uiuser_language for every
+  role except the middleware, and each of those permissions constrains the row after the update as
+  well as before it, so an update cannot move a row to another subject
+- security fix (SEC-04): the LDAP connection test is a POST instead of a GET carrying a body, so
+  the credentials entered for a test are no longer part of a request that proxies and http clients
+  handle inconsistently and may cache or log
+- security fix (SEC-06): the workflow action endpoint could be asked to execute the side effects of
+  a state change more than once. The state of a ticket or task is persisted before its actions are
+  requested, so the endpoint could only check that the object already stands in the requested state,
+  which stays true after the transition happened and therefore let the same request be replayed to
+  send mails, raise external requests or create flows again. The new table
+  request.state_change_execution records which state the actions of an object were last executed
+  for; the middleware claims it in a single statement, and a repeated request now executes nothing
+  and shows the warning E8018 instead. Known limitation: workflow monitoring in the modes that
+  suppress state actions sets a state without recording it, so the next legitimate return to that
+  state is refused the same way and shows E8018 - mail, external request and flow creation for it
+  then have to be triggered again by hand
+- security fix (SEC-09): the flow catalog tables were readable without restriction by every workflow
+  role, and a request element could be pointed at any flow entry by id. A requester could therefore
+  enumerate flow objects an administrator had hidden or retired, attach them to a task, and reference
+  the canonical any-IP-protocol service, which is an internal representation the platform writes for
+  itself. The same eligibility predicate is now enforced at all three layers: the Hasura select
+  permissions of the workflow roles on flow.nwobject, flow.svcobject and flow.timeobject return only
+  entries that are offered in the request module, not retired and in a live state, and exclude
+  negative protocol ids; the Hasura insert and update permissions on request.reqelement refuse a flow
+  object, flow group or protocol id that does not meet it; and the flow creation refuses an element
+  whose stored flow id names an entry that has since been hidden or retired instead of following it.
+  The request module reports a refused element instead of failing the save with a permission error.
+  Negative protocol ids stay reserved for the middleware, which continues to attach the canonical any
+  service when it turns a protocol-agnostic request into a flow
+- security fix (SEC-10): report and notification html is assembled from stored values - object, service,
+  device, management and owner names and section headers - and several of those were written into the
+  generated document without being encoded for the place they land in. The headless browser that renders
+  an export to pdf loaded subresources, so markup smuggled into such a value made the server itself issue
+  outbound requests. The renderer now runs with scripting off and aborts every request except the document
+  it starts from, and exported documents carry a content security
+  policy that denies everything but their own inline styling. The link a report builds around an object
+  encodes each part for its own context and refuses a target that does not stay on the document, the table
+  of contents no longer turns encoded markup from the body back into live markup, and the headings and
+  the object, service and user tables of a rules report encode every imported field they show - name, uid,
+  comment and group members. Report output changes in two visible ways: object anchor names are now quoted,
+  and exported documents carry the extra policy element
 
 ## 9.5.6 - 24.09.2026
 - variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import

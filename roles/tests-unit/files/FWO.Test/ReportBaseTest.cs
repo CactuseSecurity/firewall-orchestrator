@@ -657,6 +657,27 @@ namespace FWO.Test
             await page.Received(1).SetContentAsync(kRenderedHtml, Arg.Any<SetContentOptions>());
         }
 
+        /// <summary>
+        /// The report html is built from stored values, so the page it is rendered on must not be able to
+        /// fetch anything. The lockdown has to be applied before the content is written, because a request
+        /// issued while the page is still unprotected has already left (SEC-10).
+        /// </summary>
+        [Test]
+        public async Task RenderInLaunchedBrowserLocksThePageDownBeforeWritingTheContent()
+        {
+            IBrowser browser = SubstituteBrowser(out IPage page);
+            BrowserRenderReportBase report = new();
+
+            await report.RenderIn(browser, kRenderedHtml, FWO.Report.PaperFormat.A4);
+
+            Received.InOrder(() =>
+            {
+                page.SetJavaScriptEnabledAsync(false);
+                page.SetRequestInterceptionAsync(true);
+                page.SetContentAsync(kRenderedHtml, Arg.Any<SetContentOptions>());
+            });
+        }
+
         [Test]
         public async Task RenderInLaunchedBrowserGivesEveryPageOperationAFiniteDeadline()
         {

@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
@@ -32,6 +33,8 @@ namespace FWO.Middleware.Server.Controllers
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
         private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
+        private const string kStateChangeRefusalTitleKey = "actions";
+        private const string kStateChangeRefusalMessageKey = "E8018";
 
         /// <summary>
         /// Constructor.
@@ -198,6 +201,11 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             if (!ValidateExecutionRequest(wfHandler, parameters, scope, phase, statefulObject, result))
+            {
+                return result;
+            }
+
+            if (!await TryClaimStateChangeExecution(actionApiConnection, userConfig, parameters, scope, ticket, result))
             {
                 return result;
             }
@@ -369,6 +377,94 @@ namespace FWO.Middleware.Server.Controllers
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Claims the one execution of the state-change actions belonging to a transition.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: the state of the object is persisted by the caller before its actions are
+        /// requested, so "the object stands in the requested state" stays true once the transition
+        /// happened and cannot tell a first request apart from a replay. The claim is what makes the
+        /// difference: request.state_change_execution holds the state the actions of this object last
+        /// ran for, and the mutation records the new one only when it differs, in a single statement.
+        /// A repeated request therefore executes nothing.
+        /// The claim is keyed on the new state alone. The object is checked to stand in it before the
+        /// claim is attempted, which makes it the only half of the transition the server has
+        /// established; the old state arrives in the request body and is recorded for the audit trail
+        /// only. Letting it take part in the comparison would let a replay re-arm the guard by naming
+        /// a different origin state for a transition that has already run.
+        /// Comparing the state alone holds only while the record keeps up with the object, which is
+        /// why ActionHandler.RecordStateChangeExecution writes it for every state change executed
+        /// inside the middleware - the external request chain promotes request tasks without ever
+        /// reaching this endpoint.
+        /// One path stays uncovered by decision, not by oversight: workflow monitoring persists a
+        /// state change while suppressing its actions, so nothing records it and a later legitimate
+        /// return to that state is refused. Covering it would take either a counter the ui's own role
+        /// can write - which a caller could then move to re-arm this guard and replay - or a database
+        /// trigger. Both were weighed and rejected, and the refusal is made visible instead, so the
+        /// remaining cost is that the actions have to be asked for again rather than being lost
+        /// unnoticed. Do not treat this as a defect to fix silently; it is a known limitation.
+        /// A refused claim does not fail the promote - the state change itself did happen, and
+        /// throwing would turn an accidental double submit into an error - but it is reported to the
+        /// caller as a warning rather than swallowed. The claim compares the state the object stands
+        /// in, and a state change that persisted without running its actions (workflow monitoring
+        /// does this deliberately) leaves the record naming a state the object later returns to, so a
+        /// refusal is not always a replay. Whoever asked for the promote has to be able to see that
+        /// its mail, external request and flow creation did not run, and ask for them again.
+        /// Only the persisted-transition path is claimed. A request naming an action explicitly
+        /// carries no transition to key the claim on and is validated against the actions currently
+        /// offered instead.
+        /// </remarks>
+        /// <param name="actionApiConnection">Api connection running under the middleware role.</param>
+        /// <param name="userConfig">User configuration, for the localized text of a refusal.</param>
+        /// <param name="parameters">The requested action, holding the claimed transition.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        /// <param name="ticket">The resolved ticket, which is the stateful object of the ticket scope.</param>
+        /// <param name="result">Result of the action request, completed when the claim is refused.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, UserConfig userConfig,
+            WorkflowActionParameters parameters, WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return true;
+            }
+
+            // Taken from the resolved object rather than from the request: the ticket scope carries
+            // its id in TicketId or ObjectId depending on the caller, and the key must not depend on
+            // which of the two was filled in.
+            long objectId = scope == WfObjectScopes.Ticket ? ticket.Id : parameters.ObjectId;
+            var claimVariables = new
+            {
+                objectScope = scope.ToString(),
+                objectId = objectId,
+                fromStateId = parameters.OldStateId,
+                toStateId = parameters.NewStateId,
+                executedBy = User.FindFirstValue("x-hasura-uuid") ?? "",
+                executedAt = DateTime.UtcNow
+            };
+
+            ReturnId claim = await actionApiConnection.SendQueryAsync<ReturnId>(RequestQueries.claimStateChangeExecution, claimVariables);
+            if (claim.AffectedRows == 1)
+            {
+                return true;
+            }
+
+            string refusal = $"State-change actions for {scope} {objectId} were already executed for the move into state " +
+                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.";
+            Log.WriteAudit("Workflow Actions", refusal);
+            Log.WriteWarning("Workflow Actions", refusal);
+            result.Success = true;
+            result.Messages.Add(new()
+            {
+                Title = userConfig.GetText(kStateChangeRefusalTitleKey),
+                Message = userConfig.GetText(kStateChangeRefusalMessageKey),
+                TitleTextKey = kStateChangeRefusalTitleKey,
+                MessageTextKey = kStateChangeRefusalMessageKey,
+                ErrorFlag = true
+            });
+            return false;
         }
 
         private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)

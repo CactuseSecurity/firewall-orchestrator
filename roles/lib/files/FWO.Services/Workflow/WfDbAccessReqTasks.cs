@@ -23,6 +23,13 @@ namespace FWO.Services.Workflow
             WfTicket? storedTicket = previousTicket ?? await LoadPreviousTicket(reqtask.TicketId);
             try
             {
+                // inside the try: the check asks the API, so a transient failure has to reach the user
+                // as a message like every other failure of this method rather than as an exception
+                if (!await FlowReferencesAreWritable(reqtask, taskIsBeingCreated: true))
+                {
+                    return returnId;
+                }
+
                 var variables = BuildReqTaskInsertVariables(reqtask);
                 variables["ticketId"] = reqtask.TicketId;
                 ReturnId[]? returnIds = (await ApiConnection.SendQueryAsync<ReturnIdWrapper>(RequestQueries.newRequestTask, variables)).ReturnIds;
@@ -76,6 +83,13 @@ namespace FWO.Services.Workflow
             WfReqTask? previousTask = previousTicket?.Tasks.FirstOrDefault(task => task.Id == reqtask.Id);
             try
             {
+                // inside the try: the check asks the API, so a transient failure has to reach the user
+                // as a message like every other failure of this method rather than as an exception
+                if (!await FlowReferencesAreWritable(reqtask, taskIsBeingCreated: false))
+                {
+                    return;
+                }
+
                 var variables = BuildReqTaskUpdateVariables(reqtask);
                 variables["id"] = reqtask.Id;
                 variables["devices"] = reqtask.SelectedDevices;

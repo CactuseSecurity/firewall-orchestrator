@@ -1,5 +1,20 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.9 - 28.09.2026
+- security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
+  inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one
+  local user: the login of the second directory's user took over the row of the first one,
+  overwrote its tenant and directory, and received a token for that local subject. A token refresh,
+  a scheduled report and the report and normalized config endpoints could likewise rebuild a user in
+  the wrong directory. A local user is now identified by its LDAP connection and dn (new unique key
+  uiuser_ldap_connection_id_uuid_key replacing uiuser_uuid_key); a user that is already known
+  locally is only authenticated in its own directory and must resolve to the same local user again;
+  the UI loads the session user and the self-service permissions of uiuser match the local user id
+  of the token instead of the dn; and the password change flag is set by local user id.
+  The upgrade binds local users that belong to no LDAP connection to their directory where it is
+  unambiguous and lists the remaining ones as a warning: such a user gets a new local user at the
+  next login unless uiuser.ldap_connection_id is set by hand before
+
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.

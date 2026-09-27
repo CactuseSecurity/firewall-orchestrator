@@ -29622,13 +29622,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29640,13 +29640,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29658,13 +29658,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29676,13 +29676,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29718,13 +29718,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29736,13 +29736,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29754,13 +29754,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29772,13 +29772,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29790,13 +29790,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29808,13 +29808,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }
@@ -29826,13 +29826,13 @@
                       "uiuser_language"
                     ],
                     "filter": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     },
                     "check": {
-                      "uuid": {
-                        "_eq": "x-hasura-uuid"
+                      "uiuser_id": {
+                        "_eq": "X-Hasura-User-Id"
                       }
                     }
                   }

@@ -261,11 +261,42 @@ namespace FWO.Middleware.Server.Jobs
                     repeatInterval);
                 foreach (var ticket in unansweredTickets)
                 {
-                    FwoOwner? owner = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString())?.Owners.FirstOrDefault()?.Owner;
+                    WfReqTask? requestTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+                    FwoOwner? owner = requestTask?.Owners.FirstOrDefault()?.Owner;
                     if (owner == null)
                     {
                         Log.WriteWarning(LogMessageTitle,
                             $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                        continue;
+                    }
+
+                    if (!InterfaceRequestNotificationGuard.IsActiveOwner(owner))
+                    {
+                        Log.WriteDebug(LogMessageTitle,
+                            $"Skipping notification {notification.Id} for unanswered interface request ticket {ticket.Id} because its owner is inactive.");
+                        NotificationPlaceholderResolver.NotificationPlaceholderValues suppressedPlaceholderValues =
+                            await BuildRequestPlaceholderValues(ticket, owner);
+                        await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.", owner,
+                            suppressedPlaceholderValues, ticket.CreationDate);
+                        continue;
+                    }
+
+                    if (!InterfaceRequestNotificationGuard.HasRequiredRequestContext(ticket, requestTask))
+                    {
+                        Log.WriteDebug(LogMessageTitle,
+                            $"Skipping notification {notification.Id} for incomplete interface request ticket {ticket.Id}.");
+                        await notificationService.LogSuppressedNotification(notification, "Interface request is incomplete.", owner,
+                            resolvedDeadline: ticket.CreationDate);
+                        continue;
+                    }
+
+                    FwoOwner? requestingOwner = await GetRequestingOwner(requestTask!.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+                    if (requestingOwner == null)
+                    {
+                        Log.WriteDebug(LogMessageTitle,
+                            $"Skipping notification {notification.Id} for interface request ticket {ticket.Id} because its requesting app could not be resolved.");
+                        await notificationService.LogSuppressedNotification(notification, "Requesting owner could not be resolved.", owner,
+                            resolvedDeadline: ticket.CreationDate);
                         continue;
                     }
 
@@ -278,7 +309,7 @@ namespace FWO.Middleware.Server.Jobs
                     }
 
                     NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
-                        await BuildRequestPlaceholderValues(ticket, owner);
+                        BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
                     int sentForTicket = await notificationService.SendNotification(
                         notification,
                         owner,
@@ -333,6 +364,13 @@ namespace FWO.Middleware.Server.Jobs
         {
             WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
             FwoOwner? requestingOwner = await GetRequestingOwner(reqTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            return BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
+        }
+
+        private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValuesFromOwner(
+            WfTicket ticket, FwoOwner owner, FwoOwner? requestingOwner)
+        {
+            WfReqTask? reqTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
             FwoOwner effectiveRequestingOwner = requestingOwner ?? new FwoOwner();
             string interfaceName = reqTask?.Title ?? globalConfig.GetText("interface");
             string interfaceUrl = ConstructLink(owner, reqTask);

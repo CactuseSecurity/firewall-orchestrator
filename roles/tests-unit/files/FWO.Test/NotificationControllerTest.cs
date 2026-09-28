@@ -240,6 +240,63 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task SendInterfaceRequest_SuppressesNotificationForInactiveOwner()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            Logging = NotificationLoggingMode.SendAndLog,
+            Owner = new FwoOwner { Id = 9, Name = "Inactive owner", Active = false },
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket
+            {
+                RequesterDn = "cn=requester",
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.new_interface.ToString(),
+                        AdditionalInfo = "{\"ReqOwner\":\"9\"}"
+                    }
+                ]
+            }
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+        Assert.That(apiConnection.InsertCount, Is.EqualTo(1));
+    }
+
+    [Test]
+    public async Task SendInterfaceRequest_SuppressesNotificationForIncompleteRequest()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket
+            {
+                RequesterDn = "cn=requester",
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.new_interface.ToString()
+                    }
+                ]
+            }
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+        Assert.That(apiConnection.InsertCount, Is.Zero);
+    }
+
+    [Test]
     public async Task SendInterfaceDecommission_RejectsMissingReason()
     {
         NotificationController controller = CreateController(new ControllerApiConnection(), new GlobalConfig());
@@ -432,7 +489,19 @@ internal class NotificationControllerTest
             Logging = NotificationLoggingMode.SendAndLog,
             RecipientTo = EmailRecipientOption.None,
             Connection = RequestedConnection(),
-            Ticket = new WfTicket()
+            Owner = new FwoOwner { Id = 8, Name = "Owner" },
+            Ticket = new WfTicket
+            {
+                Requester = new UiUser { DbId = 4, Name = "Requester" },
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.new_interface.ToString(),
+                        AdditionalInfo = "{\"ReqOwner\":\"8\"}"
+                    }
+                ]
+            }
         };
     }
 

@@ -162,6 +162,36 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Records a notification that was intentionally suppressed before recipient resolution or delivery.
+        /// </summary>
+        /// <param name="notification">Notification configuration.</param>
+        /// <param name="reason">Reason why delivery was suppressed.</param>
+        /// <param name="owner">Owner context used for owner placeholders.</param>
+        /// <param name="placeholderValues">Interface-request placeholder values.</param>
+        /// <param name="resolvedDeadline">Resolved deadline associated with the notification.</param>
+        public async Task LogSuppressedNotification(FwoNotification notification, string reason, FwoOwner? owner = null,
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = null, DateTimeOffset? resolvedDeadline = null)
+        {
+            AddCheckedNotificationId(notification.Id);
+            if (!NotificationLoggingMode.ShouldLog(notification.Logging))
+            {
+                return;
+            }
+
+            string subject = NotificationPlaceholderResolver.ReplaceOwnerPlaceholders(notification.EmailSubject ?? "", owner);
+            if (placeholderValues != null)
+            {
+                subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
+            }
+            NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, [], [], [], subject, resolvedDeadline);
+            int logId = await NotificationLogHelper.InsertAsync(ApiConnection, entry);
+            if (logId > 0)
+            {
+                await NotificationLogHelper.UpdateAsync(ApiConnection, logId, NotificationLogStatus.Suppressed, reason);
+            }
+        }
+
+        /// <summary>
         /// Sends notifications grouped by bundle information. Notifications without bundle settings are sent individually.
         /// </summary>
         /// <param name="notifications">Notifications to send.</param>

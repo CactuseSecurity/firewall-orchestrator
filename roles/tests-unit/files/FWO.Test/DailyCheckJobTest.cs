@@ -842,6 +842,7 @@ namespace FWO.Test
             if (owner != null)
             {
                 reqTask.Owners = [new FwoOwnerDataHelper { Owner = owner }];
+                reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, owner.Id.ToString());
             }
 
             return new WfTicket
@@ -964,6 +965,12 @@ namespace FWO.Test
                 {
                     OpenTicketQueryCount++;
                     return Task.FromResult((QueryResponseType)(object)OpenTickets);
+                }
+
+                if (query == OwnerQueries.getOwnerById && typeof(QueryResponseType) == typeof(FwoOwner))
+                {
+                    int ownerId = variables?.GetType().GetProperty("id")?.GetValue(variables) is int id ? id : 0;
+                    return Task.FromResult((QueryResponseType)(object)new FwoOwner { Id = ownerId, Name = "Requesting owner" });
                 }
 
                 if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))

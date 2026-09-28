@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.5.8 - 28.09.2026
+## 9.5.10 - 28.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
@@ -11,6 +11,10 @@
   gateway objects, never along the stored parent links (guarded by a unit test)
 - restrict Hasura permissions on provisioning_config_node: node identity (id, node_type, object_key) is no longer
   writable and the global node can no longer be deleted; the database enforces node types and a single global root
+
+## 9.5.8 - 28.09.2026
+- REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
+  ticket so integrations can retain the reference to the preceding workflow ticket
 
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define

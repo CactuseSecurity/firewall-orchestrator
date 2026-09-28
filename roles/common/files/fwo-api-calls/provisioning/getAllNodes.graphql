@@ -1,6 +1,5 @@
-query getChildren($parentNodeId: bigint!) {
+query getAllNodes {
   provisioning_config_node(
-    where: {parent_id: {_eq: $parentNodeId}}
     order_by: [
       {sort_order: asc_nulls_last}
       {display_name: asc}

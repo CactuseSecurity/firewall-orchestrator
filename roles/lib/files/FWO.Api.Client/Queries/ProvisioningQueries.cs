@@ -6,7 +6,8 @@ namespace FWO.Api.Client.Queries
     {
         public static readonly string getNodeWithAncestors;
         public static readonly string getNodeById;
-        public static readonly string getChildren;
+        public static readonly string getNodesByNaturalKeys;
+        public static readonly string getAllNodes;
         public static readonly string upsertNode;
         public static readonly string applyPatch;
         public static readonly string deleteOverrides;
@@ -17,7 +18,8 @@ namespace FWO.Api.Client.Queries
             {
                 getNodeWithAncestors = GetQueryText("provisioning/getNodeWithAncestors.graphql");
                 getNodeById = GetQueryText("provisioning/getNodeById.graphql");
-                getChildren = GetQueryText("provisioning/getChildren.graphql");
+                getNodesByNaturalKeys = GetQueryText("provisioning/getNodesByNaturalKeys.graphql");
+                getAllNodes = GetQueryText("provisioning/getAllNodes.graphql");
                 upsertNode = GetQueryText("provisioning/upsertNode.graphql");
                 applyPatch = GetQueryText("provisioning/applyPatch.graphql");
                 deleteOverrides = GetQueryText("provisioning/deleteOverrides.graphql");

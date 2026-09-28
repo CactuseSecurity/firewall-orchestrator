@@ -62,14 +62,14 @@ else
                                     </span>
                                     <div class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" id="@($"prov-override-{state.Field.Id}")" checked="@state.IsLocal"
-                                               @onchange="e => ToggleOverride(state, e.Value is true)" />
+                                               disabled="@(!CanEdit)" @onchange="e => ToggleOverride(state, e.Value is true)" />
                                         <label class="form-check-label small" for="@($"prov-override-{state.Field.Id}")">@(userConfig.GetText("prov_override_here"))</label>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mt-2">
-                                @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal, v => state.LocalValue = v)
+                                @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal || !CanEdit, v => SetLocalValue(state, v))
                             </div>
 
                             @if (!state.IsLocal)
@@ -229,8 +229,19 @@ else
         }
     }
 
-    private static void ToggleOverride(ProvisioningFieldState state, bool overrideHere)
+    /// <summary>
+    /// Only admins can change the settings. Auditors see the same page with all editors disabled, so they cannot
+    /// build up edits that they could not save.
+    /// </summary>
+    private bool CanEdit => userConfig.CanUseAnyRole(Roles.Admin);
+
+    private void ToggleOverride(ProvisioningFieldState state, bool overrideHere)
     {
+        if (!CanEdit)
+        {
+            return;
+        }
+
         if (overrideHere)
         {
             state.Override();
@@ -238,6 +249,14 @@ else
         else
         {
             state.Inherit();
+        }
+    }
+
+    private void SetLocalValue(ProvisioningFieldState state, string value)
+    {
+        if (CanEdit)
+        {
+            state.LocalValue = value;
         }
     }
 

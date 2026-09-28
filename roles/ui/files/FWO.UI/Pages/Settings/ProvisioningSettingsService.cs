@@ -119,7 +119,7 @@ namespace FWO.Ui.Pages.Settings
         /// <summary>Loads the tree of the given managements, linked to the provisioning nodes persisted so far.</summary>
         public async Task<ProvisioningNode> LoadHierarchyAsync(IEnumerable<Management> managements)
         {
-            return ProvisioningSettingsData.BuildHierarchy(managements, await LoadPersistedScopesAsync());
+            return ProvisioningSettingsData.BuildHierarchy(managements, await manager.GetAllNodesAsync());
         }
 
         /// <summary>Loads the effective values, their sources and the local overrides of a level.</summary>
@@ -192,31 +192,6 @@ namespace FWO.Ui.Pages.Settings
             {
                 node.Scope = await manager.MoveNodeAsync(RequestScope(node), node.Parent!.Scope.NodeId);
             }
-        }
-
-        /// <summary>Collects every persisted provisioning node, starting from Global.</summary>
-        private async Task<List<ProvisioningSettingsScope>> LoadPersistedScopesAsync()
-        {
-            ProvisioningSettingsLevel<GlobalProvisioningSettings> global =
-                await manager.LoadLevelAsync<GlobalProvisioningSettings>(ProvisioningScopePath.Global());
-            if (global.Scope.NodeId == 0)
-            {
-                return [];
-            }
-
-            List<ProvisioningSettingsScope> scopes = [global.Scope];
-            List<ProvisioningSettingsScope> parents = [global.Scope];
-            while (parents.Count > 0)
-            {
-                List<ProvisioningSettingsScope> children = [];
-                foreach (ProvisioningSettingsScope parent in parents.Where(p => p.ScopeType != ProvisioningScopeType.Gateway))
-                {
-                    children.AddRange(await manager.GetChildrenAsync(parent.NodeId));
-                }
-                scopes.AddRange(children);
-                parents = children;
-            }
-            return scopes;
         }
 
         /// <summary>

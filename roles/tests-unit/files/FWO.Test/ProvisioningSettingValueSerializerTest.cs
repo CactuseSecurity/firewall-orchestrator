@@ -15,7 +15,7 @@ internal class ProvisioningSettingValueSerializerTest
         {
             if (key.ValueType.IsEnum)
             {
-                foreach (object value in Enum.GetValues(key.ValueType))
+                foreach (object value in StorableEnumValues(key.ValueType))
                 {
                     yield return new TestCaseData(key, value)
                         .SetName($"RoundTrip_{key.DatabaseKey}_{value}");
@@ -32,6 +32,20 @@ internal class ProvisioningSettingValueSerializerTest
                     .SetName($"RoundTrip_{key.DatabaseKey}_StringList");
             }
         }
+    }
+
+    private static IEnumerable<TestCaseData> EnumKeyCases()
+    {
+        return ProvisioningSettingKeys.All
+            .Where(key => key.ValueType.IsEnum)
+            .Select(key => new TestCaseData(key).SetName($"Undefined_{key.DatabaseKey}"));
+    }
+
+    private static IEnumerable<object> StorableEnumValues(Type enumType)
+    {
+        return Enum.GetValues(enumType)
+            .Cast<object>()
+            .Where(value => Enum.GetName(enumType, value) != ProvisioningSettingValueSerializer.kUndefinedEnumName);
     }
 
     [TestCaseSource(nameof(RoundTripCases))]
@@ -57,5 +71,28 @@ internal class ProvisioningSettingValueSerializerTest
         {
             Assert.That(serialized.Value<string>(), Is.EqualTo(originalValue.ToString()));
         }
+    }
+
+    [TestCaseSource(nameof(EnumKeyCases))]
+    public void Serialize_RejectsUndefined(ProvisioningSettingKey key)
+    {
+        object undefined = Enum.Parse(key.ValueType, ProvisioningSettingValueSerializer.kUndefinedEnumName);
+
+        Assert.Throws<ArgumentException>(() => ProvisioningSettingValueSerializer.Serialize(key, undefined));
+    }
+
+    [TestCaseSource(nameof(EnumKeyCases))]
+    public void Deserialize_RejectsStoredUndefined(ProvisioningSettingKey key)
+    {
+        JToken stored = new JValue(ProvisioningSettingValueSerializer.kUndefinedEnumName);
+
+        Assert.Throws<InvalidOperationException>(() => ProvisioningSettingValueSerializer.Deserialize(key, stored));
+    }
+
+    [Test]
+    public void Serialize_RejectsUndefinedThroughTypedKey()
+    {
+        Assert.Throws<ArgumentException>(() => ProvisioningSettingValueSerializer.Serialize(
+            ProvisioningSettingKeys.Logging, ProvisioningLoggingMode.Undefined));
     }
 }

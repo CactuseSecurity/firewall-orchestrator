@@ -1,3 +1,4 @@
+using FWO.Config.Api.Provisioning;
 using FWO.Data;
 using FWO.Data.Provisioning;
 using FWO.Ui.Pages.Settings;
@@ -257,6 +258,28 @@ internal class ProvisioningSettingsDataTest
             Assert.That(ProvisioningSettingsData.CreateDefaults(ProvisioningScopeType.Management), Is.TypeOf<ManagementProvisioningSettings>());
             Assert.That(ProvisioningSettingsData.CreateDefaults(ProvisioningScopeType.Gateway), Is.TypeOf<GatewayProvisioningSettings>());
             Assert.Throws<ArgumentOutOfRangeException>(() => ProvisioningSettingsData.CreateDefaults(ProvisioningScopeType.Undefined));
+        }
+    }
+
+    /// <summary>
+    /// A select field offers every value the serializer can store and nothing else, so any stored override has a
+    /// matching option and every option can be saved. The Undefined placeholder is neither stored nor offered.
+    /// </summary>
+    [Test]
+    public void SelectFields_OfferExactlyTheStorableEnumValues()
+    {
+        List<ProvisioningFieldDefinition> selectFields =
+            [.. ProvisioningSettingsData.Fields.Where(f => f.Kind == ProvisioningFieldKind.SingleSelect)];
+
+        Assert.That(selectFields, Is.Not.Empty);
+        using (Assert.EnterMultipleScope())
+        {
+            foreach (ProvisioningFieldDefinition field in selectFields)
+            {
+                List<string> storable = [.. Enum.GetNames(field.Key.ValueType)
+                    .Where(name => name != ProvisioningSettingValueSerializer.kUndefinedEnumName)];
+                Assert.That(field.Options.Select(o => o.Value), Is.EquivalentTo(storable), field.Id);
+            }
         }
     }
 }

@@ -246,49 +246,15 @@ public sealed class ProvisioningSettingsManager
     }
 
     /// <summary>
-    /// Returns the validated scopes of the persisted child nodes of a node.
+    /// Returns the validated scopes of all persisted nodes, Global first and every level before the one below it.
+    /// Loads them with a single query and validates the hierarchy in memory, so the cost does not grow with the number
+    /// of API calls per node. Returns an empty list if nothing has been stored yet.
     /// </summary>
-    public async Task<IReadOnlyList<ProvisioningSettingsScope>> GetChildrenAsync(long parentNodeId)
+    public async Task<IReadOnlyList<ProvisioningSettingsScope>> GetAllNodesAsync()
     {
-        if (parentNodeId <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(parentNodeId), parentNodeId, "A positive parent node ID is required.");
-        }
-
-        ProvisioningConfigNodeData parentNode = await LoadNodeByIdAsync(parentNodeId);
-        IReadOnlyList<ProvisioningConfigNodeData> parentNodes = BuildNodeChain(parentNode);
-        IReadOnlyList<ProvisioningSettingsScope> parentScopes = CreateScopeChain(parentNodes);
-        ProvisioningSettingsHierarchyValidator.ValidatePersistedChain(parentScopes, parentScopes[^1].ScopeType);
-        ValidateNodeValues(parentNodes, parentScopes);
-
-        List<ProvisioningConfigNodeData> childNodes = await apiConnection.SendQueryAsync<List<ProvisioningConfigNodeData>>(
-            ProvisioningQueries.getChildren,
-            new { parentNodeId });
-
-        List<ProvisioningSettingsScope> children = [];
-        HashSet<long> nodeIds = [];
-        HashSet<(ProvisioningScopeType ScopeType, string ObjectKey)> naturalKeys = [];
-
-        foreach (ProvisioningConfigNodeData childNode in childNodes)
-        {
-            ProvisioningSettingsScope child = ProvisioningSettingsScopeFactory.Create(childNode);
-            ProvisioningSettingsHierarchyValidator.ValidateChild(parentScopes, child);
-
-            if (!nodeIds.Add(child.NodeId))
-            {
-                throw new InvalidOperationException($"Child query returned node ID '{child.NodeId}' more than once.");
-            }
-
-            if (!naturalKeys.Add((child.ScopeType, child.ObjectKey)))
-            {
-                throw new InvalidOperationException(
-                    $"Child query returned scope '{child.ScopeType}:{child.ObjectKey}' more than once.");
-            }
-
-            children.Add(child);
-        }
-
-        return children;
+        List<ProvisioningConfigNodeData> nodes =
+            await apiConnection.SendQueryAsync<List<ProvisioningConfigNodeData>>(ProvisioningQueries.getAllNodes);
+        return ProvisioningSettingsHierarchyValidator.ValidateTree(CreateScopeChain(nodes));
     }
 
     /// <summary>
@@ -300,14 +266,14 @@ public sealed class ProvisioningSettingsManager
         List<ProvisioningSettingsScope> chain = path.ToScopes();
         ProvisioningSettingsHierarchyValidator.ValidateRequestedChain(chain);
         ProvisioningSettingsScope requestedScope = chain[^1];
+        Dictionary<(ProvisioningScopeType ScopeType, string ObjectKey), ProvisioningConfigNodeData> storedNodes = await LoadNodesOfChainAsync(chain);
 
         List<ProvisioningConfigNodeData> nodes = [];
         ProvisioningSettingsScope resolvedScope = ProvisioningSettingsScopeFactory.Copy(requestedScope);
         bool selectedNodeExists = false;
         foreach (ProvisioningSettingsScope scope in chain)
         {
-            ProvisioningConfigNodeData? node = await TryLoadNodeByNaturalKeyAsync(scope);
-            if (node is null)
+            if (!storedNodes.TryGetValue((scope.ScopeType, scope.ObjectKey), out ProvisioningConfigNodeData? node))
             {
                 continue;
             }
@@ -324,6 +290,49 @@ public sealed class ProvisioningSettingsManager
         }
 
         return ResolveSettings(new LoadedHierarchy(resolvedScope, nodes, selectedNodeExists));
+    }
+
+    /// <summary>
+    /// Loads the stored nodes of all levels of a requested chain with one query, keyed by scope type and object key.
+    /// Throws if the database returns a node twice or a node that was not requested.
+    /// </summary>
+    private async Task<Dictionary<(ProvisioningScopeType ScopeType, string ObjectKey), ProvisioningConfigNodeData>> LoadNodesOfChainAsync(
+        List<ProvisioningSettingsScope> chain)
+    {
+        List<ProvisioningConfigNodeData> matches = await apiConnection.SendQueryAsync<List<ProvisioningConfigNodeData>>(
+            ProvisioningQueries.getNodesByNaturalKeys,
+            new
+            {
+                globalKeys = ObjectKeysOf(chain, ProvisioningScopeType.Global),
+                deviceTypeKeys = ObjectKeysOf(chain, ProvisioningScopeType.DeviceType),
+                managementKeys = ObjectKeysOf(chain, ProvisioningScopeType.Management),
+                gatewayKeys = ObjectKeysOf(chain, ProvisioningScopeType.Gateway)
+            });
+
+        HashSet<(ProvisioningScopeType ScopeType, string ObjectKey)> requested = [.. chain.Select(scope => (scope.ScopeType, scope.ObjectKey))];
+        Dictionary<(ProvisioningScopeType ScopeType, string ObjectKey), ProvisioningConfigNodeData> nodes = [];
+        foreach (ProvisioningConfigNodeData match in matches)
+        {
+            (ProvisioningScopeType ScopeType, string ObjectKey) naturalKey = (ProvisioningSettingsScopeFactory.ParseNodeType(match.NodeType), match.ObjectKey);
+            if (!requested.Contains(naturalKey))
+            {
+                throw new InvalidOperationException(
+                    $"Database returned provisioning node '{match.Id}' for scope '{naturalKey.ScopeType}:{naturalKey.ObjectKey}', which was not requested.");
+            }
+
+            if (!nodes.TryAdd(naturalKey, match))
+            {
+                throw new InvalidOperationException(
+                    $"Database returned more than one node for provisioning scope '{naturalKey.ScopeType}:{naturalKey.ObjectKey}'.");
+            }
+        }
+
+        return nodes;
+    }
+
+    private static List<string> ObjectKeysOf(List<ProvisioningSettingsScope> chain, ProvisioningScopeType scopeType)
+    {
+        return [.. chain.Where(scope => scope.ScopeType == scopeType).Select(scope => scope.ObjectKey)];
     }
 
     private async Task<LoadedHierarchy?> TryLoadPersistedHierarchyAsync(

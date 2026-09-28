@@ -1,4 +1,5 @@
 using FWO.Config.Api;
+using FWO.Data;
 using FWO.Data.Provisioning;
 using FWO.Ui.Pages.Settings;
 using NUnit.Framework;
@@ -17,6 +18,9 @@ internal class ProvisioningSettingsServiceTest
     private const long kManagementNodeId = 3;
     private const long kGatewayNodeId = 4;
     private const long kFortiAdomNodeId = 5;
+    private const int kManyManagementCount = 100;
+    private const int kFirstManyManagementId = 1000;
+    private const long kFirstManyManagementNodeId = 100;
 
     private static readonly (string NodeType, string ObjectKey)[] kExpectedCreatedChain =
         [("global", "global"), ("device_type", "11"), ("management", "101"), ("gateway", "210")];
@@ -316,6 +320,39 @@ internal class ProvisioningSettingsServiceTest
         {
             Assert.That(api.Nodes.Single(n => n.Id == kManagementNodeId).ParentId, Is.EqualTo(kCheckPointNodeId));
             Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.InstallOn), Is.Null);
+        }
+    }
+
+    /// <summary>
+    /// The number of API calls does not grow with the number of stored nodes: the tree is loaded with one query,
+    /// and a form with a direct override needs one query for its level and one for the level above.
+    /// </summary>
+    [Test]
+    public async Task LoadHierarchyAndForm_WithManyPersistedManagements_UseAConstantNumberOfQueries()
+    {
+        InMemoryProvisioningApiConnection api = PersistedCheckPointChain(includeGateway: true);
+        List<Management> managements = ProvisioningSettingsDataTest.SampleManagements();
+        DeviceType checkPoint = managements[0].DeviceType;
+        for (int index = 0; index < kManyManagementCount; index++)
+        {
+            int managementId = kFirstManyManagementId + index;
+            managements.Add(new Management { Id = managementId, Name = $"mgr-{managementId}", DeviceType = checkPoint });
+            api.AddNode(kFirstManyManagementNodeId + index, ProvisioningScopeType.Management,
+                managementId.ToString(System.Globalization.CultureInfo.InvariantCulture), kCheckPointNodeId);
+        }
+        api.SetValue(kGatewayNodeId, ProvisioningSettingKeys.InstallOn, "gateway-target");
+        ProvisioningSettingsService service = Service(api);
+
+        ProvisioningNode root = await service.LoadHierarchyAsync(managements);
+        int treeCalls = api.Calls.Count;
+        ProvisioningLevelForm form = await service.LoadFormAsync(Node(root, ProvisioningScopeType.Gateway, "200"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(Node(root, ProvisioningScopeType.Management, "1099").IsPersisted, Is.True);
+            Assert.That(treeCalls, Is.EqualTo(1));
+            Assert.That(api.Calls, Has.Count.EqualTo(treeCalls + 2));
+            Assert.That(State(form, ProvisioningSettingKeys.InstallOn).WasLocal, Is.True);
         }
     }
 

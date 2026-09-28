@@ -11,6 +11,10 @@
   gateway objects, never along the stored parent links (guarded by a unit test)
 - restrict Hasura permissions on provisioning_config_node: node identity (id, node_type, object_key) is no longer
   writable and the global node can no longer be deleted; the database enforces node types and a single global root
+- the provisioning settings page loads all stored nodes with one query and resolves a level with one query for all
+  its parent levels, instead of one query per node or level
+- the placeholder value Undefined of the provisioning setting enums is rejected when storing and reading an override
+- auditors see the provisioning settings with all editors disabled
 
 ## 9.5.8 - 28.09.2026
 - REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created

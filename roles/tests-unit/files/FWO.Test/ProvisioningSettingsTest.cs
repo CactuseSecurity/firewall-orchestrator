@@ -41,38 +41,6 @@ namespace FWO.Test
             });
         }
 
-        /// <summary>
-        /// Every controlled value can be set to Undefined. Inheritance from the parent scope is not expressed
-        /// by this value but by not storing an override on the scope at all.
-        /// </summary>
-        [Test]
-        public void Settings_CanExpressUndefinedForEveryControlledValue()
-        {
-            GatewayProvisioningSettings settings = new()
-            {
-                ImplementationMode = ProvisioningImplementationMode.Undefined,
-                Logging = ProvisioningLoggingMode.Undefined,
-                ServiceObjectCreation = ProvisioningObjectCreationMode.Undefined,
-                AddressObjectCreation = ProvisioningObjectCreationMode.Undefined,
-                RuleType = ProvisioningRuleType.Undefined,
-                PositioningAlgorithm = ProvisioningPositioningAlgorithm.Undefined,
-                RuleCategory = ProvisioningRuleCategory.Undefined,
-                SecurityProfiles = []
-            };
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(settings.ImplementationMode, Is.EqualTo(ProvisioningImplementationMode.Undefined));
-                Assert.That(settings.Logging, Is.EqualTo(ProvisioningLoggingMode.Undefined));
-                Assert.That(settings.ServiceObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
-                Assert.That(settings.AddressObjectCreation, Is.EqualTo(ProvisioningObjectCreationMode.Undefined));
-                Assert.That(settings.RuleType, Is.EqualTo(ProvisioningRuleType.Undefined));
-                Assert.That(settings.PositioningAlgorithm, Is.EqualTo(ProvisioningPositioningAlgorithm.Undefined));
-                Assert.That(settings.RuleCategory, Is.EqualTo(ProvisioningRuleCategory.Undefined));
-                Assert.That(settings.SecurityProfiles, Is.Empty);
-            });
-        }
-
         [Test]
         public void Settings_CanRepresentTicketProvisioningValues()
         {

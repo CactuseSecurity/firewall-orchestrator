@@ -221,6 +221,39 @@ internal static class ProvisioningSettingsHierarchyValidator
         }
     }
 
+    /// <summary>
+    /// Validates a complete set of persisted nodes in memory: node IDs and natural keys are unique, and every node
+    /// references an unbroken chain of parents of the levels above it up to the global node. Returns the nodes ordered
+    /// by level, Global first, keeping the given order within a level.
+    /// </summary>
+    public static List<ProvisioningSettingsScope> ValidateTree(IReadOnlyList<ProvisioningSettingsScope> scopes)
+    {
+        ArgumentNullException.ThrowIfNull(scopes);
+
+        Dictionary<long, ProvisioningSettingsScope> scopesById = [];
+        HashSet<(ProvisioningScopeType ScopeType, string ObjectKey)> naturalKeys = [];
+        foreach (ProvisioningSettingsScope scope in scopes)
+        {
+            if (!scopesById.TryAdd(scope.NodeId, scope))
+            {
+                throw new InvalidOperationException($"Provisioning nodes contain node ID '{scope.NodeId}' more than once.");
+            }
+
+            if (!naturalKeys.Add((scope.ScopeType, scope.ObjectKey)))
+            {
+                throw new InvalidOperationException(
+                    $"Provisioning nodes contain scope '{scope.ScopeType}:{scope.ObjectKey}' more than once.");
+            }
+        }
+
+        foreach (ProvisioningSettingsScope scope in scopes)
+        {
+            ValidatePersistedChain(BuildChain(scope, scopesById), scope.ScopeType);
+        }
+
+        return [.. scopes.OrderBy(scope => GetLevelIndex(scope.ScopeType))];
+    }
+
     public static ProvisioningScopeType? GetParentType(ProvisioningScopeType scopeType)
     {
         return scopeType switch
@@ -243,6 +276,32 @@ internal static class ProvisioningSettingsHierarchyValidator
             ProvisioningScopeType.Gateway => null,
             _ => throw new ArgumentOutOfRangeException(nameof(scopeType), scopeType, "A defined provisioning scope type is required.")
         };
+    }
+
+    /// <summary>
+    /// Follows the parent links of a node, Global first. Stops one level beyond the deepest possible chain, so that a
+    /// cycle ends in a chain of the wrong length instead of an endless loop.
+    /// </summary>
+    private static List<ProvisioningSettingsScope> BuildChain(
+        ProvisioningSettingsScope leaf,
+        Dictionary<long, ProvisioningSettingsScope> scopesById)
+    {
+        List<ProvisioningSettingsScope> chain = [leaf];
+        ProvisioningSettingsScope current = leaf;
+        while (current.ParentNodeId is long parentId && chain.Count <= OrderedScopeTypes.Length)
+        {
+            if (!scopesById.TryGetValue(parentId, out ProvisioningSettingsScope? parent))
+            {
+                throw new InvalidOperationException(
+                    $"Provisioning node '{current.NodeId}' references parent node '{parentId}', which does not exist.");
+            }
+
+            chain.Add(parent);
+            current = parent;
+        }
+
+        chain.Reverse();
+        return chain;
     }
 
     private static int GetLevelIndex(ProvisioningScopeType scopeType)

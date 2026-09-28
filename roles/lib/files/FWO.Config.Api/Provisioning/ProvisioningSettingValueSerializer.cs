@@ -5,10 +5,15 @@ namespace FWO.Config.Api.Provisioning;
 
 /// <summary>
 /// Converts typed provisioning values to and from their JSONB representation.
-/// Enum values are deliberately represented by their names rather than ordinals.
+/// Enum values are deliberately represented by their names rather than ordinals. The <c>Undefined</c> member of the
+/// setting enums is never stored: it has no meaning for provisioning, and inheriting a value is expressed by storing no
+/// override at all.
 /// </summary>
 public static class ProvisioningSettingValueSerializer
 {
+    /// <summary>Name of the placeholder member every provisioning setting enum starts with.</summary>
+    public const string kUndefinedEnumName = nameof(ProvisioningLoggingMode.Undefined);
+
     /// <summary>Converts a typed setting value to its JSONB representation.</summary>
     public static JToken Serialize<TValue>(ProvisioningSettingKey<TValue> key, TValue value)
     {
@@ -32,10 +37,10 @@ public static class ProvisioningSettingValueSerializer
 
         if (key.ValueType.IsEnum)
         {
-            if (!Enum.IsDefined(key.ValueType, value))
+            if (!IsStorableEnumValue(key.ValueType, value))
             {
                 throw new ArgumentException(
-                    $"Value '{value}' is not defined by enum '{key.ValueType.Name}'.",
+                    $"Value '{value}' is not a storable value of enum '{key.ValueType.Name}'.",
                     nameof(value));
             }
 
@@ -93,9 +98,9 @@ public static class ProvisioningSettingValueSerializer
 
             string enumName = value.Value<string>() ?? "";
             if (!Enum.TryParse(key.ValueType, enumName, ignoreCase: false, out object? parsed)
-                || !Enum.IsDefined(key.ValueType, parsed))
+                || !IsStorableEnumValue(key.ValueType, parsed))
             {
-                throw InvalidValue(key, value, $"'{enumName}' is not a defined {key.ValueType.Name} value");
+                throw InvalidValue(key, value, $"'{enumName}' is not a storable {key.ValueType.Name} value");
             }
 
             return parsed;
@@ -123,6 +128,13 @@ public static class ProvisioningSettingValueSerializer
 
         throw new NotSupportedException(
             $"Provisioning setting type '{key.ValueType.Name}' has no JSONB deserializer.");
+    }
+
+    /// <summary>True for a defined enum member other than the <c>Undefined</c> placeholder.</summary>
+    private static bool IsStorableEnumValue(Type enumType, object value)
+    {
+        return Enum.IsDefined(enumType, value)
+            && !string.Equals(Enum.GetName(enumType, value), kUndefinedEnumName, StringComparison.Ordinal);
     }
 
     private static InvalidOperationException InvalidValue(

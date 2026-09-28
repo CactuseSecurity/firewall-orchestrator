@@ -18,6 +18,9 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
 {
     public List<ProvisioningConfigNodeData> Nodes { get; } = [];
 
+    /// <summary>Managements returned for the management query of the provisioning settings page.</summary>
+    public List<Management> Managements { get; } = [];
+
     public List<ProvisioningApiCall> Calls { get; } = [];
 
     public string? FailingQuery { get; set; }
@@ -103,7 +106,9 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
         {
             _ when query == ProvisioningQueries.getNodeWithAncestors => GetNodeWithAncestors(variables),
             _ when query == ProvisioningQueries.getNodeById => GetNodeById(variables),
-            _ when query == ProvisioningQueries.getChildren => GetChildren(variables),
+            _ when query == ProvisioningQueries.getNodesByNaturalKeys => GetNodesByNaturalKeys(variables),
+            _ when query == ProvisioningQueries.getAllNodes => Nodes.ToList(),
+            _ when query == DeviceQueries.getManagementDetailsWithoutSecrets => Managements,
             _ when query == ProvisioningQueries.upsertNode => UpsertNode(variables),
             _ when query == ProvisioningQueries.applyPatch => ApplyPatch(variables),
             _ when query == ProvisioningQueries.deleteOverrides => DeleteOverrides(variables),
@@ -128,10 +133,19 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
         return Nodes.Where(node => node.Id == nodeId).ToList();
     }
 
-    private List<ProvisioningConfigNodeData> GetChildren(object? variables)
+    private List<ProvisioningConfigNodeData> GetNodesByNaturalKeys(object? variables)
     {
-        long parentNodeId = RequiredProperty<long>(RequiredVariables(variables), "parentNodeId");
-        return Nodes.Where(node => node.ParentId == parentNodeId).ToList();
+        object vars = RequiredVariables(variables);
+        Dictionary<string, List<string>> keysByNodeType = new()
+        {
+            [ProvisioningSettingsScopeFactory.GlobalNodeType] = RequiredProperty<List<string>>(vars, "globalKeys"),
+            [ProvisioningSettingsScopeFactory.DeviceTypeNodeType] = RequiredProperty<List<string>>(vars, "deviceTypeKeys"),
+            [ProvisioningSettingsScopeFactory.ManagementNodeType] = RequiredProperty<List<string>>(vars, "managementKeys"),
+            [ProvisioningSettingsScopeFactory.GatewayNodeType] = RequiredProperty<List<string>>(vars, "gatewayKeys")
+        };
+        return Nodes
+            .Where(node => keysByNodeType.TryGetValue(node.NodeType, out List<string>? keys) && keys.Contains(node.ObjectKey))
+            .ToList();
     }
 
     private ProvisioningConfigNodeData UpsertNode(object? variables)

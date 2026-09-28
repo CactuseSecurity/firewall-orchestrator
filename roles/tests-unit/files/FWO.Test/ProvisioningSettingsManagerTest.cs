@@ -17,7 +17,10 @@ internal class ProvisioningSettingsManagerTest
     private static readonly List<ProvisioningSettingKey> kExpectedZoneToKey = [ProvisioningSettingKeys.ZoneTo];
     private static readonly List<string> kExpectedLoggingKeys = [ProvisioningSettingKeys.Logging.DatabaseKey];
     private static readonly List<string> kExpectedZoneFromKeys = [ProvisioningSettingKeys.ZoneFrom.DatabaseKey];
-    private static readonly List<long> kExpectedChildNodeIds = [4, 5];
+    private static readonly List<long> kExpectedAllNodeIds = [1, 2, 3, 4, 5];
+    private static readonly List<ProvisioningScopeType> kExpectedLevelOrder =
+        [ProvisioningScopeType.Global, ProvisioningScopeType.DeviceType, ProvisioningScopeType.Management,
+            ProvisioningScopeType.Gateway, ProvisioningScopeType.Gateway];
     private static readonly DeviceType kFortiGateType = new() { Id = 10, Name = "FortiGate", Version = "5ff", Manufacturer = "Fortinet" };
     private static readonly DeviceType kFortiAdomType = new() { Id = 11, Name = "FortiADOM", Version = "5ff", Manufacturer = "Fortinet" };
 
@@ -234,7 +237,7 @@ internal class ProvisioningSettingsManagerTest
         InvalidOperationException? exception = Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath()));
 
-        Assert.That(exception?.Message, Does.Contain("returned 2 nodes"));
+        Assert.That(exception?.Message, Does.Contain("more than one node for provisioning scope 'Gateway:200'"));
     }
 
     [Test]
@@ -262,7 +265,7 @@ internal class ProvisioningSettingsManagerTest
     {
         InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
         InvalidOperationException failure = new("simulated Hasura failure");
-        api.FailingQuery = ProvisioningQueries.getNodeWithAncestors;
+        api.FailingQuery = ProvisioningQueries.getNodesByNaturalKeys;
         api.Failure = failure;
         ProvisioningSettingsManager manager = new(api);
 
@@ -324,20 +327,90 @@ internal class ProvisioningSettingsManagerTest
     }
 
     [Test]
-    public async Task GetChildren_ReturnsValidatedImmediateChildren()
+    public async Task GetAllNodes_ReturnsEveryNodeLevelByLevelWithOneQuery()
     {
         InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
-        api.Nodes.Add(Node(5, ProvisioningScopeType.Gateway, "201", parentId: 3, displayName: "Second gateway"));
+        api.Nodes.Insert(0, Node(5, ProvisioningScopeType.Gateway, "201", parentId: 3, displayName: "Second gateway"));
         ProvisioningSettingsManager manager = new(api);
 
-        IReadOnlyList<ProvisioningSettingsScope> children = await manager.GetChildrenAsync(3);
+        IReadOnlyList<ProvisioningSettingsScope> nodes = await manager.GetAllNodesAsync();
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(children.Select(child => child.NodeId), Is.EquivalentTo(kExpectedChildNodeIds));
-            Assert.That(children, Has.All.Property(nameof(ProvisioningSettingsScope.ScopeType)).EqualTo(ProvisioningScopeType.Gateway));
-            Assert.That(children, Has.All.Property(nameof(ProvisioningSettingsScope.ParentNodeId)).EqualTo(3));
+            Assert.That(nodes.Select(node => node.NodeId), Is.EquivalentTo(kExpectedAllNodeIds));
+            Assert.That(nodes.Select(node => node.ScopeType), Is.EqualTo(kExpectedLevelOrder));
+            Assert.That(api.Calls, Has.Count.EqualTo(1));
         }
+    }
+
+    [Test]
+    public async Task GetAllNodes_WithoutPersistedNodes_ReturnsEmptyList()
+    {
+        ProvisioningSettingsManager manager = new(new InMemoryProvisioningApiConnection());
+
+        Assert.That(await manager.GetAllNodesAsync(), Is.Empty);
+    }
+
+    private static IEnumerable<TestCaseData> InvalidTreeCases()
+    {
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Single(node => node.Id == 4).ParentId = 2)).SetName("GetAllNodes_RejectsGatewayBelowDeviceType");
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Single(node => node.Id == 3).ParentId = 99)).SetName("GetAllNodes_RejectsMissingParent");
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Single(node => node.Id == 2).ParentId = 3)).SetName("GetAllNodes_RejectsCycle");
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Single(node => node.Id == 3).ParentId = null)).SetName("GetAllNodes_RejectsManagementWithoutParent");
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Add(Node(5, ProvisioningScopeType.Gateway, "200", parentId: 3))))
+            .SetName("GetAllNodes_RejectsDuplicateNaturalKey");
+        yield return new TestCaseData((Action<InMemoryProvisioningApiConnection>)(api =>
+            api.Nodes.Add(Node(4, ProvisioningScopeType.Gateway, "201", parentId: 3))))
+            .SetName("GetAllNodes_RejectsDuplicateNodeId");
+    }
+
+    [TestCaseSource(nameof(InvalidTreeCases))]
+    public void GetAllNodes_RejectsInvalidHierarchy(Action<InMemoryProvisioningApiConnection> corrupt)
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        corrupt(api);
+        ProvisioningSettingsManager manager = new(api);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await manager.GetAllNodesAsync());
+    }
+
+    [Test]
+    public async Task LoadLevel_LoadsAllLevelsOfThePathWithOneQuery()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        api.SetValue(3, ProvisioningSettingKeys.InstallOn, "management-cluster");
+        ProvisioningSettingsManager manager = new(api);
+
+        ProvisioningSettingsLevel<GatewayProvisioningSettings> result =
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Settings.InstallOn, Is.EqualTo("management-cluster"));
+            Assert.That(api.Calls, Has.Count.EqualTo(1));
+            Assert.That(api.Calls[0].Query, Is.EqualTo(ProvisioningQueries.getNodesByNaturalKeys));
+        }
+    }
+
+    [Test]
+    public void LoadLevel_RejectsStoredUndefinedValue()
+    {
+        InMemoryProvisioningApiConnection api = CreateFourLevelHierarchy();
+        api.Nodes.Single(node => node.Id == 3).Values.Add(new ProvisioningConfigValueData
+        {
+            NodeId = 3,
+            ConfigKey = ProvisioningSettingKeys.Logging.DatabaseKey,
+            ConfigValue = new JValue(ProvisioningSettingValueSerializer.kUndefinedEnumName)
+        });
+        ProvisioningSettingsManager manager = new(api);
+
+        Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await manager.LoadLevelAsync<GatewayProvisioningSettings>(GatewayPath()));
     }
 
     [Test]

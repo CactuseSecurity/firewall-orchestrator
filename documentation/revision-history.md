@@ -1,5 +1,9 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.8 - 28.09.2026
+- REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
+  ticket so integrations can retain the reference to the preceding workflow ticket
+
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.

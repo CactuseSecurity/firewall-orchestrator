@@ -302,7 +302,7 @@ namespace FWO.Middleware.Server.Jobs
                 return 0;
             }
 
-            FwoOwner? requestingOwner = await GetRequestingOwner(requestTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            FwoOwner? requestingOwner = await GetRequestingOwner(requestTask!.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
             if (requestingOwner == null)
             {
                 await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,

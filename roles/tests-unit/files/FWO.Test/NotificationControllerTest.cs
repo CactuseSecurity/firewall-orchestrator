@@ -297,6 +297,34 @@ internal class NotificationControllerTest
     }
 
     [Test]
+    public async Task SendInterfaceRequest_SuppressesNotificationWhenRequestingOwnerCannotBeResolved()
+    {
+        ControllerApiConnection apiConnection = new()
+        {
+            ReturnNullOwner = true,
+            Connection = RequestedConnection(),
+            Ticket = new WfTicket
+            {
+                Requester = new UiUser { DbId = 4, Name = "Requester" },
+                Tasks =
+                [
+                    new WfReqTask
+                    {
+                        TaskType = WfTaskType.new_interface.ToString(),
+                        AdditionalInfo = "{\"ReqOwner\":\"9\"}"
+                    }
+                ]
+            }
+        };
+        NotificationController controller = CreateController(apiConnection, new GlobalConfig());
+
+        ActionResult<NotificationDeliveryResult> result = await controller.SendInterfaceRequest(
+            new InterfaceRequestNotificationParameters { ConnectionId = 10 });
+
+        Assert.That(GetResult(result), Is.EqualTo(NotificationDeliveryResult.Suppressed));
+    }
+
+    [Test]
     public async Task SendInterfaceDecommission_RejectsMissingReason()
     {
         NotificationController controller = CreateController(new ControllerApiConnection(), new GlobalConfig());
@@ -519,6 +547,7 @@ internal class NotificationControllerTest
         public List<ModellingConnection> InterfaceUsers { get; set; } = [];
         public WfTicket? Ticket { get; init; }
         public FwoOwner? Owner { get; init; }
+        public bool ReturnNullOwner { get; init; }
         public int OwnerQueryCount { get; private set; }
         public int InsertCount { get; private set; }
         public int UpdateCount { get; private set; }
@@ -555,6 +584,10 @@ internal class NotificationControllerTest
                 && (query == OwnerQueries.getOwnerById || query == OwnerQueries.getOwnerForNotification))
             {
                 OwnerQueryCount++;
+                if (ReturnNullOwner)
+                {
+                    return Task.FromResult(default(QueryResponseType)!);
+                }
                 return Task.FromResult((QueryResponseType)(object)(Owner ?? new FwoOwner()));
             }
             if (typeof(QueryResponseType) == typeof(List<Ldap>) && query == AuthQueries.getLdapConnections)

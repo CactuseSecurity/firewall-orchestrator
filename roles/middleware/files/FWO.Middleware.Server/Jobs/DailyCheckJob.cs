@@ -256,75 +256,88 @@ namespace FWO.Middleware.Server.Jobs
             {
                 SchedulerInterval repeatInterval = notification.RepeatIntervalAfterDeadline ?? SchedulerInterval.Days;
                 int cutOffPeriod = GetInterfaceRequestCutOffPeriod(notification, repeatInterval);
-                List<WfTicket>? unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
+                List<WfTicket> unansweredTickets = await wfHandler.GetOpenTickets(WfTaskType.new_interface.ToString(),
                     cutOffPeriod,
                     repeatInterval);
-                foreach (var ticket in unansweredTickets)
-                {
-                    WfReqTask? requestTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
-                    FwoOwner? owner = requestTask?.Owners.FirstOrDefault()?.Owner;
-                    if (owner == null)
-                    {
-                        Log.WriteWarning(LogMessageTitle,
-                            $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
-                        continue;
-                    }
-
-                    if (!InterfaceRequestNotificationGuard.IsActiveOwner(owner))
-                    {
-                        Log.WriteDebug(LogMessageTitle,
-                            $"Skipping notification {notification.Id} for unanswered interface request ticket {ticket.Id} because its owner is inactive.");
-                        NotificationPlaceholderResolver.NotificationPlaceholderValues suppressedPlaceholderValues =
-                            await BuildRequestPlaceholderValues(ticket, owner);
-                        await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.", owner,
-                            suppressedPlaceholderValues, ticket.CreationDate);
-                        continue;
-                    }
-
-                    if (!InterfaceRequestNotificationGuard.HasRequiredRequestContext(ticket, requestTask))
-                    {
-                        Log.WriteDebug(LogMessageTitle,
-                            $"Skipping notification {notification.Id} for incomplete interface request ticket {ticket.Id}.");
-                        await notificationService.LogSuppressedNotification(notification, "Interface request is incomplete.", owner,
-                            resolvedDeadline: ticket.CreationDate);
-                        continue;
-                    }
-
-                    FwoOwner? requestingOwner = await GetRequestingOwner(requestTask!.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
-                    if (requestingOwner == null)
-                    {
-                        Log.WriteDebug(LogMessageTitle,
-                            $"Skipping notification {notification.Id} for interface request ticket {ticket.Id} because its requesting app could not be resolved.");
-                        await notificationService.LogSuppressedNotification(notification, "Requesting owner could not be resolved.", owner,
-                            resolvedDeadline: ticket.CreationDate);
-                        continue;
-                    }
-
-                    bool notificationDue = NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification);
-                    if (!notificationDue)
-                    {
-                        Log.WriteDebug(LogMessageTitle,
-                            $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
-                        continue;
-                    }
-
-                    NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
-                        BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
-                    int sentForTicket = await notificationService.SendNotification(
-                        notification,
-                        owner,
-                        resolvedDeadline: ticket.CreationDate,
-                        placeholderValues: placeholderValues);
-                    emailsSent += sentForTicket;
-                    if (sentForTicket == 0)
-                    {
-                        Log.WriteWarning(LogMessageTitle,
-                            $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
-                    }
-                }
+                emailsSent += await ProcessUnansweredInterfaceRequestNotification(notification, unansweredTickets, notificationService);
             }
             await notificationService.UpdateNotificationsLastSent();
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
+        }
+
+        private async Task<int> ProcessUnansweredInterfaceRequestNotification(FwoNotification notification,
+            List<WfTicket> unansweredTickets, NotificationService notificationService)
+        {
+            int emailsSent = 0;
+            foreach (WfTicket ticket in unansweredTickets)
+            {
+                emailsSent += await ProcessUnansweredInterfaceRequestTicket(notification, ticket, notificationService);
+            }
+            return emailsSent;
+        }
+
+        private async Task<int> ProcessUnansweredInterfaceRequestTicket(FwoNotification notification, WfTicket ticket,
+            NotificationService notificationService)
+        {
+            WfReqTask? requestTask = ticket.Tasks.FirstOrDefault(r => r.TaskType == WfTaskType.new_interface.ToString());
+            FwoOwner? owner = requestTask?.Owners.FirstOrDefault()?.Owner;
+            if (owner == null)
+            {
+                Log.WriteWarning(LogMessageTitle,
+                    $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                return 0;
+            }
+
+            if (!InterfaceRequestNotificationGuard.IsActiveOwner(owner))
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Requested owner is not active.", includePlaceholders: true);
+                return 0;
+            }
+
+            if (!InterfaceRequestNotificationGuard.HasRequiredRequestContext(ticket, requestTask))
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Interface request is incomplete.");
+                return 0;
+            }
+
+            FwoOwner? requestingOwner = await GetRequestingOwner(requestTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            if (requestingOwner == null)
+            {
+                await SuppressInterfaceRequestNotification(notification, ticket, owner, notificationService,
+                    "Requesting owner could not be resolved.");
+                return 0;
+            }
+
+            if (!NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification))
+            {
+                Log.WriteDebug(LogMessageTitle,
+                    $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
+                return 0;
+            }
+
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
+                BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
+            int sentForTicket = await notificationService.SendNotification(notification, owner,
+                resolvedDeadline: ticket.CreationDate, placeholderValues: placeholderValues);
+            if (sentForTicket == 0)
+            {
+                Log.WriteWarning(LogMessageTitle,
+                    $"Reminder notification {notification.Id} was due for unanswered interface request ticket {ticket.Id}, but no email was sent. Check recipient resolution and due settings.");
+            }
+            return sentForTicket;
+        }
+
+        private async Task SuppressInterfaceRequestNotification(FwoNotification notification, WfTicket ticket, FwoOwner owner,
+            NotificationService notificationService, string reason, bool includePlaceholders = false)
+        {
+            NotificationPlaceholderResolver.NotificationPlaceholderValues? placeholderValues = includePlaceholders
+                ? await BuildRequestPlaceholderValues(ticket, owner)
+                : null;
+            Log.WriteDebug(LogMessageTitle,
+                $"Skipping notification {notification.Id} for unanswered interface request ticket {ticket.Id}. Reason: {reason}");
+            await notificationService.LogSuppressedNotification(notification, reason, owner, placeholderValues, ticket.CreationDate);
         }
 
         /// <summary>

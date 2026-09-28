@@ -9,6 +9,7 @@ using FWO.Data.Report;
 using FWO.Middleware.Server;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Services;
 using System.IO;
 using System.Reflection;
 using FWO.Test.Helpers;
@@ -604,6 +605,48 @@ namespace FWO.Test
                 Assert.That(apiConnection.NotificationLogUpdates, Has.Count.EqualTo(1));
                 Assert.That(apiConnection.RefreshedNotificationLogIds, Has.Count.EqualTo(1));
             });
+        }
+
+        [Test]
+        public async Task LogSuppressedNotification_LogsReasonAndResolvedSubject()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendAndLog;
+            notification.EmailSubject = $"{Placeholder.APPNAME} - {Placeholder.REQUESTING_APPNAME} - {Placeholder.REQUESTER}";
+            FwoOwner owner = new() { Name = "Requested application", ExtAppId = "APP-1" };
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = new()
+            {
+                Application = owner,
+                RequestingOwner = new FwoOwner { Name = "Requesting application", ExtAppId = "APP-2" },
+                RequesterName = "Requester"
+            };
+
+            await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.", owner,
+                placeholderValues);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.NotificationLogEntries, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.NotificationLogEntries[0].Subject,
+                    Is.EqualTo("Requested application - Requesting application - Requester"));
+                Assert.That(apiConnection.NotificationLogUpdates,
+                    Is.EqualTo([(1, NotificationLogStatus.Suppressed, "Requested owner is not active.")]));
+            });
+        }
+
+        [Test]
+        public async Task LogSuppressedNotification_DoesNotLogSendOnlyNotification()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendOnly;
+
+            await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.");
+
+            Assert.That(apiConnection.NotificationLogEntries, Is.Empty);
         }
 
         [Test]

@@ -2196,7 +2196,28 @@
                       "ip_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2213,7 +2234,28 @@
                       "ip_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2247,7 +2289,28 @@
                       "ip_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2264,7 +2327,28 @@
                       "ip_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2281,7 +2365,28 @@
                       "ip_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 }
@@ -2551,7 +2656,28 @@
                       "port_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2569,7 +2695,28 @@
                       "port_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2605,7 +2752,28 @@
                       "port_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2623,7 +2791,28 @@
                       "port_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2641,7 +2830,28 @@
                       "port_start",
                       "removed_date"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 }
@@ -2726,7 +2936,28 @@
                       "removed_date",
                       "start_time"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2743,7 +2974,28 @@
                       "removed_date",
                       "start_time"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2777,7 +3029,28 @@
                       "removed_date",
                       "start_time"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2794,7 +3067,28 @@
                       "removed_date",
                       "start_time"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 },
@@ -2811,7 +3105,28 @@
                       "removed_date",
                       "start_time"
                     ],
-                    "filter": {}
+                    "filter": {
+                      "_and": [
+                        {
+                          "show_in_request_module": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed_date": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "state": {
+                            "_in": [
+                              "requested",
+                              "implemented"
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   },
                   "comment": ""
                 }
@@ -29311,35 +29626,29 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
                   "role": "auditor",
                   "permission": {
                     "columns": [
-                      "ldap_connection_id",
-                      "tenant_id",
-                      "uiuser_email",
-                      "uiuser_end_date",
-                      "uiuser_first_name",
-                      "uiuser_id",
-                      "uiuser_language",
-                      "uiuser_last_login",
-                      "uiuser_last_name",
-                      "uiuser_last_password_change",
-                      "uiuser_password_must_be_changed",
-                      "uiuser_pwd_history",
-                      "uiuser_start_date",
-                      "uiuser_username",
-                      "uuid"
+                      "uiuser_language"
                     ],
                     "filter": {
                       "uuid": {
-                        "_eq": "X-Hasura-uuid"
+                        "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29353,7 +29662,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": {}
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29367,7 +29680,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29405,7 +29722,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29419,7 +29740,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29433,7 +29758,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29447,7 +29776,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29461,7 +29794,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29475,7 +29812,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 },
                 {
@@ -29489,7 +29830,11 @@
                         "_eq": "x-hasura-uuid"
                       }
                     },
-                    "check": null
+                    "check": {
+                      "uuid": {
+                        "_eq": "x-hasura-uuid"
+                      }
+                    }
                   }
                 }
               ],
@@ -33986,7 +34331,161 @@
                 {
                   "role": "approver",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "ip_proto_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "ip_proto_id": {
+                                "_gte": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "ip_proto_id": {
+                                      "_gte": 0
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
                       "id",
                       "network_object_id",
@@ -34046,7 +34545,161 @@
                 {
                   "role": "modeller",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "ip_proto_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "ip_proto_id": {
+                                "_gte": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "ip_proto_id": {
+                                      "_gte": 0
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
                       "id",
                       "network_object_id",
@@ -34076,7 +34729,161 @@
                 {
                   "role": "requester",
                   "permission": {
-                    "check": {},
+                    "check": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "ip_proto_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "ip_proto_id": {
+                                "_gte": 0
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  },
+                                  {
+                                    "ip_proto_id": {
+                                      "_gte": 0
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
                     "columns": [
                       "id",
                       "network_object_id",
@@ -34456,7 +35263,142 @@
                       "flow_svcgrp_id"
                     ],
                     "filter": {},
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "flow_nwobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   }
                 },
                 {
@@ -34500,7 +35442,142 @@
                       "flow_svcgrp_id"
                     ],
                     "filter": {},
-                    "check": null
+                    "check": {
+                      "_and": [
+                        {
+                          "_or": [
+                            {
+                              "flow_nwobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_nwgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_nwgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcobj_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcobject": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "_or": [
+                            {
+                              "flow_svcgrp_id": {
+                                "_is_null": true
+                              }
+                            },
+                            {
+                              "flow_svcgroup": {
+                                "_and": [
+                                  {
+                                    "show_in_request_module": {
+                                      "_eq": true
+                                    }
+                                  },
+                                  {
+                                    "removed_date": {
+                                      "_is_null": true
+                                    }
+                                  },
+                                  {
+                                    "state": {
+                                      "_in": [
+                                        "requested",
+                                        "implemented"
+                                      ]
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
                   }
                 }
               ],
@@ -35806,6 +36883,62 @@
                     ],
                     "filter": {}
                   }
+                }
+              ]
+            },
+            {
+              "table": {
+                "name": "state_change_execution",
+                "schema": "request"
+              },
+              "insert_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "check": {},
+                    "columns": [
+                      "object_scope",
+                      "object_id",
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ]
+                  },
+                  "comment": ""
+                }
+              ],
+              "select_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "object_scope",
+                      "object_id",
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ],
+                    "filter": {}
+                  },
+                  "comment": ""
+                }
+              ],
+              "update_permissions": [
+                {
+                  "role": "middleware-server",
+                  "permission": {
+                    "columns": [
+                      "from_state_id",
+                      "to_state_id",
+                      "executed_at",
+                      "executed_by"
+                    ],
+                    "filter": {},
+                    "check": {}
+                  },
+                  "comment": ""
                 }
               ]
             },

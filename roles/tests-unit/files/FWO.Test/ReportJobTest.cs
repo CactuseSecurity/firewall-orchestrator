@@ -376,7 +376,8 @@ namespace FWO.Test
                 ScheduleOwningUser = new UiUser
                 {
                     DbId = 42,
-                    Name = "report-user"
+                    Name = "report-user",
+                    LdapConnection = new() { Id = 1 }
                 },
                 StartTime = new DateTime(2026, 4, 21, 10, 0, 0),
                 Template = new ReportTemplate

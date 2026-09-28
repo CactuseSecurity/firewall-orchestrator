@@ -28,7 +28,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     /// Notification data and recipients are resolved from persisted middleware data.
     /// </summary>
     [HttpPost("interface-decommission")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}")]
     [ProducesResponseType(typeof(NotificationDeliveryResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -88,7 +88,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     /// All message data is resolved from the persisted connection and ticket in middleware.
     /// </summary>
     [HttpPost("interface-request")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}")]
     [ProducesResponseType(typeof(NotificationDeliveryResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -238,7 +238,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         bool allowRequestCreator = false)
     {
         ClaimsPrincipal caller = ControllerContext.HttpContext.User;
-        if (caller.IsInRole(Roles.Admin) || caller.IsInRole(Roles.FwAdmin))
+        if (caller.IsInRole(Roles.Admin))
         {
             return true;
         }

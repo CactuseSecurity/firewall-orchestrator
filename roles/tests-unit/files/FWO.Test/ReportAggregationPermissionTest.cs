@@ -28,7 +28,6 @@ namespace FWO.Test
         private static readonly List<string> kReportCapableRoles =
         [
             Roles.Auditor,
-            Roles.FwAdmin,
             Roles.Reporter,
             Roles.ReporterViewAll,
             Roles.Modeller,

@@ -41,12 +41,6 @@ objectClass: groupofuniquenames
 cn: auditor
 description: T0007
 
-dn: cn=fw-admin,ou=role,dc=fworch,dc=internal
-objectClass: top
-objectClass: groupofuniquenames
-cn: fw-admin
-description: T0010
-
 dn: cn=admin,ou=role,dc=fworch,dc=internal
 objectClass: top
 objectClass: groupofuniquenames

@@ -3,6 +3,9 @@
 ## 9.5.8 - 28.09.2026
 - REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
   ticket so integrations can retain the reference to the preceding workflow ticket
+- Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
+- The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version
+- The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named for a version the base branch has already passed is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, scripts of older versions must not be modified, and no script at or below the current version may be deleted
 
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define

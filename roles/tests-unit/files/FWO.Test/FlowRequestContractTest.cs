@@ -16,6 +16,16 @@ internal class FlowRequestContractTest
     }
 
     [Test]
+    public void CreateTicketRequest_UsesExpectedPreWorkflowTicketReferenceJsonName()
+    {
+        CreateTicketRequest request = new() { PreWorkflowTicketReference = "Ticket-12345" };
+
+        string json = JsonSerializer.Serialize(request);
+
+        Assert.That(json, Does.Contain("\"preWorkflowTicketReference\":\"Ticket-12345\""));
+    }
+
+    [Test]
     public void GetTicketStatusRequest_SupportsBigintTicketId()
     {
         const long ticketId = (long)int.MaxValue + 1;

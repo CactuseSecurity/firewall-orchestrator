@@ -1,0 +1,42 @@
+---
+# One reconciliation case. product_name is overridden so the production task file addresses
+# this case's throwaway vhost through internalca_maintenance_configuration_file, which is
+# built from http_conf_dir and product_name.
+- name: Reconcile the {{ test_maintenance_case.name }} maintenance configuration
+  include_tasks: "{{ role_path }}/../internalCA/tasks/reconcile-maintenance-certificate.yml"
+  vars:
+    http_conf_dir: "{{ test_maintenance_certificate_directory.path }}/"
+    product_name: "{{ test_maintenance_case.name }}"
+    internalca_apache_certificate: "{{ test_maintenance_expected_certificate }}"
+    internalca_apache_private_key: "{{ test_maintenance_expected_private_key }}"
+
+- name: Read the reconciled {{ test_maintenance_case.name }} maintenance configuration
+  slurp:
+    src: "{{ test_maintenance_certificate_directory.path }}/{{ test_maintenance_case.name }}-maintenance.conf"
+  register: test_maintenance_reconciled_configuration
+
+- name: Verify the {{ test_maintenance_case.name }} case reconciled only the identity paths
+  assert:
+    that:
+      # Asserted against the https vhost block rather than the whole file: without the
+      # insertafter anchor, a directive the file does not already carry is appended past
+      # the closing tag, where it configures the whole server - and a whole-file substring
+      # check passes just the same. The counts keep the plain :80 vhost above from
+      # collecting an identity of its own.
+      - "'SSLCertificateFile ' ~ test_maintenance_expected_certificate in test_maintenance_tls_vhost"
+      - "'SSLCertificateKeyFile ' ~ test_maintenance_expected_private_key in test_maintenance_tls_vhost"
+      - test_maintenance_reconciled | regex_findall('(?m)^\s*SSLCertificateFile\s') | length == 1
+      - test_maintenance_reconciled | regex_findall('(?m)^\s*SSLCertificateKeyFile\s') | length == 1
+      - test_maintenance_case.absent | select('in', test_maintenance_reconciled) | list | length == 0
+      - (internalca_maintenance_identity_changed | bool) == (test_maintenance_case.expect_changed | bool)
+    fail_msg: >-
+      The {{ test_maintenance_case.name }} maintenance vhost was not reconciled as expected
+      (changed reported as {{ internalca_maintenance_identity_changed }},
+      expected {{ test_maintenance_case.expect_changed }}). Reconciled content:
+      {{ test_maintenance_reconciled }}
+  vars:
+    test_maintenance_reconciled: "{{ test_maintenance_reconciled_configuration.content | b64decode }}"
+    test_maintenance_tls_vhost: >-
+      {{ test_maintenance_reconciled
+         | regex_search('(?s)<VirtualHost\s[^>]*:' ~ ui_web_port ~ '>.*?</VirtualHost>')
+         | default('', true) }}

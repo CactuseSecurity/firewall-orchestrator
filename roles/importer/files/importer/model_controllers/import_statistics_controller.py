@@ -35,12 +35,36 @@ class ImportStatisticsController:
             + self.statistics.rulebase_link_delete_count
         )
 
-    def get_rule_change_number(self):
+    def get_rule_change_number(self) -> int:
+        """
+        Number of all rule changes, including those that are not security-relevant, used for
+        policy_changes_found. Consumers such as the rule_owner prefilter of the variance analysis
+        rely on policy_changes_found to cover every new rule version, as documentation fields
+        (e.g. the rule name) can carry owner mapping markers.
+        """
         return (
             self.statistics.rule_add_count
             + self.statistics.rule_delete_count
             + self.statistics.rule_change_count
-            + self.statistics.rulebase_add_count
+            + self._get_rulebase_change_number()
+        )
+
+    def get_security_relevant_rule_change_number(self) -> int:
+        """
+        Number of security-relevant rule changes, used for security_relevant_changes_counter.
+        Rule changes that are not security-relevant (e.g. comment-only changes) are excluded,
+        as they do not show up in change reports and must not trigger rule change notifications.
+        """
+        return (
+            self.statistics.rule_add_count
+            + self.statistics.rule_delete_count
+            + self.statistics.rule_change_count_security_relevant
+            + self._get_rulebase_change_number()
+        )
+
+    def _get_rulebase_change_number(self) -> int:
+        return (
+            self.statistics.rulebase_add_count
             + self.statistics.rulebase_change_count
             + self.statistics.rulebase_delete_count
             + self.statistics.rulebase_link_add_count
@@ -103,6 +127,8 @@ class ImportStatisticsController:
             result["rule_delete_count"] = self.statistics.rule_delete_count
         if self.statistics.rule_change_count > 0:
             result["rule_change_count"] = self.statistics.rule_change_count
+        if self.statistics.rule_change_count_security_relevant > 0:
+            result["rule_change_count_security_relevant"] = self.statistics.rule_change_count_security_relevant
         if self.statistics.rule_move_count > 0:
             result["rule_move_count"] = self.statistics.rule_move_count
         if self.statistics.rule_ref_add_count > 0:
@@ -166,6 +192,9 @@ class ImportStatisticsController:
 
     def increment_rule_change_count(self, increment: int = 1):
         self.statistics.rule_change_count += increment
+
+    def increment_rule_change_count_security_relevant(self, increment: int = 1) -> None:
+        self.statistics.rule_change_count_security_relevant += increment
 
     def increment_rule_move_count(self, increment: int = 1):
         self.statistics.rule_move_count += increment

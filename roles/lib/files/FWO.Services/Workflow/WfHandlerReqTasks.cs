@@ -375,19 +375,49 @@ namespace FWO.Services.Workflow
             return "";
         }
 
-        public async Task SetAddInfoInReqTask(WfReqTask reqTask, string key, string newValue)
+        /// <summary>
+        /// Writes a bookkeeping key into the additional info of a request task.
+        /// </summary>
+        /// <param name="reqTask">Request task to write to.</param>
+        /// <param name="key">Additional info key.</param>
+        /// <param name="newValue">Value to store under the key.</param>
+        /// <param name="previousTicket">Already loaded stored ticket, passed on by callers that write to
+        /// several tasks of the same ticket, see SetAddInfoInReqTasks.</param>
+        public async Task SetAddInfoInReqTask(WfReqTask reqTask, string key, string newValue, WfTicket? previousTicket = null)
         {
             try
             {
                 reqTask.SetAddInfo(key, newValue);
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateReqTaskAdditionalInfo(reqTask);
+                    await dbAcc.UpdateReqTaskAdditionalInfo(reqTask, previousTicket);
                 }
             }
             catch (Exception exception)
             {
                 DisplayMessageInUi(exception, userConfig.GetText("update_task"), "", true);
+            }
+        }
+
+        /// <summary>
+        /// Writes a bookkeeping key into the additional info of several request tasks.
+        /// </summary>
+        /// <param name="reqTasks">Request tasks to write to.</param>
+        /// <param name="key">Additional info key.</param>
+        /// <param name="newValue">Value to store under the key.</param>
+        /// <remarks>
+        /// Reads the stored ticket once per ticket instead of once per task, which matters for request
+        /// tasks spread over many devices.
+        /// </remarks>
+        public async Task SetAddInfoInReqTasks(IEnumerable<WfReqTask> reqTasks, string key, string newValue)
+        {
+            foreach (IGrouping<long, WfReqTask> ticketTasks in reqTasks.GroupBy(reqTask => reqTask.TicketId))
+            {
+                WfTicket? storedTicket = dbAcc != null ? await dbAcc.LoadPreviousTicket(ticketTasks.Key) : null;
+                foreach (WfReqTask reqTask in ticketTasks)
+                {
+                    await SetAddInfoInReqTask(reqTask, key, newValue, storedTicket);
+                }
             }
         }
 

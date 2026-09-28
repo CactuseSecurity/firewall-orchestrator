@@ -19,8 +19,7 @@ namespace FWO.Services
 
         public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
         {
-            bool isFullReInitialize = eventArgs?.isFullReInitialize ?? false;
-            return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, isFullReInitialize);
+            return await UpdateRuleOwners(RunFullReinitialize, RunIncremental, eventArgs);
         }
 
         /// <summary>
@@ -100,7 +99,7 @@ namespace FWO.Services
                 }
                 catch (Exception ex)
                 {
-                    Log.WriteWarning(LogMessageTitle, $"Rule {rule.Id} has invalid CustomFields: {ex.Message}");
+                    MappingLog.Warning($"Rule {rule.Id} has invalid CustomFields: {ex.Message}");
                 }
             }
             return newRuleOwners;

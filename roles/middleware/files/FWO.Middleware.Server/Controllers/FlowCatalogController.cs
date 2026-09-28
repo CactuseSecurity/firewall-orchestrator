@@ -279,7 +279,10 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
+    /// IPv4 and IPv6 ranges are accepted through ipStart and ipEnd.
+    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
+    /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getAddressObjectId")]

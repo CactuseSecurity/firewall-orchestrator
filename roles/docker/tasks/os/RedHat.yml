@@ -15,7 +15,7 @@
       yum_repository:
         name: docker-ce-stable
         description: Docker CE Stable - $basearch
-        baseurl: "https://download.docker.com/linux/rhel/{{ ansible_distribution_major_version }}/$basearch/stable"
+        baseurl: "https://download.docker.com/linux/rhel/{{ ansible_facts['distribution_major_version'] }}/$basearch/stable"
         gpgcheck: true
         enabled: true
         gpgkey: https://download.docker.com/linux/rhel/gpg

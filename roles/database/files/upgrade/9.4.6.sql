@@ -196,3 +196,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_root_per_ip_range
 ON network_zone.device_ip_range_root (ip_range_id, order_to_root);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_order_to_internet_per_ip_range
 ON network_zone.device_ip_range_internet (ip_range_id, order_to_internet);
+

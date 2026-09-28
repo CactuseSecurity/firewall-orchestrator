@@ -45,12 +45,12 @@
       package:
         name: "{{ dotnet_package_name }}"
         state: present
-      when: ansible_architecture == "x86_64"
+      when: ansible_facts['architecture'] == "x86_64"
 
     - debug:
         msg:
           - "NOTE: you need to install dotnet yourself for architectures other than x86_64 before running FWO installer"
-      when: ansible_architecture != "x86_64"
+      when: ansible_facts['architecture'] != "x86_64"
 
   become: true
   environment: "{{ proxy_env }}"

@@ -1,0 +1,28 @@
+---
+# packages-microsoft-prod ships its own file in /etc/apt/preferences.d pinning these
+# packages down, so the FWO file has to be the one apt applies last: files there are read
+# in name order, and "zz-" puts this after anything Microsoft or the distribution installs.
+# Scoped to the one package FWO installs and the runtime family it pulls in, rather than to
+# every dotnet-* name on the host, so .NET versions FWO does not install keep taking their
+# security updates from the distribution. The Package field is a single space separated
+# list by apt's own syntax and cannot be wrapped.
+- name: prefer microsoft packages for the dotnet sdk FWO installs
+  blockinfile:
+    path: /etc/apt/preferences.d/zz-fworch-dotnet
+    create: true
+    mode: "0644"
+    block: |
+      Package: {{ dotnet_package_name }} dotnet-runtime-{{ dotnet_version }} dotnet-hostfxr-{{ dotnet_version }} dotnet-targeting-pack-{{ dotnet_version }} dotnet-apphost-pack-{{ dotnet_version }} dotnet-host dotnet-host-{{ dotnet_version }} aspnetcore-runtime-{{ dotnet_version }} aspnetcore-targeting-pack-{{ dotnet_version }}
+      Pin: origin packages.microsoft.com
+      Pin-Priority: 999
+
+# What a host that took the Microsoft fallback before 9.5.1 carries. It pins every
+# dotnet-*, aspnetcore-* and netstandard-* name on the host, including .NET versions FWO
+# never installs, and it sorts before the file above - so with both present apt could
+# apply the broader one. Replaced rather than simply deleted: the Microsoft repository may
+# by now be the only source of this SDK on that host, and dropping the preference without
+# putting the narrow one in place first would leave the SDK uninstallable.
+- name: remove the superseded dotnet apt pin
+  file:
+    path: /etc/apt/preferences.d/fworch-dotnet
+    state: absent

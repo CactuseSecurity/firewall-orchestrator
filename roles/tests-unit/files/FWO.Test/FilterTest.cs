@@ -4,6 +4,7 @@ using FWO.Report.Filter.Exceptions;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Basics;
+using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
 using System.Reflection;
@@ -523,6 +524,23 @@ namespace FWO.Test
             StringAssert.DoesNotContain("recert_active: { _eq: false }", query.OwnerWhereStatement);
             ClassicAssert.IsTrue(query.QueryVariables.ContainsKey("refDate"));
             Assert.That((DateTime)query.QueryVariables["refDate"], Is.EqualTo(DateTime.Now).Within(TimeSpan.FromSeconds(5)));
+        }
+
+        [Test]
+        [Parallelizable]
+        public void OwnerRecertificationFilterWithShowAllOwnersSkipsNextRecertificationDate()
+        {
+            ReportTemplate t = new();
+            t.ReportParams.ReportType = (int)ReportType.OwnerRecertification;
+            t.ReportParams.ModellingFilter.SelectedOwners.Add(new FwoOwner { Id = 1 });
+            t.ReportParams.ModellingFilter.ShowAllOwners = true;
+
+            DynGraphqlQuery query = Compiler.Compile(t);
+
+            StringAssert.Contains("id: { _in: $selectedOwners }", query.OwnerWhereStatement);
+            StringAssert.Contains("recert_active: { _eq: true }", query.OwnerWhereStatement);
+            StringAssert.DoesNotContain("next_recert_date: { _lte: $refDate }", query.OwnerWhereStatement);
+            Assert.That(query.QueryVariables.ContainsKey("refDate"), Is.False);
         }
 
         [Test]

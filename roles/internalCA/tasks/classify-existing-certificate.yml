@@ -1,0 +1,21 @@
+---
+# Shared issuer-based ownership classifier for Apache, OpenLDAP, and its integration
+# coverage. The caller supplies the legacy organization because the pre-9.5.0 identities
+# used different historical subjects for those two services.
+- name: Classify an existing server certificate
+  set_fact:
+    "{{ internalca_classification_result_fact }}": >-
+      {{
+        internalca_classification_certificate_exists | bool
+        and 'public_key_fingerprints' in internalca_classification_certificate_info
+        and (
+          internalca_classification_certificate_info.issuer.get('commonName', '')
+            in internalca_managed_ca_common_names
+          or (
+            internalca_classification_certificate_info.subject.get('organizationName', '')
+              == internalca_classification_legacy_organization
+            and internalca_classification_certificate_info.issuer.get('organizationName', '')
+              == internalca_classification_legacy_organization
+          )
+        )
+      }}

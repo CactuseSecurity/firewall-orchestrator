@@ -9,6 +9,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string addUiLogEntry;
         public static readonly string getUiLogEntrys;
         public static readonly string getAllUiLogEntrys;
+        public static readonly string getNotificationLogEntrys;
         public static readonly string getImportLogEntrys;
         public static readonly string addAlert;
         public static readonly string getOpenAlerts;
@@ -38,6 +39,7 @@ namespace FWO.Api.Client.Queries
                 addUiLogEntry = GetQueryText("monitor/addUiLogEntry.graphql");
                 getUiLogEntrys = GetQueryText("monitor/getUiLogEntrys.graphql");
                 getAllUiLogEntrys = GetQueryText("monitor/getAllUiLogEntrys.graphql");
+                getNotificationLogEntrys = GetQueryText("monitor/getNotificationLogEntrys.graphql");
 
                 getImportLogEntrys = GetQueryText("monitor/getImportLogEntrys.graphql");
 

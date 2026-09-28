@@ -15,6 +15,7 @@
     size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
     type: "{{ internalca_key_type }}"
     curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    force: "{{ internalca_reset_certificates | bool }}"
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "0640"
@@ -80,7 +81,12 @@
     provider: ownca
     ownca_not_after: "+{{ internalca_certificate_validity_days }}d"
     ownca_digest: sha256
-    force: "{{ internalca_certificate_is_expiring | bool or internalca_certificate_names_missing | length > 0 }}"
+    force: >-
+      {{
+        internalca_reset_certificates | bool
+        or internalca_certificate_is_expiring | bool
+        or internalca_certificate_names_missing | length > 0
+      }}
     mode: "0644"
   vars:
     internalca_issued_certificate: "{{ internalca_issued_certificate_info.results[internalca_profile_index] }}"

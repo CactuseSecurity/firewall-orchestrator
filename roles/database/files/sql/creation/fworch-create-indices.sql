@@ -142,3 +142,12 @@ Create unique index if not exists service_flow_svcgrp_id_active_only_one_per_mgm
 Create unique index if not exists time_object_flow_timeobj_id_active_only_one_per_mgm on time_object (mgm_id, flow_timeobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwobj_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwobj_id) where flow_active = true;
 Create unique index if not exists object_flow_nwgrp_id_active_only_one_per_mgm on firewall.nw_object (mgm_id, flow_nwgrp_id) where flow_active = true;
+
+-- Central change history. The table is insert heavy and read rarely, so the index set is kept
+-- minimal and the two per-object indices are partial: a workflow row has no app_id and a
+-- modelling row has no ticket_id, so each row maintains only the indices that apply to it.
+-- id is part of the sort key because change_time is not unique and paging by it alone is unstable.
+CREATE INDEX IF NOT EXISTS idx_change_history_module_time ON change_history (module, change_time DESC, id DESC);
+CREATE INDEX IF NOT EXISTS idx_change_history_app_time ON change_history (app_id, change_time DESC) WHERE app_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_ticket_time ON change_history (ticket_id, change_time DESC) WHERE ticket_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_change_history_audit_proof ON change_history (change_time DESC) WHERE audit_proof_critical;

@@ -92,6 +92,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public void SynchronizeUiUserContext_WhenApiUnreachableForVisibilityGroups_RethrowsOriginalException()
+        {
+            FailingVisibilityApiConnection apiConnection = new(new HttpRequestException("connection reset"));
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com"
+            };
+
+            HttpRequestException exception = Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: false))!;
+
+            Assert.That(exception.Message, Is.EqualTo("connection reset"));
+        }
+
+        [Test]
+        public void SynchronizeUiUserContext_WhenApiUnreachableForUserLookup_RethrowsOriginalException()
+        {
+            UnreachableUserLookupApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com"
+            };
+
+            Assert.ThrowsAsync<HttpRequestException>(async () =>
+                await UiUserHandler.SynchronizeUiUserContext(apiConnection, user, updateLastLogin: false, createIfMissing: false));
+        }
+
+        [Test]
+        public async Task GetWorkflowVisibilityGroupIds_WhenQueryFailsForOtherReason_ReturnsFalse()
+        {
+            FailingVisibilityApiConnection apiConnection = new();
+            UiUser user = new()
+            {
+                Name = "user1",
+                Dn = "uid=user1,ou=users,dc=example,dc=com"
+            };
+
+            bool loaded = await UiUserHandler.GetWorkflowVisibilityGroupIds(apiConnection, user);
+
+            Assert.That(loaded, Is.False);
+        }
+
+        [Test]
         public async Task GetExpirationTime_WhenConfigQueryThrows_ReturnsHardcodedDefault()
         {
             ThrowingConfigApiConnection apiConnection = new();
@@ -428,8 +473,10 @@ namespace FWO.Test
             }
         }
 
-        private sealed class FailingVisibilityApiConnection : SimulatedApiConnection
+        private sealed class FailingVisibilityApiConnection(Exception? visibilityFailure = null) : SimulatedApiConnection
         {
+            private readonly Exception visibilityFailure = visibilityFailure ?? new InvalidOperationException("visibility lookup failed");
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
                 object result = query switch
@@ -446,10 +493,18 @@ namespace FWO.Test
                     string value when value == AuthQueries.updateUserLastLogin => new ReturnId { PasswordMustBeChanged = false },
                     string value when value == OwnerQueries.getOwnersForUser => new List<FwoOwner>(),
                     string value when value == OwnerQueries.getOwnersForDnsWithRecertification => new List<FwoOwner>(),
-                    string value when value == RequestQueries.getWorkflowVisibilityGroups => throw new InvalidOperationException("visibility lookup failed"),
+                    string value when value == RequestQueries.getWorkflowVisibilityGroups => throw visibilityFailure,
                     _ => throw new AssertionException($"Unexpected query: {query}")
                 };
                 return Task.FromResult((QueryResponseType)result);
+            }
+        }
+
+        private sealed class UnreachableUserLookupApiConnection : SimulatedApiConnection
+        {
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                throw new HttpRequestException("connection refused");
             }
         }
 

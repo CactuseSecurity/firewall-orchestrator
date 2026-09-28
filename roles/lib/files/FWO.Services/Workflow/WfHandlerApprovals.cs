@@ -77,7 +77,7 @@ namespace FWO.Services.Workflow
             if (!approval.InitialApproval && dbAcc != null)
             {
                 // todo: checks if new approval allowed (only one open per group?, ...)
-                approval.Id = await dbAcc.AddApprovalToDb(approval);
+                approval.Id = await dbAcc.AddApprovalToDb(approval, ActTicket.Id, ActTicket.Requester);
                 DisplayMessageInUi(null, userConfig.GetText("add_approval"), userConfig.GetText("U8002"), false);
             }
             ActReqTask.Approvals.Add(approval);
@@ -163,7 +163,7 @@ namespace FWO.Services.Workflow
         {
             if (dbAcc != null)
             {
-                await dbAcc.UpdateApprovalInDb(ActApproval, triggerActions);
+                await dbAcc.UpdateApprovalInDb(ActApproval, ActTicket.Id, ActTicket.Requester, triggerActions);
             }
             ActReqTask.Approvals[ActReqTask.Approvals.FindIndex(x => x.Id == ActApproval.Id)] = ActApproval;
         }
@@ -182,12 +182,18 @@ namespace FWO.Services.Workflow
             await UpdateActReqTaskState(triggerActions);
 
             // in the case impl tasks are already existing
+            // Read the stored ticket once instead of once per implementation task: UpdateImplTaskStateInDb
+            // loads the full ticket graph when it is not given one, which matters for request tasks
+            // spread over many devices.
+            WfTicket? storedTicket = dbAcc != null && ActReqTask.ImplementationTasks.Count > 0
+                ? await dbAcc.LoadPreviousTicket(ActReqTask.TicketId)
+                : null;
             foreach (var implTask in ActReqTask.ImplementationTasks)
             {
                 implTask.StateId = ActReqTask.StateId;
                 if (dbAcc != null)
                 {
-                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions);
+                    await dbAcc.UpdateImplTaskStateInDb(implTask, triggerActions, storedTicket);
                 }
             }
         }

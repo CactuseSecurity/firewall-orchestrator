@@ -70,6 +70,12 @@
                 </a>
                 <p></p>
 
+                <h5>@userConfig.GetText("workflow_api")</h5>
+                <a class="nav-link" href="/help/API/workflow/?lang=@($"{userConfig.User.Language}")">
+                    <span class="@Icons.Workflow"></span> @userConfig.GetText("workflow_api")
+                </a>
+                <p></p>
+
                 <h5>@userConfig.GetText("import_interfaces")</h5>
                 <a class="nav-link" href="/help/API/appdataimport/?lang=@($"{userConfig.User.Language}")">
                     <span class="@Icons.UserGroup"></span> @userConfig.GetText("import_app_data")

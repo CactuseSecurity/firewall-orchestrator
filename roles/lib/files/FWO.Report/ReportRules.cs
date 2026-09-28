@@ -850,12 +850,12 @@ namespace FWO.Report
                 {
                     report.AppendLine($"<tr style=\"{(nwobj.Highlighted ? GlobalConst.kStyleHighlightedRed : "")}\">");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}>{nwobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name=\"{ObjCatString.NwObj}{chapterNumber}x{nwobj.Id}\">{HtmlOutputEncoder.EncodeText(nwobj.Name)}</a></td>");
                     report.AppendLine($"<td>{(nwobj.Type.Name != "" ? userConfig.GetText(nwobj.Type.Name) : "")}</td>");
                     report.AppendLine($"<td>{NwObjDisplay.DisplayIp(nwobj.IP, nwobj.IpEnd, nwobj.Type.Name)}</td>");
                     report.AppendLine(DisplayBase.MemberNamesAsHtml(nwobj.MemberNames));
-                    report.AppendLine($"<td>{nwobj.Uid}</td>");
-                    report.AppendLine($"<td>{nwobj.Comment}</td>");
+                    report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(nwobj.Uid)}</td>");
+                    report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(nwobj.Comment)}</td>");
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");
@@ -893,7 +893,7 @@ namespace FWO.Report
         {
             report.AppendLine("<tr>");
             report.AppendLine($"<td>{objNumber}</td>");
-            report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svcobj.Id}>{svcobj.Name}</a></td>");
+            report.AppendLine($"<td><a name=\"{ObjCatString.Svc}{chapterNumber}x{svcobj.Id}\">{HtmlOutputEncoder.EncodeText(svcobj.Name)}</a></td>");
             report.AppendLine($"<td>{(svcobj.Type.Name != "" ? userConfig.GetText(svcobj.Type.Name) : "")}</td>");
             report.AppendLine($"<td>{((svcobj.Type.Name != ServiceType.Group && svcobj.Protocol != null) ? svcobj.Protocol.Name : "")}</td>");
             if (svcobj.DestinationPortEnd != null && svcobj.DestinationPortEnd != svcobj.DestinationPort)
@@ -905,8 +905,8 @@ namespace FWO.Report
                 report.AppendLine($"<td>{svcobj.DestinationPort}</td>");
             }
             report.AppendLine(DisplayBase.MemberNamesAsHtml(svcobj.MemberNames));
-            report.AppendLine($"<td>{svcobj.Uid}</td>");
-            report.AppendLine($"<td>{svcobj.Comment}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(svcobj.Uid)}</td>");
+            report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(svcobj.Comment)}</td>");
             report.AppendLine("</tr>");
         }
 
@@ -929,11 +929,11 @@ namespace FWO.Report
                 {
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{objNumber++}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.User}{chapterNumber}x{userobj.Id}>{userobj.Name}</a></td>");
+                    report.AppendLine($"<td><a name=\"{ObjCatString.User}{chapterNumber}x{userobj.Id}\">{HtmlOutputEncoder.EncodeText(userobj.Name)}</a></td>");
                     report.AppendLine($"<td>{(userobj.Type.Name != "" ? userConfig.GetText(userobj.Type.Name) : "")}</td>");
                     report.AppendLine(userobj.MemberNamesAsHtml());
-                    report.AppendLine($"<td>{userobj.Uid}</td>");
-                    report.AppendLine($"<td>{userobj.Comment}</td>");
+                    report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(userobj.Uid)}</td>");
+                    report.AppendLine($"<td>{HtmlOutputEncoder.EncodeText(userobj.Comment)}</td>");
                     report.AppendLine("</tr>");
                 }
                 report.AppendLine("</table>");

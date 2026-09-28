@@ -422,27 +422,28 @@ namespace FWO.Test
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "OnParametersSetAsync");
 
             WfImplTask implTask = handler.ActReqTask.ImplementationTasks[0];
+            object[] implTaskArguments = [implTask];
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, [implTask]), Is.EqualTo(ticket));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, [implTask]), Is.EqualTo("Owner A"));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, [implTask]), Is.EqualTo("gw-55"));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, [implTask]), Is.True);
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, implTaskArguments), Is.EqualTo(ticket));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, implTaskArguments), Is.EqualTo("Owner A"));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, implTaskArguments), Is.EqualTo("gw-55"));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, implTaskArguments), Is.True);
             });
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.EditImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayDeleteImplTaskMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayApprovalImplMode, Is.True);
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayAssignImplTaskMode, Is.True);
 
             GetPrivateMethod(typeof(DisplayImplTaskTable), "CleanupImplTasks").Invoke(component, []);
@@ -458,6 +459,148 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(NetworkAnalysisQueries.pathAnalysis));
 
             await InvokePrivateTask(typeof(DisplayImplTaskTable), component, "ContinueImplPhase", implTask);
+        }
+
+        [TestCase(PhaseVisibilityMode.AnyTask, 2)]
+        [TestCase(PhaseVisibilityMode.TicketState, 0)]
+        public void DisplayReqTaskTable_RendersMixedStateActionsAccordingToMasterVisibilityMode(PhaseVisibilityMode masterVisibilityMode, int expectedReadOnlyActionCount)
+        {
+            using BunitContext context = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Requester);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Requester));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig);
+            handler.InitDone = true;
+            handler.MasterStateMatrix.VisibilityMode = masterVisibilityMode;
+            SetMatrix(handler, WfTaskType.access.ToString(), CreateMatrix());
+            handler.ActTicket = new WfTicket
+            {
+                Tasks =
+                [
+                    new WfReqTask { Id = 1, Title = "Outside phase", TaskType = WfTaskType.access.ToString(), StateId = 0 },
+                    new WfReqTask { Id = 2, Title = "Inside phase", TaskType = WfTaskType.access.ToString(), StateId = 2 }
+                ]
+            };
+
+            IRenderedComponent<DisplayReqTaskTable> rendered = context.Render<DisplayReqTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, WorkflowPhases.request)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler));
+
+            var outsideRow = rendered.FindAll("tr").Single(row => row.TextContent.Contains("Outside phase"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-primary"), Has.Count.EqualTo(expectedReadOnlyActionCount));
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-warning, button.btn-danger"), Is.Empty);
+            });
+        }
+
+        [TestCase(PhaseVisibilityMode.AnyTask, 2)]
+        [TestCase(PhaseVisibilityMode.TicketState, 0)]
+        public void DisplayImplTaskTable_RendersMixedStateActionsAccordingToMasterVisibilityMode(PhaseVisibilityMode masterVisibilityMode, int expectedReadOnlyActionCount)
+        {
+            using BunitContext context = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Implementer);
+            context.Services.AddAuthorizationCore();
+            context.Services.AddLocalization();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            context.Services.AddSingleton<ApiConnection>(new ThrowingApiConnection());
+            context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
+            context.Services.AddSingleton<IAuthorizationService, AllowAllAuthorizationService>();
+            context.Services.AddSingleton<AuthenticationStateProvider>(new TestAuthStateProvider(Roles.Implementer));
+
+            WfHandler handler = CreateHandler(new ThrowingApiConnection(), userConfig, WorkflowPhases.implementation);
+            handler.InitDone = true;
+            handler.MasterStateMatrix.VisibilityMode = masterVisibilityMode;
+            StateMatrix matrix = CreateMatrix();
+            matrix.PhaseActive[WorkflowPhases.planning] = false;
+            SetMatrix(handler, WfTaskType.access.ToString(), matrix);
+            WfReqTask reqTask = new() { Id = 20, Title = "Outside implementation", TaskType = WfTaskType.access.ToString() };
+            WfTicket ticket = new() { Id = 10, Title = "Mixed ticket", StateId = 2, Tasks = [reqTask] };
+            handler.ActReqTask = reqTask;
+            handler.ActTicket = ticket;
+            handler.TicketList = [ticket];
+
+            List<WfImplTask> implementationTasks =
+            [
+                new() { Id = 1, TaskType = WfTaskType.access.ToString(), StateId = 0, TicketId = 10, ReqTaskId = 20 },
+                new() { Id = 2, TaskType = WfTaskType.access.ToString(), StateId = 2, TicketId = 10, ReqTaskId = 20 }
+            ];
+
+            IRenderedComponent<DisplayImplTaskTable> rendered = context.Render<DisplayImplTaskTable>(parameters => parameters
+                .Add(parameter => parameter.Phase, WorkflowPhases.implementation)
+                .Add(parameter => parameter.States, new WfStateDict())
+                .Add(parameter => parameter.WfHandler, handler)
+                .Add(parameter => parameter.AllImplTasks, implementationTasks)
+                .Add(parameter => parameter.ImplTaskView, true));
+
+            var mixedStateRows = rendered.FindAll("tr")
+                .Where(row => row.TextContent.Contains("Outside implementation"))
+                .ToList();
+            Assert.That(mixedStateRows, Has.Count.EqualTo(2));
+            var outsideRow = mixedStateRows[0];
+            Assert.Multiple(() =>
+            {
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-primary"), Has.Count.EqualTo(expectedReadOnlyActionCount));
+                Assert.That(outsideRow.QuerySelectorAll("button.btn-warning, button.btn-danger"), Is.Empty);
+            });
+        }
+
+        [Test]
+        public void DisplayImplTaskTable_CanActOnImplTaskInPhase_UsesInclusiveInputAndExclusiveEndBounds()
+        {
+            DisplayImplTaskTable component = new();
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, CreateMatrix(lowestInputState: 10, lowestStartedState: 12, lowestEndState: 20));
+            SetMember(component, nameof(DisplayImplTaskTable.WfHandler), handler);
+
+            MethodInfo method = GetPrivateMethod(typeof(DisplayImplTaskTable), "CanActOnImplTaskInPhase");
+            object[] belowInputArguments = [new WfImplTask { TaskType = taskType, StateId = 9 }];
+            object[] inputArguments = [new WfImplTask { TaskType = taskType, StateId = 10 }];
+            object[] beforeEndArguments = [new WfImplTask { TaskType = taskType, StateId = 19 }];
+            object[] endArguments = [new WfImplTask { TaskType = taskType, StateId = 20 }];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(method.Invoke(component, belowInputArguments), Is.EqualTo(false));
+                Assert.That(method.Invoke(component, inputArguments), Is.EqualTo(true));
+                Assert.That(method.Invoke(component, beforeEndArguments), Is.EqualTo(true));
+                Assert.That(method.Invoke(component, endArguments), Is.EqualTo(false));
+            });
+        }
+
+        [Test]
+        public void DisplayImplTaskTable_ResolveAndDisplayHelpers_HandleMissingReferences()
+        {
+            DisplayImplTaskTable component = new();
+            RequestCoverageUserConfig userConfig = CreateUserConfig(Roles.Implementer);
+            WfHandler handler = new() { Devices = [] };
+            SetMember(component, nameof(DisplayImplTaskTable.WfHandler), handler);
+            SetMember(component, "userConfig", userConfig);
+
+            WfImplTask implTask = new()
+            {
+                TaskType = WfTaskType.access.ToString(),
+                TicketId = 99,
+                ReqTaskId = 77,
+                DeviceId = 123
+            };
+            object[] implTaskArguments = [implTask];
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, implTaskArguments), Is.Null);
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, implTaskArguments), Is.EqualTo(string.Empty));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, implTaskArguments), Is.EqualTo(string.Empty));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsAllDevicesImplTask").Invoke(component, implTaskArguments), Is.False);
+            });
         }
 
         [Test]
@@ -526,12 +669,13 @@ namespace FWO.Test
                 TicketId = 10,
                 ReqTaskId = 20
             };
+            object[] implTaskArguments = [implTask];
 
             userConfig.ReqOwnerBased = true;
-            Assert.That((bool)GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, [implTask])!, Is.False);
+            Assert.That((bool)GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, implTaskArguments)!, Is.False);
 
             userConfig.ReqOwnerBased = false;
-            Assert.That((bool)GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, [implTask])!, Is.True);
+            Assert.That((bool)GetPrivateMethod(typeof(DisplayImplTaskTable), "IsEditable").Invoke(component, implTaskArguments)!, Is.True);
         }
 
         [Test]
@@ -606,13 +750,14 @@ namespace FWO.Test
             SetMember(component, "userConfig", userConfig);
 
             InvokePrivateTask(typeof(DisplayImplTaskTable), component, "OnParametersSetAsync").GetAwaiter().GetResult();
+            object[] implTaskArguments = [implTask];
 
             Assert.Multiple(() =>
             {
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, [implTask]), Is.EqualTo(ticket));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, [implTask]), Is.EqualTo("Owner A"));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, [implTask]), Is.EqualTo(userConfig.GetText("all")));
-                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsAllDevicesImplTask").Invoke(component, [implTask]), Is.True);
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "ResolveTicket").Invoke(component, implTaskArguments), Is.EqualTo(ticket));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetOwnerName").Invoke(component, implTaskArguments), Is.EqualTo("Owner A"));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "GetDeviceName").Invoke(component, implTaskArguments), Is.EqualTo(userConfig.GetText("all")));
+                Assert.That(GetPrivateMethod(typeof(DisplayImplTaskTable), "IsAllDevicesImplTask").Invoke(component, implTaskArguments), Is.True);
             });
         }
 
@@ -744,25 +889,26 @@ namespace FWO.Test
             SetMember(component, nameof(DisplayImplTaskTable.States), new WfStateDict());
             SetMember(component, nameof(DisplayImplTaskTable.ImplTaskView), true);
             SetMember(component, "userConfig", userConfig);
+            object[] implTaskArguments = [implTask];
 
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayImplTaskMode, Is.True);
 
             handler.ResetImplTaskActions();
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "EditImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayImplTaskMode, Is.True);
             Assert.That(handler.EditImplTaskMode, Is.True);
 
             handler.ResetImplTaskActions();
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "DeleteImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayDeleteImplTaskMode, Is.True);
 
             handler.ResetImplTaskActions();
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "ShowApprovals").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayApprovalImplMode, Is.True);
 
             handler.ResetImplTaskActions();
-            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, [implTask]);
+            GetPrivateMethod(typeof(DisplayImplTaskTable), "AssignImplTask").Invoke(component, implTaskArguments);
             Assert.That(handler.DisplayAssignImplTaskMode, Is.True);
 
             handler.ResetImplTaskActions();

@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING, Any
 import fwo_const
 import fwo_globals
 from fwo_api import FwoApi
-from fwo_base import ConfigAction, find_all_diffs
+from fwo_base import find_all_diffs
+from fwo_enums import ConfigAction
 from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
 from fwo_log import FWOLogger
 from model_controllers.check_consistency import FwConfigImportCheckConsistency

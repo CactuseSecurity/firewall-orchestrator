@@ -18,18 +18,18 @@ public static class GetAuditProofCriticalChangesRequestValidator
         RequestValidationErrorResponse result = new();
         if (request == null)
         {
-            result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kRootPath,
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kRootPath,
                 $"{GetAuditProofCriticalChangesValidationSchema.kEndpointName} requires a request body. Valid root keys: " +
                 GetAuditProofCriticalChangesValidationSchema.DescribeKeys(GetAuditProofCriticalChangesValidationSchema.RootKeys)));
             return result;
         }
 
         ValidateTicketId(request, result);
-        AddUnsupportedKeyErrors(request.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kRootPath,
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kRootPath,
             GetAuditProofCriticalChangesValidationSchema.RootKeys, result);
-        AddUnsupportedKeyErrors(request.Options.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kOptionsPath,
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kOptionsPath,
             GetAuditProofCriticalChangesValidationSchema.OptionsKeys, result);
-        AddUnsupportedKeyErrors(request.Options.Filter?.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kFilterPath,
+        AggregatedRequestKeyValidation.AddUnsupportedKeyErrors(request.Options.Filter?.AdditionalData, GetAuditProofCriticalChangesValidationSchema.kFilterPath,
             GetAuditProofCriticalChangesValidationSchema.FilterKeys, result);
         return result;
     }
@@ -47,7 +47,7 @@ public static class GetAuditProofCriticalChangesRequestValidator
     public static RequestValidationErrorResponse BuildUnknownTicketError(long ticketId)
     {
         RequestValidationErrorResponse result = new();
-        result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+        result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
             GetAuditProofCriticalChangesValidationSchema.DescribeUnknownTicket(ticketId)));
         return result;
     }
@@ -56,40 +56,13 @@ public static class GetAuditProofCriticalChangesRequestValidator
     {
         if (request.TicketId == null)
         {
-            result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
                 $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' is required."));
         }
         else if (request.TicketId <= 0)
         {
-            result.Errors.Add(BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
+            result.Errors.Add(AggregatedRequestKeyValidation.BuildError(GetAuditProofCriticalChangesValidationSchema.kTicketIdPath,
                 $"'{GetAuditProofCriticalChangesValidationSchema.kTicketIdPath}' must be greater than 0."));
         }
-    }
-
-    private static void AddUnsupportedKeyErrors(Dictionary<string, System.Text.Json.JsonElement>? additionalData,
-        string path, IReadOnlyList<RequestKeyDefinition> allowedKeys, RequestValidationErrorResponse result)
-    {
-        if (additionalData is not { Count: > 0 })
-        {
-            return;
-        }
-
-        string keyHelp = GetAuditProofCriticalChangesValidationSchema.DescribeKeys(allowedKeys);
-        string container = string.IsNullOrEmpty(path) ? "the request root" : $"'{path}'";
-        foreach (string unsupportedKey in additionalData.Keys.OrderBy(key => key, StringComparer.Ordinal))
-        {
-            result.Errors.Add(BuildError(BuildPath(path, unsupportedKey),
-                $"'{unsupportedKey}' is not supported by {container}. Valid keys: {keyHelp}"));
-        }
-    }
-
-    private static string BuildPath(string parentPath, string key)
-    {
-        return string.IsNullOrEmpty(parentPath) ? key : $"{parentPath}.{key}";
-    }
-
-    private static RequestValidationError BuildError(string path, string message)
-    {
-        return new RequestValidationError { Path = path, Message = message };
     }
 }

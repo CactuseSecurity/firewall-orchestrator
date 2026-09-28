@@ -109,6 +109,9 @@ namespace FWO.Config.Api.Data
         [JsonProperty("updateRuleOwnerMappingSleepTime"), JsonPropertyName("updateRuleOwnerMappingSleepTime")]
         public int UpdateRuleOwnerMappingSleepTime { get; set; } = 60;
 
+        [JsonProperty("varianceNameFieldWaitTime"), JsonPropertyName("varianceNameFieldWaitTime")]
+        public int VarianceNameFieldWaitTime { get; set; } = 0;
+
         [JsonProperty("flowSyncSleepTime"), JsonPropertyName("flowSyncSleepTime")]
         public int FlowSyncSleepTime { get; set; } = 0;
 

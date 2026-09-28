@@ -1952,14 +1952,14 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task DisplayAccessElements_UsesAnyProtocolNameForPortlessFlowServiceFallbackName()
+        public async Task DisplayAccessElements_UsesProtocolNameForPortlessFlowServiceFallbackName()
         {
             await using BunitContext context = new();
             RequestWorkflowApiConn apiConn = new()
             {
                 FlowSvcObjects = new List<FlowSvcObject>
                 {
-                    new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = -1, ShowInRequestModule = true }
+                    new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = 6, ShowInRequestModule = true }
                 }
             };
             context.Services.AddSingleton<ApiConnection>(apiConn);
@@ -1970,12 +1970,47 @@ namespace FWO.Test
                 .Add(p => p.Sources, new List<NwObjectElement>())
                 .Add(p => p.Destinations, new List<NwObjectElement>())
                 .Add(p => p.Services, new List<NwServiceElement>())
-                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = -1, Name = "ANY" } })
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = 6, Name = "tcp" } })
                 .Add(p => p.EditMode, true));
 
             List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
 
-            Assert.That(loadedServices.Single().Name, Is.EqualTo("/ANY"));
+            Assert.That(loadedServices.Single().Name, Is.EqualTo("/tcp"));
+        }
+
+        private static readonly List<long> kOnlyRequestableServiceId = [203];
+
+        /// <summary>
+        /// The canonical any-IP-protocol service is an internal representation the platform attaches
+        /// itself; offering it in the request module would let a requester ask for any protocol by
+        /// picking a catalog entry (SEC-09).
+        /// </summary>
+        [Test]
+        public async Task DisplayAccessElements_OmitsInternalAnyProtocolFlowServiceFromCatalog()
+        {
+            await using BunitContext context = new();
+            RequestWorkflowApiConn apiConn = new()
+            {
+                FlowSvcObjects = new List<FlowSvcObject>
+                {
+                    new FlowSvcObject { Id = 202, Name = "", PortStart = null, PortEnd = null, ProtoId = -1, ShowInRequestModule = true },
+                    new FlowSvcObject { Id = 203, Name = "https", PortStart = 443, PortEnd = 443, ProtoId = 6, ShowInRequestModule = true }
+                }
+            };
+            context.Services.AddSingleton<ApiConnection>(apiConn);
+            context.Services.AddSingleton<UserConfig>(new RequestWorkflowUserConfig { ReqUseFlowDb = true });
+            context.Services.AddSingleton<DomEventService>();
+
+            IRenderedComponent<DisplayAccessElements> component = context.Render<DisplayAccessElements>(parameters => parameters
+                .Add(p => p.Sources, new List<NwObjectElement>())
+                .Add(p => p.Destinations, new List<NwObjectElement>())
+                .Add(p => p.Services, new List<NwServiceElement>())
+                .Add(p => p.IpProtos, new List<IpProtocol> { new() { Id = -1, Name = "ANY" }, new() { Id = 6, Name = "tcp" } })
+                .Add(p => p.EditMode, true));
+
+            List<NetworkService> loadedServices = GetMember<List<NetworkService>>(component.Instance, "nwServices");
+
+            Assert.That(loadedServices.Select(service => service.Id), Is.EquivalentTo(kOnlyRequestableServiceId));
         }
 
         [Test]

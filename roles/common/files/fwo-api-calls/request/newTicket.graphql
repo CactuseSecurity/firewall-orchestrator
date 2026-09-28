@@ -5,6 +5,7 @@ mutation newTicket(
   $requesterId: Int
   $deadline: timestamp
   $priority: Int
+  $preWorkflowTicketReference: String
   $locked: Boolean
   $requestTasks: request_reqtask_arr_rel_insert_input
   ) {
@@ -15,6 +16,7 @@ mutation newTicket(
     requester_id: $requesterId
     ticket_deadline: $deadline
     ticket_priority: $priority
+    pre_workflow_ticket_reference: $preWorkflowTicketReference
     locked: $locked
     reqtasks: $requestTasks
   }) {

@@ -128,6 +128,10 @@ exit 0
             "GATE_WORKFLOW": "version-gate.yml",
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
+            # Same reason as the gate harness: keep any tool output the assertions read in the
+            # runner's locale rather than the developer's, see F58.
+            "LANGUAGE": "C",
+            "LC_ALL": "C",
             "MOCK_API_LOG": str(api_log),
             "MOCK_FAILED_RUN_IDS": " ".join(str(run_id) for run_id in failed_run_ids),
             "MOCK_FAILED_RUN_LOOKUP_SHAS": " ".join(failed_run_lookup_shas),
@@ -185,6 +189,8 @@ def refresh_decision(
     environment.update(
         {
             "EVENT_NAME": event_name,
+            "LANGUAGE": "C",
+            "LC_ALL": "C",
             "GITHUB_OUTPUT": str(output_path),
             "REF_NAME": ref_name,
             "REF_TYPE": ref_type,

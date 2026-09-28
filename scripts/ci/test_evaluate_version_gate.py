@@ -151,6 +151,11 @@ def run_gate(
             "GH_MERGEABLE_STATE": mergeable_state,
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
+            # The runner is English and the script's own messages are English, so pin the
+            # locale: git's messages are translated, and a German machine would otherwise
+            # redden tests that read them, see F58.
+            "LANGUAGE": "C",
+            "LC_ALL": "C",
             "PATH": f"{fake_bin}:{environment['PATH']}",
         }
     )
@@ -357,7 +362,9 @@ def test_other_states_get_retry_guidance(tmp_path: Path, mergeable_state: str) -
     assert f"mergeability as '{mergeable_state}'" in completed.stderr
     assert "re-run the workflow" in completed.stderr
     assert "Resolve the merge conflicts" not in completed.stderr
-    assert "couldn't find remote ref refs/pull/42/merge" in completed.stderr
+    # git's own diagnosis has to reach stderr; assert the ref it names rather than its
+    # wording, which is both translated and free to change between git versions.
+    assert "refs/pull/42/merge" in completed.stderr
 
 
 def test_mergeability_query_failure_gets_infrastructure_guidance(tmp_path: Path) -> None:

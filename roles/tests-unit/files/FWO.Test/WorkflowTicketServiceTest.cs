@@ -2266,8 +2266,20 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateServiceObjectRequest
                 {
                     Id = -2,
-                    Name = "invalid-service",
-                    Protocol = "999"
+                    Predicate = "modify",
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            ServiceGroups =
+            [
+                new CreateTicketRequest.CreateServiceGroupRequest
+                {
+                    Id = -5,
+                    Name = "web-services",
+                    MemberIds = [-2]
                 }
             ],
             Rules =
@@ -2275,7 +2287,7 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
-                    OwnerId = 999
+                    DestinationGroups = [-99]
                 }
             ]
         });
@@ -2283,11 +2295,70 @@ internal class WorkflowTicketServiceTest
         RequestValidationErrorResponse errors = GetValidationResponse(result);
         Assert.Multiple(() =>
         {
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0]", "rules[0]"]));
-            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("protocol"));
-            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("owner"));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0].predicate", "rules[0].destinationGroups[0]"]));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.EqualTo("not implemented yet"));
+            Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("Unknown request object id -99"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);
         });
+    }
+
+    [Test]
+    public async Task CreateTicket_ReturnsAllErrorsWithinOneRule()
+    {
+        WorkflowTicketServiceApiConn apiConnection = new()
+        {
+            States = [new WfState { Id = 0, Name = "draft" }],
+            Protocols = [new IpProtocol { Id = 6, Name = "tcp" }]
+        };
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = CreateTrustedRequesterPrincipal() }
+        };
+
+        ActionResult<CreateTicketResponse> result = await controller.CreateTicket(new CreateTicketRequest
+        {
+            RequestorName = "Payload Requester",
+            RequestorId = "payload-requester",
+            RuleContactName = "Bob Approver",
+            RuleContactId = "bob",
+            Title = "Multiple rule errors",
+            AddressObjects =
+            [
+                new CreateTicketRequest.CreateAddressObjectRequest
+                {
+                    Id = -1,
+                    Name = "app-server-1",
+                    IpStart = "192.0.2.10",
+                    IpEnd = "192.0.2.10"
+                }
+            ],
+            ServiceObjects =
+            [
+                new CreateTicketRequest.CreateServiceObjectRequest
+                {
+                    Id = -2,
+                    Name = "https",
+                    Protocol = "tcp",
+                    PortStart = 443,
+                    PortEnd = 443
+                }
+            ],
+            Rules =
+            [
+                new CreateTicketRequest.CreateTicketRuleRequest
+                {
+                    Action = "not-a-rule-action",
+                    SourceObjects = [-2],
+                    TimeObjectId = -2,
+                    OwnerId = 999
+                }
+            ]
+        });
+
+        RequestValidationErrorResponse errors = GetValidationResponse(result);
+        Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(
+            ["rules[0].sourceObjects[0]", "rules[0].action", "rules[0].ownerId", "rules[0].timeObjectId"]));
     }
 
     [Test]

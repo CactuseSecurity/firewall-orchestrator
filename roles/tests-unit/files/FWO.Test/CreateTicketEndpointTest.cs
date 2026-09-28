@@ -56,23 +56,4 @@ internal class CreateTicketEndpointTest
         Assert.That(errors.Errors.Select(error => error.Path), Does.Contain("rules[0].sourceObjects"));
     }
 
-    [Test]
-    public void ValidationRejectsModifyAndDeletePredicates()
-    {
-        CreateTicketRequest request = new()
-        {
-            AddressObjects = [new CreateTicketRequest.CreateAddressObjectRequest { Predicate = "Modify" }],
-            ServiceObjects = [new CreateTicketRequest.CreateServiceObjectRequest { Predicate = "delete" }]
-        };
-
-        RequestValidationErrorResponse result = CreateTicketRequestValidator.Validate(request);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(result.Errors.Single(error => error.Path == "addressObjects[0].predicate").Message,
-                Is.EqualTo("not implemented yet"));
-            Assert.That(result.Errors.Single(error => error.Path == "serviceObjects[0].predicate").Message,
-                Is.EqualTo("not implemented yet"));
-        });
-    }
 }

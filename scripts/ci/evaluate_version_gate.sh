@@ -13,8 +13,7 @@
 #
 # Usage: evaluate_version_gate.sh <pr-number> [base-branch]
 # Requires: git, gh and python3, run from a checkout of the base branch with GH_TOKEN and
-# GH_REPO set for read-only pull request access. PR_AUTHOR, PR_HEAD_REF and PR_HEAD_REPOSITORY
-# carry the trusted pull_request_target event metadata used for automation exemptions.
+# GH_REPO set for read-only pull request access.
 #
 # NOTE: this script's behavior is documented in
 # documentation/developer-docs/github/version-gate-workflow.md - please keep that doc in
@@ -59,14 +58,7 @@ fi
 git fetch --quiet --no-tags --depth=1 origin "+refs/heads/${base_branch}:refs/fwo/base"
 
 git show "refs/fwo/pr-merge:inventory/group_vars/all.yml" >"${work_dir}/merged-all.yml"
-git show "refs/fwo/pr-merge:documentation/revision-history.md" >"${work_dir}/revision-history.md"
 git show "refs/fwo/base:inventory/group_vars/all.yml" >"${work_dir}/base-all.yml"
-
-# The revision-history rule asks what this pull request adds, which only the diff answers: a
-# new version section is a different section than the base's final one, so comparing the two
-# snapshots would reject a new section that repeats wording of an earlier one.
-git diff --unified=0 refs/fwo/base refs/fwo/pr-merge -- documentation/revision-history.md \
-    >"${work_dir}/revision-history.diff"
 
 # The merge result's upgrade files are listed rather than diffed, because the first rule asks
 # which versions it carries. A branch without the directory yields an empty listing. The second
@@ -86,21 +78,6 @@ git ls-tree --name-only -r -z refs/fwo/pr-merge -- "${upgrade_dir}/" \
 git diff --no-renames --name-only -z refs/fwo/base refs/fwo/pr-merge -- "${upgrade_dir}" \
     | sed -z "s#^${upgrade_dir}/##" >"${work_dir}/changed-upgrade-files.txt"
 
-changed_paths="$(git diff --name-only refs/fwo/base refs/fwo/pr-merge)"
-pr_author="${PR_AUTHOR:-}"
-pr_head_ref="${PR_HEAD_REF:-}"
-pr_head_repository="${PR_HEAD_REPOSITORY:-}"
-revision_history_arguments=()
-
-if [[ "$pr_head_repository" == "$GH_REPO" && "$pr_author" == "dependabot[bot]" && "$pr_head_ref" == dependabot/* ]]; then
-    revision_history_arguments+=(--skip-revision-history)
-elif [[ "$pr_head_repository" == "$GH_REPO" && "$changed_paths" == ".agents" ]]; then
-    if [[ "$pr_author" == "CactusAutomation" && "$pr_head_ref" == "automation/submodule_update" ]] || \
-        [[ "$pr_author" == "github-actions[bot]" && "$pr_head_ref" == "bot/update-agents-submodule" ]]; then
-        revision_history_arguments+=(--skip-revision-history)
-    fi
-fi
-
 # Only the tag names matter, so list them on the remote instead of fetching tag objects.
 # They are read here, at run time, which is what makes a re-run pick up a new sealing tag.
 git ls-remote --tags origin | sed 's#.*refs/tags/##; s#\^{}$##' | sort -u >"${work_dir}/tags.txt"
@@ -110,12 +87,9 @@ gate_exit=0
 python3 scripts/ci/version_gate.py gate \
     --merged-file "${work_dir}/merged-all.yml" \
     --base-file "${work_dir}/base-all.yml" \
-    --revision-history "${work_dir}/revision-history.md" \
-    --revision-history-diff "${work_dir}/revision-history.diff" \
     --upgrade-files "${work_dir}/merged-upgrade-files.txt" \
     --changed-upgrade-files "${work_dir}/changed-upgrade-files.txt" \
-    --tags-file "${work_dir}/tags.txt" \
-    "${revision_history_arguments[@]}" >"$verdict_file" || gate_exit=$?
+    --tags-file "${work_dir}/tags.txt" >"$verdict_file" || gate_exit=$?
 
 # The reason can carry a file name whose bytes are not valid UTF-8. Render those as escapes
 # rather than letting the encode fail and take the job's diagnosis with it, and rather than

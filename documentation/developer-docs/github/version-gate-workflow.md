@@ -31,20 +31,15 @@ gate entry and nothing else. That single check run is what branch protection mus
 ### What is compared
 
 [`scripts/ci/evaluate_version_gate.sh`](../../../scripts/ci/evaluate_version_gate.sh) resolves
-the version inputs, revision-history inputs, pull request identity and changed paths before it
-invokes the gate:
+the version and upgrade-file inputs before it invokes the gate:
 
 | Input | Source |
 | --- | --- |
 | merged version `V` | `product_version` in `inventory/group_vars/all.yml` at `refs/pull/<n>/merge` |
 | base version `P` | `product_version` in the same file at the base branch tip |
-| merged revision history | `documentation/revision-history.md` at `refs/pull/<n>/merge` |
-| revision-history diff | `git diff --unified=0` of that file, base tip to `refs/pull/<n>/merge` |
 | merged upgrade files | names in `roles/database/files/upgrade/` at `refs/pull/<n>/merge` |
 | changed upgrade files | names in that directory the pull request adds or modifies |
 | sealed versions | `git ls-remote --tags origin`, so no tag objects are fetched |
-| pull request identity | author, head branch and head repository from the trusted event payload |
-| changed paths | the diff from the base tip to `refs/pull/<n>/merge` |
 
 Reading `V` from the **merge result** rather than from the pull request head is deliberate. A
 pull request that never touched `all.yml` inherits the base version automatically, so it is not
@@ -68,38 +63,11 @@ what lets a plain re-run produce a different, correct verdict later.
 | any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
 | any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: put the change in `V.sql` |
 | any | the pull request deletes no upgrade file named at or below `V` | fails otherwise: restore it, then empty or correct `V.sql` |
-| non-automated | `documentation/revision-history.md` ends with a `## V` heading | fails otherwise |
-| non-automated, section exists | the pull request adds text below that final heading | fails otherwise |
-| non-automated, section opened | that new final section is not empty | fails otherwise |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
 
-A non-automated pull request that extends the existing final section must add at least one
-non-empty, non-heading line below its heading; one that opens the final section must leave it
-non-empty. That heading must contain the merged full `major.minor.patch` version, such as
-`## 9.4.6`; a date or other trailing heading text is allowed but not required. A pull request
-that keeps the version extends the existing final section, while a version bump adds a new final
-section and text beneath it.
-
-The addition is taken from the pull request's diff of the file rather than from a comparison of
-the base and merged snapshots. A version bump creates a *different* final section than the base's,
-so its text may legitimately repeat wording of an earlier section. Added and removed lines are
-compared by their stripped text, so reordering or re-indenting entries of the final section
-cancels out instead of counting as an addition. That cancellation covers the final section only:
-an entry moved into it from an earlier section is text the section did not have, and counts.
-
-A section the pull request *opens* is judged from the merged file rather than from the diff:
-everything below a newly inserted final heading is text that section did not have, including an
-entry that keeps its wording while moving under the new heading, which git renders as a context
-line rather than as an addition. Renaming an existing heading is not opening a section, so a bump
-that only rewrites the heading still fails, and a new heading with nothing beneath it fails too.
-
-The cost of reading an opened section from the merged file is that its entries need not come from
-the pull request. Inserting the new heading in the middle of the existing final section splits it
-and leaves the trailing entries as context lines, which produces the same diff as moving an entry
-under the new heading — `+` a blank line and `+` the heading, nothing else. The two cannot be told
-apart, so accepting the reclassification the versioning lifecycle requires also accepts a bump
-that only re-files existing entries. The gate enforces that an opened section is not empty, not
-that its text is new.
+The gate reads `documentation/revision-history.md` not at all. A pull request is still expected
+to document its change there, but that is left to review rather than made a merge condition, so
+no automation exemption is needed for Dependabot or `.agents` pointer pull requests either.
 
 The upgrade-file rules follow the selection in
 [`roles/database/tasks/upgrade-database.yml`](../../../roles/database/tasks/upgrade-database.yml),
@@ -146,13 +114,6 @@ comparing name listings cannot see, while a script the pull request leaves alone
 name rather than be renamed by whoever touches the directory next. Names that do not carry a
 version at all are left to the upgrade play, and a non-`.sql` file removed from the directory is
 not treated as a deleted upgrade script.
-
-The revision-history checks are waived for upstream Dependabot pull requests whose authenticated
-author is `dependabot[bot]` and whose branch starts with `dependabot/`. They are also waived for
-the two established `.agents` pointer automations: `CactusAutomation` on
-`automation/submodule_update`, and `github-actions[bot]` on `bot/update-agents-submodule`. An
-agents update qualifies only when `.agents` is its sole changed path. All of these automated pull
-requests remain subject to the core version lifecycle rules.
 
 The merge ref is fetched three times because GitHub computes it asynchronously. If all attempts
 fail, the workflow queries the pull request's `mergeable` state. It reports merge conflicts only
@@ -322,8 +283,8 @@ Activate the gate in this order:
 9. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
    ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
 10. Verify the required check with a pull request targeting `develop`: it must fail without a
-    valid revision-history addition and pass after the pull request satisfies the documented
-    rules.
+    valid version bump onto a sealed version and pass once the pull request satisfies the
+    documented rules.
 
 The same limitation applies after GitHub deletes an old workflow run under the repository's
 Actions retention policy. If an open pull request has no retained gate run for its current head
@@ -335,12 +296,7 @@ workflow again.
 The gate can be evaluated by hand from a checkout:
 
 ```bash
-git diff --unified=0 origin/develop HEAD -- documentation/revision-history.md >/tmp/fwo-revision-history.diff
-
-python3 scripts/ci/version_gate.py gate \
-    --merged-version 9.4.6 --base-version 9.4.5 \
-    --revision-history documentation/revision-history.md \
-    --revision-history-diff /tmp/fwo-revision-history.diff
+python3 scripts/ci/version_gate.py gate --merged-version 9.4.6 --base-version 9.4.5
 
 python3 scripts/ci/version_gate.py check-open --file inventory/group_vars/all.yml
 

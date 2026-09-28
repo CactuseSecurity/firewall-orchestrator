@@ -19,20 +19,6 @@ MOCKED_COMMAND_FAILURE_EXIT = 23
 UPGRADE_DIRECTORY = "roles/database/files/upgrade"
 # Present on the base branch of every fixture, so a test can delete it the way a pull request would.
 RELEASED_UPGRADE_FILE = "9.4.3.sql"
-REVISION_HISTORY = """# Revision history
-
-## 9.4.5 - 01.09.2026
-- current version
-"""
-MERGED_REVISION_HISTORY = f"""{REVISION_HISTORY}
-## 9.4.6
-- proposed version
-"""
-# A new section may legitimately repeat the wording of an earlier one, see F16.
-REPEATING_MERGED_REVISION_HISTORY = f"""{REVISION_HISTORY}
-## 9.4.6
-- current version
-"""
 
 
 def write_executable(path: Path, content: str) -> None:
@@ -65,9 +51,6 @@ def create_repository(
     *,
     include_merge_ref: bool = True,
     version_is_bumped: bool = False,
-    agents_pointer_change: bool = False,
-    additional_change: bool = False,
-    repeat_previous_entry: bool = False,
     added_upgrade_file: str | None = None,
     tags: tuple[str, ...] = (),
 ) -> Path:
@@ -81,42 +64,27 @@ def create_repository(
     run_git(repository, ["config", "commit.gpgsign", "false"])
 
     inventory = repository / "inventory" / "group_vars"
-    documentation = repository / "documentation"
     implementation = repository / "scripts" / "ci"
     inventory.mkdir(parents=True)
-    documentation.mkdir()
     implementation.mkdir(parents=True)
     (inventory / "all.yml").write_text(BASE_CONFIGURATION, encoding="utf-8")
-    (documentation / "revision-history.md").write_text(REVISION_HISTORY, encoding="utf-8")
     released_upgrade_file = repository / UPGRADE_DIRECTORY / RELEASED_UPGRADE_FILE
     released_upgrade_file.parent.mkdir(parents=True)
     released_upgrade_file.write_text("-- released upgrade\n", encoding="utf-8")
     shutil.copy2(VERSION_GATE_PATH, implementation / "version_gate.py")
-    if agents_pointer_change:
-        (repository / ".agents").write_text("old pointer\n", encoding="utf-8")
 
     run_git(repository, ["add", "."])
     run_git(repository, ["commit", "-m", "test fixture"])
     run_git(repository, ["remote", "add", "origin", str(remote)])
     run_git(repository, ["push", "origin", "HEAD:refs/heads/develop"])
     if version_is_bumped:
-        merged_revision_history = (
-            REPEATING_MERGED_REVISION_HISTORY if repeat_previous_entry else MERGED_REVISION_HISTORY
-        )
         (inventory / "all.yml").write_text(MERGED_CONFIGURATION, encoding="utf-8")
-        (documentation / "revision-history.md").write_text(merged_revision_history, encoding="utf-8")
         if added_upgrade_file is not None:
             added_path = repository / UPGRADE_DIRECTORY / added_upgrade_file
             added_path.parent.mkdir(parents=True, exist_ok=True)
             added_path.write_text("-- test upgrade\n", encoding="utf-8")
         run_git(repository, ["add", "."])
         run_git(repository, ["commit", "-m", "open next version"])
-    if agents_pointer_change:
-        (repository / ".agents").write_text("new pointer\n", encoding="utf-8")
-        if additional_change:
-            (repository / "README.md").write_text("unrelated change\n", encoding="utf-8")
-        run_git(repository, ["add", "."])
-        run_git(repository, ["commit", "-m", "advance agents pointer"])
     if include_merge_ref:
         run_git(repository, ["push", "origin", "HEAD:refs/pull/42/merge"])
     for tag in tags:
@@ -172,9 +140,6 @@ def run_gate(
     mergeable_state: str = "UNKNOWN",
     gh_succeeds: bool = True,
     fail_base_fetch: bool = False,
-    pr_author: str = "",
-    pr_head_ref: str = "",
-    pr_head_repository: str = "",
 ) -> subprocess.CompletedProcess[str]:
     """Run the real shell gate against a local origin and mocked remote services."""
     fake_bin = create_fake_commands(tmp_path)
@@ -187,9 +152,6 @@ def run_gate(
             "GH_REPO": "CactuseSecurity/firewall-orchestrator",
             "GH_TOKEN": "test-token",
             "PATH": f"{fake_bin}:{environment['PATH']}",
-            "PR_AUTHOR": pr_author,
-            "PR_HEAD_REF": pr_head_ref,
-            "PR_HEAD_REPOSITORY": pr_head_repository,
         }
     )
     return subprocess.run(  # noqa: S603
@@ -213,16 +175,6 @@ def run_with_missing_merge_ref(
     return run_gate(tmp_path, repository, mergeable_state=mergeable_state, gh_succeeds=gh_succeeds)
 
 
-def test_new_section_repeating_an_earlier_entry_passes(tmp_path: Path) -> None:
-    """A new version section counts as an addition even when it repeats an earlier entry."""
-    repository = create_repository(tmp_path, version_is_bumped=True, repeat_previous_entry=True, tags=("v9.4.5",))
-
-    completed = run_gate(tmp_path, repository)
-
-    assert completed.returncode == 0
-    assert "revision history adds text for version 9.4.6" in completed.stdout
-
-
 def test_open_version_passes_and_prints_verdict(tmp_path: Path) -> None:
     """Exercise ref fetching, file extraction, tag listing and verdict output."""
     repository = create_repository(tmp_path, version_is_bumped=True, tags=("v9.4.5",))
@@ -231,8 +183,7 @@ def test_open_version_passes_and_prints_verdict(tmp_path: Path) -> None:
 
     assert completed.returncode == 0
     assert completed.stdout.strip() == (
-        "Version gate passed: version 9.4.5 is sealed, opening version 9.4.6; "
-        "revision history adds text for version 9.4.6"
+        "Version gate passed: version 9.4.5 is sealed, opening version 9.4.6; every upgrade file can be selected"
     )
     assert completed.stderr == ""
 
@@ -281,9 +232,8 @@ def test_stray_upgrade_file_above_the_version_blocks_until_deleted(tmp_path: Pat
     second_run.mkdir()
     cleared = run_gate(second_run, repository)
 
-    assert cleared.returncode != 0, "the deletion must no longer be the reason"
+    assert cleared.returncode == 0, cleared.stderr
     assert "is deleted" not in cleared.stderr
-    assert "add revision-history text" in cleared.stderr
 
 
 def test_deleting_a_released_upgrade_file_fails(tmp_path: Path) -> None:
@@ -376,123 +326,6 @@ def test_sealed_version_fails_and_prints_verdict(tmp_path: Path) -> None:
     assert completed.returncode == 1
     assert completed.stdout == ""
     assert "Version gate failed: version 9.4.5 is already sealed" in completed.stderr
-
-
-def test_dependabot_pull_request_skips_revision_history(tmp_path: Path) -> None:
-    """Recognize an upstream Dependabot identity and branch together."""
-    repository = create_repository(tmp_path)
-
-    completed = run_gate(
-        tmp_path,
-        repository,
-        pr_author="dependabot[bot]",
-        pr_head_ref="dependabot/pip/develop/cryptography-50.0.1",
-        pr_head_repository="CactuseSecurity/firewall-orchestrator",
-    )
-
-    assert completed.returncode == 0
-    assert "revision history is exempt for this automated pull request" in completed.stdout
-
-
-@pytest.mark.parametrize(
-    ("pr_author", "pr_head_ref"),
-    [
-        ("CactusAutomation", "automation/submodule_update"),
-        ("github-actions[bot]", "bot/update-agents-submodule"),
-    ],
-)
-def test_agents_pointer_pull_request_skips_revision_history(
-    tmp_path: Path,
-    pr_author: str,
-    pr_head_ref: str,
-) -> None:
-    """Recognize both established agents-pointer automation mechanisms."""
-    repository = create_repository(tmp_path, agents_pointer_change=True)
-
-    completed = run_gate(
-        tmp_path,
-        repository,
-        pr_author=pr_author,
-        pr_head_ref=pr_head_ref,
-        pr_head_repository="CactuseSecurity/firewall-orchestrator",
-    )
-
-    assert completed.returncode == 0
-    assert "revision history is exempt for this automated pull request" in completed.stdout
-
-
-@pytest.mark.parametrize(
-    ("pr_author", "pr_head_ref", "pr_head_repository"),
-    [
-        ("developer", "dependabot/pip/develop/example", "CactuseSecurity/firewall-orchestrator"),
-        ("dependabot[bot]", "feature/example", "CactuseSecurity/firewall-orchestrator"),
-        ("dependabot[bot]", "dependabot/pip/develop/example", "contributor/firewall-orchestrator"),
-    ],
-)
-def test_dependabot_exemption_cannot_be_selected_by_branch_name_alone(
-    tmp_path: Path,
-    pr_author: str,
-    pr_head_ref: str,
-    pr_head_repository: str,
-) -> None:
-    """Require the trusted author, branch prefix and upstream repository together."""
-    repository = create_repository(tmp_path)
-
-    completed = run_gate(
-        tmp_path,
-        repository,
-        pr_author=pr_author,
-        pr_head_ref=pr_head_ref,
-        pr_head_repository=pr_head_repository,
-    )
-
-    assert completed.returncode == 1
-    assert "add revision-history text" in completed.stderr
-
-
-def test_agents_pointer_exemption_rejects_additional_changes(tmp_path: Path) -> None:
-    """Require `.agents` to be the automated pull request's only changed path."""
-    repository = create_repository(tmp_path, agents_pointer_change=True, additional_change=True)
-
-    completed = run_gate(
-        tmp_path,
-        repository,
-        pr_author="CactusAutomation",
-        pr_head_ref="automation/submodule_update",
-        pr_head_repository="CactuseSecurity/firewall-orchestrator",
-    )
-
-    assert completed.returncode == 1
-    assert "add revision-history text" in completed.stderr
-
-
-@pytest.mark.parametrize(
-    ("pr_author", "pr_head_ref", "pr_head_repository"),
-    [
-        ("developer", "automation/submodule_update", "CactuseSecurity/firewall-orchestrator"),
-        ("CactusAutomation", "feature/example", "CactuseSecurity/firewall-orchestrator"),
-        ("CactusAutomation", "automation/submodule_update", "contributor/firewall-orchestrator"),
-    ],
-)
-def test_agents_pointer_exemption_requires_exact_automation_identity(
-    tmp_path: Path,
-    pr_author: str,
-    pr_head_ref: str,
-    pr_head_repository: str,
-) -> None:
-    """Reject `.agents` changes that do not carry the complete trusted identity."""
-    repository = create_repository(tmp_path, agents_pointer_change=True)
-
-    completed = run_gate(
-        tmp_path,
-        repository,
-        pr_author=pr_author,
-        pr_head_ref=pr_head_ref,
-        pr_head_repository=pr_head_repository,
-    )
-
-    assert completed.returncode == 1
-    assert "add revision-history text" in completed.stderr
 
 
 def test_base_fetch_failure_is_propagated(tmp_path: Path) -> None:

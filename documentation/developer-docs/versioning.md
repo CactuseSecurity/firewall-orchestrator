@@ -66,9 +66,9 @@ This lifecycle is enforced by the **Version gate** workflow, see
    sealed.
 5. Every other open pull request is then re-evaluated against `1.2.5`. Its merge result
    inherits the new product version, so the pull request does not need its own version bump.
-   However, because its change will now be part of `1.2.5`, its revision-history entry must
-   be moved from the previous version section into the final `1.2.5` section before it can
-   merge. This reclassification is intentional.
+   Because its change will now be part of `1.2.5`, its revision-history entry should be moved
+   from the previous version section into the final `1.2.5` section. This reclassification is
+   intentional; the gate does not enforce it.
 
 ### Hotfixes
 
@@ -193,36 +193,16 @@ runs on every pull request that targets `develop`. Its single job,
 - the version its merge result carries is already sealed by a release tag,
 - it raises `product_version` while the previous version has no sealing tag yet,
 - it raises `product_version` to an already sealed version, or lowers it,
-- for non-automated pull requests, the final level-two heading in
-  [`documentation/revision-history.md`](../revision-history.md)
-  does not match the merged `product_version`,
-- for non-automated pull requests, it adds no text below that final revision-history heading, or
-  leaves that section empty when the pull request is the one that opens it,
 - an upgrade script under `roles/database/files/upgrade/` carries a version above the merged
   `product_version`, or the pull request adds one below the version of the base branch.
 
-A non-automated pull request that keeps the current version must add at least one non-empty,
-non-heading line to the final revision-history section. One that opens a new final section must
-leave that section non-empty. The final heading must contain the full `major.minor.patch`
-version; a date or other trailing heading text may be included but is not required.
-
-For a pull request that extends an existing section, the addition is read from the pull request's
-own diff of the file, so a new section may repeat the wording of an earlier one, while merely
-reordering or re-indenting entries of that section does not count as an addition. Moving an entry
-into it from an earlier section does count, including the reclassification a version bump by
-someone else forces on an open pull request. Renaming the final heading is not opening a section,
-so a bump that only rewrites the heading does not count either.
-
-For a pull request that opens the final section, the gate requires only that the section is not
-empty, and its entries may be lines that were already in the file. Moving an entry under a newly
-inserted heading and splitting an existing section in two are the same edit to git — the entry is
-a context line either way — so the gate cannot tell them apart. It accepts the reclassification
-this lifecycle requires, and therefore also accepts a bump that only re-files existing entries.
-
-Upstream Dependabot pull requests and the repository's automated `.agents` pointer-only pull
-requests are exempt from the revision-history requirements. The exemption verifies the expected
-automation author, internal head repository and branch; `.agents` updates must also change no
-other path. Automated pull requests still have to satisfy every product-version lifecycle rule.
+The gate does not check
+[`documentation/revision-history.md`](../revision-history.md). Every pull request is still
+expected to document its change there, and to move that entry into the new section when someone
+else opens a version - see [Preparing a version](#preparing-a-version) and step 5 of the
+lifecycle above - but that is a review matter, not a merge condition. No automation exemption is
+needed either: a Dependabot or `.agents` pointer pull request has only the version lifecycle and
+the upgrade-script rules to satisfy, like any other.
 
 The gate is evaluated on `refs/pull/<n>/merge`, so a pull request that does not touch
 `all.yml` inherits the base branch version and is never blocked for being out of date.

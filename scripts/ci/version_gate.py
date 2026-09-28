@@ -20,7 +20,6 @@ import json
 import re
 import subprocess
 import sys
-from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -29,11 +28,6 @@ PRODUCT_VERSION_PATTERN = re.compile(r'^product_version:\s*"?([^"\s]+)"?\s*$', r
 VERSION_PATTERN = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SEALING_TAG_PATTERN = re.compile(r"^v?((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-dev)?$")
 VERSION_TAG_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)(?:-[0-9A-Za-z.-]+)?$")
-REVISION_HISTORY_HEADING_PATTERN = re.compile(r"^##[ \t]+(.+?)[ \t]*$", re.MULTILINE)
-REVISION_HISTORY_VERSION_PATTERN = re.compile(
-    r"^((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:[ \t]+.*)?$",
-)
-DIFF_HUNK_PATTERN = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # Sealing is the one step of the lifecycle no workflow performs, so the verdict that waits for
 # it names the procedure a human has to follow.
 SEALING_DOCUMENTATION = "documentation/developer-docs/versioning.md#sealing-a-version"
@@ -51,15 +45,12 @@ class GateFiles:
     """
     The file inputs one gate evaluation reads.
 
-    They travel together and all describe the same pull request: the revision history as the
-    merge result carries it, its diff against the base branch, the upgrade file names in the
+    They travel together and describe the same pull request: the upgrade file names in the
     merge result, and the upgrade file names the pull request adds or modifies. Each stays
     empty when a caller does not supply it, which keeps the rules that need it out of the way
     of callers that only test versions.
     """
 
-    merged_revision_history: str = ""
-    revision_history_diff: str = ""
     merged_upgrade_files: list[str] = field(default_factory=list[str])
     changed_upgrade_files: list[str] = field(default_factory=list[str])
 
@@ -126,165 +117,6 @@ def sealed_versions(tags: list[str]) -> set[str]:
         if version is not None:
             sealed.add(version)
     return sealed
-
-
-def last_revision_history_heading_entry(markdown: str) -> tuple[int, str] | None:
-    """Return the line index and text of the final level-two revision-history heading."""
-    lines = markdown.splitlines()
-    for line_index in range(len(lines) - 1, -1, -1):
-        match = REVISION_HISTORY_HEADING_PATTERN.fullmatch(lines[line_index])
-        if match is not None:
-            return (line_index, match.group(1))
-    return None
-
-
-def last_revision_history_heading(markdown: str) -> str | None:
-    """Return the text of the final level-two revision-history heading."""
-    entry = last_revision_history_heading_entry(markdown)
-    return entry[1] if entry is not None else None
-
-
-def revision_history_heading_version(heading: str) -> str | None:
-    """Return the canonical version at the start of a revision-history heading."""
-    match = REVISION_HISTORY_VERSION_PATTERN.match(heading)
-    return match.group(1) if match is not None else None
-
-
-def is_revision_history_content(line: str) -> bool:
-    """Return whether a revision-history line carries text rather than a heading or a separator."""
-    text = line.strip()
-    return not text.startswith("#") and any(character.isalnum() for character in text)
-
-
-def is_revision_history_heading(line: str) -> bool:
-    """
-    Return whether a revision-history line is a level-two section heading.
-
-    The same pattern that locates the final section decides this, so a line counts as a
-    heading exactly when it could be one: '### details' is a sub-heading, not a section.
-    """
-    return REVISION_HISTORY_HEADING_PATTERN.fullmatch(line) is not None
-
-
-def parse_unified_diff(diff_text: str) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
-    """
-    Split a unified diff into its added and removed lines.
-
-    Both carry a line number in the new file: an added line its own, a removed line the
-    position its hunk is anchored at, which is where the removed text sat relative to the
-    new file. That lets a caller tell which part of the new file a change belongs to.
-    """
-    added_lines: list[tuple[int, str]] = []
-    removed_lines: list[tuple[int, str]] = []
-    # None marks "still in this file's header". Zero cannot serve as that marker: git writes
-    # '@@ -1 +0,0 @@' for a deletion at the head of a file, so zero is a legal hunk start.
-    line_number: int | None = None
-    hunk_anchor = 0
-    for line in diff_text.splitlines():
-        hunk = DIFF_HUNK_PATTERN.match(line)
-        if line.startswith("diff --git"):
-            line_number = None
-        elif hunk is not None:
-            line_number = int(hunk.group(1))
-            hunk_anchor = line_number
-        elif line_number is None:
-            continue  # header lines of the current file, before its first hunk
-        elif line.startswith("+"):
-            added_lines.append((line_number, line[1:]))
-            line_number += 1
-        elif line.startswith("-"):
-            removed_lines.append((hunk_anchor, line[1:]))
-        elif line.startswith(" "):
-            line_number += 1
-    return (added_lines, removed_lines)
-
-
-def count_headings(diff_lines: list[tuple[int, str]]) -> int:
-    """Count the level-two headings among the given diff lines."""
-    return sum(1 for _, line in diff_lines if is_revision_history_heading(line))
-
-
-def opens_final_section(
-    added_lines: list[tuple[int, str]],
-    removed_lines: list[tuple[int, str]],
-    final_heading: str,
-) -> bool:
-    """
-    Return whether the pull request created the final section rather than renaming its heading.
-
-    Both tests compare heading *text*, never line numbers: added lines carry their own position
-    while removed lines carry their hunk's, so any line inserted next to the heading would break
-    a positional comparison. A rename replaces one heading with another and leaves the number of
-    headings unchanged, while opening a section raises it.
-    """
-    final_heading_is_added = any(line.strip() == final_heading for _, line in added_lines)
-    return final_heading_is_added and count_headings(added_lines) > count_headings(removed_lines)
-
-
-def revision_history_has_final_section_addition(merged_markdown: str, revision_history_diff: str) -> bool:
-    """
-    Return whether the pull request adds non-heading text below the final level-two heading.
-
-    The decision is taken from the diff of the pull request rather than from a comparison of
-    the base and merged snapshots, because a new version section is a different section than
-    the base's final one: its text may legitimately repeat wording of an earlier section.
-    Lines are compared by their stripped text, so re-indenting or reordering existing entries
-    cancels out instead of counting as an addition. That cancellation is scoped to the final
-    section: text moved into it from an earlier section is text this section did not have.
-
-    A section the pull request opens is decided from the merged file instead, because an entry
-    that keeps its wording while moving under a newly inserted heading is a context line of the
-    diff rather than an addition. Renaming an existing heading is not opening a section.
-    """
-    heading_entry = last_revision_history_heading_entry(merged_markdown)
-    if heading_entry is None:
-        return False
-
-    heading_line_number = heading_entry[0] + 1
-    merged_lines = merged_markdown.splitlines()
-    added_lines, removed_lines = parse_unified_diff(revision_history_diff)
-    if opens_final_section(added_lines, removed_lines, merged_lines[heading_entry[0]].strip()):
-        # The pull request opened this section, so every line below the heading is text the
-        # section did not have. Reading them from the merged file also catches the entries git
-        # renders as context because they kept their wording while moving under the new heading.
-        return any(is_revision_history_content(line) for line in merged_lines[heading_line_number:])
-
-    added_below_heading = Counter(
-        line.strip()
-        for line_number, line in added_lines
-        if line_number > heading_line_number and is_revision_history_content(line)
-    )
-    removed_below_heading = Counter(
-        line.strip()
-        for line_number, line in removed_lines
-        if line_number >= heading_line_number and is_revision_history_content(line)
-    )
-    return any(count > removed_below_heading[text] for text, count in added_below_heading.items())
-
-
-def evaluate_revision_history(
-    merged_version: str,
-    merged_revision_history: str,
-    revision_history_diff: str,
-) -> Verdict:
-    """Check the final section version and that the pull request adds text beneath it."""
-    last_heading = last_revision_history_heading(merged_revision_history)
-    last_documented_version = revision_history_heading_version(last_heading) if last_heading is not None else None
-    if last_documented_version != merged_version:
-        actual_heading = f"'## {last_heading}'" if last_heading is not None else "missing"
-        return Verdict(
-            ok=False,
-            reason=(
-                f"documentation/revision-history.md must end with a '## {merged_version}' heading "
-                f"(last level-two heading is {actual_heading})"
-            ),
-        )
-    if not revision_history_has_final_section_addition(merged_revision_history, revision_history_diff):
-        return Verdict(
-            ok=False,
-            reason=f"add revision-history text below the final '## {merged_version}' heading",
-        )
-    return Verdict(ok=True, reason=f"revision history adds text for version {merged_version}")
 
 
 def non_canonical_upgrade_files(file_names: list[str]) -> list[str]:
@@ -505,7 +337,6 @@ def evaluate_gate(
     base_version: str,
     sealed: set[str],
     files: GateFiles,
-    revision_history_required: bool = True,
 ) -> Verdict:
     """
     Decide whether a pull request may merge, given the version its merge result carries.
@@ -529,20 +360,7 @@ def evaluate_gate(
     if not upgrade_file_verdict.ok:
         return upgrade_file_verdict
 
-    if not revision_history_required:
-        return Verdict(
-            ok=True,
-            reason=f"{version_verdict.reason}; revision history is exempt for this automated pull request",
-        )
-
-    revision_history_verdict = evaluate_revision_history(
-        merged_version,
-        files.merged_revision_history,
-        files.revision_history_diff,
-    )
-    if not revision_history_verdict.ok:
-        return revision_history_verdict
-    return Verdict(ok=True, reason=f"{version_verdict.reason}; {revision_history_verdict.reason}")
+    return Verdict(ok=True, reason=f"{version_verdict.reason}; {upgrade_file_verdict.reason}")
 
 
 def evaluate_open_version(version: str, sealed: set[str]) -> Verdict:
@@ -641,17 +459,6 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--merged-file", help="all.yml as it looks on refs/pull/<n>/merge")
     gate.add_argument("--base-version")
     gate.add_argument("--base-file", help="all.yml as it looks on the base branch")
-    gate.add_argument("--revision-history", help="revision-history.md as it looks on refs/pull/<n>/merge")
-    gate.add_argument(
-        "--revision-history-diff",
-        required=True,
-        help="unified diff of revision-history.md from the base branch to refs/pull/<n>/merge",
-    )
-    gate.add_argument(
-        "--skip-revision-history",
-        action="store_true",
-        help="skip revision-history validation for a caller-verified automated pull request",
-    )
     gate.add_argument(
         "--upgrade-files",
         help="NUL separated names of roles/database/files/upgrade on refs/pull/<n>/merge",
@@ -678,20 +485,14 @@ def build_parser() -> argparse.ArgumentParser:
 def run_command(arguments: argparse.Namespace) -> Verdict:
     """Dispatch a parsed command to the matching evaluation."""
     if arguments.command == "gate":
-        merged_revision_history = ""
-        if arguments.revision_history is not None:
-            merged_revision_history = Path(arguments.revision_history).read_text(encoding="utf-8")
         return evaluate_gate(
             read_version(arguments.merged_version, arguments.merged_file),
             read_version(arguments.base_version, arguments.base_file),
             sealed_versions(read_tags(arguments.tags_file)),
             GateFiles(
-                merged_revision_history=merged_revision_history,
-                revision_history_diff=Path(arguments.revision_history_diff).read_text(encoding="utf-8"),
                 merged_upgrade_files=read_names(arguments.upgrade_files),
                 changed_upgrade_files=read_names(arguments.changed_upgrade_files),
             ),
-            not arguments.skip_revision_history,
         )
     if arguments.command == "check-open":
         return evaluate_open_version(

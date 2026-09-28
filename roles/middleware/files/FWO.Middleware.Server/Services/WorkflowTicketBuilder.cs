@@ -226,7 +226,7 @@ internal sealed class WorkflowTicketBuilder
             StateId = taskContext.TicketStateId,
             AdditionalInfo = BuildGroupAdditionalInfo(request, groupEntity.DisplayName, group.Id),
             Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds,
-                CreateElementContext(taskContext, ElemFieldType.source, $"{groupPath}.memberIds",
+                CreateElementContext(taskContext, $"{groupPath}.memberIds",
                     memberId => BuildGroupMemberElement(memberId, taskContext.Entities, ElemFieldType.source, taskContext.FlowReferences))),
             Approvals = [BuildApproval(taskContext.TicketStateId)],
             Locked = true
@@ -250,15 +250,15 @@ internal sealed class WorkflowTicketBuilder
             StateId = taskContext.TicketStateId,
             AdditionalInfo = BuildGroupAdditionalInfo(request, groupEntity.DisplayName, group.Id),
             Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds,
-                CreateElementContext(taskContext, ElemFieldType.service, $"{groupPath}.memberIds",
+                CreateElementContext(taskContext, $"{groupPath}.memberIds",
                     memberId => BuildGroupMemberElement(memberId, taskContext.Entities, ElemFieldType.service, taskContext.FlowReferences))),
             Approvals = [BuildApproval(taskContext.TicketStateId)],
             Locked = true
         };
     }
 
-    private static WorkflowTicketElementContext CreateElementContext(WorkflowTicketTaskContext taskContext, ElemFieldType field,
-        string path, Func<long, WfReqElement> buildElement)
+    private static WorkflowTicketElementContext CreateElementContext(WorkflowTicketTaskContext taskContext, string path,
+        Func<long, WfReqElement> buildElement)
     {
         return new(taskContext.Validation.InvalidEntityIds, taskContext.Validation.ValidationErrors, path, buildElement);
     }

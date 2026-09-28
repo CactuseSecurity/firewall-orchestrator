@@ -234,13 +234,18 @@
     private async Task<bool> CheckImplementation()
     {
         ExtStateHandler extStateHandler = new(apiConnection);
-        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi);
+        // the page's token, so navigating away also stops a wait for the rule_owner mapping run
+        ModellingVarianceAnalysis varianceAnalysis = new(apiConnection, extStateHandler, userConfig, AppHandler!.Application, DisplayMessageInUi)
+        {
+            CancellationToken = AppHandler!.CancellationToken
+        };
         ModellingFilter modellingFilter = new()
         {
             SelectedOwner = AppHandler!.Application,
             AnalyseRemainingRules = userConfig.ModRecertExpectAllModelled,
             RulesForDeletedConns = true,
-            VerifyRuleOwnerPreFilterCompleteness = true
+            VerifyRuleOwnerPreFilterCompleteness = true,
+            AllowWaitForRuleOwnerMapping = true
         };
         ModellingVarianceResult varianceResult = await varianceAnalysis.AnalyseRulesVsModelledConnections(ModelledConnections, modellingFilter, true, true);
         (bool appZoneModelled, List<ModellingAppZone?> mgmIdsWithDifferingAZ) = await varianceAnalysis.CheckExistingAppZone();

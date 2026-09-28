@@ -219,6 +219,7 @@ else
     private bool showRejected = false;
 
     private bool appActive = false;
+    private readonly CancellationTokenSource varianceTokenSource = new();
     private bool showHistory = false;
     private bool shareLink = false;
     private bool showFwChange = false;
@@ -332,7 +333,8 @@ else
             appHandler = new ModellingAppHandler(apiConnection, userConfig, selectedApp, DisplayMessageInUi, IsModellingInteractionAllowedForApp(newApp))
             {
                 ActWidth = sidebarLeftWidth,
-                StartCollapsed = firstInit
+                StartCollapsed = firstInit,
+                CancellationToken = varianceTokenSource.Token
             };
             firstInit = false;
             await appHandler.Init();
@@ -686,6 +688,9 @@ else
         disposed = true;
         userConfig.OnChange -= OnUserConfigChanged;
         actTicketSubscription?.Dispose();
+        // stops a variance analysis that is waiting for the rule_owner mapping run
+        varianceTokenSource.Cancel();
+        varianceTokenSource.Dispose();
     }
 
     /// <summary>

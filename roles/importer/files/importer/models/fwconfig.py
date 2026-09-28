@@ -1,6 +1,6 @@
 from typing import Any
 
-from fwo_base import ConfFormat
+from fwo_enums import ConfFormat
 from pydantic import BaseModel
 
 """

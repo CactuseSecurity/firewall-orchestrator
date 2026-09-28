@@ -138,6 +138,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanActOnImplTaskInCurrentPhase_OnlyAllowsStatesWithinPhaseBounds()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 10, LowestEndState = 20 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanActOnImplTaskInCurrentPhase(new WfImplTask { TaskType = taskType, StateId = 9 }), Is.False);
+                Assert.That(handler.CanActOnImplTaskInCurrentPhase(new WfImplTask { TaskType = taskType, StateId = 10 }), Is.True);
+                Assert.That(handler.CanActOnImplTaskInCurrentPhase(new WfImplTask { TaskType = taskType, StateId = 19 }), Is.True);
+                Assert.That(handler.CanActOnImplTaskInCurrentPhase(new WfImplTask { TaskType = taskType, StateId = 20 }), Is.False);
+            });
+        }
+
+        [Test]
         public async Task AddImplTask_AddsActiveImplementationTask()
         {
             WfHandler handler = new();

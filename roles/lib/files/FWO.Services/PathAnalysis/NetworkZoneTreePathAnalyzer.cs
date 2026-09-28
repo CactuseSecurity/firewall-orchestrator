@@ -15,9 +15,19 @@ namespace FWO.Services.PathAnalysis
             long matrixId = request.MatrixId ?? globalConfig.DesignatedZoneMatrixId;
             //todo: if matrixId==0 warning in ui
             MatrixData networkData = await LoadNetworkDataAsync(matrixId);
-            // 2. reinen Algorithmus rufen - lebt in FWO.NetworkTopology, kennt keine ApiConnection
-
-            // 3. Ergebnis auf PathAnalysisResult mappen, Devices deduplizieren
+            NetworkZoneTreeAlgorithm algorithm = new(networkData);
+            QueryInput queryInput = new()
+            {
+                Sources = request.Sources,
+                Destinations = request.Destinations
+            };
+            List<PathSegment> pathSegments = algorithm.FindDevicesInPaths(queryInput);
+            return new PathAnalysisResult
+            {
+                AlgorithmId = GlobalConst.kPathAnalysisAlgorithmNetworkZoneTree,
+                Segments = pathSegments,
+                Devices = [.. pathSegments.SelectMany(segment => segment.Devices).Distinct()]
+            };
         }
 
         private async Task<MatrixData> LoadNetworkDataAsync(long matrixId)
@@ -25,11 +35,11 @@ namespace FWO.Services.PathAnalysis
             Task<List<ComplianceNetworkZone>> zonesTask = apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
                 NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             Task<List<NetworkZoneIpRange>> ipRangesTask = apiConnection.SendQueryAsync<List<NetworkZoneIpRange>>(
-                NetworkZoneQueries.getIpRangesForMatrix, new { matrixId = matrixId });
+                NetworkZoneQueries.getIpRangesForMatrix, new { matrixId });
             Task<List<NetworkZoneDeviceIpRange>> rootPathsTask  = apiConnection.SendQueryAsync<List<NetworkZoneDeviceIpRange>>(
-                NetworkZoneQueries.getNetworkZoneDeviceIpRangeRoot, new { criterionId = matrixId });
+                NetworkZoneQueries.getNetworkZoneDeviceIpRangeRoot, new { matrixId });
             Task<List<NetworkZoneDeviceIpRange>> internetPathsTask  = apiConnection.SendQueryAsync<List<NetworkZoneDeviceIpRange>>(
-                NetworkZoneQueries.getNetworkZoneDeviceIpRangeInternet, new { criterionId = matrixId });
+                NetworkZoneQueries.getNetworkZoneDeviceIpRangeInternet, new { matrixId });
 
             await Task.WhenAll(zonesTask, ipRangesTask, rootPathsTask, internetPathsTask);
             return new MatrixData

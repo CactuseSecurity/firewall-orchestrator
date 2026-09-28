@@ -1,4 +1,4 @@
-query getNetworkZoneDeviceIpRangeRoot ($matrixId: Int!) {
+query getNetworkZoneDeviceIpRangeRoot ($matrixId: long!) {
   network_zone_device_ip_range_root (where: { ip_range: { criterion_id: {_eq: $matrixId} } }) {
     dev_id
     ip_range_id

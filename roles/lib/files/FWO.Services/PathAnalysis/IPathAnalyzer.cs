@@ -3,27 +3,43 @@ using NetTools;
 
 namespace FWO.Services.PathAnalysis
 {
+    /// <summary>
+    /// Runs a path analysis for a set of source and destination ranges.
+    /// The configured algorithm decides which implementation runs.
+    /// </summary>
     public interface IPathAnalyzer
     {
+        /// <summary>Starts a path analysis run.</summary>
         Task<PathAnalysisResult> AnalyzeAsync(PathAnalysisRequest request);
     }
     /// <summary>Parameters for a path analysis run.</summary>
     public sealed class PathAnalysisRequest
     {
+        /// <summary>Source ip ranges to resolve.</summary>
         public List<IPAddressRange> Sources { get; init; } = [];
+        /// <summary>Destination ip ranges to resolve.</summary>
         public List<IPAddressRange> Destinations { get; init; } = [];
-        /// <summary>Matrix used for Network Zone Tree algorithm, ignored by other algorithms.
-        /// If omitted for NZT algo, then DesignatedZoneMatrixId is used when set. </summary>
+        /// <summary>
+        /// Matrix used by the network zone tree algorithm, ignored by other algorithms.
+        /// When omitted, the configured designated zone matrix is used.
+        /// </summary>
         public long? MatrixId { get; init; }
     }
+    /// <summary>The result of a path analysis run.</summary>
     public sealed class PathAnalysisResult
     {
-        /// <summary>Id of Algorithm in path_analysis_algorithm.</summary>
+        /// <summary>Id of the algorithm in path_analysis_algorithm.</summary>
         public long AlgorithmId { get; init; }
-        /// <summary>Deduplicated and unsorted list of devices in path.</summary>
-        public List<PathDevice> Devices { get; init; } = [];
-        /// <summary>List of input ranges that are not covered by network zones.
-        /// Is empty if autoCalculateUndefinedInternalZone is enabled.</summary>
-        public List<IPAddressRange> UnresolvedRanges { get; init; } = [];
+        /// <summary>
+        /// One segment per combination of a source and a destination ip range. Empty for algorithms
+        /// that do not resolve zones, such as the routing based one.
+        /// </summary>
+        public IReadOnlyList<PathSegment> Segments { get; init; } = [];
+        /// <summary>
+        /// Unordered and deduplicated list of devices in the path.
+        /// Derived from Segments where an algorithm provides them,
+        /// and the only result of algorithms that do not resolve zones.
+        /// </summary>
+        public IReadOnlyList<PathDevice> Devices { get; init; } = [];
     }
 }

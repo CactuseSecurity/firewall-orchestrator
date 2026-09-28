@@ -17,7 +17,7 @@ namespace FWO.Data
         /// </summary>
         [JsonProperty("order_to_root"), JsonPropertyName("order_to_root")]
         public int? OrderToRoot { get; set; }
-        // <summary>
+        /// <summary>
         /// Position of the device on the path from ip range to the internet, starting at 1.
         /// Position 1 is the gateway closest to the ip range, higher values lie further towards internet.
         /// Null when this row describes an root path.

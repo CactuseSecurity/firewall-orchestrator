@@ -1,21 +1,27 @@
 using FWO.Data;
 using FWO.Basics;
 using NetTools;
-using System.Net;
 
 namespace FWO.NetworkTopology
 {
+    /// <summary>Data input for the algorithm.</summary>
     public sealed record MatrixData
     {
+        /// <summary>Data collected from network_zone.zone.</summary>
         public List<ComplianceNetworkZone> Zones { get; init; } = [];
+        /// <summary>Data collected from network_zone.ip_range.</summary>
         public List<NetworkZoneIpRange> IpRanges { get; init; } = [];
+        /// <summary>Data collected from network_zone.device_ip_range_root.</summary>
         public List<NetworkZoneDeviceIpRange> RootPaths { get; init; } = [];
+        /// <summary>Data collected from network_zone.device_ip_range_internet.</summary>
         public List<NetworkZoneDeviceIpRange> InternetPaths { get; init; } = [];
     }
     /// <summary>One path query against the matrix this algorithm was built for.</summary>
     public sealed record QueryInput
     {
+        /// <summary>Source input of arbitrary ip ranges.</summary>
         public List<IPAddressRange> Sources { get; init; } = [];
+        /// <summary>Destination input of arbitrary ip ranges.</summary>
         public List<IPAddressRange> Destinations { get; init; } = [];
     }
     /// <summary>One firewall device found on a path.</summary>
@@ -40,71 +46,90 @@ namespace FWO.NetworkTopology
     /// <summary>Source or destination of a path.</summary>
     public sealed record PathEndpoint
     {
+        /// <summary>Database id of network_zone.ip_range.</summary>
         public int IpRangeId { get; init; }
+        /// <summary>Database id of network_zone.zone.</summary>
         public int ZoneId { get; init; }
+        /// <summary>Kind of the zone this endpoint belongs to, which decides how the path is determined.</summary>
         public ZoneKind ZoneKind { get; init; }
     }
+    /// <summary>
+    /// The algorithm return for one combination of a source and a destination ip range.
+    /// </summary>
     public sealed record PathSegment
     {
-        public PathEndpoint Source { get; init; } = new();
-        public PathEndpoint Destination { get; init; } = new();
-        public List<PathDevice> Devices { get; init; } = [];
+        public required PathEndpoint Source { get; init; }
+        public required PathEndpoint Destination { get; init; }
+        /// <summary>
+        /// Devices on the path, ordered from the source towards the destination.
+        /// Includes the lowest common ancestor if the two paths share one.
+        /// Empty when no path applies for the zone kind combination.
+        /// </summary>
+        public IReadOnlyList<PathDevice> Devices { get; init; } = [];
     }
+    /// <summary>
+    /// Provides the algorithm that finds paths between a source and a destination input.
+    /// The algorithm uses the data of the network matrix.
+    /// </summary>
     public class NetworkZoneTreeAlgorithm
     {
         /// <summary>One ip range of the matrix together with its parsed address range.</summary>
         private sealed record ParsedIpRange(NetworkZoneIpRange Row, IPAddressRange Range);
-        private readonly MatrixData matrixData;
         private readonly List<ParsedIpRange> parsedIpRanges = [];
         private readonly int? internetZoneId;
         private readonly int? undefinedInternalZoneId;
         private readonly Dictionary<int, List<PathDevice>> rootPathByIpRangeId;
         private readonly Dictionary<int, List<PathDevice>> internetPathByIpRangeId;
 
+        /// <summary>Builds the indices for the input data.</summary>
         public NetworkZoneTreeAlgorithm(MatrixData matrixData)
         {
-            this.matrixData = matrixData;
             internetZoneId = matrixData.Zones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone)?.Id;
             undefinedInternalZoneId = matrixData.Zones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone)?.Id;
-
-            //ComplianceNetworkZone? internetZone = matrixData.Zones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone);
-            //ComplianceNetworkZone? undefinedInternalZone = matrixData.Zones.FirstOrDefault(zone => zone.IsAutoCalculatedUndefinedInternalZone);
 
             foreach (NetworkZoneIpRange zoneRange in matrixData.IpRanges)
             {
                 parsedIpRanges.Add(new ParsedIpRange(zoneRange, ToRange(zoneRange)));
             }
 
-            rootPathByIpRangeId = [];
-            foreach (NetworkZoneDeviceIpRange row in matrixData.RootPaths.OrderBy(row => row.OrderToRoot))
-            {
-                if (!rootPathByIpRangeId.TryGetValue(row.IpRangeId, out List<PathDevice>? devices))
-                {
-                    devices = [];
-                    rootPathByIpRangeId[row.IpRangeId] = devices;
-                }
-                devices.Add(new PathDevice { Id = row.DeviceId, Name = row.Device?.Name ?? "" });
-            }
-
-            internetPathByIpRangeId = [];
-            foreach (NetworkZoneDeviceIpRange row in matrixData.InternetPaths.OrderBy(row => row.OrderToInternet))
-            {
-                if (!internetPathByIpRangeId.TryGetValue(row.IpRangeId, out List<PathDevice>? devices))
-                {
-                    devices = [];
-                    internetPathByIpRangeId[row.IpRangeId] = devices;
-                }
-                devices.Add(new PathDevice { Id = row.DeviceId, Name = row.Device?.Name ?? "" });
-            }
+            rootPathByIpRangeId = BuildPathIndex(matrixData.RootPaths, row => row.OrderToRoot);
+            internetPathByIpRangeId = BuildPathIndex(matrixData.InternetPaths, row => row.OrderToInternet);
         }
 
-        public List<PathSegment> FindDeviceInPath(QueryInput input)
+        /// <summary>
+        /// Groups path rows by their ip range and converts them into devices, ordered by path position.
+        /// </summary>
+        private static Dictionary<int, List<PathDevice>> BuildPathIndex(
+            List<NetworkZoneDeviceIpRange> pathRows,
+            Func<NetworkZoneDeviceIpRange, int?> orderSelector)
+        {
+            Dictionary<int, List<PathDevice>> index = [];
+            foreach (NetworkZoneDeviceIpRange row in pathRows.OrderBy(orderSelector))
+            {
+                if (!index.TryGetValue(row.IpRangeId, out List<PathDevice>? devices))
+                {
+                    devices = [];
+                    index[row.IpRangeId] = devices;
+                }
+                devices.Add(new PathDevice { Id = row.DeviceId, Name = row.Device?.Name ?? "" });
+            }
+            return index;
+        }
+
+        /// <summary>
+        /// Returns an ordered path for each combination of source and destination ip ranges
+        /// in network_zone.ip_range. The lowest common ancestor is included in the path if it exists.
+        /// </summary>
+        public List<PathSegment> FindDevicesInPaths(QueryInput input)
         {
             List<NetworkZoneIpRange> sourceRanges = LookupRelevantRanges(input.Sources);
             List<NetworkZoneIpRange> destinationRanges = LookupRelevantRanges(input.Destinations);
-            List <PathSegment> CalculatePaths(sourceRanges, destinationRanges);
+            return CalculatePaths(sourceRanges, destinationRanges);
         }
 
+        /// <summary>
+        /// Finds all ranges in network_zone.ip_range that overlap with the algorithm input.
+        /// </summary>
         private List<NetworkZoneIpRange> LookupRelevantRanges(List<IPAddressRange> inputRanges)
         {
             List<NetworkZoneIpRange> relevantRanges = [];
@@ -122,28 +147,35 @@ namespace FWO.NetworkTopology
             return relevantRanges;
         }
 
-        private List <PathSegment> CalculatePaths(
+        /// <summary>
+        /// Forms the cross product of all source and destination ranges
+        /// and returns an ordered path for each combination.
+        /// </summary>
+        private List<PathSegment> CalculatePaths(
             List<NetworkZoneIpRange> sourceRanges, List<NetworkZoneIpRange> destinationRanges)
         {
             List<PathSegment> segments = [];
             List<PathEndpoint> destinationEndpoints = [.. destinationRanges.Select(ToEndpoint)];
             List<PathEndpoint> sourceEndpoints = [.. sourceRanges.Select(ToEndpoint)];
             
-            foreach (PathEndpoint sourceEndpoint in sourceEndpoints)
+            foreach (PathEndpoint source in sourceEndpoints)
             {
-                foreach (PathEndpoint destinationEndpoint in destinationEndpoints)
+                foreach (PathEndpoint destination in destinationEndpoints)
                 {
                     segments.Add(new PathSegment
                     {
-                        Source = sourceEndpoint,
-                        Destination = destinationEndpoint,
-                        Devices = FindDevices(sourceEndpoint, destinationEndpoint)
+                        Source = source,
+                        Destination = destination,
+                        Devices = FindDevices(source, destination)
                     });
                 }
             }
             return segments;
         }
         
+        /// <summary>
+        /// Builds a PathEndpoint from a NetworkZoneIpRange.
+        /// </summary>
         private PathEndpoint ToEndpoint(NetworkZoneIpRange range)
         {
             return new PathEndpoint
@@ -154,6 +186,9 @@ namespace FWO.NetworkTopology
             };
         }
 
+        /// <summary>
+        /// Classifies a zone by comparing it against the auto calculated zone ids.
+        /// </summary>
         private ZoneKind ClassifyZone(int zoneId)
         {
             if (zoneId == internetZoneId) return ZoneKind.Internet;
@@ -161,27 +196,57 @@ namespace FWO.NetworkTopology
             return ZoneKind.Configured;
         }
 
-        private List<PathDevice> FindDevices(PathEndpoint sourceEndpoint, PathEndpoint destinationEndpoint)
+        /// <summary>
+        /// Decides how to return path devices based on the ZoneKind of source and destination.
+        /// Path is calculated with the LCA algorithm if both sides are Configured.
+        /// If exactly one side is Internet then the internet path of the other side is returned.
+        /// All other ZoneKind combinations return an empty list.
+        /// </summary>
+        private List<PathDevice> FindDevices(PathEndpoint source, PathEndpoint destination)
         {
-            if (sourceEndpoint.ZoneKind == ZoneKind.UndefinedInternal || destinationEndpoint.ZoneKind == ZoneKind.UndefinedInternal)
+            return (source.ZoneKind, destination.ZoneKind) switch
             {
-                return [];
-            }
-            else if (sourceEndpoint.ZoneKind == ZoneKind.Internet && destinationEndpoint.ZoneKind == ZoneKind.Internet)
-            {
-                return [];
-            }
-            else if (sourceEndpoint.ZoneKind == ZoneKind.Internet)
-            {
-                return internetPathByIpRangeId[destinationEndpoint.IpRangeId];
-            }
-            else if (destinationEndpoint.ZoneKind == ZoneKind.Internet)
-            {
-                return internetPathByIpRangeId[sourceEndpoint.IpRangeId];
-            }
-            //hier weiter mitkürzung
+                (ZoneKind.UndefinedInternal, _) or (_, ZoneKind.UndefinedInternal) => [],
+                (ZoneKind.Internet, ZoneKind.Internet) => [],
+                (ZoneKind.Internet, _) => [.. internetPathByIpRangeId.GetValueOrDefault(destination.IpRangeId) ?? []],
+                (_, ZoneKind.Internet) => [.. internetPathByIpRangeId.GetValueOrDefault(source.IpRangeId) ?? []],
+                (ZoneKind.Configured, ZoneKind.Configured) => LowestCommonAncestorAlgorithm(source, destination),
+                _ => throw new NotSupportedException(
+                    $"Unsupported zone kind combination '{source.ZoneKind}'/'{destination.ZoneKind}'.")
+            };
         }
 
+        /// <summary>
+        /// Returns the ordered path through the tree between source and destination.
+        /// The lowest common ancestor is included in the path if it exists.
+        /// </summary>
+        private List<PathDevice> LowestCommonAncestorAlgorithm(PathEndpoint source, PathEndpoint destination)
+        {
+            List<PathDevice> sourcePath = rootPathByIpRangeId.GetValueOrDefault(source.IpRangeId) ?? [];
+            List<PathDevice> destinationPath = rootPathByIpRangeId.GetValueOrDefault(destination.IpRangeId) ?? [];
+
+            int common = 0;
+            while (common < sourcePath.Count
+                && common < destinationPath.Count
+                && sourcePath[^(common + 1)].Id == destinationPath[^(common + 1)].Id)
+            {
+                common++;
+            }
+
+            List<PathDevice> devices = [.. sourcePath.Take(sourcePath.Count - common)];
+            // Add lowest common ancestor between paths
+            if (common > 0)
+            {
+                devices.Add(sourcePath[^common]);
+            }
+
+            devices.AddRange(destinationPath.Take(destinationPath.Count - common).Reverse());
+            return devices;
+        }
+
+        /// <summary>
+        /// Transforms a NetworkZoneIpRange to an IPAddressRange.
+        /// </summary>
         private static IPAddressRange ToRange(NetworkZoneIpRange ipRange) =>
             new(IPAddressRange.Parse(ipRange.IpRangeStart).Begin,
                 IPAddressRange.Parse(ipRange.IpRangeEnd).Begin);

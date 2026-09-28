@@ -1,32 +1,64 @@
 ---
-- name: Check whether the Apache TLS private key exists
+# Runs before roles/internalCA and immediately before Apache is restarted, so the key
+# Apache is about to load is whatever the installed vhost references: on an upgrade an
+# arbitrary customer-managed path, on a fresh install nothing yet. Checking only the FWO
+# default would skip exactly the retained customer key this preflight exists for and let
+# it reach the restart as the opaque service failure this replaces.
+- name: Read the installed FWO Apache configuration
+  slurp:
+    src: "{{ apache_vhost_conf_file }}"
+  register: apache_tls_vhost_content
+  failed_when: false
+  when: apache_vhost_conf_file | length > 0
+
+# The FWO default is checked as well as the configured one: on a fresh install no vhost
+# exists yet, and an upgrade can leave a stale key at the legacy path.
+- name: Collect the private keys Apache may load
+  set_fact:
+    apache_tls_private_keys: >-
+      {{
+        (
+          (apache_tls_vhost_content.content | default('') | b64decode
+            | regex_findall('(?m)^\s*SSLCertificateKeyFile\s+([^\s]+)'))
+          + [apache_ssl_dir ~ '/server.key']
+        ) | unique
+      }}
+
+- name: Check whether the Apache TLS private keys exist
   stat:
-    path: "{{ apache_ssl_dir }}/server.key"
+    path: "{{ item }}"
+  loop: "{{ apache_tls_private_keys }}"
   register: apache_tls_private_key_stat
 
-- name: Check that the Apache TLS private key can be loaded without a passphrase
+- name: Check that the Apache TLS private keys can be loaded without a passphrase
   command:
     argv:
       - openssl
       - pkey
       - -in
-      - "{{ apache_ssl_dir }}/server.key"
+      - "{{ item.item }}"
       - -noout
       - -passin
       - "pass:"
+  loop: "{{ apache_tls_private_key_stat.results }}"
+  loop_control:
+    label: "{{ item.item }}"
   register: apache_tls_private_key_check
   changed_when: false
   failed_when: false
   no_log: true
-  when: apache_tls_private_key_stat.stat.exists
+  when: item.stat.exists
 
-- name: Require an Apache TLS private key that supports unattended startup
+- name: Require Apache TLS private keys that support unattended startup
   assert:
     that:
-      - apache_tls_private_key_check.rc == 0
+      - item.rc == 0
     fail_msg: >-
-      {{ apache_ssl_dir }}/server.key cannot be loaded without a passphrase.
+      {{ item.item.item }} cannot be loaded without a passphrase.
       FWO restarts Apache during installation and upgrades and Apache must also start
       unattended after a reboot. Replace it with an unencrypted private key protected
       by root ownership and mode 0640, then run the installer again.
-  when: apache_tls_private_key_stat.stat.exists
+  loop: "{{ apache_tls_private_key_check.results }}"
+  loop_control:
+    label: "{{ item.item.item }}"
+  when: not (item.skipped | default(false) | bool)

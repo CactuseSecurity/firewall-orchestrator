@@ -7,7 +7,10 @@ namespace FWO.DeviceAutoDiscovery
 {
     public class FortiManagerClient : RestApiClient
     {
-        public FortiManagerClient(Management fortiManager) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc")
+        // checkCertificates: false keeps the behaviour this client has always had - a
+        // FortiManager typically presents its own self-signed certificate, which no FWO
+        // host trusts. Only the FWO internal REST leg validates by default.
+        public FortiManagerClient(Management fortiManager) : base("https://" + fortiManager.Hostname + ":" + fortiManager.Port + "/jsonrpc", checkCertificates: false)
         { }
 
         public async Task<RestResponse<SessionAuthInfo>> AuthenticateUser(string? user, string pwd, string domainString = "")

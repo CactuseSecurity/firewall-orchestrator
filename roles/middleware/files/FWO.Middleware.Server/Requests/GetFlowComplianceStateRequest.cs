@@ -56,6 +56,12 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
         public string IpEnd { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets the CIDR network value. This is mutually exclusive with IpStart and IpEnd.
+        /// </summary>
+        [JsonPropertyName("ipNetwork")]
+        public string IpNetwork { get; set; } = string.Empty;
+
+        /// <summary>
         /// Gets the AdditionalData value.
         /// </summary>
         [JsonExtensionData]

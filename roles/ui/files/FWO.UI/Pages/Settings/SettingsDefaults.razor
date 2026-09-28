@@ -12,6 +12,8 @@
 @inject GlobalConfig globalConfig
 @inject UserConfig userConfig
 @inject IEventMediator EventMediator
+@inject IInternalCaCertificateProvider certificateProvider
+@inject IJSRuntime jsRuntime
 
 <div class="input-group">
     <h3>@(userConfig.GetText("standards"))</h3>
@@ -19,6 +21,23 @@
 </div>
 @(userConfig.GetText("U5311"))
 <hr />
+
+<h4>@userConfig.GetText("internal_ca_certificate")</h4>
+<p>@userConfig.GetText("internal_ca_certificate_description")</p>
+
+@if (!string.IsNullOrEmpty(certificatePem))
+{
+    <div class="d-flex gap-2 mb-2">
+        <button type="button" class="btn btn-sm btn-primary" @onclick="CopyCertificateToClipboard">
+            @DisplayService.DisplayButton(userConfig, "copy_to_clipboard", Icons.Clipboard)
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" @onclick="DownloadCertificate">
+            @DisplayService.DisplayButton(userConfig, "download", Icons.Download)
+        </button>
+    </div>
+    <pre class="border rounded bg-light p-3 overflow-auto"><code>@certificatePem</code></pre>
+    <hr />
+}
 
 @if (configData != null && InitComplete)
 {
@@ -284,6 +303,9 @@ else
 
 @code
 {
+    private const string kCertificateFileName = "fworch-internal-ca.crt";
+    private const string kCertificateContentType = "application/x-pem-file";
+
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
@@ -304,9 +326,11 @@ else
     private int DynamicAccessTokenLifetimeMinValue = 1;
     private int DynamicRefreshTokenLifetimeMinValue = 1;
     private List<PathAnalysisAlgorithm> pathAnalysisAlgorithms = [];
+    private string certificatePem = "";
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadInternalCaCertificate();
         try
         {
             // Subscribe to events for file uploads and logo import
@@ -347,6 +371,46 @@ else
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
         }
+    }
+
+    /// <summary>
+    /// Loads the public internal CA certificate before the rest of the settings.
+    /// </summary>
+    /// <remarks>
+    /// Awaited up front rather than after the first render: it reads one local file of a
+    /// couple of kilobytes, so nothing measurable is gained by deferring it, and having the
+    /// certificate present before the first render keeps its block from appearing late.
+    /// It cannot hold the page back on a failure either - a failed read is reported and
+    /// leaves the string empty, which hides the block instead of blocking initialization.
+    /// </remarks>
+    private async Task LoadInternalCaCertificate()
+    {
+        try
+        {
+            certificatePem = await certificateProvider.GetAsync();
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("internal_ca_certificate"),
+                userConfig.GetText("internal_ca_certificate_load_error"), true);
+        }
+    }
+
+    /// <summary>
+    /// Copies the displayed PEM certificate to the browser clipboard.
+    /// </summary>
+    private async Task CopyCertificateToClipboard()
+    {
+        await jsRuntime.InvokeVoidAsync("copyText", certificatePem);
+    }
+
+    /// <summary>
+    /// Downloads the displayed PEM certificate.
+    /// </summary>
+    private async Task DownloadCertificate()
+    {
+        await jsRuntime.InvokeVoidAsync("DownloadFile", kCertificateFileName,
+            kCertificateContentType, certificatePem);
     }
 
     private void SetDynamicTokenLifetimeMinValue(ChangeEventArgs e, 

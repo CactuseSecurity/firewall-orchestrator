@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Net;
 using System.Text;
 using FWO.Middleware.Client;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
@@ -514,6 +515,103 @@ namespace FWO.Test
 
             // Assert - only one refresh should have occurred due to semaphore
             Assert.That(mockMiddlewareClient.RefreshTokenCallCount, Is.LessThanOrEqualTo(1));
+        }
+
+
+        /// <summary>
+        /// A 5xx says the middleware could not carry the refresh out - the 503 it answers
+        /// when the API is unreachable. That is no verdict on the refresh token, so the
+        /// outcome has to tell the caller to keep the stored pair.
+        /// </summary>
+        [Test]
+        public async Task TryRefreshTokenPair_WhenTheApiCannotBeReached_ShouldReportRetryable()
+        {
+            await tokenService!.SetTokenPair(CreateExpiredTokenPair());
+            mockMiddlewareClient!.ShouldRefreshSucceed = false;
+            mockMiddlewareClient.RefreshFailureStatusCode = HttpStatusCode.ServiceUnavailable;
+
+            TokenRefreshResult result = await tokenService.TryRefreshTokenPair();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Tokens, Is.Null);
+                Assert.That(result.Retryable, Is.True, "a 503 must not be read as a rejection of the refresh token");
+            });
+        }
+
+        /// <summary>
+        /// The other half of the same decision: a 401 is the middleware's verdict on this
+        /// token and does settle the session, so it must not be reported as retryable.
+        /// </summary>
+        [Test]
+        public async Task TryRefreshTokenPair_WhenTheRefreshTokenIsRejected_ShouldNotReportRetryable()
+        {
+            await tokenService!.SetTokenPair(CreateExpiredTokenPair());
+            mockMiddlewareClient!.ShouldRefreshSucceed = false;
+            mockMiddlewareClient.RefreshFailureStatusCode = HttpStatusCode.Unauthorized;
+
+            TokenRefreshResult result = await tokenService.TryRefreshTokenPair();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Tokens, Is.Null);
+                Assert.That(result.Retryable, Is.False);
+            });
+        }
+
+        /// <summary>
+        /// No HTTP answer arrived at all, so nothing was learned about the token either.
+        /// </summary>
+        [Test]
+        public async Task TryRefreshTokenPair_WhenTheCallDoesNotComplete_ShouldReportRetryable()
+        {
+            await tokenService!.SetTokenPair(CreateExpiredTokenPair());
+            mockMiddlewareClient!.ShouldRefreshSucceed = false;
+            mockMiddlewareClient.SimulateRefreshTransportFailure = true;
+
+            TokenRefreshResult result = await tokenService.TryRefreshTokenPair();
+
+            Assert.That(result.Retryable, Is.True);
+        }
+
+        /// <summary>
+        /// A successful refresh is not retryable, because there is nothing to retry.
+        /// </summary>
+        [Test]
+        public async Task TryRefreshTokenPair_WhenRefreshSucceeds_ShouldReturnThePairAndNotBeRetryable()
+        {
+            await tokenService!.SetTokenPair(CreateExpiredTokenPair());
+            mockMiddlewareClient!.ShouldRefreshSucceed = true;
+            mockMiddlewareClient.NextRefreshTokenResponse = new TokenPair
+            {
+                AccessToken = GenerateJwtToken(DateTime.UtcNow.AddHours(1)),
+                RefreshToken = "new-refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddHours(1),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(7)
+            };
+
+            TokenRefreshResult result = await tokenService.TryRefreshTokenPair();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result.Tokens, Is.Not.Null);
+                Assert.That(result.Retryable, Is.False);
+            });
+        }
+
+        /// <summary>
+        /// Builds a token pair whose access token has already expired, so a refresh is due.
+        /// </summary>
+        /// <returns>An expired pair carrying a usable refresh token.</returns>
+        private static TokenPair CreateExpiredTokenPair()
+        {
+            return new TokenPair
+            {
+                AccessToken = GenerateJwtToken(DateTime.UtcNow.AddHours(-1)),
+                RefreshToken = TEST_REFRESH_TOKEN,
+                AccessTokenExpires = DateTime.UtcNow.AddHours(-1),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(7)
+            };
         }
 
         #endregion

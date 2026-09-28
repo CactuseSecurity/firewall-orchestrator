@@ -6,6 +6,7 @@ using FWO.Config.File;
 using FWO.Data;
 using FWO.Middleware.Server;
 using NUnit.Framework;
+using FWO.Test.Helpers;
 
 namespace FWO.Test
 {
@@ -332,19 +333,8 @@ namespace FWO.Test
             LogDataImportTestApiConn apiConnection = new();
             LogDataImport import = CreateImport(apiConnection);
             List<LogDataImportEntry> sourceEntries = [NewSourceEntry("UNKNOWN", 30, "192.0.2.1", "198.51.100.1")];
-            TextWriter originalConsoleOut = Console.Out;
-            using StringWriter logOutput = new();
-            Console.SetOut(logOutput);
-            try
-            {
-                await InvokeSaveEntries(import, sourceEntries);
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
+            string writtenLog = await ConsoleOutput.CaptureAsync(() => InvokeSaveEntries(import, sourceEntries));
 
-            string writtenLog = logOutput.ToString();
             Assert.Multiple(() =>
             {
                 Assert.That(writtenLog, Does.Contain("None of the 1 entries"),
@@ -362,19 +352,8 @@ namespace FWO.Test
             LogDataImport import = CreateImport(apiConnection, maxEntries: 2);
             List<LogDataImportEntry> sourceEntries = [.. Enumerable.Range(1, 120)
                 .Select(entryNumber => NewSourceEntry("UNKNOWN", entryNumber, $"192.0.2.{entryNumber % 250}", "198.51.100.1"))];
-            TextWriter originalConsoleOut = Console.Out;
-            using StringWriter logOutput = new();
-            Console.SetOut(logOutput);
-            try
-            {
-                await InvokeSaveEntries(import, sourceEntries);
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
+            string writtenLog = await ConsoleOutput.CaptureAsync(() => InvokeSaveEntries(import, sourceEntries));
 
-            string writtenLog = logOutput.ToString();
             Assert.Multiple(() =>
             {
                 Assert.That(writtenLog, Does.Contain("None of the 120 entries"), "how much was lost is still reported");
@@ -389,21 +368,11 @@ namespace FWO.Test
         {
             LogDataImportTestApiConn apiConnection = new();
             LogDataImport import = CreateImport(apiConnection);
-            TextWriter originalConsoleOut = Console.Out;
-            using StringWriter logOutput = new();
-            Console.SetOut(logOutput);
-            try
-            {
-                await InvokeSaveEntries(import, []);
-            }
-            finally
-            {
-                Console.SetOut(originalConsoleOut);
-            }
+            string logOutput = await ConsoleOutput.CaptureAsync(() => InvokeSaveEntries(import, []));
 
             Assert.Multiple(() =>
             {
-                Assert.That(logOutput.ToString(), Does.Not.Contain("could be imported"));
+                Assert.That(logOutput, Does.Not.Contain("could be imported"));
                 Assert.That(apiConnection.LogEntryDescriptions, Has.Some.Contains("No log entries found"));
             });
         }

@@ -131,12 +131,12 @@
                 </div>
             </div>
         }
-        else
+        else if(configData!.RecertificationMode == RecertificationMode.RuleByRule)
         {
-            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5430"))">
-                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckEmailSubject")):</label>
+            <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5459"))">
+                <label class="col-form-label col-sm-4">@(userConfig.GetText("recCheckNotifications")):</label>
                 <div class="col-sm-8">
-                    <input type="text" class="form-control form-control-sm w-100" @bind="configData!.RecCheckEmailSubject" />
+                    <EditNotifications Client="NotificationClient.RuleRecertification" DeadlineFilter="NotificationDeadline.None"/>
                 </div>
             </div>
         }

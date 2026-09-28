@@ -30,8 +30,11 @@ public class FlowComplianceController : ControllerBase
     /// <summary>
     /// Returns the compliance state for the requested flows using shared compliance data.
     /// This evaluation is not scoped to a modeller or owner.
-    /// Only IPv4 source and destination ranges are supported; IPv6 addresses are rejected during validation.
-    /// Optional /32 masks on ipStart and ipEnd are ignored; all other masks are rejected.
+    /// Source and destination ranges support IPv4 and IPv6 addresses through ipStart and ipEnd.
+    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// CIDR networks must use ipNetwork, must carry the network address itself, and are expanded to
+    /// range boundaries before evaluation.
+    /// Criteria that only support IPv4 report an IPv6 flow as NotAssessable instead of as a violation.
     /// </summary>
     [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
     [HttpPost("getFlowComplianceState")]

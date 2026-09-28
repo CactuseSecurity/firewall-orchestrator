@@ -814,6 +814,22 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CanActOnReqTaskInCurrentPhase_OnlyAllowsStatesWithinPhaseBounds()
+        {
+            WfHandler handler = new();
+            string taskType = WfTaskType.access.ToString();
+            SetMatrix(handler, taskType, new StateMatrix { LowestInputState = 10, LowestEndState = 20 });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(handler.CanActOnReqTaskInCurrentPhase(new WfReqTask { TaskType = taskType, StateId = 9 }), Is.False);
+                Assert.That(handler.CanActOnReqTaskInCurrentPhase(new WfReqTask { TaskType = taskType, StateId = 10 }), Is.True);
+                Assert.That(handler.CanActOnReqTaskInCurrentPhase(new WfReqTask { TaskType = taskType, StateId = 19 }), Is.True);
+                Assert.That(handler.CanActOnReqTaskInCurrentPhase(new WfReqTask { TaskType = taskType, StateId = 20 }), Is.False);
+            });
+        }
+
+        [Test]
         public async Task HandlePathAnalysisAction_DisplayFoundDevicesShowsPathAnalysisPopup()
         {
             WfHandler handler = new();
@@ -850,7 +866,7 @@ namespace FWO.Test
             ReloadApiConnection apiConnection = new(refreshedTicket);
             WfHandler handler = new();
             handler.userConfig.ReqOwnerBased = false;
-            WfDbAccess dbAccess = new((_, _, _, _) => { }, handler.userConfig, apiConnection, null!, true);
+            WfDbAccess dbAccess = new((_, _, _, _) => { }, handler.userConfig, apiConnection, null!, true, WorkflowPhases.request);
             SetPrivateField(handler, "dbAcc", dbAccess);
             return handler;
         }

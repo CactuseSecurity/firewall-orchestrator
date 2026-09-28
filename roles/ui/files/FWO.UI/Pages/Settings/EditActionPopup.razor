@@ -9,7 +9,7 @@
         @if (EditActionMode)
         {
             <h5 class="mt-1">@(userConfig.GetText("general"))</h5>
-            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" />
+            <EditActionGeneral ActAction="actAction" AvailableTaskTypes="AvailableTaskTypes" ActionTypeChanged="ActionTypeChanged" ScopeChanged="ScopeChanged" />
             <hr />
             <h5 class="mt-1">@(userConfig.GetText("action_specific"))</h5>
             <div class="form-group row col-sm-12 mt-2">
@@ -46,7 +46,7 @@
                         </div>
                         break;
                     case nameof(StateActionTypes.SendEmail):
-                        <EditActionSendEmail @ref="sendEmailEditor" ActAction="actAction" PersistedAction="persistedAction" />
+                        <EditActionSendEmail @ref="sendEmailEditor" ActAction="actAction" PersistedAction="editedActionSource" />
                         break;
                     case nameof(StateActionTypes.UpdateModelling):
                         <EditActionUpdateModelling ActAction="actAction" AvailableModIntegrationStateNames="AvailableModIntegrationStateNames" />
@@ -108,7 +108,7 @@
     public EventCallback OnChanged { get; set; }
 
     private WfStateAction actAction = new();
-    private WfStateAction persistedAction = new();
+    private WfStateAction? editedActionSource;
     private string message = "";
     private PathAnalysisActionParams actPathAnalysisParams = new();
     private EditActionSendEmail? sendEmailEditor;
@@ -138,10 +138,10 @@
 
     private void EditAction(WfStateAction action)
     {
-        actAction = action;
-        persistedAction = new WfStateAction(action);
+        editedActionSource = action;
+        actAction = new WfStateAction(action);
         ResetActionEditState();
-        LoadActionExternalParams(action);
+        LoadActionExternalParams(actAction);
         EditActionMode = true;
     }
 
@@ -168,6 +168,11 @@
         actAction.ActionType = newActionType;
         actAction.ExternalParams = "";
         ResetActionSpecificEditState();
+    }
+
+    private void ScopeChanged(string? _)
+    {
+        StateHasChanged();
     }
 
     private void LoadActionExternalParams(WfStateAction action)
@@ -289,16 +294,18 @@
     {
         try
         {
-            if (AddActionMode && sendEmailEditor != null)
+            if (actAction.ActionType == nameof(StateActionTypes.SendEmail) && sendEmailEditor != null)
             {
                 await sendEmailEditor.CleanupOnCancelAsync();
             }
+
             usingStatesEditor?.ResetPendingStateLinks();
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("delete_notification"), "", true);
         }
+
         EditActionMode = false;
         AddActionMode = false;
     }

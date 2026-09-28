@@ -2,15 +2,20 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+import fwo_api as fwo_api_module
 import pytest
 import requests
 from fwo_api import MAX_LOGIN_ERROR_RESPONSE_LEN, FwoApi
+from fwo_config import TlsIdentity
 from fwo_exceptions import FwoApiLoginFailedError
 
 BASE_URL = "http://localhost:8880/"
 TOKEN_ENDPOINT = BASE_URL + "api/AuthenticationToken/GetTokenPair"
 TEST_USER = "importer"
 TEST_PASSWORD = "secret"  # noqa: S105
+TEST_CLIENT_CERTIFICATE = "/etc/fworch/secrets/client/client.crt"
+TEST_CLIENT_PRIVATE_KEY = "/etc/fworch/secrets/client/client.key"
+TEST_CA_CERTIFICATE = "/etc/fworch/fworch-internal-ca.crt"
 
 
 class _FakeResponse:
@@ -34,8 +39,13 @@ class _FakeSession(requests.Session):
         return cast("requests.Response", self._response)
 
 
+def _read_test_tls_identity(_config_file: str) -> TlsIdentity:
+    return TlsIdentity(TEST_CLIENT_CERTIFICATE, TEST_CLIENT_PRIVATE_KEY, TEST_CA_CERTIFICATE)
+
+
 def _patch_session(monkeypatch: pytest.MonkeyPatch, session: _FakeSession) -> None:
     monkeypatch.setattr(requests, "Session", lambda: session)
+    monkeypatch.setattr(fwo_api_module, "read_tls_identity", _read_test_tls_identity)
 
 
 def test_login_returns_response_text_on_success(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -2,6 +2,7 @@ using System;
 using Novell.Directory.Ldap;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,17 @@ namespace FWO.Test
         public static string CreateEncryptedSecret(string secret)
         {
             return AesEnc.Encrypt(secret, kTestMainKey);
+        }
+
+        /// <summary>
+        /// Installs the key CreateEncryptedSecret encrypts with as the process main key, so a
+        /// test can exercise the real decryption path instead of skipping where no installed
+        /// key exists. Restore by disposing the returned scope.
+        /// </summary>
+        /// <returns>A scope that removes the key again when disposed.</returns>
+        public static IDisposable UseTestMainKey()
+        {
+            return new TestMainKeyScope(kTestMainKey);
         }
 
         public static LdapEntry CreateEntry(string dn, params LdapAttribute[] attributes)

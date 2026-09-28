@@ -1,5 +1,7 @@
+using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Encryption;
 using FWO.Middleware.Server;
 using Novell.Directory.Ldap;
 using NUnit.Framework;
@@ -8,8 +10,11 @@ using System.Reflection;
 namespace FWO.Test
 {
     [TestFixture]
+    // TestConnection_DoesNotDecryptAStoredSecret installs a process wide main key.
+    [NonParallelizable]
     internal class LdapBasicTest
     {
+        private const string kClearTextSecret = "theClearTextSecret";
         private static readonly string kUserDn = "uid=user,ou=users,dc=example,dc=com";
         private static readonly string kSearchUser = "cn=search,dc=example,dc=com";
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
@@ -354,6 +359,54 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task TestConnection_BindsWithThePasswordsAsTheyWereGiven()
+        {
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Address = "example.test",
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = "clearTextSearchPwd",
+                WriteUser = "cn=write,dc=example,dc=com",
+                WriteUserPwd = "clearTextWritePwd"
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { "clearTextSearchPwd", "clearTextWritePwd" }));
+        }
+
+        [Test]
+        public async Task TestConnection_DoesNotDecryptAStoredSecret()
+        {
+            // the connection test reaches a server chosen by the caller, so a stored credential
+            // must never be turned back into its clear text form here. The scope installs the key
+            // the fixture encrypts with, so the decryption path is genuinely available and this
+            // asserts that it was not taken - rather than that it could not have been.
+            using IDisposable mainKey = LdapTestSupport.UseTestMainKey();
+
+            string encryptedPwd = LdapTestSupport.CreateEncryptedSecret(kClearTextSecret);
+            Assert.That(encryptedPwd, Is.Not.EqualTo(kClearTextSecret));
+            Assert.That(AesEnc.TryDecrypt(encryptedPwd, true), Is.EqualTo(kClearTextSecret),
+                "the scope must make the secret decryptable, otherwise this test proves nothing");
+
+            FakeLdapConnection connection = new();
+            TestableLdap ldap = new(connection)
+            {
+                Address = "example.test",
+                Port = 636,
+                SearchUser = kSearchUser,
+                SearchUserPwd = encryptedPwd
+            };
+
+            await ldap.TestConnection();
+
+            Assert.That(connection.LastBoundPasswords, Is.EqualTo(new List<string> { encryptedPwd }));
+            Assert.That(connection.LastBoundPasswords, Has.No.Member(kClearTextSecret));
+        }
+
+        [Test]
         public async Task GetUserDetailsFromLdap_UsesOverriddenConnectionWithoutNetwork()
         {
             LdapEntry expectedEntry = Entry(kUserDn, ("uid", ["user"]));
@@ -424,6 +477,7 @@ namespace FWO.Test
             public int BindCalls { get; private set; }
             public int ReadCalls { get; private set; }
             public List<string> LastBoundUsers { get; } = [];
+            public List<string> LastBoundPasswords { get; } = [];
             public LdapConstraints SearchConstraints { get; } = new();
             public LdapConstraints Constraints { get; set; } = new();
             public LdapEntry? ReadResult { get; set; }
@@ -432,6 +486,7 @@ namespace FWO.Test
             {
                 BindCalls++;
                 LastBoundUsers.Add(user);
+                LastBoundPasswords.Add(password);
                 Bound = true;
                 return Task.CompletedTask;
             }

@@ -189,3 +189,74 @@
   vars:
     dropin_content: "{{ hasura_service_dropin.content | b64decode }}"
   when: "'apiserver' in group_names"
+
+# Regression cover for fworch_installed_services, the predicate the upgrade service stops in
+# roles/api and roles/common and the certificate consumer restarts in roles/internalCA all decide
+# on. Both states it has to exclude have already aborted a run: a name systemd knows only from
+# another unit's After= is reported with status "not-found", and a masked unit refuses stop and
+# restart although its unit file exists.
+#
+# Driven against a fixture, because proving it on the live host would mean masking a real fworch
+# unit - and a test that aborts between masking and unmasking leaves the installation broken. The
+# live host is covered by the assertion below it, which is the direction that can be checked
+# without changing anything.
+- name: the installed service detection must exclude unusable unit states
+  assert:
+    that:
+      - fworch_installed_services | sort == expected_installed_services
+    fail_msg: >-
+      installed service detection returned {{ fworch_installed_services | sort }}
+      instead of {{ expected_installed_services }}
+  vars:
+    fworch_service_facts:
+      fworch-middleware.service:
+        name: fworch-middleware.service
+        state: running
+        status: enabled
+        source: systemd
+      apache2.service:
+        name: apache2.service
+        state: running
+        status: static
+        source: systemd
+      fworch-importer-api.service:
+        name: fworch-importer-api.service
+        state: stopped
+        status: failed
+        source: systemd
+      fworch-ui.service:
+        name: fworch-ui.service
+        state: stopped
+        status: masked
+        source: systemd
+      slapd.service:
+        name: slapd.service
+        state: inactive
+        status: not-found
+        source: systemd
+    # sorted, and holding the failed unit: a failed service is installed and restarting it is
+    # exactly what the certificate consumer restarts are for
+    expected_installed_services:
+      - apache2.service
+      - fworch-importer-api.service
+      - fworch-middleware.service
+
+- name: look up the services installed on this host
+  service_facts:
+  become: true
+
+- name: every unit expected on this host must be detected as installed
+  assert:
+    that:
+      - undetected_units | length == 0
+    fail_msg: >-
+      units installed on this host that the service detection does not report as installed:
+      {{ undetected_units }}
+  vars:
+    undetected_units: >-
+      {{
+        expected_unit_names
+        | map('regex_replace', '$', '.service')
+        | difference(fworch_installed_services)
+        | list
+      }}

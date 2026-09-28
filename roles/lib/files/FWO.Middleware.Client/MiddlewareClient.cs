@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Data;
 using FWO.Data.Middleware;
 using RestSharp;
 
@@ -8,7 +9,19 @@ namespace FWO.Middleware.Client
     {
         private bool disposed = false;
 
-        public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/")
+        /// <summary>
+        /// Creates a client for the middleware REST API.
+        /// </summary>
+        /// <remarks>
+        /// Certificate checking is on: this connection carries the user's password on
+        /// its way to being exchanged for a JWT, so accepting any server certificate
+        /// would hand those credentials to anything answering on the port. Platform
+        /// validation is enough because the installer adds the internal CA to the
+        /// operating system trust store on every FWO host (internalCA/install-trust.yml),
+        /// and a customer-managed certificate is validated against its own issuer.
+        /// </remarks>
+        /// <param name="middlewareServerUri">Base uri of the middleware server.</param>
+        public MiddlewareClient(string middlewareServerUri) : base(middlewareServerUri + "api/", checkCertificates: true)
         { }
 
         public async Task<RestResponse<TokenPair>> AuthenticateUser(AuthenticationTokenGetParameters parameters)
@@ -27,7 +40,7 @@ namespace FWO.Middleware.Client
 
         public async Task<RestResponse<int>> TestConnection(LdapGetUpdateParameters parameters)
         {
-            RestRequest request = new("AuthenticationServer/TestConnection", Method.Get);
+            RestRequest request = new("AuthenticationServer/TestConnection", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<int>(request);
         }
@@ -262,6 +275,38 @@ namespace FWO.Middleware.Client
             RestRequest request = new("Workflow/Actions", Method.Post);
             request.AddJsonBody(parameters);
             return await restClient.ExecuteAsync<WorkflowActionResult>(request);
+        }
+
+        /// <summary>
+        /// Processes the configured immediate notification for an interface request.
+        /// </summary>
+        /// <param name="connectionId">Database ID of the requested modelling connection.</param>
+        /// <returns>The REST response containing the result of processing the configured notifications.</returns>
+        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendInterfaceRequestNotification(int connectionId)
+        {
+            RestRequest request = new("Notification/interface-request", Method.Post);
+            request.AddJsonBody(new InterfaceRequestNotificationParameters { ConnectionId = connectionId });
+            return await restClient.ExecuteAsync<NotificationDeliveryResult>(request);
+        }
+
+        /// <summary>
+        /// Processes configured immediate notifications for applications using a decommissioned interface.
+        /// </summary>
+        /// <param name="connectionId">Database ID of the decommissioned modelling connection.</param>
+        /// <param name="replacementConnectionId">Optional replacement connection ID.</param>
+        /// <param name="reason">User-supplied decommission reason.</param>
+        /// <returns>The REST response containing the processing result.</returns>
+        public virtual async Task<RestResponse<NotificationDeliveryResult>> SendInterfaceDecommissionNotification(
+            int connectionId, int? replacementConnectionId, string reason)
+        {
+            RestRequest request = new("Notification/interface-decommission", Method.Post);
+            request.AddJsonBody(new InterfaceDecommissionNotificationParameters
+            {
+                ConnectionId = connectionId,
+                ReplacementConnectionId = replacementConnectionId,
+                Reason = reason
+            });
+            return await restClient.ExecuteAsync<NotificationDeliveryResult>(request);
         }
 
         public async Task<RestResponse<string>> GetReport(ReportGetParameters parameters)

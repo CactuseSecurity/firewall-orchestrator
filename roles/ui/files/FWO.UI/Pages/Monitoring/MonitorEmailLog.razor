@@ -1,0 +1,124 @@
+@inject ApiConnection apiConnection
+@inject UserConfig userConfig
+
+@page "/monitoring/email_log"
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+
+<div class="input-group">
+    <h3>@(userConfig.GetText("email_log"))</h3>
+    <HelpLink Page="monitoring/email_log" />
+</div>
+@(userConfig.GetText("H7414"))
+<hr />
+
+@if (InitComplete)
+{
+    <div class="vheight75">
+        <PageSizeComponent PageSize="@PageSize" PageSizeCallback="UpdatePageSize"></PageSizeComponent>
+        <div class="btn-group mb-2">
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@(CurrentPage == 0)" @onclick="PreviousPage">&lt;</button>
+            <button type="button" class="btn btn-sm btn-secondary" disabled>@(CurrentPage + 1)</button>
+            <button type="button" class="btn btn-sm btn-secondary" disabled="@(!HasNextPage)" @onclick="NextPage">&gt;</button>
+        </div>
+        <Table PageSize="0" TableClass="table table-bordered table-sm th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="NotificationLogEntry" Items="notificationLogEntries">
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("timestamp"))" Field="@(x => x.Timestamp)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("id"))" Field="@(x => x.NotificationId)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("notification"))" Field="@(x => x.NotificationType)" Sortable="false" Filterable="false">
+                <Template>
+                    @(userConfig.GetText(context.NotificationType))
+                </Template>
+            </Column>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline_type"))" Field="@(x => x.DeadlineType)" Sortable="false" Filterable="false">
+                <Template>
+                    @(userConfig.GetText(context.DeadlineType.ToString()))
+                </Template>
+            </Column>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("deadline"))" Field="@(x => x.Deadline)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("state"))" Field="@(x => x.Status)" Sortable="false" Filterable="false">
+                <Template>
+                    @(userConfig.GetText(context.Status.ToString()))
+                </Template>
+            </Column>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("to"))" Field="@(x => x.To)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_cc"))" Field="@(x => x.Cc)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("recipient_bcc"))" Field="@(x => x.Bcc)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("email_subject"))" Field="@(x => x.Subject)" Sortable="false" Filterable="false"/>
+            <Column TableItem="NotificationLogEntry" Title="@(userConfig.GetText("error"))" Field="@(x => x.Error)" Sortable="false" Filterable="false"/>
+        </Table>
+    </div>
+}
+else
+{
+    <Loading/>
+}
+
+@code
+{
+    [CascadingParameter]
+    Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
+
+    private List<NotificationLogEntry> notificationLogEntries = [];
+    private bool InitComplete = false;
+
+    private const int kDefaultPageSize = 20;
+    private int PageSize { get; set; } = kDefaultPageSize;
+    private int CurrentPage { get; set; }
+    private bool HasNextPage { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await FetchPage();
+            InitComplete = true;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("fetch_log_entrys"), "", true);
+        }
+    }
+
+    private async Task UpdatePageSize(int pageSize)
+    {
+        int requestedPageSize = pageSize > 0 ? pageSize : kDefaultPageSize;
+        if (InitComplete && requestedPageSize == PageSize)
+        {
+            return;
+        }
+
+        PageSize = requestedPageSize;
+        CurrentPage = 0;
+        await FetchPage();
+    }
+
+    private async Task PreviousPage()
+    {
+        if (CurrentPage > 0)
+        {
+            CurrentPage--;
+            await FetchPage();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (HasNextPage)
+        {
+            CurrentPage++;
+            await FetchPage();
+        }
+    }
+
+    private async Task FetchPage()
+    {
+        List<NotificationLogEntry> fetchedEntries = await apiConnection.SendQueryAsync<List<NotificationLogEntry>>(
+            MonitorQueries.getNotificationLogEntrys,
+            new
+            {
+                limit = PageSize + 1,
+                offset = CurrentPage * PageSize
+            });
+        HasNextPage = fetchedEntries.Count > PageSize;
+        notificationLogEntries = [.. fetchedEntries.Take(PageSize)];
+    }
+}

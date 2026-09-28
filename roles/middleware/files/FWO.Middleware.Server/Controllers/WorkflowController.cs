@@ -1,4 +1,5 @@
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Compliance;
 using FWO.Config.Api;
@@ -8,6 +9,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Workflow;
 using FWO.Logging;
 using FWO.Middleware.Server.Services;
+using FWO.Services;
 using FWO.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,7 +31,10 @@ namespace FWO.Middleware.Server.Controllers
         private readonly JwtWriter jwtWriter;
         private readonly TokenLifetimeProvider tokenLifetimeProvider;
         private static readonly ConcurrentDictionary<long, SemaphoreSlim> TicketActionLocks = new();
+        private static readonly WorkflowEmailBundleStore EmailBundleStore = new();
         private static readonly List<string> kNoGroups = [];
+        private const string kStateChangeRefusalTitleKey = "actions";
+        private const string kStateChangeRefusalMessageKey = "E8018";
 
         /// <summary>
         /// Constructor.
@@ -156,6 +161,7 @@ namespace FWO.Middleware.Server.Controllers
         {
             using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, actionApiConnection, globalConfig.DefaultLanguage);
             WfHandler wfHandler = CreateWorkflowHandler(actionApiConnection, userConfig, phase, result);
+            ApplyCallerIdentity(User, userConfig, wfHandler);
             wfHandler.userConfig.User.WorkflowVisibilityGroupIds = GetClaimIds(User, "x-hasura-workflow-visibility-groups").ToList();
             if (!await InitWorkflowHandler(wfHandler, result))
             {
@@ -172,6 +178,13 @@ namespace FWO.Middleware.Server.Controllers
             {
                 SetWarning(result, $"User is not authorized to execute workflow actions for ticket {ticket.Id}.");
                 return result;
+            }
+
+            await ReportExpiredEmailBundles(actionApiConnection, userConfig);
+
+            if (parameters.EmailBundleFlushOnly)
+            {
+                return await FlushEmailBundleOnly(wfHandler, parameters, lockTicketId, result);
             }
 
             (WfStatefulObject? statefulObject, FwoOwner? owner, long? actionTicketId, string? userGrpDn) = ResolveActionContext(wfHandler, ticket, parameters, scope);
@@ -192,12 +205,80 @@ namespace FWO.Middleware.Server.Controllers
                 return result;
             }
 
+            if (!await TryClaimStateChangeExecution(actionApiConnection, userConfig, parameters, scope, ticket, result))
+            {
+                return result;
+            }
+
+            // The bundle is neither flushed nor removed here: the dedicated flush-only request is the
+            // single flush entry point and removes the bundle itself. Removing it on an action request
+            // would discard captured emails whenever the action fails.
+            wfHandler.ActionHandler!.EmailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId);
             result.Success = await ExecuteResolvedAction(wfHandler, parameters, scope, statefulObject, owner, actionTicketId, userGrpDn);
             if (result.Success)
             {
                 await ContinueAfterInternalWorkIfNeeded(actionApiConnection, userConfig, ticket, parameters, scope, statefulObject, result);
             }
             return result;
+        }
+
+        private async Task<WorkflowActionResult> FlushEmailBundleOnly(WfHandler wfHandler, WorkflowActionParameters parameters,
+            long lockTicketId, WorkflowActionResult result)
+        {
+            WorkflowEmailBundleCollector? emailBundleCollector = GetEmailBundleCollector(parameters, lockTicketId, false);
+            if (emailBundleCollector == null)
+            {
+                // An action request carrying this bundle id creates the collector, so by the time a flush
+                // arrives one normally exists - empty when no bundled email action ran, which is the
+                // ordinary case. Absence therefore means the collector never got that far (the action was
+                // rejected before it) or it is gone: swept, or lost with a middleware restart, and in the
+                // restart case nothing in this process can account for what it held. That is worth a
+                // warning rather than a debug note, but not a user facing error on an ordinary promote.
+                Log.WriteWarning("Workflow Actions", $"No email bundle found to flush for ticket {lockTicketId}, bundle {parameters.EmailBundleId}. " +
+                    "Either no bundled email action reached the collector, or the bundle was discarded before it could be sent.");
+                result.Success = true;
+                return result;
+            }
+
+            wfHandler.ActionHandler!.EmailBundleCollector = emailBundleCollector;
+            try
+            {
+                await wfHandler.ActionHandler.FlushEmailBundleCollector();
+                result.Success = true;
+            }
+            finally
+            {
+                EmailBundleStore.Remove(lockTicketId, parameters.EmailBundleId);
+            }
+            return result;
+        }
+
+        private WorkflowEmailBundleCollector? GetEmailBundleCollector(WorkflowActionParameters parameters, long lockTicketId, bool createWhenMissing = true)
+        {
+            if (!Guid.TryParseExact(parameters.EmailBundleId, "N", out _))
+            {
+                return null;
+            }
+
+            string callerDn = User.FindFirstValue("x-hasura-uuid") ?? "";
+            return createWhenMissing
+                ? EmailBundleStore.GetOrCreate(lockTicketId, parameters.EmailBundleId, callerDn)
+                : EmailBundleStore.Get(lockTicketId, parameters.EmailBundleId, callerDn);
+        }
+
+        private static async Task ReportExpiredEmailBundles(ApiConnection actionApiConnection, UserConfig userConfig)
+        {
+            WorkflowEmailBundleSweepResult sweepResult = EmailBundleStore.Sweep();
+            if (!sweepResult.LostEmails)
+            {
+                return;
+            }
+
+            string description = $"{sweepResult.DiscardedItems} bundled workflow email(s) in {sweepResult.DiscardedBundles} " +
+                $"abandoned bundle(s) expired before they were sent.";
+            Log.WriteError("Workflow Actions", description);
+            await AlertHelper.SetAlert(actionApiConnection, userConfig.GetText("send_email"), description,
+                GlobalConst.kWorkflow, AlertCode.WorkflowAlert, new AlertHelper.AdditionalAlertData());
         }
 
         private static async Task ContinueAfterInternalWorkIfNeeded(ApiConnection actionApiConnection, UserConfig userConfig,
@@ -298,6 +379,94 @@ namespace FWO.Middleware.Server.Controllers
             return true;
         }
 
+        /// <summary>
+        /// Claims the one execution of the state-change actions belonging to a transition.
+        /// </summary>
+        /// <remarks>
+        /// SEC-06: the state of the object is persisted by the caller before its actions are
+        /// requested, so "the object stands in the requested state" stays true once the transition
+        /// happened and cannot tell a first request apart from a replay. The claim is what makes the
+        /// difference: request.state_change_execution holds the state the actions of this object last
+        /// ran for, and the mutation records the new one only when it differs, in a single statement.
+        /// A repeated request therefore executes nothing.
+        /// The claim is keyed on the new state alone. The object is checked to stand in it before the
+        /// claim is attempted, which makes it the only half of the transition the server has
+        /// established; the old state arrives in the request body and is recorded for the audit trail
+        /// only. Letting it take part in the comparison would let a replay re-arm the guard by naming
+        /// a different origin state for a transition that has already run.
+        /// Comparing the state alone holds only while the record keeps up with the object, which is
+        /// why ActionHandler.RecordStateChangeExecution writes it for every state change executed
+        /// inside the middleware - the external request chain promotes request tasks without ever
+        /// reaching this endpoint.
+        /// One path stays uncovered by decision, not by oversight: workflow monitoring persists a
+        /// state change while suppressing its actions, so nothing records it and a later legitimate
+        /// return to that state is refused. Covering it would take either a counter the ui's own role
+        /// can write - which a caller could then move to re-arm this guard and replay - or a database
+        /// trigger. Both were weighed and rejected, and the refusal is made visible instead, so the
+        /// remaining cost is that the actions have to be asked for again rather than being lost
+        /// unnoticed. Do not treat this as a defect to fix silently; it is a known limitation.
+        /// A refused claim does not fail the promote - the state change itself did happen, and
+        /// throwing would turn an accidental double submit into an error - but it is reported to the
+        /// caller as a warning rather than swallowed. The claim compares the state the object stands
+        /// in, and a state change that persisted without running its actions (workflow monitoring
+        /// does this deliberately) leaves the record naming a state the object later returns to, so a
+        /// refusal is not always a replay. Whoever asked for the promote has to be able to see that
+        /// its mail, external request and flow creation did not run, and ask for them again.
+        /// Only the persisted-transition path is claimed. A request naming an action explicitly
+        /// carries no transition to key the claim on and is validated against the actions currently
+        /// offered instead.
+        /// </remarks>
+        /// <param name="actionApiConnection">Api connection running under the middleware role.</param>
+        /// <param name="userConfig">User configuration, for the localized text of a refusal.</param>
+        /// <param name="parameters">The requested action, holding the claimed transition.</param>
+        /// <param name="scope">Scope of the stateful object.</param>
+        /// <param name="ticket">The resolved ticket, which is the stateful object of the ticket scope.</param>
+        /// <param name="result">Result of the action request, completed when the claim is refused.</param>
+        /// <returns>True when the caller may execute the actions of this transition.</returns>
+        private async Task<bool> TryClaimStateChangeExecution(ApiConnection actionApiConnection, UserConfig userConfig,
+            WorkflowActionParameters parameters, WfObjectScopes scope, WfTicket ticket, WorkflowActionResult result)
+        {
+            if (parameters.ActionId > 0)
+            {
+                return true;
+            }
+
+            // Taken from the resolved object rather than from the request: the ticket scope carries
+            // its id in TicketId or ObjectId depending on the caller, and the key must not depend on
+            // which of the two was filled in.
+            long objectId = scope == WfObjectScopes.Ticket ? ticket.Id : parameters.ObjectId;
+            var claimVariables = new
+            {
+                objectScope = scope.ToString(),
+                objectId = objectId,
+                fromStateId = parameters.OldStateId,
+                toStateId = parameters.NewStateId,
+                executedBy = User.FindFirstValue("x-hasura-uuid") ?? "",
+                executedAt = DateTime.UtcNow
+            };
+
+            ReturnId claim = await actionApiConnection.SendQueryAsync<ReturnId>(RequestQueries.claimStateChangeExecution, claimVariables);
+            if (claim.AffectedRows == 1)
+            {
+                return true;
+            }
+
+            string refusal = $"State-change actions for {scope} {objectId} were already executed for the move into state " +
+                $"{parameters.NewStateId} (request named {parameters.OldStateId}->{parameters.NewStateId}), so this request executed nothing.";
+            Log.WriteAudit("Workflow Actions", refusal);
+            Log.WriteWarning("Workflow Actions", refusal);
+            result.Success = true;
+            result.Messages.Add(new()
+            {
+                Title = userConfig.GetText(kStateChangeRefusalTitleKey),
+                Message = userConfig.GetText(kStateChangeRefusalMessageKey),
+                TitleTextKey = kStateChangeRefusalTitleKey,
+                MessageTextKey = kStateChangeRefusalMessageKey,
+                ErrorFlag = true
+            });
+            return false;
+        }
+
         private static bool ValidatePersistedStateTransition(WorkflowActionParameters parameters, WfStatefulObject statefulObject, WorkflowActionResult result)
         {
             if (parameters.OldStateId == parameters.NewStateId)
@@ -348,11 +517,12 @@ namespace FWO.Middleware.Server.Controllers
         {
             if (parameters.ActionId > 0)
             {
-                return await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn);
+                return await wfHandler.ActionHandler!.PerformActionById(parameters.ActionId, statefulObject, scope, owner, actionTicketId, userGrpDn,
+                    parameters.NotificationPlaceholders);
             }
 
             MarkStateChanged(statefulObject, parameters.OldStateId, parameters.NewStateId);
-            await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn);
+            await wfHandler.ActionHandler!.DoStateChangeActions(statefulObject, scope, owner, actionTicketId, userGrpDn, parameters.NotificationPlaceholders);
             return true;
         }
 
@@ -448,6 +618,25 @@ namespace FWO.Middleware.Server.Controllers
                 .Where(value => int.TryParse(value, out _))
                 .Select(int.Parse)
                 .ToHashSet();
+        }
+
+        /// <summary>
+        /// Takes the authenticated caller from the request JWT into the workflow context, so the change
+        /// history attributes the transitions this request triggers to that caller instead of to the
+        /// middleware server, and keeps the row resolvable to the caller's user record.
+        /// </summary>
+        /// <param name="user">Authenticated caller of the action request.</param>
+        /// <param name="userConfig">Workflow config built for this request, supplying the changer name.</param>
+        /// <param name="wfHandler">Workflow handler of this request, supplying the changer id.</param>
+        /// <remarks>
+        /// The endpoint is role gated, so a JWT is always present. A caller without a resolvable identity
+        /// keeps the empty name and no id, which the history writer records as an automated change. Only the
+        /// change history is fed here: the caller's authorization is evaluated on the claims themselves.
+        /// </remarks>
+        internal static void ApplyCallerIdentity(ClaimsPrincipal user, UserConfig userConfig, WfHandler wfHandler)
+        {
+            userConfig.User.Name = user.FindFirstValue("unique_name") ?? "";
+            wfHandler.ChangerId = GetClaimInt(user, "x-hasura-user-id");
         }
 
         private static int? GetClaimInt(ClaimsPrincipal user, string claimName)

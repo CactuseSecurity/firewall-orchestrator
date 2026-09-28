@@ -17,7 +17,7 @@ And created an API key `$OS_API_KEY:$OS_API_SECRET`.
 key=xxx
 secret=yyy
 ```
-3. Create Credentials and put "key" from the file in Username and "secret" in Password field. 
+3. Create Credentials and put "key" from the file in Username and "secret" in Password field.
 
 ## Config source
 

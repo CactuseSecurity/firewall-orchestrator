@@ -268,27 +268,31 @@ Activate the gate in this order:
 4. Create the next stable `vX.Y.Z` tag on the release commit in `develop` and wait for
    **Fast-forward main to release tag** to complete. Confirm that `main` points to that commit and
    contains `.github/workflows/version-gate.yml` before continuing.
-5. Re-trigger every open pull request targeting `develop` by editing its title or description.
+5. Open the next version in a small dedicated pull request that raises `product_version` and adds
+   its revision-history section. The tag in step 4 sealed `develop`'s own version, so until that
+   bump merges every open pull request that does not raise the version fails the gate. Those
+   failures are genuine, and this is their single resolution rather than a per-pull-request fix.
+6. Re-trigger every open pull request targeting `develop` by editing its title or description.
    The `edited` event creates its first **`Gate pull request version`** run. A new commit, reopen,
    or ready-for-review event also works.
-6. Wait until every open pull request shows **`Gate pull request version`** for its current head
+7. Wait until every open pull request shows **`Gate pull request version`** for its current head
    SHA. Resolve genuine failures before continuing.
-7. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
+8. Manually run **Version gate refresh** with the `pr` input empty. Continue only when it refreshes
    every open pull request successfully, with no `no version gate run found` errors. Investigate
    the 200-pull-request limit warning before continuing if it appears.
-8. Confirm that `develop` itself satisfies the upgrade-file rules, which the gate never checks
+9. Confirm that `develop` itself satisfies the upgrade-file rules, which the gate never checks
    for the base branch: no script in `roles/database/files/upgrade/` may be named above its
    `product_version`. Such a script fails every pull request, and the only in-repository exit is
    a pull request that deletes it.
-9. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
-   ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
-10. Verify the required check with a pull request targeting `develop`: it must fail without a
+10. Add **`Gate pull request version`** as a required check in the `develop` branch protection or
+    ruleset. Do not enable "Require branches to be up to date before merging" for this gate.
+11. Verify the required check with a pull request targeting `develop`: it must fail without a
     valid version bump onto a sealed version and pass once the pull request satisfies the
     documented rules.
 
 The same limitation applies after GitHub deletes an old workflow run under the repository's
 Actions retention policy. If an open pull request has no retained gate run for its current head
-SHA, re-trigger it with one of the pull request events in step 5 before relying on the refresh
+SHA, re-trigger it with one of the pull request events in step 6 before relying on the refresh
 workflow again.
 
 ## Local use

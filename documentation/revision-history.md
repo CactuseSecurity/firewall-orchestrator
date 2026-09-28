@@ -49,7 +49,7 @@
   and exported documents carry the extra policy element
 - Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
 - The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version
-- The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named below the version the base branch already carries is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, and existing scripts must not be modified or deleted
+- The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named below the version the base branch already carries is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, scripts of older versions must not be modified, and no script at or below the current version may be deleted
 
 ## 9.5.6 - 24.09.2026
 - variance analysis: the rule_owner prefilter is no longer blocked by every pending import. A rule import

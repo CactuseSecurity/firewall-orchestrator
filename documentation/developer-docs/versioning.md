@@ -67,8 +67,8 @@ This lifecycle is enforced by the **Version gate** workflow, see
 5. Every other open pull request is then re-evaluated against `1.2.5`. Its merge result
    inherits the new product version, so the pull request does not need its own version bump.
    Because its change will now be part of `1.2.5`, its revision-history entry should be moved
-   from the previous version section into the final `1.2.5` section. This reclassification is
-   intentional; the gate does not enforce it.
+   from the previous version section into the new `1.2.5` section at the top of the file. This
+   reclassification is intentional; the gate does not enforce it.
 
 ### Hotfixes
 

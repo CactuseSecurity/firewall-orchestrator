@@ -223,7 +223,7 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{nwObj.Number}</td>");
                     report.AppendLine($"<td>{nwObj.Id}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.NwObj}{chapterNumber}x{nwObj.Id}>{nwObj.Name}</a></td>");
+                    report.AppendLine($"<td><a name=\"{ObjCatString.NwObj}{chapterNumber}x{nwObj.Id}\">{HtmlOutputEncoder.EncodeText(nwObj.Name)}</a></td>");
                     report.AppendLine($"<td>{nwObj.IP}</td>");
                     report.AppendLine(DisplayBase.MemberNamesAsHtml(nwObj.MemberNames));
                 }
@@ -255,7 +255,7 @@ namespace FWO.Report
                     report.AppendLine("<tr>");
                     report.AppendLine($"<td>{svc.Number}</td>");
                     report.AppendLine($"<td>{svc.Id}</td>");
-                    report.AppendLine($"<td><a name={ObjCatString.Svc}{chapterNumber}x{svc.Id}>{svc.Name}</a></td>");
+                    report.AppendLine($"<td><a name=\"{ObjCatString.Svc}{chapterNumber}x{svc.Id}\">{HtmlOutputEncoder.EncodeText(svc.Name)}</a></td>");
                     report.AppendLine($"<td>{svc.Protocol?.Name}</td>");
                     report.AppendLine($"<td>{svc.DestinationPort}</td>");
                     report.AppendLine(DisplayBase.MemberNamesAsHtml(svc.MemberNames));

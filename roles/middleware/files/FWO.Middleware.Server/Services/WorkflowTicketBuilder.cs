@@ -165,8 +165,9 @@ internal sealed class WorkflowTicketBuilder
         RuleTaskLookups lookups = new(ownersById, ruleActionIds);
         for (int index = 0; index < request.Rules.Count; index++)
         {
-            WfReqTask? task = BuildRuleTask(request, request.Rules[index], entities, ticketStateId, lookups, flowReferences,
+            WorkflowTicketRuleTaskContext taskContext = new(entities, ticketStateId, lookups, flowReferences,
                 context.TaskNumber++, index, context);
+            WfReqTask? task = BuildRuleTask(request, request.Rules[index], taskContext);
             if (task != null)
             {
                 tasks.Add(task);
@@ -179,12 +180,13 @@ internal sealed class WorkflowTicketBuilder
         int ticketStateId, FlowReferenceCatalog flowReferences, TicketBuildContext context)
     {
         List<WfReqTask> tasks = [];
+        WorkflowTicketTaskContext taskContext = new(entities, ticketStateId, flowReferences, context);
         for (int index = 0; index < request.AddressGroups.Count; index++)
         {
             try
             {
-                tasks.Add(BuildNetworkGroupTask(request, request.AddressGroups[index], entities, ticketStateId, flowReferences,
-                    context.TaskNumber++, $"addressGroups[{index}]", context));
+                tasks.Add(BuildNetworkGroupTask(request, request.AddressGroups[index], taskContext, context.TaskNumber++,
+                    $"addressGroups[{index}]"));
             }
             catch (ArgumentException exception)
             {
@@ -196,8 +198,8 @@ internal sealed class WorkflowTicketBuilder
         {
             try
             {
-                tasks.Add(BuildServiceGroupTask(request, request.ServiceGroups[index], entities, ticketStateId, flowReferences,
-                    context.TaskNumber++, $"serviceGroups[{index}]", context));
+                tasks.Add(BuildServiceGroupTask(request, request.ServiceGroups[index], taskContext, context.TaskNumber++,
+                    $"serviceGroups[{index}]"));
             }
             catch (ArgumentException exception)
             {
@@ -208,10 +210,9 @@ internal sealed class WorkflowTicketBuilder
     }
 
     private static WfReqTask BuildNetworkGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateAddressGroupRequest group,
-        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber,
-        string groupPath, TicketBuildContext context)
+        WorkflowTicketTaskContext taskContext, int taskNumber, string groupPath)
     {
-        WorkflowTicketEntity groupEntity = GetEntity(entities, group.Id);
+        WorkflowTicketEntity groupEntity = GetEntity(taskContext.Entities, group.Id);
         if (groupEntity.Kind != WorkflowTicketEntityKind.AddressGroup)
         {
             throw new ArgumentException($"Group id {group.Id} must reference an address group.");
@@ -222,21 +223,20 @@ internal sealed class WorkflowTicketBuilder
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
-            StateId = ticketStateId,
+            StateId = taskContext.TicketStateId,
             AdditionalInfo = BuildGroupAdditionalInfo(request, groupEntity.DisplayName, group.Id),
-            Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds, entities, ElemFieldType.source,
-                $"{groupPath}.memberIds", context.InvalidEntityIds, context.ValidationErrors,
-                memberId => BuildGroupMemberElement(memberId, entities, ElemFieldType.source, flowReferences)),
-            Approvals = [BuildApproval(ticketStateId)],
+            Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds,
+                CreateElementContext(taskContext, ElemFieldType.source, $"{groupPath}.memberIds",
+                    memberId => BuildGroupMemberElement(memberId, taskContext.Entities, ElemFieldType.source, taskContext.FlowReferences))),
+            Approvals = [BuildApproval(taskContext.TicketStateId)],
             Locked = true
         };
     }
 
     private static WfReqTask BuildServiceGroupTask(CreateTicketRequest request, CreateTicketRequest.CreateServiceGroupRequest group,
-        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, FlowReferenceCatalog flowReferences, int taskNumber,
-        string groupPath, TicketBuildContext context)
+        WorkflowTicketTaskContext taskContext, int taskNumber, string groupPath)
     {
-        WorkflowTicketEntity groupEntity = GetEntity(entities, group.Id);
+        WorkflowTicketEntity groupEntity = GetEntity(taskContext.Entities, group.Id);
         if (groupEntity.Kind != WorkflowTicketEntityKind.ServiceGroup)
         {
             throw new ArgumentException($"Group id {group.Id} must reference a service group.");
@@ -247,56 +247,61 @@ internal sealed class WorkflowTicketBuilder
             TaskNumber = taskNumber,
             TaskType = WfTaskType.group_create.ToString(),
             RequestAction = RequestAction.create.ToString(),
-            StateId = ticketStateId,
+            StateId = taskContext.TicketStateId,
             AdditionalInfo = BuildGroupAdditionalInfo(request, groupEntity.DisplayName, group.Id),
-            Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds, entities, ElemFieldType.service,
-                $"{groupPath}.memberIds", context.InvalidEntityIds, context.ValidationErrors,
-                memberId => BuildGroupMemberElement(memberId, entities, ElemFieldType.service, flowReferences)),
-            Approvals = [BuildApproval(ticketStateId)],
+            Elements = WorkflowTicketElementValidation.BuildGroupMemberElements(group.MemberIds,
+                CreateElementContext(taskContext, ElemFieldType.service, $"{groupPath}.memberIds",
+                    memberId => BuildGroupMemberElement(memberId, taskContext.Entities, ElemFieldType.service, taskContext.FlowReferences))),
+            Approvals = [BuildApproval(taskContext.TicketStateId)],
             Locked = true
         };
     }
 
-    private static WfReqTask? BuildRuleTask(CreateTicketRequest request, CreateTicketRequest.CreateTicketRuleRequest rule,
-        Dictionary<long, WorkflowTicketEntity> entities, int ticketStateId, RuleTaskLookups lookups,
-        FlowReferenceCatalog flowReferences, int taskNumber, int ruleIndex, TicketBuildContext context)
+    private static WorkflowTicketElementContext CreateElementContext(WorkflowTicketTaskContext taskContext, ElemFieldType field,
+        string path, Func<long, WfReqElement> buildElement)
     {
-        int errorCount = context.ValidationErrors.Count;
-        string rulePath = $"rules[{ruleIndex}]";
+        return new(taskContext.Validation.InvalidEntityIds, taskContext.Validation.ValidationErrors, path, buildElement);
+    }
+
+    private static WfReqTask? BuildRuleTask(CreateTicketRequest request, CreateTicketRequest.CreateTicketRuleRequest rule,
+        WorkflowTicketRuleTaskContext taskContext)
+    {
+        int errorCount = taskContext.Validation.ValidationErrors.Count;
+        string rulePath = $"rules[{taskContext.RuleIndex}]";
         List<WfReqElement> elements = [];
-        AppendRuleReferences(elements, rule, entities, flowReferences, rulePath, context);
+        AppendRuleReferences(elements, rule, taskContext, rulePath);
 
         int ruleActionId = 0;
         try
         {
-            ruleActionId = ResolveRuleActionId(rule.Action, lookups.RuleActionIds);
+            ruleActionId = ResolveRuleActionId(rule.Action, taskContext.Lookups.RuleActionIds);
         }
         catch (ArgumentException exception)
         {
-            AddValidationError(context.ValidationErrors, $"{rulePath}.action", exception);
+            AddValidationError(taskContext.Validation.ValidationErrors, $"{rulePath}.action", exception);
         }
 
         FwoOwner? taskOwner = null;
         try
         {
-            taskOwner = ResolveRuleOwner(rule.OwnerId, lookups.OwnersById);
+            taskOwner = ResolveRuleOwner(rule.OwnerId, taskContext.Lookups.OwnersById);
         }
         catch (ArgumentException exception)
         {
-            AddValidationError(context.ValidationErrors, $"{rulePath}.ownerId", exception);
+            AddValidationError(taskContext.Validation.ValidationErrors, $"{rulePath}.ownerId", exception);
         }
 
         WorkflowTicketEntity? timeEntity = null;
         try
         {
-            timeEntity = ResolveTimeObject(rule.TimeObjectId, entities, flowReferences);
+            timeEntity = ResolveTimeObject(rule.TimeObjectId, taskContext.Entities, taskContext.FlowReferences);
         }
         catch (ArgumentException exception)
         {
-            AddValidationError(context.ValidationErrors, $"{rulePath}.timeObjectId", exception);
+            AddValidationError(taskContext.Validation.ValidationErrors, $"{rulePath}.timeObjectId", exception);
         }
 
-        if (context.ValidationErrors.Count > errorCount)
+        if (taskContext.Validation.ValidationErrors.Count > errorCount)
         {
             return null;
         }
@@ -304,10 +309,10 @@ internal sealed class WorkflowTicketBuilder
         return new WfReqTask
         {
             Title = string.IsNullOrWhiteSpace(rule.Name) ? request.Title : rule.Name,
-            TaskNumber = taskNumber,
+            TaskNumber = taskContext.TaskNumber,
             TaskType = WfTaskType.access.ToString(),
             RequestAction = RequestAction.create.ToString(),
-            StateId = ticketStateId,
+            StateId = taskContext.TicketStateId,
             RuleAction = ruleActionId,
             Tracking = 1,
             Reason = rule.ViolationJustification,
@@ -315,7 +320,7 @@ internal sealed class WorkflowTicketBuilder
             TargetEndDate = timeEntity?.TimeEnd,
             AdditionalInfo = BuildAdditionalInfo(request.RuleContactName, request.RuleContactId, request.RequestorName, request.RequestorId, timeEntity),
             Elements = elements,
-            Approvals = [BuildApproval(ticketStateId)],
+            Approvals = [BuildApproval(taskContext.TicketStateId)],
             Owners = taskOwner == null ? [] : [new() { Owner = taskOwner }],
             Locked = true
         };
@@ -379,30 +384,30 @@ internal sealed class WorkflowTicketBuilder
     }
 
     private static void AppendRuleReferences(List<WfReqElement> elements, CreateTicketRequest.CreateTicketRuleRequest rule,
-        Dictionary<long, WorkflowTicketEntity> entities, FlowReferenceCatalog flowReferences, string rulePath,
-        TicketBuildContext context)
+        WorkflowTicketRuleTaskContext taskContext, string rulePath)
     {
-        AppendRuleReferenceList(elements, rule.SourceObjects, entities, ElemFieldType.source, WorkflowTicketEntityKind.AddressObject,
-            flowReferences, $"{rulePath}.sourceObjects", context);
-        AppendRuleReferenceList(elements, rule.SourceGroups, entities, ElemFieldType.source, WorkflowTicketEntityKind.AddressGroup,
-            flowReferences, $"{rulePath}.sourceGroups", context);
-        AppendRuleReferenceList(elements, rule.DestinationObjects, entities, ElemFieldType.destination, WorkflowTicketEntityKind.AddressObject,
-            flowReferences, $"{rulePath}.destinationObjects", context);
-        AppendRuleReferenceList(elements, rule.DestinationGroups, entities, ElemFieldType.destination, WorkflowTicketEntityKind.AddressGroup,
-            flowReferences, $"{rulePath}.destinationGroups", context);
-        AppendRuleReferenceList(elements, rule.ServiceObjects, entities, ElemFieldType.service, WorkflowTicketEntityKind.ServiceObject,
-            flowReferences, $"{rulePath}.serviceObjects", context);
-        AppendRuleReferenceList(elements, rule.ServiceGroups, entities, ElemFieldType.service, WorkflowTicketEntityKind.ServiceGroup,
-            flowReferences, $"{rulePath}.serviceGroups", context);
+        AppendRuleReferenceList(elements, rule.SourceObjects, new(taskContext.Entities, ElemFieldType.source,
+            WorkflowTicketEntityKind.AddressObject, taskContext.FlowReferences, $"{rulePath}.sourceObjects", taskContext.Validation));
+        AppendRuleReferenceList(elements, rule.SourceGroups, new(taskContext.Entities, ElemFieldType.source,
+            WorkflowTicketEntityKind.AddressGroup, taskContext.FlowReferences, $"{rulePath}.sourceGroups", taskContext.Validation));
+        AppendRuleReferenceList(elements, rule.DestinationObjects, new(taskContext.Entities, ElemFieldType.destination,
+            WorkflowTicketEntityKind.AddressObject, taskContext.FlowReferences, $"{rulePath}.destinationObjects", taskContext.Validation));
+        AppendRuleReferenceList(elements, rule.DestinationGroups, new(taskContext.Entities, ElemFieldType.destination,
+            WorkflowTicketEntityKind.AddressGroup, taskContext.FlowReferences, $"{rulePath}.destinationGroups", taskContext.Validation));
+        AppendRuleReferenceList(elements, rule.ServiceObjects, new(taskContext.Entities, ElemFieldType.service,
+            WorkflowTicketEntityKind.ServiceObject, taskContext.FlowReferences, $"{rulePath}.serviceObjects", taskContext.Validation));
+        AppendRuleReferenceList(elements, rule.ServiceGroups, new(taskContext.Entities, ElemFieldType.service,
+            WorkflowTicketEntityKind.ServiceGroup, taskContext.FlowReferences, $"{rulePath}.serviceGroups", taskContext.Validation));
     }
 
     private static void AppendRuleReferenceList(List<WfReqElement> elements, IEnumerable<long> references,
-        Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field, WorkflowTicketEntityKind expectedKind,
-        FlowReferenceCatalog flowReferences, string path, TicketBuildContext context)
+        WorkflowTicketReferenceContext referenceContext)
     {
-        WorkflowTicketElementValidation.AppendReferencedElements(elements, references, entities, field, expectedKind, path,
-            context.InvalidEntityIds, context.ValidationErrors,
-            reference => BuildReferencedElement(reference, entities, field, expectedKind, flowReferences));
+        WorkflowTicketElementValidation.AppendReferencedElements(elements, references,
+            new(referenceContext.Validation.InvalidEntityIds, referenceContext.Validation.ValidationErrors,
+                referenceContext.Path,
+                reference => BuildReferencedElement(reference, referenceContext.Entities, referenceContext.Field,
+                    referenceContext.ExpectedKind, referenceContext.FlowReferences)));
     }
 
     private static WfReqElement BuildReferencedElement(long reference, Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field,

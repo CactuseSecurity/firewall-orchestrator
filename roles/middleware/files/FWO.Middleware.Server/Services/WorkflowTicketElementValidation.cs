@@ -6,52 +6,48 @@ namespace FWO.Middleware.Server.Services;
 internal static class WorkflowTicketElementValidation
 {
     public static void AppendReferencedElements(List<WfReqElement> elements, IEnumerable<long> references,
-        Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field, WorkflowTicketEntityKind expectedKind,
-        string path, HashSet<long> invalidEntityIds, List<RequestValidationError> validationErrors,
-        Func<long, WfReqElement> buildElement)
+        WorkflowTicketElementContext context)
     {
         List<long> referenceList = references.ToList();
         for (int index = 0; index < referenceList.Count; index++)
         {
             long reference = referenceList[index];
-            if (invalidEntityIds.Contains(reference))
+            if (context.InvalidEntityIds.Contains(reference))
             {
                 continue;
             }
 
             try
             {
-                elements.Add(buildElement(reference));
+                elements.Add(context.BuildElement(reference));
             }
             catch (ArgumentException exception)
             {
-                AddValidationError(validationErrors, $"{path}[{index}]", exception);
+                AddValidationError(context.ValidationErrors, $"{context.Path}[{index}]", exception);
             }
         }
     }
 
     public static List<WfReqElement> BuildGroupMemberElements(IEnumerable<long> memberIds,
-        Dictionary<long, WorkflowTicketEntity> entities, ElemFieldType field, string path,
-        HashSet<long> invalidEntityIds, List<RequestValidationError> validationErrors,
-        Func<long, WfReqElement> buildElement)
+        WorkflowTicketElementContext context)
     {
         List<WfReqElement> elements = [];
         List<long> ids = memberIds.ToList();
         for (int index = 0; index < ids.Count; index++)
         {
             long memberId = ids[index];
-            if (invalidEntityIds.Contains(memberId))
+            if (context.InvalidEntityIds.Contains(memberId))
             {
                 continue;
             }
 
             try
             {
-                elements.Add(buildElement(memberId));
+                elements.Add(context.BuildElement(memberId));
             }
             catch (ArgumentException exception)
             {
-                AddValidationError(validationErrors, $"{path}[{index}]", exception);
+                AddValidationError(context.ValidationErrors, $"{context.Path}[{index}]", exception);
             }
         }
 

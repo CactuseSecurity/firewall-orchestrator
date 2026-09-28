@@ -185,12 +185,25 @@ def upgrade_files_above_version(file_names: list[str], version: tuple[int, int, 
     )
 
 
-def upgrade_files_below_version(file_names: list[str], version: tuple[int, int, int]) -> list[str]:
-    """Return the upgrade files named below a version, which installations on it skip."""
+def upgrade_files_the_base_has_passed(
+    file_names: list[str],
+    base: tuple[int, int, int],
+    merged: tuple[int, int, int],
+) -> list[str]:
+    """
+    Return the upgrade scripts an installation on the base version never runs again.
+
+    The upgrade play selects a script whose version is above the installed one, so every script
+    below the base version is already behind such an installation. The base version's own script
+    counts as behind it as soon as the pull request raises the version: a bump is only permitted
+    once the base version is sealed, and sealing is what says installations have taken it. While
+    the version stays open that script is the one the change belongs in, so it is not judged here.
+    """
     return sorted(
         file_name
         for file_name in file_names
-        if (file_version := upgrade_file_version(file_name)) is not None and file_version < version
+        if (file_version := upgrade_file_version(file_name)) is not None
+        and (file_version < base or (merged > base and file_version == base))
     )
 
 
@@ -270,13 +283,13 @@ def evaluate_upgrade_files(
             ),
         )
 
-    behind_base_version = upgrade_files_below_version(changed_in_merge_result, base)
+    behind_base_version = upgrade_files_the_base_has_passed(changed_in_merge_result, base, merged)
     if behind_base_version:
         subject, verb, _ = describe_upgrade_files(behind_base_version)
         return Verdict(
             ok=False,
             reason=(
-                f"{subject} {verb} below version {base_version} of the base branch, so "
+                f"{subject} {verb} named for a version the base branch has already passed, so "
                 f"installations already on {base_version} would skip the change. Put the change "
                 f"in {merged_version}.sql instead."
             ),

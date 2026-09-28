@@ -60,7 +60,7 @@ what lets a plain re-run produce a different, correct verdict later.
 | `V != P` | a sealing tag for `P` exists | fails otherwise: seal `P` first, see [Sealing a version](../versioning.md#sealing-a-version) |
 | `V != P` | no sealing tag for `V` exists | fails otherwise: choose a higher version |
 | any | no upgrade file is named above `V` | fails otherwise: it would never be selected |
-| any | no upgrade file the pull request adds or modifies is named below `P` | fails otherwise: put the change in `V.sql` |
+| any | no upgrade file the pull request adds or modifies is named for a version `P` has passed - below `P`, and `P` itself when `V > P` | fails otherwise: put the change in `V.sql` |
 | any | every `.sql` file the pull request adds or modifies is named `major.minor.patch.sql` | fails otherwise: put the change in `V.sql` |
 | any | the pull request deletes no upgrade file named at or below `V` | fails otherwise: restore it, then empty or correct `V.sql` |
 | any | `refs/pull/<n>/merge` exists | fails otherwise: resolve confirmed conflicts or retry a transient failure |
@@ -76,6 +76,12 @@ which runs a script when its version is at least the installed version and at mo
 modifies* below `P` is skipped by every installation that has already taken `P` - the case where
 another pull request opens a higher version and merges first, leaving this one with a file that no
 upgraded installation runs. Both are silent at run time, which is why they are caught here.
+
+`P`'s own script is judged the same way as soon as the pull request raises the version. While `V`
+equals `P` that script is the open version's, and it is where the gate's own remedies send the
+change; but a pull request only reaches these rules with `V > P` once `P` is sealed, and sealing
+is what says installations have taken `P`. A script for a version between `P` and `V` stays
+writable: it was never opened, so an installation on `P` still runs it.
 
 Both upgrade-file inputs are read with a path-limited `git ls-tree` / `git diff`, so a missing
 directory yields an empty listing while a real git failure stops the job. The rule is never

@@ -223,7 +223,7 @@ class TestUpgradeFileSelection:
     def test_file_left_behind_by_a_higher_version_merging_first_fails(self) -> None:
         verdict = evaluate_upgrade_files("9.5.1", "9.5.0", ["9.5.0.sql", "9.4.7.sql"], ["9.4.7.sql"])
         assert not verdict.ok
-        assert "9.4.7.sql is below version 9.5.0" in verdict.reason
+        assert "9.4.7.sql is named for a version the base branch has already passed" in verdict.reason
         assert "Put the change in 9.5.1.sql instead" in verdict.reason
 
     def test_modified_file_below_the_base_version_fails_like_an_added_one(self) -> None:
@@ -236,7 +236,36 @@ class TestUpgradeFileSelection:
             ["9.4.6.sql"],
         )
         assert not verdict.ok
-        assert "9.4.6.sql is below version 9.4.7" in verdict.reason
+        assert "9.4.6.sql is named for a version the base branch has already passed" in verdict.reason
+
+    @pytest.mark.parametrize(
+        ("merged_version", "changed_file", "expected_ok"),
+        [
+            # While the version stays open its own script is where a change belongs.
+            ("9.5.0", "9.5.0.sql", True),
+            ("9.5.0", "9.4.7.sql", False),
+            # A bump is only permitted once the base version is sealed, so its script is closed
+            # too - for modification as well as for deletion, see F63.
+            ("9.5.1", "9.5.0.sql", False),
+            ("9.5.1", "9.4.7.sql", False),
+            ("9.5.1", "9.5.1.sql", True),
+            # A version between the two was never opened, so installations on the base do run it.
+            ("9.6.0", "9.5.1.sql", True),
+        ],
+    )
+    def test_writable_scripts_at_the_base_version_boundary(
+        self,
+        merged_version: str,
+        changed_file: str,
+        expected_ok: bool,
+    ) -> None:
+        # 9.4.7.sql is untouched and below every version in this matrix, so only the changed
+        # script can decide the verdict; a listing above the merged version would trip a
+        # different rule first.
+        listing = sorted({"9.4.7.sql", changed_file})
+        verdict = evaluate_upgrade_files(merged_version, "9.5.0", listing, [changed_file])
+
+        assert verdict.ok is expected_ok
 
     def test_file_above_the_product_version_fails(self) -> None:
         verdict = evaluate_upgrade_files("9.4.7", "9.4.6", ["9.5.0.sql"], ["9.5.0.sql"])
@@ -285,7 +314,7 @@ class TestUpgradeFileSelection:
         assert "upgrade files 9.5.0.sql, 9.6.0.sql are above product_version" in above.reason
         assert "or rename them." in above.reason
         assert "upgrade files 9.4.07.sql, readme.sql are not major.minor.patch.sql scripts" in naming.reason
-        assert "upgrade files 9.4.5.sql, 9.4.6.sql are below version" in behind.reason
+        assert "upgrade files 9.4.5.sql, 9.4.6.sql are named for a version" in behind.reason
 
     def test_single_file_upgrade_verdicts_stay_singular(self) -> None:
         above = evaluate_upgrade_files("9.4.7", "9.4.7", ["9.5.0.sql"], [])

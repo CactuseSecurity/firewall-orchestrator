@@ -319,7 +319,7 @@ def test_upgrade_file_below_the_base_version_fails(tmp_path: Path) -> None:
     completed = run_gate(tmp_path, repository)
 
     assert completed.returncode != 0
-    assert "9.4.4.sql is below version 9.4.5" in completed.stderr
+    assert "9.4.4.sql is named for a version the base branch has already passed" in completed.stderr
 
 
 def test_sealed_version_fails_and_prints_verdict(tmp_path: Path) -> None:

@@ -51,7 +51,7 @@
         {
             if (Display)
             {
-                deviceList = await PathAnalysis.GetAllDevices(ReqTask.Elements, apiConnection);
+                deviceList = await RoutingBasedPathAnalyzer.GetAllDevices(ReqTask.Elements, apiConnection);
             }
         }
         catch (Exception exception)

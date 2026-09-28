@@ -257,7 +257,7 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
-                List<Device> devices = await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection);
+                List<Device> devices = await RoutingBasedPathAnalyzer.GetAllDevices(reqTask.Elements, apiConnection);
                 WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
                 foreach (var device in devices)
                 {

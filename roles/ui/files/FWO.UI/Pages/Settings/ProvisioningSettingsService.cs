@@ -21,6 +21,12 @@ namespace FWO.Ui.Pages.Settings
         /// <summary>Whether the field is stored on this level in the database.</summary>
         public bool WasLocal { get; init; }
 
+        /// <summary>Whether this field applies to the node's current device path.</summary>
+        public bool IsApplicable { get; init; } = true;
+
+        /// <summary>A retained local override that does not apply to the node's current device path.</summary>
+        public bool IsDormant => WasLocal && !IsApplicable;
+
         /// <summary>The stored override value; only meaningful when <see cref="WasLocal"/> is set.</summary>
         public string OriginalValue { get; init; } = "";
 
@@ -53,12 +59,13 @@ namespace FWO.Ui.Pages.Settings
         }
 
         public static ProvisioningFieldState Create(ProvisioningFieldDefinition field, bool wasLocal, string localValue,
-            string inheritedValue, ProvisioningSettingsScope? inheritedSource)
+            string inheritedValue, ProvisioningSettingsScope? inheritedSource, bool isApplicable = true)
         {
             ProvisioningFieldState state = new()
             {
                 Field = field,
                 WasLocal = wasLocal,
+                IsApplicable = isApplicable,
                 OriginalValue = wasLocal ? localValue : "",
                 InheritedValue = inheritedValue,
                 InheritedSource = inheritedSource
@@ -133,12 +140,15 @@ namespace FWO.Ui.Pages.Settings
             }
 
             List<ProvisioningFieldState> fields = [];
-            foreach (ProvisioningFieldDefinition field in ProvisioningSettingsData.FieldsFor(node))
+            IEnumerable<ProvisioningFieldDefinition> visibleFields = ProvisioningSettingsData.Fields.Where(field =>
+                field.AppliesTo(node) || (field.FortinetOnly && level.DirectOverrides.Contains(field.Key)));
+            foreach (ProvisioningFieldDefinition field in visibleFields)
             {
                 bool wasLocal = level.DirectOverrides.Contains(field.Key);
                 ResolvedLevel inherited = wasLocal ? parentLevel! : level;
                 (string inheritedValue, ProvisioningSettingsScope? inheritedSource) = ValueOf(inherited, field, node.Level);
-                fields.Add(ProvisioningFieldState.Create(field, wasLocal, level.Values[field.Key], inheritedValue, inheritedSource));
+                fields.Add(ProvisioningFieldState.Create(field, wasLocal, level.Values[field.Key], inheritedValue,
+                    inheritedSource, field.AppliesTo(node)));
             }
             return new ProvisioningLevelForm(node, fields);
         }
@@ -156,7 +166,9 @@ namespace FWO.Ui.Pages.Settings
             }
 
             ProvisioningNode node = form.Node;
-            if (node.IsPersisted || form.Fields.Any(f => f.IsChanged && f.IsLocal))
+            ProvisioningSettingsScope requestScope = RequestScope(node);
+            ProvisioningSettingsChangeSet changes = form.BuildChangeSet(requestScope);
+            if (node.IsPersisted || changes.Upserts.Count > 0)
             {
                 foreach (ProvisioningNode level in node.SelfAndAncestors().Reverse())
                 {
@@ -164,7 +176,8 @@ namespace FWO.Ui.Pages.Settings
                 }
             }
 
-            ProvisioningSettingsScope persisted = await manager.ApplyChangesAsync(form.BuildChangeSet(RequestScope(node)));
+            UpdateRequestScope(requestScope, node);
+            ProvisioningSettingsScope persisted = await manager.ApplyChangesAsync(changes);
             if (persisted.NodeId > 0)
             {
                 node.Scope = persisted;
@@ -268,6 +281,19 @@ namespace FWO.Ui.Pages.Settings
                 ParentNodeId = node.IsPersisted ? node.Scope.ParentNodeId : NullIfUnpersisted(node.Parent),
                 SortOrder = node.Scope.SortOrder
             };
+        }
+
+        /// <summary>
+        /// Refreshes only the hierarchy locator after ancestors have been created or moved. The setting patch itself
+        /// was captured before those asynchronous operations and is deliberately left unchanged.
+        /// </summary>
+        private static void UpdateRequestScope(ProvisioningSettingsScope requestScope, ProvisioningNode node)
+        {
+            ProvisioningSettingsScope currentScope = RequestScope(node);
+            requestScope.NodeId = currentScope.NodeId;
+            requestScope.ParentNodeId = currentScope.ParentNodeId;
+            requestScope.DisplayName = currentScope.DisplayName;
+            requestScope.SortOrder = currentScope.SortOrder;
         }
 
         private static long? NullIfUnpersisted(ProvisioningNode? node) => node is { IsPersisted: true } ? node.Scope.NodeId : null;

@@ -15,6 +15,8 @@
   its parent levels, instead of one query per node or level
 - the placeholder value Undefined of the provisioning setting enums is rejected when storing and reading an override
 - auditors see the provisioning settings with all editors disabled
+- the provisioning settings editor is locked while a save is running, and retained Fortinet-only values are shown as
+  dormant overrides with an action to clear them after a management or gateway is moved to another device type
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
   inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one

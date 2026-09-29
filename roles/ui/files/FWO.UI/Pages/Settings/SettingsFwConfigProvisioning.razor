@@ -57,37 +57,58 @@ else
                                     {
                                         <span class="badge rounded-pill bg-warning text-dark">@(userConfig.GetText("unsaved_changes"))</span>
                                     }
-                                    <span class="badge rounded-pill fw-bold @(state.IsLocal ? "bg-success" : "bg-secondary")">
-                                        @(state.IsLocal ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
-                                    </span>
-                                    <div class="form-check form-switch mb-0">
-                                        <input class="form-check-input" type="checkbox" id="@($"prov-override-{state.Field.Id}")" checked="@state.IsLocal"
-                                               disabled="@(!CanEdit)" @onchange="e => ToggleOverride(state, e.Value is true)" />
-                                        <label class="form-check-label small" for="@($"prov-override-{state.Field.Id}")">@(userConfig.GetText("prov_override_here"))</label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mt-2">
-                                @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal || !CanEdit, v => SetLocalValue(state, v))
-                            </div>
-
-                            @if (!state.IsLocal)
-                            {
-                                <div class="text-muted small mt-1">
-                                    @if (SourceNode(state) is ProvisioningNode sourceNode)
+                                    @if (state.IsDormant)
                                     {
-                                        @(userConfig.GetText("prov_inherited_from"))
-                                        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@form.HasChanges"
-                                                @onclick="() => NavigateToSource(state.Field, sourceNode)">
-                                            <strong>@LevelLabel(sourceNode.Level)</strong> "@NodeName(sourceNode)" <span class="@Icons.Use"></span>
-                                        </button>
+                                        <span class="badge rounded-pill bg-info text-dark fw-bold">@(userConfig.GetText("prov_dormant_override"))</span>
                                     }
                                     else
                                     {
-                                        @(userConfig.GetText("prov_compiled_default"))
+                                        <span class="badge rounded-pill fw-bold @(state.IsLocal ? "bg-success" : "bg-secondary")">
+                                            @(state.IsLocal ? userConfig.GetText("prov_set_here") : userConfig.GetText("prov_inherited"))
+                                        </span>
+                                        <div class="form-check form-switch mb-0">
+                                            <input class="form-check-input" type="checkbox" id="@($"prov-override-{state.Field.Id}")" checked="@state.IsLocal"
+                                                   disabled="@(saving || !CanEdit)" @onchange="e => ToggleOverride(state, e.Value is true)" />
+                                            <label class="form-check-label small" for="@($"prov-override-{state.Field.Id}")">@(userConfig.GetText("prov_override_here"))</label>
+                                        </div>
                                     }
                                 </div>
+                            </div>
+
+                            @if (state.IsDormant)
+                            {
+                                <div class="mt-2">
+                                    @RenderEditor(state.Field, state.OriginalValue, true, _ => { })
+                                </div>
+                                <div class="text-muted small mt-1">@(userConfig.GetText("prov_dormant_override_hint"))</div>
+                                <button type="button" class="prov-clear-dormant btn btn-sm btn-outline-danger mt-2"
+                                        disabled="@(saving || !CanEdit || !state.IsLocal)" @onclick="() => ClearDormantOverride(state)">
+                                    @(DisplayService.DisplayButton(userConfig, "prov_clear_override", Icons.Delete))
+                                </button>
+                            }
+                            else
+                            {
+                                <div class="mt-2">
+                                    @RenderEditor(state.Field, state.DisplayedValue, !state.IsLocal || !CanEdit || saving, v => SetLocalValue(state, v))
+                                </div>
+
+                                @if (!state.IsLocal)
+                                {
+                                    <div class="text-muted small mt-1">
+                                        @if (SourceNode(state) is ProvisioningNode sourceNode)
+                                        {
+                                            @(userConfig.GetText("prov_inherited_from"))
+                                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" disabled="@(saving || form.HasChanges)"
+                                                    @onclick="() => NavigateToSource(state.Field, sourceNode)">
+                                                <strong>@LevelLabel(sourceNode.Level)</strong> "@NodeName(sourceNode)" <span class="@Icons.Use"></span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            @(userConfig.GetText("prov_compiled_default"))
+                                        }
+                                    </div>
+                                }
                             }
                         </div>
                     }
@@ -161,7 +182,7 @@ else
     private RenderFragment RenderTreeNode(ProvisioningNode node) =>
         @<li class="nav-item @(node.Parent == null ? "" : "ms-2")">
             <button type="button" class="btn btn-sm w-100 text-start mb-1 @(form?.Node == node ? "btn-primary" : "btn-light")"
-                    disabled="@(form?.HasChanges == true && form.Node != node)" @onclick="() => SelectNode(node)">
+                    disabled="@(saving || (form?.HasChanges == true && form.Node != node))" @onclick="() => SelectNode(node)">
                 <span class="@NodeIcon(node.Level)"></span> @NodeName(node)
             </button>
             @if (node.Children.Count > 0 && (node.Parent == null || expandedNodeIds.Contains(node.Id)))
@@ -185,7 +206,7 @@ else
     /// <summary>Loads the given node's form and expands the tree down to it. Blocked while there are unsaved edits.</summary>
     private async Task SelectNode(ProvisioningNode node)
     {
-        if (service == null || (form?.HasChanges == true && form.Node != node))
+        if (saving || service == null || (form?.HasChanges == true && form.Node != node))
         {
             return;
         }
@@ -208,16 +229,18 @@ else
 
     private async Task Save()
     {
-        if (service == null || form == null)
+        if (saving || service == null || form == null)
         {
             return;
         }
 
+        ProvisioningLevelForm formToSave = form;
+        ProvisioningNode nodeToReload = form.Node;
         saving = true;
         try
         {
-            await service.SaveAsync(form);
-            form = await service.LoadFormAsync(form.Node);
+            await service.SaveAsync(formToSave);
+            form = await service.LoadFormAsync(nodeToReload);
         }
         catch (Exception exception)
         {
@@ -237,7 +260,7 @@ else
 
     private void ToggleOverride(ProvisioningFieldState state, bool overrideHere)
     {
-        if (!CanEdit)
+        if (saving || !CanEdit)
         {
             return;
         }
@@ -254,9 +277,17 @@ else
 
     private void SetLocalValue(ProvisioningFieldState state, string value)
     {
-        if (CanEdit)
+        if (!saving && CanEdit)
         {
             state.LocalValue = value;
+        }
+    }
+
+    private void ClearDormantOverride(ProvisioningFieldState state)
+    {
+        if (!saving && CanEdit && state.IsDormant)
+        {
+            state.Inherit();
         }
     }
 
@@ -266,7 +297,7 @@ else
     /// <summary>Jumps to the node a field's value is currently inherited from, so it can be edited there.</summary>
     private async Task NavigateToSource(ProvisioningFieldDefinition field, ProvisioningNode sourceNode)
     {
-        if (form == null || sourceNode == form.Node || form.HasChanges)
+        if (saving || form == null || sourceNode == form.Node || form.HasChanges)
         {
             return;
         }

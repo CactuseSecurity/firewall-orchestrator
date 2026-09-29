@@ -27,6 +27,9 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
 
     public Exception? Failure { get; set; }
 
+    /// <summary>Optional test hook that can pause a query after it has been recorded and before it is applied.</summary>
+    public Func<string, Task>? BeforeQueryAsync { get; set; }
+
     public int UpsertCallCount => Calls.Count(call => call.Query == ProvisioningQueries.upsertNode);
 
     public int PatchCallCount => Calls.Count(call => call.Query == ProvisioningQueries.applyPatch);
@@ -89,7 +92,7 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
             ?.ConfigValue;
     }
 
-    public override Task<T> SendQueryAsync<T>(
+    public override async Task<T> SendQueryAsync<T>(
         string query,
         object? variables = null,
         string? operationName = null,
@@ -99,6 +102,11 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
         if (query == FailingQuery)
         {
             throw Failure ?? new InvalidOperationException("Simulated API failure.");
+        }
+
+        if (BeforeQueryAsync != null)
+        {
+            await BeforeQueryAsync(query);
         }
 
         RefreshParentLinks();
@@ -115,7 +123,7 @@ internal sealed class InMemoryProvisioningApiConnection : SimulatedApiConnection
             _ => throw new InvalidOperationException("Unexpected provisioning query.")
         };
 
-        return Task.FromResult((T)result);
+        return (T)result;
     }
 
     private List<ProvisioningConfigNodeData> GetNodeWithAncestors(object? variables)

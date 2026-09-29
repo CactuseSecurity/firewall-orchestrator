@@ -93,7 +93,7 @@ Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar,
-	"uuid" Varchar NOT NULL UNIQUE,
+	"uuid" Varchar NOT NULL,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),

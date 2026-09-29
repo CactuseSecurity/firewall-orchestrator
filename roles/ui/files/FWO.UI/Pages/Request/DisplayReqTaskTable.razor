@@ -1,6 +1,6 @@
 @using FWO.Ui.Services
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject UserConfig userConfig
 
@@ -44,7 +44,7 @@
                                     {
                                         @if (context.StateId < taskStateMatrix.LowestStartedState)
                                         {
-                                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.Planner}, {Roles.Implementer}, {Roles.Reviewer}")">
                                                 <Authorized Context="ctx">
                                                     <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartPhase(context)">
                                                         @(userConfig.GetText("start_" + Phase.ToString()))</button>
@@ -151,7 +151,7 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){Roles.Planner, Roles.FwAdmin};
+    static List<string> validRoles = new (){Roles.Planner};
 
 
     private async Task Reset()

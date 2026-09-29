@@ -16,11 +16,11 @@ namespace FWO.Test
 
         private static readonly List<string> TopologyHrefs = new() { "/settings/matrix", "/settings/internet" };
         private static readonly List<string> AdminRoles = new() { Roles.Admin };
-        private static readonly List<string> FwAdminRoles = new() { Roles.FwAdmin };
+        private static readonly List<string> AuditorRoles = new() { Roles.Auditor };
+        private static readonly List<string> RemovedFwAdminRoles = new() { "fw-admin" };
         private static readonly List<string> ImporterRoles = new() { Roles.Importer };
         private static readonly List<string> PersonalOnly = new() { "personal" };
         private static readonly List<string> PasswordPolicyOnly = new() { "settings/passwordpolicy" };
-        private static readonly List<string> TenantsOnly = new() { "settings/tenants" };
 
         private readonly SimulatedUserConfig userConfig = CreateUserConfig(AdminRoles, InternalDn());
 
@@ -166,21 +166,23 @@ namespace FWO.Test
         [Test]
         public void GetSections_MatchOnlyInRoleHiddenEntries_ReturnsNoSection()
         {
-            // The heading "authorization" is visible to fw admins, but none of the matching entries is.
-            Assert.That(SettingsNavigationService.GetSections(CreateUserConfig(FwAdminRoles, InternalDn()), "user"), Is.Empty);
+            // The heading "devices" is visible to the importer, but none of the matching entries is.
+            Assert.That(SettingsNavigationService.GetSections(CreateUserConfig(ImporterRoles, InternalDn()), "manage"), Is.Empty);
         }
 
         [Test]
-        public void GetSections_MatchingHeading_KeepsOnlyTheVisibleEntries()
+        public void GetSections_MatchingHeading_DropsSectionWithoutVisibleEntries()
+        {
+            Assert.That(SettingsNavigationService.GetSections(CreateUserConfig(ImporterRoles, InternalDn()), "devices"), Is.Empty);
+        }
+
+        [Test]
+        public void GetSections_RemovedFwAdminRole_ReturnsOnlyPersonalSection()
         {
             IReadOnlyList<SettingsNavSection> sections = SettingsNavigationService.GetSections(
-                CreateUserConfig(FwAdminRoles, InternalDn()), "authorization");
+                CreateUserConfig(RemovedFwAdminRoles, InternalDn()), "");
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(sections, Has.Count.EqualTo(1));
-                Assert.That(sections[0].Entries.Select(entry => entry.Href), Is.EqualTo(TenantsOnly));
-            });
+            Assert.That(sections.Select(section => section.TextKey), Is.EqualTo(PersonalOnly));
         }
 
         [Test]
@@ -230,13 +232,13 @@ namespace FWO.Test
         {
             SettingsNavEntry adminEntry = new("users", "settings/users", Icons.User, Roles.Admin);
             SettingsNavEntry internalEntry = new("password", "settings/password", Icons.Login, InternalUsersOnly: true);
-            SimulatedUserConfig fwAdminConfig = CreateUserConfig(FwAdminRoles, InternalDn());
+            SimulatedUserConfig auditorConfig = CreateUserConfig(AuditorRoles, InternalDn());
             SimulatedUserConfig externalConfig = CreateUserConfig(AdminRoles, kExternalDn);
 
             Assert.Multiple(() =>
             {
                 Assert.That(SettingsNavigationService.IsVisible(userConfig, adminEntry), Is.True);
-                Assert.That(SettingsNavigationService.IsVisible(fwAdminConfig, adminEntry), Is.False);
+                Assert.That(SettingsNavigationService.IsVisible(auditorConfig, adminEntry), Is.False);
                 Assert.That(SettingsNavigationService.IsVisible(userConfig, internalEntry), Is.True);
                 Assert.That(SettingsNavigationService.IsVisible(externalConfig, internalEntry), Is.False);
             });

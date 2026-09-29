@@ -22,8 +22,8 @@ namespace FWO.Test
             "The Hasura metadata is not reachable in this environment, so the uiuser update permissions cannot be checked.";
         private const string kUiUserTable = "uiuser";
         private const string kPublicSchema = "public";
-        private const string kSubjectColumn = "uuid";
-        private const string kSubjectSessionVariable = "x-hasura-uuid";
+        private const string kSubjectColumn = "uiuser_id";
+        private const string kSubjectSessionVariable = "X-Hasura-User-Id";
 
         /// <summary>
         /// The middleware runs the login and refresh flows and legitimately writes the identity of
@@ -110,7 +110,9 @@ namespace FWO.Test
         /// <summary>
         /// The self-service permissions are scoped to the caller's own row, and the session
         /// variable that scopes them has to be the subject of the token. A permission that filtered
-        /// on nothing would let one user rewrite the preference of another.
+        /// on nothing would let one user rewrite the preference of another. The dn does not do:
+        /// it is unique only inside one directory, so the same dn in two LDAP connections belongs
+        /// to two rows (SEC-11), and only the local user id names exactly one of them.
         /// </summary>
         [Test]
         public void UiUserUpdate_ScopesNonServiceRolesToTheirOwnRow()

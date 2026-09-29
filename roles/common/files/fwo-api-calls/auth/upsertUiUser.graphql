@@ -22,7 +22,7 @@ mutation upsertUiUser(
       ldap_connection_id: $ldapConnectionId
     }
     on_conflict: {
-      constraint: uiuser_uuid_key
+      constraint: uiuser_ldap_connection_id_uuid_key
       update_columns: [
         uiuser_email
         uiuser_first_name
@@ -30,7 +30,6 @@ mutation upsertUiUser(
         tenant_id
         uiuser_last_login
         uiuser_password_must_be_changed
-        ldap_connection_id
       ]
     }
   ) {

@@ -26,10 +26,10 @@ namespace FWO.Test
         private static readonly FieldInfo NavbarHeightSubscribersField = typeof(DomEventService).GetField("_navbarHeightSubscribers", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new MissingFieldException(typeof(DomEventService).FullName, "_navbarHeightSubscribers");
 
+        private const string kRemovedFwAdminRole = "fw-admin";
         private static readonly List<string> PrivilegedRoles = new()
         {
             Roles.Admin,
-            Roles.FwAdmin,
             Roles.Auditor,
             Roles.Modeller,
             Roles.Recertifier,
@@ -211,22 +211,6 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task SettingsLayout_SearchInput_LeavesNoHeadingWithoutPages_ForFwAdmin()
-        {
-            await using BunitContext context = CreateContext(SingleRole(Roles.FwAdmin), CreateInternalDn());
-            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.FwAdmin);
-
-            // Only admins and auditors may see the user pages, fw admins just the heading above them.
-            await layout.Find("#settingsSearch").InputAsync(new ChangeEventArgs { Value = "user" });
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(layout.FindAll("h5"), Is.Empty);
-                Assert.That(layout.Find("[role='status']").TextContent.Trim(), Is.EqualTo("no_search_results"));
-            });
-        }
-
-        [Test]
         public async Task SettingsLayout_SearchInput_ReportsWhenAllMatchesAreRoleHidden_ForImporter()
         {
             await using BunitContext context = CreateContext(SingleRole(Roles.Importer), CreateInternalDn());
@@ -280,21 +264,17 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// The fw-admin role was removed. A user whose directory still holds it must see no more than
+        /// a user without any privileged role.
+        /// </summary>
         [Test]
-        public async Task SettingsLayout_HidesUserAdministration_ForFwAdmin()
+        public async Task SettingsLayout_RendersOnlyPersonalSection_ForRemovedFwAdminRole()
         {
-            await using BunitContext context = CreateContext(SingleRole(Roles.FwAdmin), CreateInternalDn());
-            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, Roles.FwAdmin);
-            List<string> hrefs = NavigationHrefs(layout);
+            await using BunitContext context = CreateContext(SingleRole(kRemovedFwAdminRole), CreateInternalDn());
+            IRenderedComponent<SettingsLayout> layout = await RenderNavigation(context, kRemovedFwAdminRole);
 
-            Assert.Multiple(() =>
-            {
-                Assert.That(hrefs, Contains.Item("settings/tenants"));
-                Assert.That(hrefs, Does.Not.Contain("settings/users"));
-                Assert.That(hrefs, Does.Not.Contain("settings/ldap"));
-                Assert.That(hrefs, Does.Not.Contain("settings/defaults"));
-                Assert.That(hrefs, Contains.Item("settings/managements"));
-            });
+            Assert.That(NavigationHrefs(layout), Is.EqualTo(PersonalNavigation));
         }
 
         [Test]

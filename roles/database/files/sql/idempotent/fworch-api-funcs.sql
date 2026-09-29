@@ -666,3 +666,34 @@ BEGIN
     ORDER BY rule_name ASC;
 END;
 $function$;
+
+-- SEC-19: the security state of a local user (last login, last password change, password change
+-- flag) is shown to that user only. Roles reachable from a UI session other than admin and auditor
+-- have no column permission on these uiuser columns; the Hasura computed fields below return them
+-- for the row of the session user and NULL for every other row.
+CREATE OR REPLACE FUNCTION public.uiuser_own_last_login(uiuser_row uiuser, hasura_session json)
+RETURNS timestamp with time zone
+LANGUAGE sql
+STABLE
+AS $function$
+    SELECT CASE WHEN uiuser_row.uiuser_id::text = hasura_session ->> 'x-hasura-user-id'
+        THEN uiuser_row.uiuser_last_login END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.uiuser_own_last_password_change(uiuser_row uiuser, hasura_session json)
+RETURNS timestamp with time zone
+LANGUAGE sql
+STABLE
+AS $function$
+    SELECT CASE WHEN uiuser_row.uiuser_id::text = hasura_session ->> 'x-hasura-user-id'
+        THEN uiuser_row.uiuser_last_password_change END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.uiuser_own_password_must_be_changed(uiuser_row uiuser, hasura_session json)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $function$
+    SELECT CASE WHEN uiuser_row.uiuser_id::text = hasura_session ->> 'x-hasura-user-id'
+        THEN uiuser_row.uiuser_password_must_be_changed END;
+$function$;

@@ -3421,6 +3421,12 @@ INSERT INTO txt VALUES ('prov_compiled_default', 'German', 	'Standardwert (auf k
 INSERT INTO txt VALUES ('prov_compiled_default', 'English', 	'Default value (not set on any level)');
 INSERT INTO txt VALUES ('prov_unsaved_hint',    'German', 	'Diese Ebene hat ungespeicherte &Auml;nderungen. Speichern oder verwerfen Sie sie, bevor Sie eine andere Ebene ausw&auml;hlen.');
 INSERT INTO txt VALUES ('prov_unsaved_hint',    'English', 	'This level has unsaved changes. Save or discard them before selecting another level.');
+INSERT INTO txt VALUES ('prov_dormant_override', 'German', 	'Inaktive &Uuml;berschreibung');
+INSERT INTO txt VALUES ('prov_dormant_override', 'English', 	'Dormant override');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'German', 	'Diese gespeicherte Fortinet-Einstellung ist f&uuml;r den aktuellen Ger&auml;tetyp inaktiv. Sie bleibt f&uuml;r den Fall erhalten, dass die Ebene zur&uuml;ckverschoben wird, und kann hier entfernt werden.');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'English', 	'This stored Fortinet setting is inactive for the current device type. It is retained in case the level is moved back and can be cleared here.');
+INSERT INTO txt VALUES ('prov_clear_override',  'German', 	'Gespeicherte &Uuml;berschreibung entfernen');
+INSERT INTO txt VALUES ('prov_clear_override',  'English', 	'Clear stored override');
 INSERT INTO txt VALUES ('prov_templates_placeholder', 'German', 	'z.B. Vorlage mit Platzhaltern wie {{rule_name}}');
 INSERT INTO txt VALUES ('prov_templates_placeholder', 'English', 	'e.g. template with placeholders like {{rule_name}}');
 INSERT INTO txt VALUES ('prov_implementation_mode', 'German', 	'Umsetzungsmodus');
@@ -6509,8 +6515,8 @@ INSERT INTO txt VALUES ('H5165', 'German',  'Administratoren k&ouml;nnen die Ein
 INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
 INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
 INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
-INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps.');
-INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type.');
+INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps. Wird eine Ebene von Fortinet weg verschoben, bleiben ihre eigenen Fortinet-Werte als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
+INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type. If a level is moved away from Fortinet, its own Fortinet values remain visible as dormant overrides and can be cleared there.');
 INSERT INTO txt VALUES ('H5168', 'German',  'Umsetzungsmodus: Wie Umsetzungsaufgaben f&uuml;r Regel&auml;nderungen erzeugt werden: FWO automatisch, Manuell, Tufin SecureChange oder Keine (keine Implementierungsaufgabe).');
 INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: how implementation tasks are created for rule changes: FWO automatic, Manual, Tufin SecureChange, or None (no implementation task).');
 INSERT INTO txt VALUES ('H5169', 'German',  'Installieren auf: Das Installationsziel der erzeugten Regeln, z.B. ANY.');

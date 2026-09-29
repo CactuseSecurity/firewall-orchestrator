@@ -56,6 +56,9 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>Whether the field is offered at the given level.</summary>
         public bool AppliesToLevel(ProvisioningScopeType level) => level >= MinLevel && level <= MaxLevel;
+
+        /// <summary>Whether the field is offered on the node's current device path.</summary>
+        public bool AppliesTo(ProvisioningNode node) => AppliesToLevel(node.Level) && (!FortinetOnly || node.IsFortinet);
     }
 
     /// <summary>
@@ -181,7 +184,7 @@ namespace FWO.Ui.Pages.Settings
 
         /// <summary>Fields offered at the given node, honouring the level range and the Fortinet restriction.</summary>
         public static IEnumerable<ProvisioningFieldDefinition> FieldsFor(ProvisioningNode node) =>
-            Fields.Where(f => f.AppliesToLevel(node.Level) && (!f.FortinetOnly || node.IsFortinet));
+            Fields.Where(f => f.AppliesTo(node));
 
         /// <summary>Splits a comma separated list, keeping empty entries so half-filled editor rows survive a re-render.</summary>
         public static List<string> ParseStringList(string value) =>

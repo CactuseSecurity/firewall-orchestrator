@@ -323,6 +323,77 @@ internal class ProvisioningSettingsServiceTest
         }
     }
 
+    [Test]
+    public async Task LoadForm_MovedAwayFromFortinet_ExposesAndClearsDormantOverride()
+    {
+        InMemoryProvisioningApiConnection api = MovedCheckPointManagement(currentDeviceTypePersisted: true);
+        api.SetValue(kManagementNodeId, ProvisioningSettingKeys.ZoneFrom, "internal");
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningNode management = Node(root, ProvisioningScopeType.Management, "100");
+
+        ProvisioningLevelForm form = await service.LoadFormAsync(management);
+        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.ZoneFrom);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(zoneFrom.WasLocal, Is.True);
+            Assert.That(zoneFrom.IsApplicable, Is.False);
+            Assert.That(zoneFrom.IsDormant, Is.True);
+            Assert.That(zoneFrom.OriginalValue, Is.EqualTo("internal"));
+        }
+
+        zoneFrom.Inherit();
+        await service.SaveAsync(form);
+        ProvisioningLevelForm reloaded = await service.LoadFormAsync(management);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(api.ReadValue(kManagementNodeId, ProvisioningSettingKeys.ZoneFrom), Is.Null);
+            Assert.That(reloaded.Fields.Any(field => field.Field.Key == ProvisioningSettingKeys.ZoneFrom), Is.False);
+        }
+    }
+
+    [Test]
+    public async Task Save_CapturesChangedValuesBeforeFirstHierarchyRequest()
+    {
+        InMemoryProvisioningApiConnection api = new();
+        ProvisioningSettingsService service = Service(api);
+        ProvisioningNode root = await service.LoadHierarchyAsync(ProvisioningSettingsDataTest.SampleManagements());
+        ProvisioningNode gateway = Node(root, ProvisioningScopeType.Gateway, "210");
+        ProvisioningLevelForm form = await service.LoadFormAsync(gateway);
+        ProvisioningFieldState zoneFrom = State(form, ProvisioningSettingKeys.ZoneFrom);
+        zoneFrom.Override();
+        zoneFrom.LocalValue = "captured-before-save";
+
+        TaskCompletionSource<bool> firstQueryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> continueQuery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int queryCount = 0;
+        api.BeforeQueryAsync = async _ =>
+        {
+            if (Interlocked.Increment(ref queryCount) == 1)
+            {
+                firstQueryStarted.TrySetResult(true);
+                await continueQuery.Task;
+            }
+        };
+
+        Task saveTask = service.SaveAsync(form);
+        try
+        {
+            await firstQueryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            zoneFrom.LocalValue = "late-edit";
+        }
+        finally
+        {
+            continueQuery.TrySetResult(true);
+        }
+        await saveTask;
+
+        Assert.That(api.ReadValue(gateway.Scope.NodeId, ProvisioningSettingKeys.ZoneFrom)?.ToString(),
+            Is.EqualTo("captured-before-save"));
+    }
+
     /// <summary>
     /// The number of API calls does not grow with the number of stored nodes: the tree is loaded with one query,
     /// and a form with a direct override needs one query for its level and one for the level above.

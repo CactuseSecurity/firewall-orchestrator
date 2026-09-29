@@ -25,14 +25,14 @@ internal class NotificationControllerTest
     public void InterfaceRequestEndpoint_AllowsBusinessRoles()
     {
         Assert.That(GetRoles(nameof(NotificationController.SendInterfaceRequest)),
-            Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}"));
+            Is.EqualTo($"{Roles.Admin}, {Roles.Modeller}"));
     }
 
     [Test]
     public void InterfaceDecommissionEndpoint_AllowsBusinessRoles()
     {
         Assert.That(GetRoles(nameof(NotificationController.SendInterfaceDecommission)),
-            Is.EqualTo($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}"));
+            Is.EqualTo($"{Roles.Admin}, {Roles.Modeller}"));
     }
 
     [Test]

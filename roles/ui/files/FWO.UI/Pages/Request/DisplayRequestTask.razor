@@ -5,7 +5,7 @@
 @using System.Text.Json
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -406,7 +406,7 @@
                 <div class="btn-group">
                     @if (WfHandler.EditReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Requester}")">
                             <Authorized>
                                 @if(WfHandler.AddReqTaskMode)
                                 {
@@ -424,7 +424,7 @@
                     }
                     else if (WfHandler.PlanReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteReqTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>
@@ -435,7 +435,7 @@
                     }
                     else if (WfHandler.ApproveReqTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Approver}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitApproveTask">@(DisplayService.DisplayButton(userConfig, "approve", Icons.Approve))</button>
                             </Authorized>

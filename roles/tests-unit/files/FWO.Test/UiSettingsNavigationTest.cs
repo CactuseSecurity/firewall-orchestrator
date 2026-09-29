@@ -34,7 +34,7 @@ namespace FWO.Test
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
                 Assert.That(sections[0].TextKey, Is.EqualTo("devices"));
                 Assert.That(sections[^1].TextKey, Is.EqualTo("personal"));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(41));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(42));
             });
         }
 
@@ -130,7 +130,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(sections, Has.Count.EqualTo(kSectionCount));
-                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(41));
+                Assert.That(sections.Sum(section => section.Entries.Count), Is.EqualTo(42));
             });
         }
 

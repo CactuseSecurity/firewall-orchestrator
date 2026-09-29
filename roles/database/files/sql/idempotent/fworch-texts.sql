@@ -595,6 +595,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Der Soll-Ist-Abgleich nutzt die Eigent&uuml;merzuordnung der Regeln nun deutlich h&auml;ufiger als schnellen Weg: Ein Import ohne Regel&auml;nderungen blockiert sie nicht mehr, und wo jemand auf das Ergebnis wartet, wartet der Abgleich kurz auf eine ausstehende Zuordnung, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Die Wartezeit stellt die neue Einstellung "Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung" ein, 0 schaltet sie ab. Eine laufende vollst&auml;ndige Neuberechnung der Zuordnung wird nun erkannt, sodass der Abgleich w&auml;hrenddessen keine unvollst&auml;ndigen Ergebnisse mehr liefert.</li>
     <li>Die Rolle fw-admin wurde entfernt, da sie Mandanten, Managements und Login-Daten aller Mandanten &auml;ndern konnte. Das Upgrade l&ouml;scht die Rolle aus dem internen LDAP und nennt ihre bisherigen Mitglieder in der Installer-Ausgabe. Login-Daten, die noch von einem Management verwendet werden, lassen sich nicht mehr l&ouml;schen; statt das Management mitzul&ouml;schen, werden die betroffenen Managements genannt.</li>
     <li>Der REST-Endpunkt <code>GetRulesByFilter</code> wendet <code>MinPrefixLength</code> nun unabh&auml;ngig von <code>InField</code> auf Quelle und Ziel an; <code>InField</code> legt nur fest, wo die angefragte IP-Adresse &uuml;bereinstimmen muss. Dienst-Portbereiche werden nun in <code>service[].portEnd</code> zur&uuml;ckgegeben.</li>
+    <li>Die neue Seite Einstellungen &ndash; Provisionierungs-Einstellungen legt die Parameter f&uuml;r die Umsetzung von Regel&auml;nderungen hierarchisch fest: global, pro Ger&auml;tetyp, pro Manager und pro Gateway. Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt, und erbt alle anderen von der Ebene dar&uuml;ber; zu jedem geerbten Wert l&auml;sst sich die Ebene anspringen, von der er stammt. Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren sie einsehen; siehe <a target="_blank" href="/help/settings/fwconfigprovisioning">Hilfe zu den Provisionierungs-Einstellungen</a>.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -628,6 +629,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The variance analysis now uses the rule owner mapping as its fast path far more often: an import without rule changes no longer blocks it, and where somebody is waiting for the result the analysis waits briefly for a pending mapping run instead of falling back to the much slower marker search. The new setting "Wait time for rule owner mapping" caps that wait, 0 disables it. A running full recalculation of the mapping is now detected, so the analysis no longer returns incomplete results while it runs.</li>
     <li>The fw-admin role was removed because it could change tenants, managements and credentials of all tenants. The upgrade deletes the role from the internal LDAP and names its former members in the installer output. Credentials still used by a management can no longer be deleted; instead of deleting the management along with them, the affected managements are named.</li>
     <li>The REST endpoint <code>GetRulesByFilter</code> now applies <code>MinPrefixLength</code> to source and destination independently of <code>InField</code>; <code>InField</code> only selects where the requested IP address must match. Service port ranges are now returned in <code>service[].portEnd</code>.</li>
+    <li>The new page Settings &ndash; Provisioning settings defines the parameters for implementing rule changes hierarchically: globally, per device type, per manager and per gateway. Each level stores only the values it overrides itself and inherits all others from the level above; for every inherited value you can jump to the level it comes from. Administrators can change the settings, auditors can view them; see <a target="_blank" href="/help/settings/fwconfigprovisioning">provisioning settings help</a>.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3393,6 +3395,128 @@ INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&au
 INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
+INSERT INTO txt VALUES ('prov_settings',        'German', 	'Provisionierungs-Einstellungen');
+INSERT INTO txt VALUES ('prov_settings',        'English', 	'Provisioning settings');
+INSERT INTO txt VALUES ('prov_settings_intro',  'German', 	'Einstellungen werden von Global &uuml;ber Ger&auml;tetyp und Manager bis zum Gateway vererbt. W&auml;hlen Sie links eine Ebene aus und &uuml;berschreiben Sie bei Bedarf einzelne Werte.');
+INSERT INTO txt VALUES ('prov_settings_intro',  'English', 	'Settings are inherited from Global down through Device Type and Manager to Gateway. Select a level on the left and override individual values where needed.');
+INSERT INTO txt VALUES ('prov_hierarchy_hint',  'German', 	'Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway');
+INSERT INTO txt VALUES ('prov_hierarchy_hint',  'English', 	'Global > Device Type > Manager > Gateway');
+INSERT INTO txt VALUES ('prov_global',          'German', 	'Global');
+INSERT INTO txt VALUES ('prov_global',          'English', 	'Global');
+INSERT INTO txt VALUES ('prov_device_type',     'German', 	'Ger&auml;tetyp');
+INSERT INTO txt VALUES ('prov_device_type',     'English', 	'Device Type');
+INSERT INTO txt VALUES ('prov_manager',         'German', 	'Manager');
+INSERT INTO txt VALUES ('prov_manager',         'English', 	'Manager');
+INSERT INTO txt VALUES ('prov_gateway',         'German', 	'Gateway');
+INSERT INTO txt VALUES ('prov_gateway',         'English', 	'Gateway');
+INSERT INTO txt VALUES ('prov_set_here',        'German', 	'Hier festgelegt');
+INSERT INTO txt VALUES ('prov_set_here',        'English', 	'Set here');
+INSERT INTO txt VALUES ('prov_inherited',       'German', 	'Geerbt');
+INSERT INTO txt VALUES ('prov_inherited',       'English', 	'Inherited');
+INSERT INTO txt VALUES ('prov_inherited_from',  'German', 	'Geerbt von');
+INSERT INTO txt VALUES ('prov_inherited_from',  'English', 	'Inherited from');
+INSERT INTO txt VALUES ('prov_override_here',   'German', 	'Hier &uuml;berschreiben');
+INSERT INTO txt VALUES ('prov_override_here',   'English', 	'Override here');
+INSERT INTO txt VALUES ('prov_compiled_default', 'German', 	'Standardwert (auf keiner Ebene gesetzt)');
+INSERT INTO txt VALUES ('prov_compiled_default', 'English', 	'Default value (not set on any level)');
+INSERT INTO txt VALUES ('prov_unsaved_hint',    'German', 	'Diese Ebene hat ungespeicherte &Auml;nderungen. Speichern oder verwerfen Sie sie, bevor Sie eine andere Ebene ausw&auml;hlen.');
+INSERT INTO txt VALUES ('prov_unsaved_hint',    'English', 	'This level has unsaved changes. Save or discard them before selecting another level.');
+INSERT INTO txt VALUES ('prov_dormant_override', 'German', 	'Inaktive &Uuml;berschreibung');
+INSERT INTO txt VALUES ('prov_dormant_override', 'English', 	'Dormant override');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'German', 	'Diese gespeicherte Fortinet-Einstellung ist f&uuml;r den aktuellen Ger&auml;tetyp inaktiv. Sie bleibt f&uuml;r den Fall erhalten, dass die Ebene zur&uuml;ckverschoben wird, und kann hier entfernt werden.');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'English', 	'This stored Fortinet setting is inactive for the current device type. It is retained in case the level is moved back and can be cleared here.');
+INSERT INTO txt VALUES ('prov_clear_override',  'German', 	'Gespeicherte &Uuml;berschreibung entfernen');
+INSERT INTO txt VALUES ('prov_clear_override',  'English', 	'Clear stored override');
+INSERT INTO txt VALUES ('prov_templates_placeholder', 'German', 	'z.B. Vorlage mit Platzhaltern wie {{rule_name}}');
+INSERT INTO txt VALUES ('prov_templates_placeholder', 'English', 	'e.g. template with placeholders like {{rule_name}}');
+INSERT INTO txt VALUES ('prov_implementation_mode', 'German', 	'Umsetzungsmodus');
+INSERT INTO txt VALUES ('prov_implementation_mode', 'English', 	'Implementation mode');
+INSERT INTO txt VALUES ('prov_implementation_mode_help', 'German', 	'Legt fest, wie Umsetzungsaufgaben f&uuml;r diese Ebene erzeugt werden.');
+INSERT INTO txt VALUES ('prov_implementation_mode_help', 'English', 	'Controls how implementation tasks are created for this level.');
+INSERT INTO txt VALUES ('prov_install_on',      'German', 	'Installieren auf');
+INSERT INTO txt VALUES ('prov_install_on',      'English', 	'Install on');
+INSERT INTO txt VALUES ('prov_install_on_help', 'German', 	'Zielinstallationsobjekt(e), z.B. ANY.');
+INSERT INTO txt VALUES ('prov_install_on_help', 'English', 	'Target install-on object(s), e.g. ANY.');
+INSERT INTO txt VALUES ('prov_logging',         'German', 	'Logging');
+INSERT INTO txt VALUES ('prov_logging',         'English', 	'Logging');
+INSERT INTO txt VALUES ('prov_logging_help',    'German', 	'Logging-Verhalten f&uuml;r erzeugte Regeln.');
+INSERT INTO txt VALUES ('prov_logging_help',    'English', 	'Logging behaviour for generated rules.');
+INSERT INTO txt VALUES ('prov_service_object_creation', 'German', 	'Anlage Service-Objekte');
+INSERT INTO txt VALUES ('prov_service_object_creation', 'English', 	'Service object creation');
+INSERT INTO txt VALUES ('prov_service_object_creation_help', 'German', 	'Ob Service-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
+INSERT INTO txt VALUES ('prov_service_object_creation_help', 'English', 	'Whether service objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
+INSERT INTO txt VALUES ('prov_address_object_creation', 'German', 	'Anlage Adress-Objekte');
+INSERT INTO txt VALUES ('prov_address_object_creation', 'English', 	'Address object creation');
+INSERT INTO txt VALUES ('prov_address_object_creation_help', 'German', 	'Ob Adress-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
+INSERT INTO txt VALUES ('prov_address_object_creation_help', 'English', 	'Whether address objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
+INSERT INTO txt VALUES ('prov_rule_type',       'German', 	'Regeltyp');
+INSERT INTO txt VALUES ('prov_rule_type',       'English', 	'Rule type');
+INSERT INTO txt VALUES ('prov_rule_type_help',  'German', 	'Welche Regelarten (Access/NAT/IPS) f&uuml;r diese Ebene behandelt werden.');
+INSERT INTO txt VALUES ('prov_rule_type_help',  'English', 	'Which rule kinds (Access/NAT/IPS) are handled for this level.');
+INSERT INTO txt VALUES ('prov_templates',       'German', 	'Vorlagen');
+INSERT INTO txt VALUES ('prov_templates',       'English', 	'Templates');
+INSERT INTO txt VALUES ('prov_templates_help',  'German', 	'Freitext-Vorlage(n) mit Platzhaltern f&uuml;r diese Ebene.');
+INSERT INTO txt VALUES ('prov_templates_help',  'English', 	'Free-text template(s) with placeholders for this level.');
+INSERT INTO txt VALUES ('prov_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
+INSERT INTO txt VALUES ('prov_positioning_algorithm', 'English', 	'Positioning algorithm');
+INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'German', 	'Wo neue Regeln im Regelwerk platziert werden. Nicht auf Global-Ebene verf&uuml;gbar.');
+INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'English', 	'Where new rules are placed in the rulebase. Not available at the Global level.');
+INSERT INTO txt VALUES ('prov_rule_category',   'German', 	'Regelkategorie');
+INSERT INTO txt VALUES ('prov_rule_category',   'English', 	'Rule category');
+INSERT INTO txt VALUES ('prov_rule_category_help', 'German', 	'Ob die Regel als Anwendungs- oder als gemeinsame Service-Regel behandelt wird. Nicht auf Global-Ebene verf&uuml;gbar.');
+INSERT INTO txt VALUES ('prov_rule_category_help', 'English', 	'Whether the rule is treated as an application rule or a common-service rule. Not available at the Global level.');
+INSERT INTO txt VALUES ('prov_security_profiles', 'German', 	'Sicherheitsprofile');
+INSERT INTO txt VALUES ('prov_security_profiles', 'English', 	'Security profiles');
+INSERT INTO txt VALUES ('prov_security_profiles_help', 'German', 	'Namen der anzuwendenden Sicherheitsprofile (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_security_profiles_help', 'English', 	'Names of the security profiles to apply (Fortinet only).');
+INSERT INTO txt VALUES ('prov_zone_from',       'German', 	'Zone von');
+INSERT INTO txt VALUES ('prov_zone_from',       'English', 	'Zone from');
+INSERT INTO txt VALUES ('prov_zone_from_help',  'German', 	'Quellzone (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_zone_from_help',  'English', 	'Source zone (Fortinet only).');
+INSERT INTO txt VALUES ('prov_zone_to',         'German', 	'Zone nach');
+INSERT INTO txt VALUES ('prov_zone_to',         'English', 	'Zone to');
+INSERT INTO txt VALUES ('prov_zone_to_help',    'German', 	'Zielzone (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_zone_to_help',    'English', 	'Destination zone (Fortinet only).');
+INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'German', 	'FWO automatisch');
+INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'English', 	'FWO automatic');
+INSERT INTO txt VALUES ('prov_opt_manual',                           'German', 	'Manuell');
+INSERT INTO txt VALUES ('prov_opt_manual',                           'English', 	'Manual');
+INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'German', 	'Tufin SecureChange');
+INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'English', 	'Tufin SecureChange');
+INSERT INTO txt VALUES ('prov_opt_no_implementation',                'German', 	'Keine (keine Implementierungsaufgabe)');
+INSERT INTO txt VALUES ('prov_opt_no_implementation',                'English', 	'None (no implementation task)');
+INSERT INTO txt VALUES ('prov_opt_log',                              'German', 	'Loggen');
+INSERT INTO txt VALUES ('prov_opt_log',                              'English', 	'Log');
+INSERT INTO txt VALUES ('prov_opt_log_track',                        'German', 	'Loggen und verfolgen');
+INSERT INTO txt VALUES ('prov_opt_log_track',                        'English', 	'Log and track');
+INSERT INTO txt VALUES ('prov_opt_none',                             'German', 	'Keine');
+INSERT INTO txt VALUES ('prov_opt_none',                             'English', 	'None');
+INSERT INTO txt VALUES ('prov_opt_always_access',                    'German', 	'Immer Access (Standard)');
+INSERT INTO txt VALUES ('prov_opt_always_access',                    'English', 	'Always access (standard)');
+INSERT INTO txt VALUES ('prov_opt_access_nat',                       'German', 	'Access und NAT behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_nat',                       'English', 	'Handle access and NAT');
+INSERT INTO txt VALUES ('prov_opt_access_ips',                       'German', 	'Access und IPS behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_ips',                       'English', 	'Handle access and IPS');
+INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'German', 	'Access, NAT und IPS behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'English', 	'Handle access, NAT and IPS');
+INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'German', 	'Check Point: Inline-Layer pro Zonenpaar');
+INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'English', 	'Check Point: inline layer per zone pair');
+INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'German', 	'Fortinet: Ende der Zone');
+INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'English', 	'Fortinet: end of zone');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'German', 	'Check Point: Ende der App-Sektion');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'English', 	'Check Point: end of app section');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'German', 	'Check Point: Ende der App-Sektion, Common Services unterscheiden');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
+INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
+INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
+INSERT INTO txt VALUES ('prov_opt_app',                              'German', 	'Applikation');
+INSERT INTO txt VALUES ('prov_opt_app',                              'English', 	'Application');
+INSERT INTO txt VALUES ('prov_opt_common_service',                   'German', 	'Common Service');
+INSERT INTO txt VALUES ('prov_opt_common_service',                   'English', 	'Common service');
+INSERT INTO txt VALUES ('prov_opt_supermanager',                     'German', 	'Supermanager');
+INSERT INTO txt VALUES ('prov_opt_supermanager',                     'English', 	'Supermanager');
+INSERT INTO txt VALUES ('prov_opt_submanager',                       'German', 	'Submanager');
+INSERT INTO txt VALUES ('prov_opt_submanager',                       'English', 	'Submanager');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
@@ -6377,6 +6501,46 @@ INSERT INTO txt VALUES ('H5186', 'German',  'Erfolg: Zeigt an, ob der letzte Imp
 INSERT INTO txt VALUES ('H5186', 'English', 'Success: Flag showing the success of the last import.');
 INSERT INTO txt VALUES ('H5187', 'German',  'Fehler: Zeigt die Fehlermeldung, falls der letzte Import nicht erfolgreich war.');
 INSERT INTO txt VALUES ('H5187', 'English', 'Errors: Is only filled with an error message, if the success flag is false.');
+INSERT INTO txt VALUES ('H5160', 'German',  'Die Provisionierungs-Einstellungen legen fest, wie Regel&auml;nderungen auf den Firewalls umgesetzt werden. Sie sind hierarchisch aufgebaut: Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway. Der Baum links zeigt die tats&auml;chlich vorhandenen Ger&auml;tetypen, Manager und Gateways; ausgeblendete Manager und reine Routing-Ger&auml;te fehlen.');
+INSERT INTO txt VALUES ('H5160', 'English', 'The provisioning settings define how rule changes are implemented on the firewalls. They are organised as a hierarchy: Global &gt; Device type &gt; Manager &gt; Gateway. The tree on the left shows the device types, managers and gateways that actually exist; hidden managers and pure routing devices are left out.');
+INSERT INTO txt VALUES ('H5161', 'German',  'Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt. Alle anderen Werte erbt sie von der n&auml;chsth&ouml;heren Ebene, auf der der Wert gesetzt ist. Ist er auf keiner Ebene gesetzt, gilt der Standardwert.');
+INSERT INTO txt VALUES ('H5161', 'English', 'Each level stores only the values it overrides itself. It inherits all other values from the nearest level above on which the value is set. If it is not set on any level, the default value applies.');
+INSERT INTO txt VALUES ('H5162', 'German',  'Hier &uuml;berschreiben: Ist der Schalter aktiv, wird der Wert auf der gew&auml;hlten Ebene gespeichert und gilt f&uuml;r diese Ebene und alle Ebenen darunter, die ihn nicht selbst &uuml;berschreiben. Beim Einschalten wird das Feld mit dem aktuell geltenden Wert vorbelegt; auch ein unver&auml;nderter Wert wird dann gespeichert und &auml;ndert sich nicht mehr mit der Ebene dar&uuml;ber. Wird der Schalter ausgeschaltet, wird der gespeicherte Wert beim Speichern entfernt und die Ebene erbt wieder.');
+INSERT INTO txt VALUES ('H5162', 'English', 'Override here: while the switch is on, the value is stored on the selected level and applies to this level and to all levels below that do not override it themselves. Switching it on fills the field with the value currently in effect; even an unchanged value is then stored and no longer follows the level above. Switching it off removes the stored value when saving, and the level inherits again.');
+INSERT INTO txt VALUES ('H5163', 'German',  'Bei geerbten Werten wird die Ebene angezeigt, von der der Wert stammt. Ein Klick darauf wechselt zu dieser Ebene und hebt das Feld hervor, sodass der Wert dort ge&auml;ndert werden kann.');
+INSERT INTO txt VALUES ('H5163', 'English', 'For inherited values the level the value comes from is shown. Clicking it switches to that level and highlights the field, so that the value can be changed there.');
+INSERT INTO txt VALUES ('H5164', 'German',  'Solange eine Ebene ungespeicherte &Auml;nderungen hat, kann keine andere Ebene ausgew&auml;hlt werden. Die &Auml;nderungen m&uuml;ssen zuerst gespeichert oder verworfen werden. Gespeichert werden nur die Felder, die tats&auml;chlich ge&auml;ndert wurden.');
+INSERT INTO txt VALUES ('H5164', 'English', 'While a level has unsaved changes, no other level can be selected. The changes have to be saved or discarded first. Only the fields that were actually changed are saved.');
+INSERT INTO txt VALUES ('H5165', 'German',  'Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren k&ouml;nnen sie nur einsehen.');
+INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
+INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
+INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
+INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps. Wird eine Ebene von Fortinet weg verschoben, bleiben ihre eigenen Fortinet-Werte als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
+INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type. If a level is moved away from Fortinet, its own Fortinet values remain visible as dormant overrides and can be cleared there.');
+INSERT INTO txt VALUES ('H5168', 'German',  'Umsetzungsmodus: Wie Umsetzungsaufgaben f&uuml;r Regel&auml;nderungen erzeugt werden: FWO automatisch, Manuell, Tufin SecureChange oder Keine (keine Implementierungsaufgabe).');
+INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: how implementation tasks are created for rule changes: FWO automatic, Manual, Tufin SecureChange, or None (no implementation task).');
+INSERT INTO txt VALUES ('H5169', 'German',  'Installieren auf: Das Installationsziel der erzeugten Regeln, z.B. ANY.');
+INSERT INTO txt VALUES ('H5169', 'English', 'Install on: the install-on target of the generated rules, e.g. ANY.');
+INSERT INTO txt VALUES ('H5190', 'German',  'Logging: Logging-Verhalten der erzeugten Regeln: Loggen, Loggen und verfolgen oder Keine.');
+INSERT INTO txt VALUES ('H5190', 'English', 'Logging: logging behaviour of the generated rules: Log, Log and track, or None.');
+INSERT INTO txt VALUES ('H5191', 'German',  'Anlage Service-Objekte: Ob Service-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
+INSERT INTO txt VALUES ('H5191', 'English', 'Service object creation: whether service objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
+INSERT INTO txt VALUES ('H5192', 'German',  'Anlage Adress-Objekte: Ob Adress-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
+INSERT INTO txt VALUES ('H5192', 'English', 'Address object creation: whether address objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
+INSERT INTO txt VALUES ('H5193', 'German',  'Regeltyp: Welche Regelarten behandelt werden: Immer Access (Standard), Access und NAT, Access und IPS oder Access, NAT und IPS.');
+INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: which rule kinds are handled: Always access (standard), access and NAT, access and IPS, or access, NAT and IPS.');
+INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}.');
+INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}.');
+INSERT INTO txt VALUES ('H5195', 'German',  'Positionierungs-Algorithmus: Wo neue Regeln im Regelwerk platziert werden: Check Point Inline-Layer pro Zonenpaar, Fortinet Ende der Zone, Check Point Ende der App-Sektion (optional mit Unterscheidung der Common Services) oder Standard: Ende des Regelwerks.');
+INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: where new rules are placed in the rulebase: Check Point inline layer per zone pair, Fortinet end of zone, Check Point end of app section (optionally distinguishing common services), or Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5196', 'German',  'Regelkategorie: Ob eine Regel als Applikations- oder als Common-Service-Regel behandelt wird.');
+INSERT INTO txt VALUES ('H5196', 'English', 'Rule category: whether a rule is treated as an application rule or as a common-service rule.');
+INSERT INTO txt VALUES ('H5197', 'German',  'Sicherheitsprofile (nur Fortinet): Namen der anzuwendenden Sicherheitsprofile, ein Eintrag pro Zeile.');
+INSERT INTO txt VALUES ('H5197', 'English', 'Security profiles (Fortinet only): names of the security profiles to apply, one entry per row.');
+INSERT INTO txt VALUES ('H5198', 'German',  'Zone von (nur Fortinet): Quellzone der erzeugten Regeln.');
+INSERT INTO txt VALUES ('H5198', 'English', 'Zone from (Fortinet only): source zone of the generated rules.');
+INSERT INTO txt VALUES ('H5199', 'German',  'Zone nach (nur Fortinet): Zielzone der erzeugten Regeln.');
+INSERT INTO txt VALUES ('H5199', 'English', 'Zone to (Fortinet only): destination zone of the generated rules.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.

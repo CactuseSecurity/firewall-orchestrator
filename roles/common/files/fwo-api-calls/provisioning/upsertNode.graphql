@@ -1,0 +1,16 @@
+mutation upsertNode($node: provisioning_config_node_insert_input!) {
+  insert_provisioning_config_node_one(
+    object: $node
+    on_conflict: {
+      constraint: provisioning_config_node_node_type_object_key_key
+      update_columns: [parent_id, display_name, sort_order]
+    }
+  ) {
+    id
+    node_type
+    object_key
+    parent_id
+    display_name
+    sort_order
+  }
+}

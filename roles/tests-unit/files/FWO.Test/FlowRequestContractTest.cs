@@ -76,7 +76,7 @@ internal class FlowRequestContractTest
     {
         const string json =
             """{"addressObjects":[{"id":-1,"name":"server","ipStart":"192.0.2.1","ipEnd":"192.0.2.1"}],"serviceObjects":["""
-            + """{"id":-2,"name":"https","protocol":"tcp","portStart":443,"portEnd":443}]}""";
+            + """{"id":-2,"name":"https","protocol":"tcp","portStart":443,"portEnd":443}],"rules":[{"action":"accept"}]}""";
         CreateTicketRequest? request = JsonSerializer.Deserialize<CreateTicketRequest>(json);
         string serialized = JsonSerializer.Serialize(request);
 
@@ -84,6 +84,7 @@ internal class FlowRequestContractTest
         {
             Assert.That(request?.AddressObjects[0].Predicate, Is.EqualTo("create"));
             Assert.That(request?.ServiceObjects[0].Predicate, Is.EqualTo("create"));
+            Assert.That(request?.Rules[0].Predicate, Is.EqualTo("create"));
             Assert.That(serialized, Does.Contain("\"predicate\":\"create\""));
         });
     }

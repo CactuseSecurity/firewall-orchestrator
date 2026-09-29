@@ -110,6 +110,12 @@ public sealed class CreateTicketRequest
     public sealed class CreateTicketRuleRequest
     {
         /// <summary>
+        /// Gets the requested rule predicate. Defaults to <c>create</c>.
+        /// </summary>
+        [JsonPropertyName("predicate")]
+        public string Predicate { get; set; } = CreateTicketPredicates.kCreate;
+
+        /// <summary>
         /// Gets the Action value.
         /// </summary>
         [JsonPropertyName("action")]
@@ -192,7 +198,7 @@ public sealed class CreateTicketRequest
         /// Gets the requested leaf-object predicate. Defaults to <c>create</c>.
         /// </summary>
         [JsonPropertyName("predicate")]
-        public string Predicate { get; set; } = "create";
+        public string Predicate { get; set; } = CreateTicketPredicates.kCreate;
 
         /// <summary>
         /// Gets the Id value.
@@ -252,7 +258,7 @@ public sealed class CreateTicketRequest
         /// Gets the requested leaf-object predicate. Defaults to <c>create</c>.
         /// </summary>
         [JsonPropertyName("predicate")]
-        public string Predicate { get; set; } = "create";
+        public string Predicate { get; set; } = CreateTicketPredicates.kCreate;
 
         /// <summary>
         /// Gets the Id value.

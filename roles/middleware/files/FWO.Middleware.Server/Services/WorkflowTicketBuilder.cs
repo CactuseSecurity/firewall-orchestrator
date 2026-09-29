@@ -272,6 +272,16 @@ internal sealed class WorkflowTicketBuilder
         List<WfReqElement> elements = [];
         AppendRuleReferences(elements, rule, taskContext, rulePath);
 
+        string requestAction = RequestAction.create.ToString();
+        try
+        {
+            requestAction = WorkflowTicketEntity.ResolveRequestAction(rule.Predicate);
+        }
+        catch (ArgumentException exception)
+        {
+            AddValidationError(taskContext.Validation.ValidationErrors, rulePath, exception);
+        }
+
         int ruleActionId = 0;
         try
         {
@@ -312,7 +322,7 @@ internal sealed class WorkflowTicketBuilder
             Title = string.IsNullOrWhiteSpace(rule.Name) ? request.Title : rule.Name,
             TaskNumber = taskContext.TaskNumber,
             TaskType = WfTaskType.access.ToString(),
-            RequestAction = RequestAction.create.ToString(),
+            RequestAction = requestAction,
             StateId = taskContext.TicketStateId,
             RuleAction = ruleActionId,
             Tracking = 1,

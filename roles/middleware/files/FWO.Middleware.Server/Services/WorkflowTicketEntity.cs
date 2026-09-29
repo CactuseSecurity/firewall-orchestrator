@@ -33,7 +33,7 @@ internal sealed record WorkflowTicketEntity(
     int? PortEnd = null,
     DateTime? TimeStart = null,
     DateTime? TimeEnd = null,
-    string LeafRequestAction = "create")
+    string LeafRequestAction = CreateTicketPredicates.kCreate)
 {
     public static WorkflowTicketEntity FromAddressObject(long id, CreateTicketRequest.CreateAddressObjectRequest request)
     {
@@ -131,12 +131,12 @@ internal sealed record WorkflowTicketEntity(
         }
     }
 
-    private static string ResolveRequestAction(string? predicate)
+    internal static string ResolveRequestAction(string? predicate)
     {
         return predicate?.Trim().ToLowerInvariant() switch
         {
-            null or "" or "create" => RequestAction.create.ToString(),
-            "modify" or "delete" => throw new ArgumentException("not implemented yet"),
+            null or "" or CreateTicketPredicates.kCreate => RequestAction.create.ToString(),
+            CreateTicketPredicates.kModify or CreateTicketPredicates.kDelete => throw new ArgumentException("not implemented yet"),
             _ => throw new ArgumentException($"Unknown predicate '{predicate}'.")
         };
     }

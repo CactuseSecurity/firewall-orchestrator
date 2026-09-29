@@ -2290,6 +2290,7 @@ internal class WorkflowTicketServiceTest
                 new CreateTicketRequest.CreateTicketRuleRequest
                 {
                     Action = "accept",
+                    Predicate = "modify",
                     DestinationGroups = [-99]
                 }
             ]
@@ -2298,7 +2299,7 @@ internal class WorkflowTicketServiceTest
         RequestValidationErrorResponse errors = GetValidationResponse(result);
         Assert.Multiple(() =>
         {
-            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0].predicate", "rules[0].destinationGroups[0]"]));
+            Assert.That(errors.Errors.Select(error => error.Path), Is.EquivalentTo(["serviceObjects[0].predicate", "rules[0].predicate", "rules[0].destinationGroups[0]"]));
             Assert.That(errors.Errors.Select(error => error.Message), Has.Some.EqualTo("not implemented yet"));
             Assert.That(errors.Errors.Select(error => error.Message), Has.Some.Contain("Unknown request object id -99"));
             Assert.That(apiConnection.LastTicketWriter, Is.Null);

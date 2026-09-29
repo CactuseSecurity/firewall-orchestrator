@@ -403,6 +403,13 @@ namespace FWO.Middleware.Server.Jobs
             return BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
         }
 
+        /// <summary>
+        /// Builds interface-request placeholder values using an already resolved requesting owner.
+        /// </summary>
+        /// <param name="ticket">Workflow ticket containing the interface request.</param>
+        /// <param name="owner">Requested owner associated with the interface.</param>
+        /// <param name="requestingOwner">Owner representing the requesting application, if resolved.</param>
+        /// <returns>Resolved placeholder values for the interface-request notification.</returns>
         private NotificationPlaceholderResolver.NotificationPlaceholderValues BuildRequestPlaceholderValuesFromOwner(
             WfTicket ticket, FwoOwner owner, FwoOwner? requestingOwner)
         {

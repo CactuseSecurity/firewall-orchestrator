@@ -35,7 +35,7 @@
 				<ul class="@NavPaddingCollapseClass d-flex flex-wrap navbar-nav align-items-start flex-row">
 					@if (availableModules.Contains(Module.Report))
 					{
-						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")">
 							<li class="nav-item px-2">
 								<SectionNavLink href="@("/" + PageName.ReportGeneration)" class="nav-link" ActivePath="@kReportSectionPath">
 									<span class="@Icons.Reporting"></span> @(userConfig.GetText("reporting"))
@@ -45,7 +45,7 @@
 					}
 					@if (availableModules.Contains(Module.Workflow))
 					{
-						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.FwAdmin}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<SectionNavLink class="nav-link" href="@firstWorkflowPage" ActivePath="/request">
 									<span class="@Icons.Workflow"></span> @(userConfig.GetText("workflow"))
@@ -75,7 +75,7 @@
 					}
 					@if (availableModules.Contains(Module.NetworkAnalysis))
 					{
-						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Planner}, {Roles.Auditor}")">
+						<ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.Auditor}")">
 							<li class="nav-item px-2">
 								<SectionNavLink class="nav-link" href="/network_analysis" ActivePath="/network_analysis">
 									<span class="@Icons.NetworkAnalysis"></span> @(userConfig.GetText("network_analysis"))
@@ -233,7 +233,7 @@
 
     private void ConfigureFirstWorkflowPage()
     {
-        if (CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (CanUseAnyRole(Roles.Admin, Roles.Auditor))
         {
             firstWorkflowPage = "/request/ticketsoverview";
         }
@@ -303,13 +303,13 @@
 
     private static string[] WorkflowNavigationRoles()
     {
-        return [Roles.Admin, Roles.FwAdmin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor];
+        return [Roles.Admin, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Auditor];
     }
 
     private string ComplianceRoles()
     {
         string workflowRoles = userConfig.ReqShowCompliance ? ", " + Roles.WorkflowRolesList : "";
-        return $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
+        return $"{Roles.Admin}, {Roles.ReporterViewAll}, {Roles.Reporter}, {Roles.Auditor}{workflowRoles}";
     }
 
     private string GetUserNameDisplay()

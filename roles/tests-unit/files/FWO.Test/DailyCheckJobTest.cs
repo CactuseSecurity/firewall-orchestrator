@@ -57,6 +57,12 @@ namespace FWO.Test
 
         private static readonly int[] ExpectedSuccessLogSeverities = [1];
         private static readonly int[] ExpectedNoAlertLogSeverities = [0];
+        private static readonly (NotificationLogStatus Status, string Error)[] kInactiveOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requested owner is not active.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kIncompleteRequestSuppression =
+            [(NotificationLogStatus.Suppressed, "Interface request is incomplete.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kUnresolvedOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requesting owner could not be resolved.")];
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
         {
@@ -428,11 +434,12 @@ namespace FWO.Test
         public async Task CheckUnansweredInterfaceRequests_SuppressesInactiveOwner()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
-                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false }));
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
+                    DateTime.Now));
             await InvokeCheckUnansweredInterfaceRequests(apiConnection);
 
             Assert.That(apiConnection.NotificationLogUpdates,
-                Is.EqualTo([(NotificationLogStatus.Suppressed, "Requested owner is not active.")]));
+                Is.EqualTo(kInactiveOwnerSuppression));
         }
 
         [Test]
@@ -440,13 +447,13 @@ namespace FWO.Test
         public async Task CheckUnansweredInterfaceRequests_SuppressesIncompleteRequest()
         {
             FwoOwner owner = new() { Id = 7, Name = "Owner A", ExtAppId = "APP-7" };
-            WfTicket ticket = CreateInterfaceRequestTicket(501, owner);
+            WfTicket ticket = CreateInterfaceRequestTicket(501, owner, DateTime.Now);
             ticket.Tasks[0].AdditionalInfo = null;
             DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(ticket);
             await InvokeCheckUnansweredInterfaceRequests(apiConnection);
 
             Assert.That(apiConnection.NotificationLogUpdates,
-                Is.EqualTo([(NotificationLogStatus.Suppressed, "Interface request is incomplete.")]));
+                Is.EqualTo(kIncompleteRequestSuppression));
         }
 
         [Test]
@@ -454,12 +461,13 @@ namespace FWO.Test
         public async Task CheckUnansweredInterfaceRequests_SuppressesWhenRequestingOwnerCannotBeResolved()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
-                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" }));
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" },
+                    DateTime.Now));
             apiConnection.ReturnNullRequestingOwner = true;
             await InvokeCheckUnansweredInterfaceRequests(apiConnection);
 
             Assert.That(apiConnection.NotificationLogUpdates,
-                Is.EqualTo([(NotificationLogStatus.Suppressed, "Requesting owner could not be resolved.")]));
+                Is.EqualTo(kUnresolvedOwnerSuppression));
         }
 
         [Test]
@@ -467,7 +475,7 @@ namespace FWO.Test
         public async Task CheckUnansweredInterfaceRequests_SkipsNotificationThatIsNotDue()
         {
             DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
-                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" },
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
                     DateTime.Now.AddDays(1)));
             await InvokeCheckUnansweredInterfaceRequests(apiConnection);
 
@@ -909,6 +917,7 @@ namespace FWO.Test
                 EmailSubject = "subject",
                 EmailBody = "body",
                 Deadline = NotificationDeadline.RequestDate,
+                OffsetBeforeDeadline = 0,
                 RepeatIntervalAfterDeadline = SchedulerInterval.Days,
                 InitialOffsetAfterDeadline = 0,
                 RepeatOffsetAfterDeadline = 1,

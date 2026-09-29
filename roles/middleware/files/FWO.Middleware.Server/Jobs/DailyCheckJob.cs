@@ -265,6 +265,13 @@ namespace FWO.Middleware.Server.Jobs
             Log.WriteDebug(LogMessageTitle, $"Unanswered Interface Requests Check: Sent {emailsSent} emails.");
         }
 
+        /// <summary>
+        /// Processes all unanswered interface-request tickets for one notification definition.
+        /// </summary>
+        /// <param name="notification">Notification definition to process.</param>
+        /// <param name="unansweredTickets">Open interface-request tickets to evaluate.</param>
+        /// <param name="notificationService">Service used to deliver or suppress notifications.</param>
+        /// <returns>Number of emails sent for the supplied tickets.</returns>
         private async Task<int> ProcessUnansweredInterfaceRequestNotification(FwoNotification notification,
             List<WfTicket> unansweredTickets, NotificationService notificationService)
         {
@@ -276,6 +283,13 @@ namespace FWO.Middleware.Server.Jobs
             return emailsSent;
         }
 
+        /// <summary>
+        /// Processes one unanswered interface-request ticket.
+        /// </summary>
+        /// <param name="notification">Notification definition to process.</param>
+        /// <param name="ticket">Unanswered interface-request ticket.</param>
+        /// <param name="notificationService">Service used to deliver or suppress the notification.</param>
+        /// <returns>Number of emails sent for the ticket.</returns>
         private async Task<int> ProcessUnansweredInterfaceRequestTicket(FwoNotification notification, WfTicket ticket,
             NotificationService notificationService)
         {
@@ -285,6 +299,13 @@ namespace FWO.Middleware.Server.Jobs
             {
                 Log.WriteWarning(LogMessageTitle,
                     $"No owner could be resolved for unanswered interface request ticket {ticket.Id} in notification {notification.Id}.");
+                return 0;
+            }
+
+            if (!NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification))
+            {
+                Log.WriteDebug(LogMessageTitle,
+                    $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
                 return 0;
             }
 
@@ -310,13 +331,6 @@ namespace FWO.Middleware.Server.Jobs
                 return 0;
             }
 
-            if (!NotificationService.IsNotificationDue(owner, ticket.CreationDate, notification))
-            {
-                Log.WriteDebug(LogMessageTitle,
-                    $"Reminder notification {notification.Id} is not due for unanswered interface request ticket {ticket.Id}.");
-                return 0;
-            }
-
             NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
                 BuildRequestPlaceholderValuesFromOwner(ticket, owner, requestingOwner);
             int sentForTicket = await notificationService.SendNotification(notification, owner,
@@ -329,6 +343,15 @@ namespace FWO.Middleware.Server.Jobs
             return sentForTicket;
         }
 
+        /// <summary>
+        /// Records an intentionally suppressed interface-request notification.
+        /// </summary>
+        /// <param name="notification">Notification definition being suppressed.</param>
+        /// <param name="ticket">Ticket associated with the notification.</param>
+        /// <param name="owner">Requested owner associated with the ticket.</param>
+        /// <param name="notificationService">Service used to write the suppression record.</param>
+        /// <param name="reason">Reason why delivery was suppressed.</param>
+        /// <param name="includePlaceholders">Whether request-specific subject placeholders should be resolved.</param>
         private async Task SuppressInterfaceRequestNotification(FwoNotification notification, WfTicket ticket, FwoOwner owner,
             NotificationService notificationService, string reason, bool includePlaceholders = false)
         {

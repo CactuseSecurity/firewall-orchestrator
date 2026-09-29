@@ -169,6 +169,14 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         return connections.SingleOrDefault();
     }
 
+    /// <summary>
+    /// Determines whether an interface-request notification should be suppressed.
+    /// </summary>
+    /// <param name="owner">Requested owner associated with the interface.</param>
+    /// <param name="ticket">Workflow ticket containing the request.</param>
+    /// <param name="requestTask">Interface-request task from the ticket.</param>
+    /// <param name="requestingOwner">Owner representing the requesting application.</param>
+    /// <returns>A suppression reason, or <see langword="null"/> when delivery is allowed.</returns>
     private static string? GetInterfaceRequestSuppressionReason(FwoOwner owner, WfTicket? ticket, WfReqTask? requestTask,
         FwoOwner? requestingOwner)
     {

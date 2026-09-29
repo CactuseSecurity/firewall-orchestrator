@@ -18,6 +18,7 @@ namespace FWO.Middleware.Server
     public class NotificationService
     {
         private const string kNoRecipientFailureMessage = "No recipients resolved.";
+        private static readonly string[] kEmptyRecipients = [];
         /// <summary>
         /// Notifications for current NotificationClient
         /// </summary>
@@ -183,7 +184,8 @@ namespace FWO.Middleware.Server
             {
                 subject = NotificationPlaceholderResolver.ReplaceNotificationPlaceholders(subject, placeholderValues);
             }
-            NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, [], [], [], subject, resolvedDeadline);
+            NotificationLogInsertEntry entry = NotificationLogHelper.CreateEntry(notification, kEmptyRecipients,
+                kEmptyRecipients, kEmptyRecipients, subject, resolvedDeadline);
             int logId = await NotificationLogHelper.InsertAsync(ApiConnection, entry);
             if (logId > 0)
             {

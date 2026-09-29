@@ -1,5 +1,22 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.10 - 29.09.2026
+- new network zone tree path analysis: for every combination of a source and a destination ip range
+  it determines the firewalls between them from the paths to the root network and to the internet
+  that the zone matrix stores per subnet, cutting both paths at their lowest common ancestor.
+  Traffic from or to the internet zone is answered with the internet path of the other side, and a
+  range that falls into the auto calculated catch-all zone yields no path. The algorithm lives in
+  the new library FWO.NetworkTopology and works on data alone, without database access. It can be
+  selected as "Network Zone Tree" under the path analysis algorithm setting, but no function calls
+  it yet - the REST endpoint that exposes it follows in a later version
+- the configuration key `complianceDesignatedZoneMatrix` is renamed to `designatedZoneMatrix`,
+  because the designated zone matrix is used beyond compliance. The upgrade renames the existing
+  entry, so an installation keeps the matrix it had configured
+- the path analysis based on routing tables moved into the class `RoutingBasedPathAnalyzer` without
+  any change in behaviour, so that both procedures sit behind one interface
+- network_zone.device_ip_range_root and network_zone.device_ip_range_internet can now be read per
+  matrix through the api, including the name of the device on the path
+
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
   inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one

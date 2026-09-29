@@ -177,4 +177,11 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshToken
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
+<<<<<<< HEAD
 INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', 0, 0);
+=======
+
+INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
+VALUES ('global', 'global', 'Global', 0)
+ON CONFLICT (node_type, object_key) DO NOTHING;
+>>>>>>> upstream/develop

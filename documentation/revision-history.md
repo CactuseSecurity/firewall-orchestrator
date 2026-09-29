@@ -1,6 +1,23 @@
 # Firewall Orchestrator Revision History
 
 ## 9.5.10 - 29.09.2026
+
+- add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
+- add DTOs for hierarchical provisioning configuration
+- add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
+  the provisioning settings per level Global > Device type > Management > Gateway, including a help page
+- provisioning settings are inherited along the current device hierarchy; a management or gateway moved to another
+  device type or management inherits from its new parent levels, and its stored node is moved there on the next save;
+  the settings manager resolves values only along a ProvisioningScopePath built from the current management and
+  gateway objects, never along the stored parent links (guarded by a unit test)
+- restrict Hasura permissions on provisioning_config_node: node identity (id, node_type, object_key) is no longer
+  writable and the global node can no longer be deleted; the database enforces node types and a single global root
+- the provisioning settings page loads all stored nodes with one query and resolves a level with one query for all
+  its parent levels, instead of one query per node or level
+- the placeholder value Undefined of the provisioning setting enums is rejected when storing and reading an override
+- auditors see the provisioning settings with all editors disabled
+- the provisioning settings editor is locked while a save is running, and retained Fortinet-only values are shown as
+  dormant overrides with an action to clear them after a management or gateway is moved to another device type
 - new network zone tree path analysis: for every combination of a source and a destination ip range
   it determines the firewalls between them from the paths to the root network and to the internet
   that the zone matrix stores per subnet, cutting both paths at their lowest common ancestor.

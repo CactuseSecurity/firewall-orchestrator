@@ -5,11 +5,12 @@ using FWO.Logging;
 
 namespace FWO.Services.PathAnalysis
 {
-    /// <summary>Decides which path analysis to choose from.</summary>
-    public class PathAnalyzerFactory(ApiConnection apiConnection, GlobalConfig globalConfig)
+    /// <summary>Selects the path analyzer for the configured algorithm.</summary>
+    public sealed class PathAnalyzerFactory(ApiConnection apiConnection, GlobalConfig globalConfig)
     {
         /// <summary>
-        /// Reads the selected algorithm id from config. If an unknown id is found the default is the none algorithm.
+        /// Reads the selected algorithm id from config.
+        /// If an unknown id is found it falls back to the none analyzer and logs a warning.
         /// </summary>
         public IPathAnalyzer Create()
         {

@@ -33,7 +33,10 @@ namespace FWO.NetworkTopology
         /// <summary>Device name as stored in device.dev_name.</summary>
         public string Name { get; init; } = "";
     }
-    /// <summary>Information about zones in PathSegment.</summary>
+    /// <summary>
+    /// Distinguishes a zone configured in the matrix from the two auto calculated ones,
+    /// because the path to each of them is determined differently.
+    /// </summary>
     public enum ZoneKind
     {
         /// <summary>A zone configured in the matrix.</summary>
@@ -54,11 +57,13 @@ namespace FWO.NetworkTopology
         public ZoneKind ZoneKind { get; init; }
     }
     /// <summary>
-    /// The algorithm return for one combination of a source and a destination ip range.
+    /// The algorithm result for one combination of a source and a destination ip range.
     /// </summary>
     public sealed record PathSegment
     {
+        /// <summary>The ip range the path starts at, together with its zone.</summary>
         public required PathEndpoint Source { get; init; }
+        /// <summary>The ip range the path ends at, together with its zone.</summary>
         public required PathEndpoint Destination { get; init; }
         /// <summary>
         /// Devices on the path, ordered from the source towards the destination.
@@ -68,10 +73,10 @@ namespace FWO.NetworkTopology
         public IReadOnlyList<PathDevice> Devices { get; init; } = [];
     }
     /// <summary>
-    /// Provides the algorithm that finds paths between a source and a destination input.
-    /// The algorithm uses the data of the network matrix.
+    /// Finds the firewall devices between ip ranges of one zone matrix.
+    /// The matrix is supplied once at construction, so that many queries can be answered against it.
     /// </summary>
-    public class NetworkZoneTreeAlgorithm
+    public sealed class NetworkZoneTreeAlgorithm
     {
         /// <summary>One ip range of the matrix together with its parsed address range.</summary>
         private sealed record ParsedIpRange(NetworkZoneIpRange Row, IPAddressRange Range);
@@ -81,7 +86,7 @@ namespace FWO.NetworkTopology
         private readonly Dictionary<int, List<PathDevice>> rootPathByIpRangeId;
         private readonly Dictionary<int, List<PathDevice>> internetPathByIpRangeId;
 
-        /// <summary>Builds the indices for the input data.</summary>
+        /// <summary>Builds the indices for the input data and resolves the special zones.</summary>
         public NetworkZoneTreeAlgorithm(MatrixData matrixData)
         {
             internetZoneId = matrixData.Zones.FirstOrDefault(zone => zone.IsAutoCalculatedInternetZone)?.Id;
@@ -130,6 +135,8 @@ namespace FWO.NetworkTopology
         /// <summary>
         /// Finds all ranges in network_zone.ip_range that overlap with the algorithm input.
         /// </summary>
+        /// <param name="input">Source and destination ranges to resolve against the matrix.</param>
+        /// <returns>One segment per combination of a matching source and destination ip range.</returns>
         private List<NetworkZoneIpRange> LookupRelevantRanges(List<IPAddressRange> inputRanges)
         {
             List<NetworkZoneIpRange> relevantRanges = [];
@@ -157,7 +164,7 @@ namespace FWO.NetworkTopology
             List<PathSegment> segments = [];
             List<PathEndpoint> destinationEndpoints = [.. destinationRanges.Select(ToEndpoint)];
             List<PathEndpoint> sourceEndpoints = [.. sourceRanges.Select(ToEndpoint)];
-            
+
             foreach (PathEndpoint source in sourceEndpoints)
             {
                 foreach (PathEndpoint destination in destinationEndpoints)
@@ -172,7 +179,7 @@ namespace FWO.NetworkTopology
             }
             return segments;
         }
-        
+
         /// <summary>
         /// Builds a PathEndpoint from a NetworkZoneIpRange.
         /// </summary>
@@ -234,7 +241,7 @@ namespace FWO.NetworkTopology
             }
 
             List<PathDevice> devices = [.. sourcePath.Take(sourcePath.Count - common)];
-            // Add lowest common ancestor between paths
+            // The lowest common ancestor is the first device both paths share.
             if (common > 0)
             {
                 devices.Add(sourcePath[^common]);

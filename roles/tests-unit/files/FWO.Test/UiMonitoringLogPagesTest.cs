@@ -74,6 +74,25 @@ namespace FWO.Test
         }
 
         [Test]
+        public void MonitorEmailLog_LoadsNotificationLogEntries()
+        {
+            MonitorTestApiConn apiConn = RenderApiConn();
+            apiConn.NotificationLogEntries.Add(CreateNotificationLogEntry("InterfaceRequest", "to@example.test"));
+
+            using TestSetup<MonitorEmailLog> setup = RenderComponent<MonitorEmailLog>(apiConn);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConn.NotificationLogQueryCount, Is.EqualTo(1));
+                Assert.That(apiConn.LastQuery, Is.EqualTo(MonitorQueries.getNotificationLogEntrys));
+                Assert.That(apiConn.NotificationLogLimit, Is.EqualTo(21));
+                Assert.That(apiConn.NotificationLogOffset, Is.Zero);
+                Assert.That(GetPrivateField<List<NotificationLogEntry>>(setup.Component, "notificationLogEntries"), Has.Count.EqualTo(1));
+                Assert.That(GetPrivateField<bool>(setup.Component, "InitComplete"), Is.True);
+            });
+        }
+
+        [Test]
         public void MonitorAlerts_LoadsAlertsUsersAndManagements()
         {
             MonitorTestApiConn apiConn = RenderApiConn();
@@ -163,6 +182,20 @@ namespace FWO.Test
             };
         }
 
+        private static NotificationLogEntry CreateNotificationLogEntry(string notificationType, string to)
+        {
+            return new NotificationLogEntry
+            {
+                Timestamp = new DateTimeOffset(new DateTime(2026, 1, 1, 12, 0, 0), TimeSpan.Zero),
+                NotificationId = 1,
+                NotificationType = notificationType,
+                To = to,
+                Cc = "",
+                Bcc = "",
+                Subject = "subject"
+            };
+        }
+
         private static Alert CreateAlert(long id)
         {
             return new Alert
@@ -197,12 +230,16 @@ namespace FWO.Test
     internal sealed class MonitorTestApiConn : SimulatedApiConnection
     {
         public List<LogEntry> LogEntries { get; } = new();
+        public List<NotificationLogEntry> NotificationLogEntries { get; } = new();
         public List<Alert> Alerts { get; } = new();
         public List<UiUser> UiUsers { get; } = new();
         public List<Management> Managements { get; } = new();
         public List<string> LastQueries { get; } = new();
 
         public int LogQueryCount { get; private set; }
+        public int NotificationLogQueryCount { get; private set; }
+        public int NotificationLogLimit { get; private set; }
+        public int NotificationLogOffset { get; private set; }
         public int AlertQueryCount { get; private set; }
         public int UserQueryCount { get; private set; }
         public int ManagementQueryCount { get; private set; }
@@ -224,6 +261,14 @@ namespace FWO.Test
             {
                 LogQueryCount++;
                 return Task.FromResult((QueryResponseType)(object)LogEntries);
+            }
+
+            if (typeof(QueryResponseType) == typeof(List<NotificationLogEntry>) && query == MonitorQueries.getNotificationLogEntrys)
+            {
+                NotificationLogQueryCount++;
+                NotificationLogLimit = GetVariable<int>(variables, "limit");
+                NotificationLogOffset = GetVariable<int>(variables, "offset");
+                return Task.FromResult((QueryResponseType)(object)NotificationLogEntries);
             }
 
             if (typeof(QueryResponseType) == typeof(List<LogEntry>) && query == MonitorQueries.getDataImportLogEntrys)

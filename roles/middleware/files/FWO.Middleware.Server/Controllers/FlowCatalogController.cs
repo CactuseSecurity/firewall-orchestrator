@@ -167,7 +167,7 @@ public class FlowCatalogController : ControllerBase
     /// Resolves the supplied request-visible Flow groups and returns their active members.
     /// Only explicitly requested IDs or names are resolved.
     /// </summary>
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}, {Roles.WorkflowRolesList}")]
     [HttpPost("resolveGroupMembers")]
     public async Task<ActionResult<FlowGroupResolutionResult>> ResolveGroupMembers([FromBody] ResolveFlowGroupsRequest? request)
     {

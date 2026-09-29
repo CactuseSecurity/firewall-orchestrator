@@ -11,7 +11,7 @@
 @using System.Text.Json
 
 @page "/report/generation/{appId?}"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}, {Roles.Recertifier}")]
 
 @implements IDisposable
 
@@ -314,7 +314,7 @@
 
     private bool resetToEmptyDevFilter = false;
 
-    private bool tenantFilteringAllowed => userConfig.CanUseAnyRole(Roles.ReporterViewAll, Roles.Admin, Roles.FwAdmin, Roles.Auditor);
+    private bool tenantFilteringAllowed => userConfig.CanUseAnyRole(Roles.ReporterViewAll, Roles.Admin, Roles.Auditor);
     private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
 
     private bool _showAnyRulesInComplianceReport = true;
@@ -624,6 +624,9 @@
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             await PrepareReportGeneration();
             ReportTemplate temp = ConstructReportTemplate();
+            // somebody is waiting for this report, so a short wait for the rule_owner mapping
+            // beats falling back to the much slower marker query
+            temp.ReportParams.ModellingFilter.AllowWaitForRuleOwnerMapping = true;
 
             currentReport = await ReportGenerator.GenerateFromTemplate(temp, apiConnection, userConfig, DisplayMessageInUi, token, ruleTreeBuilder);
             processing = false;

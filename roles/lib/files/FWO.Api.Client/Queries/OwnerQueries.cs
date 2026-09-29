@@ -8,6 +8,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string ownerDetailsWithLifecycleStateFragment;
 
         public static readonly string getOwnerById;
+        public static readonly string getOwnerForNotification;
         public static readonly string getOwners;
         public static readonly string getOwnersFiltered;
         public static readonly string getApplicationIdentifiers;
@@ -49,6 +50,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteSpecificOwnerResponsibles;
         public static readonly string getActiveRuleOwners;
         public static readonly string setAllActiveRuleOwnersRemoved;
+        public static readonly string getAnyActiveRuleOwnerMapping;
         public static readonly string setAffectedRuleOwnersRemoved;
         public static readonly string insertRuleOwners;
         public static readonly string getRuleOwnerToRemoveByRule;
@@ -70,6 +72,7 @@ namespace FWO.Api.Client.Queries
                 ownerDetailsWithLifecycleStateFragment = ownerDetailsFragment + GetQueryText("owner/fragments/ownerDetailsWithLifecycleState.graphql");
 
                 getOwnerById = GetQueryText("owner/getOwnerById.graphql");
+                getOwnerForNotification = GetQueryText("owner/getOwnerForNotification.graphql");
                 getOwners = ownerDetailsFragment + GetQueryText("owner/getOwners.graphql");
                 getOwnersFiltered = ownerDetailsWithLifecycleStateFragment + GetQueryText("owner/getOwnersFiltered.graphql");
                 getApplicationIdentifiers = GetQueryText("owner/getApplicationIdentifiers.graphql");
@@ -110,6 +113,7 @@ namespace FWO.Api.Client.Queries
                 deleteSpecificOwnerResponsibles = GetQueryText("owner/deleteSpecificOwnerResponsibles.graphql");
                 getActiveRuleOwners = GetQueryText("owner/getActiveRuleOwners.graphql");
                 setAllActiveRuleOwnersRemoved = GetQueryText("owner/setAllActiveRuleOwnersRemoved.graphql");
+                getAnyActiveRuleOwnerMapping = GetQueryText("owner/getAnyActiveRuleOwnerMapping.graphql");
                 setAffectedRuleOwnersRemoved = GetQueryText("owner/setAffectedRuleOwnersRemoved.graphql");
                 insertRuleOwners = GetQueryText("owner/insertRuleOwners.graphql");
                 getRuleOwnerToRemoveByRule = GetQueryText("owner/getRuleOwnerToRemoveByRule.graphql");

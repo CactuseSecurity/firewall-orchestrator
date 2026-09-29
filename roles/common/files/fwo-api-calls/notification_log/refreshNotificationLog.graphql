@@ -1,0 +1,10 @@
+mutation refreshNotificationLog($id: Int!, $timestamp: timestamp!) {
+  update_notification_log(
+    where: { id: { _eq: $id } }
+    _set: { timestamp: $timestamp }
+  ) {
+    returning {
+      id
+    }
+  }
+}

@@ -82,6 +82,6 @@ public static class GetAuditProofCriticalChangesValidationSchema
     /// <returns>Help text naming every allowed key and its description.</returns>
     public static string DescribeKeys(IReadOnlyList<RequestKeyDefinition> allowedKeys)
     {
-        return string.Join(" ", allowedKeys.Select(key => $"'{key.JsonName}': {key.Description}"));
+        return AggregatedRequestKeyValidation.DescribeKeys(allowedKeys);
     }
 }

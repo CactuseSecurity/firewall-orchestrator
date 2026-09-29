@@ -1198,13 +1198,14 @@ namespace FWO.Test
             Assert.That(apiWithRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiWithRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
 
+            // an empty result is the correct answer once a mapping exists, so no marker query follows
             RuleOwnerPreFilterRoutingApiConn apiWithoutRules = new() { ReturnRuleOwnerRules = false };
             ModellingVarianceAnalysis analysisWithoutRules = new(apiWithoutRules, extStateHandler, config, Application, DefaultInit.DoNothing);
 
             await analysisWithoutRules.AnalyseRulesVsModelledConnections([], new(), false);
 
             Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
-            Assert.That(apiWithoutRules.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            Assert.That(apiWithoutRules.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
         [Test]
@@ -1278,7 +1279,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1296,7 +1297,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1314,7 +1315,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1333,7 +1334,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1347,7 +1348,7 @@ namespace FWO.Test
 
             await analysis.AnalyseRulesVsModelledConnections([], new(), false);
 
-            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleOwnerImports));
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getPendingRuleAffectingImports));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
@@ -1382,6 +1383,316 @@ namespace FWO.Test
             Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
         }
 
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterSkippedWhileRebuildRunning()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(ImportQueries.getRunningRuleOwnerRebuild));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterFallsBackWhenNoMappingExists()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ReturnRuleOwnerRules = false,
+                HasAnyActiveRuleOwnerMapping = false
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterWaitsForPendingMappingWhenAllowed()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.GreaterThan(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+            Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWithoutPermission()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterDoesNotWaitWhenWaitTimeIsZero()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 0;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestNameFieldRuleOwnerPreFilterStopsWaitingWhenCancelled()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            using CancellationTokenSource tokenSource = new();
+            tokenSource.Cancel();
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask,
+                CancellationToken = tokenSource.Token
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackIsReportedOncePerAnalysisOverSeveralManagements()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasRunningRuleOwnerRebuild = true
+            };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++);
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            Assert.That(userMessages, Is.EqualTo(1), "the user is told once, not once per management");
+            Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once, not once per management");
+            Assert.That(apiConnection.PrefilterStateReads, Is.EqualTo(1), "the state is read once and reused");
+            Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackIsNotWrittenToDbLogWhenTurnedOff()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasRunningRuleOwnerRebuild = true };
+            int userMessages = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                (_, _, _, _) => userMessages++)
+            {
+                LogPrefilterFallbackToDb = false
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new(), false);
+
+            // the background job: the fall back still happens, only the database log is left out
+            Assert.That(apiConnection.LoggedReasons, Is.Empty);
+            Assert.That(userMessages, Is.EqualTo(1));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        [Test]
+        public async Task TestRuleOwnerMappingIsWaitedForOnlyOncePerAnalysis()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                ManagementCount = 2,
+                HasPendingRuleOwnerMappingImport = true
+            };
+            int delays = 0;
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) =>
+                {
+                    delays++;
+                    return Task.CompletedTask;
+                }
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // 10 seconds at a 2 second poll interval, and only for the first management
+            Assert.That(delays, Is.EqualTo(5));
+        }
+
+        [Test]
+        public async Task TestSharedRuleOwnerWaitStateWaitsAndReportsOnceOverSeveralOwners()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            RuleOwnerWaitState sharedState = new();
+            int delays = 0;
+            int userMessages = 0;
+
+            // a report over two owners: one analysis per owner, one state for the report
+            for (int ownerIndex = 0; ownerIndex < 2; ownerIndex++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    },
+                    WaitState = sharedState
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(5), "the backlog does not drain, so only the first owner waits");
+                Assert.That(userMessages, Is.EqualTo(1), "the user is told once per report, not once per owner");
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(1), "the same reason is logged once per report");
+                Assert.That(apiConnection.Queries.Count(query => query == RuleQueries.getModelledRulesByManagementName), Is.EqualTo(2),
+                    "every owner still falls back to the marker query");
+            });
+        }
+
+        [Test]
+        public async Task TestRuleOwnerWaitStateIsPerAnalysisByDefault()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 10;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new() { HasPendingRuleOwnerMappingImport = true };
+            int delays = 0;
+            int userMessages = 0;
+
+            // separate requests, such as two popups opened one after the other, keep their own state
+            for (int request = 0; request < 2; request++)
+            {
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application,
+                    (_, _, _, _) => userMessages++)
+                {
+                    DelayAsync = (_, _) =>
+                    {
+                        delays++;
+                        return Task.CompletedTask;
+                    }
+                };
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+            }
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(delays, Is.EqualTo(10));
+                Assert.That(userMessages, Is.EqualTo(2));
+                Assert.That(apiConnection.LoggedReasons, Has.Count.EqualTo(2));
+            });
+        }
+
+        [Test]
+        public async Task TestPreFilterFallbackNamesTheRebuildThatStartedWhileWaiting()
+        {
+            SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+            config.VarianceNameFieldWaitTime = 4;
+            RuleOwnerPreFilterRoutingApiConn apiConnection = new()
+            {
+                HasPendingRuleOwnerMappingImport = true,
+                ClearPendingAfterStateReads = 1,
+                StartRebuildAfterStateReads = 1
+            };
+            ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing)
+            {
+                DelayAsync = (_, _) => Task.CompletedTask
+            };
+
+            await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+            // the backlog cleared but a rebuild took over, so that is what has to be recorded
+            Assert.That(apiConnection.LoggedReasons, Has.Exactly(1).Contains("reinitialize"));
+            Assert.That(apiConnection.LoggedReasons, Has.None.Contains("still waiting"));
+            Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+        }
+
+        private static readonly List<int> kNonNameFieldMappingSources =
+        [
+            (int)OwnerMappingSourceStm.IpBased,
+            (int)OwnerMappingSourceStm.CustomField,
+            (int)OwnerMappingSourceStm.Disabled
+        ];
+
+        [Test]
+        public async Task TestRuleOwnerPrefilterStateNotReadForOtherMappingSources()
+        {
+            foreach (int source in kNonNameFieldMappingSources)
+            {
+                SimulatedUserConfig config = CreateNameFieldPreFilterUserConfig();
+                config.OwnerSoruceMappingID = source;
+                RuleOwnerPreFilterRoutingApiConn apiConnection = new();
+                ModellingVarianceAnalysis analysis = new(apiConnection, extStateHandler, config, Application, DefaultInit.DoNothing);
+
+                await analysis.AnalyseRulesVsModelledConnections([], new() { AllowWaitForRuleOwnerMapping = true }, false);
+
+                Assert.That(apiConnection.Queries, Does.Not.Contain(ImportQueries.getPendingRuleAffectingImports));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(RuleQueries.getModelledRulesByRuleOwnerNameField));
+                Assert.That(apiConnection.Queries, Does.Contain(RuleQueries.getModelledRulesByManagementName));
+            }
+        }
+
+        [Test]
+        public void TestRuleOwnerPrefilterStateQueriesCheckRebuildAgeAndPolicyChanges()
+        {
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("stop_time: {_is_null: true}"));
+            Assert.That(ImportQueries.getRunningRuleOwnerRebuild, Does.Contain("start_time: {_gt: $rebuildCutoff}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("policy_changes_found: {_eq: true}"));
+            Assert.That(ImportQueries.getPendingRuleAffectingImports, Does.Contain("rule_owner_mapping_done: {_eq: false}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("removed: {_is_null: true}"));
+            Assert.That(OwnerQueries.getAnyActiveRuleOwnerMapping, Does.Contain("limit: 1"));
+        }
+
         private static SimulatedUserConfig CreateNameFieldPreFilterUserConfig()
         {
             return new()
@@ -1403,6 +1714,13 @@ namespace FWO.Test
             public int? PendingRuleOwnerMappingMgmId { get; init; }
             public List<int> RelevantImportSubManagementIds { get; init; } = [];
             public bool HasMissingRuleOwnerPreFilterCompletenessMapping { get; init; } = false;
+            public bool HasRunningRuleOwnerRebuild { get; init; } = false;
+            public bool HasAnyActiveRuleOwnerMapping { get; init; } = true;
+            public int PrefilterStateReads { get; private set; }
+            public int ClearPendingAfterStateReads { get; init; } = int.MaxValue;
+            public int ManagementCount { get; init; } = 1;
+            public int StartRebuildAfterStateReads { get; init; } = int.MaxValue;
+            public List<string> LoggedReasons { get; } = [];
 
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(
                 string query,
@@ -1443,15 +1761,16 @@ namespace FWO.Test
 
                 if (responseType == typeof(List<Management>))
                 {
-                    List<Management> managements =
-                    [
-                        new()
+                    List<Management> managements = [];
+                    for (int managementId = 1; managementId <= ManagementCount; managementId++)
+                    {
+                        managements.Add(new()
                         {
-                            Id = 1,
-                            Name = "Checkpoint1",
-                            ExtMgtData = "{\"id\":\"1\",\"name\":\"CheckpointExt\"}"
-                        }
-                    ];
+                            Id = managementId,
+                            Name = $"Checkpoint{managementId}",
+                            ExtMgtData = $"{{\"id\":\"{managementId}\",\"name\":\"CheckpointExt\"}}"
+                        });
+                    }
 
                     return (QueryResponseType)(object)managements;
                 }
@@ -1474,9 +1793,40 @@ namespace FWO.Test
 
                     return (QueryResponseType)(object)new List<ModellingConnection>();
                 }
+                if (responseType == typeof(List<RuleOwner>) && query == OwnerQueries.getAnyActiveRuleOwnerMapping)
+                {
+                    List<RuleOwner> mapping = HasAnyActiveRuleOwnerMapping ? [new() { RuleId = 1 }] : [];
+                    return (QueryResponseType)(object)mapping;
+                }
+
+                if (responseType == typeof(ReturnIdWrapper))
+                {
+                    // AddLogEntry carries the fallback reason as suspectedCause
+                    object? cause = variables?.GetType().GetProperty("suspectedCause")?.GetValue(variables);
+                    if (cause != null)
+                    {
+                        LoggedReasons.Add(cause.ToString() ?? "");
+                    }
+
+                    return (QueryResponseType)(object)new ReturnIdWrapper();
+                }
+
+                if (responseType == typeof(List<ImportControl>) && query == ImportQueries.getRunningRuleOwnerRebuild)
+                {
+                    bool rebuilding = HasRunningRuleOwnerRebuild || PrefilterStateReads >= StartRebuildAfterStateReads;
+                    List<ImportControl> rebuild = rebuilding ? [new() { ControlId = 9 }] : [];
+                    return (QueryResponseType)(object)rebuild;
+                }
+
                 if (responseType == typeof(List<ImportControl>))
                 {
-                    List<ImportControl> imports = HasPendingRuleOwnerMappingImport
+                    if (query == ImportQueries.getPendingRuleAffectingImports)
+                    {
+                        PrefilterStateReads++;
+                    }
+
+                    bool stillPending = HasPendingRuleOwnerMappingImport && PrefilterStateReads <= ClearPendingAfterStateReads;
+                    List<ImportControl> imports = stillPending
                         ? [new() { ControlId = 1, MgmId = PendingRuleOwnerMappingMgmId }]
                         : [];
                     return (QueryResponseType)(object)imports;

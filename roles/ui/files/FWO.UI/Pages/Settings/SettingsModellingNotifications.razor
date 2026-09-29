@@ -1,12 +1,7 @@
-@using FWO.Api.Client.Queries
 @using FWO.Basics
 @using FWO.Config.Api.Data
 @using FWO.Data
-@using FWO.Data.Middleware
-@using FWO.Middleware.Client
 @using FWO.Services
-@using FWO.Ui.Data
-@using FWO.Ui.Pages.NetworkModelling
 
 @page "/settings/modellingnotifications"
 @attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
@@ -24,30 +19,10 @@
 @if (configData != null && initComplete)
 {
     <form onsubmit="return false">
+        <h4>@(userConfig.GetText("request_interface"))</h4>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5622"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqInterfaceName")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqInterfaceName" />
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
-            <label for="cbx_email_requester_in_cc" class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailRequesterInCc")):</label>
-            <div class="col-sm-6">
-                <input id="cbx_email_requester_in_cc" type="checkbox" @bind="configData.ModReqEmailRequesterInCc">
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5630"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailReceiver")):</label>
-            <div class="col-sm-6">
-                <EmailRecipientSelectionEditor Selection="@modReqEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_req_mail" Client="NotificationClient.InterfaceRequest" />
-            </div>
-        </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5623"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailSubject")):</label>
-            <input type="text" class="col-sm-6" @bind="configData.ModReqEmailSubject" />
-        </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5624"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModReqEmailBody"></textarea>
         </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5625"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTicketTitle")):</label>
@@ -57,47 +32,41 @@
             <label class="col-form-label col-sm-4">@(userConfig.GetText("modReqTaskTitle")):</label>
             <input type="text" class="col-sm-6" @bind="configData.ModReqTaskTitle" />
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5624a"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modUnansweredReqEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModUnansweredReqEmailBody"></textarea>
+        <div class="mt-4 mb-3">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
+                <Authorized>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <button type="button" class="btn btn-sm btn-primary" disabled>
+                        @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
+                    </button>
+                </NotAuthorized>
+            </ExecutionModeAuthorizeView>
         </div>
         <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5629"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("reminders")):</label>
-            <div class="col-sm-8">
-                <EditNotifications Client="NotificationClient.InterfaceRequest" />
-            </div>
+        <h4>@(userConfig.GetText("initial_request"))</h4>
+        <div class="mt-4">
+            <EditNotifications Client="NotificationClient.InterfaceRequest"
+                               DeadlineFilter="NotificationDeadline.None" />
         </div>
         <hr />
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5660"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailReceiver")):</label>
-            <div class="col-sm-4">
-                <EmailRecipientSelectionEditor Selection="@modDecommEmailRecipients" OwnerResponsibleTypes="@activeOwnerResponsibleTypes"
-                    CheckboxIdPrefix="cbx_mod_decomm_mail" Client="NotificationClient.AppDecomm" />
-            </div>
+        <div class="mt-4">
+            <h4>@(userConfig.GetText("reminder"))</h4>
+            <EditNotifications Client="NotificationClient.InterfaceRequest"
+                               DeadlineFilter="NotificationDeadline.RequestDate" />
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5661"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailSubject")):</label>
-            <input type="text" class="col-sm-6" @bind="configData.ModDecommEmailSubject" />
+        <hr class="mt-4" />
+        <div class="mt-4">
+            <h4>@(userConfig.GetText("decomm_interface"))</h4>
         </div>
-        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5662"))">
-            <label class="col-form-label col-sm-4">@(userConfig.GetText("modDecommEmailBody")):</label>
-            <textarea class="col-sm-7 mt-2" rows="4" name="text" @bind="configData.ModDecommEmailBody"></textarea>
+        <div class="mt-4">
+            <EditNotifications Client="NotificationClient.InterfaceDecomm"
+                               DeadlineFilter="NotificationDeadline.None" />
         </div>
     </form>
-    <hr />
-    <ExecutionModeAuthorizeView Roles="@Roles.Admin">
-        <Authorized>
-            <button type="button" class="btn btn-sm btn-primary" @onclick="Save" @onclick:preventDefault>
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
-        </Authorized>
-        <NotAuthorized>
-            <button type="button" class="btn btn-sm btn-primary" disabled>
-                @(DisplayService.DisplayButton(userConfig, "save", Icons.Save))
-            </button>
-        </NotAuthorized>
-    </ExecutionModeAuthorizeView>
 }
 else
 {
@@ -110,9 +79,6 @@ else
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
 
     private ConfigData? configData;
-    private List<OwnerResponsibleType> activeOwnerResponsibleTypes = [];
-    private EmailRecipientSelection modReqEmailRecipients = new();
-    private EmailRecipientSelection modDecommEmailRecipients = new();
     private bool initComplete;
 
     protected override async Task OnInitializedAsync()
@@ -120,15 +86,6 @@ else
         try
         {
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            List<OwnerResponsibleType> ownerResponsibleTypes = await apiConnection.SendQueryAsync<List<OwnerResponsibleType>>(OwnerQueries.getOwnerResponsibleTypes);
-            activeOwnerResponsibleTypes = ownerResponsibleTypes
-                .Where(type => type.Active)
-                .ToList();
-            List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-            modReqEmailRecipients = EmailRecipientSelection.Parse(editableConfig.ModReqEmailReceiver, activeTypeIds);
-            modDecommEmailRecipients = EmailRecipientSelection.Parse(editableConfig.ModDecommEmailReceiver, activeTypeIds);
-            MergeLegacyOtherAddresses(modReqEmailRecipients, editableConfig.ModReqEmailOtherAddresses);
-            MergeLegacyOtherAddresses(modDecommEmailRecipients, editableConfig.ModDecommEmailOtherAddresses);
             configData = editableConfig;
             initComplete = true;
         }
@@ -147,41 +104,12 @@ else
                 throw new ArgumentException("Data saved before loaded. This should be impossible.");
             }
 
-            PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
-            DisplayMessageInUi(null, userConfig.GetText("notifications"), userConfig.GetText("U5301"), false);
+            DisplayMessageInUi(null, userConfig.GetText("interfaces"), userConfig.GetText("U5301"), false);
         }
         catch (Exception exception)
         {
-            DisplayMessageInUi(exception, userConfig.GetText("notifications"), "", true);
-        }
-    }
-
-    private void PrepareConfigData()
-    {
-        List<int> activeTypeIds = activeOwnerResponsibleTypes.Select(type => type.Id).ToList();
-        configData!.ModReqEmailReceiver = modReqEmailRecipients.ToConfigValue(activeTypeIds);
-        configData!.ModDecommEmailReceiver = modDecommEmailRecipients.ToConfigValue(activeTypeIds);
-        configData!.ModReqEmailOtherAddresses = "";
-        configData!.ModDecommEmailOtherAddresses = "";
-    }
-
-    private static void MergeLegacyOtherAddresses(EmailRecipientSelection selection, string legacyOtherAddresses)
-    {
-        List<string> addresses = EmailHelper.SplitAddresses(legacyOtherAddresses);
-        if (addresses.Count == 0)
-        {
-            return;
-        }
-
-        selection.OtherAddresses = true;
-        selection.None = false;
-        foreach (string address in addresses)
-        {
-            if (!selection.OtherAddressList.Contains(address, StringComparer.OrdinalIgnoreCase))
-            {
-                selection.OtherAddressList.Add(address);
-            }
+            DisplayMessageInUi(exception, userConfig.GetText("interfaces"), "", true);
         }
     }
 }

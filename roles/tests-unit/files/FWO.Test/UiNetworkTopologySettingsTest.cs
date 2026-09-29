@@ -171,7 +171,6 @@ namespace FWO.Test
 
         [TestCase(Roles.Admin, false)]
         [TestCase(Roles.Auditor, true)]
-        [TestCase(Roles.FwAdmin, true)]
         public async Task InternetSaveButtonReflectsTheUserRole(string role, bool expectedDisabled)
         {
             SimulatedGlobalConfig globalConfig = new();
@@ -186,7 +185,6 @@ namespace FWO.Test
 
         [TestCase(Roles.Admin, false)]
         [TestCase(Roles.Auditor, true)]
-        [TestCase(Roles.FwAdmin, true)]
         public async Task NetworkMatrixSaveButtonReflectsTheUserRole(string role, bool expectedDisabled)
         {
             SimulatedGlobalConfig globalConfig = CreateMatrixConfig();

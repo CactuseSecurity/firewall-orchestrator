@@ -3,8 +3,8 @@ import time
 import traceback
 from copy import deepcopy
 
-from fwo_base import ConfFormat
 from fwo_const import IMPORT_TMP_PATH
+from fwo_enums import ConfFormat
 from fwo_log import FWOLogger
 from models.fwconfigmanager import FwConfigManager
 from models.fwconfigmanagerlist import FwConfigManagerList

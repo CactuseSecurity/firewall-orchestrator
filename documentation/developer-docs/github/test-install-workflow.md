@@ -43,16 +43,36 @@ this workflow actually tests.
 
 ## Integration tests
 
-Each matrix entry carries an `integration` flag. Exactly one entry per
-run has `integration: true`:
+Each matrix entry carries an `integration` flag:
 
-- in the full matrix, the `ubuntu-24.04` / Python `3.11` entry
-- in the minimal matrix, its sole entry
+- in the full matrix, the `ubuntu-24.04` / Python `3.10` and `3.11`
+  entries
+- in the minimal matrix, both of its entries
 
-Only that entry runs the JWT refresh integration test and the Ansible
-`--tags integrationtests` cleanup step; every other entry runs a plain
-install. This keeps the heavier integration flow from running on all
-15 full-matrix combos.
+The minimal matrix runs two, one per pinned Ansible generation, because
+`requirements.txt` installs ansible-core 2.18 below Python 3.11 and 2.19
+from 3.11 up, and the two do not evaluate a `when` or `assert.that` the
+same way. Running `roles/tests-integration` on one generation only
+cannot see that class of defect at all.
+
+Only entries with the flag run the heavier flow; every other entry runs
+a plain install, which keeps that flow off all 15 full-matrix combos.
+The flagged entries run, in order:
+
+1. an install with `--skip-tags integrationtests`
+2. the JWT refresh integration test
+3. the Ansible `--tags integrationtests` cleanup step
+4. a certificate reset upgrade,
+   `-e "installation_mode=upgrade internalca_reset_certificates=true"`
+
+Step 4 is a full run rather than a tag-limited one on purpose:
+`roles/tests-integration` asserts on facts the reset itself produces —
+which CA was retired, which identities were reissued, which
+customer-managed pairs were left untouched — and those exist only inside
+the invocation that performed the rotation. It is also what exercises
+the force-regeneration paths in `roles/internalCA`, and it proves every
+service still comes up against a CA anchor that changed underneath it.
+A failure there is followed by a certificate diagnostics step.
 
 ## Job names
 

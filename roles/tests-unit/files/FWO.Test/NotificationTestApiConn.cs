@@ -2,11 +2,17 @@ using GraphQL;
 using FWO.Api.Client.Queries;
 using FWO.Data;
 using FWO.Services;
+using System.Reflection;
 
 namespace FWO.Test
 {
     internal class NotificationTestApiConn : SimulatedApiConnection
     {
+        public List<(int Id, NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+        public List<NotificationLogEntry> NotificationLogEntries { get; } = [];
+        public List<int> UpdatedNotificationIds { get; } = [];
+        public List<int> RefreshedNotificationLogIds { get; } = [];
+
         readonly FwoNotification NotifReq1 = new()
         {
             Id = 1,
@@ -93,6 +99,31 @@ namespace FWO.Test
             }
             if (responseType == typeof(ReturnId))
             {
+                if (query == NotificationQueries.updateNotificationsLastSent)
+                {
+                    PropertyInfo? idsProperty = variables?.GetType().GetProperty("ids");
+                    if (idsProperty?.GetValue(variables) is IEnumerable<int> ids)
+                    {
+                        UpdatedNotificationIds.AddRange(ids);
+                    }
+                }
+
+                if (query == NotificationQueries.updateNotificationLog)
+                {
+                    int id = GetVariable<int>(variables, "id");
+                    NotificationLogStatus status = Enum.Parse<NotificationLogStatus>(GetVariable<string>(variables, "status"));
+                    string error = GetVariable<string>(variables, "error");
+                    NotificationLogUpdates.Add((id, status, error));
+                    NotificationLogEntry? entry = NotificationLogEntries.FirstOrDefault(logEntry => logEntry.Id == id);
+                    if (entry != null)
+                    {
+                        entry.Status = status;
+                        entry.Error = error;
+                    }
+                    GraphQLResponse<dynamic> updateResponse = new() { Data = new ReturnId() { AffectedRows = 1 } };
+                    return updateResponse.Data;
+                }
+
                 int notifCount = 0;
                 var idsProp = variables?.GetType().GetProperty("ids");
                 if (idsProp != null)
@@ -106,6 +137,72 @@ namespace FWO.Test
                 GraphQLResponse<dynamic> response = new() { Data = new ReturnId() { AffectedRows = notifCount } };
                 return response.Data;
             }
+            if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
+            {
+                if (variables?.GetType().GetProperty("entries")?.GetValue(variables)
+                    is IEnumerable<NotificationLogInsertEntry> entries)
+                {
+                    foreach (NotificationLogInsertEntry entry in entries)
+                    {
+                        NotificationLogEntries.Add(new NotificationLogEntry
+                        {
+                            Id = NotificationLogEntries.Count + 1,
+                            NotificationId = entry.NotificationId,
+                            Subject = entry.Subject,
+                            DeadlineType = entry.DeadlineType,
+                            Deadline = entry.Deadline,
+                            Status = NotificationLogStatus.Pending
+                        });
+                    }
+                }
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = NotificationLogEntries.LastOrDefault()?.Id ?? 1 }]
+                    }
+                };
+                return response.Data;
+            }
+            if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.refreshNotificationLog)
+            {
+                int id = GetVariable<int>(variables, "id");
+                NotificationLogEntry? entry = NotificationLogEntries.FirstOrDefault(logEntry => logEntry.Id == id);
+                if (entry != null)
+                {
+                    entry.Timestamp = DateTimeOffset.UtcNow;
+                }
+                RefreshedNotificationLogIds.Add(id);
+                GraphQLResponse<dynamic> response = new()
+                {
+                    Data = new ReturnIdWrapper
+                    {
+                        ReturnIds = [new ReturnId { Id = id }]
+                    }
+                };
+                return response.Data;
+            }
+            if (responseType == typeof(List<NotificationLogEntry>)
+                && (query == NotificationQueries.getNoRecipientNotificationLogs
+                    || query == NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline))
+            {
+                int notificationId = GetVariable<int>(variables, "notificationId");
+                string subject = GetVariable<string>(variables, "subject");
+                string deadlineType = GetVariable<string>(variables, "deadlineType");
+                bool withoutDeadline = query == NotificationQueries.getNoRecipientNotificationLogsWithoutDeadline;
+                DateTimeOffset? deadline = withoutDeadline ? null : GetVariable<DateTimeOffset>(variables, "deadline");
+                return (QueryResponseType)(object)NotificationLogEntries
+                    .Where(entry => entry.NotificationId == notificationId
+                        && entry.Status == NotificationLogStatus.Failed
+                        && entry.Error == "No recipients resolved."
+                        && entry.Subject == subject
+                        && entry.DeadlineType.ToString() == deadlineType
+                        && entry.Deadline == deadline)
+                    .OrderByDescending(entry => entry.Timestamp)
+                    .ThenByDescending(entry => entry.Id)
+                    .Take(1)
+                    .ToList();
+            }
             if (responseType == typeof(List<UiUser>) && query == AuthQueries.getUserEmails)
             {
                 GraphQLResponse<dynamic> response = new() { Data = new List<UiUser>() };
@@ -118,6 +215,12 @@ namespace FWO.Test
             }
 
             throw new NotImplementedException();
+        }
+
+        private static T GetVariable<T>(object? variables, string name)
+        {
+            return (T)(variables?.GetType().GetProperty(name)?.GetValue(variables)
+                ?? throw new InvalidOperationException($"Missing notification-log variable '{name}'."));
         }
 
         private static FwoNotification CloneNotification(FwoNotification notification)
@@ -149,7 +252,8 @@ namespace FWO.Test
                 InitialOffsetAfterDeadline = notification.InitialOffsetAfterDeadline,
                 RepeatOffsetAfterDeadline = notification.RepeatOffsetAfterDeadline,
                 RepetitionsAfterDeadline = notification.RepetitionsAfterDeadline,
-                LastSent = notification.LastSent
+                LastSent = notification.LastSent,
+                Logging = NotificationLoggingMode.LogOnly
             };
         }
     }

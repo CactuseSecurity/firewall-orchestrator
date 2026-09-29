@@ -42,10 +42,14 @@ namespace FWO.Middleware.Server.Controllers
         /// The passwords are taken as entered (clear text). Stored credentials are never
         /// used here, so that the connection test cannot be turned into a way of replaying
         /// them against a freely chosen server.
+        /// This is a POST although it changes nothing: the parameters, including credentials
+        /// entered for the test, travel in the body, and a GET carrying a body is handled
+        /// inconsistently by proxies and http clients, while its url and body risk being
+        /// cached or logged along the way.
         /// </remarks>
         /// <param name="parameters">Ldap connection parameters</param>
         /// <returns></returns>
-        [HttpGet("TestConnection")]
+        [HttpPost("TestConnection")]
         [Authorize(Roles = $"{Roles.Admin}")]
         public async Task<ActionResult<string>> TestConnection([FromBody] LdapGetUpdateParameters parameters)
         {

@@ -56,8 +56,8 @@ Alter table "import_full_config" add constraint "import_full_config_mgm_id_f_key
 Alter table "ldap_connection" add foreign key ("tenant_id") references "tenant" ("tenant_id") on update restrict on delete cascade;
 Alter table "management" add  foreign key ("dev_typ_id") references "stm_dev_typ" ("dev_typ_id") on update restrict on delete cascade;
 ALTER TABLE "management" ADD CONSTRAINT management_multi_device_manager_id_fkey FOREIGN KEY ("multi_device_manager_id") REFERENCES "management" ("mgm_id") ON UPDATE RESTRICT;
-ALTER TABLE "management" ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE "management" ADD CONSTRAINT management_export_credential_id_foreign_key FOREIGN KEY ("export_credential_id") REFERENCES import_credential(id)ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE "management" ADD CONSTRAINT management_import_credential_id_foreign_key FOREIGN KEY (import_credential_id) REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+ALTER TABLE "management" ADD CONSTRAINT management_export_credential_id_foreign_key FOREIGN KEY ("export_credential_id") REFERENCES import_credential(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 Alter table firewall."nw_object"
 add foreign key ("last_change_admin") references "uiuser" ("uiuser_id") on update restrict on delete cascade;
 Alter table firewall."nw_object"
@@ -400,7 +400,8 @@ ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_
 ALTER TABLE modelling.service_group_connection ADD CONSTRAINT modelling_service_group_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_service_foreign_key FOREIGN KEY (service_id) REFERENCES modelling.service(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.service_connection ADD CONSTRAINT modelling_service_connection_connection_foreign_key FOREIGN KEY (connection_id) REFERENCES modelling.connection(id) ON UPDATE RESTRICT ON DELETE CASCADE;
-ALTER TABLE modelling.change_history ADD CONSTRAINT modelling_change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+ALTER TABLE change_history ADD CONSTRAINT change_history_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE SET NULL;
+ALTER TABLE change_history ADD CONSTRAINT change_history_ticket_foreign_key FOREIGN KEY (ticket_id) REFERENCES request.ticket(id) ON UPDATE RESTRICT ON DELETE SET NULL;
 ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_objects ADD CONSTRAINT modelling_selected_objects_nwgroup_foreign_key FOREIGN KEY (nwgroup_id) REFERENCES modelling.nwgroup(id) ON UPDATE RESTRICT ON DELETE CASCADE;
 ALTER TABLE modelling.selected_connections ADD CONSTRAINT modelling_selected_connections_owner_foreign_key FOREIGN KEY (app_id) REFERENCES owner(id) ON UPDATE RESTRICT ON DELETE CASCADE;

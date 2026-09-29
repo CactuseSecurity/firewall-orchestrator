@@ -77,7 +77,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Render_AuditorSeesReadOnlyModellingActions()
+        public async Task Render_AuditorCanModelButCannotSaveOrRequestChanges()
         {
             await using BunitContext context = CreateContext([Roles.Auditor], out NetworkModellingPageTestApiConn apiConn, out _);
 
@@ -87,9 +87,20 @@ namespace FWO.Test
             {
                 Assert.That(page.Markup, Does.Contain("Alpha App"));
                 IElement addConnectionButton = FindButton(page, "add_connection");
+                IElement editButton = FindButton(page, "edit");
                 IElement requestButton = FindButton(page, "Request firewall changes");
-                Assert.That(addConnectionButton.HasAttribute("disabled"), Is.True);
+                Assert.That(addConnectionButton.HasAttribute("disabled"), Is.False);
+                Assert.That(editButton.HasAttribute("disabled"), Is.False);
                 Assert.That(requestButton.HasAttribute("disabled"), Is.True);
+                Assert.That(apiConn.UnexpectedQueries, Is.Empty);
+            });
+
+            FindButton(page, "add_connection").Click();
+
+            page.WaitForAssertion(() =>
+            {
+                IElement saveButton = FindButton(page, "save");
+                Assert.That(saveButton.HasAttribute("disabled"), Is.True);
                 Assert.That(apiConn.UnexpectedQueries, Is.Empty);
             });
         }
@@ -272,6 +283,7 @@ namespace FWO.Test
                 ModRecertActive = true,
                 ModIntegrationMode = ModIntegrationMode.FullyIntegrated,
                 ModNamingConvention = "{}",
+                ModExtraConfigs = "[]",
                 ModModelledMarker = "FWO:",
                 VarianceAnalysisSync = false,
                 VarianceAnalysisRefresh = false,
@@ -316,6 +328,8 @@ namespace FWO.Test
                 ["add_connection"] = "Add connection",
                 ["add_interface"] = "Add interface",
                 ["add_common_service"] = "Add common service",
+                ["edit"] = "Edit",
+                ["save"] = "Save",
                 ["comm_profile"] = "Communication profile",
                 ["share_link"] = "Share link",
                 ["edit_app_server"] = "Edit app server",
@@ -374,118 +388,113 @@ namespace FWO.Test
                 CreateOwner(20, "Beta App", "APP-B")
             ];
 
+            // one answer per query, so a query added to the page needs an entry here instead of
+            // another branch in the dispatch below
+            private readonly Dictionary<string, Func<object?, object>> queryAnswers;
+
+            public NetworkModellingPageTestApiConn()
+            {
+                queryAnswers = CreateQueryAnswers();
+            }
+
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == RequestQueries.getStates)
+                if (queryAnswers.TryGetValue(query, out Func<object?, object>? answer))
                 {
-                    return Result<QueryResponseType>(new List<WfState>
-                    {
-                        new() { Id = 10, Name = "In progress" },
-                        new() { Id = 90, Name = "Done" }
-                    });
-                }
-                if (query == RequestQueries.getExtStates)
-                {
-                    return Result<QueryResponseType>(new List<WfExtState>
-                    {
-                        new() { Name = ExtStates.ExtReqDone.ToString(), StateId = 90 },
-                        new() { Name = ExtStates.ExtReqRejected.ToString(), StateId = 91 }
-                    });
-                }
-                if (query == StmQueries.getIpProtocols)
-                {
-                    return Result<QueryResponseType>(new List<IpProtocol>
-                    {
-                        new() { Id = 6, Name = "tcp" },
-                        new() { Id = 17, Name = "udp" }
-                    });
-                }
-                if (query == DeviceQueries.getDeviceDetails)
-                {
-                    return Result<QueryResponseType>(new List<Device>());
-                }
-                if (query == OwnerQueries.getOwnersWithConn)
-                {
-                    return Result<QueryResponseType>(owners.Select(owner => new FwoOwner(owner)).ToList());
-                }
-                if (query == OwnerQueries.getEditableOwnersWithConn)
-                {
-                    int[] appIds = GetIntArrayVariable(variables, "appIds");
-                    return Result<QueryResponseType>(owners.Where(owner => appIds.Contains(owner.Id)).Select(owner => new FwoOwner(owner)).ToList());
-                }
-                if (query == ModellingQueries.getConnectionsResolved)
-                {
-                    int appId = GetIntVariable(variables, "appId");
-                    ConnectionQueryAppIds.Add(appId);
-                    RecordQueryRole();
-                    return Result<QueryResponseType>(CreateConnections(appId));
-                }
-                if (query == ModellingQueries.getDummyAppRole)
-                {
-                    return Result<QueryResponseType>(new List<ModellingAppRole> { new() { Id = 999, IdString = "DUMMY", Name = "Dummy" } });
-                }
-                if (query == ModellingQueries.getSelectedConnections)
-                {
-                    return Result<QueryResponseType>(new List<ModellingConnectionWrapper>());
-                }
-                if (query == ModellingQueries.getAppServersForOwner)
-                {
-                    return Result<QueryResponseType>(new List<ModellingAppServer>());
-                }
-                if (query == ModellingQueries.getAppRoles)
-                {
-                    return Result<QueryResponseType>(new List<ModellingAppRole>());
-                }
-                if (query == ModellingQueries.getNwGroupObjects)
-                {
-                    return Result<QueryResponseType>(new List<ModellingNetworkArea>());
-                }
-                if (query == ModellingQueries.getAreas)
-                {
-                    return Result<QueryResponseType>(new List<ModellingNetworkArea>());
-                }
-                if (query == ModellingQueries.getSelectedNwGroupObjects)
-                {
-                    return Result<QueryResponseType>(new List<ModellingNwGroupWrapper>());
-                }
-                if (query == ModellingQueries.getGlobalServiceGroups || query == ModellingQueries.getServiceGroupsForApp)
-                {
-                    return Result<QueryResponseType>(new List<ModellingServiceGroup>());
-                }
-                if (query == ModellingQueries.getGlobalServices || query == ModellingQueries.getServicesForApp)
-                {
-                    return Result<QueryResponseType>(new List<ModellingService>());
-                }
-                if (query == ExtRequestQueries.getLatestTicketId)
-                {
-                    RecordQueryRole();
-                    return Result<QueryResponseType>(new List<TicketId> { new() { Id = 42 } });
-                }
-                if (query == RequestQueries.getTicketById)
-                {
-                    return Result<QueryResponseType>(new WfTicket
-                    {
-                        Id = GetLongVariable(variables, "Id"),
-                        StateId = 10,
-                        CreationDate = new DateTime(2026, 7, 1, 10, 0, 0),
-                        Requester = new UiUser { Name = "requester" }
-                    });
-                }
-                if (query == ExtRequestQueries.getLastRequest)
-                {
-                    RecordQueryRole();
-                    return Result<QueryResponseType>(new List<ExternalRequest>
-                    {
-                        new()
-                        {
-                            TicketId = GetLongVariable(variables, "ticketId"),
-                            LastCreationResponse = "workflow lookup ok"
-                        }
-                    });
+                    return Result<QueryResponseType>(answer(variables));
                 }
 
                 UnexpectedQueries.Add(query);
                 return Task.FromResult(default(QueryResponseType)!);
+            }
+
+            /// <summary>
+            /// The answer this stub gives to every query the modelling page sends, by query text.
+            /// </summary>
+            private Dictionary<string, Func<object?, object>> CreateQueryAnswers()
+            {
+                return new()
+                {
+                    [RequestQueries.getStates] = _ => new List<WfState>
+                    {
+                        new() { Id = 10, Name = "In progress" },
+                        new() { Id = 90, Name = "Done" }
+                    },
+                    [RequestQueries.getExtStates] = _ => new List<WfExtState>
+                    {
+                        new() { Name = ExtStates.ExtReqDone.ToString(), StateId = 90 },
+                        new() { Name = ExtStates.ExtReqRejected.ToString(), StateId = 91 }
+                    },
+                    [StmQueries.getIpProtocols] = _ => new List<IpProtocol>
+                    {
+                        new() { Id = 6, Name = "tcp" },
+                        new() { Id = 17, Name = "udp" }
+                    },
+                    [StmQueries.getRuleActions] = _ => new List<RuleAction>(),
+                    [StmQueries.getTracking] = _ => new List<Tracking>(),
+                    [DeviceQueries.getDeviceDetails] = _ => new List<Device>(),
+                    [OwnerQueries.getOwnersWithConn] = _ => owners.Select(owner => new FwoOwner(owner)).ToList(),
+                    [OwnerQueries.getEditableOwnersWithConn] = variables => AnswerEditableOwners(variables),
+                    [ModellingQueries.getConnectionsResolved] = variables => AnswerConnections(variables),
+                    [ModellingQueries.getDummyAppRole] = _ => new List<ModellingAppRole> { new() { Id = 999, IdString = "DUMMY", Name = "Dummy" } },
+                    [ModellingQueries.getSelectedConnections] = _ => new List<ModellingConnectionWrapper>(),
+                    [ModellingQueries.getAppServersForOwner] = _ => new List<ModellingAppServer>(),
+                    [ModellingQueries.getAppRoles] = _ => new List<ModellingAppRole>(),
+                    [ModellingQueries.getNwGroupObjects] = _ => new List<ModellingNetworkArea>(),
+                    [ModellingQueries.getAreas] = _ => new List<ModellingNetworkArea>(),
+                    [ModellingQueries.getSelectedNwGroupObjects] = _ => new List<ModellingNwGroupWrapper>(),
+                    [ModellingQueries.getGlobalServiceGroups] = _ => new List<ModellingServiceGroup>(),
+                    [ModellingQueries.getServiceGroupsForApp] = _ => new List<ModellingServiceGroup>(),
+                    [ModellingQueries.getGlobalServices] = _ => new List<ModellingService>(),
+                    [ModellingQueries.getServicesForApp] = _ => new List<ModellingService>(),
+                    [ExtRequestQueries.getLatestTicketId] = _ => AnswerLatestTicketId(),
+                    [RequestQueries.getTicketById] = variables => AnswerTicket(variables),
+                    [ExtRequestQueries.getLastRequest] = variables => AnswerLastRequest(variables)
+                };
+            }
+
+            private List<FwoOwner> AnswerEditableOwners(object? variables)
+            {
+                int[] appIds = GetIntArrayVariable(variables, "appIds");
+                return owners.Where(owner => appIds.Contains(owner.Id)).Select(owner => new FwoOwner(owner)).ToList();
+            }
+
+            private List<ModellingConnection> AnswerConnections(object? variables)
+            {
+                int appId = GetIntVariable(variables, "appId");
+                ConnectionQueryAppIds.Add(appId);
+                RecordQueryRole();
+                return CreateConnections(appId);
+            }
+
+            private List<TicketId> AnswerLatestTicketId()
+            {
+                RecordQueryRole();
+                return [new() { Id = 42 }];
+            }
+
+            private static WfTicket AnswerTicket(object? variables)
+            {
+                return new()
+                {
+                    Id = GetLongVariable(variables, "Id"),
+                    StateId = 10,
+                    CreationDate = new DateTime(2026, 7, 1, 10, 0, 0),
+                    Requester = new UiUser { Name = "requester" }
+                };
+            }
+
+            private List<ExternalRequest> AnswerLastRequest(object? variables)
+            {
+                RecordQueryRole();
+                return
+                [
+                    new()
+                    {
+                        TicketId = GetLongVariable(variables, "ticketId"),
+                        LastCreationResponse = "workflow lookup ok"
+                    }
+                ];
             }
 
             public override void SetBestRole(System.Security.Claims.ClaimsPrincipal user, List<string> targetRoleList)

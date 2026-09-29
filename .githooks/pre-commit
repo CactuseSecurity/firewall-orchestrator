@@ -10,12 +10,23 @@ set +a
 # Set default python path
 PYTHON_CMD=("python")
 
-if [ -d ".venv/Scripts" ]; then
+if [ -f ".venv/Scripts/activate" ]; then
     # Using virtual environment from .venv (Windows)
     source ".venv/Scripts/activate"
-elif [ -d ".venv/bin" ]; then
+elif [ -f ".venv/bin/activate" ]; then
     # Using virtual environment from .venv (Unix)
     source ".venv/bin/activate"
+elif [ -d ".venv" ]; then
+    # The directory exists but carries no activate script. "python -m venv" leaves
+    # exactly this behind when it cannot bootstrap pip - on Debian and Ubuntu that is
+    # the pythonX.Y-venv package missing - and testing for the directory rather than
+    # for the script turned that into an unexplained "No such file or directory" abort.
+    echo "Error: '.venv' exists but contains no activate script, so it is an incomplete virtual environment."
+    echo "Recreate it, installing the venv module for your Python first if 'python3 -m venv' reports ensurepip as unavailable:"
+    echo "  sudo apt install python3-venv python3-pip   # Debian/Ubuntu; name the pythonX.Y-venv package if that one has no candidate"
+    echo "  rm -rf .venv && python3 -m venv .venv"
+    echo "  .venv/bin/python -m pip install -r roles/importer/files/importer/requirements.txt"
+    exit 1
 elif command -v conda >/dev/null 2>&1 && [ -n "${CONDA_ENV:-}" ]; then
     PYTHON_CMD=("conda" "run" "--no-capture-output" "-n" "$CONDA_ENV" "python")
 else

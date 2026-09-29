@@ -15,6 +15,7 @@ namespace FWO.Services.Workflow
     {
         private const string kMixedAddressFamiliesTextKey = "flow_creation_mixed_address_families";
         private const string kUnreadableAddressTextKey = "flow_creation_unreadable_address";
+        private const string kIneligibleFlowObjectTextKey = "flow_creation_ineligible_flow_object";
         private static readonly List<string> kReusableFlowStates = [FlowState.Requested, FlowState.Implemented];
 
         /// <summary>
@@ -57,24 +58,47 @@ namespace FWO.Services.Workflow
                 ?? await ResolveOrCreateNetworkObject(snapshot, context);
         }
 
-        private static FlowNetworkReference? TryResolveNetworkObjectId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow network object a request element names by id. The id is written into
+        /// request.reqelement by whoever edits the element, so an id which does not name an object that is
+        /// still offered and live is refused here rather than followed: it is the only point at which an
+        /// element that was pointed at a hidden or retired object can still be kept out of a flow.
+        /// </summary>
+        private FlowNetworkReference? TryResolveNetworkObjectId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowNetworkObjectId.HasValue)
             {
                 return null;
             }
-            if (context.NwObjectsById.TryGetValue(snapshot.FlowNetworkObjectId.Value, out FlowNwObject? flowObject))
+            if (!context.NwObjectsById.TryGetValue(snapshot.FlowNetworkObjectId.Value, out FlowNwObject? flowObject))
             {
-                return FlowNetworkReference.FromObject(flowObject!);
+                Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow network object id {snapshot.FlowNetworkObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
+                return null;
             }
-            Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow network object id {snapshot.FlowNetworkObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
-            return null;
+            if (!FlowObjectEligibility.IsLive(flowObject))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, flowObject!.Name ?? snapshot.FlowNetworkObjectId.Value.ToString(),
+                    $"Flow network object id {snapshot.FlowNetworkObjectId.Value} is not offered in the request module or no longer live");
+                return null;
+            }
+            return FlowNetworkReference.FromObject(flowObject!);
         }
 
-        private static FlowNetworkReference? TryResolveNetworkGroupId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow network group a request element names by id, refusing a group that is no
+        /// longer offered or live for the same reason as an ineligible object.
+        /// </summary>
+        private FlowNetworkReference? TryResolveNetworkGroupId(FlowObjectSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowNetworkGroupId.HasValue)
             {
+                return null;
+            }
+            if (context.NwGroupsById.TryGetValue(snapshot.FlowNetworkGroupId.Value, out FlowNwGroup? namedGroup)
+                && !FlowObjectEligibility.IsLive(namedGroup))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, namedGroup!.Name,
+                    $"Flow network group id {snapshot.FlowNetworkGroupId.Value} is not offered in the request module or no longer live");
                 return null;
             }
             FlowNetworkReference? groupReference = TryBuildNetworkGroupReference(snapshot.FlowNetworkGroupId.Value, context);
@@ -195,6 +219,20 @@ namespace FWO.Services.Workflow
         {
             Log.WriteWarning(LogMessageTitle, $"Could not create a Flow network object for workflow element {workflowElementId}: {logDetail}.");
             refusals.Add(new FlowCreationRefusal { ReasonTextKey = reasonTextKey, RefusedValue = refusedValue });
+        }
+
+        /// <summary>
+        /// Logs and reports that a request element named a Flow entry by id which may no longer be used.
+        /// The element is left out of the flow instead of being followed, so that an entry an
+        /// administrator hid or retired cannot re-enter a flow through an id that was stored earlier.
+        /// </summary>
+        /// <param name="workflowElementId">Id of the refused workflow element.</param>
+        /// <param name="refusedValue">Name of the Flow entry the element pointed at.</param>
+        /// <param name="logDetail">The same reason spelled out for the log.</param>
+        private void RefuseFlowObject(long workflowElementId, string refusedValue, string logDetail)
+        {
+            Log.WriteWarning(LogMessageTitle, $"Refused workflow element {workflowElementId}: {logDetail}.");
+            refusals.Add(new FlowCreationRefusal { ReasonTextKey = kIneligibleFlowObjectTextKey, RefusedValue = refusedValue });
         }
 
         /// <summary>
@@ -346,24 +384,47 @@ namespace FWO.Services.Workflow
                 ?? await ResolveOrCreateServiceObject(snapshot, context);
         }
 
-        private static FlowServiceReference? TryResolveServiceObjectId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow service object a request element names by id, refusing an object that is no
+        /// longer offered or live. The canonical ANY service is accepted: the flow creation attaches it
+        /// itself for a protocol-agnostic request, and a user role is kept away from it by the Hasura
+        /// permissions on request.reqelement instead.
+        /// </summary>
+        private FlowServiceReference? TryResolveServiceObjectId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowServiceObjectId.HasValue)
             {
                 return null;
             }
-            if (context.SvcObjectsById.TryGetValue(snapshot.FlowServiceObjectId.Value, out FlowSvcObject? flowObject))
+            if (!context.SvcObjectsById.TryGetValue(snapshot.FlowServiceObjectId.Value, out FlowSvcObject? flowObject))
             {
-                return FlowServiceReference.FromObject(flowObject!);
+                Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow service object id {snapshot.FlowServiceObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
+                return null;
             }
-            Log.WriteWarning(LogMessageTitle, $"Could not resolve Flow service object id {snapshot.FlowServiceObjectId.Value} for workflow element {snapshot.WorkflowElementId}.");
-            return null;
+            if (!FlowObjectEligibility.IsLive(flowObject))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, flowObject!.Name,
+                    $"Flow service object id {snapshot.FlowServiceObjectId.Value} is not offered in the request module or no longer live");
+                return null;
+            }
+            return FlowServiceReference.FromObject(flowObject!);
         }
 
-        private static FlowServiceReference? TryResolveServiceGroupId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
+        /// <summary>
+        /// Resolves the Flow service group a request element names by id, refusing a group that is no
+        /// longer offered or live for the same reason as an ineligible object.
+        /// </summary>
+        private FlowServiceReference? TryResolveServiceGroupId(FlowServiceSnapshot snapshot, FlowSyncFlowData context)
         {
             if (!snapshot.FlowServiceGroupId.HasValue)
             {
+                return null;
+            }
+            if (context.SvcGroupsById.TryGetValue(snapshot.FlowServiceGroupId.Value, out FlowSvcGroup? namedGroup)
+                && !FlowObjectEligibility.IsLive(namedGroup))
+            {
+                RefuseFlowObject(snapshot.WorkflowElementId, namedGroup!.Name,
+                    $"Flow service group id {snapshot.FlowServiceGroupId.Value} is not offered in the request module or no longer live");
                 return null;
             }
             FlowServiceReference? groupReference = TryBuildServiceGroupReference(snapshot.FlowServiceGroupId.Value, context);

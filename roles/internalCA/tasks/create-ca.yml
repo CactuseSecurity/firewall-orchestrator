@@ -43,7 +43,7 @@
   become: true
   when: internalca_existing_ca_certificate.stat.exists
 
-- name: Stop when the existing internal CA certificate cannot be read
+- name: Stop when the retained internal CA certificate cannot be read
   fail:
     msg: >-
       The internal CA certificate {{ internalca_ca_certificate }} exists on
@@ -56,6 +56,71 @@
   when:
     - internalca_existing_ca_certificate.stat.exists
     - internalca_existing_ca_certificate_info.subject is not defined
+    - not (internalca_reset_certificates | bool)
+
+# An unreadable CA is fatal above unless a reset is replacing it anyway. In that case its
+# subject cannot be read either, so the name every leaf of this installation carries as
+# its issuer would be lost. Recover it from the client identity instead: that leaf sits at
+# an FWO-owned path on this host, so whoever signed it was this installation's CA.
+- name: Read the client identity issued by the CA being replaced
+  community.crypto.x509_certificate_info:
+    path: "{{ internalca_client_certificate }}"
+  register: internalca_replaced_client_certificate_info
+  failed_when: false
+  changed_when: false
+  become: true
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+    - internalca_existing_ca_certificate_info.subject is not defined
+
+# Read from the CA itself where that works, from the client leaf's issuer where it does
+# not. Resolved once, because both the record below and the warning after it need it.
+- name: Determine the internal CA name this reset retires
+  set_fact:
+    internalca_retired_ca_common_name: >-
+      {{
+        internalca_existing_ca_certificate_info.subject.get('commonName', '')
+        if internalca_existing_ca_certificate_info.subject is defined
+        else (internalca_replaced_client_certificate_info.issuer | default({}, true)).get('commonName', '')
+      }}
+  when:
+    - internalca_reset_certificates | bool
+    - internalca_existing_ca_certificate.stat.exists
+
+# Appended before the CA is replaced, so the name survives the run. The classifier must
+# still recognise leaves signed by it on every later upgrade, not only while the reset is
+# crossing from the old CA to the new one - a host that misses the reset is upgraded with
+# its old leaf still in place and must not have it taken for a customer certificate.
+- name: Record the internal CA name this reset retires
+  lineinfile:
+    path: "{{ internalca_retired_ca_names }}"
+    line: "{{ internalca_retired_ca_common_name }}"
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: internalca_retired_ca_common_name | default('') | length > 0
+
+- name: Verify that certificate reset can preserve ownership information
+  include_tasks: require-reset-retired-ca-name.yml
+
+- name: Read the internal CA names this installation has retired
+  slurp:
+    src: "{{ internalca_retired_ca_names }}"
+  register: internalca_retired_ca_names_content
+  failed_when: false
+  changed_when: false
+  become: true
+
+- name: Remember the internal CA names this installation has retired
+  set_fact:
+    internalca_previous_ca_common_names: >-
+      {{
+        (internalca_retired_ca_names_content.content | default('') | b64decode).split('\n')
+        | map('trim') | reject('equalto', '') | unique | list
+      }}
 
 - name: Generate internal CA private key
   community.crypto.openssl_privatekey:
@@ -63,6 +128,7 @@
     size: "{{ internalca_key_size if internalca_key_type == 'RSA' else omit }}"
     type: "{{ internalca_key_type }}"
     curve: "{{ internalca_key_curve if internalca_key_type == 'ECC' else omit }}"
+    force: "{{ internalca_reset_certificates | bool }}"
     mode: "0600"
   become: true
   no_log: true
@@ -82,6 +148,7 @@
       {{
         internalca_existing_ca_certificate_info.subject.commonName
         if internalca_existing_ca_certificate.stat.exists
+           and not (internalca_reset_certificates | bool)
         else internalca_ca_common_name_prefix ~ ' '
           ~ (internalca_ca_private_key_info.public_key_fingerprints.sha256
              | replace(':', '') | lower)[:16]
@@ -115,5 +182,6 @@
     provider: selfsigned
     selfsigned_not_after: "+{{ internalca_ca_validity_days }}d"
     selfsigned_digest: sha256
+    force: "{{ internalca_reset_certificates | bool }}"
     mode: "0644"
   become: true

@@ -1,0 +1,115 @@
+using System.Text.Json;
+using FWO.Middleware.Server.OpenApi;
+using System.Text.Json.Serialization;
+
+namespace FWO.Middleware.Server.Requests;
+
+/// <summary>
+/// Represents the GetAuditProofCriticalChangesRequest type.
+/// </summary>
+/// <remarks>
+/// The authoritative description of every key is kept in
+/// <see cref="GetAuditProofCriticalChangesValidationSchema"/> so API documentation and validation help text
+/// cannot diverge. The XML documentation below repeats it for the generated OpenAPI document.
+/// </remarks>
+public sealed class GetAuditProofCriticalChangesRequest : IRequestWithRootAdditionalData
+{
+    private GetAuditProofCriticalChangesOptions options = new();
+
+    /// <summary>
+    /// Gets or sets the database id of the workflow ticket whose audit proof critical changes are returned.
+    /// Required and greater than 0.
+    /// </summary>
+    /// <remarks>
+    /// Nullable rather than marked with <see cref="JsonRequiredAttribute"/> or <c>required</c>: both of
+    /// those make the deserializer throw on the missing key, before validation runs, so the caller
+    /// would get that one error on its own instead of every error of the request together. A nullable
+    /// value type keeps the key optional for the deserializer while still telling an omitted key
+    /// (null) apart from a supplied zero, which is what an unannotated <c>long</c> could not do and
+    /// what under-posting turns on.
+    /// <para>
+    /// <see cref="OpenApiRequiredAttribute"/> restores the required marker in the generated schema,
+    /// so the documentation and generated clients still see the key as mandatory.
+    /// </para>
+    /// </remarks>
+    [OpenApiRequired]
+    [JsonPropertyName("ticketId")]
+    public long? TicketId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional output options. Defaults to an empty object, which applies no
+    /// restriction beyond the ticket. An explicit <c>null</c> is treated like the default.
+    /// </summary>
+    [JsonPropertyName("options")]
+    public GetAuditProofCriticalChangesOptions Options
+    {
+        get => options;
+        set => options = value ?? new GetAuditProofCriticalChangesOptions();
+    }
+
+    /// <summary>
+    /// Gets or sets the additional request data. Any key captured here is unsupported and is
+    /// reported back to the caller.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
+}
+
+/// <summary>
+/// Represents the optional output options of the audit proof critical changes lookup.
+/// </summary>
+public sealed class GetAuditProofCriticalChangesOptions : IRequestWithAdditionalData
+{
+    /// <summary>
+    /// Gets or sets the optional response filter. When omitted or <c>null</c> no response field
+    /// restricts the result.
+    /// </summary>
+    [JsonPropertyName("filter")]
+    public AuditProofCriticalChangeFilter? Filter { get; set; }
+
+    /// <summary>
+    /// Gets or sets the additional request data. Any key captured here is unsupported and is
+    /// reported back to the caller.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
+}
+
+/// <summary>
+/// Represents the response filter of the audit proof critical changes lookup. Every key matches a field of
+/// <see cref="FWO.Middleware.Server.Responses.AuditProofCriticalChangeResponse"/> and is nullable; a key
+/// that is omitted or <c>null</c> does not restrict the result.
+/// </summary>
+public sealed class AuditProofCriticalChangeFilter : IRequestWithAdditionalData
+{
+    /// <summary>
+    /// Gets or sets the optional exact change timestamp filter.
+    /// </summary>
+    /// <remarks>
+    /// Matched against the timezone-naive stored timestamp on the wall clock of the installation.
+    /// A value carrying an offset, including a trailing Z, is converted to that clock first, so the
+    /// same instant selects the same change whichever way it is spelled. A value without an offset
+    /// is taken as that clock directly.
+    /// </remarks>
+    [JsonPropertyName("changeTime")]
+    public DateTime? ChangeTime { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional exact change user name filter. Compared case-insensitively.
+    /// </summary>
+    [JsonPropertyName("changeUserName")]
+    public string? ChangeUserName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional exact change content filter. Compared case-insensitively.
+    /// </summary>
+    [JsonPropertyName("changeContent")]
+    public string? ChangeContent { get; set; }
+
+    /// <summary>
+    /// Gets or sets the additional request data. Any key captured here is unsupported and is
+    /// reported back to the caller.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? AdditionalData { get; set; }
+}

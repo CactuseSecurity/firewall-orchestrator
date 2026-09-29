@@ -238,7 +238,7 @@ namespace FWO.Report
             if (includeRecertData)
             {
                 report.AppendLine($"<td>{FormatHtmlCell(OwnerRecertDisplay.FormatLastRecertified(owner, userConfig))}</td>");
-                report.AppendLine($"<td>{new DistName(owner.LastRecertifierDn).UserName}</td>");
+                report.AppendLine($"<td>{FormatHtmlCell(GetRecertifierName(owner))}</td>");
             }
             if (HasOwnerAdditionalInfoColumn(ownerAddInfoFilter))
             {
@@ -280,7 +280,7 @@ namespace FWO.Report
             if (includeRecertData)
             {
                 report.Append(OutputCsv(OwnerRecertDisplay.FormatLastRecertified(owner, userConfig)));
-                report.Append(OutputCsv(new DistName(owner.LastRecertifierDn).UserName));
+                report.Append(OutputCsv(GetRecertifierName(owner)));
             }
             if (HasOwnerAdditionalInfoColumn(ownerAddInfoFilter))
             {
@@ -358,6 +358,13 @@ namespace FWO.Report
             return OwnerRecertDisplay.TryParseBooleanValue(value, out bool boolValue)
                 ? boolValue.ShowAsHtmlWithoutBootstrap().ToString()
                 : FormatHtmlCell(value);
+        }
+
+        private static string GetRecertifierName(FwoOwner owner)
+        {
+            string recertifierDn = owner.LastRecertifierDn ?? "";
+            string userName = new DistName(recertifierDn).UserName;
+            return string.IsNullOrEmpty(userName) ? recertifierDn : userName;
         }
 
         private string GetOverdueHeadline()

@@ -288,6 +288,38 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     }
 
     /// <summary>
+    /// Verifies a request example only documents the mutually exclusive fields it actually demonstrates.
+    /// </summary>
+    [Test]
+    public async Task TransformAsync_WithMutuallyExclusiveExampleFields_OmitsEmptyFields()
+    {
+        OpenApiOperation operation = CreateOperation();
+        operation.RequestBody = new OpenApiRequestBody
+        {
+            Content = new Dictionary<string, OpenApiMediaType> { ["application/json"] = new OpenApiMediaType() }
+        };
+        OpenApiOperationTransformerContext context = CreateContext(new ControllerActionDescriptor(), "api/flow/get-flow-compliance-state");
+        context.Description.ParameterDescriptions.Add(new ApiParameterDescription
+        {
+            Source = BindingSource.Body,
+            Type = typeof(GetFlowComplianceStateRequest)
+        });
+        OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
+
+        await transformer.TransformAsync(operation, context, CancellationToken.None);
+
+        string exampleJson = operation.RequestBody.Content!["application/json"].Example!.ToJsonString();
+        Assert.Multiple(() =>
+        {
+            Assert.That(exampleJson, Does.Contain("\"ipNetwork\":\"192.0.2.0/24\""));
+            Assert.That(exampleJson, Does.Contain("\"ipStart\":\"198.51.100.20\""));
+            Assert.That(exampleJson, Does.Not.Contain("\"ipStart\":\"\""));
+            Assert.That(exampleJson, Does.Not.Contain("\"ipEnd\":\"\""));
+            Assert.That(exampleJson, Does.Not.Contain("\"ipNetwork\":\"\""));
+        });
+    }
+
+    /// <summary>
     /// Verifies response examples are applied per status code and void or unknown codes are skipped.
     /// </summary>
     [Test]

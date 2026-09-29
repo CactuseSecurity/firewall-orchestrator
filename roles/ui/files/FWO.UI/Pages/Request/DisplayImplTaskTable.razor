@@ -1,7 +1,7 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -38,11 +38,17 @@
             <Table class="table table-bordered th-bg-secondary table-responsive overflow-auto sticky-header" TableItem="WfImplTask" Items="AllImplTasks" PageSize="0" ColumnReorder="true">
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("actions"))" Field="(x => x.Id)" Sortable="false" Filterable="false">
                     <Template>
+                        @{
+                            var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
+                            bool canActOnTask = CanActOnImplTaskInPhase(implTask);
+                            bool showReadOnlyActions = WfHandler.MasterStateMatrix.VisibilityMode == PhaseVisibilityMode.AnyTask;
+                        }
+                        @if (canActOnTask || showReadOnlyActions)
+                        {
                         <div class="btn-group">
                             <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowImplTask(implTask)">
                                 @(DisplayService.DisplayButton(userConfig, "details", Icons.Display))</button>
                             @{
-                                var implTaskMatrix = WfHandler.StateMatrix(implTask.TaskType);
                                 bool planningActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool planningPhaseActive) && planningPhaseActive;
                                 bool approvalActive = implTaskMatrix.PhaseActive.TryGetValue(WorkflowPhases.approval, out bool approvalPhaseActive) && approvalPhaseActive;
                             }
@@ -51,7 +57,7 @@
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="() => ShowApprovals(implTask)">
                                     @(DisplayService.DisplayButton(userConfig, "approvals", Icons.Approval))</button>
                             }
-                            @if (!WfHandler.ReadOnlyMode && IsEditable(implTask))
+                            @if (canActOnTask && !WfHandler.ReadOnlyMode && IsEditable(implTask))
                             {
                                 @if (WfHandler.PlanReqTaskMode && implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestEndState)
                                 {
@@ -64,7 +70,7 @@
                                 {
                                     @if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                     {
-                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
                                                     @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
@@ -85,6 +91,7 @@
                                 }
                             }
                         </div>
+                        }
                     </Template>
                 </Column>
                 <Column Context="implTask" TableItem="WfImplTask" Title="@(userConfig.GetText("id"))" Field="@(x => x.Id)" Sortable="true" Filterable="true" />
@@ -213,7 +220,7 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
+    static List<string> validRoles = new (){ Roles.Implementer };
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = [];
     private Dictionary<long, WfTicket> ticketsById = [];
@@ -253,6 +260,11 @@
             return ticket != null && ticket.Editable;
         }
         return true;
+    }
+
+    private bool CanActOnImplTaskInPhase(WfImplTask implTask)
+    {
+        return WfHandler.CanActOnImplTaskInCurrentPhase(implTask);
     }
 
     private string GetOwnerName(WfImplTask implTask)

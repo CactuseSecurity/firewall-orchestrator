@@ -17,33 +17,92 @@ note: your public key needs to be added to /home/devoloper/.ssh/authorized_keys 
 
 ### add local config on development client
 
-In order to allow locally running components to read the necessary config you have to create the following config files on your client:
+In order to allow locally running components to read the necessary config you have to create
+the following files on your client:
+
     /etc/fworch/   (in Windows "current drive":\etc\fworch\)
-        fworch.yaml
+        fworch.json
+        fworch-trust-bundle.crt
+        fworch-internal-ca.crt
         secrets/
           jwt_private_key.pem
           jwt_public_key.pem
+          client/
+            client.crt
+            client.key
 
-For keys see below.
+For the jwt keys see below, for the certificates see "TLS identity on the development client".
+
+The config file and the two jwt keys can alternatively be placed elsewhere and named with the
+environment variables `FWO_CONFIG_FILE_PATH`, `FWO_JWT_PRIVATE_KEY_PATH` and `FWO_JWT_PUBLIC_KEY_PATH`; the
+certificate paths are only ever read from the config file.
 
 If you manually replace the keys on the server side (use the test keys) you need to reboot the server to reload all services depending on these keys.
 
-#### /etc/fworch/fworch.yaml
-```yaml
-fworch_home: "/usr/local/fworch"
-dotnet_mode: "Release"
-product_version: 5.1
+#### /etc/fworch/fworch.json
 
-# api
-api_uri: "https://127.0.0.1:9443/api/v1/graphql"
-api_hasura_jwt_alg: "RS256"
+Note that this is json, not yaml, and that every path in it is read verbatim. A copy of the
+backend server's own `/etc/fworch/fworch.json` therefore does **not** work unchanged on a
+Windows client: it names Linux paths, which resolve to the current drive and are not there.
 
-# middleware
-middleware_JWT_key_file: "/usr/local/fworch/etc/secrets/jwt_private_key.pem"
-middleware_uri: "http://127.0.0.1:8880/"
-middleware_native_uri: "http://127.0.0.1:8880/"
+```json
+{
+    "fworch_home": "/usr/local/fworch",
+    "dotnet_mode": "Debug",
+    "product_version": "9.5",
 
+    "api_uri": "https://127.0.0.1:9443/api/v1/graphql",
+    "api_hasura_jwt_alg": "RS256",
+
+    "middleware_uri": "http://127.0.0.1:8880/",
+    "middleware_native_uri": "http://127.0.0.1:8880/",
+
+    "tls_ca_certificate": "C:/etc/fworch/fworch-trust-bundle.crt",
+    "tls_client_certificate": "C:/etc/fworch/secrets/client/client.crt",
+    "tls_client_private_key": "C:/etc/fworch/secrets/client/client.key",
+    "internal_ca_certificate": "C:/etc/fworch/fworch-internal-ca.crt"
+}
 ```
+
+On a Linux client use `/etc/fworch/...` for the four certificate paths instead.
+
+### TLS identity on the development client
+
+Since the internal CA was introduced, the middleware and the UI validate the certificate of
+every FWO endpoint they talk to against `tls_ca_certificate`, and present
+`tls_client_certificate` / `tls_client_private_key` to an `api_uri` that is https. Both
+affect a locally debugged component exactly as they affect an installed one, so the files
+have to exist on the client.
+
+Copy them from the backend server you forward to - they are the same anchors that server
+issued its own API and LDAP certificates from:
+
+    scp -P 60333 developer@cactus.de:/etc/fworch/fworch-trust-bundle.crt .
+    scp -P 60333 developer@cactus.de:/etc/fworch/fworch-internal-ca.crt .
+    scp -P 60333 developer@cactus.de:/etc/fworch/secrets/client/client.crt .
+    scp -P 60333 developer@cactus.de:/etc/fworch/secrets/client/client.key .
+
+and put them where the config file above says. The forwarded ports need no exception: the
+LDAP certificate carries an `IP:127.0.0.1` subject alternative name and the Apache one
+carries `localhost` plus the loopback address, so both still validate through the ssh tunnel.
+
+If the trust bundle is missing or unreadable, the middleware log names it once per attempt
+window and then rejects every LDAP and API handshake:
+
+    Error - Certificates (InternalCaCertificate.cs in line ...), Could not load the trust
+    anchors configured as tls_ca_certificate (/etc/fworch/fworch-trust-bundle.crt). API and
+    LDAP server certificates cannot be validated against them until this is fixed.
+
+Every login then fails with `A0002 Invalid credentials`, because the ldaps bind underneath it
+never completes ("certificate was rejected by the provided RemoteCertificateValidationCallback").
+The cause is logged with that error - a `FileNotFoundException` naming the path it really
+looked at is the copy step above having been skipped, or a Linux path left in the config file
+of a Windows client.
+
+A plain http `api_uri` presents no client certificate and validates no server certificate, so
+it needs neither `tls_client_certificate` nor a reachable trust bundle - but it is only a
+local debugging shortcut, it is logged as a warning, and it does not help with LDAP, which is
+validated either way.
 
 ### test /etc/fworch/secrets/jwt_private_key.pem 
 ```console

@@ -483,7 +483,7 @@ namespace FWO.Middleware.Server
             List<FwoNotification> notifications = await apiConnection.SendQueryAsync<List<FwoNotification>>(
                 NotificationQueries.getNotifications,
                 new { client = NotificationClient.AppDecomm.ToString() });
-            return notifications.Any(notification => notification.Deadline == NotificationDeadline.None);
+            return notifications.Any(notification => notification.Active && notification.Deadline == NotificationDeadline.None);
         }
 
         private static bool LooksLikeDistinguishedName(string identifier)

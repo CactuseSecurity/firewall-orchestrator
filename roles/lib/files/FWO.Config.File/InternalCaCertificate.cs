@@ -156,7 +156,12 @@ namespace FWO.Config.File
                     "API and LDAP server certificates cannot be validated against them until this is fixed.",
                     exception);
                 failedAt = DateTime.UtcNow;
-                Log.WriteError(LogCategory, failure.Message);
+                // The wrapper names the setting and the configured path, the cause names what
+                // is actually wrong with it - absent, unreadable, or holding no PEM - and only
+                // the two together tell an operator what to repair. Without the cause a
+                // development host whose config file still carries the paths of the server it
+                // was copied from reports exactly the same line as a broken installation.
+                Log.WriteError(LogCategory, failure.Message, failure.InnerException);
                 throw failure;
             }
         }

@@ -116,7 +116,7 @@ namespace FWO.Services
                 isAutoCalculatedUndefinedInternalZone = networkZone.IsAutoCalculatedUndefinedInternalZone
             };
 
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.addNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.addNetworkZone, variables);
         }
 
         public static async Task UpdateZone(ComplianceNetworkZone networkZone, AdditionsDeletions addDel, ApiConnection apiConnection)
@@ -196,7 +196,7 @@ namespace FWO.Services
                 isAutoCalculatedInternetZone = networkZone.IsAutoCalculatedInternetZone
             };
 
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.updateNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.updateNetworkZone, variables);
         }
 
         public static async Task RemoveZone(ComplianceNetworkZone networkZone, ApiConnection apiConnection)
@@ -228,7 +228,7 @@ namespace FWO.Services
                 id = networkZone.Id,
                 removed = DateTime.UtcNow
             };
-            await apiConnection.SendQueryAsync<dynamic>(ComplianceQueries.removeNetworkZone, variables);
+            await apiConnection.SendQueryAsync<dynamic>(NetworkZoneQueries.removeNetworkZone, variables);
         }
 
         /// <summary>
@@ -240,7 +240,7 @@ namespace FWO.Services
         public static async Task AddAutoCalculatedInternetZone(int matrixId, ApiConnection apiConnection, GlobalConfig globalConfig)
         {
             List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-                ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+                NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
             if (existingZones.Any(zone => zone.IsAutoCalculatedInternetZone))
             {
                 return;
@@ -258,7 +258,7 @@ namespace FWO.Services
         {
             // Get all zones of the matrix.
 
-            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
+            List<ComplianceNetworkZone> existingZones = await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, new { criterionId = matrixId });
 
             // Remove existing special zones.
 

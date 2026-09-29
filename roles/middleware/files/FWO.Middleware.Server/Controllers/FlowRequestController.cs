@@ -6,6 +6,7 @@ using FWO.Middleware.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers;
 
@@ -45,7 +46,8 @@ public class FlowRequestController : ControllerBase
                 return BadRequest("Request body is missing.");
             }
             int requesterId = FWO.Basics.JwtClaimParser.ExtractIntClaimValues(User.Claims, "x-hasura-user-id").FirstOrDefault();
-            CreateRequestResponse response = await flowRequestService.CreateRequestAsync(request, requesterId);
+            string callerName = User.FindFirstValue("unique_name") ?? "";
+            CreateRequestResponse response = await flowRequestService.CreateRequestAsync(request, requesterId, callerName);
             return Ok(response);
         }
         catch (ArgumentException argumentException)

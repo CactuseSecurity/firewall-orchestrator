@@ -107,6 +107,17 @@ namespace FWO.Data
             return new DistName(Dn).IsInternal();
         }
 
+        /// <summary>
+        /// Checks whether both users are the same directory account. A dn is unique only inside its
+        /// LDAP connection, the same dn in another connection is a different user (SEC-11).
+        /// </summary>
+        /// <param name="otherUser">User to compare with.</param>
+        /// <returns>True if both users belong to the same LDAP connection and have equivalent dns.</returns>
+        public bool IsSameDirectoryAccount(UiUser otherUser)
+        {
+            return LdapConnection?.Id == otherUser.LdapConnection?.Id && DistName.DnEquals(Dn, otherUser.Dn);
+        }
+
         public bool Sanitize()
         {
             bool shortened = false;

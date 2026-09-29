@@ -250,6 +250,16 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Converts a numeric address value back into an address of the given family.
+        /// </summary>
+        /// <param name="ipValue">Numeric address value.</param>
+        /// <param name="addressFamily">Address family the value belongs to.</param>
+        public static IPAddress FromBigInteger(BigInteger ipValue, AddressFamily addressFamily)
+        {
+            return IPNetwork2.ToIPAddress(ipValue, addressFamily);
+        }
+
+        /// <summary>
         /// Checks whether two single IP, CIDR, or range strings overlap.
         /// </summary>
         public static bool CheckOverlap(string ip1, string ip2)

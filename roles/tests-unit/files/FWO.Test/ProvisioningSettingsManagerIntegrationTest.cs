@@ -37,7 +37,7 @@ internal class ProvisioningSettingsManagerIntegrationTest
         }
         """;
 
-    [TestCase(Roles.FwAdmin)]
+    [TestCase(Roles.Admin)]
     [TestCase(Roles.MiddlewareServer)]
     [Category("Integration")]
     public async Task Manager_RoundTripsJsonbAndUsesProvisioningPermissions(string role)

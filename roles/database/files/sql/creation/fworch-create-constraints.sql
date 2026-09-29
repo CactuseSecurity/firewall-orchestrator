@@ -50,6 +50,8 @@ Alter table "rulebase_link" add CONSTRAINT unique_rulebase_link
 Alter Table firewall."nw_service" add Constraint "svc_altkey" UNIQUE ("mgm_id","svc_uid","svc_create");
 Alter Table "stm_dev_typ" add Constraint "Alter_Key1" UNIQUE ("dev_typ_name","dev_typ_version");
 Alter Table firewall."nw_user" add Constraint "usr_altkey" UNIQUE ("mgm_id","user_name","user_create");
+-- a dn is unique only inside its directory, so a local user is identified by directory and dn (SEC-11)
+Alter Table "uiuser" add Constraint "uiuser_ldap_connection_id_uuid_key" UNIQUE ("ldap_connection_id","uuid");
 
 CREATE UNIQUE INDEX if not exists "zone_mgm_id_zone_name_removed_is_null_unique" ON zone (mgm_id, zone_name) WHERE removed IS NULL;
 

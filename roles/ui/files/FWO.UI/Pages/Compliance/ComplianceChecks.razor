@@ -3,7 +3,7 @@
 
 @page "/compliance/checks"
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 @layout ComplianceLayout
 
 @inject UserConfig userConfig

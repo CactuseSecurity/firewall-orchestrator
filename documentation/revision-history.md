@@ -1,5 +1,47 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.9 - 28.09.2026
+- security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
+  inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one
+  local user: the login of the second directory's user took over the row of the first one,
+  overwrote its tenant and directory, and received a token for that local subject. A token refresh,
+  a scheduled report and the report and normalized config endpoints could likewise rebuild a user in
+  the wrong directory. A local user is now identified by its LDAP connection and dn (new unique key
+  uiuser_ldap_connection_id_uuid_key replacing uiuser_uuid_key); a user that is already known
+  locally is only authenticated in its own directory and must resolve to the same local user again;
+  the UI loads the session user and the self-service permissions of uiuser match the local user id
+  of the token instead of the dn; and the password change flag is set by local user id.
+  Admin-delegated token requests can select the target's LDAP connection with
+  options.targetLdapId; without it, a target found in multiple directories is rejected instead of
+  silently choosing the first account.
+  The upgrade binds local users that belong to no LDAP connection to their directory where it is
+  unambiguous and lists the remaining ones as a warning: such a user gets a new local user at the
+  next login unless uiuser.ldap_connection_id is set by hand before
+- security fix (SEC-15): the fw-admin role could change tenants, managements and credentials of all
+  tenants: its Hasura permissions had no tenant restriction, and the tenant update endpoint of the
+  middleware (which writes with the middleware's own role) accepted it as well. The role was not
+  assigned by default and is removed from every layer: LDAP, JWT default role, middleware
+  endpoints, Hasura permissions, UI and help texts. The upgrade deletes cn=fw-admin from the
+  internal LDAP and lists its former members in the installer output; they need another role or
+  group where they still need access
+- security fix (SEC-15): deleting credentials a management still used deleted that management with
+  all of its imported data (import credential) or silently unbound them (export credential). Both
+  foreign keys refuse such a deletion now, and the credential settings name the managements that
+  have to get other credentials first, also when removing sample data. A management can still be
+  pointed to another host while keeping its credentials; this is left to the admin role, see
+  documentation/auth/rbac.md
+- security fix (SEC-19): every role reachable from a UI session could list all local users of all
+  tenants together with their dn, tenant, LDAP connection, last login, password flags and password
+  history. Roles other than admin and auditor now see their own user, the users of their tenant, or
+  all users when they belong to tenant0, and of these only id, user name, first and last name, email,
+  dn and language; they see only their own LDAP connection. Their own login time, password change
+  time and password change flag are read through the new self-only computed fields own_last_login,
+  own_last_password_change and own_password_must_be_changed (new query getOwnUser used by UI login,
+  user settings and report generation). The auditor no longer reads the password history. The JWT
+  always carries x-hasura-tenant-id (0 when no tenant could be resolved). In installations with
+  several tenants, a user of one tenant no longer sees the name of a workflow handler, requester or
+  comment author, or the owner of a report, who belongs to another tenant
+
 ## 9.5.8 - 28.09.2026
 - REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
   ticket so integrations can retain the reference to the preceding workflow ticket

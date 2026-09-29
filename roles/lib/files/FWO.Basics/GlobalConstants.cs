@@ -12,6 +12,8 @@ namespace FWO.Basics
         public const string kEnglish = "English";
         public const string kUserRolesSelection = "user_roles";
         public const int kTenant0Id = 1;
+        // tenant ids are generated from 1 upwards, so no tenant has this id
+        public const int kUnresolvedTenantId = 0;
 
         public const int kSessionExpirationTimeDefault = 720; // 60 * 12
 

@@ -31,6 +31,7 @@ namespace FWO.Test
     internal partial class ApiPermissionAlignmentTest
     {
         private const string kMetadataFile = "replace_metadata.json";
+        private const string kRemovedFwAdminRole = "fw-admin";
         private const string kApiCallDirectoryName = "fwo-api-calls";
         private const string kApiCallSuffix = ".graphql";
         private const string kMetadataOutOfReach =
@@ -205,12 +206,29 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(notificationLog.RolesByOperation["insert"],
-                    Is.EquivalentTo(new List<string> { "fw-admin", "middleware-server" }));
+                    Is.EquivalentTo(new List<string> { "middleware-server" }));
                 Assert.That(notificationLog.RolesByOperation["update"],
-                    Is.EquivalentTo(new List<string> { "fw-admin", "middleware-server" }));
+                    Is.EquivalentTo(new List<string> { "middleware-server" }));
                 Assert.That(notificationLog.RolesByOperation["insert"], Does.Not.Contain("modeller"));
                 Assert.That(notificationLog.RolesByOperation["update"], Does.Not.Contain("modeller"));
             });
+        }
+
+        /// <summary>
+        /// The fw-admin role was removed because its permissions were not restricted to any tenant. A
+        /// permission left behind would still serve a directory that holds the role.
+        /// </summary>
+        [Test]
+        public void Metadata_GrantsNothingToRemovedFwAdminRole()
+        {
+            SkipWithoutSources();
+
+            List<string> tablesWithFwAdmin = ReadMetadata()
+                .Where(table => table.Value.RolesByOperation.Values.Any(roles => roles.Contains(kRemovedFwAdminRole)))
+                .Select(table => table.Key)
+                .ToList();
+
+            Assert.That(tablesWithFwAdmin, Is.Empty);
         }
 
         /// <summary>

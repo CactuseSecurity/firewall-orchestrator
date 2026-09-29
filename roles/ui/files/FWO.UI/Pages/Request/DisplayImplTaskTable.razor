@@ -1,7 +1,7 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -70,7 +70,7 @@
                                 {
                                     @if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                     {
-                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
                                                     @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
@@ -220,7 +220,7 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
+    static List<string> validRoles = new (){ Roles.Implementer };
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = [];
     private Dictionary<long, WfTicket> ticketsById = [];

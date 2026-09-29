@@ -2,7 +2,7 @@
 @using FWO.Ui.Pages.NetworkModelling
 @using FWO.Ui.Display
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.Modeller}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -277,7 +277,7 @@
                 <div class="btn-group">
                     @if (WfHandler.EditImplTaskMode)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Planner}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="SaveImplTask">@(DisplayService.DisplayButton(userConfig, "save", Icons.Save))</button>
                             </Authorized>
@@ -288,7 +288,7 @@
                     }
                     else if ((WfHandler.ImplementImplTaskMode || WfHandler.ReviewImplTaskMode) && !newOwnerAssigned)
                     {
-                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                             <Authorized>
                                 <button type="button" class="btn btn-sm btn-primary" @onclick:preventDefault @onclick="InitPromoteImplTask">@(DisplayService.DisplayButton(userConfig, "change_state", Icons.ChangeState))</button>
                             </Authorized>

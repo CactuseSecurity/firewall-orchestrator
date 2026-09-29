@@ -219,7 +219,7 @@
 
     private async Task EnsureAlertSubscriptionAsync()
     {
-        if (alertSubscription != null || User == null || !userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor))
+        if (alertSubscription != null || User == null || !userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor))
         {
             return;
         }
@@ -247,7 +247,7 @@
         }
         if (path.StartsWith("report"))
         {
-            return [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+            return [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("certification"))
         {
@@ -255,15 +255,15 @@
         }
         if (path.StartsWith("monitoring"))
         {
-            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("compliance"))
         {
-            return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("network_analysis"))
         {
-            return [Roles.Planner, Roles.FwAdmin, Roles.Admin, Roles.Auditor];
+            return [Roles.Planner, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("settings"))
         {
@@ -281,32 +281,32 @@
     {
         if (path.StartsWith("request/tickets") || path.StartsWith("request/ticketsoverview"))
         {
-            return [Roles.Requester, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Requester, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("request/approvals"))
         {
-            return [Roles.Approver, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Approver, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("request/plannings"))
         {
-            return [Roles.Planner, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Planner, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("request/implementations"))
         {
-            return [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
         }
         if (path.StartsWith("request/reviews"))
         {
-            return [Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            return [Roles.Reviewer, Roles.Admin, Roles.Auditor];
         }
-        return [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        return [Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer, Roles.Admin, Roles.Auditor];
     }
 
     private static List<string> GetUserSettingsAmbientRoles()
     {
         return [Roles.Modeller, Roles.Recertifier, Roles.ReporterViewAll, Roles.Reporter,
             Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer,
-            Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+            Roles.Admin, Roles.Auditor];
     }
 
     private static List<string> GetSettingsAmbientRoles(string path)
@@ -315,7 +315,7 @@
         {
             return GetUserSettingsAmbientRoles();
         }
-        return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        return [Roles.Admin, Roles.Auditor];
     }
 
     private async Task KeyHandler(KeyboardEventArgs ev)
@@ -389,7 +389,7 @@
 
     private void OnAlertUpdate(List<Alert> alerts)
     {
-        showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor) && alerts.Count > 0;
+        showAlert = userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor) && alerts.Count > 0;
 
         InvokeAsync(StateHasChanged);
     }

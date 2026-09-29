@@ -6,7 +6,6 @@ namespace FWO.Basics
         public const string Anonymous = "anonymous";
         public const string Admin = "admin";
         public const string Auditor = "auditor";
-        public const string FwAdmin = "fw-admin";
 
         // Rules
         public const string Reporter = "reporter";

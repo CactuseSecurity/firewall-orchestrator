@@ -154,6 +154,14 @@ after all real migrations, rather than being skipped as a low placeholder
 would be. The allocation workflow replaces it before the PR can pass version
 validation or merge.
 
+`999.0.0` is reserved exclusively for this development workflow, never a
+release version. Its installer value is configured as
+`development_product_version` in `inventory/group_vars/all.yml`. An installer
+upgrade from it to a normal released version is therefore allowed, so a test
+system can return to a regular checkout. This does not roll back SQL executed
+by the development migration; keep development migrations idempotent and use
+only disposable test systems for such tests.
+
 The allocator rewrites the placeholder revision-history heading to
 `## <version> - <allocation date>`, using the allocation date in the
 `Europe/Berlin` time zone. A date already in the placeholder heading is

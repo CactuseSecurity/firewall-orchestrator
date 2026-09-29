@@ -2,7 +2,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/email_log"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 <div class="input-group">
     <h3>@(userConfig.GetText("email_log"))</h3>

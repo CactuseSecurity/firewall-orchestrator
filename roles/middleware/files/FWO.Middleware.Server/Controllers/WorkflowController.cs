@@ -53,7 +53,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <param name="parameters">Workflow action parameters</param>
         /// <returns>true if the workflow action execution was handled</returns>
         [HttpPost("Actions")]
-        [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.WorkflowRolesList}")]
+        [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}")]
         public async Task<WorkflowActionResult> ExecuteActions([FromBody] WorkflowActionParameters parameters)
         {
             WorkflowActionResult result = new();
@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool CallerCanExecutePhase(ClaimsPrincipal user, string executionMode, WorkflowPhases phase)
         {
-            if (CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin))
+            if (CallerCanUseRole(user, executionMode, Roles.Admin))
             {
                 return true;
             }
@@ -539,7 +539,7 @@ namespace FWO.Middleware.Server.Controllers
 
         private static bool CallerCanAccessTicket(ClaimsPrincipal user, string executionMode, UserConfig userConfig, WfTicket ticket)
         {
-            if (CallerCanUseRole(user, executionMode, Roles.Admin) || CallerCanUseRole(user, executionMode, Roles.FwAdmin) || !userConfig.ReqOwnerBased)
+            if (CallerCanUseRole(user, executionMode, Roles.Admin) || !userConfig.ReqOwnerBased)
             {
                 return true;
             }

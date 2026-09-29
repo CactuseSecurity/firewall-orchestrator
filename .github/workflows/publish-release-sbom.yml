@@ -1,0 +1,45 @@
+name: Publish release SBOM
+
+on:
+  release:
+    types:
+      - published
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-sbom:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate stable release tag
+        id: validate
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ "$TAG_NAME" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping SBOM publication for non-stable release tag '$TAG_NAME'."
+          fi
+
+      - name: Checkout release source
+        if: steps.validate.outputs.stable == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          persist-credentials: false
+
+      - name: Generate and attach CycloneDX SBOM
+        if: steps.validate.outputs.stable == 'true'
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: cyclonedx-json
+          artifact-name: fwo-${{ github.event.release.tag_name }}-sbom.cdx.json
+          output-file: fwo-${{ github.event.release.tag_name }}-sbom.cdx.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}

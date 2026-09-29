@@ -1,6 +1,15 @@
 # creating SBOM
 we are using cycloneDx
 
+## stable release SBOMs
+
+When a GitHub Release with a stable semantic-version tag (`vMAJOR.MINOR.PATCH`
+or `MAJOR.MINOR.PATCH`) is published, the `Publish release SBOM` workflow
+generates a CycloneDX JSON SBOM from that exact tagged source. The resulting
+`fwo-<tag>-sbom.cdx.json` file is attached directly to the GitHub Release and
+also retained as a workflow artifact. Pre-releases and non-version release
+tags are deliberately skipped.
+
 ## standard script 
     wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64
     sudo mv cyclonedx-linux-x64 /usr/local/bin/cyclonedx

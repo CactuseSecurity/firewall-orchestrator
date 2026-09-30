@@ -18,6 +18,12 @@
 - auditors see the provisioning settings with all editors disabled
 - the provisioning settings editor is locked while a save is running, and retained Fortinet-only values are shown as
   dormant overrides with an action to clear them after a management or gateway is moved to another device type
+- Interface-request notifications are suppressed for inactive requested owners, incomplete legacy
+  requests and unresolved requesting owners; suppression records include the reason and resolved
+  subject placeholders
+- Daily reminder checks evaluate whether a notification is due before recording a suppression, so
+  non-due reminders do not create audit noise or advance the notification definition's last-sent
+  state
 - new network zone tree path analysis: for every combination of a source and a destination ip range
   it determines the firewalls between them from the paths to the root network and to the internet
   that the zone matrix stores per subnet, cutting both paths at their lowest common ancestor.
@@ -33,6 +39,13 @@
   any change in behaviour, so that both procedures sit behind one interface
 - network_zone.device_ip_range_root and network_zone.device_ip_range_internet can now be read per
   matrix through the api, including the name of the device on the path
+- matrix import now rejects paths to root that do not describe one tree. A gateway may name only
+  one successor towards the root across all subnets of a matrix, and the successors must not form
+  a cycle. The error names the gateway and both successors, so the contradicting subnets can be
+  found. Paths to the internet stay unchecked, as several routes there are intended. A matrix
+  whose root paths contradicted each other was imported before and made the path analysis report
+  routes that do not exist
+
 
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only

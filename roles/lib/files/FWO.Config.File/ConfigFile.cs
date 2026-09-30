@@ -68,6 +68,18 @@ namespace FWO.Config.File
             [JsonPropertyName("product_version")]
             public string? ProductVersion { get; set; }
 
+            [JsonPropertyName("login_max_directories")]
+            public int? LoginMaxDirectories { get; set; }
+
+            [JsonPropertyName("login_client_attempts_per_minute")]
+            public int? LoginClientAttemptsPerMinute { get; set; }
+
+            [JsonPropertyName("login_user_failures_per_minute")]
+            public int? LoginUserFailuresPerMinute { get; set; }
+
+            [JsonPropertyName("login_trusted_client_hosts")]
+            public List<string>? LoginTrustedClientHosts { get; set; }
+
             [JsonPropertyName("fworch_home")]
             public string? CfgFwoHome { get; set; }
         }
@@ -193,6 +205,26 @@ namespace FWO.Config.File
                 return CriticalConfigValueLoaded(Data.RemoteAddresses);
             }
         }
+
+        /// <summary>
+        /// Optional cap on the LDAP connections one login may fan out to; null if not configured.
+        /// </summary>
+        public static int? LoginMaxDirectories => Data.LoginMaxDirectories;
+
+        /// <summary>
+        /// Optional limit of credentialed login attempts per minute and client address; null if not configured.
+        /// </summary>
+        public static int? LoginClientAttemptsPerMinute => Data.LoginClientAttemptsPerMinute;
+
+        /// <summary>
+        /// Optional limit of failed logins per minute for one user name and client address; null if not configured.
+        /// </summary>
+        public static int? LoginUserFailuresPerMinute => Data.LoginUserFailuresPerMinute;
+
+        /// <summary>
+        /// Optional hosts (for example the UI servers) exempt from the per-client login limit; null if not configured.
+        /// </summary>
+        public static List<string>? LoginTrustedClientHosts => Data.LoginTrustedClientHosts;
 
         static ConfigFile()
         {

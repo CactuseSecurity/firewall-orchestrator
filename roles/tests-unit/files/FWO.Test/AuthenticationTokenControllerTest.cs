@@ -46,6 +46,7 @@ namespace FWO.Test
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private const string kRoleSearchPath = "ou=roles,dc=fworch,dc=internal";
         private const string kRoleUserDn = "uid=login-user,ou=users,dc=fworch,dc=internal";
+        private static readonly IPAddress kThrottledClient = IPAddress.Parse("192.0.2.20");
 
         [Test]
         public async Task GetAsync_ReturnsAnonymousJwt_WhenCredentialsAreMissing()
@@ -809,7 +810,7 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { inactiveLdap, activeLdap });
 
-            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.Multiple(() =>
             {
@@ -826,7 +827,7 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { inactiveLdap });
 
-            List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            List<string> roles = await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.Multiple(() =>
             {
@@ -842,9 +843,144 @@ namespace FWO.Test
             object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(),
                 new List<Ldap> { ldapWithoutRoles });
 
-            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser());
+            await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), CancellationToken.None);
 
             Assert.That(ldapWithoutRoles.ConnectCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns429BeforeLdapWork_WhenClientLimitIsExceeded()
+        {
+            TestableLdap ldap = CreateAuthLdap(new RecordingLdapClient());
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { ldap }, new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
+
+            ActionResult<TokenPair> first = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+            int connectsAfterFirstAttempt = ldap.ConnectCount;
+            ActionResult<TokenPair> second = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "bob", Password = "wrong" });
+
+            Assert.That(first.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(second.Result, StatusCodes.Status429TooManyRequests, "A0006");
+            Assert.Multiple(() =>
+            {
+                Assert.That(connectsAfterFirstAttempt, Is.GreaterThan(0));
+                Assert.That(ldap.ConnectCount, Is.EqualTo(connectsAfterFirstAttempt));
+                Assert.That(controller.HttpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
+            });
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns429_AfterRepeatedInvalidCredentialsOfOneUser()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 2));
+            AuthenticationTokenGetParameters alice = new() { Username = "alice", Password = "wrong" };
+
+            ActionResult<TokenPair> firstFailure = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> secondFailure = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> blocked = await controller.GetTokenPair(alice);
+            ActionResult<TokenPair> otherUser = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "bob", Password = "wrong" });
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(firstFailure.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(secondFailure.Result, Is.TypeOf<BadRequestObjectResult>());
+                Assert.That(otherUser.Result, Is.TypeOf<BadRequestObjectResult>());
+            });
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetTokenPair_NeverThrottlesAnonymousBootstrapRequests()
+        {
+            AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 1));
+
+            for (int request = 0; request < 3; request++)
+            {
+                ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters());
+                Assert.That(ExtractOkValue(result).AccessToken, Is.Not.Empty);
+            }
+        }
+
+        [Test]
+        public async Task GetAsync_Returns429_WhenClientLimitIsExceeded()
+        {
+            AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 10));
+
+            await controller.GetAsync(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+            ActionResult<string> result = await controller.GetAsync(new AuthenticationTokenGetParameters { Username = "alice", Password = "wrong" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetTokenPair_Returns503WithoutLdapWork_WhenMoreActiveLdapsThanTheCap()
+        {
+            List<TestableLdap> ldaps = CreateTooManyLdaps();
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(ldaps), new RecordingApiConnection());
+
+            ActionResult<TokenPair> result = await controller.GetTokenPair(new AuthenticationTokenGetParameters { Username = "alice", Password = "secret" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+            Assert.That(ldaps.Sum(ldap => ldap.ConnectCount), Is.Zero);
+        }
+
+        [Test]
+        public async Task GetAsyncForUser_ReportsCapacityInsteadOfInvalidCredentials()
+        {
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+
+            ActionResult<string> result = await controller.GetAsyncForUser(new AuthenticationTokenGetForUserParameters
+            {
+                AdminUsername = "admin",
+                AdminPassword = "secret",
+                TargetUserName = "target"
+            });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+        }
+
+        [Test]
+        public async Task GetTokenPairForUser_ReportsCapacityInsteadOfInvalidCredentials()
+        {
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), new RecordingApiConnection());
+
+            ActionResult<TokenPair> result = await controller.GetTokenPairForUser(new AuthenticationTokenGetForUserParameters
+            {
+                AdminUsername = "admin",
+                AdminPassword = "secret",
+                TargetUserName = "target"
+            });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+        }
+
+        [Test]
+        public async Task RefreshToken_InvitesARetryWithoutConsumingTheToken_WhenDirectoriesAreAtCapacity()
+        {
+            RecordingApiConnection apiConnection = new()
+            {
+                Responder = (query, _, resultType) => QueryResponse(query, resultType)
+            };
+            apiConnection.QueueResult(kRefreshTokenUserId7);
+            AuthenticationTokenController controller = CreateController(new List<Ldap>(CreateTooManyLdaps()), apiConnection);
+
+            ActionResult<TokenPair> result = await controller.RefreshToken(new RefreshTokenRequest { RefreshToken = "refresh-token" });
+
+            AssertCapacityResult(result.Result, StatusCodes.Status503ServiceUnavailable, "A0007");
+            Assert.That(apiConnection.LastQuery, Is.Not.EqualTo(AuthQueries.revokeRefreshToken));
+        }
+
+        [Test]
+        public void AuthManagerGetRoles_StopsBeforeConnecting_WhenCancelled()
+        {
+            TestableLdap roleLdap = CreateRoleLdap();
+            object authManager = CreateAuthManager(new RecordingApiConnection(), new FixedTokenLifetimeProvider(), new List<Ldap> { roleLdap });
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await InvokeAuthManagerAsync<List<string>>(authManager, "GetRoles", CreateRoleUser(), cancellation.Token));
+            Assert.That(roleLdap.ConnectCount, Is.Zero);
         }
 
         private static AuthenticationTokenController CreateController()
@@ -852,14 +988,52 @@ namespace FWO.Test
             return CreateController(new RecordingApiConnection());
         }
 
-        private static AuthenticationTokenController CreateController(List<Ldap> ldaps, ApiConnection apiConnection)
+        private static AuthenticationTokenController CreateController(List<Ldap> ldaps, ApiConnection apiConnection, LoginThrottle? loginThrottle = null)
         {
             RSA rsa = RSA.Create(2048);
             return new AuthenticationTokenController(
                 new JwtWriter(new RsaSecurityKey(rsa)),
                 ldaps,
                 apiConnection,
-                new FixedTokenLifetimeProvider());
+                new FixedTokenLifetimeProvider(),
+                loginThrottle ?? new LoginThrottle(new LoginThrottleSettings()));
+        }
+
+        /// <summary>
+        /// Builds a controller whose requests come from <see cref="kThrottledClient"/>, so the login limits apply.
+        /// </summary>
+        private static AuthenticationTokenController CreateThrottledController(List<Ldap> ldaps, ApiConnection apiConnection, LoginThrottle loginThrottle)
+        {
+            AuthenticationTokenController controller = CreateController(ldaps, apiConnection, loginThrottle);
+            DefaultHttpContext httpContext = new();
+            httpContext.Connection.RemoteIpAddress = kThrottledClient;
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
+        }
+
+        private static LoginThrottle CreateLoginThrottle(int clientAttempts, int userFailures)
+        {
+            return new LoginThrottle(new LoginThrottleSettings { ClientAttemptsPerMinute = clientAttempts, UserFailuresPerMinute = userFailures });
+        }
+
+        /// <summary>
+        /// More active directories than the default cap allows, each counting its connection attempts.
+        /// </summary>
+        private static List<TestableLdap> CreateTooManyLdaps()
+        {
+            return Enumerable.Range(0, LoginThrottleSettings.kDefaultMaxDirectories + 1)
+                .Select(_ => CreateAuthLdap(new RecordingLdapClient())).ToList();
+        }
+
+        private static void AssertCapacityResult(IActionResult? result, int statusCode, string code)
+        {
+            Assert.That(result, Is.TypeOf<ObjectResult>());
+            ObjectResult response = (ObjectResult)result!;
+            Assert.Multiple(() =>
+            {
+                Assert.That(response.StatusCode, Is.EqualTo(statusCode));
+                Assert.That(response.Value?.ToString(), Does.StartWith(code));
+            });
         }
 
         private static AuthenticationTokenController CreateController(ApiConnection apiConnection)

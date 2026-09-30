@@ -115,6 +115,19 @@ namespace FWO.Test
         }
 
         [Test]
+        public void Login_CancelledRequestDoesNotConnect()
+        {
+            RecordingLdapClient connection = new();
+            global::FWO.Test.TestableLdap ldap = new(connection);
+            using CancellationTokenSource cancellation = new();
+            cancellation.Cancel();
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true, cancellation.Token));
+            Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [Test]
         public void AttributeHelpers_ReturnExpectedValuesAndFallbacks()
         {
             LdapEntry richUser = Entry("uid=user,ou=users,dc=example,dc=com",
@@ -522,7 +535,7 @@ namespace FWO.Test
                 this.connection = connection;
             }
 
-            protected override Task<ILdapClient> Connect()
+            protected override Task<ILdapClient> Connect(CancellationToken cancellationToken = default)
             {
                 return Task.FromResult(connection);
             }

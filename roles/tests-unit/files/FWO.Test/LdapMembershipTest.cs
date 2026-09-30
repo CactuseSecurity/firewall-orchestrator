@@ -246,7 +246,7 @@ namespace FWO.Test
                 client,
                 kGroupSearchPath,
                 kSingleResolvedUserDns,
-                groups);
+                groups, CancellationToken.None);
 
             Assert.That(groups, Is.EqualTo(kAppOwnerCn));
             Assert.That(client.SearchCalls, Has.Count.EqualTo(1));
@@ -277,7 +277,7 @@ namespace FWO.Test
                 client,
                 kGroupSearchPath,
                 kEscapedCommaUserDnsList,
-                groups);
+                groups, CancellationToken.None);
 
             Assert.That(groups, Is.EqualTo(kEscapedGroupCn));
             Assert.That(client.SearchCalls, Has.Count.EqualTo(1));
@@ -308,7 +308,8 @@ namespace FWO.Test
                 client,
                 "ou=roles,dc=example,dc=com",
                 kSingleResolvedUserDns,
-                roles);
+                roles,
+                CancellationToken.None);
 
             Assert.That(roles, Is.EqualTo(kAppOwnerCn));
             Assert.That(client.SearchCalls, Has.Count.EqualTo(1));
@@ -335,7 +336,8 @@ namespace FWO.Test
                 client,
                 "ou=roles,dc=example,dc=com",
                 kSingleResolvedUserDns,
-                roles);
+                roles,
+                CancellationToken.None);
 
             Assert.That(roles, Is.Empty);
             Assert.That(client.SearchCalls, Has.Count.EqualTo(1));
@@ -364,7 +366,7 @@ namespace FWO.Test
                     client,
                     kGroupSearchPath,
                     kSingleResolvedUserDns,
-                    groups));
+                    groups, CancellationToken.None));
 
             Assert.That(groups, Is.Empty);
             Assert.That(client.SearchCalls, Has.Count.EqualTo(1));

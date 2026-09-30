@@ -104,6 +104,11 @@ builder.Services.AddControllers()
       ApiDocumentationJsonOptions.Configure(jsonOptions);
   });
 
+// Login limits bound the LDAP work unauthenticated requests can cause (GHSA-xcfh-6hcc-m37w)
+LoginThrottleSettings loginThrottleSettings = LoginThrottleSettings.FromConfigFile();
+LdapAuthenticationGate.Configure(loginThrottleSettings);
+builder.Services.AddSingleton(new LoginThrottle(loginThrottleSettings));
+
 builder.Services.AddSingleton<JwtWriter>(jwtWriter);
 builder.Services.AddSingleton<List<Ldap>>(connectedLdaps);
 builder.Services.AddSingleton<FlowCatalogService>();

@@ -23,14 +23,21 @@ namespace FWO.Middleware.Server
         /// Binds the client with the provided credentials.
         /// </summary>
         Task BindAsync(string user, string password);
+        /// <summary>Binds with cancellation for authentication requests.</summary>
+        Task BindAsync(string user, string password, CancellationToken cancellationToken) => BindAsync(user, password).WaitAsync(cancellationToken);
         /// <summary>
         /// Reads a single LDAP entry by distinguished name.
         /// </summary>
         Task<LdapEntry?> ReadAsync(string distinguishedName);
+        /// <summary>Reads with cancellation for authentication requests.</summary>
+        Task<LdapEntry?> ReadAsync(string distinguishedName, CancellationToken cancellationToken) => ReadAsync(distinguishedName).WaitAsync(cancellationToken);
         /// <summary>
         /// Executes an LDAP search.
         /// </summary>
         Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly);
+        /// <summary>Searches with cancellation for authentication requests.</summary>
+        Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly, CancellationToken cancellationToken)
+            => SearchAsync(baseDn, scope, filter, attributes, typesOnly).WaitAsync(cancellationToken);
         /// <summary>
         /// Adds an LDAP entry.
         /// </summary>
@@ -73,14 +80,32 @@ namespace FWO.Middleware.Server
             return connection.BindAsync(user, password);
         }
 
+        /// <inheritdoc />
+        public Task BindAsync(string user, string password, CancellationToken cancellationToken)
+        {
+            return connection.BindAsync(user, password, cancellationToken);
+        }
+
         public Task<LdapEntry?> ReadAsync(string distinguishedName)
         {
             return connection.ReadAsync(distinguishedName);
         }
 
+        /// <inheritdoc />
+        public Task<LdapEntry?> ReadAsync(string distinguishedName, CancellationToken cancellationToken)
+        {
+            return connection.ReadAsync(distinguishedName, cancellationToken);
+        }
+
         public async Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly)
         {
             return await connection.SearchAsync(baseDn, scope, filter, attributes, typesOnly);
+        }
+
+        /// <inheritdoc />
+        public async Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly, CancellationToken cancellationToken)
+        {
+            return await connection.SearchAsync(baseDn, scope, filter, attributes, typesOnly, cancellationToken);
         }
 
         public Task AddAsync(LdapEntry entry)

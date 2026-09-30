@@ -47,8 +47,9 @@ namespace FWO.Middleware.Server
         /// Builds a connection to the specified Ldap server.
         /// </summary>
         /// <returns>Connection to the specified Ldap server.</returns>
-        protected virtual async Task<ILdapClient> Connect()
+        protected virtual async Task<ILdapClient> Connect(CancellationToken cancellationToken = default)
         {
+            LdapConnection? connection = null;
             try
             {
                 LdapConnectionOptions ldapOptions = new();
@@ -57,14 +58,20 @@ namespace FWO.Middleware.Server
                     ldapOptions.ConfigureRemoteCertificateValidationCallback(
                         (object sen, X509Certificate? cer, X509Chain? cha, SslPolicyErrors err) => ValidateLdapServerCertificate(cer, cha, err));
                 }
-                LdapConnection connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
-                await connection.ConnectAsync(Address, Port);
+                connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
+                await connection.ConnectAsync(Address, Port, cancellationToken);
 
                 return new NovellLdapConnectionAdapter(connection);
             }
 
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                connection?.Dispose();
+                throw;
+            }
             catch (Exception exception)
             {
+                connection?.Dispose();
                 Log.WriteDebug($"Could not connect to LDAP server {Address}:{Port}: ", exception.Message);
                 throw new LdapConnectionException($"Error while trying to reach LDAP server {Address}:{Port}", exception);
             }
@@ -150,18 +157,25 @@ namespace FWO.Middleware.Server
         /// <param name="user">LDAP user name to bind with.</param>
         /// <param name="password">LDAP password to bind with.</param>
         /// <param name="followReferrals">Whether LDAP referrals should be followed.</param>
+        /// <param name="cancellationToken">Cancels authentication work when the request ends.</param>
         /// <returns>Connected LDAP connection that has attempted the bind.</returns>
-        private async Task<ILdapClient> GetBoundConnection(string? user, string? password, bool followReferrals = false)
+        private async Task<ILdapClient> GetBoundConnection(string? user, string? password, bool followReferrals = false, CancellationToken cancellationToken = default)
         {
-            ILdapClient connection = await Connect();
-            await TryBind(connection, user, password);
-
-            if (followReferrals)
+            ILdapClient connection = await Connect(cancellationToken);
+            try
             {
-                EnableReferralFollowing(connection);
+                await TryBind(connection, user, password, cancellationToken: cancellationToken);
+                if (followReferrals)
+                {
+                    EnableReferralFollowing(connection);
+                }
+                return connection;
             }
-
-            return connection;
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -183,7 +197,8 @@ namespace FWO.Middleware.Server
         /// <param name="user">Distinguished name of the binding user.</param>
         /// <param name="password">Password of the binding user.</param>
         /// <param name="decryptPassword">False if the password is already clear text and must be used as it is.</param>
-        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password, bool decryptPassword = true)
+        /// <param name="cancellationToken">Cancels the bind when the request ends.</param>
+        private static async Task<bool> TryBind(ILdapClient connection, string? user, string? password, bool decryptPassword = true, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(password))
             {
@@ -192,7 +207,7 @@ namespace FWO.Middleware.Server
             }
             else
             {
-                await connection.BindAsync(user, decryptPassword ? AesEnc.TryDecrypt(password, true) : password);
+                await connection.BindAsync(user, decryptPassword ? AesEnc.TryDecrypt(password, true) : password, cancellationToken);
             }
             return connection.Bound;
         }
@@ -324,8 +339,9 @@ namespace FWO.Middleware.Server
         /// Get the LdapEntry for the given user with option to validate credentials
         /// </summary>
         /// <returns>LdapEntry for the given user if found</returns>
-        public async Task<LdapEntry?> GetLdapEntry(UiUser user, bool validateCredentials)
+        public async Task<LdapEntry?> GetLdapEntry(UiUser user, bool validateCredentials, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
             if (validateCredentials && (string.IsNullOrWhiteSpace(user.Name)
                 || user.Name.IndexOfAny(kInvalidLoginCharacters) >= 0))
@@ -334,7 +350,7 @@ namespace FWO.Middleware.Server
             }
             try
             {
-                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
+                using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true, cancellationToken: cancellationToken);
 
                 List<LdapEntry> possibleUserEntries = [];
 
@@ -342,7 +358,7 @@ namespace FWO.Middleware.Server
                 if (!string.IsNullOrEmpty(user.Dn))
                 {
                     // Try to read user entry directly
-                    LdapEntry? userEntry = await connection.ReadAsync(user.Dn);
+                    LdapEntry? userEntry = await connection.ReadAsync(user.Dn, cancellationToken);
                     if (userEntry != null)
                     {
                         possibleUserEntries.Add(userEntry);
@@ -350,7 +366,7 @@ namespace FWO.Middleware.Server
                 }
                 else // Dn was not provided, search for user name
                 {
-                    await SearchUserName(user.Name, possibleUserEntries, connection, validateCredentials);
+                    await SearchUserName(user.Name, possibleUserEntries, connection, validateCredentials, cancellationToken);
                 }
 
                 // If credentials are not checked return user that was found first
@@ -364,9 +380,13 @@ namespace FWO.Middleware.Server
                     && string.Equals(GetName(possibleUserEntries[0]), user.Name.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
                     LdapEntry possibleUserEntry = possibleUserEntries[0];
-                    if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password))
+                    if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password, cancellationToken))
                         return possibleUserEntry;
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (LdapException ldapException)
             {
@@ -381,7 +401,7 @@ namespace FWO.Middleware.Server
             return null;
         }
 
-        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection, bool exactLogin)
+        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection, bool exactLogin, CancellationToken cancellationToken)
         {
             string[] attrList = ["*", MemberOfLowerCase];
             string userSearchFilter = exactLogin ? GetLoginSearchFilter(userName.Trim()) : GetUserSearchFilter(userName);
@@ -392,14 +412,15 @@ namespace FWO.Middleware.Server
                 Novell.Directory.Ldap.LdapConnection.ScopeSub,    // search all levels beneath
                 userSearchFilter,
                 attrList,
-                typesOnly: false
+                typesOnly: false,
+                cancellationToken
             );
 
             if (searchResults != null)
             {
-                while (await searchResults.HasMoreAsync())
+                while (await searchResults.HasMoreAsync(cancellationToken))
                 {
-                    LdapEntry? result = await searchResults.NextAsync();
+                    LdapEntry? result = await searchResults.NextAsync(cancellationToken);
                     possibleUserEntries.Add(result);
                 }
             }
@@ -442,14 +463,14 @@ namespace FWO.Middleware.Server
             return null;
         }
 
-        private async Task<bool> CredentialsValid(ILdapClient connection, string dn, string password)
+        private async Task<bool> CredentialsValid(ILdapClient connection, string dn, string password, CancellationToken cancellationToken)
         {
             try
             {
                 Log.WriteDebug("User Validation", $"Trying to validate user with distinguished name: \"{dn}\" ...");
 
                 // Try to authenticate as user with given password
-                if (await TryBind(connection, dn, password))
+                if (await TryBind(connection, dn, password, cancellationToken: cancellationToken))
                 {
                     // Return ldap dn
                     Log.WriteDebug("User Validation", $"\"{dn}\" successfully authenticated in {Address}:{Port}.");
@@ -461,6 +482,10 @@ namespace FWO.Middleware.Server
                     // Incorrect password - do nothing, assume its another user with the same username
                     Log.WriteDebug($"User Validation {Address}:{Port}", $"Found user with matching uid but different pwd: \"{dn}\".");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (LdapException exc)
             {

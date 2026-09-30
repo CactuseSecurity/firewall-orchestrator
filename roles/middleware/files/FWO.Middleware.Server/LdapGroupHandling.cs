@@ -16,20 +16,24 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Get the roles for the given DN list
         /// </summary>
+        /// <param name="dnList">User and group DNs to look up.</param>
+        /// <param name="cancellationToken">Cancels the lookup when the login request ends or runs out of time.</param>
         /// <returns>list of roles for the given DN list</returns>
-        public async Task<List<string>> GetRoles(List<string> dnList)
+        public async Task<List<string>> GetRoles(List<string> dnList, CancellationToken cancellationToken = default)
         {
-            return await GetMemberships(dnList, RoleSearchPath);
+            return await GetMemberships(dnList, RoleSearchPath, cancellationToken);
         }
 
         /// <summary>
         /// Get the groups for the given DN list
         /// </summary>
+        /// <param name="dnList">User DNs to look up.</param>
+        /// <param name="cancellationToken">Cancels the lookup when the login request ends or runs out of time.</param>
         /// <returns>list of groups for the given DN list</returns>
-        public async Task<List<string>> GetGroups(List<string> dnList)
+        public async Task<List<string>> GetGroups(List<string> dnList, CancellationToken cancellationToken = default)
         {
             string? groupPath = !string.IsNullOrWhiteSpace(GroupSearchPath) ? GroupSearchPath : GroupWritePath;
-            return await GetMemberships(dnList, groupPath);
+            return await GetMemberships(dnList, groupPath, cancellationToken);
         }
 
         [GeneratedRegex(@"(\bcn|\bou|\bdc|\bo|\bc|\bst|\bl)=(.*?)(?=,[A-Za-z]+=|$)", RegexOptions.IgnoreCase, "en-US")]
@@ -80,19 +84,24 @@ namespace FWO.Middleware.Server
             return dns.ToList();
         }
 
-        private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath)
+        private async Task<List<string>> GetMemberships(List<string> dnList, string? searchPath, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> userMemberships = [];
 
             if (!string.IsNullOrEmpty(searchPath))
             {
                 try
                 {
-                    using ILdapClient connection = await Connect();
-                    if (await TryBindSearchUser(connection))
+                    using ILdapClient connection = await Connect(cancellationToken);
+                    if (await TryBindSearchUser(connection, cancellationToken))
                     {
-                        await SearchAndCollectMemberships(connection, searchPath, dnList, userMemberships);
+                        await SearchAndCollectMemberships(connection, searchPath, dnList, userMemberships, cancellationToken);
                     }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception exception)
                 {
@@ -104,7 +113,7 @@ namespace FWO.Middleware.Server
             return userMemberships;
         }
 
-        private async Task<bool> TryBindSearchUser(ILdapClient connection)
+        private async Task<bool> TryBindSearchUser(ILdapClient connection, CancellationToken cancellationToken)
         {
             string mainKey = AesEnc.GetMainKey();
             if (!AesEnc.TryDecrypt(SearchUserPwd, mainKey, out string decryptedSearchUserPwd))
@@ -113,14 +122,14 @@ namespace FWO.Middleware.Server
                 return false;
             }
 
-            return await TryBind(connection, SearchUser, decryptedSearchUserPwd);
+            return await TryBind(connection, SearchUser, decryptedSearchUserPwd, cancellationToken: cancellationToken);
         }
 
-        private async Task SearchAndCollectMemberships(ILdapClient connection, string searchPath, List<string> dnList, List<string> userMemberships)
+        private async Task SearchAndCollectMemberships(ILdapClient connection, string searchPath, List<string> dnList, List<string> userMemberships, CancellationToken cancellationToken)
         {
             int searchScope = Novell.Directory.Ldap.LdapConnection.ScopeSub; // TODO: Correct search scope?
             string searchFilter = $"(&(objectClass=groupOfUniqueNames)(cn=*))";
-            ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false);
+            ILdapSearchResults? allExistingGroupsAndRoles = await connection.SearchAsync(searchPath, searchScope, searchFilter, null, false, cancellationToken);
 
             HashSet<string> searchableDns = new(DistName.DnComparer);
             searchableDns.UnionWith(dnList.Where(dn => !string.IsNullOrWhiteSpace(dn)));
@@ -132,9 +141,9 @@ namespace FWO.Middleware.Server
                 return;
             }
 
-            while (await allExistingGroupsAndRoles.HasMoreAsync())
+            while (await allExistingGroupsAndRoles.HasMoreAsync(cancellationToken))
             {
-                LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync();
+                LdapEntry? entry = await allExistingGroupsAndRoles.NextAsync(cancellationToken);
                 CollectMatchingMemberships(entry, searchableDns, userMemberships, UniqueMember);
             }
         }

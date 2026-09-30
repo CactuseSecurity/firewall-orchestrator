@@ -8,7 +8,7 @@ namespace FWO.Middleware.Server.Responses;
 /// <remarks>
 /// Timestamps come from timezone-naive columns: they carry the wall clock of the installation and no
 /// UTC offset. Workflow state names are the internal FWO state names; <see cref="Status"/> additionally
-/// carries the externally mapped status that getRequestStatus reports.
+/// carries the externally mapped status that getTicketStatus reports.
 /// </remarks>
 public sealed class GetTicketResponse
 {
@@ -28,7 +28,7 @@ public sealed class GetTicketResponse
     [JsonPropertyName("state")]
     public string State { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the ticket status as reported by getRequestStatus: the preferred external state name, else the workflow state name.</summary>
+    /// <summary>Gets or sets the ticket status as reported by getTicketStatus: the preferred external state name, else the workflow state name.</summary>
     [JsonPropertyName("status")]
     public string Status { get; set; } = string.Empty;
 
@@ -52,7 +52,7 @@ public sealed class GetTicketResponse
     [JsonPropertyName("requesterName")]
     public string RequesterName { get; set; } = string.Empty;
 
-    /// <summary>Gets or sets the stored requester identifier (LDAP DN or the requestorId given to createRequest).</summary>
+    /// <summary>Gets or sets the stored requester identifier (LDAP DN or the requestorId given to createTicket).</summary>
     [JsonPropertyName("requesterDn")]
     public string RequesterDn { get; set; } = string.Empty;
 

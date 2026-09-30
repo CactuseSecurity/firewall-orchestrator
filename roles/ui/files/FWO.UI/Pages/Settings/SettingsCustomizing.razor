@@ -99,8 +99,8 @@
                 </button>
             </div>
         </div>
-        <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">
-            <label class="col-form-label col-sm-3">@(userConfig.GetText("api_ticket_initial_state")):</label>
+        <div class="form-group row">
+            <label class="col-form-label col-sm-3" data-toggle="tooltip" title="@(userConfig.PureLine("H5546"))">@(userConfig.GetText("api_ticket_initial_state")):</label>
             <div class="col-sm-3">
                 <Dropdown ElementType="int?" @bind-SelectedElement="selectedApiTicketInitialStateId" ElementToString="StateDisplayName"
                           Elements="stateIds.Select(stateId => (int?)stateId)" Nullable="true" NoneSelectedText="@(userConfig.GetText("use_default"))">
@@ -108,6 +108,14 @@
                         @(StateDisplayName(stateId))
                     </ElementTemplate>
                 </Dropdown>
+            </div>
+            <div class="col-sm-2">
+                <label class="col-form-label" data-toggle="tooltip" title="@(userConfig.PureLine("C9034"))">@(userConfig.GetText("reqCreateRequestTaskSortConfig")):</label>
+            </div>
+            <div class="col-sm-2">
+                <button type="button" class="btn btn-sm btn-warning" @onclick="() => editCreateRequestTaskSortConfigMode = true">
+                    @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
+                </button>
             </div>
         </div>
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5567"))">
@@ -162,6 +170,7 @@ else
 {
     <AllowedChangesByApprover @bind-Display="editAllowedChangesByApproverMode" ConfigValue="@configData.ReqAllowedChangesByApprover" ConfigValueChanged="HandleAllowedChangesByApproverChanged" />
     <FlowIntegration @bind-Display="editFlowIntegrationMode" ConfigValue="@configData.ReqFlowIntegration" ConfigValueChanged="HandleFlowIntegrationChanged" />
+    <CreateRequestTaskSortConfigPopup @bind-Display="editCreateRequestTaskSortConfigMode" ConfigValue="@configData.ReqCreateRequestTaskSortConfig" ConfigValueChanged="HandleCreateRequestTaskSortConfigChanged" DisplayMessageInUi="DisplayMessageInUi" />
 }
 
 
@@ -175,6 +184,7 @@ else
     private bool InitComplete = false;
     private bool editAllowedChangesByApproverMode = false;
     private bool editFlowIntegrationMode = false;
+    private bool editCreateRequestTaskSortConfigMode = false;
 
     private List<WfState> states = [];
     private List<int> stateIds = [];
@@ -217,9 +227,18 @@ else
 
     private string StateDisplayName(int? stateId)
     {
-        return stateId == null
-            ? userConfig.GetText("use_default")
-            : states.FirstOrDefault(state => state.Id == stateId.Value)?.Name ?? stateId.Value.ToString();
+        if (stateId == null)
+        {
+            return userConfig.GetText("use_default");
+        }
+
+        WfState? state = states.FirstOrDefault(candidate => candidate.Id == stateId.Value);
+        if (state == null)
+        {
+            return stateId.Value.ToString();
+        }
+
+        return $"{state.Name} ({state.Id})";
     }
 
     private async Task Save()
@@ -311,6 +330,25 @@ else
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+        }
+    }
+
+    private Task HandleCreateRequestTaskSortConfigChanged(string configValue)
+    {
+        try
+        {
+            if (configData == null)
+            {
+                throw new ArgumentException("Create request task sort settings were updated before the settings page was initialized.");
+            }
+
+            configData.ReqCreateRequestTaskSortConfig = configValue;
+            return Task.CompletedTask;
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("change_default"), "", true);
+            return Task.CompletedTask;
         }
     }
 }

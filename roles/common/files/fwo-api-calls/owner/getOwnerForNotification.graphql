@@ -3,6 +3,10 @@ query getOwnerForNotification ($id: Int!) {
     id
     name
     app_id_external
+    active
+    owner_lifecycle_state {
+      active_state
+    }
     owner_responsibles {
       dn
       responsible_type

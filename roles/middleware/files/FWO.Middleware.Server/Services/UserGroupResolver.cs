@@ -84,7 +84,7 @@ public class UserGroupResolver
                 {
                     AddResolvedGroupMemberships(userGroups, currentGroups, GetGroupPath(currentLdap));
                 }
-            }));
+            }, cancellationToken));
         }
         await Task.WhenAll(ldapRoleRequests);
     }

@@ -352,22 +352,7 @@ namespace FWO.Middleware.Server
             {
                 using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true, cancellationToken: cancellationToken);
 
-                List<LdapEntry> possibleUserEntries = [];
-
-                // If dn was already provided
-                if (!string.IsNullOrEmpty(user.Dn))
-                {
-                    // Try to read user entry directly
-                    LdapEntry? userEntry = await connection.ReadAsync(user.Dn, cancellationToken);
-                    if (userEntry != null)
-                    {
-                        possibleUserEntries.Add(userEntry);
-                    }
-                }
-                else // Dn was not provided, search for user name
-                {
-                    await SearchUserName(user.Name, possibleUserEntries, connection, validateCredentials, cancellationToken);
-                }
+                List<LdapEntry> possibleUserEntries = await FindUserEntries(user, connection, validateCredentials, cancellationToken);
 
                 // If credentials are not checked return user that was found first
                 // It could happen that multiple users with the same name were found (impossible if dn was provided)
@@ -375,13 +360,9 @@ namespace FWO.Middleware.Server
                 {
                     return possibleUserEntries.Count > 0 ? possibleUserEntries[0] : null;
                 }
-                // If credentials should be checked
-                else if (possibleUserEntries.Count == 1
-                    && string.Equals(GetName(possibleUserEntries[0]), user.Name.Trim(), StringComparison.OrdinalIgnoreCase))
+                if (await IsUniqueValidLogin(connection, possibleUserEntries, user, cancellationToken))
                 {
-                    LdapEntry possibleUserEntry = possibleUserEntries[0];
-                    if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password, cancellationToken))
-                        return possibleUserEntry;
+                    return possibleUserEntries[0];
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -399,6 +380,39 @@ namespace FWO.Middleware.Server
 
             Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{user.Name}\" on {Address}:{Port}.");
             return null;
+        }
+
+        /// <summary>
+        /// Reads the user entry by dn if given, otherwise searches for the user name.
+        /// </summary>
+        /// <returns>All candidate entries in search order.</returns>
+        private async Task<List<LdapEntry>> FindUserEntries(UiUser user, ILdapClient connection, bool exactLogin, CancellationToken cancellationToken)
+        {
+            List<LdapEntry> possibleUserEntries = [];
+            if (string.IsNullOrEmpty(user.Dn))
+            {
+                await SearchUserName(user.Name, possibleUserEntries, connection, exactLogin, cancellationToken);
+            }
+            else
+            {
+                LdapEntry? userEntry = await connection.ReadAsync(user.Dn, cancellationToken);
+                if (userEntry != null)
+                {
+                    possibleUserEntries.Add(userEntry);
+                }
+            }
+            return possibleUserEntries;
+        }
+
+        /// <summary>
+        /// Checks the password only for a single candidate whose name equals the entered login name.
+        /// </summary>
+        /// <returns>True if exactly one matching entry was found and the password is valid for it.</returns>
+        private async Task<bool> IsUniqueValidLogin(ILdapClient connection, List<LdapEntry> possibleUserEntries, UiUser user, CancellationToken cancellationToken)
+        {
+            return possibleUserEntries.Count == 1
+                && string.Equals(GetName(possibleUserEntries[0]), user.Name.Trim(), StringComparison.OrdinalIgnoreCase)
+                && await CredentialsValid(connection, possibleUserEntries[0].Dn, user.Password, cancellationToken);
         }
 
         private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection, bool exactLogin, CancellationToken cancellationToken)
@@ -432,11 +446,12 @@ namespace FWO.Middleware.Server
         private string GetLoginSearchFilter(string userName)
         {
             string escapedName = EscapeFilterValue(userName);
-            return Type == (int)LdapType.ActiveDirectory
-                ? $"(&(objectclass=user)(!(objectclass=computer))(sAMAccountName={escapedName}))"
-                : Type == (int)LdapType.OpenLdap
-                    ? $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(uid={escapedName}))"
-                    : $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer))(|(sAMAccountName={escapedName})(uid={escapedName})))";
+            return (LdapType)Type switch
+            {
+                LdapType.ActiveDirectory => $"(&(objectclass=user)(!(objectclass=computer))(sAMAccountName={escapedName}))",
+                LdapType.OpenLdap => $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(uid={escapedName}))",
+                _ => $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer))(|(sAMAccountName={escapedName})(uid={escapedName})))"
+            };
         }
 
         /// <summary>

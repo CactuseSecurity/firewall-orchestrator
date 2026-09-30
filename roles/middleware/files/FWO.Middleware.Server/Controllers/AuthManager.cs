@@ -261,7 +261,7 @@ namespace FWO.Middleware.Server.Controllers
                     {
                         userRoles.AddRange(currentRoles);
                     }
-                }));
+                }, cancellationToken));
             }
 
             await Task.WhenAll(ldapRoleRequests);

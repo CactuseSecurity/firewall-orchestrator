@@ -20,6 +20,7 @@ namespace FWO.Middleware.Server
         // ldap_server ldap_port ldap_search_user ldap_tls ldap_tenant_level ldap_connection_id ldap_search_user_pwd ldap_searchpath_for_users ldap_searchpath_for_roles    
         private const int timeOutInMs = 3000;
         private const string LdapTlsLogCategory = "LdapTls";
+        private static readonly char[] kInvalidLoginCharacters = { '*', '\\', '\0', '(', ')' };
 
         // some ldap keywords
         private readonly string UniqueMember = "uniqueMember";
@@ -326,6 +327,11 @@ namespace FWO.Middleware.Server
         public async Task<LdapEntry?> GetLdapEntry(UiUser user, bool validateCredentials)
         {
             Log.WriteDebug("User Validation", $"Validating User: \"{user.Name}\" ...");
+            if (validateCredentials && (string.IsNullOrWhiteSpace(user.Name)
+                || user.Name.IndexOfAny(kInvalidLoginCharacters) >= 0))
+            {
+                return null;
+            }
             try
             {
                 using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true);
@@ -344,7 +350,7 @@ namespace FWO.Middleware.Server
                 }
                 else // Dn was not provided, search for user name
                 {
-                    await SearchUserName(user.Name, possibleUserEntries, connection);
+                    await SearchUserName(user.Name, possibleUserEntries, connection, validateCredentials);
                 }
 
                 // If credentials are not checked return user that was found first
@@ -354,17 +360,12 @@ namespace FWO.Middleware.Server
                     return possibleUserEntries.Count > 0 ? possibleUserEntries[0] : null;
                 }
                 // If credentials should be checked
-                else
+                else if (possibleUserEntries.Count == 1
+                    && string.Equals(GetName(possibleUserEntries[0]), user.Name.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
-                    // Multiple users with the same name could have been found (impossible if dn was provided)
-                    foreach (LdapEntry possibleUserEntry in possibleUserEntries)
-                    {
-                        // Check credentials - if multiple users were found and the credentials are valid this is most definitely the correct user
-                        if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password))
-                        {
-                            return possibleUserEntry;
-                        }
-                    }
+                    LdapEntry possibleUserEntry = possibleUserEntries[0];
+                    if (await CredentialsValid(connection, possibleUserEntry.Dn, user.Password))
+                        return possibleUserEntry;
                 }
             }
             catch (LdapException ldapException)
@@ -380,10 +381,10 @@ namespace FWO.Middleware.Server
             return null;
         }
 
-        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection)
+        private async Task SearchUserName(string userName, List<LdapEntry> possibleUserEntries, ILdapClient connection, bool exactLogin)
         {
             string[] attrList = ["*", MemberOfLowerCase];
-            string userSearchFilter = GetUserSearchFilter(userName);
+            string userSearchFilter = exactLogin ? GetLoginSearchFilter(userName.Trim()) : GetUserSearchFilter(userName);
 
             // Search for users in ldap with same name as user to validate
             ILdapSearchResults? searchResults = await connection.SearchAsync(
@@ -402,6 +403,19 @@ namespace FWO.Middleware.Server
                     possibleUserEntries.Add(result);
                 }
             }
+        }
+
+        /// <summary>
+        /// Builds an exact filter for the canonical login attribute.
+        /// </summary>
+        private string GetLoginSearchFilter(string userName)
+        {
+            string escapedName = EscapeFilterValue(userName);
+            return Type == (int)LdapType.ActiveDirectory
+                ? $"(&(objectclass=user)(!(objectclass=computer))(sAMAccountName={escapedName}))"
+                : Type == (int)LdapType.OpenLdap
+                    ? $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(uid={escapedName}))"
+                    : $"(&(|(objectclass=user)(objectclass=person)(objectclass=inetOrgPerson)(objectclass=organizationalPerson))(!(objectclass=computer))(|(sAMAccountName={escapedName})(uid={escapedName})))";
         }
 
         /// <summary>

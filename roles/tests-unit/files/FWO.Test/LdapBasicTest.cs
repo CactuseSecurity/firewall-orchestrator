@@ -57,6 +57,63 @@ namespace FWO.Test
             Assert.That(escaped, Is.EqualTo(@"cn=User*\28test\29"));
         }
 
+        [TestCase("*")]
+        [TestCase("a*")]
+        [TestCase(@"a\2a")]
+        [TestCase("a\0")]
+        [TestCase("a(b)")]
+        public async Task Login_RejectsFilterSyntaxBeforeConnecting(string name)
+        {
+            RecordingLdapClient connection = new();
+            global::FWO.Test.TestableLdap ldap = new(connection);
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = name, Password = "secret" }, true);
+
+            Assert.That(entry, Is.Null);
+            Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [Test]
+        public async Task Login_RequiresOneMatchingCanonicalUser()
+        {
+            LdapEntry user = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kUidValues));
+            LdapEntry other = LdapTestSupport.CreateEntry("uid=other,ou=users,dc=example,dc=com", new LdapAttribute("uid", kUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(user, other)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(entry, Is.Null);
+            Assert.That(connection.BindCalls, Is.Empty);
+            Assert.That(connection.SearchCalls[0].Filter, Does.Contain("(uid=user)"));
+        }
+
+        [Test]
+        public async Task Login_BindsOnlyExactCanonicalUser()
+        {
+            LdapEntry user = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(user)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? entry = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(entry, Is.SameAs(user));
+            Assert.That(connection.BindCalls, Has.Count.EqualTo(1));
+            Assert.That(connection.BindCalls[0].User, Is.EqualTo(kUserDn));
+        }
+
         [Test]
         public void AttributeHelpers_ReturnExpectedValuesAndFallbacks()
         {

@@ -601,7 +601,8 @@ namespace FWO.Test
                         return LdapTestSupport.CreateSearchResults(
                             LdapTestSupport.CreateEntry(
                                 "uid=login-user,ou=users,dc=fworch,dc=internal",
-                                new LdapAttribute("cn", kLoginUserCn)));
+                                new LdapAttribute("cn", kLoginUserCn),
+                                new LdapAttribute("uid", kLoginUserCn)));
                     }
 
                     if (baseDn == "ou=roles,dc=fworch,dc=internal")

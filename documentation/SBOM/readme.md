@@ -24,7 +24,11 @@ This creates layered source SBOMs for:
 - Ansible collections from `collections/requirements.yml`
 - a merged `fwo-combined.cdx.json`
 
-The GitHub workflow `.github/workflows/sbom.yml` runs the same source generation for release tags and manual dispatches and uploads the generated SBOM files as workflow artifacts.
+When a GitHub Release with a stable semantic-version tag (`vMAJOR.MINOR.PATCH`
+or `MAJOR.MINOR.PATCH`) is published, `.github/workflows/sbom.yml` runs the
+same source generation from that exact tag and attaches every generated
+CycloneDX file to the release. Pre-releases and non-version release tags are
+skipped.
 
 ### exact installed SBOMs through the installer
 

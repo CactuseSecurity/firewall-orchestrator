@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.5.10 - 29.09.2026
+### 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
@@ -23,6 +23,7 @@
 - Daily reminder checks evaluate whether a notification is due before recording a suppression, so
   non-due reminders do not create audit noise or advance the notification definition's last-sent
   state
+- add upgrade seed for request task sort configuration
 
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only

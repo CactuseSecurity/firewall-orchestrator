@@ -17,6 +17,12 @@
 - auditors see the provisioning settings with all editors disabled
 - the provisioning settings editor is locked while a save is running, and retained Fortinet-only values are shown as
   dormant overrides with an action to clear them after a management or gateway is moved to another device type
+- Interface-request notifications are suppressed for inactive requested owners, incomplete legacy
+  requests and unresolved requesting owners; suppression records include the reason and resolved
+  subject placeholders
+- Daily reminder checks evaluate whether a notification is due before recording a suppression, so
+  non-due reminders do not create audit noise or advance the notification definition's last-sent
+  state
 - add upgrade seed for request task sort configuration
 
 ## 9.5.9 - 28.09.2026

@@ -1,5 +1,5 @@
-query getUserByDn($dn: String!) {
-  uiuser(where: {uuid: {_eq:  $dn } }) {
+query getUserByDn($dn: String!, $ldapConnectionId: bigint!) {
+  uiuser(where: {uuid: {_eq: $dn}, ldap_connection_id: {_eq: $ldapConnectionId}}) {
     uiuser_id
     uuid
     uiuser_username

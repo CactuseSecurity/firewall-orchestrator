@@ -1,5 +1,78 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.10 - 29.09.2026
+- add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
+- add DTOs for hierarchical provisioning configuration
+- add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
+  the provisioning settings per level Global > Device type > Management > Gateway, including a help page
+- provisioning settings are inherited along the current device hierarchy; a management or gateway moved to another
+  device type or management inherits from its new parent levels, and its stored node is moved there on the next save;
+  the settings manager resolves values only along a ProvisioningScopePath built from the current management and
+  gateway objects, never along the stored parent links (guarded by a unit test)
+- restrict Hasura permissions on provisioning_config_node: node identity (id, node_type, object_key) is no longer
+  writable and the global node can no longer be deleted; the database enforces node types and a single global root
+- the provisioning settings page loads all stored nodes with one query and resolves a level with one query for all
+  its parent levels, instead of one query per node or level
+- the placeholder value Undefined of the provisioning setting enums is rejected when storing and reading an override
+- auditors see the provisioning settings with all editors disabled
+- the provisioning settings editor is locked while a save is running, and retained Fortinet-only values are shown as
+  dormant overrides with an action to clear them after a management or gateway is moved to another device type
+- Interface-request notifications are suppressed for inactive requested owners, incomplete legacy
+  requests and unresolved requesting owners; suppression records include the reason and resolved
+  subject placeholders
+- Daily reminder checks evaluate whether a notification is due before recording a suppression, so
+  non-due reminders do not create audit noise or advance the notification definition's last-sent
+  state
+
+## 9.5.9 - 28.09.2026
+- security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only
+  inside the directory that holds it. The same dn in two connected LDAPs therefore resolved to one
+  local user: the login of the second directory's user took over the row of the first one,
+  overwrote its tenant and directory, and received a token for that local subject. A token refresh,
+  a scheduled report and the report and normalized config endpoints could likewise rebuild a user in
+  the wrong directory. A local user is now identified by its LDAP connection and dn (new unique key
+  uiuser_ldap_connection_id_uuid_key replacing uiuser_uuid_key); a user that is already known
+  locally is only authenticated in its own directory and must resolve to the same local user again;
+  the UI loads the session user and the self-service permissions of uiuser match the local user id
+  of the token instead of the dn; and the password change flag is set by local user id.
+  Admin-delegated token requests can select the target's LDAP connection with
+  options.targetLdapId; without it, a target found in multiple directories is rejected instead of
+  silently choosing the first account.
+  The upgrade binds local users that belong to no LDAP connection to their directory where it is
+  unambiguous and lists the remaining ones as a warning: such a user gets a new local user at the
+  next login unless uiuser.ldap_connection_id is set by hand before
+- security fix (SEC-15): the fw-admin role could change tenants, managements and credentials of all
+  tenants: its Hasura permissions had no tenant restriction, and the tenant update endpoint of the
+  middleware (which writes with the middleware's own role) accepted it as well. The role was not
+  assigned by default and is removed from every layer: LDAP, JWT default role, middleware
+  endpoints, Hasura permissions, UI and help texts. The upgrade deletes cn=fw-admin from the
+  internal LDAP and lists its former members in the installer output; they need another role or
+  group where they still need access
+- security fix (SEC-15): deleting credentials a management still used deleted that management with
+  all of its imported data (import credential) or silently unbound them (export credential). Both
+  foreign keys refuse such a deletion now, and the credential settings name the managements that
+  have to get other credentials first, also when removing sample data. A management can still be
+  pointed to another host while keeping its credentials; this is left to the admin role, see
+  documentation/auth/rbac.md
+- security fix (SEC-19): every role reachable from a UI session could list all local users of all
+  tenants together with their dn, tenant, LDAP connection, last login, password flags and password
+  history. Roles other than admin and auditor now see their own user, the users of their tenant, or
+  all users when they belong to tenant0, and of these only id, user name, first and last name, email,
+  dn and language; they see only their own LDAP connection. Their own login time, password change
+  time and password change flag are read through the new self-only computed fields own_last_login,
+  own_last_password_change and own_password_must_be_changed (new query getOwnUser used by UI login,
+  user settings and report generation). The auditor no longer reads the password history. The JWT
+  always carries x-hasura-tenant-id (0 when no tenant could be resolved). In installations with
+  several tenants, a user of one tenant no longer sees the name of a workflow handler, requester or
+  comment author, or the owner of a report, who belongs to another tenant
+
+## 9.5.8 - 28.09.2026
+- REST workflow request creation accepts a `preWorkflowTicketReference` and stores it on the created
+  ticket so integrations can retain the reference to the preceding workflow ticket
+- Harden the versioning workflow: a product version is now sealed by its `vX.Y.Z-dev` or `vX.Y.Z` tag, and the new "Version gate" GitHub action blocks pull requests that would merge onto a sealed version or open a new version before the previous one was sealed
+- The new "Version tag guard" GitHub action reports version tags created on a commit carrying a different `product_version` and merges that landed on an already sealed version
+- The "Version gate" also checks the database upgrade scripts a pull request touches: a script named above `product_version` is never selected by the upgrade play, and one named for a version the base branch has already passed is skipped by every installation that has taken that version, so both are refused. Upgrade scripts must carry a plain `major.minor.patch` name without zero-padded components, scripts of older versions must not be modified, and no script at or below the current version may be deleted
+
 ## 9.5.7 - 28.09.2026
 - security fix (SEC-01): the auditor role could update the columns of its own uiuser row that define
   who the account is - uuid, uiuser_username, tenant_id, ldap_connection_id and the password flags.

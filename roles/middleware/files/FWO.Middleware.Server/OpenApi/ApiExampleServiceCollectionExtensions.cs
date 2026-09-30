@@ -70,6 +70,7 @@ public sealed class CreateRequestRequestExample : ApiExampleProvider<CreateReque
     public override CreateRequestRequest GetExample() => new()
     {
         RequestorName = "Alice Example",
+        PreWorkflowTicketReference = "Ticket-12345",
         RequestorId = "alice",
         RuleContactName = "Bob Approver",
         RuleContactId = "bob",

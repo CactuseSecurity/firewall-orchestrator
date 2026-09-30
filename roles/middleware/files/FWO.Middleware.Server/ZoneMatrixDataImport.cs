@@ -11,6 +11,8 @@ using System.Text.Json;
 using FWO.Basics.Exceptions;
 using NetTools;
 using System.Net;
+using FWO.NetworkTopology;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 
 namespace FWO.Middleware.Server
 {
@@ -56,6 +58,8 @@ namespace FWO.Middleware.Server
         /// </summary>
         private sealed record NetworkZoneDeviceIpRangeInsertInput(int DeviceId, int IpRangeId, int Order);
 
+        /// <summary>A device whose successor towards the root differs between two subnets.</summary>
+        private sealed record RootPathConflict(string Gateway, string? ExpectedParent, string? FoundParent);
         /// <summary>
         /// Run a single Network Zone Matrix Data Import with uploaded data
         /// </summary>
@@ -118,6 +122,7 @@ namespace FWO.Middleware.Server
             CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
             CheckIpData(importedZoneMatrixData, errorList);
+            CheckRootPathsFormTree(importedZoneMatrixData, errorList);
             if (errorList.Count > 0)
             {
                 throw new ArgumentException($"Errors during Matrix import;\n{string.Join("\n", errorList)}");
@@ -266,6 +271,95 @@ namespace FWO.Middleware.Server
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Verifies that all paths to root describe one tree: a gateway may have only one successor
+        /// towards the root. Paths to the internet are not checked, as several routes are intended there.
+        /// </summary>
+        private static void CheckRootPathsFormTree(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        {
+            Dictionary<string, string?> treeAncestors = [];
+            foreach (NetworkZoneData zone in importedZoneMatrixData.NetworkZones)
+            {
+                foreach (ZoneIpRangeData subnet in zone.IpData)
+                {
+                    foreach (RootPathConflict conflict in FindRootPathConflicts(subnet.PathToRoot, treeAncestors))
+                    {
+                        errorList.Add($"Inconsistent path to root for subnet {subnet.Ip} in zone {zone.Name}: " +
+                        $"device {conflict.Gateway} leads to {conflict.FoundParent} but {conflict.ExpectedParent} was expected.");
+                    }
+                }
+            }
+            foreach (List<string> cycle in FindRootPathCycles(treeAncestors))
+            {
+                errorList.Add($"A path to root contains a cycle: {string.Join(" -> ", cycle)}");
+            }
+        }
+
+        /// <summary>
+        /// Registers the successor towards the root of every device, the last device on the path has successor null.
+        /// Reports the gateways whose successor contradicts a path processed earlier.
+        /// </summary>
+        private static List<RootPathConflict> FindRootPathConflicts(List<DeviceRefData> pathToRoot, Dictionary<string, string?> treeAncestors)
+        {
+            List<RootPathConflict> conflicts = [];
+            for (int index = 0; index < pathToRoot.Count; index++)
+            {
+                string? ancestor = null;
+                string device = DeviceNameResolver.Describe(pathToRoot[index].MgmtName, pathToRoot[index].DeviceName);
+                if (index + 1 < pathToRoot.Count)
+                {
+                    ancestor = DeviceNameResolver.Describe(pathToRoot[index + 1].MgmtName, pathToRoot[index + 1].DeviceName);
+                }
+                if (!treeAncestors.TryGetValue(device, out string? knownAncestor))
+                {
+                    treeAncestors[device] = ancestor;
+                }
+                else if (knownAncestor != ancestor)
+                {
+                    conflicts.Add(new RootPathConflict(
+                        Gateway: device,
+                        ExpectedParent: knownAncestor,
+                        FoundParent: ancestor
+                        ));
+                }
+            }
+            return conflicts;
+        }
+
+        /// <summary>
+        /// Finds cycles among the gateway successors collected by <see cref="FindRootPathConflicts"/>.
+        /// A returned list begins at the gateway its walk started from, so it can carry a run-in before
+        /// the repeating part.
+        /// </summary>
+        private static List<List<string>> FindRootPathCycles(Dictionary<string, string?> treeAncestors)
+        {
+            List<List<string>> cycles = [];
+            HashSet<string> settled = [];
+            foreach (string start in treeAncestors.Keys)
+            {
+                if (settled.Contains(start))
+                {
+                    continue;
+                }
+
+                string? current = start;
+                List<string> currentWalk = [];
+                while (current is not null && !settled.Contains(current))
+                {
+                    if (currentWalk.Contains(current))
+                    {
+                        currentWalk.Add(current);
+                        cycles.Add(currentWalk);
+                        break;
+                    }
+                    currentWalk.Add(current);
+                    current = treeAncestors[current];
+                }
+                settled.UnionWith(currentWalk);
+            }
+            return cycles;
         }
 
         /// <summary>

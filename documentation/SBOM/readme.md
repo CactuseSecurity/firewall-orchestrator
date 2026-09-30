@@ -33,7 +33,9 @@ same source generation from that exact tag and attaches every generated
 CycloneDX file to the release. Pre-releases and non-version release tags are
 skipped. To (re)attach the SBOMs of an existing stable release, run the
 workflow manually (*Actions* > *Publish release SBOM* > *Run workflow*) with the
-release tag as input.
+release tag as input. The workflow runs the generator from that tag, so this only
+works for releases that already contain `scripts/sbom/generate_sbom.py`; for older
+releases the job fails.
 
 ### exact installed SBOMs through the installer
 

@@ -40,7 +40,9 @@ PURL_QUALIFIER_SAFE_CHARS = ":/"
 # into the purl qualifier instead. ${db:Status-Abbrev} is <desired><state><error>, e.g. "ii " or "rc ".
 DPKG_QUERY_FORMAT = "${db:Status-Abbrev}\t${Package}\t${Version}\t${Architecture}\n"
 DPKG_STATE_INDEX = 1
-DPKG_STATE_INSTALLED = "i"
+# not-installed (n) and config-files (c) leave no package files on disk; every other state - installed,
+# unpacked, half-configured, half-installed, triggers-awaited/-pending - does, so those stay in the SBOM
+DPKG_STATES_WITHOUT_FILES = frozenset({"n", "c"})
 RPM_QUERY_FORMAT = "%{NAME}\t%|EPOCH?{%{EPOCH}}:{0}|\t%{VERSION}-%{RELEASE}\t%{ARCH}\n"
 RPM_EMPTY_EPOCHS = frozenset({"", "0", "(none)"})
 UNKNOWN_DISTRO_ID = "unknown"
@@ -287,8 +289,7 @@ def components_from_dpkg(distro_id: str, distro: str) -> list[Component]:
     components: list[Component] = []
     for line in output.splitlines():
         status, name, version, architecture = line.split("\t", 3)
-        if status[DPKG_STATE_INDEX : DPKG_STATE_INDEX + 1] != DPKG_STATE_INSTALLED:
-            # removed packages whose configuration files remain (rc) and half-installed ones are not installed
+        if status[DPKG_STATE_INDEX : DPKG_STATE_INDEX + 1] in DPKG_STATES_WITHOUT_FILES:
             continue
         components.append(
             Component(

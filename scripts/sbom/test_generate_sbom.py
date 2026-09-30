@@ -146,14 +146,30 @@ def test_components_from_dpkg() -> None:
     assert components[2].purl == "pkg:deb/ubuntu/libstdc%2B%2B6@1:14.2.0-19?arch=amd64&distro=ubuntu-24.04"
 
 
-def test_components_from_dpkg_skips_packages_that_are_not_installed() -> None:
+def test_components_from_dpkg_skips_only_packages_without_files_on_disk() -> None:
     def fake_run_command(_command: Sequence[str]) -> str:
-        return "rc \told-kernel\t6.1.0-1\tamd64\niU \thalf-configured\t1.0\tamd64\niHR\tbroken\t1.0\tamd64\nii \tcurl\t8.0.1-1\tamd64\n"
+        return (
+            "rc \told-kernel\t6.1.0-1\tamd64\n"
+            "un \tpurged\t\tamd64\n"
+            "iU \tunpacked\t1.0\tamd64\n"
+            "iF \thalf-configured\t1.0\tamd64\n"
+            "iHR\thalf-installed\t1.0\tamd64\n"
+            "iW \ttriggers-awaited\t1.0\tamd64\n"
+            "it \ttriggers-pending\t1.0\tamd64\n"
+            "ii \tcurl\t8.0.1-1\tamd64\n"
+        )
 
     with patch.object(generate_sbom, "run_command", fake_run_command):
         components = generate_sbom.components_from_dpkg("debian", "debian-13")
 
-    assert [component.name for component in components] == ["curl"]
+    assert [component.name for component in components] == [
+        "unpacked",
+        "half-configured",
+        "half-installed",
+        "triggers-awaited",
+        "triggers-pending",
+        "curl",
+    ]
 
 
 def test_components_from_dpkg_keeps_arch_out_of_multiarch_package_names() -> None:

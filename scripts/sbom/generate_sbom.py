@@ -36,7 +36,11 @@ PROPERTY_REFERENCE_PLATFORM = "fwo:reference-platform"
 PROPERTY_VALUE_SEPARATOR = "; "
 PURL_SAFE_CHARS = ":"
 PURL_QUALIFIER_SAFE_CHARS = ":/"
-DPKG_QUERY_FORMAT = "${binary:Package}\t${Version}\t${Architecture}\n"
+# ${Package} instead of ${binary:Package}: the latter appends ":<arch>" on multiarch hosts, the arch goes
+# into the purl qualifier instead. ${db:Status-Abbrev} is <desired><state><error>, e.g. "ii " or "rc ".
+DPKG_QUERY_FORMAT = "${db:Status-Abbrev}\t${Package}\t${Version}\t${Architecture}\n"
+DPKG_STATE_INDEX = 1
+DPKG_STATE_INSTALLED = "i"
 RPM_QUERY_FORMAT = "%{NAME}\t%|EPOCH?{%{EPOCH}}:{0}|\t%{VERSION}-%{RELEASE}\t%{ARCH}\n"
 RPM_EMPTY_EPOCHS = frozenset({"", "0", "(none)"})
 UNKNOWN_DISTRO_ID = "unknown"
@@ -282,7 +286,10 @@ def components_from_dpkg(distro_id: str, distro: str) -> list[Component]:
     output = run_command(["dpkg-query", "-W", f"-f={DPKG_QUERY_FORMAT}"])
     components: list[Component] = []
     for line in output.splitlines():
-        name, version, architecture = line.split("\t", 2)
+        status, name, version, architecture = line.split("\t", 3)
+        if status[DPKG_STATE_INDEX : DPKG_STATE_INDEX + 1] != DPKG_STATE_INSTALLED:
+            # removed packages whose configuration files remain (rc) and half-installed ones are not installed
+            continue
         components.append(
             Component(
                 name=name,

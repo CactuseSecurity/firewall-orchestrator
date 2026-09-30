@@ -132,7 +132,7 @@ def test_components_from_ansible_requirements_handles_missing_file(tmp_path: Pat
 
 def test_components_from_dpkg() -> None:
     def fake_run_command(_command: Sequence[str]) -> str:
-        return "curl\t8.0.1-1\tamd64\npython3\t3.11.2-1\tall\nlibstdc++6\t1:14.2.0-19\tamd64\n"
+        return "ii \tcurl\t8.0.1-1\tamd64\nii \tpython3\t3.11.2-1\tall\nhi \tlibstdc++6\t1:14.2.0-19\tamd64\n"
 
     with patch.object(generate_sbom, "run_command", fake_run_command):
         components = generate_sbom.components_from_dpkg("ubuntu", "ubuntu-24.04")
@@ -144,6 +144,31 @@ def test_components_from_dpkg() -> None:
     ]
     assert components[0].purl == "pkg:deb/ubuntu/curl@8.0.1-1?arch=amd64&distro=ubuntu-24.04"
     assert components[2].purl == "pkg:deb/ubuntu/libstdc%2B%2B6@1:14.2.0-19?arch=amd64&distro=ubuntu-24.04"
+
+
+def test_components_from_dpkg_skips_packages_that_are_not_installed() -> None:
+    def fake_run_command(_command: Sequence[str]) -> str:
+        return "rc \told-kernel\t6.1.0-1\tamd64\niU \thalf-configured\t1.0\tamd64\niHR\tbroken\t1.0\tamd64\nii \tcurl\t8.0.1-1\tamd64\n"
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        components = generate_sbom.components_from_dpkg("debian", "debian-13")
+
+    assert [component.name for component in components] == ["curl"]
+
+
+def test_components_from_dpkg_keeps_arch_out_of_multiarch_package_names() -> None:
+    def fake_run_command(command: Sequence[str]) -> str:
+        assert "${Package}" in command[2]
+        assert "${binary:Package}" not in command[2]
+        return "ii \tlibc6\t2.41-12\tamd64\nii \tlibc6\t2.41-12\ti386\n"
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        components = generate_sbom.components_from_dpkg("debian", "debian-13")
+
+    assert [component.purl for component in components] == [
+        "pkg:deb/debian/libc6@2.41-12?arch=amd64&distro=debian-13",
+        "pkg:deb/debian/libc6@2.41-12?arch=i386&distro=debian-13",
+    ]
 
 
 def test_components_from_rpm_reads_epoch_as_qualifier() -> None:

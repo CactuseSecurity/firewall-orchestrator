@@ -9,6 +9,7 @@ using FWO.Data.Report;
 using FWO.Middleware.Server;
 using FWO.Report;
 using FWO.Report.Filter;
+using FWO.Services;
 using System.IO;
 using System.Reflection;
 using FWO.Test.Helpers;
@@ -32,6 +33,9 @@ namespace FWO.Test
         private static readonly NotificationDeadline[] kInterfaceRequestDeadlines = [NotificationDeadline.None, NotificationDeadline.RequestDate];
         private static readonly Type[] kCollectRecipientsParameterTypes =
             [typeof(FwoNotification), typeof(FwoOwner), typeof(UiUser), typeof(bool), typeof(bool)];
+        private static readonly List<UserGroup> kNoOwnerGroups = [];
+        private static readonly (int Id, NotificationLogStatus Status, string Error)[] kSuppressedNotificationUpdate =
+            [(1, NotificationLogStatus.Suppressed, "Requested owner is not active.")];
 
         [SetUp]
         public void ResetApiConnectionState()
@@ -75,7 +79,7 @@ namespace FWO.Test
         public async Task SendNotification_SkipsInactiveNotification()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, kNoOwnerGroups);
             FwoNotification notification = notificationService.Notifications[0];
             notification.Active = false;
 
@@ -88,7 +92,7 @@ namespace FWO.Test
         public async Task UpdateNotificationsLastSent_MixedResultsUpdatesOnlyDeliveredNotification()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, kNoOwnerGroups);
             FwoNotification deliveredNotification = notificationService.Notifications[0];
             FwoNotification failedNotification = notificationService.Notifications[1];
             NotificationDeliveryResult deliveredResult = NotificationDeliveryResult.Delivered;
@@ -115,7 +119,7 @@ namespace FWO.Test
         public async Task SendBundledNotifications_SkipsInactiveNotifications()
         {
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.InterfaceRequest, globalConfig, apiConnection, []);
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, kNoOwnerGroups);
             FwoNotification notification = notificationService.Notifications[0];
             notification.Active = false;
 
@@ -607,11 +611,53 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task LogSuppressedNotification_LogsReasonAndResolvedSubject()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, kNoOwnerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendAndLog;
+            notification.EmailSubject = $"{Placeholder.APPNAME} - {Placeholder.REQUESTING_APPNAME} - {Placeholder.REQUESTER}";
+            FwoOwner owner = new() { Name = "Requested application", ExtAppId = "APP-1" };
+            NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues = new()
+            {
+                Application = owner,
+                RequestingOwner = new FwoOwner { Name = "Requesting application", ExtAppId = "APP-2" },
+                RequesterName = "Requester"
+            };
+
+            await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.", owner,
+                placeholderValues);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.NotificationLogEntries, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.NotificationLogEntries[0].Subject,
+                    Is.EqualTo("Requested application - Requesting application - Requester"));
+                Assert.That(apiConnection.NotificationLogUpdates,
+                    Is.EqualTo(kSuppressedNotificationUpdate));
+            });
+        }
+
+        [Test]
+        public async Task LogSuppressedNotification_DoesNotLogSendOnlyNotification()
+        {
+            NotificationService notificationService = await NotificationService.CreateAsync(
+                NotificationClient.InterfaceRequest, globalConfig, apiConnection, kNoOwnerGroups);
+            FwoNotification notification = notificationService.Notifications[0];
+            notification.Logging = NotificationLoggingMode.SendOnly;
+
+            await notificationService.LogSuppressedNotification(notification, "Requested owner is not active.");
+
+            Assert.That(apiConnection.NotificationLogEntries, Is.Empty);
+        }
+
+        [Test]
         public async Task SendNotification_NoRecipientsMatchesExactNonNullDeadline()
         {
             SimulatedGlobalConfig localConfig = new() { UseDummyEmailAddress = false };
             NotificationService notificationService = await NotificationService.CreateAsync(
-                NotificationClient.InterfaceRequest, localConfig, apiConnection, []);
+                NotificationClient.InterfaceRequest, localConfig, apiConnection, kNoOwnerGroups);
             FwoNotification notification = notificationService.Notifications[0];
             notification.Logging = NotificationLoggingMode.SendAndLog;
             notification.RecipientTo = EmailRecipientOption.None;

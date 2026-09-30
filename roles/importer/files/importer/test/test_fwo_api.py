@@ -30,6 +30,7 @@ TEST_JWT = "jwt-secret"
 SIMPLE_QUERY = "query getStuff { stuff { id } }"
 CHUNKED_QUERY = "query getRulesByUidsForMgm($mgmId: Int!, $ruleUids: [String!]) { firewall_rule(where: {mgm_id: {_eq: $mgmId}, rule_uid: {_in: $ruleUids}}) { rule_id rule_uid } }"
 CHUNKED_MUTATION = "mutation insertRules($rules: [rule_insert_input!]!) { insert_rule(objects: $rules) { affected_rows returning { rule_id } } }"
+CHUNKED_MANY_MUTATION = "mutation updateChangelogRuleEntries($updates: [changelog_rule_updates!]!) { update_changelog_rule_many(updates: $updates) { affected_rows } }"
 HTTP_UNAUTHORIZED = 401
 HTTP_BAD_GATEWAY = 502
 HTTP_SERVICE_UNAVAILABLE = 503
@@ -173,6 +174,25 @@ class TestFwoApiCall:
             {"rule_id": 2, "rule_uid": "u1000"},
         ]
 
+    def test_call_chunks_large_many_mutation_and_keeps_results_of_all_chunks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        total_updates = API_CALL_CHUNK_SIZE + 1
+        first_chunk = {"data": {"update_changelog_rule_many": [{"affected_rows": 1}] * API_CALL_CHUNK_SIZE}}
+        second_chunk = {"data": {"update_changelog_rule_many": [{"affected_rows": 1}]}}
+        session = _FakeSession([_FakeResponse(payload=first_chunk), _FakeResponse(payload=second_chunk)])
+        _patch_session(monkeypatch, session)
+        updates = [
+            {"where": {"log_rule_id": {"_eq": index}}, "_set": {"old_rule_id": index}} for index in range(total_updates)
+        ]
+
+        result = FwoApi(API_URL, TEST_JWT).call(CHUNKED_MANY_MUTATION, {"updates": updates}, analyze_payload=True)
+
+        assert len(session.requests) == 2
+        many_results: list[dict[str, int]] = result["data"]["update_changelog_rule_many"]
+        assert isinstance(many_results, list)
+        assert sum(update["affected_rows"] for update in many_results) == total_updates
+
     def test_call_maps_http_503_to_service_unavailable(self, monkeypatch: pytest.MonkeyPatch) -> None:
         _patch_session(monkeypatch, _FakeSession([_FakeResponse(status_code=HTTP_SERVICE_UNAVAILABLE)]))
 
@@ -232,16 +252,19 @@ class TestFwoApiChunkedResponseHandling:
         assert result is return_object
         assert mock_warning.call_count == 2
 
-    def test_list_responses_are_summed_and_returning_data_accumulated(self) -> None:
-        return_object: dict[str, Any] = {"data": {"insert_rule": None}}
-        new_data = [{"affected_rows": 2, "returning": [{"id": 1}]}, {"affected_rows": 3, "returning": [{"id": 2}]}]
+    def test_many_mutation_results_of_later_chunks_are_appended(self) -> None:
+        return_object: dict[str, Any] = {"data": {"update_rule_many": [{"affected_rows": 1, "returning": [{"id": 1}]}]}}
+        new_data = [{"affected_rows": 2, "returning": [{"id": 2}]}, {"affected_rows": 3, "returning": [{"id": 3}]}]
 
-        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response_with_return_data(
-            return_object, "insert_rule", new_data
+        FwoApi(API_URL, TEST_JWT)._handle_chunked_calls_response(
+            return_object, {"data": {"update_rule_many": new_data}}
         )
 
-        assert return_object["data"]["insert_rule"]["affected_rows"] == 5
-        assert return_object["data"]["insert_rule"]["returning"] == [{"id": 1}, {"id": 2}]
+        assert return_object["data"]["update_rule_many"] == [
+            {"affected_rows": 1, "returning": [{"id": 1}]},
+            {"affected_rows": 2, "returning": [{"id": 2}]},
+            {"affected_rows": 3, "returning": [{"id": 3}]},
+        ]
 
     def test_query_rows_of_later_chunks_are_appended(self) -> None:
         return_object: dict[str, Any] = {"data": {"firewall_rule": [{"rule_id": 1}]}}

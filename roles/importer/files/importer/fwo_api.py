@@ -354,15 +354,13 @@ class FwoApi:
     def _handle_chunked_calls_response_with_return_data(
         self, return_object: dict[str, Any], new_return_object_type: str, new_return_object: dict[str, Any] | list[Any]
     ) -> None:
-        total_affected_rows = 0
-        returning_data: list[dict[str, Any]] = []
-
         self._try_write_extended_log(
             message=f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}"
         )
 
-        if isinstance(new_return_object, list) and not self._is_mutation_result_list(new_return_object):
-            self._merge_chunked_query_rows(return_object, new_return_object_type, new_return_object)
+        # list-valued fields (query rows or the per-update results of *_many mutations) keep the unchunked shape
+        if isinstance(new_return_object, list):
+            self._merge_chunked_list_results(return_object, new_return_object_type, new_return_object)
             return
 
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
@@ -374,14 +372,8 @@ class FwoApi:
                 message=f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}"
             )
 
-        # If the return object is a list we need to sum the affected rows and accumuluate the returning data, else we can set the values directly.
-
-        if isinstance(new_return_object, list):
-            returning_data = [row for obj in new_return_object for row in obj.get("returning", [])]
-            total_affected_rows = sum(obj.get("affected_rows", 0) for obj in new_return_object)
-        else:
-            total_affected_rows = new_return_object.get("affected_rows", 0)
-            returning_data = new_return_object.get("returning", [])
+        total_affected_rows: int = new_return_object.get("affected_rows", 0)
+        returning_data: list[dict[str, Any]] = new_return_object.get("returning", [])
 
         return_object["data"][new_return_object_type]["affected_rows"] += total_affected_rows
 
@@ -392,20 +384,11 @@ class FwoApi:
 
             return_object["data"][new_return_object_type]["returning"].extend(returning_data)
 
-    @staticmethod
-    def _is_mutation_result_list(new_return_object: list[Any]) -> bool:
-        """
-        Tells whether a list holds mutation results (affected_rows/returning) rather than query result rows.
-        """
-        return len(new_return_object) > 0 and all(
-            isinstance(obj, dict) and "affected_rows" in obj for obj in new_return_object
-        )
-
-    def _merge_chunked_query_rows(
+    def _merge_chunked_list_results(
         self, return_object: dict[str, Any], new_return_object_type: str, new_rows: list[Any]
     ) -> None:
         """
-        Appends the result rows of a chunked query to the rows of the previous chunks.
+        Appends the list-valued result of a chunk to the list of the previous chunks.
         """
         existing_rows: Any = return_object["data"].get(new_return_object_type)
         if isinstance(existing_rows, list):

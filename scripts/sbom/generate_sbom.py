@@ -11,25 +11,35 @@ import subprocess
 import sys
 import uuid
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import quote
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
 
 CYCLONEDX_VERSION = "1.5"
 DEFAULT_OUTPUT_DIR = Path("documentation/SBOM/generated")
 REFERENCE_PLATFORM = "debian-testing"
 COMBINED_BOM_FILENAME = "fwo-combined.cdx.json"
 DETAILS_DIR_NAME = "fwo-sbom-details"
+OS_RELEASE_PATH = Path("/etc/os-release")
 REQUIREMENT_SPLIT_RE = re.compile(r"\s*(===|==|~=|!=|<=|>=|<|>)\s*")
 PACKAGE_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]+")
+DISTRO_ID_INVALID_CHARS_RE = re.compile(r"[^a-z0-9._-]")
 VERSION_REQUIREMENT_PARTS = 3
 PROPERTY_SOURCE = "fwo:source"
 PROPERTY_MODE = "fwo:mode"
 PROPERTY_REFERENCE_PLATFORM = "fwo:reference-platform"
+PROPERTY_VALUE_SEPARATOR = "; "
+PURL_SAFE_CHARS = ":"
+PURL_QUALIFIER_SAFE_CHARS = ":/"
+DPKG_QUERY_FORMAT = "${binary:Package}\t${Version}\t${Architecture}\n"
+RPM_QUERY_FORMAT = "%{NAME}\t%|EPOCH?{%{EPOCH}}:{0}|\t%{VERSION}-%{RELEASE}\t%{ARCH}\n"
+RPM_EMPTY_EPOCHS = frozenset({"", "0", "(none)"})
+UNKNOWN_DISTRO_ID = "unknown"
 
 JsonObject = dict[str, object]
 
@@ -47,11 +57,14 @@ class Component:
     def key(self) -> tuple[str, str, str]:
         return self.name, self.version or "", self.purl or ""
 
+    def bom_ref(self) -> str:
+        return self.purl or f"{self.component_type}:{self.name}:{self.version or 'unknown'}"
+
     def to_cyclonedx(self) -> dict[str, Any]:
         component: dict[str, Any] = {
             "type": self.component_type,
             "name": self.name,
-            "bom-ref": self.purl or f"{self.component_type}:{self.name}:{self.version or 'unknown'}",
+            "bom-ref": self.bom_ref(),
         }
         if self.version:
             component["version"] = self.version
@@ -84,11 +97,49 @@ def json_list(value: Any) -> list[object] | None:
     return cast("list[object]", value)
 
 
+def build_purl(
+    purl_type: str, namespace: str | None, name: str, version: str | None, qualifiers: dict[str, str] | None = None
+) -> str:
+    """Build a package URL with percent-encoded components and sorted, non-empty qualifiers."""
+    path = quote(name, safe=PURL_SAFE_CHARS)
+    if namespace:
+        path = f"{quote(namespace, safe=PURL_SAFE_CHARS)}/{path}"
+    purl = f"pkg:{purl_type}/{path}"
+    if version:
+        purl = f"{purl}@{quote(version, safe=PURL_SAFE_CHARS)}"
+    qualifier_text = "&".join(
+        f"{key}={quote(value, safe=PURL_QUALIFIER_SAFE_CHARS)}"
+        for key, value in sorted((qualifiers or {}).items())
+        if value
+    )
+    return f"{purl}?{qualifier_text}" if qualifier_text else purl
+
+
+def deduplicate_components(components: Iterable[Component]) -> list[Component]:
+    """
+    Collapse components sharing a bom-ref, which CycloneDX requires to be unique within a BOM.
+
+    Property values of the collapsed components are kept, joined in sorted order.
+    """
+    merged: dict[str, tuple[Component, dict[str, set[str]]]] = {}
+    for component in components:
+        _, property_values = merged.setdefault(component.bom_ref(), (component, {}))
+        for key, value in component.properties.items():
+            property_values.setdefault(key, set()).add(value)
+    return [
+        replace(
+            component,
+            properties={key: PROPERTY_VALUE_SEPARATOR.join(sorted(values)) for key, values in property_values.items()},
+        )
+        for component, property_values in merged.values()
+    ]
+
+
 def write_bom(
     output_dir: Path, filename: str, name: str, components: Iterable[Component], properties: dict[str, str]
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    sorted_components = sorted(components, key=lambda component: component.key())
+    sorted_components = sorted(deduplicate_components(components), key=lambda component: component.key())
     bom = {
         "bomFormat": "CycloneDX",
         "specVersion": CYCLONEDX_VERSION,
@@ -108,7 +159,7 @@ def write_bom(
 
 def parse_requirement_line(line: str, source: str) -> Component | None:
     clean_line = line.split("#", 1)[0].strip()
-    if not clean_line or clean_line.startswith(("-", "--")):
+    if not clean_line or clean_line.startswith("-"):
         return None
     clean_line = clean_line.split(";", 1)[0].strip()
     package_match = PACKAGE_NAME_RE.match(clean_line)
@@ -204,8 +255,31 @@ def ansible_component(name: str, version: str | None, source: Path) -> Component
     )
 
 
-def components_from_dpkg() -> list[Component]:
-    output = run_command(["dpkg-query", "-W", "-f=${binary:Package}\t${Version}\t${Architecture}\n"])
+def read_os_release(os_release_path: Path = OS_RELEASE_PATH) -> dict[str, str]:
+    if not os_release_path.exists():
+        return {}
+    values: dict[str, str] = {}
+    for line in os_release_path.read_text(encoding="utf-8").splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip().strip('"')
+    return values
+
+
+def os_distro_id(os_release: dict[str, str]) -> str:
+    """Return the os-release ID, reduced to characters safe for purl namespaces and file names."""
+    distro_id = DISTRO_ID_INVALID_CHARS_RE.sub("-", os_release.get("ID", "").lower())
+    return distro_id or UNKNOWN_DISTRO_ID
+
+
+def os_distro_qualifier(os_release: dict[str, str]) -> str:
+    """Return the purl distro qualifier, e.g. debian-13, ubuntu-24.04 or debian-forky for Debian testing."""
+    distro_version = os_release.get("VERSION_ID") or os_release.get("VERSION_CODENAME") or ""
+    return f"{os_distro_id(os_release)}-{distro_version}" if distro_version else os_distro_id(os_release)
+
+
+def components_from_dpkg(distro_id: str, distro: str) -> list[Component]:
+    output = run_command(["dpkg-query", "-W", f"-f={DPKG_QUERY_FORMAT}"])
     components: list[Component] = []
     for line in output.splitlines():
         name, version, architecture = line.split("\t", 2)
@@ -214,62 +288,138 @@ def components_from_dpkg() -> list[Component]:
                 name=name,
                 version=version,
                 component_type="operating-system",
-                purl=f"pkg:deb/debian/{name}@{version}?arch={architecture}",
+                purl=build_purl("deb", distro_id, name, version, {"arch": architecture, "distro": distro}),
                 properties={"fwo:architecture": architecture},
             )
         )
     return components
 
 
-def os_release_properties() -> dict[str, str]:
+def components_from_rpm(distro_id: str, distro: str) -> list[Component]:
+    output = run_command(["rpm", "-qa", "--queryformat", RPM_QUERY_FORMAT])
+    components: list[Component] = []
+    for line in output.splitlines():
+        name, epoch, version, architecture = line.split("\t", 3)
+        qualifiers = {"arch": architecture, "distro": distro}
+        if epoch not in RPM_EMPTY_EPOCHS:
+            qualifiers["epoch"] = epoch
+        components.append(
+            Component(
+                name=name,
+                version=version,
+                component_type="operating-system",
+                purl=build_purl("rpm", distro_id, name, version, qualifiers),
+                properties={"fwo:architecture": architecture},
+            )
+        )
+    return components
+
+
+OS_PACKAGE_BACKENDS: list[Callable[[str, str], list[Component]]] = [components_from_dpkg, components_from_rpm]
+
+
+def run_os_package_backend(
+    backend: Callable[[str, str], list[Component]], distro_id: str, distro: str
+) -> list[Component] | None:
+    """Run one package manager backend, returning None when its query tool is not installed."""
+    try:
+        return backend(distro_id, distro)
+    except FileNotFoundError:
+        return None
+
+
+def components_from_os_packages(os_release: dict[str, str]) -> list[Component] | None:
+    """Return the installed OS packages from the first available package manager, or None if there is none."""
+    distro_id = os_distro_id(os_release)
+    distro = os_distro_qualifier(os_release)
+    for backend in OS_PACKAGE_BACKENDS:
+        if (components := run_os_package_backend(backend, distro_id, distro)) is not None:
+            return components
+    return None
+
+
+def os_release_properties(os_release: dict[str, str]) -> dict[str, str]:
     properties = {
         PROPERTY_REFERENCE_PLATFORM: REFERENCE_PLATFORM,
         "fwo:generator-host": platform.node(),
         "fwo:generator-system": platform.platform(),
     }
-    os_release = Path("/etc/os-release")
-    if os_release.exists():
-        for line in os_release.read_text(encoding="utf-8").splitlines():
-            if "=" in line:
-                key, value = line.split("=", 1)
-                properties[f"os-release:{key}"] = value.strip('"')
+    properties.update({f"os-release:{key}": value for key, value in os_release.items()})
     return properties
 
 
-def component_from_container_inspect(runtime: str, image_or_container: str) -> Component | None:
+def inspect_first_item(runtime: str, object_type: str, reference: str) -> JsonObject | None:
     try:
-        output = run_command([runtime, "image", "inspect", image_or_container])
+        output = run_command([runtime, object_type, "inspect", reference])
     except (FileNotFoundError, subprocess.CalledProcessError):
-        try:
-            output = run_command([runtime, "container", "inspect", image_or_container])
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            return None
-    data: object = json.loads(output)
-    items = json_list(data)
-    if not items:
         return None
-    item = json_object(items[0])
-    if item is None:
-        return None
-    repo_digests_raw: object = item.get("RepoDigests") or []
-    repo_digests: list[str] = []
-    if (digest_items := json_list(repo_digests_raw)) is not None:
-        repo_digests = [str(digest) for digest in digest_items]
-    image_id = str(item.get("Id", ""))
-    version = (
-        repo_digests[0].split("@", 1)[1]
-        if repo_digests and "@" in repo_digests[0]
-        else image_id.removeprefix("sha256:")
-    )
-    if not version:
+    items = json_list(json.loads(output))
+    return json_object(items[0]) if items else None
+
+
+def container_image_reference(container_item: JsonObject) -> str | None:
+    """Return the image reference a container was created from (podman: ImageName, docker: Config.Image)."""
+    image_name = container_item.get("ImageName")
+    if isinstance(image_name, str) and image_name:
+        return image_name
+    config = json_object(container_item.get("Config"))
+    config_image = config.get("Image") if config is not None else None
+    return config_image if isinstance(config_image, str) and config_image else None
+
+
+def split_image_reference(image_reference: str) -> tuple[str, str | None]:
+    """Split an image reference into repository and tag, dropping any digest."""
+    repository = image_reference.split("@", 1)[0]
+    tag_separator = repository.rfind(":")
+    if tag_separator > repository.rfind("/"):
+        return repository[:tag_separator], repository[tag_separator + 1 :]
+    return repository, None
+
+
+def image_digest(image_item: JsonObject, repository: str) -> str:
+    """Return the repository digest of an image, falling back to its local image ID."""
+    digests = [str(digest) for digest in json_list(image_item.get("RepoDigests")) or [] if "@" in str(digest)]
+    matching_digests = [digest for digest in digests if digest.split("@", 1)[0] == repository] or digests
+    if matching_digests:
+        return matching_digests[0].split("@", 1)[1]
+    image_id = str(image_item.get("Id", ""))
+    return image_id if not image_id or image_id.startswith("sha256:") else f"sha256:{image_id}"
+
+
+def component_from_image_item(
+    runtime: str, image_reference: str, image_item: JsonObject, properties: dict[str, str]
+) -> Component | None:
+    repository, tag = split_image_reference(image_reference)
+    digest = image_digest(image_item, repository)
+    if not digest:
         return None
     return Component(
-        name=image_or_container,
-        version=version,
+        name=repository,
+        version=digest,
         component_type="container",
-        purl=f"pkg:oci/{image_or_container}@{version}" if version else None,
-        properties={"fwo:container-runtime": runtime},
+        purl=build_purl(
+            "oci", None, repository.rsplit("/", 1)[-1].lower(), digest, {"repository_url": repository, "tag": tag or ""}
+        ),
+        properties={"fwo:container-runtime": runtime} | properties,
     )
+
+
+def component_from_container_inspect(runtime: str, image_or_container: str) -> Component | None:
+    """Describe an image, or the image a container runs, as a component identified by its digest."""
+    image_item = inspect_first_item(runtime, "image", image_or_container)
+    if image_item is not None:
+        return component_from_image_item(runtime, image_or_container, image_item, {})
+    container_item = inspect_first_item(runtime, "container", image_or_container)
+    if container_item is None:
+        return None
+    image_reference = container_image_reference(container_item)
+    image_id = container_item.get("Image")
+    if image_reference is None or not isinstance(image_id, str) or not image_id:
+        return None
+    image_item = inspect_first_item(runtime, "image", image_id)
+    if image_item is None:
+        return None
+    return component_from_image_item(runtime, image_reference, image_item, {"fwo:container-name": image_or_container})
 
 
 def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> list[Path]:
@@ -307,17 +457,30 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
     ]
 
 
+def os_package_bom(output_dir: Path, os_release: dict[str, str], properties: dict[str, str]) -> Path | None:
+    components = components_from_os_packages(os_release)
+    if components is None:
+        sys.stderr.write("Neither dpkg-query nor rpm is available, skipping the operating system SBOM layer.\n")
+        return None
+    distro_id = os_distro_id(os_release)
+    return write_bom(
+        output_dir,
+        f"fwo-os-{distro_id}.cdx.json",
+        f"Firewall Orchestrator {os_release.get('PRETTY_NAME') or distro_id} Host",
+        components,
+        properties,
+    )
+
+
 def installed_boms(output_dir: Path, reference_platform: str, container: str | None) -> list[Path]:
-    properties = os_release_properties() | {PROPERTY_MODE: "installed", PROPERTY_REFERENCE_PLATFORM: reference_platform}
-    written = [
-        write_bom(
-            output_dir,
-            "fwo-os-debian-testing.cdx.json",
-            "Firewall Orchestrator Debian Testing Host",
-            components_from_dpkg(),
-            properties,
-        )
-    ]
+    os_release = read_os_release()
+    properties = os_release_properties(os_release) | {
+        PROPERTY_MODE: "installed",
+        PROPERTY_REFERENCE_PLATFORM: reference_platform,
+    }
+    written: list[Path] = []
+    if (os_bom := os_package_bom(output_dir, os_release, properties)) is not None:
+        written.append(os_bom)
     container_components = [
         component
         for runtime in ("podman", "docker")
@@ -338,15 +501,11 @@ def installed_boms(output_dir: Path, reference_platform: str, container: str | N
 
 
 def merge_boms(output_dir: Path, bom_paths: Iterable[Path], reference_platform: str) -> Path:
-    components_by_key: dict[tuple[str, str, str], Component] = {}
-    for bom_path in bom_paths:
-        for component in components_from_bom_path(bom_path):
-            components_by_key[component.key()] = component
     return write_bom(
         output_dir,
         COMBINED_BOM_FILENAME,
         "Firewall Orchestrator",
-        components_by_key.values(),
+        [component for bom_path in bom_paths for component in components_from_bom_path(bom_path)],
         {PROPERTY_MODE: "combined", PROPERTY_REFERENCE_PLATFORM: reference_platform},
     )
 

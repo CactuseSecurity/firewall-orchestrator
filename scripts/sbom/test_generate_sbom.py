@@ -132,56 +132,216 @@ def test_components_from_ansible_requirements_handles_missing_file(tmp_path: Pat
 
 def test_components_from_dpkg() -> None:
     def fake_run_command(_command: Sequence[str]) -> str:
-        return "curl\t8.0.1-1\tamd64\npython3\t3.11.2-1\tall\n"
+        return "curl\t8.0.1-1\tamd64\npython3\t3.11.2-1\tall\nlibstdc++6\t1:14.2.0-19\tamd64\n"
 
     with patch.object(generate_sbom, "run_command", fake_run_command):
-        components = generate_sbom.components_from_dpkg()
+        components = generate_sbom.components_from_dpkg("ubuntu", "ubuntu-24.04")
 
     assert [(component.name, component.version) for component in components] == [
         ("curl", "8.0.1-1"),
         ("python3", "3.11.2-1"),
+        ("libstdc++6", "1:14.2.0-19"),
     ]
-    assert components[0].purl == "pkg:deb/debian/curl@8.0.1-1?arch=amd64"
+    assert components[0].purl == "pkg:deb/ubuntu/curl@8.0.1-1?arch=amd64&distro=ubuntu-24.04"
+    assert components[2].purl == "pkg:deb/ubuntu/libstdc%2B%2B6@1:14.2.0-19?arch=amd64&distro=ubuntu-24.04"
+
+
+def test_components_from_rpm_reads_epoch_as_qualifier() -> None:
+    def fake_run_command(command: Sequence[str]) -> str:
+        assert command[:2] == ["rpm", "-qa"]
+        return "bash\t0\t5.1.8-9.el9\tx86_64\nopenssl\t1\t3.2.2-6.el9_5\tx86_64\ngpg-pubkey\t(none)\t8483c65d-5ccc5b19\t(none)\n"
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        components = generate_sbom.components_from_rpm("rocky", "rocky-9.6")
+
+    assert [component.purl for component in components] == [
+        "pkg:rpm/rocky/bash@5.1.8-9.el9?arch=x86_64&distro=rocky-9.6",
+        "pkg:rpm/rocky/openssl@3.2.2-6.el9_5?arch=x86_64&distro=rocky-9.6&epoch=1",
+        "pkg:rpm/rocky/gpg-pubkey@8483c65d-5ccc5b19?arch=%28none%29&distro=rocky-9.6",
+    ]
+
+
+def test_components_from_os_packages_falls_back_to_rpm() -> None:
+    calls: list[str] = []
+
+    def fake_run_command(command: Sequence[str]) -> str:
+        calls.append(command[0])
+        if command[0] == "dpkg-query":
+            raise FileNotFoundError
+        return "bash\t0\t5.1.8-9.el9\tx86_64\n"
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        components = generate_sbom.components_from_os_packages({"ID": "rhel", "VERSION_ID": "9.6"})
+
+    assert calls == ["dpkg-query", "rpm"]
+    assert components is not None
+    assert components[0].purl == "pkg:rpm/rhel/bash@5.1.8-9.el9?arch=x86_64&distro=rhel-9.6"
+
+
+def test_components_from_os_packages_returns_none_without_package_manager() -> None:
+    def fake_run_command(_command: Sequence[str]) -> str:
+        raise FileNotFoundError
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        assert generate_sbom.components_from_os_packages({"ID": "alpine"}) is None
+
+
+def test_os_package_bom_skips_layer_without_package_manager(tmp_path: Path) -> None:
+    def no_os_packages(_os_release: dict[str, str]) -> list[generate_sbom.Component] | None:
+        return None
+
+    stderr = StringIO()
+    with (
+        patch.object(generate_sbom, "components_from_os_packages", no_os_packages),
+        patch.object(sys, "stderr", stderr),
+    ):
+        assert generate_sbom.os_package_bom(tmp_path, {"ID": "alpine"}, {}) is None
+
+    assert "skipping the operating system SBOM layer" in stderr.getvalue()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_os_package_bom_names_file_after_distribution(tmp_path: Path) -> None:
+    def curl_os_package(_os_release: dict[str, str]) -> list[generate_sbom.Component]:
+        return [generate_sbom.Component(name="curl")]
+
+    os_release = {"ID": "ubuntu", "VERSION_ID": "24.04", "PRETTY_NAME": "Ubuntu 24.04.3 LTS"}
+    with patch.object(generate_sbom, "components_from_os_packages", curl_os_package):
+        path = generate_sbom.os_package_bom(tmp_path, os_release, {})
+
+    assert path is not None
+    assert path == tmp_path / "fwo-os-ubuntu.cdx.json"
+    bom = json.loads(path.read_text(encoding="utf-8"))
+    assert bom["metadata"]["component"]["name"] == "Firewall Orchestrator Ubuntu 24.04.3 LTS Host"
+
+
+def test_os_distro_identity_from_os_release() -> None:
+    assert generate_sbom.os_distro_id({"ID": "Debian"}) == "debian"
+    assert generate_sbom.os_distro_id({"ID": "opensuse leap"}) == "opensuse-leap"
+    assert generate_sbom.os_distro_id({}) == "unknown"
+    assert generate_sbom.os_distro_qualifier({"ID": "debian", "VERSION_ID": "13"}) == "debian-13"
+    assert generate_sbom.os_distro_qualifier({"ID": "debian", "VERSION_CODENAME": "forky"}) == "debian-forky"
+    assert generate_sbom.os_distro_qualifier({"ID": "debian"}) == "debian"
+
+
+def test_read_os_release_and_properties(tmp_path: Path) -> None:
+    os_release_path = tmp_path / "os-release"
+    os_release_path.write_text('ID=rocky\nVERSION_ID="9.6"\n\nPRETTY_NAME="Rocky Linux 9.6"\n', encoding="utf-8")
+
+    os_release = generate_sbom.read_os_release(os_release_path)
+    properties = generate_sbom.os_release_properties(os_release)
+
+    assert os_release == {"ID": "rocky", "VERSION_ID": "9.6", "PRETTY_NAME": "Rocky Linux 9.6"}
+    assert generate_sbom.read_os_release(tmp_path / "missing") == {}
+    assert properties["os-release:VERSION_ID"] == "9.6"
+    assert properties["fwo:reference-platform"] == "debian-testing"
+
+
+def test_build_purl_encodes_parts_and_skips_empty_qualifiers() -> None:
+    assert (
+        generate_sbom.build_purl("deb", "debian", "g++", "4:14.2.0-1", {"arch": "amd64", "distro": ""})
+        == "pkg:deb/debian/g%2B%2B@4:14.2.0-1?arch=amd64"
+    )
+    assert generate_sbom.build_purl("oci", None, "graphql-engine", None) == "pkg:oci/graphql-engine"
 
 
 def test_component_from_container_inspect_prefers_image_digest() -> None:
     def fake_run_command(command: Sequence[str]) -> str:
-        assert command == ["podman", "image", "inspect", "hasura/graphql-engine"]
+        assert command == ["podman", "image", "inspect", "hasura/graphql-engine:v2.48.3"]
         return json.dumps(
             [
                 {
                     "Id": "sha256:local",
-                    "RepoDigests": ["hasura/graphql-engine@sha256:repo"],
+                    "RepoDigests": ["mirror/graphql-engine@sha256:mirror", "hasura/graphql-engine@sha256:repo"],
                 }
             ]
         )
 
     with patch.object(generate_sbom, "run_command", fake_run_command):
-        component = generate_sbom.component_from_container_inspect("podman", "hasura/graphql-engine")
+        component = generate_sbom.component_from_container_inspect("podman", "hasura/graphql-engine:v2.48.3")
 
     assert component is not None
+    assert component.name == "hasura/graphql-engine"
     assert component.version == "sha256:repo"
-    assert component.purl == "pkg:oci/hasura/graphql-engine@sha256:repo"
+    assert component.purl == "pkg:oci/graphql-engine@sha256:repo?repository_url=hasura/graphql-engine&tag=v2.48.3"
 
 
-def test_component_from_container_inspect_falls_back_to_container() -> None:
+def test_component_from_container_inspect_resolves_image_of_podman_container() -> None:
     calls: list[list[str]] = []
 
     def fake_run_command(command: Sequence[str]) -> str:
         calls.append(list(command))
-        if command[1] == "image":
+        if command[1:] == ["image", "inspect", "fwo-api"]:
+            raise subprocess.CalledProcessError(125, list(command))
+        if command[1] == "container":
+            return json.dumps(
+                [{"Id": "containerid", "Image": "imageid", "ImageName": "docker.io/hasura/graphql-engine:v2.48.3"}]
+            )
+        return json.dumps([{"Id": "imageid", "RepoDigests": ["docker.io/hasura/graphql-engine@sha256:digest"]}])
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        component = generate_sbom.component_from_container_inspect("podman", "fwo-api")
+
+    assert calls == [
+        ["podman", "image", "inspect", "fwo-api"],
+        ["podman", "container", "inspect", "fwo-api"],
+        ["podman", "image", "inspect", "imageid"],
+    ]
+    assert component is not None
+    assert component.name == "docker.io/hasura/graphql-engine"
+    assert component.version == "sha256:digest"
+    assert component.purl == (
+        "pkg:oci/graphql-engine@sha256:digest?repository_url=docker.io/hasura/graphql-engine&tag=v2.48.3"
+    )
+    assert component.properties == {"fwo:container-runtime": "podman", "fwo:container-name": "fwo-api"}
+
+
+def test_component_from_container_inspect_resolves_docker_config_image_without_digest() -> None:
+    def fake_run_command(command: Sequence[str]) -> str:
+        if command[1:] == ["image", "inspect", "fwo-api"]:
             raise FileNotFoundError
-        return json.dumps([{"Id": "sha256:container", "RepoDigests": []}])
+        if command[1] == "container":
+            return json.dumps([{"Image": "sha256:imageid", "Config": {"Image": "localhost:5000/graphql-engine"}}])
+        return json.dumps([{"Id": "imageid", "RepoDigests": []}])
 
     with patch.object(generate_sbom, "run_command", fake_run_command):
         component = generate_sbom.component_from_container_inspect("docker", "fwo-api")
 
-    assert calls == [
-        ["docker", "image", "inspect", "fwo-api"],
-        ["docker", "container", "inspect", "fwo-api"],
-    ]
     assert component is not None
-    assert component.version == "container"
+    assert component.name == "localhost:5000/graphql-engine"
+    assert component.version == "sha256:imageid"
+    assert component.purl == "pkg:oci/graphql-engine@sha256:imageid?repository_url=localhost:5000/graphql-engine"
+
+
+def test_component_from_container_inspect_skips_container_without_image() -> None:
+    def fake_run_command(command: Sequence[str]) -> str:
+        if command[1:] == ["container", "inspect", "fwo-api"]:
+            return json.dumps([{"Image": "imageid"}])
+        raise subprocess.CalledProcessError(125, list(command))
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        assert generate_sbom.component_from_container_inspect("podman", "fwo-api") is None
+
+
+def test_component_from_container_inspect_skips_unknown_container_image() -> None:
+    def fake_run_command(command: Sequence[str]) -> str:
+        if command[1:] == ["container", "inspect", "fwo-api"]:
+            return json.dumps([{"Image": "imageid", "ImageName": "hasura/graphql-engine:v2"}])
+        raise subprocess.CalledProcessError(125, list(command))
+
+    with patch.object(generate_sbom, "run_command", fake_run_command):
+        assert generate_sbom.component_from_container_inspect("podman", "fwo-api") is None
+
+
+def test_split_image_reference() -> None:
+    assert generate_sbom.split_image_reference("hasura/graphql-engine:v2@sha256:abc") == (
+        "hasura/graphql-engine",
+        "v2",
+    )
+    assert generate_sbom.split_image_reference("localhost:5000/graphql-engine") == (
+        "localhost:5000/graphql-engine",
+        None,
+    )
 
 
 def test_component_from_container_inspect_skips_invalid_payload() -> None:
@@ -235,34 +395,82 @@ def test_source_boms_writes_all_source_layers(tmp_path: Path) -> None:
 
 
 def test_installed_boms_writes_os_and_container_layers(tmp_path: Path) -> None:
+    def curl_os_package(_os_release: dict[str, str]) -> list[generate_sbom.Component]:
+        return [generate_sbom.Component(name="curl", version="8.0.1")]
+
     def fake_component_from_container_inspect(runtime: str, container: str) -> generate_sbom.Component | None:
         return generate_sbom.Component(name=container, version=runtime) if runtime == "podman" else None
 
     with (
+        patch.object(generate_sbom, "read_os_release", lambda: {"ID": "debian", "VERSION_CODENAME": "forky"}),
         patch.object(
-            generate_sbom, "components_from_dpkg", lambda: [generate_sbom.Component(name="curl", version="8.0.1")]
+            generate_sbom,
+            "components_from_os_packages",
+            curl_os_package,
         ),
         patch.object(generate_sbom, "component_from_container_inspect", fake_component_from_container_inspect),
     ):
         paths = generate_sbom.installed_boms(tmp_path, "debian-testing", "hasura")
 
     assert [path.name for path in paths] == [
-        "fwo-os-debian-testing.cdx.json",
+        "fwo-os-debian.cdx.json",
         "fwo-containers.cdx.json",
     ]
 
 
 def test_installed_boms_skips_container_layer_without_components(tmp_path: Path) -> None:
+    def no_os_packages(_os_release: dict[str, str]) -> list[generate_sbom.Component]:
+        return []
+
     def fake_component_from_container_inspect(_runtime: str, _container: str) -> None:
         return None
 
     with (
-        patch.object(generate_sbom, "components_from_dpkg", list),
+        patch.object(generate_sbom, "read_os_release", lambda: {"ID": "debian"}),
+        patch.object(generate_sbom, "components_from_os_packages", no_os_packages),
         patch.object(generate_sbom, "component_from_container_inspect", fake_component_from_container_inspect),
     ):
         paths = generate_sbom.installed_boms(tmp_path, "debian-testing", None)
 
-    assert [path.name for path in paths] == ["fwo-os-debian-testing.cdx.json"]
+    assert [path.name for path in paths] == ["fwo-os-debian.cdx.json"]
+
+
+def test_installed_boms_continues_without_os_layer(tmp_path: Path) -> None:
+    def no_os_packages(_os_release: dict[str, str]) -> list[generate_sbom.Component] | None:
+        return None
+
+    with (
+        patch.object(generate_sbom, "read_os_release", dict),
+        patch.object(generate_sbom, "components_from_os_packages", no_os_packages),
+        patch.object(sys, "stderr", StringIO()),
+    ):
+        assert generate_sbom.installed_boms(tmp_path, "debian-testing", None) == []
+
+
+def test_write_bom_deduplicates_bom_refs_and_keeps_sources(tmp_path: Path) -> None:
+    components = [
+        generate_sbom.Component(
+            name="Serilog", version="4.0.0", purl="pkg:nuget/Serilog@4.0.0", properties={"fwo:source": "b.csproj"}
+        ),
+        generate_sbom.Component(
+            name="Serilog", version="4.0.0", purl="pkg:nuget/Serilog@4.0.0", properties={"fwo:source": "a.csproj"}
+        ),
+        generate_sbom.Component(name="PyYAML", purl="pkg:pypi/pyyaml", properties={"fwo:source": "a.txt"}),
+        generate_sbom.Component(name="pyyaml", purl="pkg:pypi/pyyaml", properties={"fwo:source": "a.txt"}),
+        generate_sbom.Component(name="unpinned"),
+        generate_sbom.Component(name="unpinned"),
+    ]
+
+    bom_path = generate_sbom.write_bom(tmp_path, "dedup.cdx.json", "dedup", components, {})
+    bom_components = json.loads(bom_path.read_text(encoding="utf-8"))["components"]
+
+    assert [component["bom-ref"] for component in bom_components] == [
+        "pkg:pypi/pyyaml",
+        "pkg:nuget/Serilog@4.0.0",
+        "library:unpinned:unknown",
+    ]
+    assert bom_components[1]["properties"] == [{"name": "fwo:source", "value": "a.csproj; b.csproj"}]
+    assert bom_components[0]["properties"] == [{"name": "fwo:source", "value": "a.txt"}]
 
 
 def test_write_and_merge_boms(tmp_path: Path) -> None:
@@ -293,7 +501,7 @@ def test_merge_input_paths_can_include_existing_output_files(tmp_path: Path) -> 
     details_dir.mkdir()
     existing = details_dir / "fwo-dotnet.cdx.json"
     combined = tmp_path / "fwo-combined.cdx.json"
-    written = details_dir / "fwo-os-debian-testing.cdx.json"
+    written = details_dir / "fwo-os-debian.cdx.json"
     existing.write_text("{}", encoding="utf-8")
     combined.write_text("{}", encoding="utf-8")
     written.write_text("{}", encoding="utf-8")
@@ -301,7 +509,7 @@ def test_merge_input_paths_can_include_existing_output_files(tmp_path: Path) -> 
     paths = generate_sbom.merge_input_paths(tmp_path, [written], include_existing=True)
 
     assert [path.name for path in paths] == [
-        "fwo-os-debian-testing.cdx.json",
+        "fwo-os-debian.cdx.json",
         "fwo-dotnet.cdx.json",
     ]
 
@@ -310,7 +518,7 @@ def test_merge_input_paths_can_use_only_currently_written_files(tmp_path: Path) 
     details_dir = tmp_path / "fwo-sbom-details"
     details_dir.mkdir()
     existing = details_dir / "fwo-dotnet.cdx.json"
-    written = details_dir / "fwo-os-debian-testing.cdx.json"
+    written = details_dir / "fwo-os-debian.cdx.json"
     existing.write_text("{}", encoding="utf-8")
     written.write_text("{}", encoding="utf-8")
 

@@ -24,11 +24,16 @@ This creates layered source SBOMs for:
 - Ansible collections from `collections/requirements.yml`
 - a merged `fwo-combined.cdx.json`
 
+Everything below `documentation/SBOM/generated/` is ignored by git, so generated
+SBOMs are never committed by accident.
+
 When a GitHub Release with a stable semantic-version tag (`vMAJOR.MINOR.PATCH`
 or `MAJOR.MINOR.PATCH`) is published, `.github/workflows/sbom.yml` runs the
 same source generation from that exact tag and attaches every generated
 CycloneDX file to the release. Pre-releases and non-version release tags are
-skipped.
+skipped. To (re)attach the SBOMs of an existing stable release, run the
+workflow manually (*Actions* > *Publish release SBOM* > *Run workflow*) with the
+release tag as input.
 
 ### exact installed SBOMs through the installer
 
@@ -51,8 +56,13 @@ The installer generates source SBOMs on the controller, copies them to the targe
 - `fwo-sbom-details/fwo-python-importer.cdx.json`
 - `fwo-sbom-details/fwo-python-scripts.cdx.json`
 - `fwo-sbom-details/fwo-ansible.cdx.json`
-- `fwo-sbom-details/fwo-os-debian-testing.cdx.json`
-- `fwo-sbom-details/fwo-containers.cdx.json`, when container metadata can be inspected
+- `fwo-sbom-details/fwo-os-<ID>.cdx.json`, named after the `ID` in `/etc/os-release` (e.g. `fwo-os-debian.cdx.json`, `fwo-os-ubuntu.cdx.json`, `fwo-os-rocky.cdx.json`)
+- `fwo-sbom-details/fwo-containers.cdx.json`, when container metadata can be inspected; the API container is recorded as the image it runs, identified by its repository digest
+
+The operating system packages are read with `dpkg-query` on Debian and Ubuntu and with
+`rpm` on Red Hat and Rocky. Their package URLs carry the distribution as namespace and
+`distro` qualifier (e.g. `pkg:deb/ubuntu/curl@8.5.0-2ubuntu10.6?arch=amd64&distro=ubuntu-24.04`).
+On a host with neither tool the operating system layer is skipped with a warning.
 
 To fetch generated SBOM files back to the controller, set:
 
@@ -66,6 +76,9 @@ The default controller destination is:
 ```text
 documentation/SBOM/generated/installed/<inventory-host>/
 ```
+
+These files contain the host name and the `/etc/os-release` data of each target; the
+directory is ignored by git.
 
 ### generator modes
 

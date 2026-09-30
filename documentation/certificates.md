@@ -510,21 +510,26 @@ After the change restart apache2
 
 ## Change Root Certificate
 
-Copy root cert to
+To make a host trust an additional root certificate system-wide, copy the root
+certificate (PEM, file extension `.crt`) into the distribution's anchor directory
+and rebuild the system trust store:
 
-```
-/usr/local/share/ca-certificates/
-```
+- Debian / Ubuntu: copy it to `/usr/local/share/ca-certificates/`, then run
 
-and update
+  ```
+  sudo update-ca-certificates
+  ```
 
-```
-sudo update-ca-certificates
-```
+- Red Hat / Rocky: copy it to `/etc/pki/ca-trust/source/anchors/`, then run
 
-## Dealing with Client Certificats in Scripts
+  ```
+  sudo update-ca-trust
+  ```
 
-The Guardicore provisioning scripts load these three TLS paths from the local
+## Dealing with Client Certificates in Scripts
+
+The Guardicore provisioning scripts load the three TLS paths `tls_ca_certificate`,
+`tls_client_certificate` and `tls_client_private_key` from the local
 `fworch.json`. When they run on another host, pass `--fwo-ca-cert`,
 `--fwo-client-cert`, and `--fwo-client-key` explicitly. The certificate and key
 options must always be supplied together.

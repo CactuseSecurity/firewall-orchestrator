@@ -1,5 +1,6 @@
 using System.Net;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api.Data;
 using FWO.Basics;
 using FWO.Config.Api;
@@ -386,6 +387,44 @@ namespace FWO.Test
             Assert.That(userConfig.User.Dn, Is.EqualTo(TestApiConnection.TestUserDn));
         }
 
+        /// <summary>
+        /// The session user is loaded by the local user id of the token. The dn of the token does not
+        /// name one local user, as the same dn may exist in several LDAP connections (SEC-11).
+        /// </summary>
+        [Test]
+        public async Task RestoreAuthenticationState_LoadsSessionUserByLocalUserId()
+        {
+            using RSA rsa = RSA.Create(2048);
+            RsaSecurityKey privateKey = new(rsa.ExportParameters(true));
+            JwtPrivateKeyField.SetValue(null, privateKey);
+            JwtPublicKeyField.SetValue(null, new RsaSecurityKey(rsa.ExportParameters(false)));
+
+            MockMiddlewareClient mockMiddlewareClient = new();
+            TokenService tokenService = new(mockMiddlewareClient, new MockProtectedSessionStorage());
+            AuthStateProvider authStateProvider = new(tokenService, new EventMediator(), default!);
+            UserConfig userConfig = new();
+            TestApiConnection apiConnection = new();
+            await tokenService.SetTokenPair(new TokenPair
+            {
+                AccessToken = GenerateJwtToken(privateKey, Roles.Reporter, DateTime.UtcNow.AddMinutes(10), BuildJwtClaims()),
+                RefreshToken = "refresh-token",
+                AccessTokenExpires = DateTime.UtcNow.AddMinutes(10),
+                RefreshTokenExpires = DateTime.UtcNow.AddDays(1)
+            });
+
+            bool restored = await authStateProvider.RestoreAuthenticationState(apiConnection, mockMiddlewareClient, userConfig);
+
+            (string query, object? variables) = apiConnection.UserQueries.First();
+            Assert.Multiple(() =>
+            {
+                Assert.That(restored, Is.True);
+                Assert.That(query, Is.EqualTo(AuthQueries.getOwnUser));
+                Assert.That(variables?.GetType().GetProperty("userId")?.GetValue(variables), Is.EqualTo(TestApiConnection.TestUserDbId));
+                Assert.That(apiConnection.UserQueries.Select(userQuery => userQuery.Query), Does.Not.Contain(AuthQueries.getUserByDn));
+                Assert.That(userConfig.User.DbId, Is.EqualTo(TestApiConnection.TestUserDbId));
+            });
+        }
+
         [Test]
         public async Task RestoreAuthenticationState_RestoresStoredExecutionMode()
         {
@@ -544,6 +583,7 @@ namespace FWO.Test
             return
             [
                 new Claim(JwtRegisteredClaimNames.UniqueName, "test-user"),
+                new Claim("x-hasura-user-id", TestApiConnection.TestUserDbId.ToString()),
                 new Claim("x-hasura-uuid", TestApiConnection.TestUserDn),
                 new Claim("x-hasura-tenant-id", TestApiConnection.TestTenantId.ToString()),
                 new Claim("x-hasura-allowed-roles", JsonSerializer.Serialize(roles)),
@@ -556,18 +596,24 @@ namespace FWO.Test
         private sealed class TestApiConnection : SimulatedApiConnection
         {
             internal const string TestUserDn = "cn=test-user,dc=example,dc=com";
+            internal const int TestUserDbId = 42;
             internal const int TestTenantId = 7;
             internal string SelectedExecutionMode { get; private set; } = "";
+            internal List<(string Query, object? Variables)> UserQueries { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
+                if (typeof(QueryResponseType) == typeof(UiUser[]))
+                {
+                    UserQueries.Add((query, variables));
+                }
                 object response = typeof(QueryResponseType) switch
                 {
                     var responseType when responseType == typeof(UiUser[]) => new[]
                     {
                         new UiUser
                         {
-                            DbId = 42,
+                            DbId = TestUserDbId,
                             Dn = TestUserDn,
                             Name = "test-user",
                             Language = "English"

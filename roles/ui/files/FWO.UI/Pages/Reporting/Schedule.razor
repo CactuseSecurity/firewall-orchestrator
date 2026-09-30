@@ -7,7 +7,7 @@
 @inject UserConfig userConfig
 
 @page "/report/schedule"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")]
 
 <ReportTabset/>
 <button type="button" class="btn btn-sm btn-success mb-1" @onclick="OnAddReportScheduleButtonClick">@(DisplayService.DisplayButton(userConfig, "add", Icons.Add))</button>
@@ -217,7 +217,7 @@
 
 <ConfirmDelete @bind-Display="ShowDeleteReportScheduleDialog" PerformAction="DeleteReportSchedule"
     Title="@(userConfig.GetText("report_schedule"))" DeleteMessage="@(userConfig.GetText("U2002") + " \"" + reportScheduleInEdit.Name + "\" ?")"
-    AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")" />
+    AllowedRoles="@($"{Roles.Admin}, {Roles.Reporter}, {Roles.ReporterViewAll}, {Roles.Auditor}, {Roles.Modeller}")" />
 
 @code
 {
@@ -530,7 +530,7 @@
 
     private List<ReportSchedule> FilterVisibleReportSchedules(List<ReportSchedule> schedules)
     {
-        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.FwAdmin, Roles.ReporterViewAll))
+        if (userConfig.CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.ReporterViewAll))
         {
             return schedules;
         }

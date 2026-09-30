@@ -14,7 +14,7 @@
         <button type="button" class="btn btn-sm btn-success" @onclick="OnAddZone">@(userConfig.GetText("add"))</button>
         @if(AutoCalculatedInternetZoneMissing)
         {
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                 <Authorized>
                     <button id="add-auto-calculated-internet-zone" type="button" class="btn btn-sm btn-warning"
                         disabled="@addingAutoCalculatedInternetZone" @onclick="AddAutoCalculatedInternetZone">
@@ -191,7 +191,7 @@
         </Body>
         <Footer>
             <div class="btn-group">
-                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                     <Authorized>
                         <button type="button" class="btn btn-primary" @onclick="ExecuteNetworkZoneModifications">@(userConfig.GetText("ok"))</button>
                     </Authorized>
@@ -205,7 +205,7 @@
     </PopUp>
 
     <ConfirmDelete @bind-Display="deleteMode" PerformAction="ExecuteNetworkZoneDeletion" Title="@userConfig.GetText("delete_zone_title")"
-        AllowedRoles="@($"{Roles.Admin}, {Roles.FwAdmin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))"
+        AllowedRoles="@($"{Roles.Admin}")" DeleteMessage="@(userConfig.GetText("delete_zone_text").Replace("%", $"\"{networkZoneInEdit.Name}\""))"
         WarningMessage="@AutoCalculatedZoneCommunicationsWarning" />
 }
 

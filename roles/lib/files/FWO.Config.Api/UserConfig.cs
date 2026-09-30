@@ -50,7 +50,7 @@ namespace FWO.Config.Api
 
         public static async Task<UserConfig> ConstructAsync(GlobalConfig globalConfig, ApiConnection apiConnection, int userId, bool owningApiConnection = false)
         {
-            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDbId, new { userId = userId });
+            UiUser[] users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userId });
             UiUser? user = users.FirstOrDefault();
             if (user == null)
             {
@@ -124,18 +124,25 @@ namespace FWO.Config.Api
                 .ToHashSet();
         }
 
-        public async Task SetUserInformation(string userDn, ApiConnection apiConnection)
+        /// <summary>
+        /// Loads the local user of the session and applies its settings and language.
+        /// </summary>
+        /// <param name="userDbId">Local database id of the user, taken from the token. The dn is not used,
+        /// as the same dn may exist in several LDAP connections and then names several local users.</param>
+        /// <param name="apiConnection">API connection used to read the user.</param>
+        public async Task SetUserInformation(int userDbId, ApiConnection apiConnection)
         {
             ThrowIfDisposed();
             if (globalConfig != null)
             {
                 OnGlobalConfigChange(globalConfig, globalConfig.RawConfigItems);
             }
-            Log.WriteDebug("Get User Data", $"Get user data from user with DN: \"{userDn}\"");
-            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = userDn });
+            Log.WriteDebug("Get User Data", $"Get user data from user with id: {userDbId}");
+            UiUser[]? users = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getOwnUser, new { userId = userDbId });
             if (users.Length > 0)
             {
                 User = users[0];
+                User.LdapConnection ??= new();
             }
             await InitWithUserId(apiConnection, User.DbId, true);
 
@@ -200,11 +207,11 @@ namespace FWO.Config.Api
         public ReportVisibility GetReportVisibility()
         {
             return new ReportVisibility(
-                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.FwAdmin, Roles.Admin, Roles.Auditor, Roles.Recertifier),
+                RuleRelated: CanUseAnyRole(Roles.Reporter, Roles.ReporterViewAll, Roles.Admin, Roles.Auditor, Roles.Recertifier),
                 ModellingRelated: CanUseAnyRole(Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier),
-                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor),
-                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester, Roles.Approver,
+                ComplianceRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
+                OwnerRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor),
+                WorkflowRelated: CanUseAnyRole(Roles.Admin, Roles.Auditor, Roles.Requester, Roles.Approver,
                     Roles.Planner, Roles.Implementer, Roles.Reviewer));
         }
 

@@ -1,6 +1,7 @@
 # Firewall Orchestrator Revision History
 
-### 9.5.10 - 29.09.2026
+## 9.5.10 - 29.09.2026
+
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)
@@ -24,6 +25,26 @@
   non-due reminders do not create audit noise or advance the notification definition's last-sent
   state
 - add upgrade seed for request task sort configuration
+- new network zone tree path analysis: for every combination of a source and a destination ip range
+  it determines the firewalls between them from the paths to the root network and to the internet
+  that the zone matrix stores per subnet, cutting both paths at their lowest common ancestor.
+  Traffic from or to the internet zone is answered with the internet path of the other side, and a
+  range that falls into the auto calculated catch-all zone yields no path. The algorithm lives in
+  the new library FWO.NetworkTopology and works on data alone, without database access. It can be
+  selected as "Network Zone Tree" under the path analysis algorithm setting, but no function calls
+  it yet - the REST endpoint that exposes it follows in a later version
+- the configuration key `complianceDesignatedZoneMatrix` is renamed to `designatedZoneMatrix`,
+  because the designated zone matrix is used beyond compliance. The upgrade renames the existing
+  entry, so an installation keeps the matrix it had configured
+- the path analysis based on routing tables moved into the class `RoutingBasedPathAnalyzer` without
+  any change in behaviour, so that both procedures sit behind one interface
+- network_zone.device_ip_range_root and network_zone.device_ip_range_internet can now be read per
+  matrix through the api, including the name of the device on the path
+- matrix import now rejects paths to root that do not describe one tree. A gateway may name only
+  one successor towards the root across all subnets of a matrix, and the successors must not form
+  a cycle. The error names the gateway and both successors, so the gateway can be located in the import file. Paths to the internet stay unchecked, as several routes there are intended. A matrix
+  whose root paths contradicted each other was imported before and made the path analysis report
+  routes that do not exist
 
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only

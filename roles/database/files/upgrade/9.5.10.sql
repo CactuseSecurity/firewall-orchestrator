@@ -102,3 +102,7 @@ ON CONFLICT (node_type, object_key) DO NOTHING;
 DELETE FROM provisioning_config_value WHERE config_key = 'pathAnalysisAlgorithm';
 
 insert into config (config_key, config_value, config_user) VALUES ('reqCreateRequestTaskSortConfig', '{"group_create_priority":0,"group_modify_add_priority":1,"access_priority":2,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}', 0) ON CONFLICT DO NOTHING;
+
+-- Network Zone Tree change
+UPDATE config SET config_key = 'designatedZoneMatrix'
+WHERE config_key = 'complianceDesignatedZoneMatrix';

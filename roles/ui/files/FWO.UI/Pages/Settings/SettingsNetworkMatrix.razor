@@ -122,9 +122,9 @@ else
                 .OrderBy(matrix => matrix.Name, StringComparer.OrdinalIgnoreCase)
                 .ThenBy(matrix => matrix.Id)
                 .ToList();
-            if (configData.ComplianceDesignatedZoneMatrixId > 0)
+            if (configData.DesignatedZoneMatrixId > 0)
             {
-                designatedZoneMatrix = matrices.FirstOrDefault(matrix => matrix.Id == configData.ComplianceDesignatedZoneMatrixId);
+                designatedZoneMatrix = matrices.FirstOrDefault(matrix => matrix.Id == configData.DesignatedZoneMatrixId);
             }
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ReadFileToBytes), _ => OnFileUploadEvent(_.EventArgs));
             EventMediator.Subscribe<FileUploadEvent>(nameof(FileUploadService.ImportMatrix), _ => OnMatrixImportEvent(_.EventArgs));
@@ -173,7 +173,7 @@ else
             ConfigData currentConfig = await globalConfig.GetEditableConfig();
 
             currentConfig.ImportedMatrixReadOnly = configData.ImportedMatrixReadOnly;
-            currentConfig.ComplianceDesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
+            currentConfig.DesignatedZoneMatrixId = designatedZoneMatrix?.Id ?? 0;
             currentConfig.MatrixAllowNestedZones = configData.MatrixAllowNestedZones;
             currentConfig.SortMatrixByID = configData.SortMatrixByID;
 

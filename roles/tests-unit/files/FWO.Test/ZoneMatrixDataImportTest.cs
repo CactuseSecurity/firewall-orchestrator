@@ -104,6 +104,35 @@ namespace FWO.Test
             new() { MgmtName = kMgmtA, DeviceName = kFwCore }
         ];
 
+        private static readonly DeviceRefData[] kAccessToBorderPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
+        private static readonly DeviceRefData[] kCoreOnlyPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private static readonly DeviceRefData[] kCoreToBorderPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
+        private static readonly DeviceRefData[] kRepeatedDevicePath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess }
+        ];
+
+        private static readonly DeviceRefData[] kBorderOnlyInternetPath =
+        [
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
         private static readonly DeviceRefData[] kInternetPath =
         [
             new() { MgmtName = kMgmtA, DeviceName = kFwCore },
@@ -1194,6 +1223,159 @@ namespace FWO.Test
                     new(kFwCoreId, kZoneBIpRangeId, 1)
                 }));
             });
+        }
+
+        /// <summary>
+        /// Verifies that paths agreeing on every successor are accepted. Zone B states a shorter path
+        /// that ends where zone A also ends, which contradicts nothing.
+        /// </summary>
+        [Test]
+        public async Task Run_WithConsistentRootPaths_DoesNotReportTreeError()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "consistent-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRootPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreOnlyPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.Not.Contain("Inconsistent path to root"));
+        }
+
+        /// <summary>
+        /// Verifies that a gateway leading towards two different successors is rejected, and that the
+        /// message names the gateway rather than only the subnet.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayLeadingToTwoSuccessors_IsRejected()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "forked-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRootPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kAccessToBorderPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwAccess)));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a gateway cannot attach directly to the root network in one subnet and sit
+        /// behind another gateway in the next. The missing successor is compared like any other value.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayAtRootAndBehindAnother_IsRejected()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "root-and-behind.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kCoreOnlyPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreToBorderPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwCore)));
+                Assert.That(result, Does.Contain("but - was expected"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a gateway attaching to the root network is named in the message when it is the
+        /// contradicting side, so that the missing successor never renders as an empty name.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayBehindAnotherAndAtRoot_NamesTheRootNetwork()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "behind-and-root.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kCoreToBorderPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreOnlyPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain("leads to - but"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that successors forming a ring are reported as a cycle. A ring can only arise from a
+        /// path that revisits a gateway, because a contradicting successor never replaces the one
+        /// recorded first, so this path is rejected for both reasons.
+        /// </summary>
+        [Test]
+        public async Task Run_WithPathRevisitingAGateway_ReportsCycle()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "cyclic-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRepeatedDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("cycle"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwAccess)));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwCore)));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that paths to the internet are deliberately left unchecked. Two subnets may reach the
+        /// internet over different gateways, which must not be mistaken for a broken tree.
+        /// </summary>
+        [Test]
+        public async Task Run_WithDifferingInternetPaths_IsAccepted()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "differing-internet.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet,
+                        pathToRoot: kRootPath, pathToInternet: kInternetPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet,
+                        pathToRoot: kCoreOnlyPath, pathToInternet: kBorderOnlyInternetPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.Not.Contain("Inconsistent path to root"));
         }
 
         private static ZoneMatrixImportApiConnection CreateNewMatrixConnection()

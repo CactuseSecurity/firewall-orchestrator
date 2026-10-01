@@ -167,7 +167,7 @@ internal class GetTicketEndpointTest
     public async Task GetTicketAsyncReturnsTheTicketWithAllDetails()
     {
         GetTicketApiConn apiConnection = new() { Ticket = BuildTicket() };
-        FlowRequestService service = new(apiConnection, new GlobalConfig());
+        WorkflowTicketService service = new(apiConnection, new GlobalConfig());
 
         GetTicketResponse? result = await service.GetTicketAsync(kTicketId, null);
 
@@ -206,7 +206,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task GetTicketAsyncReturnsNullForAnUnknownTicket()
     {
-        FlowRequestService service = new(new GetTicketApiConn(), new GlobalConfig());
+        WorkflowTicketService service = new(new GetTicketApiConn(), new GlobalConfig());
 
         Assert.That(await service.GetTicketAsync(kTicketId, null), Is.Null);
     }
@@ -214,7 +214,7 @@ internal class GetTicketEndpointTest
     [Test]
     public void GetTicketAsyncFailsWhenExternalStatesCannotBeLoaded()
     {
-        FlowRequestService service = new(new GetTicketApiConn { Ticket = BuildTicket(), ExtStateErrors = kExtStateErrors }, new GlobalConfig());
+        WorkflowTicketService service = new(new GetTicketApiConn { Ticket = BuildTicket(), ExtStateErrors = kExtStateErrors }, new GlobalConfig());
 
         Assert.ThrowsAsync<InvalidOperationException>(async () => await service.GetTicketAsync(kTicketId, null));
     }
@@ -222,7 +222,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task FilterRestrictsTheTasksCaseInsensitively()
     {
-        FlowRequestService service = new(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig());
+        WorkflowTicketService service = new(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig());
 
         GetTicketResponse? result = await service.GetTicketAsync(kTicketId, new TicketTaskFilter { TaskType = "ACCESS" });
 
@@ -232,7 +232,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task AFilterThatExcludesEveryTaskStillReturnsTheTicket()
     {
-        FlowRequestService service = new(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig());
+        WorkflowTicketService service = new(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig());
 
         GetTicketResponse? result = await service.GetTicketAsync(kTicketId, new TicketTaskFilter { TaskType = "access", Locked = false });
 
@@ -353,7 +353,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task ControllerReturnsTheTicket()
     {
-        WorkflowTicketController controller = new(new FlowRequestService(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(new GetTicketApiConn { Ticket = BuildTicket() }, new GlobalConfig()));
 
         ActionResult<GetTicketResponse> result = await controller.GetTicket(new GetTicketRequest { TicketId = kTicketId });
 
@@ -364,7 +364,7 @@ internal class GetTicketEndpointTest
     public async Task ControllerRejectsAnInvalidRequestBeforeTheApiIsQueried()
     {
         GetTicketApiConn apiConnection = new() { Ticket = BuildTicket() };
-        WorkflowTicketController controller = new(new FlowRequestService(apiConnection, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(apiConnection, new GlobalConfig()));
 
         ActionResult<GetTicketResponse> result = await controller.GetTicket(new GetTicketRequest { TicketId = -1 });
 
@@ -378,7 +378,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task ControllerReportsAnUnknownTicketAsNotFound()
     {
-        WorkflowTicketController controller = new(new FlowRequestService(new GetTicketApiConn(), new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(new GetTicketApiConn(), new GlobalConfig()));
 
         ActionResult<GetTicketResponse> result = await controller.GetTicket(new GetTicketRequest { TicketId = kTicketId });
 
@@ -393,7 +393,7 @@ internal class GetTicketEndpointTest
     [Test]
     public async Task ControllerReportsApiFailuresAsInternalServerError()
     {
-        WorkflowTicketController controller = new(new FlowRequestService(new GetTicketApiConn { ThrowOnTicketQuery = true }, new GlobalConfig()));
+        WorkflowTicketController controller = new(new WorkflowTicketService(new GetTicketApiConn { ThrowOnTicketQuery = true }, new GlobalConfig()));
 
         ActionResult<GetTicketResponse> result = await controller.GetTicket(new GetTicketRequest { TicketId = kTicketId });
 

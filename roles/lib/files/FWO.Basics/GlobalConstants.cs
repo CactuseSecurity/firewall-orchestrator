@@ -75,6 +75,7 @@ namespace FWO.Basics
         public const string kExternalRequest = "externalRequest";
         public const string kComplianceCheck = "complianceCheck";
         public const long kPathAnalysisAlgorithmNone = 1;
+        public const long kPathAnalysisAlgorithmNetworkZoneTree = 2;
 
         public const string kLdapInternalPostfix = "dc=" + kFwoProdName + ",dc=internal";
         public const int kLdapInternalId = 1;

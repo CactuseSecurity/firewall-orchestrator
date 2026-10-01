@@ -42,8 +42,7 @@
   matrix through the api, including the name of the device on the path
 - matrix import now rejects paths to root that do not describe one tree. A gateway may name only
   one successor towards the root across all subnets of a matrix, and the successors must not form
-  a cycle. The error names the gateway and both successors, so the contradicting subnets can be
-  found. Paths to the internet stay unchecked, as several routes there are intended. A matrix
+  a cycle. The error names the gateway and both successors, so the gateway can be located in the import file. Paths to the internet stay unchecked, as several routes there are intended. A matrix
   whose root paths contradicted each other was imported before and made the path analysis report
   routes that do not exist
 

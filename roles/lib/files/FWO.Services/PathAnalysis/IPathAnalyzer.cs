@@ -23,7 +23,7 @@ namespace FWO.Services.PathAnalysis
         /// Matrix used by the network zone tree algorithm, ignored by other algorithms.
         /// When omitted, the configured designated zone matrix is used.
         /// </summary>
-        public int? MatrixId { get; init; } 
+        public int? MatrixId { get; init; }
     }
     /// <summary>The result of a path analysis run.</summary>
     public sealed class PathAnalysisResult

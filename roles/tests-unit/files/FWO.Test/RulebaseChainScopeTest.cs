@@ -14,6 +14,16 @@ namespace FWO.Test
         private static readonly List<int> ExpectedChainRulebaseIds = [10, 20, 30];
         private static readonly List<int> ExpectedTwoChainRulebaseIds = [50, 10, 20, 30];
         private static readonly List<int> ExpectedCyclicRulebaseIds = [10, 20];
+        private static readonly List<int> SelectedPolicyAStartIds = [110];
+        private static readonly List<int> SelectedPolicyBStartIds = [150];
+        private static readonly List<int> SelectedBothPolicyStartIds = [110, 150];
+        private static readonly List<int> SelectedWithoutGatewayStartIds = [190];
+        private static readonly List<int> ExpectedPolicyARulebaseIds = [110, 120, 130];
+        private static readonly List<int> ExpectedPolicyBRulebaseIds = [150, 120, 140];
+        private static readonly List<int> ExpectedBothPolicyRulebaseIds = [110, 120, 130, 150, 140];
+        private static readonly List<int> ExpectedWithoutGatewayRulebaseIds = [190];
+        private const int kGatewayA = 1;
+        private const int kGatewayB = 2;
 
         [Test]
         public void GetRulebaseIdsReachableFrom_FollowsRulebaseAndRuleLinksButNotNat()
@@ -61,6 +71,54 @@ namespace FWO.Test
 
             Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedChainRulebaseIds));
             Assert.That(managementReport.Rulebases.All(rulebase => rulebase.IncomingLinks == null), Is.True);
+        }
+
+        [Test]
+        public void GetRulebaseIdsReachableFrom_FollowsSharedRulebaseOnlyAlongGatewaysOfStartRulebase()
+        {
+            ManagementReport managementReport = CreateSharedLayerManagementReport();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(RulebaseChainScope.GetRulebaseIdsReachableFrom(managementReport, SelectedPolicyAStartIds), Is.EqualTo(ExpectedPolicyARulebaseIds));
+                Assert.That(RulebaseChainScope.GetRulebaseIdsReachableFrom(managementReport, SelectedPolicyBStartIds), Is.EqualTo(ExpectedPolicyBRulebaseIds));
+                Assert.That(RulebaseChainScope.GetRulebaseIdsReachableFrom(managementReport, SelectedBothPolicyStartIds), Is.EqualTo(ExpectedBothPolicyRulebaseIds));
+            });
+        }
+
+        [Test]
+        public void GetRulebaseIdsReachableFrom_KeepsRulebaseWithoutGatewayAlone()
+        {
+            ManagementReport managementReport = CreateSharedLayerManagementReport();
+
+            List<int> rulebaseIds = RulebaseChainScope.GetRulebaseIdsReachableFrom(managementReport, SelectedWithoutGatewayStartIds);
+
+            Assert.That(rulebaseIds, Is.EqualTo(ExpectedWithoutGatewayRulebaseIds));
+        }
+
+        /// <summary>
+        /// Creates two policies sharing layer 120: gateway A 110 -> 120 -> 130, gateway B 150 -> 120 -> 140,
+        /// plus rulebase 190 without any gateway.
+        /// </summary>
+        private static ManagementReport CreateSharedLayerManagementReport()
+        {
+            return new()
+            {
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 110, IncomingLinks = [CreateLink(kGatewayA, null, true)] },
+                    new RulebaseReport { Id = 150, IncomingLinks = [CreateLink(kGatewayB, null, true)] },
+                    new RulebaseReport { Id = 120, IncomingLinks = [CreateLink(kGatewayA, 110), CreateLink(kGatewayB, 150)] },
+                    new RulebaseReport { Id = 130, IncomingLinks = [CreateLink(kGatewayA, 120)] },
+                    new RulebaseReport { Id = 140, IncomingLinks = [CreateLink(kGatewayB, 120)] },
+                    new RulebaseReport { Id = 190, Name = "Without gateway" }
+                ]
+            };
+        }
+
+        private static RulebaseLink CreateLink(int gatewayId, int? fromRulebaseId, bool isInitial = false)
+        {
+            return new RulebaseLink { GatewayId = gatewayId, LinkType = RulebaseLinkTypes.Ordered, FromRulebaseId = fromRulebaseId, IsInitial = isInitial };
         }
 
         /// <summary>

@@ -107,6 +107,9 @@ namespace FWO.Report
             return edges;
         }
 
+        /// <summary>
+        /// Returns the incoming links of the rulebase without NAT links (NAT rulebases are not part of the Rules report).
+        /// </summary>
         private static IEnumerable<RulebaseLink> GetNonNatIncomingLinks(RulebaseReport rulebase)
         {
             return (rulebase.IncomingLinks ?? []).Where(link => link.LinkType != RulebaseLinkTypes.Nat);

@@ -91,6 +91,7 @@ namespace FWO.Report.Filter
             return $@"rulebase_links(
                                 where: {{ {query.RulebaseLinkWhereStatement} }}
                             ) {{
+                                gw_id
                                 link_type
                                 from_rulebase_id
                                 from_rule_id

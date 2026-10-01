@@ -97,6 +97,38 @@ namespace FWO.Test
             Assert.That(filters.RulebaseManagements[0].Visible, Is.True);
         }
 
+        [Test]
+        public void SetRulebaseManagements_KeepsStartRulebasesAndMarksLoaded()
+        {
+            ReportFilters filters = new();
+            List<RulebaseManagementSelect> managements = CreateRulebaseManagements();
+            managements[0].Rulebases.Add(new RulebaseSelect
+            {
+                Id = 20,
+                Name = "Ordered layer",
+                IncomingLinks = [new RulebaseLink { FromRulebaseId = 10, FromRulebase = new Rulebase { MgmtId = 1 } }]
+            });
+
+            Assert.That(filters.RulebaseManagementsLoaded, Is.False);
+
+            filters.SetRulebaseManagements(managements);
+
+            Assert.That(filters.RulebaseManagementsLoaded, Is.True);
+            Assert.That(filters.RulebaseManagements.Single().Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(kSelectedRulebaseIds));
+        }
+
+        [Test]
+        public void SetRulebaseManagements_AppliesTenantViewSelectedBeforeLoading()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management", Devices = [new DeviceSelect { Id = 5, Name = "Gateway" }] }];
+            ReportFilters filters = new() { DeviceFilter = new(managements) };
+            filters.TenantViewChanged(new Tenant { Id = 2, VisibleGatewayIds = [] });
+
+            filters.SetRulebaseManagements(CreateRulebaseManagements());
+
+            Assert.That(filters.RulebaseManagements.Single().Visible, Is.False);
+        }
+
         private static List<RulebaseManagementSelect> CreateRulebaseManagements()
         {
             return [new RulebaseManagementSelect { Id = 1, Name = "Management", Rulebases = [new RulebaseSelect { Id = 10, Name = "Start" }] }];

@@ -13,6 +13,7 @@ namespace FWO.Report.Filter.FilterTypes
         public DeviceFilter DeviceFilter { get; set; } = new();
         public bool ManagementRulebaseView { get; set; }
         public List<RulebaseManagementSelect> RulebaseManagements { get; set; } = [];
+        public bool RulebaseManagementsLoaded { get; private set; }
         public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
         public DeviceFilter ReducedDeviceFilter { get; set; } = new();
         public bool SelectAll = true;
@@ -187,6 +188,18 @@ namespace FWO.Report.Filter.FilterTypes
             }
             SetRulebaseManagementVisibility();
             SelectAll = !DeviceFilter.IsAnyDeviceFilterSet();
+        }
+
+        /// <summary>
+        /// Sets the start rulebases offered in management rulebases view (loaded on first use)
+        /// and applies the current tenant view to them.
+        /// </summary>
+        /// <param name="managements">managements with all active rulebases and their incoming links</param>
+        public void SetRulebaseManagements(List<RulebaseManagementSelect> managements)
+        {
+            RulebaseManagements = RulebaseManagementSelect.KeepStartRulebases(managements);
+            RulebaseManagementsLoaded = true;
+            SetRulebaseManagementVisibility();
         }
 
         /// <summary>

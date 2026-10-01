@@ -10,6 +10,7 @@ query getWorkflowConfigurationPhaseMappings($configurationId: Int!) {
       name
       phase
       active
+      phase_visibility_mode
       lowest_input_state
       lowest_start_state
       lowest_end_state

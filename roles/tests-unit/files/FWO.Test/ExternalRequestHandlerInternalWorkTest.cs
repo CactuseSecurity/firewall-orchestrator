@@ -20,7 +20,7 @@ namespace FWO.Test
     {
         private const long kTicketId = 123;
 
-        private static readonly SimulatedUserConfig kUserConfig = new();
+        private static readonly SimulatedUserConfig kUserConfig = new() { ReqPriorities = "[]" };
 
         /// <summary>
         /// Builds a request task, optionally marked as internal work the way the promotion does it.

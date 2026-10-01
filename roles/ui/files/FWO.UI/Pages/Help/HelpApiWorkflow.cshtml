@@ -1,0 +1,18 @@
+@page "/help/API/workflow"
+@model FWO.Ui.Pages.Help.MainModel
+@{
+    Layout = "HelpLayout";
+}
+@section sidebar {
+    @{
+        await Html.RenderPartialAsync("HelpAPISidebar.cshtml");
+    }
+}
+
+@using FWO.Config.Api
+@inject UserConfig userConfig
+
+<div class="p-2">
+    <h3>@userConfig.GetText("workflow_api")</h3>
+    @(Html.Raw(userConfig.GetText("H6944")))
+</div>

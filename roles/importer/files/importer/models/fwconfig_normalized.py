@@ -3,7 +3,7 @@ from __future__ import annotations
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
-from fwo_base import ConfFormat, ConfigAction
+from fwo_enums import ConfFormat, ConfigAction
 from pydantic import BaseModel
 
 if TYPE_CHECKING:

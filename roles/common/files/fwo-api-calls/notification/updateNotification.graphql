@@ -22,6 +22,8 @@ mutation updateNotification(
   $initialOffsetAfterDeadline: Int
   $offsetAfterDeadline: Int
   $repetitionsAfterDeadline: Int
+  $logging: String
+  $active: Boolean!
   ) {
   update_notification_by_pk(
     pk_columns: { id: $id }
@@ -48,6 +50,8 @@ mutation updateNotification(
     initial_offset_after_deadline: $initialOffsetAfterDeadline
     repeat_offset_after_deadline: $offsetAfterDeadline
     repetitions_after_deadline: $repetitionsAfterDeadline
+    logging: $logging
+    active: $active
   }) {
     updatedId: id
   }

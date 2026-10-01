@@ -61,16 +61,14 @@ namespace FWO.Data
             return Id.GetHashCode();
         }
 
+        /// <summary>
+        /// Renders the members of this user group as the cell of a report table, with each imported
+        /// member name encoded and only the line breaks between them left as markup.
+        /// </summary>
+        /// <returns>The table cell holding the member names.</returns>
         public string MemberNamesAsHtml()
         {
-            if (MemberNames != null && MemberNames.Contains("|"))
-            {
-                return $"<td>{string.Join("<br>", MemberNames.Split('|'))}</td>";
-            }
-            else
-            {
-                return $"<td>{MemberNames}</td>";
-            }
+            return DisplayBase.MemberNamesAsHtml(MemberNames);
         }
     }
 }

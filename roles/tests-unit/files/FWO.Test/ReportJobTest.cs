@@ -376,7 +376,8 @@ namespace FWO.Test
                 ScheduleOwningUser = new UiUser
                 {
                     DbId = 42,
-                    Name = "report-user"
+                    Name = "report-user",
+                    LdapConnection = new() { Id = 1 }
                 },
                 StartTime = new DateTime(2026, 4, 21, 10, 0, 0),
                 Template = new ReportTemplate
@@ -470,7 +471,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task TrySendReportViaEmail_LoadsNotificationsAndUpdatesLastSent_WhenConfigured()
+        public async Task TrySendReportViaEmail_LoadsNotificationsAndSkipsLastSentUpdate_WhenNoneAreConfigured()
         {
             ReportJobApiConnection apiConnection = new()
             {
@@ -486,8 +487,8 @@ namespace FWO.Test
 
             await reportJob.TrySendReportViaEmail(reportSchedule, report, userConfig);
 
-            Assert.That(apiConnection.LastQuery, Is.EqualTo(NotificationQueries.updateNotificationsLastSent));
-            Assert.That(apiConnection.QueryCount, Is.EqualTo(2));
+            Assert.That(apiConnection.LastQuery, Is.EqualTo(NotificationQueries.getNotifications));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
         }
 
         [Test]

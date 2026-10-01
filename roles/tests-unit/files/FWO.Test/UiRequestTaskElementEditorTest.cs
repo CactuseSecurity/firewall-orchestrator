@@ -10,6 +10,8 @@ namespace FWO.Test;
 [TestFixture]
 internal class UiRequestTaskElementEditorTest
 {
+    private static readonly long[] kRemovedElementIds = [1L, 2L, 3L];
+
     [Test]
     public void InitializeElements_LoadsAllRequestElementKinds()
     {
@@ -72,7 +74,7 @@ internal class UiRequestTaskElementEditorTest
 
         Assert.Multiple(() =>
         {
-            Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(new[] { 1L, 2L, 3L }));
+            Assert.That(reqTask.RemovedElements.Select(element => element.Id), Is.EquivalentTo(kRemovedElementIds));
             Assert.That(reqTask.Elements.Any(element => element.Id is 1 or 2 or 3), Is.False);
             Assert.That(reqTask.Elements.Any(element => element.Id == 5 && element.Field == ElemFieldType.source.ToString()), Is.True);
             Assert.That(reqTask.Elements.Any(element => element.Id == 6 && element.Field == ElemFieldType.destination.ToString()), Is.True);

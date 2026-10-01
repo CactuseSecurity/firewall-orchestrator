@@ -4,6 +4,7 @@ using FWO.Data.Workflow;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.Reflection;
 
 namespace FWO.Test;
@@ -11,6 +12,11 @@ namespace FWO.Test;
 [TestFixture]
 internal class UiRequestTaskMetadataEditorTest
 {
+    private static readonly int[] kSingleGatewayId = [1];
+    private static readonly int[] kTwoGatewayIds = [1, 2];
+    private static readonly int[] kSelectedGatewayId = [2];
+    private static readonly int[] kAllDeviceId = [WfReqTaskBase.kAllDevicesId];
+
     [Test]
     public void NewInterfaceOwnerLayout_ContainsBothReadOnlyFieldsInOneRow()
     {
@@ -49,16 +55,16 @@ internal class UiRequestTaskMetadataEditorTest
         SetMember(component, "SelectedDevices", new List<Device> { gatewayOne });
 
         component.SetDevices([new Device { Id = WfReqTaskBase.kAllDevicesId }, gatewayTwo]);
-        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(new[] { WfReqTaskBase.kAllDevicesId }));
+        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kAllDeviceId));
 
         component.SetDevice(new Device { Id = WfReqTaskBase.kAllDevicesId });
         Assert.That(component.DisplayDevices(), Is.EqualTo(userConfig.GetText("all")));
 
         component.SetDevices([new Device { Id = WfReqTaskBase.kAllDevicesId }, gatewayOne]);
-        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(new[] { 1 }));
+        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kSingleGatewayId));
 
         component.SetDevices([gatewayOne, gatewayTwo]);
-        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(new[] { 1, 2 }));
+        Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kTwoGatewayIds));
         Assert.That(component.DisplayDevices(), Is.EqualTo("gw-1, gw-2"));
     }
 
@@ -111,7 +117,7 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentManagement?.Id, Is.EqualTo(7));
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(21));
             Assert.That(component.CurrentGroupName, Is.EqualTo("group-name"));
-            Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(new[] { 2 }));
+            Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kSelectedGatewayId));
         });
     }
 
@@ -170,16 +176,25 @@ internal class UiRequestTaskMetadataEditorTest
 
     private static string LocateRepositoryFile(string relativePath)
     {
-        DirectoryInfo? directory = new(NUnit.Framework.TestContext.CurrentContext.TestDirectory);
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
         while (directory != null)
         {
-            string candidate = Path.Combine(directory.FullName, relativePath);
-            if (File.Exists(candidate))
+            foreach (string candidatePath in GetRepositoryRelativePaths(relativePath))
             {
-                return candidate;
+                string candidate = Path.Combine(directory.FullName, candidatePath);
+                if (File.Exists(candidate))
+                {
+                    return candidate;
+                }
             }
             directory = directory.Parent;
         }
         throw new FileNotFoundException($"Could not locate repository file '{relativePath}'.");
+    }
+
+    private static IEnumerable<string> GetRepositoryRelativePaths(string relativePath)
+    {
+        yield return relativePath;
+        yield return relativePath.Replace(Path.Combine("roles", "ui"), "ui", StringComparison.OrdinalIgnoreCase);
     }
 }

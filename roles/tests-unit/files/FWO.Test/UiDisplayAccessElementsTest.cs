@@ -24,6 +24,9 @@ namespace FWO.Test
     [TestFixture]
     internal class UiDisplayAccessElementsTest
     {
+        private static readonly string[] kExpectedFlowObjectNames = ["Flow Source"];
+        private static readonly string[] kExpectedFlowServiceNames = ["Flow Service"];
+
         [Test]
         public async Task DisplayAccessElements_ReadOnlyObjectEntriesPreferGroupName()
         {
@@ -98,9 +101,9 @@ namespace FWO.Test
             {
                 Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowRequestNwObjectCatalog));
                 Assert.That(apiConn.Queries, Does.Contain(FlowQueries.getFlowRequestSvcObjectCatalog));
-                Assert.That(loadedObjects.Select(obj => obj.Name), Is.EqualTo(new[] { "Flow Source" }));
+                Assert.That(loadedObjects.Select(obj => obj.Name), Is.EqualTo(kExpectedFlowObjectNames));
                 Assert.That(loadedObjects.Single().FlowNetworkObjectId, Is.EqualTo(101));
-                Assert.That(loadedServices.Select(svc => svc.Name), Is.EqualTo(new[] { "Flow Service" }));
+                Assert.That(loadedServices.Select(svc => svc.Name), Is.EqualTo(kExpectedFlowServiceNames));
                 Assert.That(loadedServices.Single().FlowServiceObjectId, Is.EqualTo(201));
                 Assert.That(networkDropdowns, Has.Count.EqualTo(2));
                 Assert.That(networkDropdowns.All(dropdown => dropdown.Instance.Nullable), Is.True);

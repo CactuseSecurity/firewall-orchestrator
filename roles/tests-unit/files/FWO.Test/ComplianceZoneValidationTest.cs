@@ -141,6 +141,151 @@ internal class ComplianceZoneValidationTest
         });
     }
 
+    [TestCase("10.0.0.10", "10.0.0.10", "10.0.0.10")]
+    [TestCase("2001:db8::10", "2001:db8::10", "2001:db8::10")]
+    [TestCase("10.0.0.0/24", "10.0.0.0", "10.0.0.255")]
+    [TestCase("2001:db8::/126", "2001:db8::", "2001:db8::3")]
+    [TestCase("0.0.0.0/0", "0.0.0.0", "255.255.255.255")]
+    public void ResolveZonesForObjects_NormalizesIpNetworkInNestedLeaf(
+        string ipNetwork,
+        string expectedStart,
+        string expectedEnd)
+    {
+        ResolveZonesForObjectsRequest.LeafObjectRequest leaf = new()
+        {
+            Name = "Leaf",
+            Type = "network",
+            IpNetwork = ipNetwork
+        };
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.GroupObjectRequest
+                {
+                    Name = "Group",
+                    Members = [leaf]
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(leaf.IpStart, Is.EqualTo(expectedStart));
+            Assert.That(leaf.IpEnd, Is.EqualTo(expectedEnd));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_AllowsHostWithBareIpNetwork()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Host",
+                    Type = "host",
+                    IpNetwork = "192.0.2.10"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsHostWithNetworkIpNetwork()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Host",
+                    Type = "host",
+                    IpNetwork = "192.0.2.0/24"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("must use the same 'ipStart' and 'ipEnd'"));
+        });
+    }
+
+    [Test]
+    public void ResolveZonesForObjects_RejectsIpNetworkTogetherWithRangeBound()
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpNetwork = "192.0.2.0/24",
+                    IpEnd = "192.0.2.10"
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("not both"));
+        });
+    }
+
+    [TestCase("not-an-ip")]
+    [TestCase("192.0.2.1/24")]
+    [TestCase("2001:db8::/129")]
+    [TestCase("::ffff:192.0.2.10")]
+    public void ResolveZonesForObjects_RejectsInvalidIpNetwork(string ipNetwork)
+    {
+        ResolveZonesForObjectsRequest request = new()
+        {
+            Objects =
+            [
+                new ResolveZonesForObjectsRequest.LeafObjectRequest
+                {
+                    Name = "Network",
+                    Type = "network",
+                    IpNetwork = ipNetwork
+                }
+            ]
+        };
+
+        bool valid = ResolveZonesForObjectsRequestValidator.TryValidate(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.False);
+            Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
+        });
+    }
+
     [Test]
     public void ResolveZonesForObjects_AllowsCidrHostMaskedIpBoundsAndNormalizesLeaf()
     {
@@ -564,6 +709,7 @@ internal class ComplianceZoneValidationTest
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("members entry at index 0"));
             Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("only accepts"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("ipNetwork"));
         });
     }
 

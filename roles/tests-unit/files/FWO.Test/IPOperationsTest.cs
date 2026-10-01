@@ -51,6 +51,71 @@ namespace FWO.Test
             ClassicAssert.AreEqual("8.8.8.8", end);
         }
 
+        [TestCase("192.0.2.10")]
+        [TestCase("2001:db8::10")]
+        [TestCase("::ffff:192.0.2.128")]
+        public void TryParseIpAddressAndPrefix_BareAddress_ReturnsAddressWithoutPrefix(string input)
+        {
+            bool result = input.TryParseIpAddressAndPrefix(
+                out IPAddress? address,
+                out int? prefixLength);
+
+            Assert.That(result, Is.True);
+            Assert.That(address, Is.EqualTo(IPAddress.Parse(input)));
+            Assert.That(prefixLength, Is.Null);
+        }
+
+        [TestCase("192.0.2.0/24", "192.0.2.0", 24)]
+        [TestCase("2001:db8::/32", "2001:db8::", 32)]
+        [TestCase("0.0.0.0/0", "0.0.0.0", 0)]
+        [TestCase("::/0", "::", 0)]
+        [TestCase("192.0.2.10/32", "192.0.2.10", 32)]
+        [TestCase("2001:db8::10/128", "2001:db8::10", 128)]
+        [TestCase("::ffff:192.0.2.0/120", "::ffff:192.0.2.0", 120)]
+        public void TryParseIpAddressAndPrefix_CanonicalNetwork_ReturnsAddressAndPrefix(
+            string input,
+            string expectedAddress,
+            int expectedPrefixLength)
+        {
+            bool result = input.TryParseIpAddressAndPrefix(
+                out IPAddress? address,
+                out int? prefixLength);
+
+            Assert.That(result, Is.True);
+            Assert.That(address, Is.EqualTo(IPAddress.Parse(expectedAddress)));
+            Assert.That(prefixLength, Is.EqualTo(expectedPrefixLength));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("   ")]
+        [TestCase("not-an-ip")]
+        [TestCase("192.0.2.1-192.0.2.10")]
+        [TestCase("192.0.2.0/24/1")]
+        [TestCase("/24")]
+        [TestCase("192.0.2.0/")]
+        [TestCase("192.0.2.0/not-a-prefix")]
+        [TestCase("192.0.2.0/-1")]
+        [TestCase("192.0.2.0/33")]
+        [TestCase("2001:db8::/129")]
+        [TestCase("192.168.1.42/24")]
+        [TestCase("2001:db8::1/64")]
+        [TestCase("192.168.1.0/255.255.255.0")]
+        public void TryParseIpAddressAndPrefix_InvalidInput_ReturnsFalseAndResetsOutputs(string? input)
+        {
+            IPAddress? address = IPAddress.Loopback;
+            int? prefixLength = 32;
+
+            Assert.DoesNotThrow(() =>
+            {
+                bool result = input.TryParseIpAddressAndPrefix(out address, out prefixLength);
+
+                Assert.That(result, Is.False);
+            });
+            Assert.That(address, Is.Null);
+            Assert.That(prefixLength, Is.Null);
+        }
+
         [TestCase("192.168.1.0", 24, "192.168.1.0", "192.168.1.255")]
         [TestCase("0.0.0.0", 0, "0.0.0.0", "255.255.255.255")]
         [TestCase("192.0.2.42", 32, "192.0.2.42", "192.0.2.42")]

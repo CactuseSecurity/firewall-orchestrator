@@ -101,6 +101,47 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Tries to parse a single IP address with an optional CIDR prefix length.
+        /// </summary>
+        /// <param name="input">A bare IP address or canonical CIDR network.</param>
+        /// <param name="address">The parsed IP address, or <c>null</c> on failure.</param>
+        /// <param name="prefixLength">
+        /// The parsed prefix length, or <c>null</c> when no prefix was supplied or parsing fails.
+        /// </param>
+        /// <returns><c>true</c> when the input is a valid address or canonical network; otherwise <c>false</c>.</returns>
+        public static bool TryParseIpAddressAndPrefix(
+            this string? input,
+            out IPAddress? address,
+            out int? prefixLength)
+        {
+            address = null;
+            prefixLength = null;
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            int slashIndex = input.IndexOf('/');
+            if (slashIndex < 0)
+            {
+                return IPAddress.TryParse(input, out address);
+            }
+
+            if (slashIndex != input.LastIndexOf('/')
+                || !IPAddress.TryParse(input[..slashIndex], out IPAddress? parsedAddress)
+                || !int.TryParse(input[(slashIndex + 1)..], out int parsedPrefixLength)
+                || !TryGetNetworkRange(parsedAddress, parsedPrefixLength, out _))
+            {
+                return false;
+            }
+
+            address = parsedAddress;
+            prefixLength = parsedPrefixLength;
+            return true;
+        }
+
+        /// <summary>
         /// Tries to calculate the inclusive address range for a canonical IPv4 or IPv6 network.
         /// </summary>
         /// <param name="address">The network address. Addresses with host bits set are rejected.</param>

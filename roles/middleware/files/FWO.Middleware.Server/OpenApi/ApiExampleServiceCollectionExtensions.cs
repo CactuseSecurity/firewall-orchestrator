@@ -20,6 +20,7 @@ public static class ApiExampleServiceCollectionExtensions
         services.AddSingleton<IApiExampleProvider, GetTicketStatusRequestExample>();
         services.AddSingleton<IApiExampleProvider, VisibleInRequestFilterExample>();
         services.AddSingleton<IApiExampleProvider, GetAddressGroupsRequestExample>();
+        services.AddSingleton<IApiExampleProvider, GetAddressObjectIdRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetFlowComplianceStateRequestExample>();
         services.AddSingleton<IApiExampleProvider, ResolveZonesForObjectsRequestExample>();
         services.AddSingleton<IApiExampleProvider, GetOwnersRequestExample>();
@@ -187,6 +188,22 @@ public sealed class GetAddressGroupsRequestExample : ApiExampleProvider<GetAddre
         {
             SeparateZoneGroups = false
         }
+    };
+}
+
+/// <summary>
+/// Provides a typed example for <see cref="GetAddressObjectIdRequest"/>.
+/// </summary>
+public sealed class GetAddressObjectIdRequestExample : ApiExampleProvider<GetAddressObjectIdRequest>
+{
+    /// <inheritdoc />
+    public override GetAddressObjectIdRequest GetExample() => new()
+    {
+        Filter = new VisibleInRequestFilter
+        {
+            VisibleInRequest = true
+        },
+        IpNetwork = "192.0.2.10"
     };
 }
 

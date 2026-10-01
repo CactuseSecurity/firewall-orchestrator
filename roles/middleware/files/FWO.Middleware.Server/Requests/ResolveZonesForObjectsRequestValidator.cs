@@ -25,7 +25,8 @@ public static class ResolveZonesForObjectsRequestValidator
         new("name", "Display name of the object."),
         new("type", "Object type of the object."),
         new("ipStart", "Start IP address or range value of the object."),
-        new("ipEnd", "End IP address or range value of the object.")
+        new("ipEnd", "End IP address or range value of the object."),
+        new("ipNetwork", "Bare IP address or canonical CIDR network to use instead of ipStart and ipEnd.")
     ];
 
     private static readonly RequestKeyDefinition[] GroupKeys =
@@ -162,9 +163,10 @@ public static class ResolveZonesForObjectsRequestValidator
 
         if (string.IsNullOrWhiteSpace(leaf.Type)
             && string.IsNullOrWhiteSpace(leaf.IpStart)
-            && string.IsNullOrWhiteSpace(leaf.IpEnd))
+            && string.IsNullOrWhiteSpace(leaf.IpEnd)
+            && string.IsNullOrWhiteSpace(leaf.IpNetwork))
         {
-            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or the leaf fields 'type', 'ipStart', and 'ipEnd'.");
+            errorResult = new BadRequestObjectResult($"'{context}' must define either non-empty 'members' or a leaf 'type' with 'ipNetwork' or 'ipStart' and 'ipEnd'.");
             return false;
         }
 
@@ -181,16 +183,11 @@ public static class ResolveZonesForObjectsRequestValidator
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(leaf.IpStart) || string.IsNullOrWhiteSpace(leaf.IpEnd))
-        {
-            errorResult = new BadRequestObjectResult($"'{context}' requires non-empty 'ipStart' and 'ipEnd'.");
-            return false;
-        }
-
-        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpInput(
+            leaf.IpNetwork,
             leaf.IpStart,
             leaf.IpEnd,
-            context,
+            $"'{context}'",
             out string normalizedIpStart,
             out string normalizedIpEnd,
             out string? ipRangeError))

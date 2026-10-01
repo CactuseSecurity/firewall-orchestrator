@@ -320,6 +320,47 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     }
 
     /// <summary>
+    /// Verifies all three address input examples select one representation without publishing empty alternatives.
+    /// </summary>
+    [Test]
+    public async Task TransformAsync_WithAddressInputExamples_UsesOnlySelectedRepresentation()
+    {
+        (Type RequestType, string ExpectedValue)[] cases =
+        [
+            (typeof(GetFlowComplianceStateRequest), "192.0.2.0/24"),
+            (typeof(ResolveZonesForObjectsRequest), "10.0.1.10"),
+            (typeof(GetAddressObjectIdRequest), "192.0.2.10")
+        ];
+        OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
+
+        foreach ((Type requestType, string expectedValue) in cases)
+        {
+            OpenApiOperation operation = CreateOperation();
+            operation.RequestBody = new OpenApiRequestBody
+            {
+                Content = new Dictionary<string, OpenApiMediaType> { ["application/json"] = new OpenApiMediaType() }
+            };
+            OpenApiOperationTransformerContext context = CreateContext(new ControllerActionDescriptor(), "api/test");
+            context.Description.ParameterDescriptions.Add(new ApiParameterDescription
+            {
+                Source = BindingSource.Body,
+                Type = requestType
+            });
+
+            await transformer.TransformAsync(operation, context, CancellationToken.None);
+
+            string exampleJson = operation.RequestBody.Content!["application/json"].Example!.ToJsonString();
+            Assert.Multiple(() =>
+            {
+                Assert.That(exampleJson, Does.Contain(expectedValue));
+                Assert.That(exampleJson, Does.Not.Contain("\"ipStart\":\"\""));
+                Assert.That(exampleJson, Does.Not.Contain("\"ipEnd\":\"\""));
+                Assert.That(exampleJson, Does.Not.Contain("\"ipNetwork\":\"\""));
+            });
+        }
+    }
+
+    /// <summary>
     /// Verifies response examples are applied per status code and void or unknown codes are skipped.
     /// </summary>
     [Test]

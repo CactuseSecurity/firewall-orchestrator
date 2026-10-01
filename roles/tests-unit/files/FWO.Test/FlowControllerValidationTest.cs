@@ -288,6 +288,38 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsNetworkTogetherWithRangeBound()
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpNetwork = "10.0.0.0/24",
+            IpStart = "10.0.0.1"
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("not both"));
+    }
+
+    [TestCase("10.0.0.1/24")]
+    [TestCase("2001:db8::1/64")]
+    [TestCase("not-an-ip")]
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsInvalidOrNoncanonicalNetwork(string ipNetwork)
+    {
+        using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
+        FlowCatalogController controller = new(service);
+
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
+        {
+            IpNetwork = ipNetwork
+        });
+
+        Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
+    }
+
+    [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
         using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
@@ -551,7 +583,8 @@ internal class FlowControllerValidationTest
                 [
                     new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
                     new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup."),
+                    new RequestKeyDefinition("ipNetwork", "Bare IP address or canonical CIDR network to use instead of ipStart and ipEnd.")
                 ]),
             RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjectId"),
             """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",

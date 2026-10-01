@@ -61,6 +61,16 @@ namespace FWO.Test
                 IpEnd = "2001:db8::3"
             };
             ActionResult<AddressObjectIdResponse> ipv6AddressObjectIdResult = await controller.GetAddressObjectId(ipv6AddressObjectIdRequest);
+            GetAddressObjectIdRequest networkAddressObjectIdRequest = new()
+            {
+                IpNetwork = "192.0.2.0/24"
+            };
+            ActionResult<AddressObjectIdResponse> networkAddressObjectIdResult = await controller.GetAddressObjectId(networkAddressObjectIdRequest);
+            GetAddressObjectIdRequest bareAddressObjectIdRequest = new()
+            {
+                IpNetwork = "2001:db8::10"
+            };
+            ActionResult<AddressObjectIdResponse> bareAddressObjectIdResult = await controller.GetAddressObjectId(bareAddressObjectIdRequest);
 
             Assert.Multiple(() =>
             {
@@ -95,6 +105,12 @@ namespace FWO.Test
                 Assert.That(maskedAddressObjectIdRequest.IpEnd, Is.EqualTo("10.0.0.2"));
 
                 Assert.That(ipv6AddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(networkAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(networkAddressObjectIdRequest.IpStart, Is.EqualTo("192.0.2.0"));
+                Assert.That(networkAddressObjectIdRequest.IpEnd, Is.EqualTo("192.0.2.255"));
+                Assert.That(bareAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
+                Assert.That(bareAddressObjectIdRequest.IpStart, Is.EqualTo("2001:db8::10"));
+                Assert.That(bareAddressObjectIdRequest.IpEnd, Is.EqualTo("2001:db8::10"));
             });
 
             Assert.That(apiConnection.Queries, Does.Contain(FlowQueries.getFlowAddressObjects));

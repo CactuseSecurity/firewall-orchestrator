@@ -51,16 +51,22 @@ public sealed class ResolveZonesForObjectsRequest : IRequestWithRootAdditionalDa
         public string Type { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the start IP or range value.
+        /// Gets the inclusive range start. Supply this together with ipEnd, or supply ipNetwork instead.
         /// </summary>
         [JsonPropertyName("ipStart")]
         public string IpStart { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the end IP or range value.
+        /// Gets the inclusive range end. Supply this together with ipStart, or supply ipNetwork instead.
         /// </summary>
         [JsonPropertyName("ipEnd")]
         public string IpEnd { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets a bare IPv4/IPv6 address or canonical CIDR network. This is mutually exclusive with ipStart and ipEnd.
+        /// </summary>
+        [JsonPropertyName("ipNetwork")]
+        public string IpNetwork { get; set; } = string.Empty;
     }
 
     /// <summary>

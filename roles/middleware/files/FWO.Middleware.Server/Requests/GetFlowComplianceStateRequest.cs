@@ -44,19 +44,19 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
     public sealed class IpRangeRequest : IRequestWithAdditionalData
     {
         /// <summary>
-        /// Gets the IpStart value.
+        /// Gets the inclusive range start. Supply this together with ipEnd, or supply ipNetwork instead.
         /// </summary>
         [JsonPropertyName("ipStart")]
         public string IpStart { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the IpEnd value.
+        /// Gets the inclusive range end. Supply this together with ipStart, or supply ipNetwork instead.
         /// </summary>
         [JsonPropertyName("ipEnd")]
         public string IpEnd { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the CIDR network value. This is mutually exclusive with IpStart and IpEnd.
+        /// Gets a bare IPv4/IPv6 address or canonical CIDR network. This is mutually exclusive with ipStart and ipEnd.
         /// </summary>
         [JsonPropertyName("ipNetwork")]
         public string IpNetwork { get; set; } = string.Empty;

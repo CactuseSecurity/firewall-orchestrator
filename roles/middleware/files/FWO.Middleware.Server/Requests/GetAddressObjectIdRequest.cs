@@ -15,18 +15,22 @@ public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest
     public VisibleInRequestFilter? Filter { get; set; }
 
     /// <summary>
-    /// Gets the IpStart value.
+    /// Gets the inclusive range start. Supply this together with ipEnd, or supply ipNetwork instead.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("ipStart")]
     public string IpStart { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the IpEnd value.
+    /// Gets the inclusive range end. Supply this together with ipStart, or supply ipNetwork instead.
     /// </summary>
-    [JsonRequired]
     [JsonPropertyName("ipEnd")]
     public string IpEnd { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets a bare IPv4/IPv6 address or canonical CIDR network. This is mutually exclusive with ipStart and ipEnd.
+    /// </summary>
+    [JsonPropertyName("ipNetwork")]
+    public string IpNetwork { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the AdditionalData value.

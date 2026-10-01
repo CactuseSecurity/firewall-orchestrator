@@ -1,3 +1,4 @@
+using FWO.Basics;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Sockets;
@@ -36,7 +37,7 @@ public static class FlowComplianceRequestValidator
     [
         new("ipStart", "Start IP address of the range."),
         new("ipEnd", "End IP address of the range."),
-        new("ipNetwork", "CIDR network to evaluate instead of ipStart and ipEnd.")
+        new("ipNetwork", "Bare IP address or canonical CIDR network to evaluate instead of ipStart and ipEnd.")
     ];
 
     private static readonly RequestKeyDefinition[] ServiceRangeKeys =
@@ -131,7 +132,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Validates an IPv4 or IPv6 CIDR network and returns its inclusive range bounds.
+    /// Validates an IPv4 or IPv6 bare address or canonical CIDR network and returns its inclusive range bounds.
     /// </summary>
     public static bool TryValidateAndNormalizeIpNetwork(
         string ipNetwork,
@@ -148,6 +149,64 @@ public static class FlowComplianceRequestValidator
 
         errorMessage = null;
         return true;
+    }
+
+    /// <summary>
+    /// Validates exactly one supported address representation and returns its inclusive range bounds.
+    /// </summary>
+    /// <param name="ipNetwork">A bare IPv4/IPv6 address or canonical CIDR network.</param>
+    /// <param name="ipStart">The inclusive start of a legacy range.</param>
+    /// <param name="ipEnd">The inclusive end of a legacy range.</param>
+    /// <param name="context">Text identifying the request entry in validation errors.</param>
+    /// <param name="normalizedIpStart">The normalized inclusive start address.</param>
+    /// <param name="normalizedIpEnd">The normalized inclusive end address.</param>
+    /// <param name="errorMessage">The validation error, or null when validation succeeds.</param>
+    public static bool TryValidateAndNormalizeIpInput(
+        string? ipNetwork,
+        string? ipStart,
+        string? ipEnd,
+        string context,
+        out string normalizedIpStart,
+        out string normalizedIpEnd,
+        out string? errorMessage)
+    {
+        normalizedIpStart = string.Empty;
+        normalizedIpEnd = string.Empty;
+
+        bool hasIpNetwork = !string.IsNullOrWhiteSpace(ipNetwork);
+        bool hasIpStart = !string.IsNullOrWhiteSpace(ipStart);
+        bool hasIpEnd = !string.IsNullOrWhiteSpace(ipEnd);
+
+        if (hasIpNetwork && (hasIpStart || hasIpEnd))
+        {
+            errorMessage = $"{context} must define either 'ipNetwork' or 'ipStart' and 'ipEnd', not both.";
+            return false;
+        }
+
+        if (hasIpNetwork)
+        {
+            return TryValidateAndNormalizeIpNetwork(
+                ipNetwork!,
+                context,
+                out normalizedIpStart,
+                out normalizedIpEnd,
+                out errorMessage);
+        }
+
+        if (!hasIpStart || !hasIpEnd)
+        {
+            errorMessage = $"{context} requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'.";
+            return false;
+        }
+
+        (bool isValid, string? validationError) = ValidateIpRange(
+            ipStart!,
+            ipEnd!,
+            detail => $"{context} {detail}",
+            out normalizedIpStart,
+            out normalizedIpEnd);
+        errorMessage = validationError;
+        return isValid;
     }
 
     /// <summary>
@@ -246,42 +305,15 @@ public static class FlowComplianceRequestValidator
 
     private static (bool IsValid, string? ErrorMessage) TryValidateIpRange(GetFlowComplianceStateRequest.IpRangeRequest ipRange, string collectionName, int itemIndex)
     {
-        bool hasIpNetwork = !string.IsNullOrWhiteSpace(ipRange.IpNetwork);
-        bool hasIpRange = !string.IsNullOrWhiteSpace(ipRange.IpStart) || !string.IsNullOrWhiteSpace(ipRange.IpEnd);
         string context = $"'{collectionName}' entry at index {itemIndex}";
-        if (hasIpNetwork && hasIpRange)
-        {
-            return (false, $"{context} must define either 'ipNetwork' or 'ipStart' and 'ipEnd', not both.");
-        }
-
-        if (hasIpNetwork)
-        {
-            bool isNetworkValid = TryValidateAndNormalizeIpNetwork(
-                ipRange.IpNetwork,
-                context,
-                out string normalizedNetworkStart,
-                out string normalizedNetworkEnd,
-                out string? networkError);
-            if (isNetworkValid)
-            {
-                ipRange.IpStart = normalizedNetworkStart;
-                ipRange.IpEnd = normalizedNetworkEnd;
-            }
-
-            return (isNetworkValid, networkError);
-        }
-
-        if (string.IsNullOrWhiteSpace(ipRange.IpStart) || string.IsNullOrWhiteSpace(ipRange.IpEnd))
-        {
-            return (false, $"{context} requires non-empty 'ipStart' and 'ipEnd', or a non-empty 'ipNetwork'.");
-        }
-
-        (bool isValid, string? errorMessage) = ValidateIpRange(
+        bool isValid = TryValidateAndNormalizeIpInput(
+            ipRange.IpNetwork,
             ipRange.IpStart,
             ipRange.IpEnd,
-            detail => $"{context} {detail}",
+            context,
             out string normalizedIpStart,
-            out string normalizedIpEnd);
+            out string normalizedIpEnd,
+            out string? errorMessage);
         if (isValid)
         {
             ipRange.IpStart = normalizedIpStart;
@@ -454,7 +486,7 @@ public static class FlowComplianceRequestValidator
     }
 
     /// <summary>
-    /// Parses a CIDR network exactly once and returns the inclusive bounds of the addressed block.
+    /// Parses a bare address or canonical CIDR network and returns its inclusive bounds.
     /// Networks carrying host bits are rejected so that no request is silently widened.
     /// </summary>
     private static bool TryNormalizeIpNetwork(string ipNetwork, out string normalizedIpStart, out string normalizedIpEnd, out string? errorMessage)
@@ -462,10 +494,43 @@ public static class FlowComplianceRequestValidator
         normalizedIpStart = string.Empty;
         normalizedIpEnd = string.Empty;
 
-        int maskSeparatorIndex = ipNetwork.IndexOf('/');
-        if (maskSeparatorIndex <= 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        if (ipNetwork.TryParseIpAddressAndPrefix(out IPAddress? normalizedAddress, out int? normalizedPrefixLength))
         {
-            errorMessage = "requires a valid CIDR network in 'ipNetwork'.";
+            if (IsIpv4EncodedAsIpv6(normalizedAddress!))
+            {
+                errorMessage = BuildIpv4EncodedAsIpv6Error(normalizedAddress!, "ipNetwork");
+                return false;
+            }
+
+            if (!normalizedPrefixLength.HasValue)
+            {
+                normalizedIpStart = normalizedAddress!.ToString();
+                normalizedIpEnd = normalizedIpStart;
+                errorMessage = null;
+                return true;
+            }
+
+            // The parser has already checked the prefix and canonical network address.
+            IpOperations.TryGetNetworkRange(
+                normalizedAddress!,
+                normalizedPrefixLength.Value,
+                out (IPAddress start, IPAddress end) normalizedRange);
+            normalizedIpStart = normalizedRange.start.ToString();
+            normalizedIpEnd = normalizedRange.end.ToString();
+            errorMessage = null;
+            return true;
+        }
+
+        int maskSeparatorIndex = ipNetwork.IndexOf('/');
+        if (maskSeparatorIndex < 0)
+        {
+            errorMessage = "has an invalid 'ipNetwork' value.";
+            return false;
+        }
+
+        if (maskSeparatorIndex == 0 || maskSeparatorIndex != ipNetwork.LastIndexOf('/'))
+        {
+            errorMessage = "requires a valid bare address or CIDR network in 'ipNetwork'.";
             return false;
         }
 
@@ -489,17 +554,9 @@ public static class FlowComplianceRequestValidator
             return false;
         }
 
-        (IPAddress networkAddress, IPAddress lastAddress) = GetNetworkBounds(parsedAddress, prefixLength);
-        if (!networkAddress.Equals(parsedAddress))
-        {
-            errorMessage = $"must not set host bits in 'ipNetwork'. Use '{networkAddress}/{prefixLength}' to evaluate that network.";
-            return false;
-        }
-
-        normalizedIpStart = networkAddress.ToString();
-        normalizedIpEnd = lastAddress.ToString();
-        errorMessage = null;
-        return true;
+        (IPAddress networkAddress, _) = GetNetworkBounds(parsedAddress, prefixLength);
+        errorMessage = $"must not set host bits in 'ipNetwork'. Use '{networkAddress}/{prefixLength}' to evaluate that network.";
+        return false;
     }
 
     /// <summary>

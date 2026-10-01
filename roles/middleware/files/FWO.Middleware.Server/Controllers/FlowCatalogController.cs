@@ -56,7 +56,8 @@ public class FlowCatalogController : ControllerBase
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
             new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup.")
+            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup."),
+            new RequestKeyDefinition("ipNetwork", "Bare IP address or canonical CIDR network to use instead of ipStart and ipEnd.")
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
@@ -279,8 +280,10 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// IPv4 and IPv6 ranges are accepted through ipStart and ipEnd.
+    /// Supply either a bare IPv4/IPv6 address or canonical CIDR network through ipNetwork,
+    /// or an inclusive IPv4/IPv6 range through ipStart and ipEnd. The two forms are mutually exclusive.
     /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// CIDR values must carry the network address itself; values with host bits set are rejected.
     /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
     /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
     /// </summary>
@@ -293,16 +296,11 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        if (string.IsNullOrWhiteSpace(request.IpStart) || string.IsNullOrWhiteSpace(request.IpEnd))
-        {
-            return BadRequest("'ipStart' and 'ipEnd' are required.");
-        }
-
-        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpRange(
+        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpInput(
+            request.IpNetwork,
             request.IpStart,
             request.IpEnd,
-            "address",
-            0,
+            "'address' entry at index 0",
             out string normalizedIpStart,
             out string normalizedIpEnd,
             out string? addressErrorMessage))

@@ -2,6 +2,9 @@
 
 ## 9.5.10 - 29.09.2026
 
+- REST address inputs for `getFlowComplianceState`, `resolveZonesForObjects`, and
+  `getAddressObjectId` now accept a bare address or canonical CIDR through `ipNetwork` as an
+  alternative to the existing `ipStart`/`ipEnd` range pair; existing range payloads remain valid
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)

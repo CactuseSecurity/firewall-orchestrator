@@ -89,6 +89,29 @@ internal class FlowComplianceValidationTest
         });
     }
 
+    [TestCase("10.0.0.10", "10.0.0.10")]
+    [TestCase("2001:db8::10", "2001:db8::10")]
+    public void GetFlowComplianceState_AcceptsBareIpNetwork(string ipNetwork, string expectedAddress)
+    {
+        GetFlowComplianceStateRequest request = new()
+        {
+            Source = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = ipNetwork }],
+            Destination = [new GetFlowComplianceStateRequest.IpRangeRequest { IpNetwork = "192.0.2.1" }],
+            Service = [new GetFlowComplianceStateRequest.ServiceRangeRequest { PortStart = 443, PortEnd = 443, Protocol = "TCP" }],
+            Policies = [1]
+        };
+
+        bool valid = FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out ActionResult? errorResult);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(valid, Is.True);
+            Assert.That(errorResult, Is.Null);
+            Assert.That(request.Source[0].IpStart, Is.EqualTo(expectedAddress));
+            Assert.That(request.Source[0].IpEnd, Is.EqualTo(expectedAddress));
+        });
+    }
+
     [Test]
     public void GetFlowComplianceState_ExpandsIpv6Network()
     {
@@ -243,8 +266,6 @@ internal class FlowComplianceValidationTest
         });
     }
 
-    [TestCase("10.0.0.0")]
-    [TestCase("2001:db8::")]
     [TestCase("/24")]
     [TestCase("10.0.0.0/24/24")]
     public void GetFlowComplianceState_RejectsNetworkWithoutSinglePrefixSeparator(string ipNetwork)
@@ -255,7 +276,7 @@ internal class FlowComplianceValidationTest
         {
             Assert.That(valid, Is.False);
             Assert.That(errorResult, Is.TypeOf<BadRequestObjectResult>());
-            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a valid CIDR network"));
+            Assert.That(((BadRequestObjectResult)errorResult!).Value?.ToString(), Does.Contain("requires a valid bare address or CIDR network"));
         });
     }
 

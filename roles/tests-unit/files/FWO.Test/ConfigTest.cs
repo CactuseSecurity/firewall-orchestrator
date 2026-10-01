@@ -321,14 +321,14 @@ namespace FWO.Test
         {
             SimulatedGlobalConfig globalConfig = new()
             {
-                ComplianceDesignatedZoneMatrixId = 0,
+                DesignatedZoneMatrixId = 0,
                 RawConfigItems =
                 [
-                    new() { Key = "complianceDesignatedZoneMatrix", Value = "0", User = 0 }
+                    new() { Key = "designatedZoneMatrix", Value = "0", User = 0 }
                 ]
             };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
-            editableConfig.ComplianceDesignatedZoneMatrixId = 17;
+            editableConfig.DesignatedZoneMatrixId = 17;
 
             using UserConfigApiConnection apiConnection = new([]);
             await globalConfig.WriteToDatabase(editableConfig, apiConnection);
@@ -337,9 +337,9 @@ namespace FWO.Test
             {
                 Assert.That(apiConnection.UpsertConfigCallCount, Is.EqualTo(1));
                 Assert.That(apiConnection.LastConfigItems, Has.Count.EqualTo(1));
-                Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("complianceDesignatedZoneMatrix"));
+                Assert.That(apiConnection.LastConfigItems[0].Key, Is.EqualTo("designatedZoneMatrix"));
                 Assert.That(apiConnection.LastConfigItems[0].Value, Is.EqualTo("17"));
-                Assert.That(globalConfig.ComplianceDesignatedZoneMatrixId, Is.EqualTo(17));
+                Assert.That(globalConfig.DesignatedZoneMatrixId, Is.EqualTo(17));
             });
         }
 
@@ -469,7 +469,7 @@ namespace FWO.Test
         [Test]
         public void ComplianceCheckSubscription_ContainsDesignatedZoneMatrix()
         {
-            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("complianceDesignatedZoneMatrix"));
+            Assert.That(ConfigQueries.subscribeComplianceCheckConfigChanges, Does.Contain("designatedZoneMatrix"));
         }
 
         [Test]
@@ -530,11 +530,11 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ConfigData_DefaultsComplianceDesignatedZoneMatrixIdToZero()
+        public void ConfigData_DefaultsDesignatedZoneMatrixIdToZero()
         {
             ConfigData configData = new();
 
-            Assert.That(configData.ComplianceDesignatedZoneMatrixId, Is.Zero);
+            Assert.That(configData.DesignatedZoneMatrixId, Is.Zero);
         }
 
         [Test]

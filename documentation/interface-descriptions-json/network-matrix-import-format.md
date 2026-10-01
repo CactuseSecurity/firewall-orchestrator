@@ -81,7 +81,7 @@ A subnet entry supports a single address, CIDR notation, or an inclusive range.
 | `name`             | string   | no       | Optional descriptive name for the address or range. |
 | `ip`               | string   | yes      | Single IP address, CIDR network, explicit `start-end` range, or the first address when `ip_end` is used. IPv4 and IPv6 are supported. |
 | `ip_end`           | string   | no       | Last address of an inclusive range. Omit it when `ip` contains a single address, CIDR network, or explicit range. |
-| `path_to_root`     | object[] | no       | Gateways on path from subnet to predefined root network. Will be used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm will expect no gateways on path |
+| `path_to_root`     | object[] | no       | Gateways on path from subnet to predefined root network. Across all subnets these paths must describe one tree. Will be used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm will expect no gateways on path |
 | `path_to_internet` | object[] | no       | Gateways on path from subnet to internet as defined in settings. Will be used for Network Zone Tree Path Analysis Algorithm. If omitted algorithm will expect no gateways on path |
 
 Valid examples are:
@@ -125,7 +125,7 @@ zone or connection.
 
 The import is not transactional. If processing fails after some zones or connections have been saved, those earlier changes can remain in the matrix. Validate the complete document before importing it into a production system.
 
-The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; internally reserved zones `AUTO_CALCULATED_ZONE_INTERNET` and `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` are not used as customer zone; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
+The following is checked before anything is written: a non-empty matrix name; zone names and `id_string` values unique within the document; internally reserved zones `AUTO_CALCULATED_ZONE_INTERNET` and `AUTO_CALCULATED_ZONE_UNDEFINED_INTERNAL` are not used as customer zone; every `communication_to` target naming a zone the document defines; every device referenced in `path_to_root` or `path_to_internet` being resolvable, unambiguous and listed at most once per path; every gateway in `path_to_root` naming the same successor towards the root across all subnets of the document, and those successors not forming a cycle, so that the paths to root describe one tree — `path_to_internet` is exempt, as several routes to the internet are intended; and every `ip` / `ip_end` being parseable, of one address family and not ending before it starts. Not covered: two ip ranges overlapping within the same zone are rejected by the database while zones are being written, so such a document can leave the matrix partially updated.
 
 ## Validation Checklist
 

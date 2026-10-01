@@ -560,8 +560,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
         public int ComplianceCheckPolicyId { get; set; } = 0;
 
-        [JsonProperty("complianceDesignatedZoneMatrix"), JsonPropertyName("complianceDesignatedZoneMatrix")]
-        public int ComplianceDesignatedZoneMatrixId { get; set; } = 0;
+        [JsonProperty("designatedZoneMatrix"), JsonPropertyName("designatedZoneMatrix")]
+        public int DesignatedZoneMatrixId { get; set; } = 0;
 
         [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
         public string ComplianceCheckMailRecipients { get; set; } = "";

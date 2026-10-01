@@ -200,13 +200,9 @@
             @if (reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(reportTemplateInEdit.ReportParams.ManagementRulebaseView ? "rulebases" : reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? "managements" : "devices")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(DeviceSelectionLabelKey())):</label>
                     <div class="form-group row col-sm-9">
-                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.ManagementRulebaseView
-                            ? string.Join(", ", reportTemplateInEdit.ReportParams.SelectedRulebases)
-                            : reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification
-                                ? reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedManagements()
-                                : reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
+                        <label class="col-sm-9">@(SelectedDevicesText())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">
                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                         </button>
@@ -259,6 +255,33 @@
 
     private string tmpTemplateCommentKey = "";
     private string tmpTemplateComment = "";
+
+    private bool IsManagementSelectionInEdit => reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification;
+
+    /// <summary>
+    /// Returns the text key labelling the rulebase, management or device selection of the template in edit.
+    /// </summary>
+    private string DeviceSelectionLabelKey()
+    {
+        if (reportTemplateInEdit.ReportParams.ManagementRulebaseView)
+        {
+            return "rulebases";
+        }
+        return IsManagementSelectionInEdit ? "managements" : "devices";
+    }
+
+    /// <summary>
+    /// Returns the selected rulebases, managements or devices of the template in edit as display text.
+    /// </summary>
+    private string SelectedDevicesText()
+    {
+        ReportParams reportParams = reportTemplateInEdit.ReportParams;
+        if (reportParams.ManagementRulebaseView)
+        {
+            return string.Join(", ", reportParams.SelectedRulebases);
+        }
+        return IsManagementSelectionInEdit ? reportParams.DeviceFilter.ListAllSelectedManagements() : reportParams.DeviceFilter.ListAllSelectedDevices();
+    }
 
     private bool ShowAddTemplateDialog = false;
     private bool ShowUpdateTemplateDialog = false;

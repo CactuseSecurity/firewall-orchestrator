@@ -29,6 +29,22 @@ namespace FWO.Report
         {
             return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
         }
+
+        /// <summary>
+        /// Checks whether any rulebase of the management contains rules (used in management rulebases view).
+        /// </summary>
+        public static bool ContainsRulebaseRules(this ManagementReport management)
+        {
+            return management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0);
+        }
+
+        /// <summary>
+        /// Counts the rules of all rulebases of the management (used in management rulebases view).
+        /// </summary>
+        public static int CountRulebaseRules(this ManagementReport management)
+        {
+            return management.Rulebases.Sum(rulebase => rulebase.Rules.Length);
+        }
     }
 
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
@@ -39,7 +55,7 @@ namespace FWO.Report
             if (!Query.ManagementRulebaseView)
                 return base.NoRuleFound();
 
-            return !ReportData.ManagementData.Any(management => management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0));
+            return !ReportData.ManagementData.Any(management => management.ContainsRulebaseRules());
         }
 
         private const int ColumnCount = 14;
@@ -646,9 +662,9 @@ namespace FWO.Report
         {
             if (Query.ManagementRulebaseView)
             {
-                int managementCount = ReportData.ManagementData.Count(management => !management.Ignore && management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0));
-                int ruleCount = ReportData.ManagementData.Where(management => !management.Ignore)
-                    .Sum(management => management.Rulebases.Sum(rulebase => rulebase.Rules.Length));
+                List<ManagementReport> reportedManagements = [.. ReportData.ManagementData.Where(management => !management.Ignore)];
+                int managementCount = reportedManagements.Count(management => management.ContainsRulebaseRules());
+                int ruleCount = reportedManagements.Sum(management => management.CountRulebaseRules());
                 return $"{managementCount} {userConfig.GetText("managements")}, {ruleCount} {userConfig.GetText("rules")}";
             }
 
@@ -765,33 +781,42 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             Levelshift = levelshift;
 
-            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore &&
-                (mgt.ContainsRules() || (Query.ManagementRulebaseView && mgt.Rulebases.Any(rulebase => rulebase.Rules.Length > 0)))))
+            foreach (ManagementReport managementReport in managementData.Where(IsManagementWithReportedRules))
             {
                 chapterNumber++;
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                if (ReportType.IsRulebaseReport() || Query.ManagementRulebaseView)
-                {
-                    foreach (var rulebase in managementReport.Rulebases)
-                    {
-                        AppendRulesForRulebaseHtml(ref report, rulebase, chapterNumber, ruleDisplayHtml);
-                    }
-                }
-                else
-                {
-                    foreach (var device in managementReport.Devices)
-                    {
-                        if (device.RulebaseLinks != null)
-                        {
-                            AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
-                        }
-                    }
-                }
+                AppendRulesForManagementHtml(ref report, managementReport, chapterNumber, ruleDisplayHtml);
 
                 // show all objects used in this management's rules
                 AppendObjectsForManagementHtml(ref report, chapterNumber, managementReport);
+            }
+        }
+
+        private bool IsManagementWithReportedRules(ManagementReport managementReport)
+        {
+            return !managementReport.Ignore &&
+                (managementReport.ContainsRules() || (Query.ManagementRulebaseView && managementReport.ContainsRulebaseRules()));
+        }
+
+        /// <summary>
+        /// Appends the rules of a management grouped by rulebase (rulebase reports, management rulebases view) or by device.
+        /// </summary>
+        private void AppendRulesForManagementHtml(ref StringBuilder report, ManagementReport managementReport, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        {
+            if (ReportType.IsRulebaseReport() || Query.ManagementRulebaseView)
+            {
+                foreach (var rulebase in managementReport.Rulebases)
+                {
+                    AppendRulesForRulebaseHtml(ref report, rulebase, chapterNumber, ruleDisplayHtml);
+                }
+                return;
+            }
+
+            foreach (var device in managementReport.Devices.Where(device => device.RulebaseLinks != null))
+            {
+                AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
             }
         }
 

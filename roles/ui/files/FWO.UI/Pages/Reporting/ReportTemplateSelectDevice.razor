@@ -6,7 +6,7 @@
 @inject ApiConnection apiConnection
 
 
-<PopUp Title="@(userConfig.GetText(ManagementRulebaseView ? "select_rulebase" : SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification ? "select_management" : "select_device"))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
+<PopUp Title="@(userConfig.GetText(PopupTitleKey()))" Show="@Display" Size=PopupSize.Small OnClose="Cancel">
     <Body>
         @if (ManagementRulebaseView)
         {
@@ -63,6 +63,18 @@
     private List<SelectedRulebase> SelectedRulebasesOrig = [];
     private List<RulebaseManagementSelect> rulebaseManagements = [];
     private bool FirstTry = true;
+
+    /// <summary>
+    /// Returns the text key of the popup title depending on what is selected (rulebases, managements or devices).
+    /// </summary>
+    private string PopupTitleKey()
+    {
+        if (ManagementRulebaseView)
+        {
+            return "select_rulebase";
+        }
+        return SelectedReportType == ReportType.AppRules || SelectedReportType == ReportType.Recertification ? "select_management" : "select_device";
+    }
 
 
     protected override async Task OnParametersSetAsync()

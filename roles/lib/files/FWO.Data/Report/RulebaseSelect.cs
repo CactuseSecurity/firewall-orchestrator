@@ -88,6 +88,10 @@ namespace FWO.Data.Report
             return !IncomingLinks.Any(link => IsLinkFromManagement(link, managementId));
         }
 
+        /// <summary>
+        /// Checks whether a link starts at a rulebase or rule of the given management.
+        /// A link whose source is not visible (null) is treated as coming from the same management.
+        /// </summary>
         private static bool IsLinkFromManagement(RulebaseLink link, int managementId)
         {
             if (link.FromRulebaseId != null)
@@ -152,6 +156,9 @@ namespace FWO.Data.Report
             return [.. SelectAll(managements).Where(available => IsSelected(selection, available.RulebaseId))];
         }
 
+        /// <summary>
+        /// Creates the persisted selection entry for a rulebase of a management.
+        /// </summary>
         private static SelectedRulebase CreateSelection(RulebaseManagementSelect management, RulebaseSelect rulebase)
         {
             return new()

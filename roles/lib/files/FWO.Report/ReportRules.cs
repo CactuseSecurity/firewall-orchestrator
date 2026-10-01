@@ -18,35 +18,6 @@ using Rule = FWO.Data.Rule;
 
 namespace FWO.Report
 {
-    public static class DeviceReportExtensions
-    {
-        public static bool ContainsRules(this DeviceReport device)
-        {
-            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
-        }
-
-        public static bool ContainsRules(this ManagementReport management)
-        {
-            return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
-        }
-
-        /// <summary>
-        /// Checks whether any rulebase of the management contains rules (used in management rulebases view).
-        /// </summary>
-        public static bool ContainsRulebaseRules(this ManagementReport management)
-        {
-            return management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0);
-        }
-
-        /// <summary>
-        /// Counts the rules of all rulebases of the management (used in management rulebases view).
-        /// </summary>
-        public static int CountRulebaseRules(this ManagementReport management)
-        {
-            return management.Rulebases.Sum(rulebase => rulebase.Rules.Length);
-        }
-    }
-
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
         /// <summary>Checks the selected management rulebases when the Rules report uses management view.</summary>
@@ -244,70 +215,15 @@ namespace FWO.Report
             return structureQueryVariables;
         }
 
+        /// <summary>
+        /// Restricts the management report to the selected rulebase chains when the Rules report uses management view.
+        /// </summary>
         private void ScopeToSelectedRulebasesIfRequired(ManagementReport managementReport)
         {
             if (Query.ManagementRulebaseView)
             {
-                ScopeToSelectedRulebases(managementReport, Query.SelectedRulebaseIds);
+                RulebaseChainScope.ScopeToSelectedRulebases(managementReport, Query.SelectedRulebaseIds);
             }
-        }
-
-        /// <summary>
-        /// Restricts the management report to the selected start rulebases and the rulebases linked from them.
-        /// The remaining rulebases are ordered chain by chain, each start rulebase first.
-        /// The incoming links are only needed for scoping and are removed afterwards (not part of exports).
-        /// </summary>
-        internal static void ScopeToSelectedRulebases(ManagementReport managementReport, List<int> startRulebaseIds)
-        {
-            Dictionary<int, RulebaseReport> rulebasesById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id);
-            managementReport.Rulebases = [.. GetRulebaseIdsReachableFrom(managementReport, startRulebaseIds).Select(rulebaseId => rulebasesById[rulebaseId])];
-            foreach (RulebaseReport rulebase in managementReport.Rulebases)
-            {
-                rulebase.IncomingLinks = null;
-            }
-        }
-
-        /// <summary>
-        /// Follows the active non-NAT rulebase links of a management, starting at each given rulebase in turn.
-        /// </summary>
-        /// <returns>ids of the start rulebases of this management and all rulebases reachable from them, without duplicates</returns>
-        internal static List<int> GetRulebaseIdsReachableFrom(ManagementReport managementReport, List<int> startRulebaseIds)
-        {
-            Dictionary<int, List<int>> successorsById = GetRulebaseSuccessors(managementReport);
-            HashSet<int> visitedIds = [];
-            List<int> orderedIds = [];
-            foreach (int startRulebaseId in startRulebaseIds.Where(successorsById.ContainsKey))
-            {
-                Queue<int> pendingIds = new();
-                pendingIds.Enqueue(startRulebaseId);
-                while (pendingIds.TryDequeue(out int rulebaseId))
-                {
-                    if (visitedIds.Add(rulebaseId))
-                    {
-                        orderedIds.Add(rulebaseId);
-                        successorsById[rulebaseId].ForEach(pendingIds.Enqueue);
-                    }
-                }
-            }
-            return orderedIds;
-        }
-
-        private static Dictionary<int, List<int>> GetRulebaseSuccessors(ManagementReport managementReport)
-        {
-            Dictionary<int, List<int>> successorsById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id, _ => new List<int>());
-            foreach (RulebaseReport rulebase in managementReport.Rulebases)
-            {
-                foreach (RulebaseLink link in (rulebase.IncomingLinks ?? []).Where(link => link.LinkType != RulebaseLinkTypes.Nat))
-                {
-                    int? sourceRulebaseId = link.FromRulebaseId ?? link.FromRule?.RulebaseId;
-                    if (sourceRulebaseId != null && successorsById.TryGetValue(sourceRulebaseId.Value, out List<int>? successors)
-                        && !successors.Contains(rulebase.Id))
-                    {
-                        successors.Add(rulebase.Id);
-                    }
-                }
-            }
-            return successorsById;
         }
 
         /// <summary>
@@ -794,6 +710,10 @@ namespace FWO.Report
             }
         }
 
+        /// <summary>
+        /// Checks whether a management is part of the report: not ignored and containing rules of its devices
+        /// or, in management rulebases view, of its rulebases.
+        /// </summary>
         private bool IsManagementWithReportedRules(ManagementReport managementReport)
         {
             return !managementReport.Ignore &&

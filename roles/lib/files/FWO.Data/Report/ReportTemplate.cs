@@ -97,5 +97,13 @@ namespace FWO.Data.Report
             ReportType = reportType;
             DeviceFilter = deviceFilter;
         }
+
+        /// <summary>
+        /// Checks whether a Rules report is scoped by selected rulebases (management rulebases view) instead of the device filter.
+        /// </summary>
+        public bool IsManagementRulebaseView()
+        {
+            return ReportType == (int)FWO.Basics.ReportType.Rules && ManagementRulebaseView;
+        }
     }
 }

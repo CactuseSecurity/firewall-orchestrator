@@ -42,12 +42,14 @@ namespace FWO.Report.Filter.FilterTypes
 
         public bool IncludeObjects { get; set; } = false;
 
+        /// <summary>Initializes filters from the effective user configuration.</summary>
         public void Init(UserConfig userConfigIn, bool showRuleRelatedReports)
         {
             userConfig = userConfigIn;
             ReportType = showRuleRelatedReports ? ReportType.Rules : ReportType.Connections;
             DisplayedTimeSelection = userConfig.GetText("now");
             UnusedDays = userConfig.UnusedTolerance;
+            ManagementRulebaseView = userConfig.DefaultManagementRulebaseView;
             IncludeObjects = userConfig.GlobalConfig?.ImpChangeIncludeObjectChanges ?? false;
 
             if (DeviceFilter.NumberMgmtDev() > userConfig.MinCollapseAllDevices)

@@ -231,3 +231,8 @@ For a feature-centric, thematically grouped view see
 
 ### 9.4.5 — 27.08.2026
 - Compliance diff reports can optionally show only rules that newly became non-compliant.
+
+## 9.6.x
+
+### 9.6.1 — 01.10.2026 (DEVELOP)
+- Configurable default rules report view (gateway rules or management rulebases), globally and personally. Personal settings override the global gateway-based default; saved report templates retain their view.

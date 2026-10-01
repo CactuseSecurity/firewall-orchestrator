@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.6.1 - 01.10.2026
+
+- make the default rules report view (gateway rules or management rulebases) configurable globally
+  and personally; personal settings take precedence and saved report templates retain their view
+- seed the global default as gateway-based for fresh installations and upgrades, preserving an
+  existing configured value during upgrades
+
 ## 9.5.10 - 29.09.2026
 
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides

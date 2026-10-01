@@ -69,7 +69,7 @@ namespace FWO.Report.Filter
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
-            query.ManagementRulebaseView = (ReportType)filter.ReportParams.ReportType == ReportType.Rules && filter.ReportParams.ManagementRulebaseView;
+            query.ManagementRulebaseView = filter.ReportParams.IsManagementRulebaseView();
             ConstructWhereStatements(query, filter, ast);
             if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {

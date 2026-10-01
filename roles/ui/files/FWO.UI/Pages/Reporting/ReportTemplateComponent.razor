@@ -291,6 +291,7 @@
 
     private Collapse collapseControl = new();
     private DeviceFilter DeviceFilterOrig = new();
+    private List<SelectedRulebase> SelectedRulebasesOrig = [];
     private TimeFilter templateActTimeFilter = new();
 
     private ReportVisibility reportVisibility => userConfig.GetReportVisibility();
@@ -440,12 +441,14 @@
         reportTemplateInEdit = decodeComment(reportTemplate);
         reportTypeInEdit = (ReportType)reportTemplateInEdit.ReportParams.ReportType;
         DeviceFilterOrig = reportTemplateInEdit.ReportParams.DeviceFilter.Clone();
+        SelectedRulebasesOrig = [.. reportTemplateInEdit.ReportParams.SelectedRulebases];
         ShowUpdateTemplateDialog = true;
     }
 
     private void CancelEdit()
     {
         reportTemplateInEdit.ReportParams.DeviceFilter = DeviceFilterOrig;
+        reportTemplateInEdit.ReportParams.SelectedRulebases = SelectedRulebasesOrig;
         ShowUpdateTemplateDialog = false;
         ShowAddTemplateDialog = false;
     }

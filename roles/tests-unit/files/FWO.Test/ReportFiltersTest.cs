@@ -15,6 +15,38 @@ namespace FWO.Test
     {
         private static readonly List<int> kSelectedRulebaseIds = [10];
 
+        /// <summary>New reports use the effective configured view.</summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Init_UsesConfiguredRulesView(bool managementView)
+        {
+            SimulatedUserConfig userConfig = new() { DefaultManagementRulebaseView = managementView };
+            ReportFilters filters = new();
+
+            filters.Init(userConfig, true);
+
+            Assert.That(filters.ManagementRulebaseView, Is.EqualTo(managementView));
+            Assert.That(filters.ToReportParams().ManagementRulebaseView, Is.EqualTo(managementView));
+        }
+
+        /// <summary>Templates take precedence over the default in both directions.</summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SyncFiltersFromTemplate_OverridesConfiguredRulesView(bool managementView)
+        {
+            SimulatedUserConfig userConfig = new() { DefaultManagementRulebaseView = !managementView };
+            ReportFilters filters = new();
+            filters.Init(userConfig, true);
+
+            filters.SyncFiltersFromTemplate(new ReportTemplate("", new ReportParams
+            {
+                ReportType = (int)ReportType.Rules,
+                ManagementRulebaseView = managementView
+            }));
+
+            Assert.That(filters.ManagementRulebaseView, Is.EqualTo(managementView));
+        }
+
         [Test]
         public void ManagementRulebaseSelection_RoundTripsWithoutSelectingGateways()
         {

@@ -32,7 +32,8 @@ public class FlowComplianceController : ControllerBase
     /// This evaluation is not scoped to a modeller or owner.
     /// Each source and destination accepts either a bare IPv4/IPv6 address or canonical CIDR network
     /// through ipNetwork, or an inclusive IPv4/IPv6 range through ipStart and ipEnd. The two forms are mutually exclusive.
-    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// Range bounds may include host masks (/32 and /128), which are ignored; broader masks belong in ipNetwork.
+    /// IPv4 requires four decimal octets, including leading zeros. Standard IPv6 is accepted; scope identifiers are rejected.
     /// CIDR values must carry the network address itself and are expanded to range boundaries before evaluation.
     /// Criteria that only support IPv4 report an IPv6 flow as NotAssessable instead of as a violation.
     /// </summary>

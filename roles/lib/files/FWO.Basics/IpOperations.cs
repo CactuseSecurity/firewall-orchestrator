@@ -1,4 +1,6 @@
 using System.Net;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Numerics;
 using System.Net.Sockets;
 using DnsClient;
@@ -11,6 +13,10 @@ namespace FWO.Basics
     /// </summary>
     public static class IpOperations
     {
+        private const int Ipv4BitCount = 32;
+        private const int Ipv6BitCount = 128;
+        private const int BitsPerByte = 8;
+
         // Reuse the client to avoid socket churn and disable client-side caching.
         private static readonly LookupClient ReverseLookupClient = new(new LookupClientOptions
         {
@@ -101,6 +107,74 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Parses conventional decimal IPv4 or standard IPv6 without a scope identifier.
+        /// Leading zeros in IPv4 octets, including dotted IPv6 suffixes, are interpreted as decimal.
+        /// </summary>
+        public static bool TryParseIpAddress(string? input, [NotNullWhen(true)] out IPAddress? address)
+        {
+            address = null;
+            if (string.IsNullOrEmpty(input))
+            {
+                return false;
+            }
+
+            if (!input.Contains(':'))
+            {
+                return TryParseDecimalIpv4(input, out address);
+            }
+
+            if (input.Any(character => !char.IsAsciiHexDigit(character) && character != ':' && character != '.'))
+            {
+                return false;
+            }
+
+            if (input.Contains('.'))
+            {
+                int suffixIndex = input.LastIndexOf(':') + 1;
+                if (!TryParseDecimalIpv4(input[suffixIndex..], out IPAddress? suffix))
+                {
+                    return false;
+                }
+
+                input = input[..suffixIndex] + suffix;
+            }
+
+            if (!IPAddress.TryParse(input, out IPAddress? parsedAddress)
+                || parsedAddress.AddressFamily != AddressFamily.InterNetworkV6
+                || parsedAddress.ScopeId != 0)
+            {
+                return false;
+            }
+
+            address = parsedAddress;
+            return true;
+        }
+
+        private static bool TryParseDecimalIpv4(string input, [NotNullWhen(true)] out IPAddress? address)
+        {
+            address = null;
+            string[] octets = input.Split('.');
+            if (octets.Length != 4)
+            {
+                return false;
+            }
+
+            byte[] bytes = new byte[octets.Length];
+            for (int index = 0; index < octets.Length; index++)
+            {
+                if (octets[index].Length == 0
+                    || octets[index].Any(character => !char.IsAsciiDigit(character))
+                    || !byte.TryParse(octets[index], NumberStyles.None, CultureInfo.InvariantCulture, out bytes[index]))
+                {
+                    return false;
+                }
+            }
+
+            address = new IPAddress(bytes);
+            return true;
+        }
+
+        /// <summary>
         /// Tries to parse a single IP address with an optional CIDR prefix length.
         /// </summary>
         /// <param name="input">A bare IP address or canonical CIDR network.</param>
@@ -125,11 +199,11 @@ namespace FWO.Basics
             int slashIndex = input.IndexOf('/');
             if (slashIndex < 0)
             {
-                return IPAddress.TryParse(input, out address);
+                return TryParseIpAddress(input, out address);
             }
 
             if (slashIndex != input.LastIndexOf('/')
-                || !IPAddress.TryParse(input[..slashIndex], out IPAddress? parsedAddress)
+                || !TryParseIpAddress(input[..slashIndex], out IPAddress? parsedAddress)
                 || !int.TryParse(input[(slashIndex + 1)..], out int parsedPrefixLength)
                 || !TryGetNetworkRange(parsedAddress, parsedPrefixLength, out _))
             {
@@ -144,7 +218,7 @@ namespace FWO.Basics
         /// <summary>
         /// Tries to calculate the inclusive address range for a canonical IPv4 or IPv6 network.
         /// </summary>
-        /// <param name="address">The network address. Addresses with host bits set are rejected.</param>
+        /// <param name="address">The network address. Host bits and nonzero IPv6 scope identifiers are rejected.</param>
         /// <param name="prefixLength">The CIDR prefix length.</param>
         /// <param name="ipRange">The inclusive first and last addresses of the network.</param>
         /// <returns><c>true</c> for a valid canonical network; otherwise <c>false</c>.</returns>
@@ -157,12 +231,13 @@ namespace FWO.Basics
 
             int addressBitCount = address?.AddressFamily switch
             {
-                AddressFamily.InterNetwork => 32,
-                AddressFamily.InterNetworkV6 => 128,
+                AddressFamily.InterNetwork => Ipv4BitCount,
+                AddressFamily.InterNetworkV6 => Ipv6BitCount,
                 _ => -1
             };
 
-            if (prefixLength < 0 || prefixLength > addressBitCount)
+            if (prefixLength < 0 || prefixLength > addressBitCount
+                || (address!.AddressFamily == AddressFamily.InterNetworkV6 && address.ScopeId != 0))
             {
                 return false;
             }
@@ -173,12 +248,12 @@ namespace FWO.Basics
 
             for (int byteIndex = 0; byteIndex < addressBytes.Length; byteIndex++)
             {
-                int remainingPrefixBits = prefixLength - byteIndex * 8;
+                int remainingPrefixBits = prefixLength - byteIndex * BitsPerByte;
                 byte mask = remainingPrefixBits switch
                 {
-                    >= 8 => byte.MaxValue,
+                    >= BitsPerByte => byte.MaxValue,
                     <= 0 => 0,
-                    _ => (byte)(byte.MaxValue << (8 - remainingPrefixBits))
+                    _ => (byte)(byte.MaxValue << (BitsPerByte - remainingPrefixBits))
                 };
 
                 startBytes[byteIndex] = (byte)(addressBytes[byteIndex] & mask);
@@ -190,9 +265,7 @@ namespace FWO.Basics
                 endBytes[byteIndex] = (byte)(startBytes[byteIndex] | ~mask);
             }
 
-            ipRange = address.AddressFamily == AddressFamily.InterNetworkV6
-                ? (new IPAddress(startBytes, address.ScopeId), new IPAddress(endBytes, address.ScopeId))
-                : (new IPAddress(startBytes), new IPAddress(endBytes));
+            ipRange = (new IPAddress(startBytes), new IPAddress(endBytes));
             return true;
         }
 

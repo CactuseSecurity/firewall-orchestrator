@@ -288,10 +288,10 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     }
 
     /// <summary>
-    /// Verifies a request example only documents the mutually exclusive fields it actually demonstrates.
+    /// Verifies the flow example demonstrates both supported address representations.
     /// </summary>
     [Test]
-    public async Task TransformAsync_WithMutuallyExclusiveExampleFields_OmitsEmptyFields()
+    public async Task TransformAsync_WithMutuallyExclusiveExampleFields_UsesNetworkAndRange()
     {
         OpenApiOperation operation = CreateOperation();
         operation.RequestBody = new OpenApiRequestBody
@@ -309,14 +309,15 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         await transformer.TransformAsync(operation, context, CancellationToken.None);
 
         string exampleJson = operation.RequestBody.Content!["application/json"].Example!.ToJsonString();
-        Assert.Multiple(() =>
-        {
-            Assert.That(exampleJson, Does.Contain("\"ipNetwork\":\"192.0.2.0/24\""));
-            Assert.That(exampleJson, Does.Contain("\"ipStart\":\"198.51.100.20\""));
-            Assert.That(exampleJson, Does.Not.Contain("\"ipStart\":\"\""));
-            Assert.That(exampleJson, Does.Not.Contain("\"ipEnd\":\"\""));
-            Assert.That(exampleJson, Does.Not.Contain("\"ipNetwork\":\"\""));
-        });
+        using JsonDocument document = JsonDocument.Parse(exampleJson);
+        JsonElement source = document.RootElement.GetProperty("source")[0];
+        JsonElement destination = document.RootElement.GetProperty("destination")[0];
+        Assert.That(source.GetProperty("ipNetwork").GetString(), Is.EqualTo("192.0.2.0/24"));
+        Assert.That(source.TryGetProperty("ipStart", out _), Is.False);
+        Assert.That(source.TryGetProperty("ipEnd", out _), Is.False);
+        Assert.That(destination.GetProperty("ipStart").GetString(), Is.EqualTo("198.51.100.20"));
+        Assert.That(destination.GetProperty("ipEnd").GetString(), Is.EqualTo("198.51.100.29"));
+        Assert.That(destination.TryGetProperty("ipNetwork", out _), Is.False);
     }
 
     /// <summary>
@@ -325,15 +326,15 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     [Test]
     public async Task TransformAsync_WithAddressInputExamples_UsesOnlySelectedRepresentation()
     {
-        (Type RequestType, string ExpectedValue)[] cases =
+        (Type RequestType, string ExpectedNetwork, int ExpectedRangeCount)[] cases =
         [
-            (typeof(GetFlowComplianceStateRequest), "192.0.2.0/24"),
-            (typeof(ResolveZonesForObjectsRequest), "10.0.1.10"),
-            (typeof(GetAddressObjectIdRequest), "192.0.2.10")
+            (typeof(GetFlowComplianceStateRequest), "192.0.2.0/24", 1),
+            (typeof(ResolveZonesForObjectsRequest), "10.0.0.0/24", 1),
+            (typeof(GetAddressObjectIdRequest), "192.0.2.10", 0)
         ];
         OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
 
-        foreach ((Type requestType, string expectedValue) in cases)
+        foreach ((Type requestType, string expectedNetwork, int expectedRangeCount) in cases)
         {
             OpenApiOperation operation = CreateOperation();
             operation.RequestBody = new OpenApiRequestBody
@@ -350,13 +351,64 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             await transformer.TransformAsync(operation, context, CancellationToken.None);
 
             string exampleJson = operation.RequestBody.Content!["application/json"].Example!.ToJsonString();
-            Assert.Multiple(() =>
+            using JsonDocument document = JsonDocument.Parse(exampleJson);
+            JsonElement[] entries = GetAddressEntries(document.RootElement).ToArray();
+            int networkCount = 0;
+            int rangeCount = 0;
+            foreach (JsonElement entry in entries)
             {
-                Assert.That(exampleJson, Does.Contain(expectedValue));
-                Assert.That(exampleJson, Does.Not.Contain("\"ipStart\":\"\""));
-                Assert.That(exampleJson, Does.Not.Contain("\"ipEnd\":\"\""));
-                Assert.That(exampleJson, Does.Not.Contain("\"ipNetwork\":\"\""));
-            });
+                bool hasNetwork = entry.TryGetProperty("ipNetwork", out JsonElement network);
+                bool hasStart = entry.TryGetProperty("ipStart", out JsonElement start);
+                bool hasEnd = entry.TryGetProperty("ipEnd", out JsonElement end);
+                Assert.That(hasStart, Is.EqualTo(hasEnd), entry.ToString());
+                Assert.That(hasNetwork ^ (hasStart && hasEnd), Is.True, entry.ToString());
+                if (hasNetwork)
+                {
+                    networkCount++;
+                    Assert.That(network.GetString(), Is.EqualTo(expectedNetwork));
+                }
+                else
+                {
+                    rangeCount++;
+                    Assert.That(start.GetString(), Is.Not.Null.And.Not.Empty);
+                    Assert.That(end.GetString(), Is.Not.Null.And.Not.Empty);
+                }
+            }
+            Assert.That(networkCount, Is.EqualTo(1));
+            Assert.That(rangeCount, Is.EqualTo(expectedRangeCount));
+        }
+    }
+
+    private static IEnumerable<JsonElement> GetAddressEntries(JsonElement node)
+    {
+        if (node.ValueKind == JsonValueKind.Object)
+        {
+            if (node.TryGetProperty("ipNetwork", out _)
+                || node.TryGetProperty("ipStart", out _)
+                || node.TryGetProperty("ipEnd", out _))
+            {
+                yield return node;
+            }
+            else
+            {
+                foreach (JsonProperty property in node.EnumerateObject())
+                {
+                    foreach (JsonElement entry in GetAddressEntries(property.Value))
+                    {
+                        yield return entry;
+                    }
+                }
+            }
+        }
+        else if (node.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement child in node.EnumerateArray())
+            {
+                foreach (JsonElement entry in GetAddressEntries(child))
+                {
+                    yield return entry;
+                }
+            }
         }
     }
 

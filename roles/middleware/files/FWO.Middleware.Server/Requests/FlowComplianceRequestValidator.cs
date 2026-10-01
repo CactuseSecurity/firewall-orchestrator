@@ -158,20 +158,17 @@ public static class FlowComplianceRequestValidator
     /// <param name="ipStart">The inclusive start of a legacy range.</param>
     /// <param name="ipEnd">The inclusive end of a legacy range.</param>
     /// <param name="context">Text identifying the request entry in validation errors.</param>
-    /// <param name="normalizedIpStart">The normalized inclusive start address.</param>
-    /// <param name="normalizedIpEnd">The normalized inclusive end address.</param>
+    /// <param name="normalizedBounds">The normalized inclusive start and end addresses.</param>
     /// <param name="errorMessage">The validation error, or null when validation succeeds.</param>
     public static bool TryValidateAndNormalizeIpInput(
         string? ipNetwork,
         string? ipStart,
         string? ipEnd,
         string context,
-        out string normalizedIpStart,
-        out string normalizedIpEnd,
+        out (string IpStart, string IpEnd) normalizedBounds,
         out string? errorMessage)
     {
-        normalizedIpStart = string.Empty;
-        normalizedIpEnd = string.Empty;
+        normalizedBounds = (string.Empty, string.Empty);
 
         bool hasIpNetwork = !string.IsNullOrWhiteSpace(ipNetwork);
         bool hasIpStart = !string.IsNullOrWhiteSpace(ipStart);
@@ -188,8 +185,8 @@ public static class FlowComplianceRequestValidator
             return TryValidateAndNormalizeIpNetwork(
                 ipNetwork!,
                 context,
-                out normalizedIpStart,
-                out normalizedIpEnd,
+                out normalizedBounds.IpStart,
+                out normalizedBounds.IpEnd,
                 out errorMessage);
         }
 
@@ -203,8 +200,8 @@ public static class FlowComplianceRequestValidator
             ipStart!,
             ipEnd!,
             detail => $"{context} {detail}",
-            out normalizedIpStart,
-            out normalizedIpEnd);
+            out normalizedBounds.IpStart,
+            out normalizedBounds.IpEnd);
         errorMessage = validationError;
         return isValid;
     }
@@ -311,13 +308,13 @@ public static class FlowComplianceRequestValidator
             ipRange.IpStart,
             ipRange.IpEnd,
             context,
-            out string normalizedIpStart,
-            out string normalizedIpEnd,
+            out var normalizedBounds,
             out string? errorMessage);
         if (isValid)
         {
-            ipRange.IpStart = normalizedIpStart;
-            ipRange.IpEnd = normalizedIpEnd;
+            ipRange.IpStart = normalizedBounds.IpStart;
+            ipRange.IpEnd = normalizedBounds.IpEnd;
+            ipRange.IpNetwork = string.Empty;
         }
 
         return (isValid, errorMessage);
@@ -354,12 +351,12 @@ public static class FlowComplianceRequestValidator
         string normalizedIpEnd,
         Func<string, string> errorFactory)
     {
-        if (!IPAddress.TryParse(normalizedIpStart, out IPAddress? ipStart))
+        if (!IpOperations.TryParseIpAddress(normalizedIpStart, out IPAddress? ipStart))
         {
             return (false, errorFactory("has an invalid 'ipStart' value."));
         }
 
-        if (!IPAddress.TryParse(normalizedIpEnd, out IPAddress? ipEnd))
+        if (!IpOperations.TryParseIpAddress(normalizedIpEnd, out IPAddress? ipEnd))
         {
             return (false, errorFactory("has an invalid 'ipEnd' value."));
         }
@@ -448,21 +445,12 @@ public static class FlowComplianceRequestValidator
         out string? errorMessage)
     {
         int maskSeparatorIndex = ipAddressValue.IndexOf('/');
-        if (maskSeparatorIndex < 0)
+        string address = maskSeparatorIndex < 0 ? ipAddressValue : ipAddressValue[..maskSeparatorIndex];
+        if (!IpOperations.TryParseIpAddress(address, out IPAddress? parsedAddress))
         {
-            normalizedIpAddress = ipAddressValue;
-            errorMessage = null;
-            return true;
-        }
-
-        string address = ipAddressValue[..maskSeparatorIndex];
-        string mask = ipAddressValue[(maskSeparatorIndex + 1)..];
-        if (!IPAddress.TryParse(address, out IPAddress? parsedAddress))
-        {
-            // The address itself is invalid; let the range validation report the value rather than the mask.
-            normalizedIpAddress = address;
-            errorMessage = null;
-            return true;
+            normalizedIpAddress = string.Empty;
+            errorMessage = $"has an invalid '{fieldName}' value.";
+            return false;
         }
 
         if (IsIpv4EncodedAsIpv6(parsedAddress))
@@ -472,15 +460,19 @@ public static class FlowComplianceRequestValidator
             return false;
         }
 
-        int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
-        if (!int.TryParse(mask, out int prefixLength) || prefixLength != hostPrefixLength)
+        if (maskSeparatorIndex >= 0)
         {
-            normalizedIpAddress = string.Empty;
-            errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{hostPrefixLength}' is allowed; use 'ipNetwork' for networks.";
-            return false;
+            string mask = ipAddressValue[(maskSeparatorIndex + 1)..];
+            int hostPrefixLength = GetHostPrefixLength(parsedAddress.AddressFamily);
+            if (!int.TryParse(mask, out int prefixLength) || prefixLength != hostPrefixLength)
+            {
+                normalizedIpAddress = string.Empty;
+                errorMessage = $"has unsupported netmask '/{mask}' in '{fieldName}'. Only '/{hostPrefixLength}' is allowed; use 'ipNetwork' for networks.";
+                return false;
+            }
         }
 
-        normalizedIpAddress = address;
+        normalizedIpAddress = parsedAddress.ToString();
         errorMessage = null;
         return true;
     }
@@ -534,7 +526,7 @@ public static class FlowComplianceRequestValidator
             return false;
         }
 
-        if (!IPAddress.TryParse(ipNetwork[..maskSeparatorIndex], out IPAddress? parsedAddress)
+        if (!IpOperations.TryParseIpAddress(ipNetwork[..maskSeparatorIndex], out IPAddress? parsedAddress)
             || !int.TryParse(ipNetwork[(maskSeparatorIndex + 1)..], out int prefixLength))
         {
             errorMessage = "has an invalid 'ipNetwork' value.";

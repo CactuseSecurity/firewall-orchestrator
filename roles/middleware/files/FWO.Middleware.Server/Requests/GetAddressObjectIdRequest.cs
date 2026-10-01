@@ -28,6 +28,7 @@ public sealed class GetAddressObjectIdRequest : IVisibleInRequestFilterRequest
 
     /// <summary>
     /// Gets a bare IPv4/IPv6 address or canonical CIDR network. This is mutually exclusive with ipStart and ipEnd.
+    /// IPv4 requires four decimal octets, including leading zeros. IPv6 scope identifiers are rejected.
     /// </summary>
     [JsonPropertyName("ipNetwork")]
     public string IpNetwork { get; set; } = string.Empty;

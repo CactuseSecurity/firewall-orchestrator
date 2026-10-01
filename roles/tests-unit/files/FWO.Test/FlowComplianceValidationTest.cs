@@ -87,10 +87,16 @@ internal class FlowComplianceValidationTest
             Assert.That(request.Destination[0].IpStart, Is.EqualTo("10.0.1.0"));
             Assert.That(request.Destination[0].IpEnd, Is.EqualTo("10.0.1.127"));
         });
+        Assert.That(FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out errorResult), Is.True);
+        Assert.That(errorResult, Is.Null);
+        Assert.That(request.Source[0].IpNetwork, Is.Empty);
+        Assert.That(request.Destination[0].IpNetwork, Is.Empty);
     }
 
     [TestCase("10.0.0.10", "10.0.0.10")]
     [TestCase("2001:db8::10", "2001:db8::10")]
+    [TestCase("192.000.002.010", "192.0.2.10")]
+    [TestCase("2001:db8::192.000.002.010", "2001:db8::c000:20a")]
     public void GetFlowComplianceState_AcceptsBareIpNetwork(string ipNetwork, string expectedAddress)
     {
         GetFlowComplianceStateRequest request = new()
@@ -110,6 +116,9 @@ internal class FlowComplianceValidationTest
             Assert.That(request.Source[0].IpStart, Is.EqualTo(expectedAddress));
             Assert.That(request.Source[0].IpEnd, Is.EqualTo(expectedAddress));
         });
+        Assert.That(FlowComplianceRequestValidator.TryValidateFlowComplianceState(request, out errorResult), Is.True);
+        Assert.That(errorResult, Is.Null);
+        Assert.That(request.Source[0].IpNetwork, Is.Empty);
     }
 
     [Test]

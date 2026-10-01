@@ -282,7 +282,8 @@ public class FlowCatalogController : ControllerBase
     /// This lookup is not scoped to a modeller or owner.
     /// Supply either a bare IPv4/IPv6 address or canonical CIDR network through ipNetwork,
     /// or an inclusive IPv4/IPv6 range through ipStart and ipEnd. The two forms are mutually exclusive.
-    /// Optional host masks (/32 and /128) are ignored; all other masks are rejected.
+    /// Range bounds may include host masks (/32 and /128), which are ignored; broader masks belong in ipNetwork.
+    /// IPv4 requires four decimal octets, including leading zeros. Standard IPv6 is accepted; scope identifiers are rejected.
     /// CIDR values must carry the network address itself; values with host bits set are rejected.
     /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
     /// (::ffff:a.b.c.d) and the deprecated IPv4-compatible form (::a.b.c.d); use the IPv4 notation instead.
@@ -301,15 +302,15 @@ public class FlowCatalogController : ControllerBase
             request.IpStart,
             request.IpEnd,
             "'address' entry at index 0",
-            out string normalizedIpStart,
-            out string normalizedIpEnd,
+            out var normalizedBounds,
             out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
-        request.IpStart = normalizedIpStart;
-        request.IpEnd = normalizedIpEnd;
+        request.IpStart = normalizedBounds.IpStart;
+        request.IpEnd = normalizedBounds.IpEnd;
+        request.IpNetwork = string.Empty;
         return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
     }
 

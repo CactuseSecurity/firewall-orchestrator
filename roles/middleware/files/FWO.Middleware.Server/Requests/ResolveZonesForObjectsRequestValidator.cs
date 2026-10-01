@@ -188,16 +188,16 @@ public static class ResolveZonesForObjectsRequestValidator
             leaf.IpStart,
             leaf.IpEnd,
             $"'{context}'",
-            out string normalizedIpStart,
-            out string normalizedIpEnd,
+            out var normalizedBounds,
             out string? ipRangeError))
         {
             errorResult = new BadRequestObjectResult(ipRangeError);
             return false;
         }
 
-        leaf.IpStart = normalizedIpStart;
-        leaf.IpEnd = normalizedIpEnd;
+        leaf.IpStart = normalizedBounds.IpStart;
+        leaf.IpEnd = normalizedBounds.IpEnd;
+        leaf.IpNetwork = string.Empty;
         if (string.Equals(leaf.Type, ObjectType.Host, StringComparison.OrdinalIgnoreCase)
             && !IPAddress.Parse(leaf.IpStart).Equals(IPAddress.Parse(leaf.IpEnd)))
         {

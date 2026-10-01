@@ -262,8 +262,7 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                     {
                         Name = "branch-a",
                         Type = "network",
-                        IpStart = "10.0.0.1",
-                        IpEnd = "10.0.0.1"
+                        IpNetwork = "10.0.0.0/24"
                     },
                     new ResolveZonesForObjectsRequest.GroupObjectRequest
                     {

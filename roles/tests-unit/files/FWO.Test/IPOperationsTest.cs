@@ -65,6 +65,8 @@ namespace FWO.Test
             Assert.That(prefixLength, Is.Null);
         }
 
+        [TestCase("192.000.002.000/24", "192.0.2.0", 24)]
+        [TestCase("2001:db8::192.000.002.000/120", "2001:db8::c000:200", 120)]
         [TestCase("192.0.2.0/24", "192.0.2.0", 24)]
         [TestCase("2001:db8::/32", "2001:db8::", 32)]
         [TestCase("0.0.0.0/0", "0.0.0.0", 0)]
@@ -101,6 +103,12 @@ namespace FWO.Test
         [TestCase("192.168.1.42/24")]
         [TestCase("2001:db8::1/64")]
         [TestCase("192.168.1.0/255.255.255.0")]
+        [TestCase("fe80::%3/64")]
+        [TestCase("fe80::1%3")]
+        [TestCase("127.1/32")]
+        [TestCase("0x7f000001")]
+        [TestCase("2130706433")]
+        [TestCase("0300.0000.0002.0010")]
         public void TryParseIpAddressAndPrefix_InvalidInput_ReturnsFalseAndResetsOutputs(string? input)
         {
             IPAddress? address = IPAddress.Loopback;
@@ -144,6 +152,8 @@ namespace FWO.Test
         [TestCase("2001:db8::", 129)]
         [TestCase("192.168.1.42", 24)]
         [TestCase("2001:db8::1", 64)]
+        [TestCase("fe80::%3", 64)]
+        [TestCase("fe80::1%3", 128)]
         public void TryGetNetworkRange_InvalidNetwork_ReturnsFalseWithoutThrowing(
             string address,
             int prefixLength)
@@ -157,6 +167,41 @@ namespace FWO.Test
 
                 Assert.That(result, Is.False);
             });
+        }
+
+        [TestCase("192.000.002.010", "192.0.2.10")]
+        [TestCase("010.008.009.010", "10.8.9.10")]
+        [TestCase("2001:db8::192.000.002.010", "2001:db8::c000:20a")]
+        [TestCase("::ffff:192.000.002.010", "::ffff:192.0.2.10")]
+        [TestCase("2001:0db8:0000:0000:0000:0000:0000:0010", "2001:db8::10")]
+        public void TryParseIpAddress_DecimalOctetsAndStandardIpv6_ReturnsCanonicalAddress(string input, string expected)
+        {
+            Assert.That(IpOperations.TryParseIpAddress(input, out IPAddress? address), Is.True);
+            Assert.That(address!.ToString(), Is.EqualTo(expected));
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase("127.1")]
+        [TestCase("2130706433")]
+        [TestCase("0x7f000001")]
+        [TestCase("0x7f.0.0.1")]
+        [TestCase("0300.0000.0002.0010")]
+        [TestCase("192.0.2.256")]
+        [TestCase("192..2.10")]
+        [TestCase("192.0.2.+10")]
+        [TestCase("192.0.2.10 ")]
+        [TestCase("[2001:db8::10]")]
+        [TestCase("fe80::1%3")]
+        [TestCase("fe80::1%0")]
+        [TestCase("fe80::1%eth0")]
+        [TestCase("2001:db8::127.1")]
+        [TestCase("2001:db8::0x7f.0.0.1")]
+        [TestCase("2001:db8::0300.0000.0002.0010")]
+        public void TryParseIpAddress_InvalidInput_ResetsOutput(string? input)
+        {
+            Assert.That(IpOperations.TryParseIpAddress(input, out IPAddress? address), Is.False);
+            Assert.That(address, Is.Null);
         }
 
         [Test]

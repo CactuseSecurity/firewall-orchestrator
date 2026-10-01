@@ -319,6 +319,43 @@ internal class FlowControllerValidationTest
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
+    [TestCase("192.000.002.010", "192.0.2.10", "192.0.2.10")]
+    [TestCase("192.000.002.000/24", "192.0.2.0", "192.0.2.255")]
+    [TestCase("2001:db8::/126", "2001:db8::", "2001:db8::3")]
+    [TestCase("2001:db8::192.000.002.010", "2001:db8::c000:20a", "2001:db8::c000:20a")]
+    [TestCase("", "192.000.002.010/32", "192.000.002.020/32")]
+    public async Task GetAddressObjectId_QueriesNormalizedBoundsAndReturnsIdentifier(
+        string ipNetwork, string ipStart, string ipEnd)
+    {
+        AddressObjectLookupApiConnection api = new();
+        using FlowCatalogService service = new(api, new GlobalConfig());
+        FlowCatalogController controller = new(service);
+        GetAddressObjectIdRequest request = new()
+        {
+            IpNetwork = ipNetwork,
+            IpStart = string.IsNullOrEmpty(ipNetwork) ? ipStart : "",
+            IpEnd = string.IsNullOrEmpty(ipNetwork) ? ipEnd : ""
+        };
+        string expectedStart = string.IsNullOrEmpty(ipNetwork) ? "192.0.2.10" : ipStart;
+        string expectedEnd = string.IsNullOrEmpty(ipNetwork) ? "192.0.2.20" : ipEnd;
+
+        for (int pass = 0; pass < 2; pass++)
+        {
+            ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(request);
+            Assert.That(result.Result, Is.TypeOf<OkObjectResult>());
+            AddressObjectIdResponse response = (AddressObjectIdResponse)((OkObjectResult)result.Result!).Value!;
+            JsonElement where = api.Variables.GetProperty("where");
+            Assert.Multiple(() =>
+            {
+                Assert.That(where.GetProperty("ip_start").GetProperty("_eq").GetString(), Is.EqualTo(expectedStart));
+                Assert.That(where.GetProperty("ip_end").GetProperty("_eq").GetString(), Is.EqualTo(expectedEnd));
+                Assert.That(response.Id, Is.EqualTo(42));
+                Assert.That(response.Name, Is.EqualTo("address-object"));
+                Assert.That(request.IpNetwork, Is.Empty);
+            });
+        }
+    }
+
     [Test]
     public async Task FlowControllerValidation_GetTimeObjectId_RejectsInvalidTimeRange()
     {
@@ -670,6 +707,25 @@ internal class FlowControllerValidationTest
         public override Task ReconnectSubscriptionsAsync(string jwt, CancellationToken ct)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class AddressObjectLookupApiConnection : SimulatedApiConnection
+    {
+        public JsonElement Variables { get; private set; }
+
+        public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+        {
+            Variables = JsonSerializer.SerializeToElement(variables);
+            if (typeof(QueryResponseType) == typeof(List<FlowNwObject>))
+            {
+                return Task.FromResult((QueryResponseType)(object)new List<FlowNwObject>
+                {
+                    new() { Id = 42, Name = "address-object" }
+                });
+            }
+
+            throw new NotImplementedException($"Unsupported response type {typeof(QueryResponseType).Name}");
         }
     }
 

@@ -51,6 +51,49 @@ namespace FWO.Test
             ClassicAssert.AreEqual("8.8.8.8", end);
         }
 
+        [TestCase("192.168.1.0", 24, "192.168.1.0", "192.168.1.255")]
+        [TestCase("0.0.0.0", 0, "0.0.0.0", "255.255.255.255")]
+        [TestCase("192.0.2.42", 32, "192.0.2.42", "192.0.2.42")]
+        [TestCase("2001:db8:1234::", 48, "2001:db8:1234::", "2001:db8:1234:ffff:ffff:ffff:ffff:ffff")]
+        [TestCase("::", 0, "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")]
+        [TestCase("2001:db8::42", 128, "2001:db8::42", "2001:db8::42")]
+        public void TryGetNetworkRange_CanonicalNetwork_ReturnsInclusiveRange(
+            string address,
+            int prefixLength,
+            string expectedStart,
+            string expectedEnd)
+        {
+            bool result = IpOperations.TryGetNetworkRange(
+                IPAddress.Parse(address),
+                prefixLength,
+                out (IPAddress start, IPAddress end) ipRange);
+
+            Assert.That(result, Is.True);
+            Assert.That(ipRange.start, Is.EqualTo(IPAddress.Parse(expectedStart)));
+            Assert.That(ipRange.end, Is.EqualTo(IPAddress.Parse(expectedEnd)));
+        }
+
+        [TestCase("192.168.1.0", -1)]
+        [TestCase("192.168.1.0", 33)]
+        [TestCase("2001:db8::", -1)]
+        [TestCase("2001:db8::", 129)]
+        [TestCase("192.168.1.42", 24)]
+        [TestCase("2001:db8::1", 64)]
+        public void TryGetNetworkRange_InvalidNetwork_ReturnsFalseWithoutThrowing(
+            string address,
+            int prefixLength)
+        {
+            Assert.DoesNotThrow(() =>
+            {
+                bool result = IpOperations.TryGetNetworkRange(
+                    IPAddress.Parse(address),
+                    prefixLength,
+                    out _);
+
+                Assert.That(result, Is.False);
+            });
+        }
+
         [Test]
         public void TryParseIPStringToRange_ValidIPv4_StrictTrue_Succeeds()
         {

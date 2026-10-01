@@ -101,6 +101,61 @@ namespace FWO.Basics
         }
 
         /// <summary>
+        /// Tries to calculate the inclusive address range for a canonical IPv4 or IPv6 network.
+        /// </summary>
+        /// <param name="address">The network address. Addresses with host bits set are rejected.</param>
+        /// <param name="prefixLength">The CIDR prefix length.</param>
+        /// <param name="ipRange">The inclusive first and last addresses of the network.</param>
+        /// <returns><c>true</c> for a valid canonical network; otherwise <c>false</c>.</returns>
+        public static bool TryGetNetworkRange(
+            IPAddress address,
+            int prefixLength,
+            out (IPAddress start, IPAddress end) ipRange)
+        {
+            ipRange = default;
+
+            int addressBitCount = address?.AddressFamily switch
+            {
+                AddressFamily.InterNetwork => 32,
+                AddressFamily.InterNetworkV6 => 128,
+                _ => -1
+            };
+
+            if (prefixLength < 0 || prefixLength > addressBitCount)
+            {
+                return false;
+            }
+
+            byte[] addressBytes = address!.GetAddressBytes();
+            byte[] startBytes = new byte[addressBytes.Length];
+            byte[] endBytes = new byte[addressBytes.Length];
+
+            for (int byteIndex = 0; byteIndex < addressBytes.Length; byteIndex++)
+            {
+                int remainingPrefixBits = prefixLength - byteIndex * 8;
+                byte mask = remainingPrefixBits switch
+                {
+                    >= 8 => byte.MaxValue,
+                    <= 0 => 0,
+                    _ => (byte)(byte.MaxValue << (8 - remainingPrefixBits))
+                };
+
+                startBytes[byteIndex] = (byte)(addressBytes[byteIndex] & mask);
+                if (startBytes[byteIndex] != addressBytes[byteIndex])
+                {
+                    return false;
+                }
+
+                endBytes[byteIndex] = (byte)(startBytes[byteIndex] | ~mask);
+            }
+
+            ipRange = address.AddressFamily == AddressFamily.InterNetworkV6
+                ? (new IPAddress(startBytes, address.ScopeId), new IPAddress(endBytes, address.ScopeId))
+                : (new IPAddress(startBytes), new IPAddress(endBytes));
+            return true;
+        }
+
+        /// <summary>
         /// Tries to parse a single IP, CIDR, or range string into string endpoints.
         /// </summary>
         public static bool TryParseIPStringToRange(this string ipString, out (string start, string end) ipRange, bool strictv4Parse = false)

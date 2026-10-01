@@ -1297,6 +1297,33 @@ namespace FWO.Test
             {
                 Assert.That(result, Does.Contain("Inconsistent path to root"));
                 Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwCore)));
+                Assert.That(result, Does.Contain("but - was expected"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a gateway attaching to the root network is named in the message when it is the
+        /// contradicting side, so that the missing successor never renders as an empty name.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayBehindAnotherAndAtRoot_NamesTheRootNetwork()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "behind-and-root.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kCoreToBorderPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreOnlyPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain("leads to - but"));
             });
         }
 

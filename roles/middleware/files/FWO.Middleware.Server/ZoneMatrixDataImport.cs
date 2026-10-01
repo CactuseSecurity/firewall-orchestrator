@@ -11,8 +11,6 @@ using System.Text.Json;
 using FWO.Basics.Exceptions;
 using NetTools;
 using System.Net;
-using FWO.NetworkTopology;
-using Org.BouncyCastle.Bcpg.OpenPgp;
 
 namespace FWO.Middleware.Server
 {
@@ -29,6 +27,7 @@ namespace FWO.Middleware.Server
         private const string LevelZone = "Zone";
         private const string PathFieldNameRoot = "path_to_root";
         private const string PathFieldNameInternet = "path_to_internet";
+        private const string kRootNetworkName = "-";
         /// <summary>
         /// Bulk import into network_zone.device_ip_range_root and network_zone.device_ip_range_internet
         /// gets chunked with this size.
@@ -287,7 +286,7 @@ namespace FWO.Middleware.Server
                     foreach (RootPathConflict conflict in FindRootPathConflicts(subnet.PathToRoot, treeAncestors))
                     {
                         errorList.Add($"Inconsistent path to root for subnet {subnet.Ip} in zone {zone.Name}: " +
-                        $"device {conflict.Gateway} leads to {conflict.FoundParent} but {conflict.ExpectedParent} was expected.");
+                        $"device {conflict.Gateway} leads to {conflict.FoundParent ?? kRootNetworkName} but {conflict.ExpectedParent ?? kRootNetworkName} was expected.");
                     }
                 }
             }

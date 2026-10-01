@@ -24,6 +24,7 @@
 - Daily reminder checks evaluate whether a notification is due before recording a suppression, so
   non-due reminders do not create audit noise or advance the notification definition's last-sent
   state
+- add upgrade seed for request task sort configuration
 - new network zone tree path analysis: for every combination of a source and a destination ip range
   it determines the firewalls between them from the paths to the root network and to the internet
   that the zone matrix stores per subnet, cutting both paths at their lowest common ancestor.
@@ -45,7 +46,6 @@
   found. Paths to the internet stay unchecked, as several routes there are intended. A matrix
   whose root paths contradicted each other was imported before and made the path analysis report
   routes that do not exist
-
 
 ## 9.5.9 - 28.09.2026
 - security fix (SEC-11): a local user was identified by its dn alone, although a dn is unique only

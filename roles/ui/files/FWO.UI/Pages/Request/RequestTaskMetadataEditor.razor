@@ -191,6 +191,8 @@
     private FwoOwner? RequestingOwner { get; set; }
     private string? GroupName { get; set; }
     private IEnumerable<Device> SelectedDevices { get; set; } = [];
+    private readonly List<Device> selectableDevices = [];
+    private Device? allDevicesOption;
     private long initializedTaskId = -1;
 
     public WfTaskType CurrentTaskType => TaskType;
@@ -207,14 +209,11 @@
     public bool NeedsManualDeviceSelection => !IsPlanningPhaseActive()
         && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
             || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
-    public IEnumerable<Device> SelectableDevices =>
-    [
-        new Device { Id = WfReqTaskBase.kAllDevicesId, Name = userConfig.GetText("all"), DeviceType = new() { Id = 0 } },
-        .. WfHandler.Devices
-    ];
+    public IEnumerable<Device> SelectableDevices => selectableDevices;
 
     protected override void OnParametersSet()
     {
+        RefreshSelectableDevices();
         if (initializedTaskId != WfHandler.ActReqTask.Id)
         {
             InitializeFromTask();
@@ -296,8 +295,20 @@
 
     private Device GetAllDevicesOption()
     {
-        return SelectableDevices.FirstOrDefault(dev => dev.Id == WfReqTaskBase.kAllDevicesId)
-            ?? new Device { Id = WfReqTaskBase.kAllDevicesId, Name = userConfig.GetText("all"), DeviceType = new() { Id = 0 } };
+        if (allDevicesOption == null)
+        {
+            RefreshSelectableDevices();
+        }
+        return allDevicesOption!;
+    }
+
+    private void RefreshSelectableDevices()
+    {
+        allDevicesOption ??= new Device { Id = WfReqTaskBase.kAllDevicesId, DeviceType = new() { Id = 0 } };
+        allDevicesOption.Name = userConfig.GetText("all");
+        selectableDevices.Clear();
+        selectableDevices.Add(allDevicesOption);
+        selectableDevices.AddRange(WfHandler.Devices);
     }
 
     private bool IsPlanningPhaseActive()

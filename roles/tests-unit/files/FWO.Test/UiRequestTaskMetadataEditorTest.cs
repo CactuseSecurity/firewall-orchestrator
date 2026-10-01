@@ -1,8 +1,13 @@
 using FWO.Config.Api;
 using FWO.Data;
 using FWO.Data.Workflow;
+using FWO.Api.Client;
 using FWO.Services.Workflow;
 using FWO.Ui.Pages.Request;
+using FWO.Ui.Services;
+using FWO.Ui.Shared;
+using Bunit;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Reflection;
@@ -118,6 +123,40 @@ internal class UiRequestTaskMetadataEditorTest
             Assert.That(component.CurrentOwner?.Id, Is.EqualTo(21));
             Assert.That(component.CurrentGroupName, Is.EqualTo("group-name"));
             Assert.That(component.CurrentSelectedDevices.Select(device => device.Id), Is.EqualTo(kSelectedGatewayId));
+        });
+    }
+
+    [Test]
+    public async Task RenderedGatewayDropdown_DoesNotOfferSelectedAllDeviceAgain()
+    {
+        WfReqTask task = new() { Id = 13, TaskType = WfTaskType.access.ToString() };
+        task.SetDeviceList(kAllDeviceId.ToList());
+        WfHandler handler = new()
+        {
+            ActReqTask = task,
+            Devices = [new Device { Id = 1, Name = "gw-1" }],
+            ActStateMatrix = new StateMatrix { PhaseActive = { [WorkflowPhases.planning] = false } }
+        };
+        SimulatedUserConfig userConfig = new()
+        {
+            ReqAutoCreateImplTasks = AutoCreateImplTaskOptions.enterInReqTask
+        };
+
+        await using BunitContext context = new();
+        context.Services.AddSingleton<ApiConnection>(new UiRequestWorkflowTest.RequestWorkflowApiConn());
+        context.Services.AddSingleton<UserConfig>(userConfig);
+        context.Services.AddSingleton<DomEventService>();
+
+        IRenderedComponent<RequestTaskMetadataEditor> component = context.Render<RequestTaskMetadataEditor>(parameters => parameters
+            .Add(parameter => parameter.WfHandler, handler)
+            .Add(parameter => parameter.CanEditField, _ => true));
+        IRenderedComponent<Dropdown<Device>> dropdown = component.FindComponent<Dropdown<Device>>();
+        await component.InvokeAsync(() => dropdown.Find("input").Focus());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(dropdown.FindAll("button[id^='dropdown-menu-selected-']").Count(button => button.TextContent.Contains(userConfig.GetText("all"))), Is.EqualTo(1));
+            Assert.That(dropdown.FindAll("button[id^='dropdown-menu-element-']").Any(button => button.TextContent.Contains(userConfig.GetText("all"))), Is.False);
         });
     }
 

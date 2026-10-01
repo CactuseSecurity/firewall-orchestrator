@@ -567,6 +567,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Im Regeln-Report k&ouml;nnen nun Management-Regelwerke direkt angezeigt werden, auch wenn kein Gateway mit ihnen verkn&uuml;pft ist.</li>
     <li>Die Sichtbarkeit von Workflow-Tickets kann pro Phase auf "Beliebige Aufgabe" oder "Ticketstatus" eingestellt werden; "Beliebige Aufgabe" erhält das bisherige Verhalten.</li>
     <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
     <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
@@ -602,6 +603,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>The Rules report can now display management rulebases directly, including rulebases without a gateway link.</li>
     <li>Workflow ticket visibility can be configured per phase as "Any task" or "Ticket state"; "Any task" preserves the previous behavior.</li>
     <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
     <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
@@ -713,6 +715,20 @@ INSERT INTO txt VALUES ('report',		        'German', 	'Report');
 INSERT INTO txt VALUES ('report',		        'English', 	'Report');
 INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
+INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
+INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
+INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
+INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
+INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
+INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
+INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
+INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
+INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
+INSERT INTO txt VALUES ('H1560', 'German', 'Im Regeln-Report legt die Regelansicht fest, ob die Regeln nach Gateway oder direkt nach Management-Regelwerk angezeigt werden. In der Management-Ansicht w&auml;hlen Sie statt Gateways unterhalb jedes Managements dessen Start-Regelwerke aus (auch solche ohne Gateway-Verkn&uuml;pfung). Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk sowie alle davon aus verkn&uuml;pften Regelwerke (z.B. Layer und Sections).');
+INSERT INTO txt VALUES ('H1560', 'English', 'In the Rules report, Rules view chooses between gateway rules and management rulebases. In the management view, select start rulebases below each management instead of gateways (including rulebases without a gateway link). The report contains each selected rulebase plus all rulebases linked from it (e.g. layers and sections).');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
 INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');

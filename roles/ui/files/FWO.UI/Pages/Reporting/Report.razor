@@ -98,7 +98,21 @@
                     <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
                 </div>
             }
-            @if(actReportFilters.ReportType.IsRulebaseReport())
+            @if (actReportFilters.ReportType == ReportType.Rules)
+            {
+                <div class="p-3">
+                    <h5>@userConfig.GetText("rules_view")</h5>
+                    <select class="form-select form-select-sm" value="@(actReportFilters.ManagementRulebaseView ? "true" : "false")" @onchange="RulesViewChanged">
+                        <option value="false">@userConfig.GetText("gateway_rules_view")</option>
+                        <option value="true">@userConfig.GetText("management_rulebases_view")</option>
+                    </select>
+                </div>
+            }
+            @if (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView)
+            {
+                <RulebaseSelection Managements="actReportFilters.RulebaseManagements" @bind-SelectedRulebases="actReportFilters.SelectedRulebases" />
+            }
+            else if(actReportFilters.ReportType.IsRulebaseReport())
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
             }
@@ -167,7 +181,7 @@
                             case ReportType.UnusedRules:
                             case ReportType.NatRules:
                             case ReportType.AppRules:
-                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" RulesPerPage="rulesPerPage"
+                                <RulesReport Managements="currentReport.ReportData.ManagementData" SelectedReportType="actReportFilters.ReportType" ManagementRulebaseView="currentReport.Query.ManagementRulebaseView" RulesPerPage="rulesPerPage"
                                     @bind-SelectedRules="selectedItemsRuleReportTable" />
                                 break;
 
@@ -287,6 +301,14 @@
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
+    /// <summary>
+    /// Switches the rules report between gateway rules view and management rulebases view.
+    /// </summary>
+    /// <param name="args">change event of the rules view selection ("true" = management rulebases view)</param>
+    private void RulesViewChanged(ChangeEventArgs args)
+    {
+        actReportFilters.ManagementRulebaseView = bool.TryParse(args.Value?.ToString(), out bool managementView) && managementView;
+    }
     List<FwoOwner> owners = [];
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -412,6 +434,8 @@
             }
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            actReportFilters.RulebaseManagements = RulebaseManagementSelect.KeepStartRulebases(
+                await apiConnection.SendQueryAsync<List<RulebaseManagementSelect>>(DeviceQueries.getManagementsForRulebaseReporting));
             if(parsedAppId != null && reportVisibility.ModellingRelated)
             {
                 owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = parsedAppId.Value });
@@ -583,9 +607,14 @@
     {
         processing = true;
 
-        if(actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
+        if(actReportFilters.ReportType.IsDeviceRelatedReport() &&
+           (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView
+                ? actReportFilters.SelectedRulebases.Count == 0
+                : !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet()))
         {
-            DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+            string selectionError = actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView
+                ? "no_rulebase_selected" : "no_device_selected";
+            DisplayMessageInUi(null, userConfig.GetText(selectionError), userConfig.GetText("E1001"), true);
 
             processing = false;
 

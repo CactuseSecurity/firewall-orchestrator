@@ -59,6 +59,12 @@ namespace FWO.Data.Report
         [JsonProperty("device_filter"), JsonPropertyName("device_filter")]
         public DeviceFilter DeviceFilter { get; set; } = new();
 
+        [JsonProperty("management_rulebase_view"), JsonPropertyName("management_rulebase_view")]
+        public bool ManagementRulebaseView { get; set; }
+
+        [JsonProperty("selected_rulebases"), JsonPropertyName("selected_rulebases")]
+        public List<SelectedRulebase> SelectedRulebases { get; set; } = [];
+
         [JsonProperty("time_filter"), JsonPropertyName("time_filter")]
         public TimeFilter TimeFilter { get; set; } = new();
 

@@ -22,6 +22,12 @@ namespace FWO.Test
         private static readonly string[] ExpectedStandardStructureVariableKeys = [QueryVar.MgmId, QueryVar.ImportIdStart, QueryVar.ImportIdEnd];
         private static readonly int[] ExpectedStandardManagementIds = [1];
         private static readonly int[] ExpectedStandardRulebaseIds = [10, 20];
+        private static readonly List<int> SelectedStandardRulebaseIds = [10, 20];
+        private static readonly List<int> SelectedChainStartRulebaseIds = [10];
+        private static readonly List<int> SelectedTwoChainStartRulebaseIds = [50, 10, 99];
+        private static readonly List<int> ExpectedChainRulebaseIds = [10, 20, 30];
+        private static readonly List<int> ExpectedTwoChainRulebaseIds = [50, 10, 20, 30];
+        private static readonly List<int> ExpectedCyclicRulebaseIds = [10, 20];
         private static readonly long[] ExpectedFirstStandardRulebaseRuleIds = [100, 101];
         private static readonly long[] ExpectedSecondStandardRulebaseRuleIds = [200];
         private static readonly long[] ExpectedSingleAttachedFirstRulebaseRuleIds = [100];
@@ -791,6 +797,29 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task Test_Generate_ManagementRulebases_IncludesRulebasesWithoutGatewayLinks()
+        {
+            DynGraphqlQuery query = new("")
+            {
+                ManagementRulebaseView = true,
+                StandardRulesStructureQuery = "standard-rules-structure-query $import_id_start $import_id_end",
+                StandardRulesPageQuery = "standard-rules-page-query",
+                RelevantManagementIds = [1],
+                SelectedRulebaseIds = [.. SelectedStandardRulebaseIds]
+            };
+            ReportRules reportRules = new(query, new SimulatedUserConfig(), ReportType.Rules, new RuleTreeBuilder());
+            StandardRulesSplitApiConnection apiConnection = new(includeSelectedRulebaseLinks: false);
+
+            await reportRules.Generate(2, apiConnection, _ => Task.CompletedTask, CancellationToken.None);
+
+            Assert.That(apiConnection.RulePageRulebaseIds, Has.Count.EqualTo(2));
+            Assert.That(apiConnection.RulePageRulebaseIds[0], Is.EqualTo(ExpectedStandardRulebaseIds));
+            Assert.That(reportRules.ReportData.ManagementData.Single().Rulebases[0].Rules, Has.Length.EqualTo(2));
+            Assert.That(reportRules.NoRuleFound(), Is.False);
+            Assert.That(reportRules.SetDescription(), Does.Contain("3"));
+        }
+
+        [Test]
         public void Test_GetRulebaseIdsForSelectedDevices_ReturnsOnlyLinkedKnownRulebases()
         {
             ManagementReport managementReport = new()
@@ -819,6 +848,72 @@ namespace FWO.Test
             int[] rulebaseIds = ReportRules.GetRulebaseIdsForSelectedDevices(managementReport);
 
             Assert.That(rulebaseIds, Is.EqualTo(ExpectedStandardRulebaseIds));
+        }
+
+        [Test]
+        public void Test_GetRulebaseIdsReachableFrom_FollowsRulebaseAndRuleLinksButNotNat()
+        {
+            ManagementReport managementReport = CreateLinkedRulebasesManagementReport();
+
+            List<int> rulebaseIds = ReportRules.GetRulebaseIdsReachableFrom(managementReport, SelectedChainStartRulebaseIds);
+
+            Assert.That(rulebaseIds, Is.EqualTo(ExpectedChainRulebaseIds));
+        }
+
+        [Test]
+        public void Test_GetRulebaseIdsReachableFrom_OrdersChainsByStartAndIgnoresUnknownStarts()
+        {
+            ManagementReport managementReport = CreateLinkedRulebasesManagementReport();
+
+            List<int> rulebaseIds = ReportRules.GetRulebaseIdsReachableFrom(managementReport, SelectedTwoChainStartRulebaseIds);
+
+            Assert.That(rulebaseIds, Is.EqualTo(ExpectedTwoChainRulebaseIds));
+        }
+
+        [Test]
+        public void Test_GetRulebaseIdsReachableFrom_StopsOnCyclicLinks()
+        {
+            ManagementReport managementReport = new()
+            {
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 10, IncomingLinks = [new RulebaseLink { LinkType = RulebaseLinkTypes.Ordered, FromRulebaseId = 20, NextRulebaseId = 10 }] },
+                    new RulebaseReport { Id = 20, IncomingLinks = [new RulebaseLink { LinkType = RulebaseLinkTypes.Ordered, FromRulebaseId = 10, NextRulebaseId = 20 }] }
+                ]
+            };
+
+            List<int> rulebaseIds = ReportRules.GetRulebaseIdsReachableFrom(managementReport, SelectedChainStartRulebaseIds);
+
+            Assert.That(rulebaseIds, Is.EqualTo(ExpectedCyclicRulebaseIds));
+        }
+
+        [Test]
+        public void Test_ScopeToSelectedRulebases_KeepsOnlySelectedChainsInOrder()
+        {
+            ManagementReport managementReport = CreateLinkedRulebasesManagementReport();
+
+            ReportRules.ScopeToSelectedRulebases(managementReport, SelectedChainStartRulebaseIds);
+
+            Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedChainRulebaseIds));
+            Assert.That(managementReport.Rulebases.All(rulebase => rulebase.IncomingLinks == null), Is.True);
+        }
+
+        /// <summary>
+        /// Creates rulebases 10 -> 20 (ordered), rule in 20 -> 30 (inline), 10 -> 40 (NAT) and unlinked 50.
+        /// </summary>
+        private static ManagementReport CreateLinkedRulebasesManagementReport()
+        {
+            return new()
+            {
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 50, Name = "Unlinked" },
+                    new RulebaseReport { Id = 40, Name = "NAT", IncomingLinks = [new RulebaseLink { LinkType = RulebaseLinkTypes.Nat, FromRulebaseId = 10, NextRulebaseId = 40 }] },
+                    new RulebaseReport { Id = 30, Name = "Inline", IncomingLinks = [new RulebaseLink { LinkType = RulebaseLinkTypes.Inline, FromRuleId = 5, FromRule = new Rule { Id = 5, RulebaseId = 20 }, NextRulebaseId = 30 }] },
+                    new RulebaseReport { Id = 20, Name = "Layer 2", IncomingLinks = [new RulebaseLink { LinkType = RulebaseLinkTypes.Ordered, FromRulebaseId = 10, NextRulebaseId = 20 }] },
+                    new RulebaseReport { Id = 10, Name = "Layer 1", IncomingLinks = [new RulebaseLink { IsInitial = true, LinkType = RulebaseLinkTypes.Ordered, NextRulebaseId = 10 }] }
+                ]
+            };
         }
 
         [Test]

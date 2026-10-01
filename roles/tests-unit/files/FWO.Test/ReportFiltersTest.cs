@@ -13,6 +13,63 @@ namespace FWO.Test
     [Parallelizable]
     internal class ReportFiltersTest
     {
+        private static readonly List<int> kSelectedRulebaseIds = [10];
+
+        [Test]
+        public void ManagementRulebaseSelection_RoundTripsWithoutSelectingGateways()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management" }];
+            ReportFilters filters = new()
+            {
+                ReportType = ReportType.Rules,
+                ManagementRulebaseView = true,
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            filters.SelectedRulebases = [new SelectedRulebase { ManagementId = 1, RulebaseId = 10, RulebaseName = "outdated name" }];
+
+            ReportParams reportParams = filters.ToReportParams();
+            ReportFilters restored = new()
+            {
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            restored.SyncFiltersFromTemplate(new ReportTemplate("", reportParams));
+
+            Assert.That(reportParams.ManagementRulebaseView, Is.True);
+            Assert.That(reportParams.SelectedRulebases.Select(rulebase => rulebase.RulebaseId), Is.EqualTo(kSelectedRulebaseIds));
+            Assert.That(restored.ManagementRulebaseView, Is.True);
+            Assert.That(restored.SelectedRulebases.Select(rulebase => rulebase.RulebaseId), Is.EqualTo(kSelectedRulebaseIds));
+            Assert.That(restored.SelectedRulebases[0].RulebaseName, Is.EqualTo("Start"));
+            Assert.That(restored.DeviceFilter.IsAnyDeviceFilterSet(), Is.False);
+        }
+
+        [Test]
+        public void TenantViewChanged_HidesRulebasesOfInvisibleManagementsAndDropsTheirSelection()
+        {
+            List<ManagementSelect> managements = [new ManagementSelect { Id = 1, Name = "Management", Devices = [new DeviceSelect { Id = 5, Name = "Gateway" }] }];
+            ReportFilters filters = new()
+            {
+                RulebaseManagements = CreateRulebaseManagements(),
+                DeviceFilter = new(managements)
+            };
+            filters.SelectedRulebases = RulebaseSelectionHelper.SelectAll(filters.RulebaseManagements);
+
+            filters.TenantViewChanged(new Tenant { Id = 2, VisibleGatewayIds = [] });
+
+            Assert.That(filters.RulebaseManagements[0].Visible, Is.False);
+            Assert.That(filters.SelectedRulebases, Is.Empty);
+
+            filters.TenantViewChanged(null);
+
+            Assert.That(filters.RulebaseManagements[0].Visible, Is.True);
+        }
+
+        private static List<RulebaseManagementSelect> CreateRulebaseManagements()
+        {
+            return [new RulebaseManagementSelect { Id = 1, Name = "Management", Rulebases = [new RulebaseSelect { Id = 10, Name = "Start" }] }];
+        }
+
         [Test]
         public void ToReportParams_CopiesWorkflowFilter_ForTicketChangeReport()
         {

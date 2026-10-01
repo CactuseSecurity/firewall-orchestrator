@@ -8,10 +8,10 @@
 
 @foreach (var management in Managements)
 {
-    @if (management.ContainsRules())
+    @if (management.ContainsRules() || (ManagementRulebaseView && management.Rulebases.Any(rulebase => ReportRules.GetRulesByRulebaseId(rulebase.Id, management).Length > 0)))
     {
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
-            @if (Recertification || SelectedReportType.IsRulebaseReport())
+            @if (Recertification || SelectedReportType.IsRulebaseReport() || ManagementRulebaseView)
             {
                 @foreach (var rulebase in management.Rulebases)
                 {
@@ -269,6 +269,9 @@
 
     [Parameter]
     public bool Recertification { get; set; } = false;
+
+    [Parameter]
+    public bool ManagementRulebaseView { get; set; }
 
     [Parameter]
     public int RulesPerPage { get; set; }

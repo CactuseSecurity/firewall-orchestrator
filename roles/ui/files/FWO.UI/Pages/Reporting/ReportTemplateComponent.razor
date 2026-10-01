@@ -200,9 +200,13 @@
             @if (reportTypeInEdit.IsDeviceRelatedReport() && (ReportType)reportTypeInEdit != ReportType.RecertEventReport)
             {
                 <div class="form-group row mt-2">
-                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? "managements" : "devices")):</label>
+                    <label class="col-sm-3 col-form-label col-form-label-sm">@(userConfig.GetText(reportTemplateInEdit.ReportParams.ManagementRulebaseView ? "rulebases" : reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? "managements" : "devices")):</label>
                     <div class="form-group row col-sm-9">
-                        <label class="col-sm-9">@(reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification ? reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedManagements() : reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
+                        <label class="col-sm-9">@(reportTemplateInEdit.ReportParams.ManagementRulebaseView
+                            ? string.Join(", ", reportTemplateInEdit.ReportParams.SelectedRulebases)
+                            : reportTypeInEdit == ReportType.AppRules || reportTypeInEdit == ReportType.Recertification
+                                ? reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedManagements()
+                                : reportTemplateInEdit.ReportParams.DeviceFilter.ListAllSelectedDevices())</label>
                         <button type="button" class="btn btn-sm btn-warning col-sm-2" @onclick="EditDeviceSelection">
                             @(DisplayService.DisplayButton(userConfig, "edit", Icons.Edit))
                         </button>
@@ -224,7 +228,9 @@
     </Footer>
 </PopUp>
 
-<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter" SelectedReportType="reportTypeInEdit" />
+<ReportTemplateSelectDevice @bind-Display="ShowSelectDeviceDialog" @bind-DeviceFilter="reportTemplateInEdit.ReportParams.DeviceFilter"
+                            @bind-SelectedRulebases="reportTemplateInEdit.ReportParams.SelectedRulebases"
+                            ManagementRulebaseView="reportTemplateInEdit.ReportParams.ManagementRulebaseView" SelectedReportType="reportTypeInEdit" />
 <ReportSelectTime @bind-Display="ShowSelectTimeDialog" SelectedReportType="reportTypeInEdit" @bind-ActTimeFilter="templateActTimeFilter"
                   @bind-SavedTimeFilter="reportTemplateInEdit.ReportParams.TimeFilter" DisplayTime="RefreshTimeSelection" />
 

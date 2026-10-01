@@ -33,6 +33,15 @@ namespace FWO.Report
 
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
+        /// <summary>Checks the selected management rulebases when the Rules report uses management view.</summary>
+        public override bool NoRuleFound()
+        {
+            if (!Query.ManagementRulebaseView)
+                return base.NoRuleFound();
+
+            return !ReportData.ManagementData.Any(management => management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0));
+        }
+
         private const int ColumnCount = 14;
         private static readonly JsonSerializerOptions IndentedJsonSerializerOptions = new() { WriteIndented = true };
         protected bool UseAdditionalFilter = false;
@@ -82,6 +91,7 @@ namespace FWO.Report
                 List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
                 ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
+                ScopeToSelectedRulebasesIfRequired(managementReport);
                 ReportData.ManagementData.Add(managementReport);
             }
 
@@ -114,7 +124,7 @@ namespace FWO.Report
 
             await LogExecutionTime(phaseStopwatch, "Filling report data", true);
 
-            if (!ReportType.IsRulebaseReport())
+            if (!ReportType.IsRulebaseReport() && !Query.ManagementRulebaseView)
             {
                 TryBuildRuleTree();
             }
@@ -146,6 +156,7 @@ namespace FWO.Report
                 }
                 ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
+                ScopeToSelectedRulebasesIfRequired(managementReport);
                 ReportData.ManagementData.Add(managementReport);
             }
 
@@ -163,7 +174,9 @@ namespace FWO.Report
                     continue;
                 }
 
-                int[] scopedRulebaseIds = GetRulebaseIdsForSelectedDevices(managementReport);
+                int[] scopedRulebaseIds = Query.ManagementRulebaseView
+                    ? [.. managementReport.Rulebases.Select(rulebase => rulebase.Id)]
+                    : GetRulebaseIdsForSelectedDevices(managementReport);
                 if (scopedRulebaseIds.Length == 0)
                 {
                     Log.WriteDebug("Generate Rules Report", $"Skipping rule paging: management={management.Id}, scopedRulebases=0");
@@ -186,7 +199,8 @@ namespace FWO.Report
 
             await LogExecutionTime(phaseStopwatch, "Filling report data", true);
 
-            TryBuildRuleTree();
+            if (!Query.ManagementRulebaseView)
+                TryBuildRuleTree();
 
             await LogExecutionTime(phaseStopwatch, "Building rule tree", false);
             await LogExecutionTime(totalStopwatch, "Generating Rules Report", false);
@@ -212,6 +226,72 @@ namespace FWO.Report
             }
 
             return structureQueryVariables;
+        }
+
+        private void ScopeToSelectedRulebasesIfRequired(ManagementReport managementReport)
+        {
+            if (Query.ManagementRulebaseView)
+            {
+                ScopeToSelectedRulebases(managementReport, Query.SelectedRulebaseIds);
+            }
+        }
+
+        /// <summary>
+        /// Restricts the management report to the selected start rulebases and the rulebases linked from them.
+        /// The remaining rulebases are ordered chain by chain, each start rulebase first.
+        /// The incoming links are only needed for scoping and are removed afterwards (not part of exports).
+        /// </summary>
+        internal static void ScopeToSelectedRulebases(ManagementReport managementReport, List<int> startRulebaseIds)
+        {
+            Dictionary<int, RulebaseReport> rulebasesById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id);
+            managementReport.Rulebases = [.. GetRulebaseIdsReachableFrom(managementReport, startRulebaseIds).Select(rulebaseId => rulebasesById[rulebaseId])];
+            foreach (RulebaseReport rulebase in managementReport.Rulebases)
+            {
+                rulebase.IncomingLinks = null;
+            }
+        }
+
+        /// <summary>
+        /// Follows the active non-NAT rulebase links of a management, starting at each given rulebase in turn.
+        /// </summary>
+        /// <returns>ids of the start rulebases of this management and all rulebases reachable from them, without duplicates</returns>
+        internal static List<int> GetRulebaseIdsReachableFrom(ManagementReport managementReport, List<int> startRulebaseIds)
+        {
+            Dictionary<int, List<int>> successorsById = GetRulebaseSuccessors(managementReport);
+            HashSet<int> visitedIds = [];
+            List<int> orderedIds = [];
+            foreach (int startRulebaseId in startRulebaseIds.Where(successorsById.ContainsKey))
+            {
+                Queue<int> pendingIds = new();
+                pendingIds.Enqueue(startRulebaseId);
+                while (pendingIds.TryDequeue(out int rulebaseId))
+                {
+                    if (visitedIds.Add(rulebaseId))
+                    {
+                        orderedIds.Add(rulebaseId);
+                        successorsById[rulebaseId].ForEach(pendingIds.Enqueue);
+                    }
+                }
+            }
+            return orderedIds;
+        }
+
+        private static Dictionary<int, List<int>> GetRulebaseSuccessors(ManagementReport managementReport)
+        {
+            Dictionary<int, List<int>> successorsById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id, _ => new List<int>());
+            foreach (RulebaseReport rulebase in managementReport.Rulebases)
+            {
+                foreach (RulebaseLink link in (rulebase.IncomingLinks ?? []).Where(link => link.LinkType != RulebaseLinkTypes.Nat))
+                {
+                    int? sourceRulebaseId = link.FromRulebaseId ?? link.FromRule?.RulebaseId;
+                    if (sourceRulebaseId != null && successorsById.TryGetValue(sourceRulebaseId.Value, out List<int>? successors)
+                        && !successors.Contains(rulebase.Id))
+                    {
+                        successors.Add(rulebase.Id);
+                    }
+                }
+            }
+            return successorsById;
         }
 
         /// <summary>
@@ -564,6 +644,14 @@ namespace FWO.Report
 
         public override string SetDescription()
         {
+            if (Query.ManagementRulebaseView)
+            {
+                int managementCount = ReportData.ManagementData.Count(management => !management.Ignore && management.Rulebases.Any(rulebase => rulebase.Rules.Length > 0));
+                int ruleCount = ReportData.ManagementData.Where(management => !management.Ignore)
+                    .Sum(management => management.Rulebases.Sum(rulebase => rulebase.Rules.Length));
+                return $"{managementCount} {userConfig.GetText("managements")}, {ruleCount} {userConfig.GetText("rules")}";
+            }
+
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
@@ -677,13 +765,14 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             Levelshift = levelshift;
 
-            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
+            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore &&
+                (mgt.ContainsRules() || (Query.ManagementRulebaseView && mgt.Rulebases.Any(rulebase => rulebase.Rules.Length > 0)))))
             {
                 chapterNumber++;
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                if (ReportType.IsRulebaseReport())
+                if (ReportType.IsRulebaseReport() || Query.ManagementRulebaseView)
                 {
                     foreach (var rulebase in managementReport.Rulebases)
                     {

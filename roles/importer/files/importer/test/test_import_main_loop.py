@@ -72,7 +72,7 @@ class TestWaitWithShutdownCheck:
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_sleep = mocker.patch("import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("fwo_log.FWOLogger")
         fwo_globals.shutdown_requested = False
 
@@ -90,7 +90,7 @@ class TestWaitWithShutdownCheck:
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         fwo_globals.shutdown_requested = True
 
@@ -111,7 +111,7 @@ class TestWaitWithShutdownCheck:
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         fwo_globals.shutdown_requested = False
 
@@ -136,7 +136,7 @@ class TestWaitWithShutdownCheck:
         mocker: MockerFixture,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         fwo_globals.shutdown_requested = True
 

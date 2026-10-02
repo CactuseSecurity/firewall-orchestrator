@@ -18,21 +18,17 @@ using Rule = FWO.Data.Rule;
 
 namespace FWO.Report
 {
-    public static class DeviceReportExtensions
-    {
-        public static bool ContainsRules(this DeviceReport device)
-        {
-            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
-        }
-
-        public static bool ContainsRules(this ManagementReport management)
-        {
-            return management.Devices != null && management.Devices.Any(d => d.ContainsRules());
-        }
-    }
-
     public class ReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, IRuleTreeBuilder? ruleTreeBuilder = null) : ReportDevicesBase(query, userConfig, reportType)
     {
+        /// <summary>Checks the selected management rulebases when the Rules report uses management view.</summary>
+        public override bool NoRuleFound()
+        {
+            if (!Query.ManagementRulebaseView)
+                return base.NoRuleFound();
+
+            return !ReportData.ManagementData.Any(management => management.ContainsRulebaseRules());
+        }
+
         private const int ColumnCount = 14;
         private static readonly JsonSerializerOptions IndentedJsonSerializerOptions = new() { WriteIndented = true };
         protected bool UseAdditionalFilter = false;
@@ -82,6 +78,7 @@ namespace FWO.Report
                 List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.FullQuery, Query.QueryVariables);
                 ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
+                ScopeToSelectedRulebasesIfRequired(managementReport);
                 ReportData.ManagementData.Add(managementReport);
             }
 
@@ -138,7 +135,7 @@ namespace FWO.Report
             {
                 ct.ThrowIfCancellationRequested();
                 SetMgtQueryVars(management);
-                Dictionary<string, object> structureQueryVariables = BuildStandardRulesStructureQueryVariables(Query.StandardRulesStructureQuery, Query.QueryVariables);
+                Dictionary<string, object> structureQueryVariables = StandardRulesQueryVariables.BuildStructureQueryVariables(Query.StandardRulesStructureQuery, Query.QueryVariables);
                 List<ManagementReport> result = await apiConnection.SendQueryAsync<List<ManagementReport>>(Query.StandardRulesStructureQuery, structureQueryVariables);
                 if (result.Count == 0)
                 {
@@ -146,6 +143,7 @@ namespace FWO.Report
                 }
                 ManagementReport managementReport = result[0];
                 managementReport.Import = management.Import;
+                ScopeToSelectedRulebasesIfRequired(managementReport);
                 ReportData.ManagementData.Add(managementReport);
             }
 
@@ -163,7 +161,9 @@ namespace FWO.Report
                     continue;
                 }
 
-                int[] scopedRulebaseIds = GetRulebaseIdsForSelectedDevices(managementReport);
+                int[] scopedRulebaseIds = Query.ManagementRulebaseView
+                    ? [.. managementReport.Rulebases.Select(rulebase => rulebase.Id)]
+                    : GetRulebaseIdsForSelectedDevices(managementReport);
                 if (scopedRulebaseIds.Length == 0)
                 {
                     Log.WriteDebug("Generate Rules Report", $"Skipping rule paging: management={management.Id}, scopedRulebases=0");
@@ -193,25 +193,14 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Builds the minimal variable set accepted by the standard Rules structure query.
+        /// Restricts the management report to the selected rulebase chains when the Rules report uses management view.
         /// </summary>
-        private static Dictionary<string, object> BuildStandardRulesStructureQueryVariables(string structureQuery, Dictionary<string, object> queryVariables)
+        private void ScopeToSelectedRulebasesIfRequired(ManagementReport managementReport)
         {
-            Dictionary<string, object> structureQueryVariables = new()
+            if (Query.ManagementRulebaseView)
             {
-                [QueryVar.MgmId] = queryVariables[QueryVar.MgmId],
-            };
-
-            if (structureQuery.Contains($"${QueryVar.ImportIdStart}", StringComparison.Ordinal) && queryVariables.TryGetValue(QueryVar.ImportIdStart, out object? importIdStart))
-            {
-                structureQueryVariables[QueryVar.ImportIdStart] = importIdStart;
+                RulebaseChainScope.ScopeToSelectedRulebases(managementReport, Query.SelectedRulebaseIds);
             }
-            if (structureQuery.Contains($"${QueryVar.ImportIdEnd}", StringComparison.Ordinal) && queryVariables.TryGetValue(QueryVar.ImportIdEnd, out object? importIdEnd))
-            {
-                structureQueryVariables[QueryVar.ImportIdEnd] = importIdEnd;
-            }
-
-            return structureQueryVariables;
         }
 
         /// <summary>
@@ -330,7 +319,9 @@ namespace FWO.Report
                 foreach (DeviceReport deviceReport in managementReport.Devices)
                 {
                     bool suppressEmptyHeaders = ReportType == ReportType.NatRules || !string.IsNullOrWhiteSpace(Query.RawFilter);
-                    List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id, suppressEmptyHeaders);
+                    HashSet<int>? referencedRulebaseIds = deviceReport.ReferencedRulebaseTreeIds.Count > 0 ? [.. deviceReport.ReferencedRulebaseTreeIds.Keys] : null;
+                    List<Rule> allRules = scopedRuleTreeBuilder.BuildRuleTree(managementReport.Rulebases, deviceReport.RulebaseLinks, managementReport.Id, deviceReport.Id,
+                        suppressEmptyHeaders, referencedRulebaseIds);
                     ApplyPreferredCollapseState(scopedRuleTreeBuilder, managementReport.Id, deviceReport.Id);
 
                     Rule[] rulesArray = GetRealRulesForExport(allRules);
@@ -564,6 +555,14 @@ namespace FWO.Report
 
         public override string SetDescription()
         {
+            if (Query.ManagementRulebaseView)
+            {
+                List<ManagementReport> reportedManagements = [.. ReportData.ManagementData.Where(management => !management.Ignore)];
+                int managementCount = reportedManagements.Count(management => management.ContainsRulebaseRules());
+                int ruleCount = reportedManagements.Sum(management => management.CountRulebaseRules());
+                return $"{managementCount} {userConfig.GetText("managements")}, {ruleCount} {userConfig.GetText("rules")}";
+            }
+
             int managementCounter = 0;
             int deviceCounter = 0;
             int ruleCounter = 0;
@@ -677,32 +676,45 @@ namespace FWO.Report
             RuleDisplayHtml ruleDisplayHtml = new(userConfig);
             Levelshift = levelshift;
 
-            foreach (ManagementReport managementReport in managementData.Where(mgt => !mgt.Ignore && mgt.ContainsRules()))
+            foreach (ManagementReport managementReport in managementData.Where(IsManagementWithReportedRules))
             {
                 chapterNumber++;
                 report.AppendLine(Headline(managementReport.Name, 3));
                 report.AppendLine("<hr>");
 
-                if (ReportType.IsRulebaseReport())
-                {
-                    foreach (var rulebase in managementReport.Rulebases)
-                    {
-                        AppendRulesForRulebaseHtml(ref report, rulebase, chapterNumber, ruleDisplayHtml);
-                    }
-                }
-                else
-                {
-                    foreach (var device in managementReport.Devices)
-                    {
-                        if (device.RulebaseLinks != null)
-                        {
-                            AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
-                        }
-                    }
-                }
+                AppendRulesForManagementHtml(ref report, managementReport, chapterNumber, ruleDisplayHtml);
 
                 // show all objects used in this management's rules
                 AppendObjectsForManagementHtml(ref report, chapterNumber, managementReport);
+            }
+        }
+
+        /// <summary>
+        /// Checks whether a management is part of the report: not ignored and containing rules of its devices
+        /// or, in management rulebases view, of its rulebases.
+        /// </summary>
+        private bool IsManagementWithReportedRules(ManagementReport managementReport)
+        {
+            return !managementReport.Ignore && managementReport.ContainsRules();
+        }
+
+        /// <summary>
+        /// Appends the rules of a management grouped by rulebase (rulebase reports, management rulebases view) or by device.
+        /// </summary>
+        private void AppendRulesForManagementHtml(ref StringBuilder report, ManagementReport managementReport, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        {
+            if (ReportType.IsRulebaseReport())
+            {
+                foreach (var rulebase in managementReport.Rulebases)
+                {
+                    AppendRulesForRulebaseHtml(ref report, rulebase, chapterNumber, ruleDisplayHtml);
+                }
+                return;
+            }
+
+            foreach (var device in managementReport.Devices.Where(device => device.RulebaseLinks != null))
+            {
+                AppendRulesForDeviceHtml(ref report, managementReport, device, chapterNumber, ruleDisplayHtml);
             }
         }
 
@@ -748,16 +760,25 @@ namespace FWO.Report
         {
             if (device.ContainsRules())
             {
-                report.AppendLine(Headline(device.Name, 4));
+                report.AppendLine(Query.ManagementRulebaseView
+                    ? Headline(device.Name, 4, DeviceReportExtensions.GetRuleTreeAnchorId(managementReport.Id, device.Id))
+                    : Headline(device.Name, 4));
                 report.AppendLine("<table>");
                 AppendRuleHeadlineHtml(ref report);
 
                 RulebaseLink? nextRbLink = device.RulebaseLinks.FirstOrDefault(_ => _.IsInitial);
                 if (nextRbLink != null)
                 {
-                    foreach (var rule in _rulesCache[(device.Id, managementReport.Id)])
+                    foreach (RuleTreeItem row in GetHtmlRows(managementReport, device))
                     {
-                        AppendRuleHtml(ref report, rule, chapterNumber, ruleDisplayHtml);
+                        if (row.IsRulebaseReference)
+                        {
+                            AppendRulebaseReferenceHtml(ref report, managementReport, device, row);
+                        }
+                        else
+                        {
+                            AppendRuleHtml(ref report, row.Data, chapterNumber, ruleDisplayHtml);
+                        }
                     }
                 }
                 report.AppendLine("</table>");
@@ -779,6 +800,32 @@ namespace FWO.Report
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
             }
+        }
+
+        /// <summary>
+        /// Returns the rows of a rule tree for html: the real rules and, in management rulebases view, the references to
+        /// rulebases listed completely in another rule tree.
+        /// </summary>
+        private IEnumerable<RuleTreeItem> GetHtmlRows(ManagementReport managementReport, DeviceReport device)
+        {
+            if (Query.ManagementRulebaseView && UsedRuleTreeBuilder != null
+                && UsedRuleTreeBuilder.RuleTreeCache.TryGetValue((managementReport.Id, device.Id), out RuleTreeItem? ruleTree))
+            {
+                return ruleTree.ElementsFlat.Where(row => row.IsRule || row.IsRulebaseReference);
+            }
+            return _rulesCache[(device.Id, managementReport.Id)].Select(rule => new RuleTreeItem { Data = rule, IsRule = true });
+        }
+
+        /// <summary>
+        /// Appends a row linking to the rule tree that lists the referenced rulebase completely.
+        /// </summary>
+        private void AppendRulebaseReferenceHtml(ref StringBuilder report, ManagementReport managementReport, DeviceReport device, RuleTreeItem row)
+        {
+            int listingTreeId = device.ReferencedRulebaseTreeIds.GetValueOrDefault(row.ReferencedRulebaseId);
+            string listingTreeName = managementReport.Devices.FirstOrDefault(tree => tree.Id == listingTreeId)?.Name ?? "";
+            string anchorId = DeviceReportExtensions.GetRuleTreeAnchorId(managementReport.Id, listingTreeId);
+            report.AppendLine($"<tr><td colspan=\"{ColumnCount}\"><b>{HtmlOutputEncoder.EncodeText(row.Header)}</b> - {userConfig.GetText("rulebase_listed_above")}: "
+                + $"<a href=\"#{anchorId}\">{HtmlOutputEncoder.EncodeText(listingTreeName)}</a></td></tr>");
         }
 
         private void AppendRuleHtml(ref StringBuilder report, Rule rule, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)

@@ -233,6 +233,7 @@ namespace FWO.Test
             {"flow_bundle_id","Bundle ID"},
             {"is_in_use","Is in use"},
             {"devices","Devices"},
+            {"rulebases","Rulebases"},
             {"owners","Owners"},
             {"requests","Requests"},
             {"filter","Filter"},

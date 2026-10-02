@@ -68,7 +68,7 @@ namespace FWO.Report
                         rep =>
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
-                            SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
+                            SetRelevantManagementsForReport(report.ReportData.ManagementData, reportTemplate.ReportParams);
                             return Task.CompletedTask;
                         }, token);
                     if (report.ReportType == ReportType.RecertEventReport)
@@ -230,6 +230,18 @@ namespace FWO.Report
                     }
                     return Task.CompletedTask;
                 }, token);
+        }
+
+        /// <summary>
+        /// Marks managements outside the device selection as ignored. Not applied in management rulebases view,
+        /// where the selected rulebases already define the scope and managements may have no gateway at all.
+        /// </summary>
+        internal static void SetRelevantManagementsForReport(List<ManagementReport> managementsReport, ReportParams reportParams)
+        {
+            if (!reportParams.IsManagementRulebaseView())
+            {
+                SetRelevantManagements(managementsReport, reportParams.DeviceFilter);
+            }
         }
 
         private static void SetRelevantManagements(List<ManagementReport> managementsReport, DeviceFilter deviceFilter)

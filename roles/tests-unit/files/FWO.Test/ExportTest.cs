@@ -1661,28 +1661,41 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// In management rulebases view a rulebase contained in the chains of several start rulebases is rendered once
-        /// with a fixed anchor; its repeated occurrences only link to it.
+        /// In management rulebases view each start rulebase is rendered as rule tree; a rulebase listed completely in an earlier
+        /// tree only appears as a row linking to that tree.
         /// </summary>
         [Test]
-        public void RulesGenerateHtml_ManagementRulebaseView_LinksRepeatedRulebase()
+        public void RulesGenerateHtml_ManagementRulebaseView_LinksReferenceToListingRuleTree()
         {
             DynGraphqlQuery managementViewQuery = new("TestFilter") { ReportTimeString = "2023-04-20T17:50:04", ManagementRulebaseView = true };
             MockReportRules reportRules = ConstructReportRules(managementViewQuery, userConfig, ReportType.Rules, ConstructRuleReportRules(false));
             ManagementReport managementData = reportRules.ReportData.ManagementData.Single();
             RulebaseReport rulebase = managementData.Rulebases.Single();
-            managementData.RulebaseOccurrences =
+            Dictionary<int, int> references = new() { [rulebase.Id] = -1 };
+            managementData.Devices =
             [
-                new RulebaseOccurrence { Rulebase = rulebase, StartRulebaseId = rulebase.Id },
-                new RulebaseOccurrence { Rulebase = rulebase, StartRulebaseId = rulebase.Id + 1, IsRepeated = true }
+                CreateRuleTree(-1, "Start A", rulebase.Id, new Dictionary<int, int>()),
+                CreateRuleTree(-2, "Start B", rulebase.Id, references)
             ];
-            string anchorId = RulebaseOccurrence.GetAnchorId(managementData.Id, rulebase.Id);
+            reportRules.TryBuildMockRuleTree();
+            string anchorId = DeviceReportExtensions.GetRuleTreeAnchorId(managementData.Id, -1);
 
             string reportHtml = reportRules.ExportToHtml();
 
             Assert.That(Regex.Matches(reportHtml, $"id=\"{anchorId}\"").Count, Is.EqualTo(1));
-            Assert.That(reportHtml, Does.Contain($"<a href=\"#{anchorId}\">"));
+            Assert.That(reportHtml, Does.Contain($"<a href=\"#{anchorId}\">Start A</a>"));
             Assert.That(Regex.Matches(reportHtml, "TestRule1").Count, Is.EqualTo(1));
+        }
+
+        private static DeviceReport CreateRuleTree(int treeId, string treeName, int startRulebaseId, Dictionary<int, int> references)
+        {
+            return new DeviceReport
+            {
+                Id = treeId,
+                Name = treeName,
+                RulebaseLinks = [new RulebaseLink { GatewayId = treeId, IsInitial = true, NextRulebaseId = startRulebaseId, LinkType = RulebaseLinkTypes.Ordered }],
+                ReferencedRulebaseTreeIds = references
+            };
         }
 
         private static MockReportRules ConstructReportRules(DynGraphqlQuery query, UserConfig userConfig, ReportType reportType, Rule[] rules)

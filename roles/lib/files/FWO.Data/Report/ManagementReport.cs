@@ -22,13 +22,6 @@ namespace FWO.Data.Report
         [JsonProperty("rulebases"), JsonPropertyName("rulebases")]
         public RulebaseReport[] Rulebases { get; set; } = [];
 
-        /// <summary>
-        /// Display order of the rulebases in management rulebases view including repeated appearances
-        /// (not part of the API data or exports).
-        /// </summary>
-        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
-        public List<RulebaseOccurrence> RulebaseOccurrences { get; set; } = [];
-
         [JsonProperty("changelog_rules"), JsonPropertyName("changelog_rules")]
         public RuleChange[]? RuleChanges { get; set; }
 
@@ -137,15 +130,6 @@ namespace FWO.Data.Report
             {
                 device.EnforceValidity();
             }
-        }
-
-        /// <summary>
-        /// Returns the rulebases in display order: the recorded occurrences of the management rulebases view,
-        /// otherwise each rulebase once.
-        /// </summary>
-        public List<RulebaseOccurrence> GetRulebaseOccurrencesForDisplay()
-        {
-            return RulebaseOccurrences.Count > 0 ? RulebaseOccurrences : [.. Rulebases.Select(rulebase => new RulebaseOccurrence { Rulebase = rulebase })];
         }
 
         public RulebaseReport? GetNextRulebase(RulebaseLink? currentRbLink)

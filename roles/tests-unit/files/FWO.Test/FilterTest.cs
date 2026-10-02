@@ -447,7 +447,9 @@ namespace FWO.Test
 
             Assert.That(query.RelevantManagementIds, Is.EqualTo(kSelectedRulebaseManagementIds));
             Assert.That(query.SelectedRulebaseIds, Is.EqualTo(kSelectedRulebaseIds));
-            StringAssert.Contains("dev_id: { _is_null: true }", query.StandardRulesStructureQuery);
+            StringAssert.Contains("rulebase_links( where: { id: { _is_null: true } }", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("dev_id: {_in:", query.StandardRulesStructureQuery);
+            StringAssert.Contains("is_section", query.StandardRulesStructureQuery);
             StringAssert.Contains("rule { rulebase_id }", query.StandardRulesStructureQuery);
             StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
         }
@@ -467,7 +469,7 @@ namespace FWO.Test
 
             Assert.That(query.StandardRulesStructureQuery, Is.Empty);
             StringAssert.Contains("rule { rulebase_id }", query.FullQuery);
-            StringAssert.Contains("dev_id: { _is_null: true }", query.FullQuery);
+            StringAssert.Contains("where: { id: { _is_null: true } }", query.FullQuery);
         }
 
         [Test]

@@ -22,11 +22,17 @@ namespace FWO.Test
         private static readonly List<int> ExpectedPolicyBRulebaseIds = [150, 120, 140];
         private static readonly List<int> ExpectedBothPolicyRulebaseIds = [110, 120, 130, 150, 140];
         private static readonly List<int> ExpectedWithoutGatewayRulebaseIds = [190];
-        private static readonly List<int> ExpectedBothPolicyOccurrenceIds = [110, 120, 130, 150, 120, 140];
-        private static readonly List<bool> ExpectedBothPolicyRepeatedFlags = [false, false, false, false, true, false];
         private static readonly List<int> SelectedSharedPolicyStartIds = [210];
         private static readonly List<int> ExpectedSharedPolicyRulebaseIds = [210, 220, 230];
         private static readonly List<int> SharedPolicyGatewayIds = [1, 2, 3];
+        private static readonly List<int> SelectedSharedStartIds = [300];
+        private static readonly List<int> ExpectedSharedStartRulebaseIds = [300, 310, 320, 330];
+        private static readonly List<int> ExpectedTreeIds = [-1, -2];
+        private static readonly List<int> ExpectedSecondPolicyReferencedIds = [120, 125];
+        private static readonly List<int> ExpectedSharedStartReferencedIds = [300, 310];
+        private static readonly List<string> ExpectedSharedStartTreeNames = ["Shared start (GW-A)", "Shared start (GW-B)"];
+        private static readonly List<string> ExpectedSecondPolicyTreeLinks = ["initial->150", "150->120", "120->140"];
+        private static readonly List<string> ExpectedSharedStartSecondTreeLinks = ["initial->300", "300->310", "310->330"];
         private const int kGatewayA = 1;
         private const int kGatewayB = 2;
 
@@ -102,25 +108,27 @@ namespace FWO.Test
         }
 
         [Test]
-        public void ScopeToSelectedRulebases_ShowsRulebaseOnceAndRecordsRepeatedOccurrence()
+        public void ScopeToSelectedRulebases_CreatesTreePerStartAndReferencesSharedLayerInLaterTree()
         {
-            ManagementReport managementReport = CreateSharedLayerManagementReport();
+            ManagementReport managementReport = CreateSharedLayerWithInlineManagementReport();
 
             RulebaseChainScope.ScopeToSelectedRulebases(managementReport, SelectedBothPolicyStartIds);
 
+            DeviceReport secondTree = managementReport.Devices[1];
             Assert.Multiple(() =>
             {
-                Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedBothPolicyRulebaseIds));
-                Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.Rulebase.Id), Is.EqualTo(ExpectedBothPolicyOccurrenceIds));
-                Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.IsRepeated), Is.EqualTo(ExpectedBothPolicyRepeatedFlags));
-                Assert.That(managementReport.RulebaseOccurrences[4].StartRulebaseId, Is.EqualTo(150));
-                Assert.That(managementReport.RulebaseOccurrences[4].Rulebase, Is.SameAs(managementReport.RulebaseOccurrences[1].Rulebase));
-                Assert.That(managementReport.GetRulebaseOccurrencesForDisplay(), Is.SameAs(managementReport.RulebaseOccurrences));
+                Assert.That(managementReport.Devices.Select(tree => tree.Id), Is.EqualTo(ExpectedTreeIds));
+                Assert.That(managementReport.Devices[0].ReferencedRulebaseTreeIds, Is.Empty);
+                Assert.That(secondTree.ReferencedRulebaseTreeIds.Keys.Order(), Is.EqualTo(ExpectedSecondPolicyReferencedIds));
+                Assert.That(secondTree.ReferencedRulebaseTreeIds.Values.Distinct().Single(), Is.EqualTo(-1));
+                Assert.That(secondTree.RulebaseLinks.Select(DescribeLink), Is.EqualTo(ExpectedSecondPolicyTreeLinks));
+                Assert.That(secondTree.RulebaseLinks.All(link => link.GatewayId == secondTree.Id), Is.True);
+                Assert.That(managementReport.Rulebases.All(rulebase => rulebase.IncomingLinks == null), Is.True);
             });
         }
 
         [Test]
-        public void ScopeToSelectedRulebases_PolicyOnSeveralGatewaysHasNoRepeatedOccurrence()
+        public void ScopeToSelectedRulebases_PolicyOnSeveralGatewaysCreatesOneTreeWithoutReferences()
         {
             ManagementReport managementReport = new()
             {
@@ -134,19 +142,74 @@ namespace FWO.Test
 
             RulebaseChainScope.ScopeToSelectedRulebases(managementReport, SelectedSharedPolicyStartIds);
 
-            Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.Rulebase.Id), Is.EqualTo(ExpectedSharedPolicyRulebaseIds));
-            Assert.That(managementReport.RulebaseOccurrences.Any(occurrence => occurrence.IsRepeated), Is.False);
+            Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedSharedPolicyRulebaseIds));
+            Assert.That(managementReport.Devices, Has.Length.EqualTo(1));
+            Assert.That(managementReport.Devices[0].ReferencedRulebaseTreeIds, Is.Empty);
+            Assert.That(managementReport.Devices[0].RulebaseLinks, Has.Length.EqualTo(3));
         }
 
         [Test]
-        public void GetRulebaseOccurrencesForDisplay_ListsEachRulebaseOnceWithoutRecordedOccurrences()
+        public void ScopeToSelectedRulebases_SharedStartWithDifferentChainsCreatesTreePerChainNamedByGateways()
+        {
+            ManagementReport managementReport = new()
+            {
+                Devices = [new DeviceReport { Id = kGatewayA, Name = "GW-A" }, new DeviceReport { Id = kGatewayB, Name = "GW-B" }],
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 300, Name = "Shared start", IncomingLinks = [CreateLink(kGatewayA, null, true), CreateLink(kGatewayB, null, true)] },
+                    new RulebaseReport { Id = 310, IncomingLinks = [CreateLink(kGatewayA, 300), CreateLink(kGatewayB, 300)] },
+                    new RulebaseReport { Id = 320, IncomingLinks = [CreateLink(kGatewayA, 310)] },
+                    new RulebaseReport { Id = 330, IncomingLinks = [CreateLink(kGatewayB, 310)] }
+                ]
+            };
+
+            RulebaseChainScope.ScopeToSelectedRulebases(managementReport, SelectedSharedStartIds);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedSharedStartRulebaseIds));
+                Assert.That(managementReport.Devices.Select(tree => tree.Name), Is.EqualTo(ExpectedSharedStartTreeNames));
+                Assert.That(managementReport.Devices[1].ReferencedRulebaseTreeIds.Keys.Order(), Is.EqualTo(ExpectedSharedStartReferencedIds));
+                Assert.That(managementReport.Devices[1].RulebaseLinks.Select(DescribeLink), Is.EqualTo(ExpectedSharedStartSecondTreeLinks));
+            });
+        }
+
+        [Test]
+        public void ScopeToSelectedRulebases_KeepsInitialLinkTypeAndHandlesRulebaseWithoutGateway()
+        {
+            ManagementReport managementReport = new()
+            {
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 400, IncomingLinks = [new RulebaseLink { GatewayId = kGatewayA, IsInitial = true, LinkType = RulebaseLinkTypes.Policy }] },
+                    new RulebaseReport { Id = 190, Name = "Without gateway" }
+                ]
+            };
+            List<int> startRulebaseIds = [400, 190];
+
+            RulebaseChainScope.ScopeToSelectedRulebases(managementReport, startRulebaseIds);
+
+            Assert.That(managementReport.Devices[0].RulebaseLinks.Single().LinkType, Is.EqualTo(RulebaseLinkTypes.Policy));
+            Assert.That(managementReport.Devices[1].Name, Is.EqualTo("Without gateway"));
+            Assert.That(managementReport.Devices[1].RulebaseLinks.Single().IsInitial, Is.True);
+            Assert.That(managementReport.Devices[1].RulebaseLinks.Single().NextRulebaseId, Is.EqualTo(190));
+        }
+
+        private static string DescribeLink(RulebaseLink link)
+        {
+            return link.IsInitial ? $"initial->{link.NextRulebaseId}" : $"{link.FromRulebaseId}->{link.NextRulebaseId}";
+        }
+
+        /// <summary>
+        /// Like <see cref="CreateSharedLayerManagementReport"/>, with an inline layer 125 called from rule 5 of the shared layer 120.
+        /// </summary>
+        private static ManagementReport CreateSharedLayerWithInlineManagementReport()
         {
             ManagementReport managementReport = CreateSharedLayerManagementReport();
-
-            List<RulebaseOccurrence> occurrences = managementReport.GetRulebaseOccurrencesForDisplay();
-
-            Assert.That(occurrences.Select(occurrence => occurrence.Rulebase), Is.EqualTo(managementReport.Rulebases));
-            Assert.That(occurrences.Any(occurrence => occurrence.IsRepeated), Is.False);
+            RulebaseLink inlineA = new() { GatewayId = kGatewayA, LinkType = RulebaseLinkTypes.Inline, FromRuleId = 5, FromRule = new Rule { Id = 5, RulebaseId = 120 } };
+            RulebaseLink inlineB = new() { GatewayId = kGatewayB, LinkType = RulebaseLinkTypes.Inline, FromRuleId = 5, FromRule = new Rule { Id = 5, RulebaseId = 120 } };
+            managementReport.Rulebases = [.. managementReport.Rulebases, new RulebaseReport { Id = 125, IncomingLinks = [inlineA, inlineB] }];
+            return managementReport;
         }
 
         /// <summary>

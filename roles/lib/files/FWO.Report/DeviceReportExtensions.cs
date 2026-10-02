@@ -5,6 +5,15 @@ namespace FWO.Report
     public static class DeviceReportExtensions
     {
         /// <summary>
+        /// Returns the html id of the rule tree of a device (or of a start rulebase in management rulebases view),
+        /// used as link target by reference rows of other rule trees.
+        /// </summary>
+        public static string GetRuleTreeAnchorId(int managementId, int deviceId)
+        {
+            return $"ruletree-{managementId}-{deviceId}";
+        }
+
+        /// <summary>
         /// Checks whether the device has rulebase links and therefore rules to report.
         /// </summary>
         public static bool ContainsRules(this DeviceReport device)

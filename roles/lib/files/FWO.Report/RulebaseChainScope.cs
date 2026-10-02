@@ -10,13 +10,15 @@ namespace FWO.Report
     {
         /// <summary>
         /// Restricts the management report to the selected start rulebases and the rulebases linked from them.
-        /// The remaining rulebases are ordered chain by chain, each start rulebase first.
+        /// The remaining rulebases are ordered chain by chain, each start rulebase first. A rulebase contained in the chains
+        /// of several start rulebases is kept once; its later appearances are recorded as repeated occurrences for display.
         /// The incoming links are only needed for scoping and are removed afterwards (not part of exports).
         /// </summary>
         internal static void ScopeToSelectedRulebases(ManagementReport managementReport, List<int> startRulebaseIds)
         {
-            Dictionary<int, RulebaseReport> rulebasesById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id);
-            managementReport.Rulebases = [.. GetRulebaseIdsReachableFrom(managementReport, startRulebaseIds).Select(rulebaseId => rulebasesById[rulebaseId])];
+            List<RulebaseOccurrence> occurrences = GetRulebaseOccurrences(managementReport, startRulebaseIds);
+            managementReport.Rulebases = [.. occurrences.Where(occurrence => !occurrence.IsRepeated).Select(occurrence => occurrence.Rulebase)];
+            managementReport.RulebaseOccurrences = occurrences;
             foreach (RulebaseReport rulebase in managementReport.Rulebases)
             {
                 rulebase.IncomingLinks = null;
@@ -24,31 +26,60 @@ namespace FWO.Report
         }
 
         /// <summary>
-        /// Follows the active non-NAT rulebase links of a management, starting at each given rulebase in turn.
+        /// Returns the ids of the start rulebases of this management and all rulebases reachable from them, without duplicates.
+        /// </summary>
+        internal static List<int> GetRulebaseIdsReachableFrom(ManagementReport managementReport, List<int> startRulebaseIds)
+        {
+            return [.. GetRulebaseOccurrences(managementReport, startRulebaseIds)
+                .Where(occurrence => !occurrence.IsRepeated)
+                .Select(occurrence => occurrence.Rulebase.Id)];
+        }
+
+        /// <summary>
+        /// Lists the chain of each start rulebase in turn. A rulebase already listed in the chain of an earlier
+        /// start rulebase is marked as repeated.
+        /// </summary>
+        internal static List<RulebaseOccurrence> GetRulebaseOccurrences(ManagementReport managementReport, List<int> startRulebaseIds)
+        {
+            Dictionary<int, RulebaseReport> rulebasesById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id);
+            List<RulebaseEdge> edges = GetRulebaseEdges(managementReport, rulebasesById);
+            HashSet<int> shownRulebaseIds = [];
+            List<RulebaseOccurrence> occurrences = [];
+            foreach (int startRulebaseId in startRulebaseIds.Distinct().Where(rulebasesById.ContainsKey))
+            {
+                foreach (int rulebaseId in GetChain(startRulebaseId, rulebasesById, edges))
+                {
+                    occurrences.Add(new RulebaseOccurrence
+                    {
+                        Rulebase = rulebasesById[rulebaseId],
+                        StartRulebaseId = startRulebaseId,
+                        IsRepeated = !shownRulebaseIds.Add(rulebaseId)
+                    });
+                }
+            }
+            return occurrences;
+        }
+
+        /// <summary>
+        /// Follows the active non-NAT rulebase links starting at the given rulebase, without duplicates.
         /// Chains are followed per gateway leading into the start rulebase, using only the links of that gateway,
         /// so a rulebase shared by several policies does not pull in the rulebases following it in the other policies.
         /// Without any gateway leading into the start rulebase (e.g. rulebases without gateway), all links are followed.
         /// </summary>
-        /// <returns>ids of the start rulebases of this management and all rulebases reachable from them, without duplicates</returns>
-        internal static List<int> GetRulebaseIdsReachableFrom(ManagementReport managementReport, List<int> startRulebaseIds)
+        private static List<int> GetChain(int startRulebaseId, Dictionary<int, RulebaseReport> rulebasesById, List<RulebaseEdge> edges)
         {
-            Dictionary<int, RulebaseReport> rulebasesById = managementReport.Rulebases.ToDictionary(rulebase => rulebase.Id);
-            List<RulebaseEdge> edges = GetRulebaseEdges(managementReport, rulebasesById);
-            List<int> orderedIds = [];
-            foreach (int startRulebaseId in startRulebaseIds.Where(rulebasesById.ContainsKey))
+            List<int> chainIds = [];
+            List<int> gatewayIds = GetGatewaysLeadingInto(rulebasesById[startRulebaseId]);
+            if (gatewayIds.Count == 0)
             {
-                List<int> gatewayIds = GetGatewaysLeadingInto(rulebasesById[startRulebaseId]);
-                if (gatewayIds.Count == 0)
-                {
-                    AddReachableRulebaseIds(startRulebaseId, edges, orderedIds);
-                }
-                foreach (int gatewayId in gatewayIds)
-                {
-                    List<RulebaseEdge> gatewayEdges = [.. edges.Where(edge => edge.GatewayId == gatewayId)];
-                    AddReachableRulebaseIds(startRulebaseId, gatewayEdges, orderedIds);
-                }
+                AddReachableRulebaseIds(startRulebaseId, edges, chainIds);
             }
-            return orderedIds;
+            foreach (int gatewayId in gatewayIds)
+            {
+                List<RulebaseEdge> gatewayEdges = [.. edges.Where(edge => edge.GatewayId == gatewayId)];
+                AddReachableRulebaseIds(startRulebaseId, gatewayEdges, chainIds);
+            }
+            return chainIds;
         }
 
         private readonly record struct RulebaseEdge(int SourceRulebaseId, int TargetRulebaseId, int GatewayId);

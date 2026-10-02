@@ -727,9 +727,16 @@ namespace FWO.Report
         {
             if (ReportType.IsRulebaseReport() || Query.ManagementRulebaseView)
             {
-                foreach (var rulebase in managementReport.Rulebases)
+                foreach (RulebaseOccurrence occurrence in managementReport.GetRulebaseOccurrencesForDisplay())
                 {
-                    AppendRulesForRulebaseHtml(ref report, rulebase, chapterNumber, ruleDisplayHtml);
+                    if (occurrence.IsRepeated)
+                    {
+                        AppendRulebaseReferenceHtml(ref report, managementReport.Id, occurrence.Rulebase);
+                    }
+                    else
+                    {
+                        AppendRulesForRulebaseHtml(ref report, managementReport.Id, occurrence.Rulebase, chapterNumber, ruleDisplayHtml);
+                    }
                 }
                 return;
             }
@@ -799,11 +806,11 @@ namespace FWO.Report
             }
         }
 
-        private void AppendRulesForRulebaseHtml(ref StringBuilder report, RulebaseReport rulebase, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
+        private void AppendRulesForRulebaseHtml(ref StringBuilder report, int managementId, RulebaseReport rulebase, int chapterNumber, RuleDisplayHtml ruleDisplayHtml)
         {
             if (rulebase.Rules.Length > 0)
             {
-                report.AppendLine(Headline(rulebase.Name, 4));
+                report.AppendLine(Headline(rulebase.Name, 4, RulebaseOccurrence.GetAnchorId(managementId, rulebase.Id)));
                 report.AppendLine("<table>");
                 AppendRuleHeadlineHtml(ref report);
                 foreach (var rule in rulebase.Rules)
@@ -812,6 +819,18 @@ namespace FWO.Report
                 }
                 report.AppendLine("</table>");
                 report.AppendLine("<hr>");
+            }
+        }
+
+        /// <summary>
+        /// Appends a link to the shown occurrence of a rulebase contained in the chains of several selected start rulebases.
+        /// </summary>
+        private void AppendRulebaseReferenceHtml(ref StringBuilder report, int managementId, RulebaseReport rulebase)
+        {
+            if (rulebase.Rules.Length > 0)
+            {
+                string anchorId = RulebaseOccurrence.GetAnchorId(managementId, rulebase.Id);
+                report.AppendLine($"<p>{userConfig.GetText("rulebase_listed_above")}: <a href=\"#{anchorId}\">{HtmlOutputEncoder.EncodeText(rulebase.Name)}</a></p>");
             }
         }
 

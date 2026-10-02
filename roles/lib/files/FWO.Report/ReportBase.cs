@@ -674,7 +674,15 @@ namespace FWO.Report
 
         protected string Headline(string? title, int level)
         {
-            return $"<h{level + Levelshift} id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(title)}</h{level + Levelshift}>";
+            return Headline(title, level, Guid.NewGuid().ToString());
+        }
+
+        /// <summary>
+        /// Returns a headline with a fixed html id, e.g. as target of links within the report.
+        /// </summary>
+        protected string Headline(string? title, int level, string id)
+        {
+            return $"<h{level + Levelshift} id=\"{id}\">{HtmlOutputEncoder.EncodeText(title)}</h{level + Levelshift}>";
         }
 
         public static bool IsValidHTML(string html)

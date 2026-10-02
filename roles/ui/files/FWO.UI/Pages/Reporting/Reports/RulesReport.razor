@@ -5,6 +5,7 @@
 
 @inject UserConfig userConfig
 @inject IRuleTreeBuilder ruleTreeBuilder
+@inject IJSRuntime jsRuntime
 
 @foreach (var management in Managements)
 {
@@ -13,15 +14,26 @@
         <Collapse Title="@management.Name" Style="@("primary")" StartToggled="false">
             @if (Recertification || SelectedReportType.IsRulebaseReport() || ManagementRulebaseView)
             {
-                @foreach (var rulebase in management.Rulebases)
+                @foreach (RulebaseOccurrence occurrence in management.GetRulebaseOccurrencesForDisplay())
                 {
+                    var rulebase = occurrence.Rulebase;
                     var rulebaseRules = ReportRules.GetRulesByRulebaseId(rulebase.Id, management);
-                    @if (rulebaseRules.Length > 0)
+                    string anchorId = RulebaseOccurrence.GetAnchorId(management.Id, rulebase.Id);
+                    @if (rulebaseRules.Length > 0 && occurrence.IsRepeated)
                     {
-                        <Collapse Title="@rulebase.Name" Style="@("secondary")" StartToggled="true">
-                            <RuleBaseReport Recertification="Recertification" ReadonlyMode="ReadonlyMode" SelectedReportType="SelectedReportType"
-                                            Rules="[.. rulebaseRules]" @bind-SelectedRules="SelectedRules" RulesPerPage="RulesPerPage" />
-                        </Collapse>
+                        <div class="ms-2 my-1">
+                            @(userConfig.GetText("rulebase_listed_above")):
+                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="() => ScrollToRulebase(anchorId)">@rulebase.Name</button>
+                        </div>
+                    }
+                    else if (rulebaseRules.Length > 0)
+                    {
+                        <div id="@anchorId">
+                            <Collapse Title="@rulebase.Name" Style="@("secondary")" StartToggled="true">
+                                <RuleBaseReport Recertification="Recertification" ReadonlyMode="ReadonlyMode" SelectedReportType="SelectedReportType"
+                                                Rules="[.. rulebaseRules]" @bind-SelectedRules="SelectedRules" RulesPerPage="RulesPerPage" />
+                            </Collapse>
+                        </div>
                     }
                 }
             }
@@ -272,6 +284,14 @@
 
     [Parameter]
     public bool ManagementRulebaseView { get; set; }
+
+    /// <summary>
+    /// Scrolls to the shown occurrence of a rulebase that is contained in the chains of several selected start rulebases.
+    /// </summary>
+    private async Task ScrollToRulebase(string anchorId)
+    {
+        await jsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", anchorId);
+    }
 
     [Parameter]
     public int RulesPerPage { get; set; }

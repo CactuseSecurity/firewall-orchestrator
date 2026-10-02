@@ -22,6 +22,11 @@ namespace FWO.Test
         private static readonly List<int> ExpectedPolicyBRulebaseIds = [150, 120, 140];
         private static readonly List<int> ExpectedBothPolicyRulebaseIds = [110, 120, 130, 150, 140];
         private static readonly List<int> ExpectedWithoutGatewayRulebaseIds = [190];
+        private static readonly List<int> ExpectedBothPolicyOccurrenceIds = [110, 120, 130, 150, 120, 140];
+        private static readonly List<bool> ExpectedBothPolicyRepeatedFlags = [false, false, false, false, true, false];
+        private static readonly List<int> SelectedSharedPolicyStartIds = [210];
+        private static readonly List<int> ExpectedSharedPolicyRulebaseIds = [210, 220, 230];
+        private static readonly List<int> SharedPolicyGatewayIds = [1, 2, 3];
         private const int kGatewayA = 1;
         private const int kGatewayB = 2;
 
@@ -94,6 +99,54 @@ namespace FWO.Test
             List<int> rulebaseIds = RulebaseChainScope.GetRulebaseIdsReachableFrom(managementReport, SelectedWithoutGatewayStartIds);
 
             Assert.That(rulebaseIds, Is.EqualTo(ExpectedWithoutGatewayRulebaseIds));
+        }
+
+        [Test]
+        public void ScopeToSelectedRulebases_ShowsRulebaseOnceAndRecordsRepeatedOccurrence()
+        {
+            ManagementReport managementReport = CreateSharedLayerManagementReport();
+
+            RulebaseChainScope.ScopeToSelectedRulebases(managementReport, SelectedBothPolicyStartIds);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(managementReport.Rulebases.Select(rulebase => rulebase.Id), Is.EqualTo(ExpectedBothPolicyRulebaseIds));
+                Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.Rulebase.Id), Is.EqualTo(ExpectedBothPolicyOccurrenceIds));
+                Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.IsRepeated), Is.EqualTo(ExpectedBothPolicyRepeatedFlags));
+                Assert.That(managementReport.RulebaseOccurrences[4].StartRulebaseId, Is.EqualTo(150));
+                Assert.That(managementReport.RulebaseOccurrences[4].Rulebase, Is.SameAs(managementReport.RulebaseOccurrences[1].Rulebase));
+                Assert.That(managementReport.GetRulebaseOccurrencesForDisplay(), Is.SameAs(managementReport.RulebaseOccurrences));
+            });
+        }
+
+        [Test]
+        public void ScopeToSelectedRulebases_PolicyOnSeveralGatewaysHasNoRepeatedOccurrence()
+        {
+            ManagementReport managementReport = new()
+            {
+                Rulebases =
+                [
+                    new RulebaseReport { Id = 210, IncomingLinks = [.. SharedPolicyGatewayIds.Select(gatewayId => CreateLink(gatewayId, null, true))] },
+                    new RulebaseReport { Id = 220, IncomingLinks = [.. SharedPolicyGatewayIds.Select(gatewayId => CreateLink(gatewayId, 210))] },
+                    new RulebaseReport { Id = 230, IncomingLinks = [.. SharedPolicyGatewayIds.Select(gatewayId => CreateLink(gatewayId, 220))] }
+                ]
+            };
+
+            RulebaseChainScope.ScopeToSelectedRulebases(managementReport, SelectedSharedPolicyStartIds);
+
+            Assert.That(managementReport.RulebaseOccurrences.Select(occurrence => occurrence.Rulebase.Id), Is.EqualTo(ExpectedSharedPolicyRulebaseIds));
+            Assert.That(managementReport.RulebaseOccurrences.Any(occurrence => occurrence.IsRepeated), Is.False);
+        }
+
+        [Test]
+        public void GetRulebaseOccurrencesForDisplay_ListsEachRulebaseOnceWithoutRecordedOccurrences()
+        {
+            ManagementReport managementReport = CreateSharedLayerManagementReport();
+
+            List<RulebaseOccurrence> occurrences = managementReport.GetRulebaseOccurrencesForDisplay();
+
+            Assert.That(occurrences.Select(occurrence => occurrence.Rulebase), Is.EqualTo(managementReport.Rulebases));
+            Assert.That(occurrences.Any(occurrence => occurrence.IsRepeated), Is.False);
         }
 
         /// <summary>

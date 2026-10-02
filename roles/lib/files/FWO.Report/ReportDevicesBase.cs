@@ -200,6 +200,12 @@ namespace FWO.Report
             return $"{managementCounter} {userConfig.GetText("managements")}";
         }
 
+        /// <summary>
+        /// Label of the device/rulebase selection line in the CSV and JSON report headers.
+        /// In management rulebases view the listed entries are the rule trees of the selected start rulebases.
+        /// </summary>
+        private string HeaderFilterLabel => Query.ManagementRulebaseView ? "rulebase filter" : "device filter";
+
         public string DisplayReportHeaderJson()
         {
             StringBuilder report = new();
@@ -209,7 +215,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"\"date of configuration shown\": \"{DateTime.Parse(Query.ReportTimeString, CultureInfo.InvariantCulture).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)\",");
             }
-            report.AppendLine($"\"device filter\": \"{string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}\",");
+            report.AppendLine($"\"{HeaderFilterLabel}\": \"{string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}\",");
             report.AppendLine($"\"other filters\": \"{Query.RawFilter}\",");
             report.AppendLine($"\"report generator\": \"Firewall Orchestrator - https://fwo.cactus.de/en\",");
             report.AppendLine($"\"data protection level\": \"For internal use only\",");
@@ -267,7 +273,7 @@ namespace FWO.Report
             {
                 report.AppendLine($"# date of configuration shown: {DateTime.Parse(Query.ReportTimeString, CultureInfo.InvariantCulture).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK")} (UTC)");
             }
-            report.AppendLine($"# {(Query.ManagementRulebaseView ? "rulebase filter" : "device filter")}: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}");
+            report.AppendLine($"# {HeaderFilterLabel}: {string.Join(" ", ReportData.ManagementData.Where(mgt => !mgt.Ignore).Select(m => m.NameAndRulebaseNames(" ")))}");
             report.AppendLine($"# other filters: {Query.RawFilter}");
             report.AppendLine($"# report generator: Firewall Orchestrator - https://fwo.cactus.de/en");
             report.AppendLine($"# data protection level: For internal use only");

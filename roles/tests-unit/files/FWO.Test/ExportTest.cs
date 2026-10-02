@@ -1691,6 +1691,7 @@ namespace FWO.Test
             Assert.That(reportHtml, Does.Contain("<p>Rulebases: TestMgt [Start A, Start B]</p>"));
             Assert.That(reportHtml, Does.Not.Contain("<p>Devices: "));
             Assert.That(reportRules.DisplayReportHeaderCsv(), Does.Contain("# rulebase filter: TestMgt [Start A Start B]"));
+            Assert.That(reportRules.DisplayReportHeaderJson(), Does.Contain("\"rulebase filter\": \"TestMgt [Start A Start B]\","));
         }
 
         private static DeviceReport CreateRuleTree(int treeId, string treeName, int startRulebaseId, Dictionary<int, int> references)

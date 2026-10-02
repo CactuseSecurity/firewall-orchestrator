@@ -9,7 +9,9 @@
     }
     <div class="btn-group w-100 sticky-marker">
         <button type="button" class="btn btn-sm btn-dark" @onclick="ToggleSelectAll">
-            @(userConfig.GetText(RulebaseSelectionHelper.AreAllSelected(SelectedRulebases, Managements) ? "clear_all" : "select_all"))
+            @(RulebaseSelectionHelper.AreAllSelected(SelectedRulebases, Managements)
+                ? DisplayService.DisplayButton(userConfig, "clear_all", Icons.ClearAll)
+                : DisplayService.DisplayButton(userConfig, "select_all", Icons.SelectAll))
         </button>
     </div>
     <br><br>

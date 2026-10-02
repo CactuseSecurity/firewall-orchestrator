@@ -58,6 +58,18 @@ python3 generate_owner_data.py 500 /path/to/app-data.json
 
 The script refuses to replace an existing output file unless `--overwrite` is supplied.
 
+Use `--reverse-dns-resolvable` to take the server addresses from a built-in list of public resolver
+addresses with stable PTR records (for example `8.8.8.8`, `1.1.1.1`, `9.9.9.9`) instead of the
+private `10.0.0.0/8` test network. Log data generated from such owners shows source or destination
+names after the log data import. Every candidate is reverse-resolved on the generating host and
+only resolvable addresses are used, so the owner count is limited to the number of resolvable
+candidates (at most 32). The script fails without writing a file when fewer candidates resolve than
+owners are requested.
+
+```bash
+python3 generate_owner_data.py 10 /path/to/app-data.json --reverse-dns-resolvable
+```
+
 ## Generate matching app and log data
 
 `../generate_app_and_log_data.py` generates both normalized app-data JSON and compatible log-data

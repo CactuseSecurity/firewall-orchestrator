@@ -70,6 +70,8 @@ owners are requested.
 python3 generate_owner_data.py 10 /path/to/app-data.json --reverse-dns-resolvable
 ```
 
+`--no-reverse-dns-resolvable` explicitly selects the default private test network.
+
 ## Generate matching app and log data
 
 `../generate_app_and_log_data.py` generates both normalized app-data JSON and compatible log-data
@@ -77,7 +79,17 @@ JSON in one command. By default it creates one log flow per generated applicatio
 `app_id` and `destination` matches that application's `app_id_external` and server IP in the app-data output.
 
 ```bash
-python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.json
+```
+
+Unlike `generate_owner_data.py`, this script uses reverse DNS resolvable server addresses by default
+(see `--reverse-dns-resolvable` above), so the imported log data shows destination names. This
+limits the number of applications to the resolvable candidates (at most 32). Use
+`--no-reverse-dns-resolvable` to generate more applications with addresses of the private test
+network instead:
+
+```bash
+python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json --no-reverse-dns-resolvable
 ```
 
 Use `--log-count` to create a different number of flows. Additional flows are assigned round-robin
@@ -87,7 +99,7 @@ across the generated applications. The script refuses to overwrite either output
 Use `--log-format csv` to write the log data as CSV instead:
 
 ```bash
-python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.csv --log-format csv
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.csv --log-format csv
 ```
 
 The default JSON output has a `logs` array. Each entry contains the matching `app_id` and

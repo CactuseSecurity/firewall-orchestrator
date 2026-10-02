@@ -115,7 +115,8 @@ def find_reverse_dns_resolvable_addresses(owner_count: int, reverse_lookup: Reve
     if len(resolvable_addresses) < owner_count:
         raise ValueError(
             f"only {len(resolvable_addresses)} of {len(REVERSE_DNS_CANDIDATE_ADDRESSES)} candidate addresses "
-            f"are reverse DNS resolvable on this host, but {owner_count} owners were requested"
+            f"are reverse DNS resolvable on this host, but {owner_count} owners were requested; "
+            "use --no-reverse-dns-resolvable to generate addresses of the private test network instead"
         )
     return resolvable_addresses[:owner_count]
 
@@ -166,15 +167,21 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("owner_count", type=parse_positive_count, help="number of owners to generate")
     parser.add_argument("output", type=Path, help="JSON file to create")
     parser.add_argument("--overwrite", action="store_true", help="replace an existing output file")
+    add_reverse_dns_argument(parser, default=False)
+    return parser.parse_args(argv)
+
+
+def add_reverse_dns_argument(parser: argparse.ArgumentParser, default: bool) -> None:
+    """Add the switch between reverse DNS resolvable server addresses and the private test network."""
     parser.add_argument(
         "--reverse-dns-resolvable",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=default,
         help=(
             "use public server addresses which are reverse DNS resolvable on this host instead of the "
             f"private test network; limits the owner count to {len(REVERSE_DNS_CANDIDATE_ADDRESSES)}"
         ),
     )
-    return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:

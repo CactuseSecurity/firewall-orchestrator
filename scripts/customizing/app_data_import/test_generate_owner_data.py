@@ -2,12 +2,15 @@ import ipaddress
 import json
 import socket
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from scripts.customizing.app_data_import import generate_owner_data as generator
 from scripts.customizing.log_data_import import generate_log_data as log_generator
+
+if TYPE_CHECKING:
+    import argparse
 
 
 def test_command_line_annotations_are_postponed_for_python_39() -> None:
@@ -161,3 +164,13 @@ def test_main_reports_too_few_resolvable_addresses_without_writing(
     assert result == 1
     assert not output_file.exists()
     assert "reverse DNS resolvable" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("switch", "expected"),
+    [([], False), (["--reverse-dns-resolvable"], True), (["--no-reverse-dns-resolvable"], False)],
+)
+def test_parse_arguments_uses_the_test_network_unless_requested(switch: list[str], expected: bool) -> None:
+    arguments: argparse.Namespace = generator.parse_arguments(["1", "owners.json", *switch])
+
+    assert arguments.reverse_dns_resolvable is expected

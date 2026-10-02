@@ -53,6 +53,7 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
         help="log-data output format; defaults to json",
     )
     parser.add_argument("--overwrite", action="store_true", help="replace existing output files")
+    generate_owner_data.add_reverse_dns_argument(parser, default=True)
     return parser.parse_args(argv)
 
 
@@ -73,10 +74,12 @@ def outputs_can_be_written(app_data_file: Path, log_data_file: Path, overwrite: 
 
 
 def generate_matching_data(
-    owner_count: int, log_count: int
+    owner_count: int, log_count: int, reverse_dns_resolvable: bool = True
 ) -> tuple[dict[str, list[dict[str, object]]], list[dict[str, str | int]]]:
     """Build app data and log flows that share generated application IDs and server addresses."""
-    owner_data: dict[str, list[dict[str, object]]] = generate_owner_data.generate_owner_data(owner_count)
+    owner_data: dict[str, list[dict[str, object]]] = generate_owner_data.generate_owner_data(
+        owner_count, reverse_dns_resolvable
+    )
     applications: list[generate_log_data.Application] = []
     for owner_index, owner in enumerate(owner_data["owners"]):
         application_id: object = owner["app_id_external"]
@@ -132,10 +135,11 @@ def main(argv: list[str] | None = None) -> int:
     if not outputs_can_be_written(app_data_file, log_data_file, arguments.overwrite):
         return 1
     log_count: int = arguments.log_count if arguments.log_count is not None else arguments.owner_count
+    reverse_dns_resolvable: bool = arguments.reverse_dns_resolvable
     try:
         owner_data: dict[str, list[dict[str, object]]]
         log_entries: list[dict[str, str | int]]
-        owner_data, log_entries = generate_matching_data(arguments.owner_count, log_count)
+        owner_data, log_entries = generate_matching_data(arguments.owner_count, log_count, reverse_dns_resolvable)
         generate_owner_data.write_owner_data(app_data_file, owner_data)
         write_log_data(log_data_file, log_entries, arguments.log_format)
     except (OSError, TypeError, ValueError) as exception:

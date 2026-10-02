@@ -6,6 +6,10 @@ from typing import cast
 import pytest
 
 from scripts.customizing import generate_app_and_log_data as generator
+from scripts.customizing.app_data_import import generate_owner_data as owner_generator
+
+# keeps the tests independent of the DNS of the test host
+TEST_NETWORK_SWITCH: str = "--no-reverse-dns-resolvable"
 
 
 def get_application_address(owner: dict[str, object]) -> tuple[str, str]:
@@ -28,7 +32,9 @@ def test_main_generates_logs_matching_each_generated_application(tmp_path: Path)
     app_data_file: Path = tmp_path / "app-data.json"
     log_data_file: Path = tmp_path / "log-data.csv"
 
-    result: int = generator.main(["3", str(app_data_file), str(log_data_file), "--log-format", "csv"])
+    result: int = generator.main(
+        ["3", str(app_data_file), str(log_data_file), "--log-format", "csv", TEST_NETWORK_SWITCH]
+    )
 
     owners: list[dict[str, object]] = cast(
         "list[dict[str, object]]", json.loads(app_data_file.read_text(encoding="utf-8"))["owners"]
@@ -49,7 +55,7 @@ def test_main_distributes_additional_logs_only_across_generated_applications(tmp
     log_data_file: Path = tmp_path / "log-data.csv"
 
     result: int = generator.main(
-        ["2", str(app_data_file), str(log_data_file), "--log-count", "5", "--log-format", "csv"]
+        ["2", str(app_data_file), str(log_data_file), "--log-count", "5", "--log-format", "csv", TEST_NETWORK_SWITCH]
     )
 
     with log_data_file.open(newline="", encoding="utf-8") as file_handle:
@@ -63,7 +69,7 @@ def test_main_generates_json_logs_by_default_matching_generated_applications(tmp
     app_data_file: Path = tmp_path / "app-data.json"
     log_data_file: Path = tmp_path / "log-data.json"
 
-    result: int = generator.main(["2", str(app_data_file), str(log_data_file)])
+    result: int = generator.main(["2", str(app_data_file), str(log_data_file), TEST_NETWORK_SWITCH])
 
     log_data: dict[str, list[dict[str, object]]] = json.loads(log_data_file.read_text(encoding="utf-8"))
     logs: list[dict[str, object]] = log_data["logs"]
@@ -96,3 +102,47 @@ def test_main_rejects_using_one_file_for_both_outputs(tmp_path: Path, capsys: py
     assert result == 1
     assert not output_file.exists()
     assert "must be different" in capsys.readouterr().err
+
+
+def resolve_all_but(unresolvable_addresses: list[str]) -> owner_generator.ReverseLookup:
+    """Return a reverse lookup which resolves every address except the given ones."""
+
+    def reverse_lookup(address: str) -> str:
+        return "" if address in unresolvable_addresses else f"host-{address}.example.test"
+
+    return reverse_lookup
+
+
+def test_main_uses_reverse_dns_resolvable_server_addresses_by_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    app_data_file: Path = tmp_path / "app-data.json"
+    log_data_file: Path = tmp_path / "log-data.json"
+    monkeypatch.setattr(owner_generator, "reverse_lookup_name", resolve_all_but([]))
+
+    result: int = generator.main(["2", str(app_data_file), str(log_data_file)])
+
+    owners: list[dict[str, object]] = cast(
+        "list[dict[str, object]]", json.loads(app_data_file.read_text(encoding="utf-8"))["owners"]
+    )
+    logs: list[dict[str, object]] = json.loads(log_data_file.read_text(encoding="utf-8"))["logs"]
+    expected_addresses: list[str] = owner_generator.REVERSE_DNS_CANDIDATE_ADDRESSES[:2]
+    assert result == 0
+    assert [get_application_address(owner)[1] for owner in owners] == expected_addresses
+    assert [log["destination"] for log in logs] == expected_addresses
+
+
+def test_main_reports_too_many_owners_for_resolvable_addresses_without_writing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    app_data_file: Path = tmp_path / "app-data.json"
+    log_data_file: Path = tmp_path / "log-data.json"
+    owner_count: int = len(owner_generator.REVERSE_DNS_CANDIDATE_ADDRESSES) + 1
+    monkeypatch.setattr(owner_generator, "reverse_lookup_name", resolve_all_but([]))
+
+    result: int = generator.main([str(owner_count), str(app_data_file), str(log_data_file)])
+
+    assert result == 1
+    assert not app_data_file.exists()
+    assert not log_data_file.exists()
+    assert TEST_NETWORK_SWITCH in capsys.readouterr().err

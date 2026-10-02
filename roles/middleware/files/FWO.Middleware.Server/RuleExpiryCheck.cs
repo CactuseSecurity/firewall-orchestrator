@@ -27,8 +27,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Rule expiry check
         /// </summary>
-        public async Task<int> CheckRuleExpiry()
+        /// <param name="cancellationToken">Stops before the next owner; the last sent state of notifications is still updated.</param>
+        public async Task<int> CheckRuleExpiry(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             int emailsSent = 0;
             Dictionary<string, string> ruleExpiryInitiatorKeys = ParseRuleExpiryInitiatorKeys(GlobalConfig.RuleExpiryInitiatorKeys);
             NotificationService notificationService = await NotificationService.CreateAsync(
@@ -40,49 +42,59 @@ namespace FWO.Middleware.Server
                 .Where(item => item.Owner != null && item.Rule != null)
                 .GroupBy(item => item.Owner.Id);
 
-            foreach (var ownerBucket in ownerBuckets)
+            try
             {
-                FwoOwner owner = ownerBucket.First().Owner;
-                List<RuleExpiryInfo> timedEntries = ownerBucket
-                    .SelectMany(item => item.Rule.GetRuleTimesWithEndDate(ruleExpiryInitiatorKeys))
-                    .DistinctBy(item => $"{item.Id}:{item.TimeObjectId}")
-                    .OrderBy(item => item.EndTime)
-                    .ToList();
-
-                if (timedEntries.Count == 0)
+                foreach (var ownerBucket in ownerBuckets)
                 {
-                    continue;
-                }
-
-                foreach (var notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
-                {
-                    List<RuleExpiryInfo> dueEntries = timedEntries
-                        .Where(entry => NotificationService.IsNotificationDue(owner, entry.EndTime, notification))
+                    cancellationToken.ThrowIfCancellationRequested();
+                    FwoOwner owner = ownerBucket.First().Owner;
+                    List<RuleExpiryInfo> timedEntries = ownerBucket
+                        .SelectMany(item => item.Rule.GetRuleTimesWithEndDate(ruleExpiryInitiatorKeys))
+                        .DistinctBy(item => $"{item.Id}:{item.TimeObjectId}")
+                        .OrderBy(item => item.EndTime)
                         .ToList();
 
-                    if (dueEntries.Count == 0)
+                    if (timedEntries.Count == 0)
                     {
                         continue;
                     }
 
-                    string timeIntervalText = BuildTimeIntervalText(notification);
-                    string body = notification.Layout == NotificationLayout.HtmlInBody
-                        ? BuildRuleHtmlBody(
-                            owner,
-                            GlobalConfig.RuleExpiryEmailBody,
-                            timeIntervalText,
-                            dueEntries.OrderBy(item => item.EndTime),
-                            [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
-                            expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator])
-                        : BuildRuleTextBody(
-                            owner,
-                            GlobalConfig.RuleExpiryEmailBody,
-                            timeIntervalText,
-                            dueEntries.OrderBy(item => item.EndTime),
-                            [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
-                            expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator]);
-                    emailsSent += await notificationService.SendNotification(notification, owner, body, null, timeIntervalText);
+                    foreach (var notification in notificationService.Notifications.Where(n => n.OwnerId == null || n.OwnerId == owner.Id))
+                    {
+                        List<RuleExpiryInfo> dueEntries = timedEntries
+                            .Where(entry => NotificationService.IsNotificationDue(owner, entry.EndTime, notification))
+                            .ToList();
+
+                        if (dueEntries.Count == 0)
+                        {
+                            continue;
+                        }
+
+                        string timeIntervalText = BuildTimeIntervalText(notification);
+                        string body = notification.Layout == NotificationLayout.HtmlInBody
+                            ? BuildRuleHtmlBody(
+                                owner,
+                                GlobalConfig.RuleExpiryEmailBody,
+                                timeIntervalText,
+                                dueEntries.OrderBy(item => item.EndTime),
+                                [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
+                                expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator])
+                            : BuildRuleTextBody(
+                                owner,
+                                GlobalConfig.RuleExpiryEmailBody,
+                                timeIntervalText,
+                                dueEntries.OrderBy(item => item.EndTime),
+                                [GlobalConfig.GetText("deadline"), GlobalConfig.GetText("ruleExpiryInitiator")],
+                                expiryInfo => [expiryInfo.EndTime.ToString("yyyy-MM-dd"), expiryInfo.ExpiryInitiator]);
+                        emailsSent += await notificationService.SendNotification(notification, owner, body, null, timeIntervalText);
+                    }
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // keep the already sent notifications from being sent again
+                await notificationService.UpdateNotificationsLastSent();
+                throw;
             }
 
             await notificationService.UpdateNotificationsLastSent();

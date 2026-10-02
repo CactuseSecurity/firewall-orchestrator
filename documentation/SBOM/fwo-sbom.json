@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:7fc8e3af-7c2d-4145-bad8-f11e8d2b9cb9",
+  "serialNumber": "urn:uuid:5ebe8668-2b62-4aa3-b68f-2b54dd1e3c0a",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-09-25T16:31:37Z",
+    "timestamp": "2026-10-02T13:53:55Z",
     "tools": {
       "components": [
         {
@@ -35,20 +35,20 @@
   "components": [
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/AngleSharp@1.8.2",
+      "bom-ref": "pkg:nuget/AngleSharp@1.8.3",
       "authors": [
         {
           "name": "AngleSharp"
         }
       ],
       "name": "AngleSharp",
-      "version": "1.8.2",
+      "version": "1.8.3",
       "description": "AngleSharp is the ultimate angle brackets parser library. It parses HTML5, CSS3, and XML to construct a DOM based on the official W3C specification.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "364379C71D9DA3CCDCA100FB7A68B13370637FEA977BA37DCF626F5043DDCDA3DFF1FDC6F45449C4327F485C9B21A76505FFA1B9404252226658472643842C80"
+          "content": "38F5FBCC90A1B7529F7A87F8B6BCC191874A79097EC13E5AEC56613FE82866B74214A456D002D86B80A928E554A48B1E818F6333F282B2D34C3BFD09DB8330ED"
         }
       ],
       "licenses": [
@@ -59,7 +59,7 @@
         }
       ],
       "copyright": "Copyright 2013-2026, AngleSharp.",
-      "purl": "pkg:nuget/AngleSharp@1.8.2",
+      "purl": "pkg:nuget/AngleSharp@1.8.3",
       "externalReferences": [
         {
           "url": "https://anglesharp.github.io/",
@@ -261,20 +261,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Castle.Core@5.1.1",
+      "bom-ref": "pkg:nuget/Castle.Core@5.2.1",
       "authors": [
         {
           "name": "Castle Project Contributors"
         }
       ],
       "name": "Castle.Core",
-      "version": "5.1.1",
+      "version": "5.2.1",
       "description": "Castle Core, including DynamicProxy, Logging Abstractions and DictionaryAdapter",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "378A149EBFAA12D00CB35BCAEE8806803DF7BC75980C9E0C67F36E3E057D6AF2ABAEAD24CD8274A9595C7AC74CB9597C9D6913B1125B86E6B156A66F7A1AC2FA"
+          "content": "00A411B1D626DD3AE273B20D1468E7214BAF5032E560D27EF559CA7D07FBAA9CAC02BC1CB1BD9343D558FCD18AB1F2B8FF378B95154992B18C2FA875F4276B0E"
         }
       ],
       "licenses": [
@@ -284,8 +284,8 @@
           }
         }
       ],
-      "copyright": "Copyright (c) 2004-2022 Castle Project - http://www.castleproject.org/",
-      "purl": "pkg:nuget/Castle.Core@5.1.1",
+      "copyright": "Copyright (c) 2004-2025 Castle Project - http://www.castleproject.org/",
+      "purl": "pkg:nuget/Castle.Core@5.2.1",
       "externalReferences": [
         {
           "url": "http://www.castleproject.org/",
@@ -299,20 +299,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/coverlet.collector@10.0.1",
+      "bom-ref": "pkg:nuget/coverlet.collector@10.1.0",
       "authors": [
         {
           "name": "tonerdo"
         }
       ],
       "name": "coverlet.collector",
-      "version": "10.0.1",
+      "version": "10.1.0",
       "description": "Coverlet is a cross platform code coverage library for .NET, with support for line, branch and method coverage.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "11F7526649C83E691BBA8AB380E9D0FD32048116DD4A7123AC952CEAA86FC4B24F3EAB1680D8FE9568BDBBC868F428C5FC92C2DC7464BDA74932DD1E6671DCAE"
+          "content": "834B64AD854FFE57EA26FD8C1E3B552DFF0BE1AA4633383DFA71472EE27D2546B062815CCE9DE6CBE15A5A20A733771994D7D4E8E82C7210F63B7F3A4F5C559B"
         }
       ],
       "licenses": [
@@ -323,7 +323,7 @@
         }
       ],
       "copyright": "(c) 2018 Toni Solarin-Sodara",
-      "purl": "pkg:nuget/coverlet.collector@10.0.1",
+      "purl": "pkg:nuget/coverlet.collector@10.1.0",
       "externalReferences": [
         {
           "url": "https://github.com/coverlet-coverage/coverlet",
@@ -744,20 +744,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/MailKit@4.18.0",
+      "bom-ref": "pkg:nuget/MailKit@4.18.1",
       "authors": [
         {
           "name": "Jeffrey Stedfast"
         }
       ],
       "name": "MailKit",
-      "version": "4.18.0",
+      "version": "4.18.1",
       "description": "An Open Source .NET mail-client library for Windows, Mac, Linux, and mobile platforms such as iOS and Android.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "BDDB20137AEC6AFC33270372EA636BBA959DD87E986A7353ED41729D79F524B5B175AB6EFE2317F5153D8D130315DEF69B864AE63CE28DE3B696CD0E3852105F"
+          "content": "6C6CBB0F5F61F39058A2EBE255119C357FE1258C83DE243F767F7B0148187EC2570C5334266968D65BED82238D97E561C7D0CFA5BB6617537819EE93254F6041"
         }
       ],
       "licenses": [
@@ -768,7 +768,7 @@
         }
       ],
       "copyright": ".NET Foundation and Contributors",
-      "purl": "pkg:nuget/MailKit@4.18.0",
+      "purl": "pkg:nuget/MailKit@4.18.1",
       "externalReferences": [
         {
           "url": "http://www.mimekit.net/",
@@ -4094,20 +4094,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Moq@4.20.72",
+      "bom-ref": "pkg:nuget/Moq@4.21.0",
       "authors": [
         {
           "name": "Daniel Cazzulino, kzu"
         }
       ],
       "name": "Moq",
-      "version": "4.20.72",
+      "version": "4.21.0",
       "description": "Moq is the most popular and friendly mocking framework for .NET.",
       "scope": "excluded",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "1DE2DD00ACC57B61B87D483EB546B55917FF3327BDCDB922BF9EE31D149BE48562EC65D53E059B6C46943FC49A3A9B78DC9245465598F4DE58AE8DF6FED811A5"
+          "content": "6934A4C4ADB2A25EC71259A6961AE76B29EC9C8996D108F172D8B3B73856E4FA44FBA0BE90EDED2ABD622894F985BC3DDFFDA18462CC31085E04DF0FFBD081B8"
         }
       ],
       "licenses": [
@@ -4118,7 +4118,7 @@
         }
       ],
       "copyright": "Copyright (c) 2007, Clarius Consulting, Manas Technology Solutions, InSTEDD, and Contributors. All rights reserved.",
-      "purl": "pkg:nuget/Moq@4.20.72",
+      "purl": "pkg:nuget/Moq@4.21.0",
       "externalReferences": [
         {
           "url": "https://github.com/moq/moq",
@@ -4316,20 +4316,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/PuppeteerSharp@25.11.0",
+      "bom-ref": "pkg:nuget/PuppeteerSharp@25.12.0",
       "authors": [
         {
           "name": "Dar\u00EDo Kondratiuk"
         }
       ],
       "name": "PuppeteerSharp",
-      "version": "25.11.0",
+      "version": "25.12.0",
       "description": "Headless Browser .NET API",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "FF3B0594E155C559A56EF671F2A2F9CC5CF2DE5A5424D8A0BEC123DC3A576BEA2EEA3C921874540F56C71FCF7ADF1DED75157A3B6A5B8F769A3B09F8A4A108ED"
+          "content": "6119DF83A530ABA0C07B2F254C3726077C27EA4A201D5D580C34B4DA2C7A8CF8AE252718BF13155D9BFB1E21EB8689673291FA64A5146659F744C44163331943"
         }
       ],
       "licenses": [
@@ -4339,7 +4339,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/PuppeteerSharp@25.11.0",
+      "purl": "pkg:nuget/PuppeteerSharp@25.12.0",
       "externalReferences": [
         {
           "url": "https://github.com/hardkoded/puppeteer-sharp",
@@ -4353,20 +4353,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Quartz@4.1.1",
+      "bom-ref": "pkg:nuget/Quartz@4.3.0",
       "authors": [
         {
           "name": "Marko Lahma, Quartz.NET"
         }
       ],
       "name": "Quartz",
-      "version": "4.1.1",
+      "version": "4.3.0",
       "description": "Quartz.NET job scheduler - cron, calendar and interval triggers, clustering over a persistent job store, and Microsoft.Extensions hosting, logging, options and dependency injection throughout. The core package: everything else builds on this one.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "181927F06EE8696B29267415A61AA5C9612923FDC2A29D1087ADBD29E1EE6577BB57FEA874564BAE7746A9EB0ABD94095E35D87E8893590E15C620B716681EA6"
+          "content": "BC8462C485803FC5398C8837C35CE71228C4948ADD0F47DF342D507FC796D9DE8C8C0FEECADE2DCC1BE623128B60CF6D1E6343832868F5D288655C7D7F42A68E"
         }
       ],
       "licenses": [
@@ -4377,7 +4377,7 @@
         }
       ],
       "copyright": "Copyright Marko Lahma",
-      "purl": "pkg:nuget/Quartz@4.1.1",
+      "purl": "pkg:nuget/Quartz@4.3.0",
       "externalReferences": [
         {
           "url": "https://www.quartz-scheduler.net/",
@@ -4504,20 +4504,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.8",
+      "bom-ref": "pkg:nuget/Scalar.AspNetCore@2.17.13",
       "authors": [
         {
           "name": "Scalar"
         }
       ],
       "name": "Scalar.AspNetCore",
-      "version": "2.17.8",
+      "version": "2.17.13",
       "description": "Generate beautiful interactive API documentation from OpenAPI/Swagger documents.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "C8A85216408BEBB0D846423A8F6F95FD9600725C3E04F96EF8A7147CFB95500B1891C93CB35C3B3D3A814831E16513853297CA381B314263502B8358F697FF20"
+          "content": "124DCD58BF361354CBF42632A102488066F44B773989E61674F436BA46DF7D192B1ECE04DC1FE2761634A4CBCF39010A1E40F60791DC63F36E8F9525A27B2809"
         }
       ],
       "licenses": [
@@ -4527,7 +4527,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.8",
+      "purl": "pkg:nuget/Scalar.AspNetCore@2.17.13",
       "externalReferences": [
         {
           "url": "https://scalar.com/",
@@ -4731,20 +4731,20 @@
     },
     {
       "type": "library",
-      "bom-ref": "pkg:nuget/WebDriverBiDi@0.0.60",
+      "bom-ref": "pkg:nuget/WebDriverBiDi@0.0.61",
       "authors": [
         {
           "name": "WebDriverBiDi.NET Committers"
         }
       ],
       "name": "WebDriverBiDi",
-      "version": "0.0.60",
+      "version": "0.0.61",
       "description": "A .NET client library for the WebDriver BiDi protocol.",
       "scope": "required",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "C75196A83790D67EA43BEAF99F64EC0CED6A687933E660FE7F233221E086C35ACDE50B9D13CCB13154D1A32F87001DEDD1CE73D16222D23BDDCD2F84A46A32CC"
+          "content": "B0EB3EE69735E1525A3708A87DCB9353C5BC1A44F6A86972AE22734F5938FBBD3419B541C8228638D2E1B409A84C0545C23CDCEA44F55450530BA838ADC9123D"
         }
       ],
       "licenses": [
@@ -4754,7 +4754,7 @@
           }
         }
       ],
-      "purl": "pkg:nuget/WebDriverBiDi@0.0.60",
+      "purl": "pkg:nuget/WebDriverBiDi@0.0.61",
       "externalReferences": [
         {
           "url": "https://github.com/webdriverbidi-net/webdriverbidi-net",
@@ -4784,24 +4784,24 @@
         "pkg:nuget/RestSharp.Serializers.NewtonsoftJson@114.0.0",
         "pkg:nuget/System.IdentityModel.Tokens.Jwt@8.23.0",
         "pkg:nuget/HtmlAgilityPack@1.13.0",
-        "pkg:nuget/MailKit@4.18.0",
+        "pkg:nuget/MailKit@4.18.1",
         "pkg:nuget/Microsoft.AspNetCore.Http@2.3.13",
         "pkg:nuget/MimeKit@4.18.1",
-        "pkg:nuget/PuppeteerSharp@25.11.0",
+        "pkg:nuget/PuppeteerSharp@25.12.0",
         "pkg:nuget/Microsoft.AspNetCore.Authentication.JwtBearer@10.0.12",
         "pkg:nuget/Microsoft.AspNetCore.OpenApi@10.0.12",
         "pkg:nuget/Microsoft.OpenApi@2.12.2",
         "pkg:nuget/Novell.Directory.Ldap.NETStandard@4.0.0",
-        "pkg:nuget/Quartz@4.1.1",
-        "pkg:nuget/Scalar.AspNetCore@2.17.8",
+        "pkg:nuget/Quartz@4.3.0",
+        "pkg:nuget/Scalar.AspNetCore@2.17.13",
         "pkg:nuget/BlazorTable@1.17.0",
         "pkg:nuget/Microsoft.AspNetCore.App.Internal.Assets@10.0.12",
-        "pkg:nuget/AngleSharp@1.8.2",
+        "pkg:nuget/AngleSharp@1.8.3",
         "pkg:nuget/bunit@2.11.3",
-        "pkg:nuget/coverlet.collector@10.0.1",
+        "pkg:nuget/coverlet.collector@10.1.0",
         "pkg:nuget/Microsoft.AspNetCore.Mvc.Testing@10.0.12",
         "pkg:nuget/Microsoft.NET.Test.Sdk@18.10.1",
-        "pkg:nuget/Moq@4.20.72",
+        "pkg:nuget/Moq@4.21.0",
         "pkg:nuget/NSubstitute@6.2.0",
         "pkg:nuget/NUnit@4.6.1",
         "pkg:nuget/NUnit3TestAdapter@6.3.0",
@@ -4811,18 +4811,18 @@
     {
       "ref": "pkg:nuget/AngleSharp.Css@1.1.2",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.2"
+        "pkg:nuget/AngleSharp@1.8.3"
       ]
     },
     {
       "ref": "pkg:nuget/AngleSharp.Diffing@1.1.1",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.2",
+        "pkg:nuget/AngleSharp@1.8.3",
         "pkg:nuget/AngleSharp.Css@1.1.2"
       ]
     },
     {
-      "ref": "pkg:nuget/AngleSharp@1.8.2",
+      "ref": "pkg:nuget/AngleSharp@1.8.3",
       "dependsOn": []
     },
     {
@@ -4838,7 +4838,7 @@
     {
       "ref": "pkg:nuget/bunit@2.11.3",
       "dependsOn": [
-        "pkg:nuget/AngleSharp@1.8.2",
+        "pkg:nuget/AngleSharp@1.8.3",
         "pkg:nuget/AngleSharp.Css@1.1.2",
         "pkg:nuget/AngleSharp.Diffing@1.1.1",
         "pkg:nuget/Microsoft.AspNetCore.Components@10.0.12",
@@ -4853,13 +4853,13 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Castle.Core@5.1.1",
+      "ref": "pkg:nuget/Castle.Core@5.2.1",
       "dependsOn": [
         "pkg:nuget/System.Diagnostics.EventLog@10.0.12"
       ]
     },
     {
-      "ref": "pkg:nuget/coverlet.collector@10.0.1",
+      "ref": "pkg:nuget/coverlet.collector@10.1.0",
       "dependsOn": []
     },
     {
@@ -4920,7 +4920,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/MailKit@4.18.0",
+      "ref": "pkg:nuget/MailKit@4.18.1",
       "dependsOn": [
         "pkg:nuget/MimeKit@4.18.1"
       ]
@@ -5517,9 +5517,9 @@
       ]
     },
     {
-      "ref": "pkg:nuget/Moq@4.20.72",
+      "ref": "pkg:nuget/Moq@4.21.0",
       "dependsOn": [
-        "pkg:nuget/Castle.Core@5.1.1"
+        "pkg:nuget/Castle.Core@5.2.1"
       ]
     },
     {
@@ -5533,7 +5533,7 @@
     {
       "ref": "pkg:nuget/NSubstitute@6.2.0",
       "dependsOn": [
-        "pkg:nuget/Castle.Core@5.1.1"
+        "pkg:nuget/Castle.Core@5.2.1"
       ]
     },
     {
@@ -5549,16 +5549,16 @@
       ]
     },
     {
-      "ref": "pkg:nuget/PuppeteerSharp@25.11.0",
+      "ref": "pkg:nuget/PuppeteerSharp@25.12.0",
       "dependsOn": [
         "pkg:nuget/Microsoft.Extensions.Logging@8.0.0",
         "pkg:nuget/Microsoft.IO.RecyclableMemoryStream@3.0.1",
         "pkg:nuget/ReactiveExtensionsSharp@0.3.0",
-        "pkg:nuget/WebDriverBiDi@0.0.60"
+        "pkg:nuget/WebDriverBiDi@0.0.61"
       ]
     },
     {
-      "ref": "pkg:nuget/Quartz@4.1.1",
+      "ref": "pkg:nuget/Quartz@4.3.0",
       "dependsOn": []
     },
     {
@@ -5577,7 +5577,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.8",
+      "ref": "pkg:nuget/Scalar.AspNetCore@2.17.13",
       "dependsOn": []
     },
     {
@@ -5604,7 +5604,7 @@
       "dependsOn": []
     },
     {
-      "ref": "pkg:nuget/WebDriverBiDi@0.0.60",
+      "ref": "pkg:nuget/WebDriverBiDi@0.0.61",
       "dependsOn": []
     }
   ]

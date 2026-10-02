@@ -572,6 +572,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.1 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
     <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
     <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
+    <li>Importierte Logdaten zeigen nun f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -582,6 +583,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The middleware job scheduler was upgraded to Quartz.NET 4.1, together with updated libraries for, among others, email delivery and PDF generation.</li>
     <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
     <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
+    <li>Imported log data now shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3223,6 +3225,18 @@ INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbi
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
 INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('source_app_ids', 'German', 'Quell-App-IDs');
+INSERT INTO txt VALUES ('source_app_ids', 'English', 'Source App IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'German', 'Ziel-App-IDs');
+INSERT INTO txt VALUES ('destination_app_ids', 'English', 'Destination App IDs');
+INSERT INTO txt VALUES ('source_network_areas', 'German', 'Quell-Netzwerk-Areas');
+INSERT INTO txt VALUES ('source_network_areas', 'English', 'Source Network Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'German', 'Ziel-Netzwerk-Areas');
+INSERT INTO txt VALUES ('destination_network_areas', 'English', 'Destination Network Areas');
+INSERT INTO txt VALUES ('source_name', 'German', 'Quellname');
+INSERT INTO txt VALUES ('source_name', 'English', 'Source Name');
+INSERT INTO txt VALUES ('destination_name', 'German', 'Zielname');
+INSERT INTO txt VALUES ('destination_name', 'English', 'Destination Name');
 INSERT INTO txt VALUES ('log_count', 'German', 'Anzahl');
 INSERT INTO txt VALUES ('log_count', 'English', 'Log count');
 INSERT INTO txt VALUES ('log_time', 'German', 'Zeitpunkt');
@@ -7400,8 +7414,8 @@ INSERT INTO txt VALUES ('H5696', 'German', 'Logdaten-Importintervall: Legt fest,
 INSERT INTO txt VALUES ('H5696', 'English', 'Log data import interval: Defines how often log data is imported.');
 INSERT INTO txt VALUES ('H5697', 'German', 'Maximale Anzahl Logeintr&auml;ge pro Applikation: Aus jeder Importdatei werden f&uuml;r jede bekannte Applikation nur so viele Eintr&auml;ge mit den h&ouml;chsten Trefferz&auml;hlern &uuml;bernommen; die &uuml;brigen werden verworfen.');
 INSERT INTO txt VALUES ('H5697', 'English', 'Maximum number of log entries per application: From each import file, only this many entries with the highest log counts are taken for each known application; the remaining entries are discarded.');
-INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein.');
-INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog.');
+INSERT INTO txt VALUES ('H5698', 'German', 'Logdaten in Verbindungen anzeigen: Blendet die importierten Logdaten des Eigent&uuml;mers unterhalb der Verbindung im Bearbeiten-Dialog ein. F&uuml;r Quell- und Zieladresse werden zus&auml;tzlich zugeh&ouml;rige externe App-IDs, Netzwerk-Areas und der per Reverse-DNS ermittelte Name angezeigt, sofern diese Informationen verf&uuml;gbar sind.');
+INSERT INTO txt VALUES ('H5698', 'English', 'Show log data in connections: Displays the imported log data of the owner below the connection in the edit dialog. For source and destination, matching external application IDs, network areas, and the name found by reverse DNS are also shown when available.');
 INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tage): Logeintr&auml;ge, deren Logzeitpunkt weiter zur&uuml;ckliegt, werden nach jedem Import gel&ouml;scht. Der Wert muss mindestens 1 betragen, sonst w&uuml;rden alle Eintr&auml;ge sofort wieder entfernt.');
 INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
 INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');

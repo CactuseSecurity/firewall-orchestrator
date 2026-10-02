@@ -21,10 +21,16 @@ else
         <Table @ref="logTable" TableClass="table table-bordered table-sm th-bg-secondary table-responsive sticky-header"
                TableItem="OwnerFirewallLogEntry" Items="logEntries" PageSize="pageSize" ColumnReorder="true">
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source"))" Field="@(x => x.SourceDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_app_ids"))" Field="@(x => x.SourceAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_network_areas"))" Field="@(x => x.SourceAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("source_name"))" Field="@(x => x.SourceDnsDisplay)" Sortable="true" Filterable="true" />
             @* protocol and port are separate columns, so the port sorts and filters as a number *@
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("protocol"))" Field="@(x => x.ProtocolDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("port"))" Field="@(x => x.ServicePort)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination"))" Field="@(x => x.DestinationDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_app_ids"))" Field="@(x => x.DestinationAppIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_network_areas"))" Field="@(x => x.DestinationAreaIdsDisplay)" Sortable="true" Filterable="true" />
+            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("destination_name"))" Field="@(x => x.DestinationDnsDisplay)" Sortable="true" Filterable="true" />
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("action"))" Field="@(x => x.Allowed)" Sortable="true" Filterable="true">
                 <Template>
                     @(userConfig.GetText(context.Allowed ? "allowed" : "denied"))

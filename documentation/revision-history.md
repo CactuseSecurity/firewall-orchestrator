@@ -1,6 +1,21 @@
 # Firewall Orchestrator Revision History
 
-## 9.6.1 - 01.10.2026
+## 9.6.2 - 03.10.2026
+- enrich imported log data with the external application IDs and network areas containing each
+  source and destination address, plus reverse-DNS names. The connection log table displays the
+  six new values and leaves unavailable metadata empty. The values are calculated once per import
+  batch from the owner networks and area address ranges and stored per address in
+  logging.ip_metadata, so an address logged by several owners is enriched once and carries the
+  applications of every owner it belongs to. An address the log entries no longer refer to loses
+  its metadata with the next import run, so the enrichment does not outlive the configured log
+  data retention.
+- rename the area IP data conversion script convertNwObjDataFromGit.py to
+  convert_area_ip_data_from_git.py. The upgrade removes the old file and moves a configured subnet
+  data import source pointing at the delivered script to the new name.
+- add generate_area_ip_data.py, which generates sample area IP data covering the app servers of an
+  app-data file; generate_app_and_log_data.py now also writes this area IP data file.
+  
+## 9.6.1 - 02.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the
   rulebases linked from it for the gateways using it
@@ -27,7 +42,6 @@
   180 seconds (TimeoutStopSec) before killing the process
 
 ## 9.5.10 - 29.09.2026
-
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration
 - add UI page Settings - Provisioning settings (settings/fwconfigprovisioning) to view (auditor) and edit (admin)

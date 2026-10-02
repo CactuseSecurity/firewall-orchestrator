@@ -9,6 +9,10 @@
 - seed the global default as gateway-based for fresh installations and upgrades, preserving an
   existing configured value during upgrades
 - add index on rulebase_link.to_rulebase_id to speed up the management rulebases view
+- request workflow UI: split request-task metadata and element editing into dedicated components while keeping the task type synchronized across the editors
+- request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
+- request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures
+- clarify the localized Object Catalog and Service Catalog labels
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

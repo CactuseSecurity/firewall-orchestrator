@@ -23,6 +23,9 @@ namespace FWO.Test
     [NonParallelizable]
     internal partial class ExportTest
     {
+        [GeneratedRegex("TestRule1")]
+        private static partial Regex TestRule1Pattern();
+
         [GeneratedRegex(@"[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")]
         private static partial Regex GuidRegexPattern();
 
@@ -1682,9 +1685,9 @@ namespace FWO.Test
 
             string reportHtml = reportRules.ExportToHtml();
 
-            Assert.That(Regex.Matches(reportHtml, $"id=\"{anchorId}\"").Count, Is.EqualTo(1));
+            Assert.That(Regex.Count(reportHtml, Regex.Escape($"id=\"{anchorId}\"")), Is.EqualTo(1));
             Assert.That(reportHtml, Does.Contain($"<a href=\"#{anchorId}\">Start A</a>"));
-            Assert.That(Regex.Matches(reportHtml, "TestRule1").Count, Is.EqualTo(1));
+            Assert.That(TestRule1Pattern().Count(reportHtml), Is.EqualTo(1));
         }
 
         private static DeviceReport CreateRuleTree(int treeId, string treeName, int startRulebaseId, Dictionary<int, int> references)

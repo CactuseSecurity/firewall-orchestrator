@@ -62,7 +62,7 @@
                 </div>
                 <RequestTaskMetadataEditor @ref="metadataEditor" WfHandler="WfHandler"
                     AvailableTaskTypes="availableTaskTypes" Managements="managements"
-                    CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
+                    TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
                     TargetDatesValidChanged="SetTargetDatesValid" />
                 @if(actTaskType == WfTaskType.generic)
                 {
@@ -309,7 +309,7 @@
         try
         {
             availableTaskTypes = System.Text.Json.JsonSerializer.Deserialize<List<WfTaskType>>(userConfig.ReqAvailableTaskTypes) ?? throw new JsonException("Config data could not be parsed.");
-            actTaskType = availableTaskTypes.Count > 0 ? availableTaskTypes.Last() : WfTaskType.access;
+            actTaskType = GetDefaultTaskType();
             ruleActions = await apiConnection.SendQueryAsync<List<RuleAction>>(StmQueries.getRuleActions);
             trackings = await apiConnection.SendQueryAsync<List<Tracking>>(StmQueries.getTracking);
             managements.Add(new(){ Id = -1, Name = userConfig.GetText("all"), DeviceType = new(){ Id = 0 } });
@@ -350,6 +350,10 @@
                     }
                     actGrpName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
                 }
+                else
+                {
+                    actTaskType = GetDefaultTaskType();
+                }
                 await Reset();
             }
         }
@@ -370,13 +374,17 @@
         actTaskType = taskType;
     }
 
+    private WfTaskType GetDefaultTaskType()
+    {
+        return availableTaskTypes.LastOrDefault(taskType => taskType != WfTaskType.master, WfTaskType.access);
+    }
+
     private void SyncMetadataState()
     {
         if (metadataEditor == null)
         {
             return;
         }
-        actTaskType = metadataEditor.CurrentTaskType;
         actManagement = metadataEditor.CurrentManagement;
         actRuleDevice = metadataEditor.CurrentRuleDevice;
         actOwner = metadataEditor.CurrentOwner;
@@ -403,7 +411,10 @@
     private async Task Reset()
     {
         Log.WriteDebug("DisplayRequestTask", "Reset");
-        metadataEditor?.InitializeFromTask();
+        if (!WfHandler.AddReqTaskMode)
+        {
+            metadataEditor?.InitializeFromTask();
+        }
         if(WfHandler.ActionHandler != null)
         {
             offeredActions = WfHandler.ActionHandler.GetOfferedActions(WfHandler.ActReqTask, WfObjectScopes.RequestTask, WfHandler.Phase);

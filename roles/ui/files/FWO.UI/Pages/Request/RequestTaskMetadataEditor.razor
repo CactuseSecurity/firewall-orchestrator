@@ -176,6 +176,9 @@
     public EventCallback<bool> TargetDatesValidChanged { get; set; }
 
     [Parameter]
+    public WfTaskType TaskType { get; set; } = WfTaskType.access;
+
+    [Parameter]
     public IEnumerable<WfTaskType> AvailableTaskTypes { get; set; } = [];
 
     [Parameter]
@@ -184,7 +187,6 @@
     [Parameter]
     public Func<string, bool> CanEditField { get; set; } = _ => false;
 
-    private WfTaskType TaskType { get; set; } = WfTaskType.access;
     private Management? Management { get; set; }
     private Device? RuleDevice { get; set; }
     private FwoOwner? Owner { get; set; }
@@ -223,16 +225,6 @@
     public void InitializeFromTask()
     {
         initializedTaskId = WfHandler.ActReqTask.Id;
-        if (WfHandler.AddReqTaskMode)
-        {
-            TaskType = AvailableTaskTypes.LastOrDefault(type => type != WfTaskType.master, WfTaskType.access);
-        }
-        else
-        {
-            TaskType = Enum.TryParse(WfHandler.ActReqTask.TaskType, out WfTaskType parsedTaskType)
-                ? parsedTaskType
-                : WfTaskType.access;
-        }
         Management = WfHandler.ActReqTask.ManagementId != null
             ? Managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId)
             : Managements.FirstOrDefault();

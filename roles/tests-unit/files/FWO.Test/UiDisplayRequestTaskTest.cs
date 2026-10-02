@@ -498,6 +498,55 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task DisplayRequestTask_NewTask_UsesOneTaskTypeForMetadataAndElements()
+        {
+            RequestWorkflowUserConfig userConfig = new()
+            {
+                ReqAvailableTaskTypes = "[1,2,3,4,5]"
+            };
+            WfReqTask existingTask = new()
+            {
+                Id = 12,
+                Title = "Existing",
+                TaskType = WfTaskType.access.ToString(),
+                StateId = 0
+            };
+            WfHandler handler = new()
+            {
+                DisplayReqTaskMode = true,
+                EditReqTaskMode = true,
+                ActReqTask = existingTask,
+                ActTicket = new WfTicket { Id = 100, Tasks = [existingTask] }
+            };
+            WfStateDict states = new() { Name = { [0] = "Draft" } };
+
+            await using BunitContext context = new();
+            context.Services.AddSingleton<UserConfig>(userConfig);
+            IRenderedComponent<DisplayRequestTask> component = RenderDisplayRequestTask(context, handler, states, Roles.Requester);
+
+            WfReqTask newTask = new() { Id = 13, Title = "New", TaskType = WfTaskType.access.ToString(), StateId = 0 };
+            handler.AddReqTaskMode = true;
+            handler.ActReqTask = newTask;
+            handler.ActTicket.Tasks.Add(newTask);
+            await component.InvokeAsync(() => component.Instance.SetParametersAsync(ParameterView.FromDictionary(new Dictionary<string, object?>
+            {
+                [nameof(DisplayRequestTask.Phase)] = WorkflowPhases.request,
+                [nameof(DisplayRequestTask.States)] = states,
+                [nameof(DisplayRequestTask.WfHandler)] = handler,
+                [nameof(DisplayRequestTask.ResetParent)] = (Func<Task>)DefaultInit.DoNothing,
+                [nameof(DisplayRequestTask.StartImplPhase)] = (Func<WfImplTask, Task>)DefaultInit.DoNothing
+            })));
+
+            RequestTaskMetadataEditor metadataEditor = component.FindComponent<RequestTaskMetadataEditor>().Instance;
+            RequestTaskElementEditor elementEditor = component.FindComponent<RequestTaskElementEditor>().Instance;
+            Assert.Multiple(() =>
+            {
+                Assert.That(metadataEditor.CurrentTaskType, Is.EqualTo(WfTaskType.group_create));
+                Assert.That(elementEditor.TaskType, Is.EqualTo(WfTaskType.group_create));
+            });
+        }
+
+        [Test]
         public async Task DisplayRequestTask_NewInterface_RequestingOwnerDropdownUsesOwnOwners()
         {
             RequestWorkflowUserConfig userConfig = new()

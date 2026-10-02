@@ -112,7 +112,7 @@ internal class UiRequestTaskMetadataEditorTest
             AllOwners = [new FwoOwner { Id = 21, Name = "Owner" }]
         };
         RequestTaskMetadataEditor component = CreateComponent(handler,
-            managements: [new Management { Id = 7, Name = "Management" }]);
+            managements: [new Management { Id = 7, Name = "Management" }], taskType: WfTaskType.new_interface);
 
         component.InitializeFromTask();
 
@@ -161,10 +161,14 @@ internal class UiRequestTaskMetadataEditorTest
     }
 
     private static RequestTaskMetadataEditor CreateComponent(WfHandler handler, SimulatedUserConfig? userConfig = null,
-        IEnumerable<Management>? managements = null)
+        IEnumerable<Management>? managements = null, WfTaskType? taskType = null)
     {
         RequestTaskMetadataEditor component = new();
         SetMember(component, nameof(RequestTaskMetadataEditor.WfHandler), handler);
+        if (taskType.HasValue)
+        {
+            SetMember(component, nameof(RequestTaskMetadataEditor.TaskType), taskType.Value);
+        }
         SetMember(component, "userConfig", userConfig ?? new SimulatedUserConfig());
         SetMember(component, nameof(RequestTaskMetadataEditor.Managements), managements ?? []);
         return component;

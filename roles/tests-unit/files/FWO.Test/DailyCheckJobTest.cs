@@ -57,6 +57,12 @@ namespace FWO.Test
 
         private static readonly int[] ExpectedSuccessLogSeverities = [1];
         private static readonly int[] ExpectedNoAlertLogSeverities = [0];
+        private static readonly (NotificationLogStatus Status, string Error)[] kInactiveOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requested owner is not active.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kIncompleteRequestSuppression =
+            [(NotificationLogStatus.Suppressed, "Interface request is incomplete.")];
+        private static readonly (NotificationLogStatus Status, string Error)[] kUnresolvedOwnerSuppression =
+            [(NotificationLogStatus.Suppressed, "Requesting owner could not be resolved.")];
         [Test]
         public void LoadEnabledModules_ReturnsAllModules_WhenConfigIsBlank()
         {
@@ -421,6 +427,59 @@ namespace FWO.Test
             {
                 GlobalStateMatrix.Factory = previousFactory;
             }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesInactiveOwner()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
+                    DateTime.Now));
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kInactiveOwnerSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesIncompleteRequest()
+        {
+            FwoOwner owner = new() { Id = 7, Name = "Owner A", ExtAppId = "APP-7" };
+            WfTicket ticket = CreateInterfaceRequestTicket(501, owner, DateTime.Now);
+            ticket.Tasks[0].AdditionalInfo = null;
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(ticket);
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kIncompleteRequestSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SuppressesWhenRequestingOwnerCannotBeResolved()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Owner A", ExtAppId = "APP-7" },
+                    DateTime.Now));
+            apiConnection.ReturnNullRequestingOwner = true;
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates,
+                Is.EqualTo(kUnresolvedOwnerSuppression));
+        }
+
+        [Test]
+        [NonParallelizable]
+        public async Task CheckUnansweredInterfaceRequests_SkipsNotificationThatIsNotDue()
+        {
+            DailyCheckInterfaceRequestsApiConnection apiConnection = CreateInterfaceRequestCheckConnection(
+                CreateInterfaceRequestTicket(501, new FwoOwner { Id = 7, Name = "Inactive owner", Active = false },
+                    DateTime.Now.AddDays(1)));
+            await InvokeCheckUnansweredInterfaceRequests(apiConnection);
+
+            Assert.That(apiConnection.NotificationLogUpdates, Is.Empty);
         }
 
         [Test]
@@ -812,6 +871,40 @@ namespace FWO.Test
                 ?? throw new InvalidOperationException("LoadEnabledModules returned null."));
         }
 
+        private static DailyCheckInterfaceRequestsApiConnection CreateInterfaceRequestCheckConnection(WfTicket ticket)
+        {
+            return new DailyCheckInterfaceRequestsApiConnection
+            {
+                LdapConnections = [CreateInternalTestLdap()],
+                Notifications = [CreateInterfaceRequestNotification(11)],
+                OpenTickets = [ticket]
+            };
+        }
+
+        private static async Task InvokeCheckUnansweredInterfaceRequests(DailyCheckInterfaceRequestsApiConnection apiConnection)
+        {
+            SimulatedGlobalConfig globalConfig = new()
+            {
+                UseDummyEmailAddress = true,
+                DummyEmailAddress = "dummy@example.test"
+            };
+            DailyCheckJob dailyCheckJob = new(apiConnection, globalConfig);
+            MethodInfo checkUnansweredInterfaceRequests = typeof(DailyCheckJob).GetMethod("CheckUnansweredInterfaceRequests", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests method not found.");
+            Func<GlobalStateMatrix> previousFactory = GlobalStateMatrix.Factory;
+            GlobalStateMatrix.Factory = () => new TestGlobalStateMatrix();
+
+            try
+            {
+                await (Task)(checkUnansweredInterfaceRequests.Invoke(dailyCheckJob, null)
+                    ?? throw new InvalidOperationException("CheckUnansweredInterfaceRequests returned null task."));
+            }
+            finally
+            {
+                GlobalStateMatrix.Factory = previousFactory;
+            }
+        }
+
         private static FwoNotification CreateInterfaceRequestNotification(int id, string logging = NotificationLoggingMode.LogOnly)
         {
             return new FwoNotification
@@ -824,6 +917,7 @@ namespace FWO.Test
                 EmailSubject = "subject",
                 EmailBody = "body",
                 Deadline = NotificationDeadline.RequestDate,
+                OffsetBeforeDeadline = 0,
                 RepeatIntervalAfterDeadline = SchedulerInterval.Days,
                 InitialOffsetAfterDeadline = 0,
                 RepeatOffsetAfterDeadline = 1,
@@ -842,6 +936,7 @@ namespace FWO.Test
             if (owner != null)
             {
                 reqTask.Owners = [new FwoOwnerDataHelper { Owner = owner }];
+                reqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, owner.Id.ToString());
             }
 
             return new WfTicket
@@ -910,6 +1005,8 @@ namespace FWO.Test
             public int NotificationLoadCount { get; private set; }
             public int OpenTicketQueryCount { get; private set; }
             public List<long> UpdatedNotificationIds { get; private set; } = [];
+            public List<(NotificationLogStatus Status, string Error)> NotificationLogUpdates { get; } = [];
+            public bool ReturnNullRequestingOwner { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -966,6 +1063,16 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)OpenTickets);
                 }
 
+                if (query == OwnerQueries.getOwnerById && typeof(QueryResponseType) == typeof(FwoOwner))
+                {
+                    int ownerId = variables?.GetType().GetProperty("id")?.GetValue(variables) is int id ? id : 0;
+                    if (ReturnNullRequestingOwner)
+                    {
+                        return Task.FromResult(default(QueryResponseType)!);
+                    }
+                    return Task.FromResult((QueryResponseType)(object)new FwoOwner { Id = ownerId, Name = "Requesting owner" });
+                }
+
                 if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
@@ -976,6 +1083,9 @@ namespace FWO.Test
 
                 if (query == NotificationQueries.updateNotificationLog && typeof(QueryResponseType) == typeof(ReturnId))
                 {
+                    string status = variables?.GetType().GetProperty("status")?.GetValue(variables)?.ToString() ?? "";
+                    string error = variables?.GetType().GetProperty("error")?.GetValue(variables)?.ToString() ?? "";
+                    NotificationLogUpdates.Add((Enum.Parse<NotificationLogStatus>(status), error));
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = 1 });
                 }
 

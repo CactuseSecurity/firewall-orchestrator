@@ -346,7 +346,7 @@
 
     private async Task CheckImplTasks()
     {
-        List<Device> foundDevices = await PathAnalysis.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
+        List<Device> foundDevices = await RoutingBasedPathAnalyzer.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
         deviceCheck = [];
         foreach(var dev in foundDevices)
         {

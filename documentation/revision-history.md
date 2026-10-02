@@ -9,6 +9,7 @@
   and personally; personal settings take precedence and saved report templates retain their view
 - seed the global default as gateway-based for fresh installations and upgrades, preserving an
   existing configured value during upgrades
+- add index on rulebase_link.to_rulebase_id to speed up the management rulebases view
 
 ## 9.5.10 - 29.09.2026
 

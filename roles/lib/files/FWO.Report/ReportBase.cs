@@ -59,6 +59,7 @@ namespace FWO.Report
             public string? OwnerFilter { get; set; }
             public TimeFilter? TimeFilter { get; set; }
             public string FilterTextKey { get; set; } = "filter";
+            public string? OtherFilterTextKey { get; set; }
         }
 
         private static readonly string HtmlTemplateSource = $@"
@@ -303,7 +304,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 ReplaceDateOfConfig(frameOptions.TimeFilter);
                 ReplaceOwnerFilter(frameOptions.OwnerFilter);
-                ReplaceOtherFilter(frameOptions.OtherFilter);
+                ReplaceOtherFilter(frameOptions.OtherFilter, frameOptions.OtherFilterTextKey);
 
                 string htmlToC = BuildHTMLToC(body);
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
@@ -362,11 +363,15 @@ namespace FWO.Report
             }
         }
 
-        private void ReplaceOtherFilter(string? otherFilter)
+        private void ReplaceOtherFilter(string? otherFilter, string? otherFilterTextKey)
         {
             if (!string.IsNullOrWhiteSpace(otherFilter) && ReportType != ReportType.RecertEventReport)
             {
-                if (ReportType.IsWorkflowReport())
+                if (otherFilterTextKey != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText(otherFilterTextKey))}: {EncodeHtml(otherFilter)}");
+                }
+                else if (ReportType.IsWorkflowReport())
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("workflow_filters"))}: {EncodeHtml(otherFilter)}");
                 }
@@ -674,7 +679,15 @@ namespace FWO.Report
 
         protected string Headline(string? title, int level)
         {
-            return $"<h{level + Levelshift} id=\"{Guid.NewGuid()}\">{HtmlOutputEncoder.EncodeText(title)}</h{level + Levelshift}>";
+            return Headline(title, level, Guid.NewGuid().ToString());
+        }
+
+        /// <summary>
+        /// Returns a headline with a fixed html id, e.g. as target of links within the report.
+        /// </summary>
+        protected string Headline(string? title, int level, string id)
+        {
+            return $"<h{level + Levelshift} id=\"{id}\">{HtmlOutputEncoder.EncodeText(title)}</h{level + Levelshift}>";
         }
 
         public static bool IsValidHTML(string html)

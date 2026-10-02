@@ -271,6 +271,20 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task AdaptDeviceFilter_InManagementRulebaseView_KeepsEmptyDeviceFilter()
+        {
+            MethodInfo adaptDeviceFilter = GetPrivateStaticMethod("AdaptDeviceFilter");
+            ReportParams reportParams = new() { ReportType = (int)ReportType.Rules, ManagementRulebaseView = true };
+            ReportJobApiConnection apiConnection = new();
+            object[] arguments = [reportParams, apiConnection];
+
+            await (Task)adaptDeviceFilter.Invoke(null, arguments)!;
+
+            Assert.That(apiConnection.GetDevicesByManagementCalls, Is.EqualTo(0));
+            Assert.That(reportParams.DeviceFilter.IsAnyDeviceFilterSet(), Is.False);
+        }
+
+        [Test]
         public async Task AdaptDeviceFilter_WithSelectedDevice_DoesNotReloadDevices()
         {
             MethodInfo adaptDeviceFilter = GetPrivateStaticMethod("AdaptDeviceFilter");

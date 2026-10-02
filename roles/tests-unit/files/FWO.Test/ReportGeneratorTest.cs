@@ -515,6 +515,34 @@ namespace FWO.Test
             Assert.That(managements.All(management => !management.Ignore), Is.True);
         }
 
+        [Test]
+        public void SetRelevantManagementsForReport_IgnoresDeviceFilterInManagementRulebaseView()
+        {
+            List<ManagementReport> managements = [new() { Id = 1 }, new() { Id = 2 }];
+            List<ManagementSelect> selectedManagements = [new ManagementSelect { Id = 2, Devices = [new() { Id = 22, Selected = true }] }];
+            ReportParams reportParams = new((int)ReportType.Rules, new DeviceFilter(selectedManagements)) { ManagementRulebaseView = true };
+
+            ReportGenerator.SetRelevantManagementsForReport(managements, reportParams);
+
+            Assert.That(managements.All(management => !management.Ignore), Is.True);
+        }
+
+        [Test]
+        public void SetRelevantManagementsForReport_AppliesDeviceFilterInGatewayView()
+        {
+            List<ManagementReport> managements = [new() { Id = 1 }, new() { Id = 2 }];
+            List<ManagementSelect> selectedManagements = [new ManagementSelect { Id = 2, Devices = [new() { Id = 22, Selected = true }] }];
+            ReportParams reportParams = new((int)ReportType.NatRules, new DeviceFilter(selectedManagements)) { ManagementRulebaseView = true };
+
+            ReportGenerator.SetRelevantManagementsForReport(managements, reportParams);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(managements.Single(management => management.Id == 1).Ignore, Is.True);
+                Assert.That(managements.Single(management => management.Id == 2).Ignore, Is.False);
+            });
+        }
+
         private static MethodInfo GetSetRelevantManagementsMethod()
         {
             return typeof(ReportGenerator).GetMethod("SetRelevantManagements", BindingFlags.NonPublic | BindingFlags.Static)

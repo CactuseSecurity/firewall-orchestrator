@@ -14,6 +14,12 @@
   data import source pointing at the delivered script to the new name.
 - add generate_area_ip_data.py, which generates sample area IP data covering the app servers of an
   app-data file; generate_app_and_log_data.py now also writes this area IP data file.
+  
+## 9.6.1 - 02.10.2026
+- request workflow UI: split request-task metadata and element editing into dedicated components while keeping the task type synchronized across the editors
+- request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
+- request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures
+- clarify the localized Object Catalog and Service Catalog labels
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

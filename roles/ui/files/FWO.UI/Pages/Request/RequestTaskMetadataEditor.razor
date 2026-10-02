@@ -1,0 +1,346 @@
+@using FWO.Ui.Display
+
+@inject UserConfig userConfig
+
+<div class="form-group row mt-2">
+    <div class="col-sm-3">
+        <div class="form-group row">
+            <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("type"))*:</label>
+            <div class="col-sm-8">
+                @if (WfHandler.AddReqTaskMode)
+                {
+                    <Dropdown ElementType="WfTaskType" SelectedElement="TaskType" SelectedElementChanged="OnTaskTypeChanged"
+                        ElementToString="@(t => userConfig.GetText(t.ToString()))" Elements="AvailableTaskTypes.Where(x => x != WfTaskType.master)">
+                        <ElementTemplate Context="type">
+                            @(userConfig.GetText(type.ToString()))
+                        </ElementTemplate>
+                    </Dropdown>
+                }
+                else
+                {
+                    <label class="col-sm-12 h-100 border bg-secondary">@(userConfig.GetText(TaskType.ToString()))</label>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (TaskType == WfTaskType.access || TaskType == WfTaskType.rule_modify || TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.group_create)
+    {
+        <div class="col-sm-3">
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("management")):</label>
+                <div class="col-sm-8">
+                    @if (CanEditField(WorkflowEditableFieldKeys.Management))
+                    {
+                    <Dropdown ElementType="Management" SelectedElement="Management" SelectedElementChanged="OnManagementChanged"
+                            ElementToString="@(d => d.Name)" Elements="Managements" Nullable="true">
+                            <ElementTemplate Context="management">
+                                @management.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        <label class="col-sm-12 h-100 border bg-secondary">@Management?.Name</label>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (TaskType == WfTaskType.access && NeedsManualDeviceSelection)
+    {
+        <div class="col-sm-3">
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway")):</label>
+                <div class="col-sm-8">
+                    @if (CanEditField(WorkflowEditableFieldKeys.Gateways))
+                    {
+                        <Dropdown ElementType="Device" SelectedElementsChanged="SetDevices" SelectedElementChanged="SetDevice"
+                            SelectedElements="SelectedDevices" ElementToString="@(d => d.Name ?? string.Empty)" Elements="SelectableDevices" Multiselect="true">
+                            <ElementTemplate Context="device">
+                                @device.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        <label class="col-sm-12 h-100 border bg-secondary">@DisplayDevices()</label>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    @if (TaskType == WfTaskType.access)
+    {
+        <DisplayTaskTargetDates @bind-TargetBeginDate="WfHandler.ActReqTask.TargetBeginDate"
+            @bind-TargetEndDate="WfHandler.ActReqTask.TargetEndDate"
+            CanEditTargetBeginDate="CanEditField(WorkflowEditableFieldKeys.ValidFrom)"
+            CanEditTargetEndDate="CanEditField(WorkflowEditableFieldKeys.ValidTo)"
+            TargetDatesValidChanged="TargetDatesValidChanged"
+            ShowOnlyFlowTimeObjectSelection="true" />
+    }
+    else if (TaskType == WfTaskType.rule_delete || TaskType == WfTaskType.rule_modify)
+    {
+        <div class="col-sm-3">
+            <div class="form-group row">
+                <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("gateway"))*:</label>
+                <div class="col-sm-8">
+                    @if (CanEditField(WorkflowEditableFieldKeys.Gateway))
+                    {
+                        <Dropdown ElementType="Device" SelectedElement="RuleDevice" SelectedElementChanged="OnRuleDeviceChanged"
+                            ElementToString="@(d => d.Name ?? string.Empty)" Elements="WfHandler.Devices" Nullable="true">
+                            <ElementTemplate Context="device">
+                                @device.Name
+                            </ElementTemplate>
+                        </Dropdown>
+                    }
+                    else
+                    {
+                        <label class="col-sm-12 h-100 border bg-secondary">@RuleDevice?.Name</label>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+    else if (TaskType == WfTaskType.new_interface)
+    {
+        <div class="col-sm-6">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("owner"))*:</label>
+                        <div class="col-sm-8">
+                            @if (CanEditField(WorkflowEditableFieldKeys.Owner))
+                            {
+                                <Dropdown ElementType="FwoOwner" SelectedElement="Owner" SelectedElementChanged="OnOwnerChanged"
+                                    ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="NewInterfaceOwnerOptions" Nullable="true">
+                                    <ElementTemplate Context="app">
+                                        @app.Display(userConfig.GetText("common_service"))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
+                            else
+                            {
+                                <label class="col-sm-12 h-100 border bg-secondary">@Owner?.Display()</label>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group row">
+                        <label class="col-sm-4 col-form-label col-form-label-sm">@(userConfig.GetText("requesting_owner")):</label>
+                        <div class="col-sm-8">
+                            @if (CanEditField(WorkflowEditableFieldKeys.RequestingOwner))
+                            {
+                                <Dropdown ElementType="FwoOwner" SelectedElement="RequestingOwner" SelectedElementChanged="OnRequestingOwnerChanged"
+                                    ElementToString="@(a => a.Display(userConfig.GetText("common_service")))" Elements="RequestingOwnerOptions" Nullable="true">
+                                    <ElementTemplate Context="app">
+                                        @app.Display(userConfig.GetText("common_service"))
+                                    </ElementTemplate>
+                                </Dropdown>
+                            }
+                            else
+                            {
+                                <label class="col-sm-12 h-100 border bg-secondary">@WfHandler.GetRequestingOwner()</label>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (TaskType == WfTaskType.group_create)
+    {
+        <div class="col-sm-6">
+            <div class="form-group row">
+                <label class="col-sm-1 col-form-label col-form-label-sm">@(userConfig.GetText("name"))*:</label>
+                <div class="col-sm-11">
+                    <input type="text" class="form-control form-control-sm" readonly="@(!CanEditField(WorkflowEditableFieldKeys.Name))"
+                        value="@GroupName" @onchange="GroupNameChangedFromInput" />
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code
+{
+    [Parameter]
+    public WfHandler WfHandler { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<WfTaskType> TaskTypeChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> TargetDatesValidChanged { get; set; }
+
+    [Parameter]
+    public WfTaskType TaskType { get; set; } = WfTaskType.access;
+
+    [Parameter]
+    public IEnumerable<WfTaskType> AvailableTaskTypes { get; set; } = [];
+
+    [Parameter]
+    public IEnumerable<Management> Managements { get; set; } = [];
+
+    [Parameter]
+    public Func<string, bool> CanEditField { get; set; } = _ => false;
+
+    private Management? Management { get; set; }
+    private Device? RuleDevice { get; set; }
+    private FwoOwner? Owner { get; set; }
+    private FwoOwner? RequestingOwner { get; set; }
+    private string? GroupName { get; set; }
+    private IEnumerable<Device> SelectedDevices { get; set; } = [];
+    private readonly List<Device> selectableDevices = [];
+    private Device? allDevicesOption;
+    private long initializedTaskId = -1;
+
+    public WfTaskType CurrentTaskType => TaskType;
+    public Management? CurrentManagement => Management;
+    public Device? CurrentRuleDevice => RuleDevice;
+    public FwoOwner? CurrentOwner => Owner;
+    public FwoOwner? CurrentRequestingOwner => RequestingOwner;
+    public string? CurrentGroupName => GroupName;
+    public IEnumerable<Device> CurrentSelectedDevices => SelectedDevices;
+    public IEnumerable<FwoOwner> NewInterfaceOwnerOptions => WfHandler.AllOwners.Where(owner => owner.Id != 0);
+    public IEnumerable<FwoOwner> RequestingOwnerOptions => userConfig.CanUseAnyRole(Roles.Admin)
+        ? NewInterfaceOwnerOptions
+        : NewInterfaceOwnerOptions.Where(owner => userConfig.User.Ownerships.Contains(owner.Id));
+    public bool NeedsManualDeviceSelection => !IsPlanningPhaseActive()
+        && (userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.enterInReqTask
+            || userConfig.ReqAutoCreateImplTasks == AutoCreateImplTaskOptions.oneTaskForAllDevices);
+    public IEnumerable<Device> SelectableDevices => selectableDevices;
+
+    protected override void OnParametersSet()
+    {
+        RefreshSelectableDevices();
+        if (initializedTaskId != WfHandler.ActReqTask.Id)
+        {
+            InitializeFromTask();
+        }
+    }
+
+    public void InitializeFromTask()
+    {
+        initializedTaskId = WfHandler.ActReqTask.Id;
+        Management = WfHandler.ActReqTask.ManagementId != null
+            ? Managements.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.ManagementId)
+            : Managements.FirstOrDefault();
+        RuleDevice = WfHandler.Devices.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetRuleDeviceId());
+        Owner = WfHandler.ActReqTask.Owners.FirstOrDefault()?.Owner;
+        RequestingOwner = RequestingOwnerOptions.FirstOrDefault(x => x.Id == WfHandler.ActReqTask.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+        GroupName = WfHandler.ActReqTask.GetAddInfoValue(AdditionalInfoKeys.GrpName);
+
+        List<int> selectedDeviceIds = WfHandler.ActReqTask.GetDeviceList().ToList();
+        if ((selectedDeviceIds.Count == 0 && NeedsManualDeviceSelection)
+            || WfHandler.ActReqTask.HasAllDevicesSelected()
+            || (selectedDeviceIds.Count > 0 && selectedDeviceIds.Count == WfHandler.Devices.Count
+                && !WfHandler.Devices.Select(x => x.Id).Except(selectedDeviceIds).Any()))
+        {
+            SelectedDevices = [GetAllDevicesOption()];
+        }
+        else
+        {
+            SelectedDevices = selectedDeviceIds
+                .Select(devId => WfHandler.Devices.FirstOrDefault(x => x.Id == devId))
+                .OfType<Device>();
+        }
+    }
+
+    public void SetDevice(Device device)
+    {
+        SelectedDevices = device.Id == WfReqTaskBase.kAllDevicesId ? [GetAllDevicesOption()] : new[] { device };
+    }
+
+    public void SetDevices(IEnumerable<Device> devices)
+    {
+        List<Device> deviceList = [.. devices];
+        bool containsAll = deviceList.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
+        bool containsConcreteDevice = deviceList.Any(device => device.Id != WfReqTaskBase.kAllDevicesId);
+        bool previouslyHadAll = SelectedDevices.Any(device => device.Id == WfReqTaskBase.kAllDevicesId);
+        if (containsAll && containsConcreteDevice)
+        {
+            SelectedDevices = previouslyHadAll
+                ? deviceList.Where(device => device.Id != WfReqTaskBase.kAllDevicesId)
+                : [GetAllDevicesOption()];
+        }
+        else if (containsAll)
+        {
+            SelectedDevices = [GetAllDevicesOption()];
+        }
+        else
+        {
+            SelectedDevices = deviceList;
+        }
+    }
+
+    public string DisplayDevices()
+    {
+        if (SelectedDevices.Any(dev => dev.Id == WfReqTaskBase.kAllDevicesId))
+        {
+            return userConfig.GetText("all");
+        }
+        return string.Join(", ", SelectedDevices.Select(dev => dev?.Name ?? ""));
+    }
+
+    private Device GetAllDevicesOption()
+    {
+        if (allDevicesOption == null)
+        {
+            RefreshSelectableDevices();
+        }
+        return allDevicesOption!;
+    }
+
+    private void RefreshSelectableDevices()
+    {
+        allDevicesOption ??= new Device { Id = WfReqTaskBase.kAllDevicesId, DeviceType = new() { Id = 0 } };
+        allDevicesOption.Name = userConfig.GetText("all");
+        selectableDevices.Clear();
+        selectableDevices.Add(allDevicesOption);
+        selectableDevices.AddRange(WfHandler.Devices);
+    }
+
+    private bool IsPlanningPhaseActive()
+    {
+        return WfHandler.ActStateMatrix.PhaseActive.TryGetValue(WorkflowPhases.planning, out bool isActive) && isActive;
+    }
+
+    private Task OnTaskTypeChanged(WfTaskType value)
+    {
+        TaskType = value;
+        return TaskTypeChanged.InvokeAsync(value);
+    }
+
+    private Task OnManagementChanged(Management value)
+    {
+        Management = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnRuleDeviceChanged(Device value)
+    {
+        RuleDevice = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnOwnerChanged(FwoOwner value)
+    {
+        Owner = value;
+        return Task.CompletedTask;
+    }
+
+    private Task OnRequestingOwnerChanged(FwoOwner value)
+    {
+        RequestingOwner = value;
+        return Task.CompletedTask;
+    }
+
+    private Task GroupNameChangedFromInput(ChangeEventArgs args)
+    {
+        GroupName = args.Value?.ToString();
+        return Task.CompletedTask;
+    }
+}

@@ -3,6 +3,7 @@ using FWO.Api.Client;
 using FWO.Basics;
 using FWO.Config.Api;
 using FWO.Data;
+using FWO.Logging;
 using FWO.Services;
 using Quartz;
 
@@ -34,11 +35,16 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
-                await flowSync.Run();
+                cancellationToken.ThrowIfCancellationRequested();
+                await flowSync.Run(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(UpdateFlowsJob)} stopped.");
             }
             catch (Exception exception)
             {

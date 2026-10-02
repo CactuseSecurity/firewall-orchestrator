@@ -569,12 +569,20 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
     <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
     <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
+    <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.1 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
+    <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
+    <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
+    <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
     <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
     <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
+    <li>The middleware job scheduler was upgraded to Quartz.NET 4.1, together with updated libraries for, among others, email delivery and PDF generation.</li>
+    <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
+    <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
+    <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('getting_started',	    'German', 	'Einstiegshilfe');

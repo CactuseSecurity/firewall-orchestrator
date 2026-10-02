@@ -91,6 +91,31 @@ namespace FWO.Test
         }
 
         [Test]
+        public void RunAsync_ShouldKeepLaterImportsPendingWithoutFailure_WhenCanceledAfterFirstImport()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            RuleOwnerMappingFake apiConnection = new()
+            {
+                OnImportCompleted = _ => cancellationTokenSource.Cancel()
+            };
+            apiConnection.AddPendingImport(1, ImportType.RULE);
+            apiConnection.AddPendingImport(2, ImportType.RULE);
+            apiConnection.AddRuleChange(1, ChangelogActionType.INSERT, kRuleId);
+            apiConnection.AddRuleChange(2, ChangelogActionType.INSERT, kRuleId);
+
+            UpdateRuleOwnerMappingCustomField service = new(apiConnection, CustomFieldConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await service.RunAsync(cancellationToken: cancellationTokenSource.Token));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.CompletedImports, Is.EqualTo(new List<long> { 1 }), "the second import has to stay pending");
+                Assert.That(apiConnection.RaisedAlerts, Is.Empty, "a stopped run must not be reported as failed import");
+                Assert.That(apiConnection.StoredHistory.FailedImports, Is.Empty, "no import may be remembered as failed");
+            });
+        }
+
+        [Test]
         public async Task RunAsync_ShouldReportFailure_WhenMarkingTheImportDoneFails()
         {
             // the mapping changes are written but the import stays pending, so it would be processed again -

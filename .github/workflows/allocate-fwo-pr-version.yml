@@ -57,9 +57,15 @@ jobs:
         env:
           BASE_VERSION: ${{ steps.version.outputs.base_version }}
           TARGET_VERSION: ${{ steps.version.outputs.target_version }}
+          REALLOCATE: ${{ steps.version.outputs.reallocate }}
         run: |
+          set -euo pipefail
           cd pull-request
-          ../fwo-version-tooling/scripts/allocate-fwo-version.sh --allocate --target "$TARGET_VERSION" --base-version "$BASE_VERSION"
+          allocation_options=(--allocate --target "$TARGET_VERSION" --base-version "$BASE_VERSION")
+          if [[ "$REALLOCATE" == "true" ]]; then
+            allocation_options+=(--reallocate)
+          fi
+          ../fwo-version-tooling/scripts/allocate-fwo-version.sh "${allocation_options[@]}"
 
       - name: Commit allocation
         env:

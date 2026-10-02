@@ -182,14 +182,19 @@ carefully.
    the reserved version to all three files, sets the heading date to the
    allocation date (`Europe/Berlin`, suffix preserved), and starts validation.
 
-Do not change an allocated version manually or reuse the number of a closed PR.
-A PR without the label fails validation when it changes `product_version` or
-adds or renames an upgrade script.
+Do not change an allocated version manually. A PR without the label fails
+validation when it changes `product_version` or adds or renames an upgrade
+script.
 
-Each PR gets a unique patch number above `develop` and all other labelled open
-PRs. Gaps from closed PRs are safe, because the installer version-sorts the
-existing upgrade files. Only the lowest open reservation passes validation, so
-`9.5.5` merges before `9.5.6`; the requeue workflow then re-validates the rest.
+Each PR gets the next patch number above `develop` and all other labelled open
+PRs. A closed PR's number may be handed out again, and gaps are safe, because
+the installer version-sorts the existing upgrade files. Only the lowest open
+reservation passes validation, so `9.5.5` merges before `9.5.6`; the requeue
+workflow then re-validates the rest.
+
+If two open PRs end up with the same version (e.g. a closed PR is reopened),
+the lower PR number keeps it. The other PR fails validation until a maintainer
+comments `/allocate-fwo-version` on it, which moves it to a free version.
 
 `999.0.0` is reserved for this workflow and never released. Being higher than
 any real version, its migration runs last in installer upgrade tests. It is
@@ -209,6 +214,8 @@ The validator accepts the current and the next minor or major line of
 `develop`. A reservation that falls to or below `develop` after a line change
 (e.g. `9.5.7` with `develop` at `9.6.0`) is stale and fails: rebase onto
 `develop`, keep the stale version, and comment `/allocate-fwo-version` again.
+The allocator refuses to move a version that `develop` already has an upgrade
+script or revision-history heading for; set the `999.0.0` placeholder instead.
 
 ## Upgrade scripts
 

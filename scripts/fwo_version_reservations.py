@@ -24,11 +24,13 @@ JsonObject = dict[str, Any]
 VERSIONED_LABEL = "versioned-change"
 PLACEHOLDER_VERSION = "999.0.0"
 PRODUCT_VERSION_FILE = "inventory/group_vars/all.yml"
+REVISION_HISTORY_FILE = "documentation/revision-history.md"
 UPGRADE_DIRECTORY = "roles/database/files/upgrade/"
 VALIDATOR_WORKFLOW = "validate-fwo-pr-version.yml"
 BASE_BRANCH = "develop"
 PAGE_SIZE = 100
 REQUEST_TIMEOUT_SECONDS = 30
+HTTP_NOT_FOUND = 404
 PRODUCT_VERSION_PATTERN = re.compile(r'^product_version:\s*"?([0-9]+\.[0-9]+\.[0-9]+)"?\s*$', re.MULTILINE)
 PRODUCT_VERSION_CHANGE_PATTERN = re.compile(r"^[+-]product_version:", re.MULTILINE)
 ALLOCATION_COMMAND_PATTERN = re.compile(r"^/allocate-fwo-version(?: (patch|minor|major))?$")
@@ -177,16 +179,42 @@ def select_target_version(base_version: str, reserved_versions: Sequence[str], b
     return f"{major}.{minor}.{patch + 1}"
 
 
+def has_version_heading(revision_history: str, version: str) -> bool:
+    """Returns whether a revision history contains a level-two heading for a version."""
+    return re.search(rf"^## {re.escape(version)}( |$)", revision_history, re.MULTILINE) is not None
+
+
+def find_duplicate_holder(
+    current_number: int, current_version: str, reservations: Sequence[Reservation]
+) -> Reservation | None:
+    """
+    Returns the open PR that keeps a version the current PR also reserves, or
+    None. Of two PRs reserving the same version, the lower PR number keeps it.
+    """
+    return next(
+        (
+            reservation
+            for reservation in reservations
+            if reservation.version == current_version and reservation.number < current_number
+        ),
+        None,
+    )
+
+
 def find_reservation_conflict(
-    current_version: str, base_version: str, reservations: Sequence[Reservation]
+    current_number: int, current_version: str, base_version: str, reservations: Sequence[Reservation]
 ) -> str | None:
     """
     Returns why the current version may not merge yet, or None. Another open PR
-    may neither reserve the same version nor a lower, still unmerged one.
+    may neither keep the same version nor reserve a lower, still unmerged one.
     """
+    holder = find_duplicate_holder(current_number, current_version, reservations)
+    if holder:
+        return (
+            f"Version {current_version} is also reserved by PR #{holder.number}, which keeps it. "
+            "Comment /allocate-fwo-version to move this PR to a free version."
+        )
     for reservation in reservations:
-        if reservation.version == current_version:
-            return f"Version {current_version} is already reserved by PR #{reservation.number}."
         if (
             compare_versions(reservation.version, base_version) > 0
             and compare_versions(reservation.version, current_version) < 0
@@ -210,13 +238,30 @@ def find_unlabelled_version_changes(changed_files: Sequence[JsonObject]) -> list
     return findings
 
 
+def read_file(client: GitHubClient, path: str, ref: str) -> str | None:
+    """Reads a repository file at a git ref, or returns None when it does not exist."""
+    try:
+        data = client.get(f"/contents/{path}?ref={urllib.parse.quote(ref, safe='')}")
+    except urllib.error.HTTPError as error:
+        if error.code == HTTP_NOT_FOUND:
+            return None
+        raise
+    return base64.b64decode(data["content"]).decode()
+
+
 def read_product_version(client: GitHubClient, ref: str) -> str:
     """Reads product_version from inventory/group_vars/all.yml at a git ref."""
-    data = client.get(f"/contents/{PRODUCT_VERSION_FILE}?ref={urllib.parse.quote(ref, safe='')}")
-    version = extract_product_version(base64.b64decode(data["content"]).decode())
+    version = extract_product_version(read_file(client, PRODUCT_VERSION_FILE, ref) or "")
     if version is None:
         raise VersionError(f"No valid product_version on {ref}.")
     return version
+
+
+def is_released_on_base(client: GitHubClient, version: str) -> bool:
+    """Returns whether develop already has the upgrade script or revision-history heading of a version."""
+    if read_file(client, f"{UPGRADE_DIRECTORY}{version}.sql", BASE_BRANCH) is not None:
+        return True
+    return has_version_heading(read_file(client, REVISION_HISTORY_FILE, BASE_BRANCH) or "", version)
 
 
 def list_versioned_pull_requests(client: GitHubClient) -> list[JsonObject]:
@@ -248,13 +293,10 @@ def dispatch_validation(client: GitHubClient, pull_request_number: int, ref: str
     )
 
 
-def plan_allocation(
-    client: GitHubClient, repository: str, pull_request_number: int, comment_body: str, comment_author: str
-) -> dict[str, str]:
-    """Authorizes an allocation command and returns the versions and branch to allocate on."""
-    bump = parse_allocation_command(comment_body)
-    if bump is None:
-        raise VersionError("Unsupported allocation command.")
+def authorize_allocation(
+    client: GitHubClient, repository: str, pull_request_number: int, comment_author: str
+) -> JsonObject:
+    """Returns the pull request to allocate on, or fails when the author or the PR does not qualify."""
     if not has_write_permission(client.get(f"/collaborators/{urllib.parse.quote(comment_author)}/permission")):
         raise VersionError("Only repository maintainers may allocate FWO versions.")
     pull_request: JsonObject = client.get(f"/pulls/{pull_request_number}")
@@ -266,19 +308,55 @@ def plan_allocation(
         raise VersionError(
             "Version allocation cannot push to a fork. A maintainer must create a same-repository branch."
         )
+    return pull_request
 
+
+def is_reallocation(
+    client: GitHubClient,
+    pull_request_number: int,
+    current_version: str,
+    base_version: str,
+    reservations: Sequence[Reservation],
+) -> bool:
+    """
+    Returns whether an allocation replaces an already allocated version, or
+    fails when that version is final. Only a stale version that develop has
+    not released, or a duplicate kept by a lower PR number, may change.
+    """
+    if current_version == PLACEHOLDER_VERSION:
+        return False
+    if is_stale_version(current_version, base_version):
+        if is_released_on_base(client, current_version):
+            raise VersionError(
+                f"{current_version} is already released on develop. Set the {PLACEHOLDER_VERSION} placeholder first."
+            )
+        return True
+    if find_duplicate_holder(pull_request_number, current_version, reservations):
+        return True
+    raise VersionError(
+        f"PR already reserves {current_version}. Only the {PLACEHOLDER_VERSION} placeholder, a stale "
+        "or a duplicate version can be allocated."
+    )
+
+
+def plan_allocation(
+    client: GitHubClient, repository: str, pull_request_number: int, comment_body: str, comment_author: str
+) -> dict[str, str]:
+    """Authorizes an allocation command and returns the versions and branch to allocate on."""
+    bump = parse_allocation_command(comment_body)
+    if bump is None:
+        raise VersionError("Unsupported allocation command.")
+    pull_request = authorize_allocation(client, repository, pull_request_number, comment_author)
     base_version = read_product_version(client, BASE_BRANCH)
     current_version = read_product_version(client, pull_request["head"]["sha"])
-    if current_version != PLACEHOLDER_VERSION and not is_stale_version(current_version, base_version):
-        raise VersionError(
-            f"PR already reserves {current_version}. Only the {PLACEHOLDER_VERSION} placeholder or a stale version can be allocated."
-        )
-    reserved = [reservation.version for reservation in list_reservations(client, pull_request_number)]
-    target_version = select_target_version(base_version, reserved, bump)
+    reservations = list_reservations(client, pull_request_number)
+    reallocate = is_reallocation(client, pull_request_number, current_version, base_version, reservations)
+    target_version = select_target_version(base_version, [reservation.version for reservation in reservations], bump)
     emit(f"develop is {base_version}; allocating {target_version} ({bump}) to PR #{pull_request_number}.")
     return {
         "base_version": base_version,
         "target_version": target_version,
+        "reallocate": str(reallocate).lower(),
         "head_ref": pull_request["head"]["ref"],
         "head_sha": pull_request["head"]["sha"],
     }
@@ -318,7 +396,9 @@ def check_unlabelled(client: GitHubClient, pull_request_number: int) -> None:
 def check_order(client: GitHubClient, pull_request_number: int, head_sha: str, base_version: str) -> None:
     """Fails when another open PR reserves the same or a lower unmerged version."""
     current_version = read_product_version(client, head_sha)
-    conflict = find_reservation_conflict(current_version, base_version, list_reservations(client, pull_request_number))
+    conflict = find_reservation_conflict(
+        pull_request_number, current_version, base_version, list_reservations(client, pull_request_number)
+    )
     if conflict:
         raise VersionError(conflict)
 

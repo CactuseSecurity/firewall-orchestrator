@@ -1,5 +1,6 @@
 import base64
 import io
+import re
 import urllib.error
 from email.message import Message
 from pathlib import Path
@@ -15,7 +16,7 @@ LABEL: list[JsonObject] = [{"name": "versioned-change"}]
 
 
 class FakeGitHub:
-    """Serves open PRs, product versions per ref, permissions, and changed files; records posts."""
+    """Serves open PRs, product versions per ref, develop files, permissions, and changed files; records posts."""
 
     def __init__(
         self,
@@ -30,12 +31,18 @@ class FakeGitHub:
         self.changed_files = changed_files or []
         self.posts: list[tuple[str, JsonObject]] = []
         self.failing_refs: set[str] = set()
+        self.develop_files: dict[str, str] = {}
 
     def get(self, path: str) -> Any:
-        if path.startswith("/contents/"):
+        if path.startswith(f"/contents/{versions.PRODUCT_VERSION_FILE}?"):
             ref = path.split("?ref=")[1]
             content = f'product_version: "{self.versions_by_ref[ref]}"\n'.encode()
             return {"content": base64.b64encode(content).decode()}
+        if path.startswith("/contents/"):
+            file_path = path.removeprefix("/contents/").split("?ref=")[0]
+            if file_path not in self.develop_files:
+                raise urllib.error.HTTPError(path, 404, "Not Found", Message(), io.BytesIO())
+            return {"content": base64.b64encode(self.develop_files[file_path].encode()).decode()}
         if path.startswith("/collaborators/"):
             return {"permission": self.permission}
         number = int(path.removeprefix("/pulls/"))
@@ -92,14 +99,28 @@ def test_select_target_version_starts_or_continues_next_line() -> None:
 
 def test_find_reservation_conflict_rejects_duplicates_and_lower_open_reservations() -> None:
     open_reservations = [Reservation(7, "9.5.5")]
-    assert "already reserved by PR #7" in (
-        versions.find_reservation_conflict("9.5.5", "9.5.4", open_reservations) or ""
+    assert "also reserved by PR #7, which keeps it" in (
+        versions.find_reservation_conflict(9, "9.5.5", "9.5.4", open_reservations) or ""
     )
     assert "PR #7 reserves 9.5.5 and must merge before 9.5.6" in (
-        versions.find_reservation_conflict("9.5.6", "9.5.4", open_reservations) or ""
+        versions.find_reservation_conflict(9, "9.5.6", "9.5.4", open_reservations) or ""
     )
-    assert versions.find_reservation_conflict("9.5.6", "9.5.5", open_reservations) is None
-    assert versions.find_reservation_conflict("9.5.5", "9.5.4", [Reservation(8, "9.5.6")]) is None
+    assert versions.find_reservation_conflict(9, "9.5.6", "9.5.5", open_reservations) is None
+    assert versions.find_reservation_conflict(9, "9.5.5", "9.5.4", [Reservation(8, "9.5.6")]) is None
+
+
+def test_find_reservation_conflict_lets_lower_pr_number_keep_a_duplicate() -> None:
+    assert versions.find_reservation_conflict(5, "9.5.5", "9.5.4", [Reservation(7, "9.5.5")]) is None
+    assert versions.find_duplicate_holder(7, "9.5.5", [Reservation(5, "9.5.5")]) == Reservation(5, "9.5.5")
+    assert versions.find_duplicate_holder(5, "9.5.5", [Reservation(7, "9.5.5")]) is None
+
+
+def test_has_version_heading_matches_whole_version() -> None:
+    history = "# Revision history\n## 9.5.4 - 23.09.2026\n- notes\n## 9.5.40\n"
+    assert versions.has_version_heading(history, "9.5.4")
+    assert versions.has_version_heading("## 9.5.4\n", "9.5.4")
+    assert not versions.has_version_heading(history, "9.5.3")
+    assert not versions.has_version_heading("## 9.5.40\n- 9.5.4\n", "9.5.4")
 
 
 @pytest.mark.parametrize(
@@ -178,6 +199,7 @@ def test_plan_allocation_selects_next_version() -> None:
     assert versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer") == {
         "base_version": "9.5.4",
         "target_version": "9.5.6",
+        "reallocate": "false",
         "head_ref": "branch-2",
         "head_sha": "sha-2",
     }
@@ -185,10 +207,35 @@ def test_plan_allocation_selects_next_version() -> None:
 
 def test_plan_allocation_reallocates_stale_version() -> None:
     client = FakeGitHub([pull_request(2, LABEL)], {"develop": "9.6.0", "sha-2": "9.5.7"})
-    assert (
-        versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")["target_version"]
-        == "9.6.1"
+    client.develop_files = {versions.REVISION_HISTORY_FILE: "## 9.6.0 - 01.10.2026\n## 9.5.6 - 30.09.2026\n"}
+    planned = versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
+    assert (planned["target_version"], planned["reallocate"]) == ("9.6.1", "true")
+
+
+@pytest.mark.parametrize(
+    ("pr_version", "develop_files"),
+    [
+        ("9.5.4", {versions.REVISION_HISTORY_FILE: "## 9.5.4 - 23.09.2026\n"}),
+        ("9.5.2", {versions.REVISION_HISTORY_FILE: "## 9.5.4\n## 9.5.2 MAIN\n"}),
+        ("9.5.2", {"roles/database/files/upgrade/9.5.2.sql": "SELECT 1;"}),
+    ],
+)
+def test_plan_allocation_refuses_to_move_a_released_version(pr_version: str, develop_files: dict[str, str]) -> None:
+    client = FakeGitHub([pull_request(2, LABEL)], {"develop": "9.5.4", "sha-2": pr_version})
+    client.develop_files = develop_files
+    with pytest.raises(VersionError, match=re.escape(f"{pr_version} is already released on develop")):
+        versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
+
+
+def test_plan_allocation_moves_the_higher_numbered_duplicate() -> None:
+    client = FakeGitHub(
+        [pull_request(1, LABEL), pull_request(2, LABEL), pull_request(3, LABEL)],
+        {"develop": "9.5.4", "sha-1": "9.5.5", "sha-2": "9.5.5", "sha-3": "9.5.6"},
     )
+    planned = versions.plan_allocation(client, REPOSITORY, 2, "/allocate-fwo-version", "maintainer")
+    assert (planned["target_version"], planned["reallocate"]) == ("9.5.7", "true")
+    with pytest.raises(VersionError, match=r"PR already reserves 9\.5\.5"):
+        versions.plan_allocation(client, REPOSITORY, 1, "/allocate-fwo-version", "maintainer")
 
 
 @pytest.mark.parametrize(
@@ -244,6 +291,17 @@ def test_check_unlabelled_fails_on_new_upgrade_script() -> None:
     with pytest.raises(VersionError, match="Add the versioned-change label"):
         versions.check_unlabelled(client, 2)
     versions.check_unlabelled(FakeGitHub([], {}), 2)
+
+
+def test_read_file_reraises_errors_other_than_not_found() -> None:
+    client = FakeGitHub([], {})
+
+    def fail(_path: str) -> Any:
+        raise urllib.error.HTTPError("url", 500, "Server Error", Message(), io.BytesIO())
+
+    client.get = fail  # type: ignore[method-assign]
+    with pytest.raises(urllib.error.HTTPError):
+        versions.read_file(client, versions.REVISION_HISTORY_FILE, "develop")
 
 
 def test_check_order_enforces_lowest_reservation_first() -> None:

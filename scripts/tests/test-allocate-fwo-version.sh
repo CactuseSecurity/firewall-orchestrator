@@ -68,20 +68,35 @@ expect_failure() {
 
 readonly kCaseDirectory="$kTemporaryDirectory/dated-with-suffix"
 
-# An allocated version above develop is final.
-expect_failure "$kCaseDirectory" "re-allocation of a current version" \
+# An allocated version is final unless its re-allocation is authorized,
+# even when it is stale.
+expect_failure "$kCaseDirectory" "unauthorized re-allocation of a current version" \
     ./allocate-fwo-version.sh --allocate --target 9.5.7 --base-version 9.5.4
+expect_failure "$kCaseDirectory" "unauthorized re-allocation of a stale version" \
+    ./allocate-fwo-version.sh --allocate --target 9.6.1 --base-version 9.6.0
+expect_failure "$kCaseDirectory" "unknown re-allocation option" \
+    ./allocate-fwo-version.sh --allocate --target 9.6.1 --base-version 9.6.0 --force
 
 # After develop moved to a new release line, a stale version is re-allocated.
 (
     cd "$kCaseDirectory"
-    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.6.1 --base-version 9.6.0
+    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.6.1 --base-version 9.6.0 --reallocate
     ./allocate-fwo-version.sh --check --base-version 9.6.0
 )
 grep -qx 'product_version: "9.6.1"' "$kCaseDirectory/inventory/group_vars/all.yml"
 [[ -f "$kCaseDirectory/roles/database/files/upgrade/9.6.1.sql" ]]
 [[ ! -e "$kCaseDirectory/roles/database/files/upgrade/9.5.6.sql" ]]
 grep -qx "## 9.6.1 - $kAllocationDate MAIN" "$kCaseDirectory/documentation/revision-history.md"
+
+# A duplicate version above develop is moved to a free version.
+(
+    cd "$kCaseDirectory"
+    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 9.6.2 --base-version 9.6.0 --reallocate
+    ./allocate-fwo-version.sh --check --base-version 9.6.0
+)
+grep -qx 'product_version: "9.6.2"' "$kCaseDirectory/inventory/group_vars/all.yml"
+[[ -f "$kCaseDirectory/roles/database/files/upgrade/9.6.2.sql" ]]
+[[ ! -e "$kCaseDirectory/roles/database/files/upgrade/9.6.1.sql" ]]
 
 # The target must be above develop.
 expect_failure "$kTemporaryDirectory/dated" "target below base version" \
@@ -91,7 +106,7 @@ expect_failure "$kTemporaryDirectory/dated" "target below base version" \
 (cd "$kCaseDirectory" && ./allocate-fwo-version.sh --check --base-version 9.5.4)
 (
     cd "$kTemporaryDirectory/dated"
-    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 10.0.0 --base-version 9.5.6
+    FWO_ALLOCATION_DATE="$kAllocationDate" ./allocate-fwo-version.sh --allocate --target 10.0.0 --base-version 9.5.6 --reallocate
     ./allocate-fwo-version.sh --check --base-version 9.5.6
 )
 expect_failure "$kCaseDirectory" "release line skipping a minor version" \

@@ -12,7 +12,7 @@ readonly kSourceHeadingPattern="( |$)"
 readonly kAllocatedHeadingPattern=" - [0-9]{2}\\.[0-9]{2}\\.[0-9]{4}( |$)"
 
 usage() {
-    echo "Usage: $0 --allocate --target VERSION --base-version VERSION | --check --base-version VERSION" >&2
+    echo "Usage: $0 --allocate --target VERSION --base-version VERSION [--reallocate] | --check --base-version VERSION" >&2
     exit 2
 }
 
@@ -112,18 +112,18 @@ replace_version_heading() {
 mode="${1:-}"
 case "$mode" in
     --allocate)
-        [[ "$#" -eq 5 && "$2" == "--target" && "$4" == "--base-version" ]] || usage
+        [[ ("$#" -eq 5 || ("$#" -eq 6 && "$6" == "--reallocate")) && "$2" == "--target" && "$4" == "--base-version" ]] || usage
         target_version="$3"
         base_version="$5"
+        reallocate="${6:-}"
         version_is_valid "$target_version" && version_is_valid "$base_version" || usage
         [[ "$target_version" != "$kPlaceholderVersion" ]] || usage
 
-        # A stale version (not above develop, e.g. after a release-line change)
-        # may be re-allocated; any other allocated version is final.
+        # An allocated version is final unless the caller authorized its
+        # re-allocation (a stale version not released on develop, or a duplicate).
         source_version="$(read_product_version)"
-        if [[ "$source_version" != "$kPlaceholderVersion" ]] &&
-            version_is_greater_than "$source_version" "$base_version"; then
-            echo "Allocation requires the $kPlaceholderVersion placeholder or a stale version, found $source_version." >&2
+        if [[ "$source_version" != "$kPlaceholderVersion" && -z "$reallocate" ]]; then
+            echo "Allocation requires the $kPlaceholderVersion placeholder, found $source_version." >&2
             exit 1
         fi
         version_is_greater_than "$target_version" "$base_version" || {

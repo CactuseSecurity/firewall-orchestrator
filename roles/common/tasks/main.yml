@@ -132,10 +132,11 @@
             old_version: "{{ config.product_version }}"
             product_version_changed: "{{ config.product_version != product_version }}"
 
-        - name: fail if attempting a downgrade
-          fail:
-            msg: "Refusing to downgrade: installed version {{ old_version }} is newer than the version being installed ({{ product_version }})."
-          when: old_version is version(product_version, '>')
+        - name: check that the target version is not a downgrade
+          include_tasks: validate-upgrade-target-version.yml
+          vars:
+            installed_version: "{{ old_version }}"
+            upgrade_target_version: "{{ product_version }}"
 
           # The other end of the same question: not too new, but too old for the
           # migration files this repository still carries.

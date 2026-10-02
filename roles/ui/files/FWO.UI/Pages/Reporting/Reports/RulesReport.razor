@@ -5,6 +5,7 @@
 
 @inject UserConfig userConfig
 @inject IRuleTreeBuilder ruleTreeBuilder
+@inject IJSRuntime jsRuntime
 
 @foreach (var management in Managements)
 {
@@ -31,6 +32,7 @@
                 {
                     @if (device.ContainsRules() && _ruleDisplay != null)
                     {
+                        <div id="@DeviceReportExtensions.GetRuleTreeAnchorId(management.Id, device.Id)">
                         <Collapse Title="@device.Name" Style="@("secondary")" StartToggled="false" Class="py-1">
 
                             <div class="sticky-collapse">
@@ -232,7 +234,21 @@
                                     <RuleDetails Rule="context.Data!" />
                                 </DetailTemplate>
                                
-                                <CustomRow TableItem="RuleTreeItem" IsActiveForItem="(ruleTreeItem => !String.IsNullOrEmpty(ruleTreeItem.Data!.SectionHeader))">
+                                <CustomRow TableItem="RuleTreeItem" IsActiveForItem="(ruleTreeItem => ruleTreeItem.IsRulebaseReference)">
+                                    <tr>
+                                        <td></td>
+                                        <td class="bg-light" colspan="@(_reportTable?.Columns.Count)">
+                                            <span class="font-weight-bold">@(context.Header)</span> -
+                                            @(userConfig.GetText("rulebase_listed_above")):
+                                            <button type="button" class="btn btn-link btn-sm p-0 align-baseline"
+                                                    @onclick="() => ScrollToRuleTree(management.Id, device.ReferencedRulebaseTreeIds.GetValueOrDefault(context.ReferencedRulebaseId))">
+                                                @(GetRuleTreeName(management, device.ReferencedRulebaseTreeIds.GetValueOrDefault(context.ReferencedRulebaseId)))
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </CustomRow>
+
+                                <CustomRow TableItem="RuleTreeItem" IsActiveForItem="(ruleTreeItem => !ruleTreeItem.IsRulebaseReference && !String.IsNullOrEmpty(ruleTreeItem.Data!.SectionHeader))">
                                     <tr>
                                         <td>
                                             <div style="cursor:pointer; white-space:nowrap;" @onclick="() => OnNumberIconClickToggle(context.Data!, management, device)">
@@ -250,6 +266,7 @@
                                 <Pager ShowPageNumber="true" ShowTotalCount="true" />
                             </Table>
                         </Collapse>
+                        </div>
                     }
                 }
             }
@@ -269,6 +286,22 @@
 
     [Parameter]
     public bool Recertification { get; set; } = false;
+
+    /// <summary>
+    /// Scrolls to the rule tree that lists a referenced rulebase completely (management rulebases view).
+    /// </summary>
+    private async Task ScrollToRuleTree(int managementId, int treeId)
+    {
+        await jsRuntime.InvokeVoidAsync("scrollToElementAndHighlight", DeviceReportExtensions.GetRuleTreeAnchorId(managementId, treeId));
+    }
+
+    /// <summary>
+    /// Returns the name of a rule tree (start rulebase in management rulebases view) of the management.
+    /// </summary>
+    private static string GetRuleTreeName(ManagementReport management, int treeId)
+    {
+        return management.Devices.FirstOrDefault(device => device.Id == treeId)?.Name ?? "";
+    }
 
     [Parameter]
     public int RulesPerPage { get; set; }

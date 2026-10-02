@@ -20,13 +20,16 @@ The following roles are defined in ascending order of permissions:
 - auditor - users that can view all data & settings (in the UI) but cannot make any changes
 - modeller - users who can model applications
 - recertifier - users who can re-certify or de-certify firewall rules
-- fw-admin - users who can document open changes
 - requester - users that have the right to create requests
 - approver - users that have the right to approve requests
 - planner - users that have the right to plan requests
 - implementer - users that have the right to implement requests
 - reviewer - users that have the right to review requests
 - admin - users with full access rights to firewall orchestrator (this is also the pre-defined hasura role 'admin')
+
+The former role fw-admin was removed in 9.5.9. It could change tenants, managements and credentials of all tenants without any tenant restriction. The upgrade to 9.5.9 deletes the role from the internal LDAP directory and lists its former members in the installer output; give them another role or group where they still need access.
+
+Admin is trusted with the managements and their credentials. An admin cannot read a stored secret in plaintext, but can point a management to another host (including the Firewall Orchestrator host itself) while keeping its credentials, and the next import sends those credentials there. Grant the admin role only to users who may use every stored firewall credential. Credentials that a management still uses cannot be deleted; the management has to get other credentials first.
 
 The above mentioned access rights are implemented on the following levels 
 1. as grants within the database. E.g. a reporter does not have the right to change any of the tables rule, object, service.
@@ -45,6 +48,16 @@ These tenant-based permissions are assigned during login as follows:
 - The tenant(s) a user belongs to are read from an ldap directory.
 - The devices a tenant has access to are read from the database table tenent_to_device.
 - This information is written to a JWT (visible_devices, visible_managements) and signed by the Middleware-Module.
+
+### Visibility of users
+Local users (table uiuser) are visible to the roles admin and auditor in full, except for the password history, which only the middleware reads. Every other role sees:
+- its own user,
+- the users of its own tenant,
+- all users, when it belongs to tenant0.
+
+Of these users it sees directory fields only: id, user name, first and last name, email, dn and language. The dn is kept because workflows assign tasks and send notifications by it. Login time, password change time, password change flag, start and end date, tenant and LDAP connection of other users are not visible. A user reads its own login time, password change time and password change flag through the computed fields own_last_login, own_last_password_change and own_password_must_be_changed, which return NULL for every other user. These roles also see only the LDAP connection they belong to. A user relationship pointing to a user outside that scope (for example the handler of a workflow task in another tenant) is returned as null.
+
+A user whose tenant cannot be resolved at login gets the tenant id 0 in its JWT, which no tenant has, so tenant-scoped permissions match nothing for that user.
 
 ## LDAP - remote vs. local
 - When using only the local LDAP server, the user <--> role matching is implemented with LDAP groups managed via the web user interface.

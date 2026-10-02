@@ -10,9 +10,9 @@ namespace FWO.Api.Client
     {
         private static readonly List<string> AdminOrAuditorRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ModellingRoles = [Roles.Modeller, Roles.Admin, Roles.Auditor];
-        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ReportingRoles =
-            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> RecertificationRoles = [Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> WorkflowRoles =
         [
@@ -22,7 +22,6 @@ namespace FWO.Api.Client
             Roles.Implementer,
             Roles.Reviewer,
             Roles.Admin,
-            Roles.FwAdmin,
             Roles.Auditor
         ];
 
@@ -120,7 +119,7 @@ namespace FWO.Api.Client
         {
             if (reportType == ReportType.Owners || reportType.IsComplianceReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+                return [Roles.Admin, Roles.Auditor];
             }
             if (reportType.IsModellingReport())
             {
@@ -128,12 +127,12 @@ namespace FWO.Api.Client
             }
             if (reportType.IsWorkflowReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
+                return [Roles.Admin, Roles.Auditor, Roles.Requester,
                     Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
             }
             if (reportType.IsDeviceRelatedReport())
             {
-                return [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                return [Roles.Admin, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Recertifier, Roles.Auditor];
             }
             return ReportingRoles;

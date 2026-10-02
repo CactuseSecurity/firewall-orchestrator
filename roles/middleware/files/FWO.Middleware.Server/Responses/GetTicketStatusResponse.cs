@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Responses;
 
 /// <summary>
-/// Represents the GetRequestStatusResponse type.
+/// Represents the GetTicketStatusResponse type.
 /// </summary>
-public sealed class GetRequestStatusResponse
+public sealed class GetTicketStatusResponse
 {
     /// <summary>
     /// Gets the Status value.

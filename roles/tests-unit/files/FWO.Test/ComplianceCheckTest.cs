@@ -622,6 +622,47 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task RunComplianceCheck_CanceledWhileCheckingRules_PreparesNoViolationChanges()
+        {
+            // Arrange
+
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true);
+
+            AggregateCount count = new AggregateCount();
+            count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
+            ApiConnection
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
+                .Returns(Task.FromResult(count));
+            using CancellationTokenSource cancellationTokenSource = new();
+            List<Rule> rules = ComplianceCheck.RulesInCheck!;
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
+                .Returns(_ =>
+                {
+                    cancellationTokenSource.Cancel();
+                    return Task.FromResult(rules);
+                });
+
+            // Act
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard, cancellationTokenSource.Token));
+
+            // Assert
+
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Is.Empty);
+            Assert.That(Logger.Logmessages.Values.Any(m => m.Contains("Compliance check completed.")), Is.False);
+        }
+
+        [Test]
+        public void RunComplianceCheck_PreCanceledToken_StopsBeforeQuerying()
+        {
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Variable, new CancellationToken(canceled: true)));
+            Assert.That(ApiConnection.AsSub().ReceivedCalls(), Is.Empty);
+        }
+
+        [Test]
         public async Task CheckAll_BasicSetup_CompleteWithLog()
         {
             // Arrange

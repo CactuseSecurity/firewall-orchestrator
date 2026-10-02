@@ -23,16 +23,19 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Runs configured log data imports and removes expired entries.
         /// </summary>
+        /// <param name="cancellationToken">Stops before the next source; a source already being written is completed and acknowledged.</param>
         /// <returns>Sources which could not be imported.</returns>
-        public async Task<List<string>> Run()
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> sources = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportLogDataPath)
                 ?? throw new JsonException("Log data import sources could not be deserialized.");
             List<string> failedImports = new();
 
             foreach (string source in sources)
             {
-                await ImportSource(source, failedImports);
+                cancellationToken.ThrowIfCancellationRequested();
+                await ImportSource(source, failedImports, cancellationToken);
             }
 
             await DeleteExpiredEntries();
@@ -92,7 +95,7 @@ namespace FWO.Middleware.Server
             return normalizedEntries;
         }
 
-        private async Task ImportSource(string configuredSource, List<string> failedImports)
+        private async Task ImportSource(string configuredSource, List<string> failedImports, CancellationToken cancellationToken)
         {
             string sourcePath = ImportPathPolicy.RemoveAllowedExtension(configuredSource);
             try
@@ -107,8 +110,14 @@ namespace FWO.Middleware.Server
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
+                // last checkpoint: acknowledging deletes the source file, so it must follow a completed write
+                cancellationToken.ThrowIfCancellationRequested();
                 await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow);
                 await AcknowledgeImport(scriptPath, importFiles, sourcePath);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exception)
             {

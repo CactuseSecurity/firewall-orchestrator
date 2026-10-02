@@ -29,6 +29,7 @@ from fwo_base import string_is_uri, write_native_config_to_file
 from fwo_const import IMPORT_TMP_PATH
 from fwo_exceptions import (
     FwLoginFailedError,
+    FwoApiServiceUnavailableError,
     FwoApiWriteError,
     FwoImporterError,
     FwoImporterErrorInconsistenciesError,
@@ -121,6 +122,13 @@ def import_management(
     except (FwoApiWriteError, FwoImporterError) as e:
         exception = e
         roll_back_exception_handler(import_state, config_importer=config_importer, exc=e, error_text="")
+    except FwoApiServiceUnavailableError as e:
+        # middleware is unreachable/unstable (e.g. mid-restart) - roll back like any other
+        # unexpected failure, but re-raise so the caller can back off before the next
+        # management instead of hammering a middleware that hasn't come back up yet
+        exception = e
+        handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)
+        raise
     except Exception as e:
         exception = e
         handle_unexpected_exception(import_state=import_state, config_importer=config_importer, e=e)

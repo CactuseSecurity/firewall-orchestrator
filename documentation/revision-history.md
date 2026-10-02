@@ -1,9 +1,7 @@
 # Firewall Orchestrator Revision History
 
-## 9.6.2 - 02.10.2026
-- dependencies: update NuGet packages (AngleSharp to 1.8.3, coverlet.collector to 10.1.0, MailKit to 4.18.1, Moq to 4.21.0, PuppeteerSharp to 25.12.0, Quartz to 4.3.0, Scalar.AspNetCore to 2.17.13)
-
 ## 9.6.1 - 02.10.2026
+- dependencies: update NuGet packages (AngleSharp to 1.8.3, coverlet.collector to 10.1.0, MailKit to 4.18.1, Moq to 4.21.0, PuppeteerSharp to 25.12.0, Quartz to 4.3.0, Scalar.AspNetCore to 2.17.13)
 - request workflow UI: split request-task metadata and element editing into dedicated components while keeping the task type synchronized across the editors
 - request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
 - request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures

@@ -31,15 +31,21 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 using UserConfig userConfig = UserConfig.ForGlobalSettings(globalConfig, apiConnection, globalConfig.DefaultLanguage);
                 ComplianceCheck complianceCheck = new(userConfig, apiConnection);
 
-                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard);
-                await complianceCheck.PersistDataAsync();
+                await complianceCheck.RunComplianceCheck(ComplianceCheckType.Standard, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                await complianceCheck.PersistDataAsync(cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ComplianceJob)} stopped.");
             }
             catch (Exception exc)
             {

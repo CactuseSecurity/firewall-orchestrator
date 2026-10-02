@@ -530,6 +530,12 @@ middleware_internal_port: 8880
 # the proxy target cannot end up on different loopback families.
 middleware_native_listener_address: "{{ ipv4_loopback_address }}"
 middleware_native_uri: "http://{{ middleware_native_listener_address }}:{{ middleware_internal_port }}/"
+# Hosts whose logins reach the middleware on behalf of many users: every UI login arrives
+# from the UI server's address, so a per-client login limit keyed on it would be one
+# shared limit for all UI users. These hosts (and the middleware host itself) are exempt
+# from the per-client limit; the per-user failure limit still applies to them. Written to
+# fworch.json as login_trusted_client_hosts and resolved by the middleware at startup.
+login_trusted_client_hosts: "{{ (groups['frontends'] | default([])) + (groups['frontends'] | default([]) | map('extract', hostvars) | selectattr('ansible_host', 'defined') | map(attribute='ansible_host') | list) | unique }}"
 
 ###############################################################
 ui_admin_password_file: "{{ fworch_secrets_dir }}/ui_admin_pwd"

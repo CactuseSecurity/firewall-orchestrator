@@ -5014,6 +5014,10 @@ INSERT INTO txt VALUES ('A0001', 'German',  'Ung&uuml;ltige Anmeldedaten. Nutzer
 INSERT INTO txt VALUES ('A0001', 'English', 'Invalid credentials. Username must not be empty');
 INSERT INTO txt VALUES ('A0002', 'German',  'Ung&uuml;ltige Anmeldedaten');
 INSERT INTO txt VALUES ('A0002', 'English', 'Invalid credentials');
+INSERT INTO txt VALUES ('A0006', 'German',  'Zu viele Anmeldeversuche. Bitte sp&auml;ter erneut versuchen');
+INSERT INTO txt VALUES ('A0006', 'English', 'Too many login attempts. Please try again later');
+INSERT INTO txt VALUES ('A0007', 'German',  'Die Anmeldung ist vor&uuml;bergehend nicht m&ouml;glich. Bitte sp&auml;ter erneut versuchen');
+INSERT INTO txt VALUES ('A0007', 'English', 'Login is temporarily unavailable. Please try again later');
 
 -- role descriptions
 INSERT INTO txt VALUES ('T0001', 'German',  'kann nur die Anmeldeseite und Systemzustand sehen');

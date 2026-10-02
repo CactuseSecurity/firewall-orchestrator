@@ -81,7 +81,8 @@
                         </div>
                     </div>
 
-                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.group_create)
+                    @if(actTaskType == WfTaskType.access || actTaskType == WfTaskType.rule_modify || actTaskType == WfTaskType.rule_delete || actTaskType == WfTaskType.group_create
+                        || WfObjectTaskHelper.IsObjectTask(actTaskType))
                     {
                         <div class="col-sm-3">
                             <div class="form-group row">
@@ -353,6 +354,11 @@
                         }
                     </div>
                 }
+                else if(WfObjectTaskHelper.IsObjectTask(actTaskType))
+                {
+                    <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(actTaskType == WfTaskType.object_modify)"
+                        ManagementId="actManagement?.Id" EditMode="WfHandler.EditReqTaskMode" SelectableIpProtos="selectableIpProtos" DisplayIpProtos="displayIpProtos" />
+                }
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode)
@@ -523,6 +529,7 @@
     private FwoOwner? actOwner;
     private FwoOwner? oldOwner;
     private string? actGrpName;
+    private DisplayObjectTaskElement? objectTaskElement;
     private bool grpTypeSvc = false;
     private bool firstParamSet = false;
     private bool WorkInProgress = false;
@@ -1035,6 +1042,10 @@
         {
             WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
         }
+        else if(WfObjectTaskHelper.IsObjectTask(actTaskType))
+        {
+            WfHandler.ActReqTask.RequestAction = (actTaskType == WfTaskType.object_modify ? RequestAction.modify : RequestAction.create).ToString();
+        }
 
         if (actTaskType == WfTaskType.new_interface)
         {
@@ -1166,6 +1177,20 @@
         return true;
     }
     
+    private bool RejectInvalidObjectTask()
+    {
+        string? error = WfHandler.EditReqTaskMode
+            ? objectTaskElement?.ApplyToTask() ?? "E5124"
+            : WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
+        if (error != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task<bool> CheckTaskValues()
     {
         if (!RejectInvalidTaskFormat())
@@ -1177,6 +1202,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+            case WfTaskType.object_create or WfTaskType.object_modify when !RejectInvalidObjectTask():
                 return false;
             default:
                 return true;

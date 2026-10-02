@@ -1,5 +1,20 @@
 # Firewall Orchestrator Revision History
 
+## 9.5.11 - 02.10.2026
+
+- add workflow task types object_create and object_modify for a single network object (host, network,
+  address range) or service that stands alone without a group. Only the request side is covered: the
+  tasks can be created, edited, approved and passed through the workflow; implementation tasks show the
+  object read-only. External ticket systems reject both task types, the Check Point and flow database
+  integration follows in a later version
+- object_modify references an existing imported object, which is selected through a server side search
+  limited to the visible managements. The old values are stored in the task as unchanged element, the
+  new values as modify element, as rule_modify does for the rule content
+- the requester role may read active network objects and services of its visible managements (only the
+  columns needed for the search, at most 50 rows per query)
+- the upgrade copies the group_create state matrices of every workflow configuration for both new task
+  types; both task types stay unavailable until an admin adds them to the available task types
+
 ## 9.5.10 - 29.09.2026
 
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides

@@ -53,6 +53,10 @@ INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('object_create',        'German',   'Objekt anlegen');
+INSERT INTO txt VALUES ('object_create',        'English',  'Create Object');
+INSERT INTO txt VALUES ('object_modify',        'German',   'Objekt &auml;ndern');
+INSERT INTO txt VALUES ('object_modify',        'English',  'Modify Object');
 INSERT INTO txt VALUES ('new_interface',        'German', 	'Neue Schnittstelle');
 INSERT INTO txt VALUES ('new_interface',        'English', 	'New Interface');
 INSERT INTO txt VALUES ('TicketCreation',       'German',   'Ticket-Erstellung');
@@ -597,6 +601,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die Rolle fw-admin wurde entfernt, da sie Mandanten, Managements und Login-Daten aller Mandanten &auml;ndern konnte. Das Upgrade l&ouml;scht die Rolle aus dem internen LDAP und nennt ihre bisherigen Mitglieder in der Installer-Ausgabe. Login-Daten, die noch von einem Management verwendet werden, lassen sich nicht mehr l&ouml;schen; statt das Management mitzul&ouml;schen, werden die betroffenen Managements genannt.</li>
     <li>Der REST-Endpunkt <code>GetRulesByFilter</code> wendet <code>MinPrefixLength</code> nun unabh&auml;ngig von <code>InField</code> auf Quelle und Ziel an; <code>InField</code> legt nur fest, wo die angefragte IP-Adresse &uuml;bereinstimmen muss. Dienst-Portbereiche werden nun in <code>service[].portEnd</code> zur&uuml;ckgegeben.</li>
     <li>Die neue Seite Einstellungen &ndash; Provisionierungs-Einstellungen legt die Parameter f&uuml;r die Umsetzung von Regel&auml;nderungen hierarchisch fest: global, pro Ger&auml;tetyp, pro Manager und pro Gateway. Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt, und erbt alle anderen von der Ebene dar&uuml;ber; zu jedem geerbten Wert l&auml;sst sich die Ebene anspringen, von der er stammt. Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren sie einsehen; siehe <a target="_blank" href="/help/settings/fwconfigprovisioning">Hilfe zu den Provisionierungs-Einstellungen</a>.</li>
+    <li>Die neuen Auftragstypen "Objekt anlegen" und "Objekt &auml;ndern" beantragen ein einzelnes Netzwerkobjekt (Host, Netz, Adressbereich) oder einen Service ohne Gruppe. Beim &Auml;ndern wird das bestehende Objekt &uuml;ber eine Suche ausgew&auml;hlt, der Auftrag zeigt alten und neuen Stand. Die Auftragstypen m&uuml;ssen in den Workflow-Anpassungen freigeschaltet werden und werden noch nicht an externe Ticketsysteme &uuml;bergeben; siehe <a target="_blank" href="/help/workflow/tasktypes">Hilfe zu Auftragstypen</a>.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -632,6 +637,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>The fw-admin role was removed because it could change tenants, managements and credentials of all tenants. The upgrade deletes the role from the internal LDAP and names its former members in the installer output. Credentials still used by a management can no longer be deleted; instead of deleting the management along with them, the affected managements are named.</li>
     <li>The REST endpoint <code>GetRulesByFilter</code> now applies <code>MinPrefixLength</code> to source and destination independently of <code>InField</code>; <code>InField</code> only selects where the requested IP address must match. Service port ranges are now returned in <code>service[].portEnd</code>.</li>
     <li>The new page Settings &ndash; Provisioning settings defines the parameters for implementing rule changes hierarchically: globally, per device type, per manager and per gateway. Each level stores only the values it overrides itself and inherits all others from the level above; for every inherited value you can jump to the level it comes from. Administrators can change the settings, auditors can view them; see <a target="_blank" href="/help/settings/fwconfigprovisioning">provisioning settings help</a>.</li>
+    <li>The new task types "Create Object" and "Modify Object" request a single network object (host, network, address range) or service without a group. When modifying, the existing object is selected through a search and the task shows the old and the new state. The task types have to be enabled in the workflow customizing settings and are not yet passed to external ticket systems; see <a target="_blank" href="/help/workflow/tasktypes">task type help</a>.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3912,6 +3918,20 @@ INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;
 INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
 INSERT INTO txt VALUES ('group_requests',       'German',   'Gruppenantr&auml;ge');
 INSERT INTO txt VALUES ('group_requests',       'English',  'Group Requests');
+INSERT INTO txt VALUES ('object_requests',      'German',   'Objektantr&auml;ge');
+INSERT INTO txt VALUES ('object_requests',      'English',  'Object Requests');
+INSERT INTO txt VALUES ('previous_state',       'German',   'Bisher');
+INSERT INTO txt VALUES ('previous_state',       'English',  'Previous');
+INSERT INTO txt VALUES ('requested_state',      'German',   'Beantragt');
+INSERT INTO txt VALUES ('requested_state',      'English',  'Requested');
+INSERT INTO txt VALUES ('object',               'German',   'Objekt');
+INSERT INTO txt VALUES ('object',               'English',  'Object');
+INSERT INTO txt VALUES ('search_object',        'German',   'Objekt suchen (ab 3 Zeichen, Name oder IP-Adresse bzw. Port)');
+INSERT INTO txt VALUES ('search_object',        'English',  'Search object (from 3 characters, name or ip address resp. port)');
+INSERT INTO txt VALUES ('refine_search',        'German',   'Es werden nur die ersten Treffer angezeigt, bitte die Suche verfeinern.');
+INSERT INTO txt VALUES ('refine_search',        'English',  'Only the first hits are shown, please refine the search.');
+INSERT INTO txt VALUES ('select_management_first','German', 'Bitte zuerst ein Management ausw&auml;hlen.');
+INSERT INTO txt VALUES ('select_management_first','English','Please select a management first.');
 INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
 INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
 INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
@@ -4694,6 +4714,14 @@ INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&
 INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
 INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgew&auml;hlten Dienste m&uuml;ssen dasselbe Protokoll und denselben Portbereich haben');
 INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
+INSERT INTO txt VALUES ('E5124', 'German',  'Bitte ein g&uuml;ltiges Objekt angeben: IP-Adresse, Netz oder Adressbereich bzw. Protokoll und bei TCP/UDP einen Port oder Portbereich.');
+INSERT INTO txt VALUES ('E5124', 'English', 'Please enter a valid object: ip address, network or address range resp. protocol and for TCP/UDP a port or port range.');
+INSERT INTO txt VALUES ('E5125', 'German',  'Die eingegebenen Werte entsprechen dem bestehenden Objekt, es wurde nichts ge&auml;ndert.');
+INSERT INTO txt VALUES ('E5125', 'English', 'The values entered equal the existing object, nothing has been changed.');
+INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
+INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
+INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -8741,6 +8769,16 @@ INSERT INTO txt VALUES ('H8215', 'English', 'New Interface: This task type is pr
 ');
 INSERT INTO txt VALUES ('H8216', 'German',  'Gruppe anlegen: Um Netzwerkgruppen zu beantragen, m&auml;ssen der Gruppenname und eine Liste der zugeh&auml;rigen IP-Adressen bzw. IP-Adress-Bereichen angegeben werden.');
 INSERT INTO txt VALUES ('H8216', 'English', 'Create group: To order network groups, the group name and a list of associated IP addresses resp. IP ranges have to be inserted.');
+INSERT INTO txt VALUES ('H8217', 'German',  'Objekt anlegen: Beantragt genau ein einzelnes Netzwerkobjekt (Host, Netz oder Adressbereich) oder einen Service, der ohne Gruppe f&uuml;r sich steht.
+    Pflicht sind das Management sowie die IP-Adresse, das Netz mit Maske bzw. Start- und End-Adresse, beim Service das Protokoll und bei TCP/UDP der Port oder Portbereich. Der Name ist optional.');
+INSERT INTO txt VALUES ('H8217', 'English', 'Create object: Orders exactly one single network object (host, network or address range) or service standing alone without a group.
+    Mandatory are the management and the ip address, the network with mask resp. start and end address, for a service the protocol and for TCP/UDP the port or port range. The name is optional.');
+INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein bestehendes, importiertes Netzwerkobjekt oder einen Service. Nach Auswahl des Managements wird das Objekt &uuml;ber die Suche (ab 3 Zeichen, Name oder IP-Adresse) ausgew&auml;hlt;
+    die Felder werden mit den bisherigen Werten vorbelegt. Der Auftrag speichert den bisherigen und den neuen Stand und zeigt beide an. Ein Auftrag ohne ge&auml;nderte Werte wird abgewiesen.
+    Beide Objekt-Auftragstypen werden noch nicht an externe Ticketsysteme &uuml;bergeben. Enth&auml;lt ein Ticket mit externer Anbindung neben Regel-Auftr&auml;gen auch Objekt-Auftr&auml;ge, werden die Auftr&auml;ge nach dem ersten Objekt-Auftrag nicht mehr &uuml;bergeben. Objekt-Auftr&auml;ge sollten daher in eigenen Tickets beantragt werden.');
+INSERT INTO txt VALUES ('H8218', 'English', 'Modify object: Changes an existing, imported network object or service. After choosing the management the object is selected through the search (from 3 characters, name or ip address);
+    the fields are prefilled with the current values. The task stores the previous and the new state and shows both. A task without changed values is rejected.
+    Both object task types are not yet passed to external ticket systems. If a ticket with external integration contains object tasks besides rule tasks, the tasks after the first object task are no longer passed on. Object tasks should therefore be requested in tickets of their own.');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

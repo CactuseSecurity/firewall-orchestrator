@@ -26,7 +26,8 @@ namespace FWO.Services
         {
             List<WfReqTask> taskList = [.. tasks];
             List<WorkflowEmailSection> sections = [];
-            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task)).Select(task => BuildRequestRow(task, protocolNamesById)).Where(row => row.HasContent())];
+            List<WorkflowConnectionRow> accessRows = [.. taskList.Where(task => !IsGroupTask(task) && !WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildRequestRow(task, protocolNamesById)).Where(row => row.HasContent())];
             if (accessRows.Count > 0)
             {
                 sections.Add(BuildAccessSection(accessRows, userConfig));
@@ -35,6 +36,12 @@ namespace FWO.Services
             if (groupRows.Count > 0)
             {
                 sections.Add(BuildGroupSection(groupRows, userConfig));
+            }
+            List<WorkflowObjectRow> objectRows = [.. taskList.Where(task => WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildObjectRequestRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
+            if (objectRows.Count > 0)
+            {
+                sections.Add(BuildObjectSection(objectRows, userConfig));
             }
             return FromSections(sections);
         }
@@ -52,9 +59,21 @@ namespace FWO.Services
         /// </summary>
         public static WorkflowEmailContent FromImplementationTasks(IEnumerable<WfImplTask> tasks, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
         {
-            List<WorkflowConnectionRow> rows = [.. tasks.Select(task => BuildImplementationRow(task, protocolNamesById)).Where(row => row.HasContent())];
-            WorkflowEmailSection section = BuildAccessSection(rows, userConfig);
-            return FromSections(section.Rows.Count > 0 ? [section] : []);
+            List<WfImplTask> taskList = [.. tasks];
+            List<WorkflowEmailSection> sections = [];
+            List<WorkflowConnectionRow> rows = [.. taskList.Where(task => !WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildImplementationRow(task, protocolNamesById)).Where(row => row.HasContent())];
+            if (rows.Count > 0)
+            {
+                sections.Add(BuildAccessSection(rows, userConfig));
+            }
+            List<WorkflowObjectRow> objectRows = [.. taskList.Where(task => WfObjectTaskHelper.IsObjectTask(task.TaskType))
+                .Select(task => BuildObjectImplementationRow(task, userConfig, protocolNamesById)).Where(row => row.HasContent())];
+            if (objectRows.Count > 0)
+            {
+                sections.Add(BuildObjectSection(objectRows, userConfig));
+            }
+            return FromSections(sections);
         }
 
         private static WorkflowEmailContent FromSections(List<WorkflowEmailSection> sections)
@@ -105,6 +124,55 @@ namespace FWO.Services
                     userConfig.GetText("members_to_remove")
                 ],
                 Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowEmailSection BuildObjectSection(List<WorkflowObjectRow> rows, UserConfig userConfig)
+        {
+            return new()
+            {
+                Title = userConfig.GetText("object_requests"),
+                Headers =
+                [
+                    userConfig.GetText("task"),
+                    userConfig.GetText("type"),
+                    userConfig.GetText("title"),
+                    userConfig.GetText("action"),
+                    userConfig.GetText("previous_state"),
+                    userConfig.GetText("requested_state")
+                ],
+                Rows = [.. rows]
+            };
+        }
+
+        private static WorkflowObjectRow BuildObjectRequestRow(WfReqTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            WfReqElement? original = WfObjectTaskHelper.GetOriginalElement(task);
+            WfReqElement? requested = WfObjectTaskHelper.GetRequestedElement(task);
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.RequestAction,
+                PreviousState = original != null ? BuildElementText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildElementText(requested, protocolNamesById) : ""
+            };
+        }
+
+        private static WorkflowObjectRow BuildObjectImplementationRow(WfImplTask task, UserConfig userConfig, Dictionary<int, string>? protocolNamesById)
+        {
+            WfImplElement? original = task.ImplElements.FirstOrDefault(element => element.ImplAction == RequestAction.unchanged.ToString());
+            WfImplElement? requested = task.ImplElements.FirstOrDefault(element => element.ImplAction == RequestAction.create.ToString()
+                || element.ImplAction == RequestAction.modify.ToString());
+            return new()
+            {
+                Task = BuildTaskReference(task.TaskNumber, task.Id),
+                Type = userConfig.GetText(task.TaskType),
+                Title = task.Title,
+                Action = task.ImplAction,
+                PreviousState = original != null ? BuildElementText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildElementText(requested, protocolNamesById) : ""
             };
         }
 
@@ -434,6 +502,41 @@ namespace FWO.Services
             return this;
         }
     }
+    internal class WorkflowObjectRow : IWorkflowEmailRow
+    {
+        public string Task { get; set; } = "";
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Action { get; set; } = "";
+        public string PreviousState { get; set; } = "";
+        public string RequestedState { get; set; } = "";
+
+        public bool HasContent()
+        {
+            return !string.IsNullOrWhiteSpace(RequestedState);
+        }
+
+        public NotificationTableRow ToTableRow()
+        {
+            List<string> cells = ToCells();
+            return new()
+            {
+                HtmlCells = [.. cells],
+                TextCells = cells
+            };
+        }
+
+        public List<string> ToCells()
+        {
+            return [Task, Type, Title, Action, PreviousState, RequestedState];
+        }
+
+        public object ToJsonObject()
+        {
+            return this;
+        }
+    }
+
     internal class WorkflowGroupMembers
     {
         public string CurrentMembers { get; set; } = "";

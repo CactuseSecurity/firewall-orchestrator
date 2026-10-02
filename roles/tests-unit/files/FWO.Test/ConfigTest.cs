@@ -23,6 +23,49 @@ namespace FWO.Test
             new() { Key = "modIconify", Value = "false", User = 50 }
         ];
 
+        private static readonly ConfigItem[] kManagementViewGlobalConfig =
+        [
+            new() { Key = "defaultManagementRulebaseView", Value = "true", User = 0 }
+        ];
+        private static readonly ConfigItem[] kGatewayViewPersonalConfig =
+        [
+            new() { Key = "defaultManagementRulebaseView", Value = "false", User = 50 }
+        ];
+
+        /// <summary>Global view changes apply until a personal override exists.</summary>
+        [Test]
+        public void RulesView_InheritsGlobalAndPreservesPersonalOverride()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfig userConfig = UserConfig.ForTextOnly(globalConfig);
+            Assert.That(userConfig.DefaultManagementRulebaseView, Is.False);
+
+            InvokePrivateMethod(userConfig, "OnGlobalConfigChange", globalConfig, kManagementViewGlobalConfig);
+            Assert.That(userConfig.DefaultManagementRulebaseView, Is.True);
+
+            userConfig.RawConfigItems = kGatewayViewPersonalConfig;
+            InvokeUpdate(userConfig, kGatewayViewPersonalConfig);
+            InvokePrivateMethod(userConfig, "OnGlobalConfigChange", globalConfig, kManagementViewGlobalConfig);
+            Assert.That(userConfig.DefaultManagementRulebaseView, Is.False);
+        }
+
+        /// <summary>The personal view setting is persisted using the existing configuration storage.</summary>
+        [Test]
+        public async Task RulesView_PersistsPersonalOverride()
+        {
+            SimulatedGlobalConfig globalConfig = new();
+            using UserConfigApiConnection apiConnection = new(kGatewayViewPersonalConfig);
+            using UserConfig userConfig = new(globalConfig, apiConnection, new UiUser { DbId = 50, Language = "English" });
+            ConfigData editable = await userConfig.GetEditableConfig();
+            editable.DefaultManagementRulebaseView = true;
+
+            await userConfig.WriteToDatabase(editable, apiConnection);
+
+            Assert.That(apiConnection.LastConfigItems.Single().Key, Is.EqualTo("defaultManagementRulebaseView"));
+            Assert.That(apiConnection.LastConfigItems.Single().User, Is.EqualTo(50));
+            Assert.That(userConfig.DefaultManagementRulebaseView, Is.True);
+        }
+
         private sealed class UserConfigApiConnection(ConfigItem[] configItems) : ApiConnection
         {
             public int UpsertConfigCallCount { get; private set; }

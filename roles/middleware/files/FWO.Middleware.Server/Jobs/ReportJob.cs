@@ -220,6 +220,11 @@ namespace FWO.Middleware.Server.Jobs
         {
             try
             {
+                if (reportParams.IsManagementRulebaseView())
+                {
+                    // scoped by the selected rulebases, which may belong to managements without any gateway
+                    return;
+                }
                 if (!reportParams.DeviceFilter.IsAnyDeviceFilterSet())
                 {
                     // For scheduling no device selection means "all".

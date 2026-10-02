@@ -59,6 +59,7 @@ namespace FWO.Report
             public string? OwnerFilter { get; set; }
             public TimeFilter? TimeFilter { get; set; }
             public string FilterTextKey { get; set; } = "filter";
+            public string? OtherFilterTextKey { get; set; }
         }
 
         private static readonly string HtmlTemplateSource = $@"
@@ -303,7 +304,7 @@ namespace FWO.Report
                 HtmlTemplate = HtmlTemplate.Replace("##Date##", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssK"));
                 ReplaceDateOfConfig(frameOptions.TimeFilter);
                 ReplaceOwnerFilter(frameOptions.OwnerFilter);
-                ReplaceOtherFilter(frameOptions.OtherFilter);
+                ReplaceOtherFilter(frameOptions.OtherFilter, frameOptions.OtherFilterTextKey);
 
                 string htmlToC = BuildHTMLToC(body);
                 HtmlTemplate = HtmlTemplate.Replace("##ToC##", htmlToC);
@@ -362,11 +363,15 @@ namespace FWO.Report
             }
         }
 
-        private void ReplaceOtherFilter(string? otherFilter)
+        private void ReplaceOtherFilter(string? otherFilter, string? otherFilterTextKey)
         {
             if (!string.IsNullOrWhiteSpace(otherFilter) && ReportType != ReportType.RecertEventReport)
             {
-                if (ReportType.IsWorkflowReport())
+                if (otherFilterTextKey != null)
+                {
+                    HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText(otherFilterTextKey))}: {EncodeHtml(otherFilter)}");
+                }
+                else if (ReportType.IsWorkflowReport())
                 {
                     HtmlTemplate = HtmlTemplate.Replace("##OtherFilters##", $"{EncodeHtml(userConfig.GetText("workflow_filters"))}: {EncodeHtml(otherFilter)}");
                 }

@@ -1665,7 +1665,7 @@ namespace FWO.Test
 
         /// <summary>
         /// In management rulebases view each start rulebase is rendered as rule tree; a rulebase listed completely in an earlier
-        /// tree only appears as a row linking to that tree.
+        /// tree only appears as a row linking to that tree. The report header lists the rule trees as rulebases, not as devices.
         /// </summary>
         [Test]
         public void RulesGenerateHtml_ManagementRulebaseView_LinksReferenceToListingRuleTree()
@@ -1688,6 +1688,9 @@ namespace FWO.Test
             Assert.That(Regex.Count(reportHtml, Regex.Escape($"id=\"{anchorId}\"")), Is.EqualTo(1));
             Assert.That(reportHtml, Does.Contain($"<a href=\"#{anchorId}\">Start A</a>"));
             Assert.That(TestRule1Pattern().Count(reportHtml), Is.EqualTo(1));
+            Assert.That(reportHtml, Does.Contain("<p>Rulebases: TestMgt [Start A, Start B]</p>"));
+            Assert.That(reportHtml, Does.Not.Contain("<p>Devices: "));
+            Assert.That(reportRules.DisplayReportHeaderCsv(), Does.Contain("# rulebase filter: TestMgt [Start A Start B]"));
         }
 
         private static DeviceReport CreateRuleTree(int treeId, string treeName, int startRulebaseId, Dictionary<int, int> references)

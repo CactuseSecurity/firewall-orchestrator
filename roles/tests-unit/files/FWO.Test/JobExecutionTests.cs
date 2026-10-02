@@ -13,6 +13,8 @@ namespace FWO.Test
     [TestFixture]
     internal class AutoDiscoverJobTest
     {
+        private static readonly List<string> kExpectedQueriesWhenCanceledDuringDelta = [DeviceQueries.getManagementsDetails, DeviceQueries.getManagementsDetails];
+
         [Test]
         public async Task Execute_WithCanceledTokenStopsWithoutQuerying()
         {
@@ -64,7 +66,7 @@ namespace FWO.Test
 
             await job.Execute(null!, cancellationTokenSource.Token);
 
-            Assert.That(apiConnection.Queries, Is.EqualTo(new[] { DeviceQueries.getManagementsDetails, DeviceQueries.getManagementsDetails }),
+            Assert.That(apiConnection.Queries, Is.EqualTo(kExpectedQueriesWhenCanceledDuringDelta),
                 "the deleted management found by the delta is neither alerted nor logged");
         }
 

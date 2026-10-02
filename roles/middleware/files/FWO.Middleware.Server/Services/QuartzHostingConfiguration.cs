@@ -13,6 +13,8 @@ namespace FWO.Middleware.Server.Services
         /// </summary>
         public static readonly TimeSpan ShutdownTimeout = TimeSpan.FromMinutes(2);
 
+        private static readonly IMatcher<JobKey>[] kAllJobGroups = [GroupMatcher<JobKey>.AnyGroup()];
+
         /// <summary>
         /// Adds Quartz with the job execution tracker, and makes a shutdown cancel running jobs
         /// and wait for them to unwind.
@@ -28,7 +30,7 @@ namespace FWO.Middleware.Server.Services
                 q.UseTimeProvider(timeProvider);
                 // Signal cancellation to running jobs on shutdown, then wait for them to unwind (default is Never)
                 q.ConfigureScheduler(s => s.ShutdownJobInterruption = ShutdownJobInterruption.WhenWaitingForJobs);
-                q.AddJobListener(serviceProvider => serviceProvider.GetRequiredService<JobExecutionTracker>(), [GroupMatcher<JobKey>.AnyGroup()]);
+                q.AddJobListener(serviceProvider => serviceProvider.GetRequiredService<JobExecutionTracker>(), kAllJobGroups);
             });
             services.AddQuartzHostedService(options =>
             {

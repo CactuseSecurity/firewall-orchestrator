@@ -1,5 +1,18 @@
 # Firewall Orchestrator Revision History
 
+## 9.8.0 - 02.10.2026
+- database: add schema labelling for generic key/value labels (e.g. Guardicore labels, app roles, stages) as the
+  basis of the Guardicore integration (issue #4949): label keys and values, a label change history
+  (label_change_event, referencing import, ticket and connection) and label assignments to rules (source,
+  destination, whole rule), connections (source, destination, whole connection), owner networks and access flows
+- database: assignments keep their history - an assignment is closed by a removal event instead of being deleted,
+  and only one active assignment per object and label is allowed
+- database: add columns rule_src_labels and rule_dst_labels (jsonb) to firewall.rule for the labels of an imported rule
+- config: add setting labelLogic (default AND) for combining the labels of a rule side
+- the labelling schema is still in development: it is part of a fresh installation only and has no upgrade script yet
+- api: track the labelling tables in Hasura with read access for auditor, importer and middleware-server and write
+  access (no delete) for importer (labels, change events, rule assignments) and middleware-server
+
 ## 9.6.1 - 02.10.2026
 - request workflow UI: split request-task metadata and element editing into dedicated components while keeping the task type synchronized across the editors
 - request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected

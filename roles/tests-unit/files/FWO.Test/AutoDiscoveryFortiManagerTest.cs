@@ -41,6 +41,51 @@ namespace FWO.Test
         }
 
         [Test]
+        public void BuildAdomDeviceVdomStructure_PreCanceledToken_StopsBeforeQueryingDevices()
+        {
+            Management superManagement = new()
+            {
+                Name = "fmgr",
+                Hostname = "fmgr.invalid",
+                DeviceType = new DeviceType { Id = 12 }
+            };
+            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection());
+            List<FortiGate> existingDevices = [new FortiGate { Name = "gw-1" }];
+            Adom adom = new() { Name = "root", DeviceList = existingDevices };
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await discovery.BuildAdomDeviceVdomStructure("session", [adom], new FortiManagerClient(superManagement), new CancellationToken(canceled: true)));
+            Assert.That(adom.DeviceList, Is.SameAs(existingDevices));
+        }
+
+        [Test]
+        public void Run_PreCanceledToken_StopsBeforeAuthenticating()
+        {
+            Management superManagement = new()
+            {
+                Name = "fmgr",
+                Hostname = "fmgr.invalid",
+                DeviceType = new DeviceType { Id = 12, Name = "FortiManager" }
+            };
+            RecordingQueryApiConnection apiConnection = new();
+            AutoDiscoveryBase discovery = new(superManagement, apiConnection);
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await discovery.Run(new CancellationToken(canceled: true)));
+            Assert.That(apiConnection.QueryCount, Is.EqualTo(0), "no deltas may be calculated for a stopped discovery");
+        }
+
+        private sealed class RecordingQueryApiConnection : SimulatedApiConnection
+        {
+            public int QueryCount { get; private set; }
+
+            public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                QueryCount++;
+                return base.SendQueryAsync<QueryResponseType>(query, variables, operationName, chunkingOptions);
+            }
+        }
+
+        [Test]
         public void CheckDeviceNotInMgmt_MatchesFortiManagerGateway_ByUid()
         {
             Device existing = new() { Name = "gw-1_vdomA", Uid = "gw-1" };

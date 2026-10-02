@@ -54,6 +54,7 @@ namespace FWO.Test
             public bool ReturnsNullSuperManagementMappings { get; set; }
             public List<int> ManagementDataRequests { get; } = new();
             public List<(long ControlId, int MgmId)> CompletedImportControlUpdates { get; } = new();
+            public Action? OnRemovedMappingsCleared { get; set; }
 
             public override Task<T> SendQueryAsync<T>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -251,6 +252,7 @@ namespace FWO.Test
                 if (query == FlowQueries.updateFlowMappingsForRemoved)
                 {
                     RemovedMappingsCleared = true;
+                    OnRemovedMappingsCleared?.Invoke();
                     return Task.FromResult((T)(object)new MutationResult { AffectedRows = 0 });
                 }
                 if (query == FlowQueries.updateImportControlForFlowSync)
@@ -394,6 +396,25 @@ namespace FWO.Test
             List<int> expectedManagementDataRequests = new() { 7 };
             List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 7) };
             Assert.That(result, Is.True);
+            Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
+            Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
+        }
+
+        [Test]
+        public void Run_CanceledAfterFirstManagement_CompletesOnlyItsImport()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            FlowSyncTestApiConn apiConn = new()
+            {
+                PendingImports = [new ImportControl { ControlId = 9, MgmId = 7 }, new ImportControl { ControlId = 10, MgmId = 8 }],
+                OnRemovedMappingsCleared = cancellationTokenSource.Cancel
+            };
+            FlowSync flowSync = new(apiConn, new GlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await flowSync.Run(cancellationTokenSource.Token));
+
+            List<int> expectedManagementDataRequests = new() { 7 };
+            List<(long ControlId, int MgmId)> expectedCompletedImportControlUpdates = new() { (9, 7) };
             Assert.That(apiConn.ManagementDataRequests, Is.EqualTo(expectedManagementDataRequests));
             Assert.That(apiConn.CompletedImportControlUpdates, Is.EqualTo(expectedCompletedImportControlUpdates));
         }

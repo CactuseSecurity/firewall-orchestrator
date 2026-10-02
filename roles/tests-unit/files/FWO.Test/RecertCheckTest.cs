@@ -111,6 +111,33 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckRecertifications_CanceledAfterFirstOwner_UpdatesLastSentOfProcessedNotificationsAndRethrows()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            RecertCheckApiConnection apiConnection = new()
+            {
+                Owners =
+                [
+                    CreateDueOwner(1, "Owner A"),
+                    CreateDueOwner(2, "Owner B")
+                ],
+                Notifications = [CreateLogOnlyRecertNotification()],
+                OnNotificationLogged = cancellationTokenSource.Cancel
+            };
+            RecertCheck recertCheck = CreateRecertCheck(apiConnection, CreateGlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await recertCheck.CheckRecertifications(cancellationTokenSource.Token));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries.Count(query => query == NotificationQueries.insertNotificationLog), Is.EqualTo(1),
+                    "the second owner is not checked after the cancellation");
+                Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.EqualTo(1),
+                    "the notification processed for the first owner is not repeated on the next run");
+            });
+        }
+
+        [Test]
         public async Task InitEnv_LoadsGlobalParamsAndQueryData()
         {
             RecertCheckApiConnection apiConnection = new()
@@ -426,6 +453,33 @@ namespace FWO.Test
             };
         }
 
+        private static FwoOwner CreateDueOwner(int id, string name)
+        {
+            return new FwoOwner
+            {
+                Id = id,
+                Name = name,
+                RecertActive = true,
+                LastRecertCheck = DateTime.Today.AddDays(-8),
+                NextRecertDate = DateTime.Today.AddDays(-1)
+            };
+        }
+
+        private static FwoNotification CreateLogOnlyRecertNotification()
+        {
+            return new FwoNotification
+            {
+                Id = 7,
+                NotificationClient = NotificationClient.Recertification,
+                Deadline = NotificationDeadline.None,
+                Logging = NotificationLoggingMode.LogOnly,
+                RecipientTo = EmailRecipientOption.OtherAddresses,
+                EmailAddressTo = "owner@example.test",
+                EmailSubject = "recertification",
+                EmailBody = "body"
+            };
+        }
+
         private static RecertCheck CreateRecertCheck(RecertCheckApiConnection apiConnection, GlobalConfig globalConfig)
         {
             return new RecertCheck(apiConnection, globalConfig, new TokenLifetimeProvider());
@@ -505,6 +559,7 @@ namespace FWO.Test
             public List<FwoOwner> Owners { get; set; } = [];
             public List<ManagementSelect> Managements { get; set; } = [];
             public List<FwoNotification> Notifications { get; set; } = [];
+            public Action? OnNotificationLogged { get; set; }
             public List<int> UpdatedOwnerIds { get; } = [];
             public int LastUpdatedNotificationIdCount { get; private set; }
 
@@ -569,6 +624,7 @@ namespace FWO.Test
 
                 if (query == NotificationQueries.insertNotificationLog && typeof(QueryResponseType) == typeof(ReturnIdWrapper))
                 {
+                    OnNotificationLogged?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { Id = 1 }]

@@ -26,6 +26,13 @@ namespace FWO.Data.Report
         [JsonProperty("unusedRules_Count"), JsonPropertyName("unusedRules_Count")]
         public ObjectStatistics UnusedRulesStatistics { get; set; } = new();
 
+        /// <summary>
+        /// Management rulebases view only: rulebases of this rule tree that are listed completely in an earlier
+        /// rule tree of the management, mapped to the id of that tree (not part of the API data or exports).
+        /// </summary>
+        [Newtonsoft.Json.JsonIgnore, System.Text.Json.Serialization.JsonIgnore]
+        public Dictionary<int, int> ReferencedRulebaseTreeIds { get; set; } = [];
+
 
         private List<Rule> Rules = [];
 

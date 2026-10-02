@@ -1179,9 +1179,16 @@
     
     private bool RejectInvalidObjectTask()
     {
-        string? error = WfHandler.EditReqTaskMode
-            ? objectTaskElement?.ApplyToTask() ?? "E5124"
-            : WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
+        string? error;
+        if (!WfHandler.EditReqTaskMode)
+        {
+            error = WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
+        }
+        else
+        {
+            // ApplyToTask returns null on success, so a missing element block must not be folded in with ??
+            error = objectTaskElement == null ? "E5124" : objectTaskElement.ApplyToTask();
+        }
         if (error != null)
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);

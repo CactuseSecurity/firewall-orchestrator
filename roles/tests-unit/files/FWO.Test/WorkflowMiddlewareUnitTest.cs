@@ -30,6 +30,7 @@ namespace FWO.Test
         private const string kVisibilityUserPath = "ou=users,ou=operator,dc=fworch,dc=internal";
         private const string kVisibilityGroupPath = "ou=groups,ou=operator,dc=fworch,dc=internal";
         private const string kLdapSearchUser = "cn=search,dc=example,dc=com";
+        private const string kRemovedFwAdminRole = "fw-admin";
         private static readonly string kLdapSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly string[] kExpectedAssignedGroupDns =
         [
@@ -880,6 +881,48 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// The fw-admin role was removed. A token of an installation whose directory still holds the
+        /// role must not unlock any workflow phase through it.
+        /// </summary>
+        [Test]
+        public void WorkflowController_CallerCanExecutePhase_IgnoresRemovedFwAdminRole()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (WorkflowPhases phase in Enum.GetValues<WorkflowPhases>())
+                {
+                    Assert.That(InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanExecutePhase",
+                        PrincipalWithRoles(kRemovedFwAdminRole), "", phase), Is.False, phase.ToString());
+                }
+            });
+        }
+
+        /// <summary>
+        /// With owner based workflows, a leftover fw-admin role must not grant access to foreign tickets.
+        /// </summary>
+        [Test]
+        public void WorkflowController_CallerCanAccessTicket_IgnoresRemovedFwAdminRole()
+        {
+            SimulatedUserConfig userConfig = new() { ReqOwnerBased = true };
+            WfTicket ticket = new()
+            {
+                Id = 42,
+                Tasks =
+                [
+                    new()
+                    {
+                        Owners = [new FwoOwnerDataHelper { Owner = new FwoOwner { Id = 7 } }]
+                    }
+                ]
+            };
+
+            bool allowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
+                PrincipalWithRoles(kRemovedFwAdminRole), "", userConfig, ticket);
+
+            Assert.That(allowed, Is.False);
+        }
+
         [Test]
         public void WorkflowController_TryParseScope_RejectsNoneAndInvalidScope()
         {
@@ -1239,15 +1282,12 @@ namespace FWO.Test
 
             bool adminAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
                 PrincipalWithRoles(Roles.Admin), "", userConfig, ticket);
-            bool fwAdminAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
-                PrincipalWithRoles(Roles.FwAdmin), Roles.Admin, userConfig, ticket);
             bool unrestrictedAllowed = InvokePrivateStatic<bool>(typeof(WorkflowController), "CallerCanAccessTicket",
                 PrincipalWithRoles(Roles.Approver), "", userConfig, ticket);
 
             Assert.Multiple(() =>
             {
                 Assert.That(adminAllowed, Is.True);
-                Assert.That(fwAdminAllowed, Is.True);
                 Assert.That(unrestrictedAllowed, Is.True);
             });
         }

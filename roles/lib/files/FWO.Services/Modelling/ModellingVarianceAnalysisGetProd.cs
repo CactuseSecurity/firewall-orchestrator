@@ -16,6 +16,7 @@ namespace FWO.Services.Modelling
     {
         private const int kRuleOwnerPollIntervalSeconds = 2;
         private const int kRuleOwnerRebuildMaxAgeHours = 2;
+        private const int kDefaultRulesPerFetch = 100;
 
         private RuleOwnerPrefilterState? ruleOwnerPrefilterState;
         private HashSet<long>? NameFieldRuleOwnerConnectionIds { get; set; }
@@ -175,21 +176,21 @@ namespace FWO.Services.Modelling
         {
             if (modellingFilter.AnalyseRemainingRules)
             {
-                var allRuleVariables = new
+                Dictionary<string, object?> allRuleVariables = new()
                 {
-                    mgmId = mgtId,
-                    import_id_start = relImpId,
-                    import_id_end = relImpId
+                    ["mgmId"] = mgtId,
+                    ["import_id_start"] = relImpId,
+                    ["import_id_end"] = relImpId
                 };
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getRulesByManagement, allRuleVariables);
+                return await SendPagedRuleQuery(RuleQueries.getRulesByManagement, allRuleVariables);
             }
 
-            var markerVariables = new
+            Dictionary<string, object?> markerVariables = new()
             {
-                mgmId = mgtId,
-                import_id_start = relImpId,
-                import_id_end = relImpId,
-                marker = $"%{userConfig.ModModelledMarker}%"
+                ["mgmId"] = mgtId,
+                ["import_id_start"] = relImpId,
+                ["import_id_end"] = relImpId,
+                ["marker"] = $"%{userConfig.ModModelledMarker}%"
             };
 
             string query = userConfig.ModModelledMarkerLocation switch
@@ -199,7 +200,38 @@ namespace FWO.Services.Modelling
                 _ => throw new NotSupportedException("invalid or undefined Marker Location")
             };
 
-            return await apiConnection.SendQueryAsync<List<Rule>>(query, markerVariables);
+            return await SendPagedRuleQuery(query, markerVariables);
+        }
+
+        /// <summary>
+        /// Loads the result of a rule query page by page. The rule fragments expand the flattened group
+        /// members of every referenced object, so a single unpaged response grows with rulebase size times
+        /// group size and can reach a size the transport does not deliver (#5301). Paging bounds each
+        /// response by the page size instead. All pages are read for the same import, so the result is
+        /// the same as that of one unpaged query - provided the query selects the rules by the import id
+        /// window only. A filter on a flag an import changes in place, like active, would let a concurrent
+        /// import shrink the rule set between two pages and skip rules at the page borders.
+        /// </summary>
+        /// <param name="query">Rule query accepting $limit and $offset, with a total order on its result
+        /// and a rule set that does not change while its pages are read.</param>
+        /// <param name="variables">Query variables without limit and offset, which are set here.</param>
+        /// <returns>All rules matching the query.</returns>
+        private async Task<List<Rule>> SendPagedRuleQuery(string query, Dictionary<string, object?> variables)
+        {
+            int pageSize = userConfig.ElementsPerFetch > 0 ? userConfig.ElementsPerFetch : kDefaultRulesPerFetch;
+            List<Rule> allRules = [];
+            int offset = 0;
+            List<Rule> page;
+            do
+            {
+                variables["limit"] = pageSize;
+                variables["offset"] = offset;
+                page = await apiConnection.SendQueryAsync<List<Rule>>(query, variables) ?? [];
+                allRules.AddRange(page);
+                offset += pageSize;
+            }
+            while (page.Count == pageSize);
+            return allRules;
         }
 
         /// <summary>
@@ -547,7 +579,7 @@ namespace FWO.Services.Modelling
             {
                 Dictionary<string, object?> ruleVariables = BuildNameFieldRuleOwnerRuleVariables(mgtId, relImpId, includeActive: true);
 
-                return await apiConnection.SendQueryAsync<List<Rule>>(RuleQueries.getModelledRulesByRuleOwnerNameField, ruleVariables) ?? [];
+                return await SendPagedRuleQuery(RuleQueries.getModelledRulesByRuleOwnerNameField, ruleVariables);
             }
             catch (Exception exception)
             {

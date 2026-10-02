@@ -165,7 +165,7 @@ jobs:
             sleep $((attempt * 30))
           done
           dotnet build roles/FWO.sln --configuration Debug --no-incremental
-          .sonar/scanner/dotnet-coverage collect \
+          .sonar/scanner/dotnet-coverage collect --settings FWO.coverage.settings \
             "dotnet test roles/tests-unit/files/FWO.Test/FWO.Test.csproj --configuration Debug --no-build --settings FWO.default.runsettings" \
             -f xml \
             -o coverage.xml

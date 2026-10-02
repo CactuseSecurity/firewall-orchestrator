@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.5.7"
+product_version: "9.5.10"
 # Reserved exclusively for unallocated development migrations. It sorts after
 # released versions so those migrations run in installer tests, but an upgrade
 # from this marker back to a release is permitted.

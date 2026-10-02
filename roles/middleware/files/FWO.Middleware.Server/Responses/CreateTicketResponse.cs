@@ -3,9 +3,9 @@ using System.Text.Json.Serialization;
 namespace FWO.Middleware.Server.Responses;
 
 /// <summary>
-/// Represents the CreateRequestResponse type.
+/// Represents the CreateTicketResponse type.
 /// </summary>
-public sealed class CreateRequestResponse
+public sealed class CreateTicketResponse
 {
     /// <summary>
     /// Gets the Status value.
@@ -14,8 +14,8 @@ public sealed class CreateRequestResponse
     public string Status { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets the RequestId value.
+    /// Gets the TicketId value.
     /// </summary>
-    [JsonPropertyName("requestId")]
-    public long RequestId { get; set; }
+    [JsonPropertyName("ticketId")]
+    public long TicketId { get; set; }
 }

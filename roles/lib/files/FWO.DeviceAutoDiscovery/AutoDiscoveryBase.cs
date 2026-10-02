@@ -125,7 +125,9 @@ namespace FWO.DeviceAutoDiscovery
         {
             if (compareManagementsByUid)
             {
-                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm));
+                // fall back to ADOM name if the ADOM UID changed on the FortiManager
+                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm))
+                    ?? mgmtList.FirstOrDefault(m => ManagementConfigPathMatches(m, mgm));
             }
 
             Management? existingManagement = mgmtList.FirstOrDefault(m => m.Equals(mgm));
@@ -144,6 +146,16 @@ namespace FWO.DeviceAutoDiscovery
             return !string.IsNullOrEmpty(first.Uid) &&
                    !string.IsNullOrEmpty(second.Uid) &&
                    first.Uid.GenerousCompare(second.Uid) &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM name (config path) within the same super manager.
+        /// </summary>
+        private static bool ManagementConfigPathMatches(Management first, Management second)
+        {
+            return !string.IsNullOrEmpty(first.ConfigPath) &&
+                   first.ConfigPath == second.ConfigPath &&
                    first.SuperManagerId == second.SuperManagerId;
         }
 

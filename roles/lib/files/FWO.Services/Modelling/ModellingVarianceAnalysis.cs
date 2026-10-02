@@ -58,7 +58,7 @@ namespace FWO.Services.Modelling
         /// Cancels a wait for the rule_owner mapping job, for instance when the user navigates away.
         /// Callers without a token leave the default, which never cancels.
         /// </summary>
-        public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
+        public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
         /// Writes a fall back from the rule_owner prefilter to the marker query into the database log.
@@ -83,11 +83,12 @@ namespace FWO.Services.Modelling
         /// out instead of falling back to the much slower marker query. The background job leaves it
         /// false.
         /// </param>
-        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections, bool allowWait = false)
+        /// <param name="cancellationToken">Stops the whole analysis, for instance on middleware shutdown.</param>
+        public async Task AnalyseConnsForStatus(List<ModellingConnection> connections, bool allowWait = false, CancellationToken cancellationToken = default)
         {
             connections = [.. connections.Where(x => !x.IsDocumentationOnly())];
-            varianceResult = await AnalyseRulesVsModelledConnections(connections, new() { AllowWaitForRuleOwnerMapping = allowWait }, false);
-            await GetNwObjectsProductionState();
+            varianceResult = await AnalyseRulesVsModelledConnections(connections, new() { AllowWaitForRuleOwnerMapping = allowWait }, false, cancellationToken: cancellationToken);
+            await GetNwObjectsProductionState(cancellationToken);
             foreach (var conn in connections)
             {
                 conn.AddProperty(ConState.VarianceChecked.ToString());
@@ -146,15 +147,23 @@ namespace FWO.Services.Modelling
             return false;
         }
 
-        public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections)
+        public async Task<bool> AnalyseConnsForStatusAsync(List<ModellingConnection> connections, CancellationToken cancellationToken = default)
         {
             try
             {
-                await AnalyseConnsForStatus(connections);
+                cancellationToken.ThrowIfCancellationRequested();
+                await AnalyseConnsForStatus(connections, cancellationToken: cancellationToken);
+                // a stopped analysis has incomplete results, which must not be written as connection status
+                cancellationToken.ThrowIfCancellationRequested();
                 foreach (var conn in connections)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     await UpdateConnectionStatus(conn);
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception exc)
             {
@@ -165,17 +174,17 @@ namespace FWO.Services.Modelling
         }
 
         public async Task<ModellingVarianceResult> AnalyseRulesVsModelledConnections(List<ModellingConnection> connections,
-            ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false)
+            ModellingFilter modellingFilter, bool fullAnalysis = true, bool ignoreGroups = false, CancellationToken cancellationToken = default)
         {
             await InitManagements();
             await LoadAreas();
             varianceResult = new() { Managements = RelevantManagements };
             if (ruleRecognitionOption.NwSeparateGroupAnalysis && fullAnalysis && !ignoreGroups)
             {
-                await GetNwObjectsProductionState();
+                await GetNwObjectsProductionState(cancellationToken);
                 PreAnalyseAllAppRoles(connections);
             }
-            if (await GetModelledRulesProductionState(modellingFilter))
+            if (await GetModelledRulesProductionState(modellingFilter, cancellationToken))
             {
                 foreach (var conn in connections.Where(c => !c.IsInterface).OrderBy(c => c.Id))
                 {
@@ -197,13 +206,14 @@ namespace FWO.Services.Modelling
         /// <param name="allowWait">
         /// True where somebody waits for the result, see <see cref="AnalyseConnsForStatus"/>.
         /// </param>
-        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections, bool allowWait = false)
+        /// <param name="cancellationToken">Stops the whole analysis, see <see cref="AnalyseConnsForStatus"/>.</param>
+        public async Task<List<WfReqTask>> AnalyseModelledConnectionsForRequest(List<ModellingConnection> connections, bool allowWait = false, CancellationToken cancellationToken = default)
         {
             appServerComparer = new(namingConvention);
             await InitManagements();
             await LoadAreas();
-            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait });
-            await GetNwObjectsProductionState();
+            await GetModelledRulesProductionState(new() { AnalyseRemainingRules = false, AllowWaitForRuleOwnerMapping = allowWait }, cancellationToken);
+            await GetNwObjectsProductionState(cancellationToken);
             await GetDeletedConnections();
 
             TaskList = [];

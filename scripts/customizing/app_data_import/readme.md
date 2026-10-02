@@ -72,14 +72,33 @@ python3 generate_owner_data.py 10 /path/to/app-data.json --reverse-dns-resolvabl
 
 `--no-reverse-dns-resolvable` explicitly selects the default private test network.
 
-## Generate matching app and log data
+## Generate test area IP data
 
-`../generate_app_and_log_data.py` generates both normalized app-data JSON and compatible log-data
-JSON in one command. By default it creates one log flow per generated application; every log
-`app_id` and `destination` matches that application's `app_id_external` and server IP in the app-data output.
+`../area_ip_data_import/generate_area_ip_data.py` creates area IP data JSON in the format imported by
+the area IP data import (ImportIpDataJob). It reads an app-data JSON file and distributes its app
+servers over `--area-count` areas (default 3) named `Generated Area 1`, `Generated Area 2`, ... with
+the id strings `NA01`, `NA02`, ... Consecutive servers share an area, and every server becomes a subnet
+named after the server. A server range which is not a single network is split into several subnets.
 
 ```bash
-python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.json
+python3 ../area_ip_data_import/generate_area_ip_data.py /path/to/app-data.json /path/to/area-ip-data.json --area-count 5
+```
+
+To import the file, enter its path without the `.json` extension in Settings - Further Settings -
+Modelling - "Path and Name of Subnet data import". The import replaces the complete area data:
+areas which exist in FWORCH but not in the imported files are deleted. The script refuses to replace
+an existing output file unless `--overwrite` is supplied.
+
+## Generate matching app, log and area IP data
+
+`../generate_app_and_log_data.py` generates normalized app-data JSON, compatible log-data JSON and
+area IP data JSON in one command. By default it creates one log flow per generated application; every
+log `app_id` and `destination` matches that application's `app_id_external` and server IP in the
+app-data output. The area IP data covers the generated app servers as described above; use
+`--area-count` to choose the number of areas.
+
+```bash
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.json /path/to/area-ip-data.json
 ```
 
 Unlike `generate_owner_data.py`, this script uses reverse DNS resolvable server addresses by default
@@ -89,17 +108,17 @@ limits the number of applications to the resolvable candidates (at most 32). Use
 network instead:
 
 ```bash
-python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json --no-reverse-dns-resolvable
+python3 ../generate_app_and_log_data.py 500 /path/to/app-data.json /path/to/log-data.json /path/to/area-ip-data.json --no-reverse-dns-resolvable
 ```
 
 Use `--log-count` to create a different number of flows. Additional flows are assigned round-robin
-across the generated applications. The script refuses to overwrite either output file unless
+across the generated applications. The script refuses to overwrite any of the output files unless
 `--overwrite` is supplied.
 
 Use `--log-format csv` to write the log data as CSV instead:
 
 ```bash
-python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.csv --log-format csv
+python3 ../generate_app_and_log_data.py 20 /path/to/app-data.json /path/to/log-data.csv /path/to/area-ip-data.json --log-format csv
 ```
 
 The default JSON output has a `logs` array. Each entry contains the matching `app_id` and

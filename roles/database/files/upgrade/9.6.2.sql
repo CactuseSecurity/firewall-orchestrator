@@ -15,3 +15,16 @@ CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
 CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);
 
 GRANT SELECT ON logging.ip_metadata TO fwo_ro;
+
+-- the area IP data conversion script was renamed from convertNwObjDataFromGit to
+-- convert_area_ip_data_from_git. The installer removes the old file, so a configured import source
+-- pointing at the delivered script is moved to the new name. Only paths of the delivered script are
+-- changed, a copy elsewhere keeps its configured name. Repeated runs find nothing left to replace.
+UPDATE config
+SET config_value = regexp_replace(
+        config_value,
+        '/scripts/customizing/area_ip_data_import/convertNwObjDataFromGit(\.py|\.json)?"',
+        '/scripts/customizing/area_ip_data_import/convert_area_ip_data_from_git\1"',
+        'g')
+WHERE config_key = 'importSubnetDataPath'
+    AND strpos(config_value, '/scripts/customizing/area_ip_data_import/convertNwObjDataFromGit') > 0;

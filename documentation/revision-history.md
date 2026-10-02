@@ -9,6 +9,11 @@
   applications of every owner it belongs to. An address the log entries no longer refer to loses
   its metadata with the next import run, so the enrichment does not outlive the configured log
   data retention.
+- rename the area IP data conversion script convertNwObjDataFromGit.py to
+  convert_area_ip_data_from_git.py. The upgrade removes the old file and moves a configured subnet
+  data import source pointing at the delivered script to the new name.
+- add generate_area_ip_data.py, which generates sample area IP data covering the app servers of an
+  app-data file; generate_app_and_log_data.py now also writes this area IP data file.
 
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides

@@ -2,6 +2,9 @@
 
 ## 9.6.1 - 01.10.2026
 
+- add a management rulebases view to the rules report: select start rulebases per management instead of
+  gateways (including rulebases without a gateway link); each selected rulebase is reported with the
+  rulebases linked from it for the gateways using it
 - make the default rules report view (gateway rules or management rulebases) configurable globally
   and personally; personal settings take precedence and saved report templates retain their view
 - seed the global default as gateway-based for fresh installations and upgrades, preserving an

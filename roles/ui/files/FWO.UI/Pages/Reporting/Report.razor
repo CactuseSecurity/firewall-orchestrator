@@ -102,10 +102,7 @@
             {
                 <div class="p-3">
                     <h5>@userConfig.GetText("rules_view")</h5>
-                    <select class="form-select form-select-sm" value="@(actReportFilters.ManagementRulebaseView ? "true" : "false")" @onchange="RulesViewChanged">
-                        <option value="false">@userConfig.GetText("gateway_rules_view")</option>
-                        <option value="true">@userConfig.GetText("management_rulebases_view")</option>
-                    </select>
+                    <RulesViewSelect ManagementRulebaseView="actReportFilters.ManagementRulebaseView" ManagementRulebaseViewChanged="RulesViewChanged" />
                 </div>
             }
             @if (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView)
@@ -304,11 +301,20 @@
     /// <summary>
     /// Switches the rules report between gateway rules view and management rulebases view.
     /// </summary>
-    /// <param name="args">change event of the rules view selection ("true" = management rulebases view)</param>
-    private async Task RulesViewChanged(ChangeEventArgs args)
+    /// <param name="managementView">true for the management rulebases view</param>
+    private async Task RulesViewChanged(bool managementView)
     {
-        actReportFilters.ManagementRulebaseView = bool.TryParse(args.Value?.ToString(), out bool managementView) && managementView;
-        if (actReportFilters.ManagementRulebaseView)
+        actReportFilters.ManagementRulebaseView = managementView;
+        await EnsureRulebaseManagementsLoadedIfShown();
+    }
+
+    /// <summary>
+    /// Loads the start rulebases as soon as the Rules report is shown in management rulebases view,
+    /// e.g. by the configured default view, a report type change or a view change.
+    /// </summary>
+    private async Task EnsureRulebaseManagementsLoadedIfShown()
+    {
+        if (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView)
         {
             await EnsureRulebaseManagementsLoaded();
         }
@@ -459,6 +465,7 @@
             }
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            await EnsureRulebaseManagementsLoadedIfShown();
             if(parsedAppId != null && reportVisibility.ModellingRelated)
             {
                 owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = parsedAppId.Value });
@@ -487,7 +494,7 @@
         }
     }
 
-    private void ReportTypeChanged(ReportType newReportType)
+    private async Task ReportTypeChanged(ReportType newReportType)
     {
         try
         {
@@ -503,6 +510,7 @@
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();
+            await EnsureRulebaseManagementsLoadedIfShown();
             ResetReport();
             RefreshAvailableOwnerAddInfoNames();
             StateHasChanged();

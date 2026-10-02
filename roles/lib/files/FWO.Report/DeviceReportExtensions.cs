@@ -4,9 +4,12 @@ namespace FWO.Report
 {
     public static class DeviceReportExtensions
     {
+        /// <summary>
+        /// Checks whether the device has rulebase links and therefore rules to report.
+        /// </summary>
         public static bool ContainsRules(this DeviceReport device)
         {
-            return device.RulebaseLinks != null && device.RulebaseLinks.Any();
+            return device.RulebaseLinks != null && device.RulebaseLinks.Length > 0;
         }
 
         public static bool ContainsRules(this ManagementReport management)

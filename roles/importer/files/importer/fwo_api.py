@@ -5,7 +5,7 @@ import string
 import time
 import traceback
 from pprint import pformat
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import fwo_config
 import requests
@@ -354,12 +354,14 @@ class FwoApi:
     def _handle_chunked_calls_response_with_return_data(
         self, return_object: dict[str, Any], new_return_object_type: str, new_return_object: dict[str, Any] | list[Any]
     ) -> None:
-        total_affected_rows = 0
-        returning_data: list[dict[str, Any]] = []
-
         self._try_write_extended_log(
             message=f"Handling chunked calls response for type '{new_return_object_type}' with data: {pformat(new_return_object)}"
         )
+
+        # list-valued fields (query rows or the per-update results of *_many mutations) keep the unchunked shape
+        if isinstance(new_return_object, list):
+            self._merge_chunked_list_results(return_object, new_return_object_type, new_return_object)
+            return
 
         if not isinstance(return_object["data"].get(new_return_object_type), dict):
             return_object["data"][new_return_object_type] = {}
@@ -370,14 +372,8 @@ class FwoApi:
                 message=f"Initialized return_object['data']['{new_return_object_type}'] as an empty dict: {pformat(return_object['data'][new_return_object_type])}"
             )
 
-        # If the return object is a list we need to sum the affected rows and accumuluate the returning data, else we can set the values directly.
-
-        if isinstance(new_return_object, list):
-            returning_data = [obj.get("returning", []) for obj in new_return_object if "returning" in obj]
-            total_affected_rows = sum(obj.get("affected_rows", 0) for obj in new_return_object)
-        else:
-            total_affected_rows = new_return_object.get("affected_rows", 0)
-            returning_data = new_return_object.get("returning", [])
+        total_affected_rows: int = new_return_object.get("affected_rows", 0)
+        returning_data: list[dict[str, Any]] = new_return_object.get("returning", [])
 
         return_object["data"][new_return_object_type]["affected_rows"] += total_affected_rows
 
@@ -387,6 +383,22 @@ class FwoApi:
             )
 
             return_object["data"][new_return_object_type]["returning"].extend(returning_data)
+
+    def _merge_chunked_list_results(
+        self, return_object: dict[str, Any], new_return_object_type: str, new_rows: list[Any]
+    ) -> None:
+        """
+        Appends the list-valued result of a chunk to the list of the previous chunks.
+        """
+        existing_rows: Any = return_object["data"].get(new_return_object_type)
+        if isinstance(existing_rows, list):
+            cast("list[Any]", existing_rows).extend(new_rows)
+        else:
+            return_object["data"][new_return_object_type] = list(new_rows)
+
+        self._try_write_extended_log(
+            message=f"Appended {len(new_rows)} rows to return_object['data']['{new_return_object_type}']"
+        )
 
     def _post_query(self, session: requests.Session, query_payload: dict[str, Any]) -> dict[str, Any]:
         """

@@ -35,8 +35,10 @@ namespace FWO.Services
         /// </summary>
         /// <param name="eventArgs">Arguments of the triggering event.</param>
         /// <returns>True if the disabled mapping state was established successfully.</returns>
-        public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null)
+        /// <param name="cancellationToken">Stops before the mappings are removed.</param>
+        public override async Task<bool> RunAsync(UpdateRuleOwnerMappingEventArgs? eventArgs = null, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             // this source does not use UpdateRuleOwners, so the change note of the triggering save would
             // otherwise be lost and switching the mapping off would look like drift
             TakeOverEventArgs(eventArgs);

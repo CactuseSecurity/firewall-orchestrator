@@ -11,22 +11,22 @@
     @if (WfHandler.PlanReqTaskMode)
     {
         <div class="btn-group">
-            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
+            <button type="button" class="btn btn-success" @onclick:preventDefault @onclick="AddImplTask">
                 @(DisplayService.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
             @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
-                <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
+                <button type="button" class="btn btn-success" @onclick:preventDefault @onclick="CheckImplTasks">
                     @(DisplayService.DisplayButton(userConfig, "check_impltasks", Icons.Check))</button>
-                <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
+                <button type="button" class="btn btn-warning" @onclick:preventDefault @onclick="AutocreateImplTasks">
                     @(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
                 @if(WfHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
-                    <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
+                    <button type="button" class="btn btn-danger" @onclick:preventDefault @onclick="CleanupImplTasks">
                         @(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-danger m-2" disabled>
+                    <button type="button" class="btn btn-danger" disabled>
 						@(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
             }

@@ -567,6 +567,8 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
+    <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
     <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.1 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
     <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
     <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
@@ -575,6 +577,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
+    <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
     <li>The middleware job scheduler was upgraded to Quartz.NET 4.1, together with updated libraries for, among others, email delivery and PDF generation.</li>
     <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
     <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
@@ -659,6 +663,22 @@ INSERT INTO txt VALUES ('report',		        'German', 	'Report');
 INSERT INTO txt VALUES ('report',		        'English', 	'Report');
 INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
+INSERT INTO txt VALUES ('default_rules_view', 'German', 'Standard-Regelansicht');
+INSERT INTO txt VALUES ('default_rules_view', 'English', 'Default rules view');
+INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
+INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
+INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
+INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
+INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
+INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
+INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
+INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
+INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'German', 'Bereits oben aufgef&uuml;hrt');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'English', 'Already listed above');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
 INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
@@ -1263,10 +1283,10 @@ INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
 INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
-INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt Kat.');
-INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Cat.');
-INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service Kat.');
-INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Cat.');
+INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt-Katalog');
+INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Catalog');
+INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service-Katalog');
+INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Catalog');
 INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
 INSERT INTO txt VALUES ('view', 			    'English', 	'View');
 INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
@@ -5582,6 +5602,8 @@ INSERT INTO txt VALUES ('H1525', 'German',  'Nur beim Report Eigent&uuml;mer: St
 INSERT INTO txt VALUES ('H1525', 'English', 'Only for Owners report: State and Criticality: These fields restrict the displayed owners to the selected lifecycle state and selected criticality. The default value "all" leaves the respective filter inactive.');
 INSERT INTO txt VALUES ('H1526', 'German',  'Nur beim Report Eigent&uuml;mer-Recertification und in den Berichtsvorlagen: Zus. Info w&auml;hlt einen Schl&uuml;ssel aus den Zusatzinformationen der Eigent&uuml;mer. Im Dialog kann der ausgew&auml;hlte Schl&uuml;ssel nur angezeigt oder als Filter auf Existenz, Nicht-Existenz oder einen exakten Wert verwendet werden.');
 INSERT INTO txt VALUES ('H1526', 'English', 'Only for Owner Recertification and in report templates: Add. Info selects a key from the owner additional information. In the dialog the selected key can be displayed only or used as a filter for existence, non-existence, or an exact value.');
+INSERT INTO txt VALUES ('H1527', 'German',  'Im Regel-Report legt die Regelansicht fest, ob die Regeln nach Gateway oder direkt nach Management-Regelwerk angezeigt werden. In der Management-Ansicht w&auml;hlen Sie statt Gateways unterhalb jedes Managements dessen Start-Regelwerke aus (auch solche ohne Gateway-Verkn&uuml;pfung). Jedes ausgew&auml;hlte Regelwerk wird wie ein Gateway als Regelbaum mit den davon aus verkn&uuml;pften Regelwerken (Layer, Inline-Layer und Sections) angezeigt; nutzen Gateways das Regelwerk mit unterschiedlichen Folge-Layern, erscheint je Variante ein eigener Baum. Ein Regelwerk, das bereits in einem vorherigen Baum vollst&auml;ndig aufgef&uuml;hrt ist, erscheint nur als Zeile mit einem Link auf diesen Baum.');
+INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view chooses between gateway rules and management rulebases. In the management view, select start rulebases below each management instead of gateways (including rulebases without a gateway link). Each selected rulebase is shown like a gateway as a rule tree with the rulebases linked from it (layers, inline layers and sections); if gateways use it with different following layers, each variant gets its own tree. A rulebase already listed completely in an earlier tree only appears as a row linking to that tree.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
@@ -6872,6 +6894,8 @@ INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
 INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt Empf&auml;nger und Zeitplan der Benachrichtigungen fest. Der Text aus den Einstellungen f&uuml;r anstehende bzw. &uuml;berf&auml;llige Rezertifizierungen wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt. Die Eigent&uuml;mer-Rezertifizierungstabelle wird unabh&auml;ngig davon erzeugt: Bei HtmlInBody wird sie an den Emailtext angeh&auml;ngt, bei einem Anhang-Layout als Datei angeh&auml;ngt.');
 INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines the recipients and schedule of the notifications. The text from the upcoming or overdue recertification settings is inserted as @@CONTENT@@ into the notification body. The owner recertification table is generated independently: HtmlInBody appends it to the email body; an attachment layout sends it as a file.');
+INSERT INTO txt VALUES ('H5460', 'German',  'Legt fest, ob neue Regeln-Reports Gateway-Regeln oder Management-Regelwerke anzeigen. Die pers&ouml;nliche Einstellung hat Vorrang vor dem globalen Standard. Gespeicherte Report-Vorlagen behalten ihre eigene Ansicht. Die Ansicht kann im Report weiterhin ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H5460', 'English', 'Selects whether new rules reports show gateway rules or management rulebases. The personal setting overrides the global default. Saved report templates keep their own view. The view can still be changed in the report.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>

@@ -353,6 +353,19 @@ http_proxy_import_parameter: ""
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
 # OS 
+# The oldest supported major release per distribution (as in ansible_facts['distribution']),
+# enforced by roles/common/tasks/validate-os-platform.yml before the installer changes the
+# host. Distributions not listed here are refused, Ubuntu is accepted on LTS releases only,
+# and Debian testing/unstable (no release number) are accepted as newer than any stable
+# release. Keep documentation/installer/basic-installation.md in sync.
+supported_os_minimum_major_versions:
+  Debian: 12
+  Ubuntu: 22
+  RedHat: 9
+  Rocky: 9
+# Install on an unsupported operating system release anyway, with a warning instead of the
+# failure - for development and for testing new releases only.
+allow_unsupported_os: false
 debian_testing_version: "12"
   # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
 debian_testing_release_name: trixie

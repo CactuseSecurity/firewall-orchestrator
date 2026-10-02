@@ -424,7 +424,7 @@ def test_source_boms_writes_all_source_layers(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    paths = generate_sbom.source_boms(repo_root, output_dir, "debian-testing")
+    paths = generate_sbom.source_boms(repo_root, output_dir, "debian-testing", "9.5.10")
 
     assert [path.name for path in paths] == [
         "fwo-dotnet.cdx.json",
@@ -433,6 +433,9 @@ def test_source_boms_writes_all_source_layers(tmp_path: Path) -> None:
         "fwo-ansible.cdx.json",
     ]
     assert all(path.exists() for path in paths)
+    assert all(
+        json.loads(path.read_text(encoding="utf-8"))["metadata"]["component"]["version"] == "9.5.10" for path in paths
+    )
 
 
 def test_installed_boms_writes_os_and_container_layers(tmp_path: Path) -> None:
@@ -451,12 +454,15 @@ def test_installed_boms_writes_os_and_container_layers(tmp_path: Path) -> None:
         ),
         patch.object(generate_sbom, "component_from_container_inspect", fake_component_from_container_inspect),
     ):
-        paths = generate_sbom.installed_boms(tmp_path, "debian-testing", "hasura")
+        paths = generate_sbom.installed_boms(tmp_path, "debian-testing", "hasura", "9.5.10")
 
     assert [path.name for path in paths] == [
         "fwo-os-debian.cdx.json",
         "fwo-containers.cdx.json",
     ]
+    assert all(
+        json.loads(path.read_text(encoding="utf-8"))["metadata"]["component"]["version"] == "9.5.10" for path in paths
+    )
 
 
 def test_installed_boms_skips_container_layer_without_components(tmp_path: Path) -> None:
@@ -530,11 +536,26 @@ def test_write_and_merge_boms(tmp_path: Path) -> None:
         {"fwo:mode": "test"},
     )
 
-    combined = generate_sbom.merge_boms(tmp_path, [first, second], "debian-testing")
+    combined = generate_sbom.merge_boms(tmp_path, [first, second], "debian-testing", "9.5.10")
     combined_data = json.loads(combined.read_text(encoding="utf-8"))
 
-    assert combined_data["metadata"]["component"]["name"] == "Firewall Orchestrator"
+    assert combined_data["metadata"]["component"] == {
+        "type": "application",
+        "name": "Firewall Orchestrator",
+        "version": "9.5.10",
+        "bom-ref": "application:Firewall Orchestrator:9.5.10",
+    }
     assert len(combined_data["components"]) == 1
+
+
+def test_write_bom_omits_unknown_product_version(tmp_path: Path) -> None:
+    bom_path = generate_sbom.write_bom(tmp_path, "unversioned.cdx.json", "unversioned", [], {})
+
+    assert json.loads(bom_path.read_text(encoding="utf-8"))["metadata"]["component"] == {
+        "type": "application",
+        "name": "unversioned",
+        "bom-ref": "application:unversioned:unknown",
+    }
 
 
 def test_merge_input_paths_can_include_existing_output_files(tmp_path: Path) -> None:
@@ -635,6 +656,8 @@ def test_parse_args_reads_cli_options(tmp_path: Path) -> None:
             "ubuntu-2404",
             "--container",
             "hasura",
+            "--product-version",
+            "9.5.10",
             "--merge",
             "--merge-existing",
         ],
@@ -646,6 +669,7 @@ def test_parse_args_reads_cli_options(tmp_path: Path) -> None:
     assert args.output_dir == tmp_path / "out"
     assert args.reference_platform == "ubuntu-2404"
     assert args.container == "hasura"
+    assert args.product_version == "9.5.10"
     assert args.merge is True
     assert args.merge_existing is True
 
@@ -654,10 +678,14 @@ def test_main_writes_selected_boms(tmp_path: Path) -> None:
     source_path = tmp_path / "fwo-sbom-details/source.cdx.json"
     combined_path = tmp_path / "combined.cdx.json"
 
-    def fake_source_boms(_repo: Path, _output: Path, _platform: str) -> list[Path]:
+    product_versions: list[str | None] = []
+
+    def fake_source_boms(_repo: Path, _output: Path, _platform: str, product_version: str | None) -> list[Path]:
+        product_versions.append(product_version)
         return [source_path]
 
-    def fake_merge_boms(_output: Path, _paths: list[Path], _platform: str) -> Path:
+    def fake_merge_boms(_output: Path, _paths: list[Path], _platform: str, product_version: str | None) -> Path:
+        product_versions.append(product_version)
         return combined_path
 
     def fake_merge_input_paths(_output: Path, paths: list[Path], _include_existing: bool) -> list[Path]:
@@ -665,7 +693,20 @@ def test_main_writes_selected_boms(tmp_path: Path) -> None:
 
     stdout = StringIO()
     with (
-        patch.object(sys, "argv", ["generate_sbom.py", "--mode", "source", "--output-dir", str(tmp_path), "--merge"]),
+        patch.object(
+            sys,
+            "argv",
+            [
+                "generate_sbom.py",
+                "--mode",
+                "source",
+                "--output-dir",
+                str(tmp_path),
+                "--product-version",
+                "9.5.10",
+                "--merge",
+            ],
+        ),
         patch.object(sys, "stdout", stdout),
         patch.object(generate_sbom, "source_boms", fake_source_boms),
         patch.object(generate_sbom, "merge_boms", fake_merge_boms),
@@ -674,6 +715,7 @@ def test_main_writes_selected_boms(tmp_path: Path) -> None:
         assert generate_sbom.main() == 0
 
     assert stdout.getvalue() == f"{source_path}\n{combined_path}\n"
+    assert product_versions == ["9.5.10", "9.5.10"]
 
 
 def test_main_writes_details_under_output_dir(tmp_path: Path) -> None:

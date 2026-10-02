@@ -56,11 +56,14 @@ jobs:
 
       - name: Generate source SBOMs
         if: steps.validate.outputs.stable == 'true'
+        env:
+          TAG_NAME: ${{ steps.validate.outputs.tag }}
         run: |
           python scripts/sbom/generate_sbom.py \
             --mode source \
             --output-dir sbom \
             --reference-platform debian-testing \
+            --product-version "${TAG_NAME#v}" \
             --merge
 
       - name: Attach SBOMs to release

@@ -64,6 +64,8 @@
       - "{{ sbom_controller_source_dir }}/{{ inventory_hostname }}"
       - "--reference-platform"
       - "{{ sbom_reference_platform }}"
+      - "--product-version"
+      - "{{ product_version }}"
   delegate_to: localhost
   become: false
   changed_when: true
@@ -95,6 +97,7 @@
       --output-dir {{ sbom_output_dir | quote }}
       --reference-platform {{ sbom_reference_platform | quote }}
       --container {{ api_container_name | quote }}
+      --product-version {{ product_version | quote }}
       --merge
       --merge-existing
     executable: "{{ ansible_python_interpreter }}"
@@ -116,6 +119,7 @@
     patterns: "fwo-combined.cdx.json"
     file_type: file
   register: sbom_generated_files
+  become: true
   when: sbom_fetch_to_controller|bool
 
 - name: fetch combined SBOM file to controller
@@ -124,6 +128,7 @@
     dest: "{{ sbom_controller_output_dir }}/{{ inventory_hostname }}/"
     flat: true
   loop: "{{ sbom_generated_files.files }}"
+  become: true
   when: sbom_fetch_to_controller|bool
 
 - name: ensure local detailed SBOM collection directory exists
@@ -141,6 +146,7 @@
     patterns: "*.cdx.json"
     file_type: file
   register: sbom_generated_detail_files
+  become: true
   when: sbom_fetch_to_controller|bool
 
 - name: fetch detailed SBOM files to controller
@@ -149,4 +155,5 @@
     dest: "{{ sbom_controller_output_dir }}/{{ inventory_hostname }}/fwo-sbom-details/"
     flat: true
   loop: "{{ sbom_generated_detail_files.files }}"
+  become: true
   when: sbom_fetch_to_controller|bool

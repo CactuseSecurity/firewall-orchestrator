@@ -142,7 +142,12 @@ def deduplicate_components(components: Iterable[Component]) -> list[Component]:
 
 
 def write_bom(
-    output_dir: Path, filename: str, name: str, components: Iterable[Component], properties: dict[str, str]
+    output_dir: Path,
+    filename: str,
+    name: str,
+    components: Iterable[Component],
+    properties: dict[str, str],
+    product_version: str | None = None,
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     sorted_components = sorted(deduplicate_components(components), key=lambda component: component.key())
@@ -153,7 +158,7 @@ def write_bom(
         "version": 1,
         "metadata": {
             "timestamp": now_timestamp(),
-            "component": {"type": "application", "name": name},
+            "component": Component(name=name, version=product_version, component_type="application").to_cyclonedx(),
             "properties": [{"name": key, "value": value} for key, value in sorted(properties.items())],
         },
         "components": [component.to_cyclonedx() for component in sorted_components],
@@ -430,7 +435,9 @@ def component_from_container_inspect(runtime: str, image_or_container: str) -> C
     return component_from_image_item(runtime, image_reference, image_item, {"fwo:container-name": image_or_container})
 
 
-def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> list[Path]:
+def source_boms(
+    repo_root: Path, output_dir: Path, reference_platform: str, product_version: str | None = None
+) -> list[Path]:
     properties = {PROPERTY_MODE: "source", PROPERTY_REFERENCE_PLATFORM: reference_platform}
     return [
         write_bom(
@@ -439,6 +446,7 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
             "Firewall Orchestrator .NET",
             components_from_csproj(repo_root),
             properties,
+            product_version,
         ),
         write_bom(
             output_dir,
@@ -446,6 +454,7 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
             "Firewall Orchestrator Python Importer",
             components_from_requirements(repo_root / "roles/importer/files/importer/requirements.txt"),
             properties,
+            product_version,
         ),
         write_bom(
             output_dir,
@@ -454,6 +463,7 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
             components_from_requirements(repo_root / "scripts/requirements.txt")
             + components_from_requirements(repo_root / "requirements.txt"),
             properties,
+            product_version,
         ),
         write_bom(
             output_dir,
@@ -461,11 +471,14 @@ def source_boms(repo_root: Path, output_dir: Path, reference_platform: str) -> l
             "Firewall Orchestrator Ansible",
             components_from_ansible_requirements(repo_root / "collections/requirements.yml"),
             properties,
+            product_version,
         ),
     ]
 
 
-def os_package_bom(output_dir: Path, os_release: dict[str, str], properties: dict[str, str]) -> Path | None:
+def os_package_bom(
+    output_dir: Path, os_release: dict[str, str], properties: dict[str, str], product_version: str | None = None
+) -> Path | None:
     components = components_from_os_packages(os_release)
     if components is None:
         sys.stderr.write("Neither dpkg-query nor rpm is available, skipping the operating system SBOM layer.\n")
@@ -477,17 +490,20 @@ def os_package_bom(output_dir: Path, os_release: dict[str, str], properties: dic
         f"Firewall Orchestrator {os_release.get('PRETTY_NAME') or distro_id} Host",
         components,
         properties,
+        product_version,
     )
 
 
-def installed_boms(output_dir: Path, reference_platform: str, container: str | None) -> list[Path]:
+def installed_boms(
+    output_dir: Path, reference_platform: str, container: str | None, product_version: str | None = None
+) -> list[Path]:
     os_release = read_os_release()
     properties = os_release_properties(os_release) | {
         PROPERTY_MODE: "installed",
         PROPERTY_REFERENCE_PLATFORM: reference_platform,
     }
     written: list[Path] = []
-    if (os_bom := os_package_bom(output_dir, os_release, properties)) is not None:
+    if (os_bom := os_package_bom(output_dir, os_release, properties, product_version)) is not None:
         written.append(os_bom)
     container_components = [
         component
@@ -503,18 +519,22 @@ def installed_boms(output_dir: Path, reference_platform: str, container: str | N
                 "Firewall Orchestrator Containers",
                 container_components,
                 properties,
+                product_version,
             )
         )
     return written
 
 
-def merge_boms(output_dir: Path, bom_paths: Iterable[Path], reference_platform: str) -> Path:
+def merge_boms(
+    output_dir: Path, bom_paths: Iterable[Path], reference_platform: str, product_version: str | None = None
+) -> Path:
     return write_bom(
         output_dir,
         COMBINED_BOM_FILENAME,
         "Firewall Orchestrator",
         [component for bom_path in bom_paths for component in components_from_bom_path(bom_path)],
         {PROPERTY_MODE: "combined", PROPERTY_REFERENCE_PLATFORM: reference_platform},
+        product_version,
     )
 
 
@@ -584,6 +604,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--reference-platform", default=REFERENCE_PLATFORM)
     parser.add_argument("--container", help="Hasura image or container name to inspect in installed mode")
+    parser.add_argument("--product-version", help="Firewall Orchestrator version the SBOM describes, e.g. 9.5.10")
     parser.add_argument("--merge", action="store_true", help="Write fwo-combined.cdx.json")
     parser.add_argument("--merge-existing", action="store_true", help="Merge existing *.cdx.json files from output dir")
     return parser.parse_args()
@@ -594,15 +615,18 @@ def main() -> int:
     details_output_dir = args.output_dir / DETAILS_DIR_NAME
     written: list[Path] = []
     if args.mode in {"source", "all"}:
-        written.extend(source_boms(args.repo_root, details_output_dir, args.reference_platform))
+        written.extend(source_boms(args.repo_root, details_output_dir, args.reference_platform, args.product_version))
     if args.mode in {"installed", "all"}:
-        written.extend(installed_boms(details_output_dir, args.reference_platform, args.container))
+        written.extend(
+            installed_boms(details_output_dir, args.reference_platform, args.container, args.product_version)
+        )
     if args.merge:
         written.append(
             merge_boms(
                 args.output_dir,
                 merge_input_paths(args.output_dir, written, args.merge_existing),
                 args.reference_platform,
+                args.product_version,
             )
         )
     for path in written:

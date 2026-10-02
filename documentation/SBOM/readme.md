@@ -14,8 +14,14 @@ python3 scripts/sbom/generate_sbom.py \
   --mode source \
   --output-dir documentation/SBOM/generated \
   --reference-platform debian-testing \
+  --product-version 9.5.10 \
   --merge
 ```
+
+`--product-version` sets the version of the main component (`metadata.component`)
+of every generated SBOM, so tools such as Dependency-Track can tell the SBOMs of
+different releases apart. The release workflow passes the release tag (without a
+leading `v`), the installer passes `product_version`.
 
 This creates layered source SBOMs for:
 

@@ -7,9 +7,9 @@
 Both physical and virtual systems are supported
 
 #### For minimal (test) installations
-- 20 GB HDD
+- 50 GB HDD
 - 8 GB RAM
-- 1 CPU
+- 2 CPUs
 
 #### For standard production installations (<1000 rules)
 - 200 GB SSD 
@@ -24,11 +24,12 @@ Both physical and virtual systems are supported
 ### Software Requirements
 
 Supported operating systms: 
-- Ubuntu >=22.04 (LTS only)
-- RHEL 8, 9, 10
-- Debian >=12
+- Debian 12+
+- Ubuntu 22.04+ (LTS only)
+- RHEL 9+
+- Rocky 9+
 
-Recommended: Ubuntu 24.04, Debian 12
+Recommended: Debian 13
 
 ### Requirements Network Connection
 - For software download during installation and upgrade:

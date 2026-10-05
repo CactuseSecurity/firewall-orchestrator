@@ -202,6 +202,21 @@ configured as `development_product_version` in `inventory/group_vars/all.yml`,
 which allows upgrading a test system from it back to a released version. SQL
 already executed is not rolled back, so use disposable test systems only.
 
+An upgrade starting from `999.0.0` runs no upgrade files at all, because the
+installer only runs the files above the installed version. Upgrade such a test
+system in two steps:
+
+1. Upgrade it to exactly the `develop` version its PR branched from, e.g.
+   `9.6.1`. This step runs no upgrade files and only resets the installed
+   version.
+2. Upgrade it from there to any newer version. This step runs every upgrade
+   file from the base version onward, including the PR's own migration under
+   its allocated number.
+
+Upgrading directly from `999.0.0` to a newer version still succeeds. However, it
+silently skips every migration merged after the PR's base version, and later
+upgrades never run them either.
+
 ### Changing the release line
 
 | Command | Allocated version, with `develop` at `9.5.4` |

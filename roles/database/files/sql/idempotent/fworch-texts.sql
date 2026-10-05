@@ -643,8 +643,6 @@ Folgende Kontaktm&ouml;glichkeiten stehen Ihnen zur Verf&uuml;gung:
     <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Feature request auf Github</a></li>
     <li>Telefon: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a></li>
-    <li>Chat: <a href="https://fworch.cactus.de/chat">Support-Chat</a></li>
-    <li>Video/Audio-Call (nach Vereinbarung): <a href="https://conf.cactus.de/fworch">https://conf.cactus.de/fworch</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('support_details',	    'English', 	'
@@ -659,8 +657,6 @@ Choose from the following contact options:
     <li><a href="https://github.com/CactuseSecurity/firewall-orchestrator/issues/new?assignees=&labels=&template=feature_request.md&title=">Open a feature request on Github</a></li>
     <li>Phone: <a href="tel:+496996233675">+49 69 962336-75</a></li>
     <li>Email: <a href="mailto:support@cactus.de">support@cactus.de</a> </li>
-    <li>Chat: <a href="https://fworch.cactus.de/chat">Support chat</a></li>
-    <li>Video/Audio Call (contact us to arrange a time slot): <a href="https://conf.cactus.de/fworch">https://conf.cactus.de/fworch</a></li>
 </ul>
 ');
 

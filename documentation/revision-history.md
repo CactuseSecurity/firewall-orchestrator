@@ -1,4 +1,5 @@
 # Firewall Orchestrator Revision History
+
 ## 9.6.1 - 05.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the

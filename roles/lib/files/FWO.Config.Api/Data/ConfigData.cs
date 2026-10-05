@@ -48,6 +48,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
         public bool AutoFillRightSidebar { get; set; } = false;
 
+        /// <summary>Gets or sets the default management rulebase view for new rules reports.</summary>
+        [JsonProperty("defaultManagementRulebaseView"), JsonPropertyName("defaultManagementRulebaseView"), UserConfigData]
+        public bool DefaultManagementRulebaseView { get; set; } = false;
+
         [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
         public int UnusedTolerance { get; set; } = 400;
 

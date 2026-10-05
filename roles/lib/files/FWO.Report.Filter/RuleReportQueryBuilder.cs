@@ -17,6 +17,7 @@ namespace FWO.Report.Filter
         private const string kDeviceWhereStringStart = $@"where: {{ hide_in_gui: {{_eq: false }},
                                         stm_dev_typ: {{is_pure_routing_device:{{_eq:false}} }}";
         private const string kDeviceWhereStringEnd = $@"}} order_by: {{ dev_name: asc }}";
+        private const string kNoLinksWhereString = "id: { _is_null: true }";
         private const string kLimitOffsetString = $@"limit: $limit
                                         offset: $offset ";
 
@@ -34,13 +35,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
-                        devices ({GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
+                        devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
                             {query.OpenRuleBaseTable}
-                                where: {{ {query.RulebaseLinkWhereStatement} }}
+                                where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
                                 linkType: stm_link_type  {{
                                     name
@@ -62,6 +63,7 @@ namespace FWO.Report.Filter
                             name
                             uid
                             id
+                            {GetIncomingRulebaseLinks(query)}
                             {query.OpenRulesTable}
                                 {kLimitOffsetString}
                                 where: {{ access_rule: {{_eq: true}} {query.RuleWhereStatement} }}
@@ -74,6 +76,48 @@ namespace FWO.Report.Filter
                         }}
                     }}
                 }}";
+        }
+
+        /// <summary>
+        /// Returns the device filter: the selected devices, or in management rulebases view all visible gateways
+        /// (only their names are needed there, for rule trees shared by several gateways).
+        /// </summary>
+        private static string GetDeviceWhereFilter(DynGraphqlQuery query, ReportTemplate filter)
+        {
+            return query.ManagementRulebaseView ? kDeviceWhereStringStart + kDeviceWhereStringEnd : GetDeviceWhereFilter(filter.ReportParams.DeviceFilter);
+        }
+
+        /// <summary>
+        /// Returns the filter for the rulebase links of devices. In management rulebases view the links are taken from the rulebases
+        /// instead, so no device links are fetched.
+        /// </summary>
+        private static string GetDeviceLinkWhereStatement(DynGraphqlQuery query)
+        {
+            return query.ManagementRulebaseView ? kNoLinksWhereString : query.RulebaseLinkWhereStatement;
+        }
+
+        /// <summary>
+        /// Returns the incoming rulebase links needed to follow rulebase chains in management rulebases view.
+        /// </summary>
+        internal static string GetIncomingRulebaseLinks(DynGraphqlQuery query)
+        {
+            if (!query.ManagementRulebaseView)
+            {
+                return "";
+            }
+
+            return $@"rulebase_links(
+                                where: {{ {query.RulebaseLinkWhereStatement} }}
+                            ) {{
+                                gw_id
+                                link_type
+                                is_initial
+                                is_global
+                                is_section
+                                from_rulebase_id
+                                from_rule_id
+                                rule {{ rulebase_id }}
+                            }}";
         }
 
         /// <summary>
@@ -93,13 +137,13 @@ namespace FWO.Report.Filter
                         id: mgm_id
                         uid: mgm_uid
                         name: mgm_name
-                        devices ({GetDeviceWhereFilter(filter.ReportParams.DeviceFilter)})
+                        devices ({GetDeviceWhereFilter(query, filter)})
                         {{
                             id: dev_id
                             name: dev_name
                             uid: dev_uid
                             rulebase_links(
-                                where: {{ {query.RulebaseLinkWhereStatement} }}
+                                where: {{ {GetDeviceLinkWhereStatement(query)} }}
                             ) {{
                                 link_type
                                 is_initial
@@ -116,6 +160,7 @@ namespace FWO.Report.Filter
                         rulebases {{
                             name
                             id
+                            {GetIncomingRulebaseLinks(query)}
                         }}
                     }}
                 }}";

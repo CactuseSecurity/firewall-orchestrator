@@ -5,6 +5,7 @@ insert into config (config_key, config_value, config_user) VALUES ('uiHostName',
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('defaultManagementRulebaseView', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'False', 0);

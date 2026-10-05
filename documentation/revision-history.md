@@ -5,8 +5,11 @@
 - add workflow task types object_create and object_modify for a single network object (host, network,
   address range) or service that stands alone without a group. Only the request side is covered: the
   tasks can be created, edited, approved and passed through the workflow; implementation tasks show the
-  object read-only. External ticket systems reject both task types, the Check Point and flow database
-  integration follows in a later version
+  object read-only. External ticket systems reject both task types, the Check Point integration follows in a
+  later version
+- the workflow action "create flow" stores the object of an object_create task as flow object in state
+  requested (or binds it to the flow object of the same values) and links the request element to it, as it
+  does for group members; object_modify is not mapped to the flow database yet
 - object_modify references an existing imported object, which is selected through a server side search
   limited to the visible managements. The old values are stored in the task as unchanged element, the
   new values as modify element, as rule_modify does for the rule content

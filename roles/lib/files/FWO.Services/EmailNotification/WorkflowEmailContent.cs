@@ -155,8 +155,8 @@ namespace FWO.Services
                 Type = userConfig.GetText(task.TaskType),
                 Title = task.Title,
                 Action = task.RequestAction,
-                PreviousState = original != null ? BuildElementText(original, protocolNamesById) : "",
-                RequestedState = requested != null ? BuildElementText(requested, protocolNamesById) : ""
+                PreviousState = original != null ? BuildObjectStateText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildObjectStateText(requested, protocolNamesById) : ""
             };
         }
 
@@ -171,8 +171,8 @@ namespace FWO.Services
                 Type = userConfig.GetText(task.TaskType),
                 Title = task.Title,
                 Action = task.ImplAction,
-                PreviousState = original != null ? BuildElementText(original, protocolNamesById) : "",
-                RequestedState = requested != null ? BuildElementText(requested, protocolNamesById) : ""
+                PreviousState = original != null ? BuildObjectStateText(original, protocolNamesById) : "",
+                RequestedState = requested != null ? BuildObjectStateText(requested, protocolNamesById) : ""
             };
         }
 
@@ -302,6 +302,33 @@ namespace FWO.Services
                 return $"{displayName}/{GetProtocolLabel(element.ProtoId.Value, protocolNamesById)}";
             }
             return displayName;
+        }
+
+        /// <summary>
+        /// Describes the state of a single object of an object task by its name and its value, so that a change of
+        /// only the address or only the port is visible as well: "srv_web01 (10.1.1.5/32)", "https_alt (8443/TCP)".
+        /// </summary>
+        private static string BuildObjectStateText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string value = element.Field == ElemFieldType.service.ToString()
+                ? BuildServiceValueText(element, protocolNamesById)
+                : BuildIpRange(element);
+            if (string.IsNullOrWhiteSpace(element.Name))
+            {
+                return value;
+            }
+            return string.IsNullOrWhiteSpace(value) ? element.Name : $"{element.Name} ({value})";
+        }
+
+        private static string BuildServiceValueText(WfElementBase element, Dictionary<int, string>? protocolNamesById)
+        {
+            string protocol = element.ProtoId != null ? GetProtocolLabel(element.ProtoId.Value, protocolNamesById) : "";
+            string ports = BuildPortRange(element);
+            if (string.IsNullOrWhiteSpace(ports))
+            {
+                return protocol;
+            }
+            return string.IsNullOrWhiteSpace(protocol) ? ports : $"{ports}/{protocol}";
         }
 
         private static string BuildElementText(WfElementBase element, Dictionary<int, string>? protocolNamesById)

@@ -13,6 +13,8 @@ namespace FWO.Test
     [TestFixture]
     public class EmailNotificationContentTest
     {
+        private static readonly Dictionary<int, string> kProtocolNames = new() { [1] = "ICMP", [6] = "TCP" };
+
         [Test]
         public void BuildHtmlTableEscapesCellsAndAllowsRawColumns()
         {
@@ -207,7 +209,60 @@ namespace FWO.Test
                 Assert.That(content.Html, Does.Not.Contain("<h2>Requested Connections</h2>"));
                 Assert.That(content.PlainText, Does.Contain("srv_web01"));
                 Assert.That(content.PlainText, Does.Contain("srv_web02"));
-                Assert.That(content.Csv, Does.Contain("\"srv_web01\",\"srv_web02\""));
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web02 (10.1.1.6)\""));
+            });
+        }
+
+        [Test]
+        public void FromRequestTasksShowsAChangeOfOnlyTheAddressOrOnlyThePort()
+        {
+            WfReqTask addressChange = new()
+            {
+                Id = 21,
+                TaskNumber = 1,
+                Title = "Move host",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "srv_web01", NetworkId = 4711, IpString = "10.1.1.5" },
+                    new WfReqElement { Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "srv_web01", NetworkId = 4711, IpString = "10.1.1.6" }
+                }
+            };
+            WfReqTask portChange = new()
+            {
+                Id = 22,
+                TaskNumber = 2,
+                Title = "Move service",
+                TaskType = WfTaskType.object_modify.ToString(),
+                RequestAction = RequestAction.modify.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "https_alt", ServiceId = 815, ProtoId = 6, Port = 8443 },
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "https_alt", ServiceId = 815, ProtoId = 6, Port = 9443 }
+                }
+            };
+            WfReqTask createWithoutPort = new()
+            {
+                Id = 23,
+                TaskNumber = 3,
+                Title = "New ping",
+                TaskType = WfTaskType.object_create.ToString(),
+                RequestAction = RequestAction.create.ToString(),
+                Elements =
+                {
+                    new WfReqElement { Field = ElemFieldType.service.ToString(), RequestAction = RequestAction.create.ToString(), ProtoId = 1 }
+                }
+            };
+            List<WfReqTask> tasks = [addressChange, portChange, createWithoutPort];
+
+            WorkflowEmailContent content = WorkflowEmailContent.FromRequestTasks(tasks, new EmailNotificationUserConfig(), kProtocolNames);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web01 (10.1.1.6)\""));
+                Assert.That(content.Csv, Does.Contain("\"https_alt (8443/TCP)\",\"https_alt (9443/TCP)\""));
+                Assert.That(content.Csv, Does.Contain("\"\",\"ICMP\""));
             });
         }
 
@@ -248,7 +303,7 @@ namespace FWO.Test
             {
                 Assert.That(content.Html, Does.Contain("<h2>Object Requests</h2>"));
                 Assert.That(content.Html, Does.Contain("<h2>Requested Connections</h2>"));
-                Assert.That(content.Csv, Does.Contain("\"srv_web01\",\"srv_web02\""));
+                Assert.That(content.Csv, Does.Contain("\"srv_web01 (10.1.1.5)\",\"srv_web02 (10.1.1.6)\""));
                 Assert.That(content.Csv, Does.Not.Contain("\"srv_web01, srv_web02\""));
             });
         }

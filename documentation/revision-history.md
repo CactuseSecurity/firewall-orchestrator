@@ -1,6 +1,6 @@
 # Firewall Orchestrator Revision History
 
-## 9.6.1 - 01.10.2026
+## 9.6.1 - 05.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the
   rulebases linked from it for the gateways using it
@@ -14,6 +14,10 @@
 - request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
 - request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures
 - clarify the localized Object Catalog and Service Catalog labels
+- autodiscovery (FortiManager): an ADOM whose UID changed on the FortiManager is now recognized as existing
+  (matched by ADOM name within the same super manager) instead of being proposed for deletion and
+  re-creation; VDOMs missing in FWO are offered for addition. The name fallback is skipped if another
+  ADOM already matches the management by UID
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

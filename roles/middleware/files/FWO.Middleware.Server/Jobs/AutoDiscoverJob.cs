@@ -47,7 +47,7 @@ namespace FWO.Middleware.Server.Jobs
                     cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
-                        AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection);
+                        AutoDiscoveryBase autodiscovery = new(superManagement, apiConnection, globalConfig.ImportCheckCertificates);
 
                         List<Management> diffList = await autodiscovery.Run(cancellationToken);
                         List<ActionItem> actions = autodiscovery.ConvertToActions(diffList);

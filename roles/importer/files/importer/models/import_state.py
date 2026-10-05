@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class ImportState:
     debug_level: int
-    verify_certs: bool = False
+    verify_certs: bool | str = False  # value for requests' verify: False, True or a CA bundle path
     config_changed_since_last_import: bool
     fwo_config: FworchConfigController
     mgm_details: ManagementController

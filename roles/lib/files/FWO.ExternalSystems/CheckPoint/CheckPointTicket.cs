@@ -27,6 +27,7 @@ namespace FWO.ExternalSystems.CheckPoint
     public class CheckPointTicket : ExternalTicket
     {
         private CheckPointClient? checkPointClient;
+        private readonly ExternalCertificateChecks certificateChecks;
 
         private WfReqTask? rootTask;
 
@@ -35,9 +36,16 @@ namespace FWO.ExternalSystems.CheckPoint
         /// </summary>
         private readonly List<RenderedTask> renderedTasks = [];
 
-        public CheckPointTicket(ExternalTicketSystem checkPointSystem, CheckPointClient? checkPointClient = null)
+        /// <summary>
+        /// Creates a Check Point change request ticket.
+        /// </summary>
+        /// <param name="checkPointSystem">The Check Point ticket system.</param>
+        /// <param name="certificateChecks">The certificate checking switches for the client created on first use.</param>
+        /// <param name="checkPointClient">An existing client, used instead of creating one.</param>
+        public CheckPointTicket(ExternalTicketSystem checkPointSystem, ExternalCertificateChecks certificateChecks, CheckPointClient? checkPointClient = null)
         {
             TicketSystem = checkPointSystem;
+            this.certificateChecks = certificateChecks;
             this.checkPointClient = checkPointClient;
         }
 
@@ -220,7 +228,7 @@ namespace FWO.ExternalSystems.CheckPoint
         {
             bool discardSession = false;
 
-            checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."));
+            checkPointClient ??= new CheckPointClient(TicketSystem, OnManagement ?? throw new ProcessingFailedException("No management context available for Check Point request."), certificateChecks);
 
             try
             {

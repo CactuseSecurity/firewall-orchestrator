@@ -87,7 +87,12 @@ def read_file(fwo_api_call: FwoApiCall, import_state: ImportState) -> dict[str, 
         ):  # get conf file via http(s)
             with requests.Session() as session:
                 session.headers.update({"Content-Type": "application/json"})
-                session.verify = bool(fwo_globals.verify_certs)
+                # set per management by the import state; fail closed when it was never set
+                session.verify = (
+                    fwo_globals.verify_certs
+                    if fwo_globals.verify_certs is not None
+                    else fwo_globals.resolve_requests_verify(check_certificates=True)
+                )
                 r = session.get(
                     import_state.import_file_name,
                     timeout=int(FWO_API_HTTP_IMPORT_TIMEOUT),

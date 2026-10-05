@@ -609,7 +609,7 @@ namespace FWO.Middleware.Server
 
         private async Task<string> ConstructContent(List<WfReqTask> reqTasks, UiUser? requester)
         {
-            ExternalTicket ticket = ExternalTicketFactory.Create(actSystem);
+            ExternalTicket ticket = ExternalTicketFactory.Create(actSystem, UserConfig.GetExternalCertificateChecks());
             ticket.Subject = ConstructSubject(reqTasks.Count > 0 ? reqTasks[0] : throw new ArgumentException("No Task given"));
             ticket.Priority = SCTicketPriority.Low.ToString();
             ticket.Requester = requester?.Name ?? "";

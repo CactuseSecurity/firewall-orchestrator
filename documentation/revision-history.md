@@ -14,6 +14,20 @@
 - request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
 - request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures
 - clarify the localized Object Catalog and Service Catalog labels
+- security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
+  configurable with one switch per connection type, validated against the host trust store:
+  - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change
+    requests, which accepted any certificate so far; the importer uses the OS CA bundle instead of certifi
+  - email servers (new emailCheckCertificates) and external ticket systems (new
+    extTicketSystemsCheckCertificates), which accepted any certificate so far
+  - fresh installations check all connection types by default; upgrades keep the previous behaviour
+    (unchanged importCheckCertificates, the new switches off where such a connection is configured)
+  - unchecked connections are reported once per endpoint in the log
+  - the Tufin RLM app data customizing script reads checkCertificates from its config file
+  - remove obsolete certificate options: the log-only ssl_verification/suppress_cert_warnings arguments of
+    the importer's import_management, and the undeployed, non-functional API helper scripts in
+    roles/api/files/scripts (with their "--ssl" option, which switched checking off by default) together
+    with the fwo_api.py scripting copy they relied on
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

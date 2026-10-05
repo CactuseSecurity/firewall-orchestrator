@@ -14,6 +14,7 @@ namespace FWO.Test
     [Parallelizable]
     internal class SCTicketTest
     {
+        private static readonly ExternalCertificateChecks CertificateChecks = new(FirewallConnections: true, TicketSystems: true);
         static readonly ModellingNamingConvention NamingConvention = new()
         {
             NetworkAreaRequired = true,
@@ -197,7 +198,7 @@ namespace FWO.Test
         [Test]
         public async Task TestSCGrpCreateTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(grpCreateReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(GrpCreateFilledTicketText, ticket.TicketText);
@@ -206,7 +207,7 @@ namespace FWO.Test
         [Test]
         public async Task TestSCAccessTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(AccessFilledTicketText, ticket.TicketText);
@@ -236,7 +237,7 @@ namespace FWO.Test
                 Field = ElemFieldType.source.ToString()
             });
 
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains(
@@ -269,7 +270,7 @@ namespace FWO.Test
                 Field = ElemFieldType.destination.ToString()
             });
 
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(unsortedAccessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains(
@@ -281,7 +282,7 @@ namespace FWO.Test
         [Test]
         public async Task TestSCRemoveTicket()
         {
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(removeReqTasks, ipProtos, NamingConvention);
 
             ClassicAssert.AreEqual(RemoveFilledTicketText, ticket.TicketText);
@@ -312,7 +313,7 @@ namespace FWO.Test
                 Field = ElemFieldType.service.ToString()
             });
 
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(removeAnyReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"ANY\"}]}"));
@@ -336,7 +337,7 @@ namespace FWO.Test
                 Field = ElemFieldType.service.ToString()
             });
 
-            SCTicket ticket = new(ticketSystem);
+            SCTicket ticket = new(ticketSystem, CertificateChecks);
             await ticket.CreateRequestString(removeGrpSvcReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains("\"services\":{\"service\":[{\"@type\": \"Object\", \"object_name\": \"SvcGrp1\", \"management_name\": \"CheckpointExt\"}]}"));
@@ -350,7 +351,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=alice",
                 new(new()) { StatusCode = HttpStatusCode.OK, Content = "{\"users\":{\"user\":[{\"id\":55}]}}" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "alice" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "alice" };
             await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention);
 
             ClassicAssert.IsTrue(ticket.TicketText.Contains("\"requester\":\"55\""));
@@ -364,7 +365,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=unknown",
                 new(new()) { StatusCode = HttpStatusCode.OK, Content = "" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "unknown" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "unknown" };
 
             Assert.ThrowsAsync<ProcessingFailedException>(async () =>
                 await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));
@@ -378,7 +379,7 @@ namespace FWO.Test
             scClient.EnqueueResponse("users.json?user_name=error",
                 new(new()) { StatusCode = HttpStatusCode.BadRequest, Content = "{\"error\":\"bad\"}" });
 
-            SCTicket ticket = new(lookupSystem, scClient) { Requester = "error" };
+            SCTicket ticket = new(lookupSystem, CertificateChecks, scClient) { Requester = "error" };
 
             Assert.ThrowsAsync<ProcessingFailedException>(async () =>
                 await ticket.CreateRequestString(accessReqTask, ipProtos, NamingConvention));

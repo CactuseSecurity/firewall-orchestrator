@@ -18,7 +18,7 @@ namespace FWO.Test
                 DeviceType = new DeviceType { Id = 12 }
             };
             SimulatedApiConnection apiConnection = new();
-            AutoDiscoveryFortiManager discovery = new(superManagement, apiConnection);
+            AutoDiscoveryFortiManager discovery = new(superManagement, apiConnection, checkCertificates: true);
 
             Adom adom = new()
             {
@@ -49,12 +49,12 @@ namespace FWO.Test
                 Hostname = "fmgr.invalid",
                 DeviceType = new DeviceType { Id = 12 }
             };
-            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection());
+            AutoDiscoveryFortiManager discovery = new(superManagement, new SimulatedApiConnection(), checkCertificates: true);
             List<FortiGate> existingDevices = [new FortiGate { Name = "gw-1" }];
             Adom adom = new() { Name = "root", DeviceList = existingDevices };
 
             Assert.ThrowsAsync<OperationCanceledException>(async () =>
-                await discovery.BuildAdomDeviceVdomStructure("session", [adom], new FortiManagerClient(superManagement), new CancellationToken(canceled: true)));
+                await discovery.BuildAdomDeviceVdomStructure("session", [adom], new FortiManagerClient(superManagement, checkCertificates: true), new CancellationToken(canceled: true)));
             Assert.That(adom.DeviceList, Is.SameAs(existingDevices));
         }
 
@@ -68,7 +68,7 @@ namespace FWO.Test
                 DeviceType = new DeviceType { Id = 12, Name = "FortiManager" }
             };
             RecordingQueryApiConnection apiConnection = new();
-            AutoDiscoveryBase discovery = new(superManagement, apiConnection);
+            AutoDiscoveryBase discovery = new(superManagement, apiConnection, checkCertificates: true);
 
             Assert.ThrowsAsync<OperationCanceledException>(async () => await discovery.Run(new CancellationToken(canceled: true)));
             Assert.That(apiConnection.QueryCount, Is.EqualTo(0), "no deltas may be calculated for a stopped discovery");

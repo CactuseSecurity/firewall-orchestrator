@@ -12,8 +12,20 @@ namespace FWO.DeviceAutoDiscovery
         public Management SuperManagement { get; set; }
         protected readonly ApiConnection apiConnection;
 
-        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn)
+        /// <summary>
+        /// Whether the TLS certificate of the management API is checked (global setting for firewall connections).
+        /// </summary>
+        public bool CheckCertificates { get; }
+
+        /// <summary>
+        /// Creates an autodiscovery for the given super management.
+        /// </summary>
+        /// <param name="mgm">The super management to discover.</param>
+        /// <param name="apiConn">Connection to the FWO API.</param>
+        /// <param name="checkCertificates">Whether the TLS certificate of the management API is checked.</param>
+        public AutoDiscoveryBase(Management mgm, ApiConnection apiConn, bool checkCertificates)
         {
+            CheckCertificates = checkCertificates;
             SuperManagement = mgm;
             SuperManagement.ImportCredential.Secret = AesEnc.TryDecrypt(SuperManagement.ImportCredential.Secret, true,
                 "AutoDiscovery", $"Could not decrypt secret in credential named '{SuperManagement.ImportCredential.Name}'.", true);
@@ -29,9 +41,9 @@ namespace FWO.DeviceAutoDiscovery
         {
             return SuperManagement.DeviceType.Name switch
             {
-                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection).Run(cancellationToken),
-                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
-                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection).Run(cancellationToken),
+                "FortiManager" => new AutoDiscoveryFortiManager(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "CheckPoint" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
+                "Check Point" => new AutoDiscoveryCpMds(SuperManagement, apiConnection, CheckCertificates).Run(cancellationToken),
                 _ => throw new NotSupportedException("SuperManager Type is not supported."),
             };
         }

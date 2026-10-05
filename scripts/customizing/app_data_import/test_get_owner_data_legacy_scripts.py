@@ -38,7 +38,7 @@ class FakeSession:
     def post(self, url: str, data: dict[str, str], timeout: tuple[int, int]) -> FakeResponse:
         if self.raise_on_request is not None:
             raise self.raise_on_request
-        self.calls.append({"method": "post", "url": url, "data": data, "timeout": timeout})
+        self.calls.append({"method": "post", "url": url, "data": data, "timeout": timeout, "verify": self.verify})
         return self.response
 
     def get(
@@ -50,7 +50,16 @@ class FakeSession:
     ) -> FakeResponse:
         if self.raise_on_request is not None:
             raise self.raise_on_request
-        self.calls.append({"method": "get", "url": url, "headers": headers, "params": params, "timeout": timeout})
+        self.calls.append(
+            {
+                "method": "get",
+                "url": url,
+                "headers": headers,
+                "params": params,
+                "timeout": timeout,
+                "verify": self.verify,
+            }
+        )
         return self.response
 
 
@@ -117,6 +126,24 @@ def test_source1_rlm_login_and_get_owners_use_expected_auth_shapes() -> None:
     FakeSession.response = FakeResponse(text='{"owners": []}')
     source1.rlm_get_owners("token", "https://rlm/owners", rlm_version=2.6)
     assert FakeSession.calls[2]["params"] == {"access_token": "token"}
+
+
+def test_source1_rlm_calls_check_certificates_by_default() -> None:
+    FakeSession.response = FakeResponse(text='{"access_token": "token"}')
+    source1.rlm_login("user", "secret", "https://rlm/login")
+    FakeSession.response = FakeResponse(text='{"owners": []}')
+    source1.rlm_get_owners("token", "https://rlm/owners")
+
+    assert [call["verify"] for call in FakeSession.calls] == [True, True]
+
+
+def test_source1_rlm_calls_use_given_verify_value() -> None:
+    FakeSession.response = FakeResponse(text='{"access_token": "token"}')
+    source1.rlm_login("user", "secret", "https://rlm/login", verify=False)
+    FakeSession.response = FakeResponse(text='{"owners": []}')
+    source1.rlm_get_owners("token", "https://rlm/owners", verify="/etc/ssl/certs/ca-certificates.crt")
+
+    assert [call["verify"] for call in FakeSession.calls] == [False, "/etc/ssl/certs/ca-certificates.crt"]
 
 
 def test_source1_api_errors_are_wrapped() -> None:

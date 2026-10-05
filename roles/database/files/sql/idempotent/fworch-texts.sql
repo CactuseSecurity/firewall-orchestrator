@@ -574,6 +574,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
     <li>Im Antragsmodul werden die Grunddaten eines Auftrags und seine Elemente nun in getrennten Bereichen bearbeitet; der Auftragstyp bleibt dabei in beiden Bereichen synchron. Wird nach dem Ansehen eines bestehenden Auftrags ein neuer angelegt, startet dieser nun mit dem richtigen Auftragstyp, und die Gateway-Auswahl bleibt bei "Alle" stabil.</li>
     <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
+    <li>Die TLS-Zertifikatspr&uuml;fung wird nun je Verbindungsart eingestellt: f&uuml;r alle Firewall-Verbindungen (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge), alle externen Ticket-Systeme und den Email-Server. Neuinstallationen pr&uuml;fen per Default gegen den Zertifikatsspeicher des Hosts; ein Upgrade beh&auml;lt das bisherige Verhalten. Ungepr&uuml;fte Verbindungen werden im Log gemeldet.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -586,6 +587,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
     <li>In the request module, the basic data of a task and its elements are now edited in separate sections, with the task type kept in sync between them. A task created after viewing an existing one now starts with the correct task type, and the gateway selection stays stable when "All" is selected.</li>
     <li>The Object Catalog and Service Catalog labels were clarified.</li>
+    <li>TLS certificate checking is now configured per connection type: for all firewall connections (import, autodiscovery, Check Point change requests), all external ticket systems and the email server. New installations check against the host trust store by default; an upgrade keeps the previous behaviour. Unchecked connections are reported in the log.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -2751,8 +2753,10 @@ INSERT INTO txt VALUES ('importScriptTimeout',  'German', 	'Max Laufzeit von Imp
 INSERT INTO txt VALUES ('importScriptTimeout',  'English', 	'Max runtime of import scripts (in minutes)');
 INSERT INTO txt VALUES ('importSleepTime',      'German', 	'Importintervall (in Sekunden)');
 INSERT INTO txt VALUES ('importSleepTime',      'English', 	'Import sleep time (in seconds)');
-INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate beim Import pr&uuml;fen');
-INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates during import');
+INSERT INTO txt VALUES ('importCheckCertificates',      'German', 	'Zertifikate der Firewall-Verbindungen pr&uuml;fen');
+INSERT INTO txt VALUES ('importCheckCertificates',      'English', 	'Check certificates of firewall connections');
+INSERT INTO txt VALUES ('check_certificates',   'German', 	'Zertifikate pr&uuml;fen');
+INSERT INTO txt VALUES ('check_certificates',   'English', 	'Check certificates');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'German', 	'Zertifikatswarnungen unterdr&uuml;cken');
 INSERT INTO txt VALUES ('importSuppressCertificateWarnings',      'English', 	'Suppress certificate warnings');
 INSERT INTO txt VALUES ('fwApiElementsPerFetch','German', 	'FW API - Pro Abruf geholte Elemente');
@@ -7011,19 +7015,23 @@ INSERT INTO txt VALUES ('H5491f','German',  'Dummy-Email-Addresse nutzen: Zu Tes
 INSERT INTO txt VALUES ('H5491f','English', 'Use dummy email address: For testing purpose all sent emails (except the test email) are redirected to a dummy email address.');
 INSERT INTO txt VALUES ('H5491g','German',  'Dummy-Email-Addresse: Addresse auf welche die Emails umgeleitet werden, wenn Umleitung aktiviert.');
 INSERT INTO txt VALUES ('H5491g','English', 'Dummy email address: Address where emails are directed, if redirection is activated.');
+INSERT INTO txt VALUES ('H5491h','German',  'Zertifikate pr&uuml;fen: Bei StartTls und Tls wird das Zertifikat des Email-Servers gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
+    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.');
+INSERT INTO txt VALUES ('H5491h','English', 'Check certificates: With StartTls and Tls the certificate of the email server is validated against the host trust store.
+    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.');
 INSERT INTO txt VALUES ('H5492','German',   'Verbindung testen: Es wird eine Test-email an die oben eingerichtete email-Adresse versandt.');
 INSERT INTO txt VALUES ('H5492','English',  'Test connection: A test email is sent to the above defined email address.');
 INSERT INTO txt VALUES ('H5495', 'German',  'Die folgenden Einstellungen wirken sich auf das Import-Modul (python) aus.');
 INSERT INTO txt VALUES ('H5495', 'English', 'The following settings apply to the Import Module (python)');
 INSERT INTO txt VALUES ('H5496', 'German',  'Importintervall (in Sekunden): Zeitintervall zwischen zwei Import-L&auml;ufen. Default-Wert = 40.');
 INSERT INTO txt VALUES ('H5496', 'English', 'Import sleep time (in seconds): Time between import loops; default value=40.');
-INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate beim Import pr&uuml;fen: Sollen bei den API-Calls in Richtung der Firewalls nur g&uuml;ltige Zertifikate akzeptiert werden?.
-    Sollte nur auf "aktiv" gesetzt werden, wenn alle Firewalls offiziell signierte Zertifikate besitzen,
-    andernfalls ist ein Import nicht m&ouml;glich. Default-Wert = "inaktiv".
+INSERT INTO txt VALUES ('H5497', 'German',  'Zertifikate der Firewall-Verbindungen pr&uuml;fen: Sollen bei allen Verbindungen zu Firewall-Managements (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge) nur Zertifikate akzeptiert werden, denen der Zertifikatsspeicher des Hosts vertraut?
+    F&uuml;r selbstsignierte Zertifikate die ausstellende CA im Zertifikatsspeicher der FWO-Server hinterlegen. Ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
+    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade &uuml;bernimmt den bisherigen Wert.
 ');
-INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates during import: During API calls towards Firewalls shall only valid certificates be accepted?.
-    This should only be set to "active" if all firewall API certificates are valid, otherwise an import will not be possible.
-    Default value = "inactive".
+INSERT INTO txt VALUES ('H5497', 'English', 'Check certificates of firewall connections: Shall all connections to firewall managements (import, autodiscovery, Check Point change requests) only accept certificates trusted by the host trust store?
+    For self-signed certificates add the issuing CA to the trust store of the FWO servers. Without the check the credentials can be intercepted.
+    Default value for new installations = "active"; an upgrade keeps the previous value.
 ');
 INSERT INTO txt VALUES ('H5498', 'German',  'Zertifikatswarnungen unterdr&uuml;cken: Sollen im Log Warnungen bei selbstsignierten oder ung&uuml;ltigen Zertifkaten auf zu importierenden
     Firewalls ausgegeben werden? Default-Wert = "inaktiv".
@@ -7301,6 +7309,12 @@ INSERT INTO txt VALUES ('H5593b', 'German', 'Max Versuche: Maximale Anzahl der V
 INSERT INTO txt VALUES ('H5593b', 'English','Max Attempts: Maximal attempts until the ticket is rejected.');
 INSERT INTO txt VALUES ('H5593c', 'German', 'Zyklen zwischen Versuchen: Zyklen zwischen zwei Sendeversuchen. Wird mit der Anzahl der Versuche multipliziert, um den Abstand mit der Zeit zu vergr&ouml;ssern.');
 INSERT INTO txt VALUES ('H5593c', 'English','Cycles between attempts: Cycles between two sending attempts. Will be multiplied with attempt count to enlarge interval with time.');
+INSERT INTO txt VALUES ('H5593d', 'German', 'Zertifikate pr&uuml;fen: Die TLS-Zertifikate aller externen Ticket-Systeme werden gegen den Zertifikatsspeicher des Hosts gepr&uuml;ft.
+    Nur ausschalten, wenn die ausstellende CA dort nicht hinterlegt werden kann: ohne Pr&uuml;fung k&ouml;nnen die Zugangsdaten abgefangen werden.
+    Default-Wert bei Neuinstallation = "aktiv"; ein Upgrade mit bereits konfigurierten Ticket-Systemen beh&auml;lt das bisherige Verhalten ("inaktiv").');
+INSERT INTO txt VALUES ('H5593d', 'English','Check certificates: The TLS certificates of all external ticket systems are validated against the host trust store.
+    Only switch this off if the issuing CA cannot be added there: without the check the credentials can be intercepted.
+    Default value for new installations = "active"; an upgrade with ticket systems already configured keeps the previous behaviour ("inactive").');
 INSERT INTO txt VALUES ('H5594', 'German',  'Authorization-Header-String: Beispielsweise Base64-kodierter String von "Username:Password" mit f&uuml;hrendem "Basic" zur Bezeichnung der Basic Authentication');
 INSERT INTO txt VALUES ('H5594', 'English', 'Authorization header string: E.g. base64 encoded string of "Username:Password" lead by "Basic" to indicate basic authentication');
 INSERT INTO txt VALUES ('H5595', 'German',  'Template Ticket-Text: Vorlagentext mit verschiedenen Platzhaltern, die durch @@PLACEHOLDER@@ gekennzeichnet sind und f&uuml;r jede Anfrage durch die eigentlichen Anfragedaten ersetzt werden.

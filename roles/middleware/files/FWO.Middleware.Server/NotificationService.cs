@@ -405,7 +405,10 @@ namespace FWO.Middleware.Server
             {
                 string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
                 EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress)
+                {
+                    CheckCertificates = GlobalConfig.EmailCheckCertificates
+                };
 
                 bool sent = await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
@@ -578,7 +581,10 @@ namespace FWO.Middleware.Server
             {
                 string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
                 EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress);
+                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress)
+                {
+                    CheckCertificates = GlobalConfig.EmailCheckCertificates
+                };
 
                 bool sent = await MailKitMailer.SendAsync(mail, emailConnection, false, new());
                 await CompleteNotificationLogs(sendableLogIds, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,

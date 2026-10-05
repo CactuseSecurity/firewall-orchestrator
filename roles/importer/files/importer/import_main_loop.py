@@ -119,10 +119,8 @@ def import_single_management(
         import_management(
             mgm_id,
             fwo_api_call,
-            verify_certificates,
             api_fetch_limit,
             clear,
-            suppress_certificate_warnings,
             suppress_consistency_check=suppress_consistency_check,
         )
     except (KeyboardInterrupt, ShutdownRequestedError) as e:
@@ -178,7 +176,10 @@ def main_loop(
     fwo_api_call = FwoApiCall(fwo_api)
 
     urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
-    verify_certificates = fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    # the command line can only force certificate checking on, never switch the configured value off
+    verify_certificates = (
+        fwo_globals.cli_verify_certs or fwo_api_call.get_config_value(key="importCheckCertificates") == "True"
+    )
     suppress_certificate_warnings = fwo_api_call.get_config_value(key="importSuppressCertificateWarnings") == "True"
     if not suppress_certificate_warnings:
         warnings.resetwarnings()
@@ -228,6 +229,7 @@ def main(
     fwo_major_version = fwo_config["fwo_major_version"]
     user_management_api_base_url = fwo_config["user_management_api_base_url"]
     fwo_globals.set_global_values(verify_certificates, suppress_certificate_warnings)
+    fwo_globals.set_cli_verify_certs(verify_certificates)
     if suppress_certificate_warnings:
         urllib3.disable_warnings()  # type: ignore[suppress ssl warnings only]
 

@@ -116,6 +116,12 @@ namespace FWO.Services.RuleTreeBuilder
         public int NextRuleNumber { get; set; } = 1;
 
         /// <summary>
+        /// Rulebases of the current build that are listed completely in another rule tree and are
+        /// therefore only shown as a reference row.
+        /// </summary>
+        public IReadOnlySet<int> ReferencedRulebaseIds { get; set; } = new HashSet<int>();
+
+        /// <summary>
         /// Creates a reusable builder service. The constructor only initializes stable cache
         /// containers and the root placeholder. All per-build graph state is populated inside
         /// <see cref="BuildRuleTree"/> so the existing DI registration can continue to reuse the
@@ -152,9 +158,11 @@ namespace FWO.Services.RuleTreeBuilder
         /// <see cref="LinksToBeProcessed"/> and are reported as a warning after traversal
         /// completes.
         /// </summary>
-        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false)
+        public List<Rule> BuildRuleTree(RulebaseReport[] rulebases, RulebaseLink[] links, int managementId, int deviceId, bool suppressEmptyHeaders = false,
+            IReadOnlySet<int>? referencedRulebaseIds = null)
         {
             InitializeBuildState(rulebases, links);
+            ReferencedRulebaseIds = referencedRulebaseIds ?? new HashSet<int>();
 
             TraverseOrderedLayers();
             List<Rule> flattenedRules = FlattenTreeAndAssignDisplayNumbers(suppressEmptyHeaders);
@@ -333,6 +341,10 @@ namespace FWO.Services.RuleTreeBuilder
         private void ProcessOrderedLayer(int layerRulebaseId, RuleTreeItem parentNode)
         {
             RulebaseReport rulebase = ResolveRulebase(layerRulebaseId);
+            if (TryAttachReference(rulebase, parentNode))
+            {
+                return;
+            }
             RuleTreeItem orderedLayerNode = CreateOrderedLayerNode(rulebase);
             AttachChild(parentNode, orderedLayerNode);
 
@@ -356,6 +368,10 @@ namespace FWO.Services.RuleTreeBuilder
         private void ProcessPolicyLayer(int policyRulebaseId, RuleTreeItem parentNode)
         {
             RulebaseReport rulebase = ResolveRulebase(policyRulebaseId);
+            if (TryAttachReference(rulebase, parentNode))
+            {
+                return;
+            }
             RuleTreeItem policyHeaderNode = CreatePolicyHeaderNode(rulebase);
             AttachChild(parentNode, policyHeaderNode);
 
@@ -435,6 +451,10 @@ namespace FWO.Services.RuleTreeBuilder
         private void ProcessSection(int sectionRulebaseId, RuleTreeItem parentNode)
         {
             RulebaseReport rulebase = ResolveRulebase(sectionRulebaseId);
+            if (TryAttachReference(rulebase, parentNode))
+            {
+                return;
+            }
             RuleTreeItem sectionNode = CreateSectionNode(rulebase);
             AttachChild(parentNode, sectionNode);
 
@@ -493,6 +513,10 @@ namespace FWO.Services.RuleTreeBuilder
             RemoveLinkFromProcessingQueue(inlineLink);
 
             RulebaseReport rulebase = ResolveRulebase(inlineLink.NextRulebaseId);
+            if (TryAttachReference(rulebase, parentNode))
+            {
+                return;
+            }
             RuleTreeItem inlineLayerNode = CreateInlineLayerNode(rulebase);
             AttachChild(parentNode, inlineLayerNode);
 
@@ -692,6 +716,30 @@ namespace FWO.Services.RuleTreeBuilder
         }
 
         /// <summary>
+        /// Attaches a reference row instead of the complete rulebase if the rulebase is listed in another rule tree.
+        /// </summary>
+        /// <returns>true if a reference row was attached and the rulebase must not be traversed</returns>
+        private bool TryAttachReference(RulebaseReport rulebase, RuleTreeItem parentNode)
+        {
+            if (!ReferencedRulebaseIds.Contains(rulebase.Id))
+            {
+                return false;
+            }
+            Rule placeholderRule = CreateHeaderPlaceholderRule(rulebase.Name);
+            placeholderRule.RulebaseId = rulebase.Id;
+            AttachChild(parentNode, new RuleTreeItem
+            {
+                Header = rulebase.Name ?? string.Empty,
+                Data = placeholderRule,
+                IsRulebaseReference = true,
+                ReferencedRulebaseId = rulebase.Id,
+                IsExpanded = true,
+                IsVisible = true
+            });
+            return true;
+        }
+
+        /// <summary>
         /// Creates the synthetic rule object used for visible ordered-layer and section header
         /// rows. The placeholder carries the header text in <see cref="Rule.SectionHeader"/> so
         /// existing report rendering continues to treat these nodes as header rows without any UI
@@ -777,9 +825,9 @@ namespace FWO.Services.RuleTreeBuilder
                     continue;
                 }
 
-                if (childNode.IsSectionHeader || childNode.IsPolicyHeader)
+                if (childNode.IsSectionHeader || childNode.IsPolicyHeader || childNode.IsRulebaseReference)
                 {
-                    if (suppressEmptyHeaders && !HasRealRuleDescendant(childNode))
+                    if (suppressEmptyHeaders && !childNode.IsRulebaseReference && !HasRealRuleDescendant(childNode))
                     {
                         continue;
                     }

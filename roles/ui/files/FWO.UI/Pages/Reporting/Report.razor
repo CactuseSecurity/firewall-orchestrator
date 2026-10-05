@@ -98,7 +98,18 @@
                     <label class="form-check-label text-white" for="includeObjectChanges"> @(userConfig.GetText("U1004"))</label>
                 </div>
             }
-            @if(actReportFilters.ReportType.IsRulebaseReport())
+            @if (actReportFilters.ReportType == ReportType.Rules)
+            {
+                <div class="p-3">
+                    <h5>@userConfig.GetText("rules_view")</h5>
+                    <RulesViewSelect ManagementRulebaseView="actReportFilters.ManagementRulebaseView" ManagementRulebaseViewChanged="RulesViewChanged" />
+                </div>
+            }
+            @if (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView)
+            {
+                <RulebaseSelection Managements="actReportFilters.RulebaseManagements" @bind-SelectedRulebases="actReportFilters.SelectedRulebases" />
+            }
+            else if(actReportFilters.ReportType.IsRulebaseReport())
             {
                 <ManagementSelection @bind-DeviceFilter="actReportFilters.DeviceFilter" />
             }
@@ -287,6 +298,48 @@
 
     private List<ReportType> availableReportTypes { get; set; } = [];
     private ReportFilters actReportFilters = new();
+    /// <summary>
+    /// Switches the rules report between gateway rules view and management rulebases view.
+    /// </summary>
+    /// <param name="managementView">true for the management rulebases view</param>
+    private async Task RulesViewChanged(bool managementView)
+    {
+        actReportFilters.ManagementRulebaseView = managementView;
+        await EnsureRulebaseManagementsLoadedIfShown();
+    }
+
+    /// <summary>
+    /// Loads the start rulebases as soon as the Rules report is shown in management rulebases view,
+    /// e.g. by the configured default view, a report type change or a view change.
+    /// </summary>
+    private async Task EnsureRulebaseManagementsLoadedIfShown()
+    {
+        if (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView)
+        {
+            await EnsureRulebaseManagementsLoaded();
+        }
+    }
+
+    /// <summary>
+    /// Loads the start rulebases for the management rulebases view on first use only,
+    /// as the query returns all rulebases with their links and is not needed for other reports.
+    /// </summary>
+    private async Task EnsureRulebaseManagementsLoaded()
+    {
+        if (actReportFilters.RulebaseManagementsLoaded)
+        {
+            return;
+        }
+        try
+        {
+            actReportFilters.SetRulebaseManagements(
+                await apiConnection.SendQueryAsync<List<RulebaseManagementSelect>>(DeviceQueries.getManagementsForRulebaseReporting));
+        }
+        catch (Exception exception)
+        {
+            DisplayMessageInUi(exception, userConfig.GetText("object_fetch"), "", true);
+        }
+    }
     List<FwoOwner> owners = [];
     private bool InitDone = false;
     private int? injectedAppId = null;
@@ -412,6 +465,7 @@
             }
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.DeviceFilter.Managements = await apiConnection.SendQueryAsync<List<ManagementSelect>>(DeviceQueries.getDevicesByManagement);
+            await EnsureRulebaseManagementsLoadedIfShown();
             if(parsedAppId != null && reportVisibility.ModellingRelated)
             {
                 owners = await apiConnection.SendQueryAsync<List<FwoOwner>>(OwnerQueries.getEditableOwners, new { appIds = parsedAppId.Value });
@@ -440,7 +494,7 @@
         }
     }
 
-    private void ReportTypeChanged(ReportType newReportType)
+    private async Task ReportTypeChanged(ReportType newReportType)
     {
         try
         {
@@ -456,6 +510,7 @@
             apiConnection.SetBestRoleForReport(authenticationStateTask!.Result.User, actReportFilters.ReportType);
             actReportFilters.SetDisplayedTimeSelection();
             AdjustDeviceSelection();
+            await EnsureRulebaseManagementsLoadedIfShown();
             ResetReport();
             RefreshAvailableOwnerAddInfoNames();
             StateHasChanged();
@@ -551,6 +606,10 @@
         {
             tenantFromTemplate = await FWO.Ui.Auth.AuthStateProvider.GetSingleTenant(apiConnection, template.ReportParams.TenantFilter.TenantId);
         }
+        if (template.ReportParams.IsManagementRulebaseView())
+        {
+            await EnsureRulebaseManagementsLoaded();
+        }
         await TenantViewChanged(tenantFromTemplate);
         actReportFilters.SyncFiltersFromTemplate(template);
         actReportFilters.SelectAll = !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet();
@@ -583,9 +642,14 @@
     {
         processing = true;
 
-        if(actReportFilters.ReportType.IsDeviceRelatedReport() && !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet())
+        if(actReportFilters.ReportType.IsDeviceRelatedReport() &&
+           (actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView
+                ? actReportFilters.SelectedRulebases.Count == 0
+                : !actReportFilters.DeviceFilter.IsAnyDeviceFilterSet()))
         {
-            DisplayMessageInUi(null, userConfig.GetText("no_device_selected"), userConfig.GetText("E1001"), true);
+            string selectionError = actReportFilters.ReportType == ReportType.Rules && actReportFilters.ManagementRulebaseView
+                ? "no_rulebase_selected" : "no_device_selected";
+            DisplayMessageInUi(null, userConfig.GetText(selectionError), userConfig.GetText("E1001"), true);
 
             processing = false;
 

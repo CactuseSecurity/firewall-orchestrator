@@ -63,7 +63,7 @@ namespace FWO.Mail
                 return;
             }
             WarnUncheckedServer(emailConn);
-            smtp.ServerCertificateValidationCallback = (s, c, h, e) => true;
+            smtp.ServerCertificateValidationCallback = (s, c, h, e) => true; // NOSONAR: explicit admin opt-out (emailCheckCertificates), default on, logged per server
         }
 
         /// <summary>

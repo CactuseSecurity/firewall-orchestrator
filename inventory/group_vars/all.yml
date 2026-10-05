@@ -82,7 +82,10 @@ installation_mode: new
 # Set this to true only when FWO components are installed on separate hosts.
 distributed_install: false
 install_syslog: true
-add_demo_data: true
+# Demo data (sample devices, owners and LDAP users with publicly known passwords) is only meant for
+# development, test and demo installations. It is created automatically with testkeys=yes and can be
+# requested explicitly with -e add_demo_data=yes.
+add_demo_data: "{{ testkeys | default(false) | bool }}"
 api_docu: false
 force_install: false
 allowRepoChangesForRedhat: false

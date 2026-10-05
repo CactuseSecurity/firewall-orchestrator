@@ -34,6 +34,11 @@
     5 minutes per read and 30 minutes in total; local files above the size limit are refused
   - autodiscovery skips domains and ADOMs whose name is in URI form, so a remote manager cannot make the
     importer read from a URL or local file
+- security (GHSA-3v53-q5h9-pvfh): no demo data by default
+  - add_demo_data now defaults to the value of testkeys: a standard installation creates no sample users,
+    owners or devices with publicly known passwords; installations with testkeys=yes get them automatically
+  - demo data can still be requested explicitly with -e add_demo_data=yes, which logs a security warning
+  - remove the unused fixed importer_password from the middleware inventory
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

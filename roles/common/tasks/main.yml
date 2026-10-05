@@ -51,6 +51,17 @@
           development or test environments.
       when: testkeys | default(false) | bool
 
+    - name: warn when demo data is requested without test keys
+      debug:
+        msg: >-
+          SECURITY WARNING: add_demo_data=yes is set. Demo data creates sample users with
+          publicly known passwords and is only acceptable for isolated development, test or
+          demo environments.
+      when:
+        - add_demo_data | bool
+        - not (testkeys | default(false) | bool)
+        - installation_mode == 'new'
+
     # PostgreSQL and slapd are bound to loopback unless distributed_install is set,
     # and those listener settings are rewritten on every run, upgrades included. On an
     # inventory that spreads FWO over several hosts that would silently cut the

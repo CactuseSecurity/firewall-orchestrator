@@ -82,6 +82,24 @@
                 <input id="cbx_show_log_data" type="checkbox" class="w-100" @bind="configData.ShowLogDataInConnections" />
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5705"))">
+            <label for="cbx_hide_log_time_column" class="col-form-label col-sm-4">@(userConfig.GetText("hideLogTimeColumn")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_hide_log_time_column" type="checkbox" class="w-100" @bind="configData.HideLogTimeColumn" />
+            </div>
+        </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5706"))">
+            <label class="col-form-label col-sm-4">@(userConfig.GetText("defaultLogTimeRange")):</label>
+            <div class="col-sm-8 d-inline-flex">
+                <input class="form-control me-3 w-auto" type="number" min="1" @bind="logTimeRangeValue" @bind:after="ApplyLogTimeRange" />
+                <select class="form-select w-auto" @bind="logTimeRangeUnit" @bind:after="ApplyLogTimeRange">
+                    @foreach (LogTimeRangeUnit unit in Enum.GetValues<LogTimeRangeUnit>())
+                    {
+                        <option value="@unit">@unit.ToString(userConfig)</option>
+                    }
+                </select>
+            </div>
+        </div>
     </form>
     <hr />
     <ExecutionModeAuthorizeView Roles="@Roles.Admin">
@@ -106,6 +124,7 @@ else
 {
     private const int kMinLogDataMaxEntries = 1;
     private const int kMinLogDataRetentionDays = 1;
+    private const int kMinLogTimeRangeInSeconds = 1;
 
     [CascadingParameter]
     Action<Exception?, string, string, bool> DisplayMessageInUi { get; set; } = DefaultInit.DoNothing;
@@ -115,6 +134,9 @@ else
     private List<string> pathsToAdd = [];
     private List<string> pathsToDelete = [];
     private string activePath = "";
+    // the default log time range is stored in seconds and edited in the largest unit representing it exactly
+    private int logTimeRangeValue;
+    private LogTimeRangeUnit logTimeRangeUnit = LogTimeRangeUnit.Days;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,10 +144,22 @@ else
         {
             configData = await globalConfig.GetEditableConfig();
             logDataPaths = JsonSerializer.Deserialize<List<string>>(configData.ImportLogDataPath) ?? [];
+            (logTimeRangeValue, logTimeRangeUnit) = LogTimeRange.ToLargestExactUnit(configData.DefaultLogTimeRangeInSeconds);
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+    }
+
+    /// <summary>
+    /// Writes the entered default log time range to the edited config as seconds.
+    /// </summary>
+    private void ApplyLogTimeRange()
+    {
+        if (configData is not null)
+        {
+            configData.DefaultLogTimeRangeInSeconds = LogTimeRange.ToSeconds(logTimeRangeValue, logTimeRangeUnit);
         }
     }
 
@@ -154,7 +188,7 @@ else
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             bool oldShowLogData = globalConfig.ShowLogDataInConnections;
             LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol,
-                globalConfig.ReplaceExistingLogData);
+                globalConfig.ReplaceExistingLogData, globalConfig.HideLogTimeColumn, globalConfig.DefaultLogTimeRangeInSeconds);
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
             WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
@@ -188,12 +222,15 @@ else
         configData.ImportLogDataMaxEntries = Math.Max(kMinLogDataMaxEntries, configData.ImportLogDataMaxEntries);
         // a retention of 0 days would delete every entry right after it was imported
         configData.LogDataRetentionDays = Math.Max(kMinLogDataRetentionDays, configData.LogDataRetentionDays);
+        configData.DefaultLogTimeRangeInSeconds = Math.Max(kMinLogTimeRangeInSeconds, configData.DefaultLogTimeRangeInSeconds);
+        (logTimeRangeValue, logTimeRangeUnit) = LogTimeRange.ToLargestExactUnit(configData.DefaultLogTimeRangeInSeconds);
     }
 
     /// <summary>
     /// Settings of the log data page which are only needed for the audit entry.
     /// </summary>
-    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting);
+    private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting, bool HideLogTimeColumn,
+        int DefaultLogTimeRangeInSeconds);
 
     private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
         int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
@@ -210,6 +247,10 @@ else
             configData.AllowLogDataPortWithoutProtocol.ToString());
         AddSettingChange(changes, nameof(ConfigData.ReplaceExistingLogData), oldSettings.ReplaceExisting.ToString(),
             configData.ReplaceExistingLogData.ToString());
+        AddSettingChange(changes, nameof(ConfigData.HideLogTimeColumn), oldSettings.HideLogTimeColumn.ToString(),
+            configData.HideLogTimeColumn.ToString());
+        AddSettingChange(changes, nameof(ConfigData.DefaultLogTimeRangeInSeconds), oldSettings.DefaultLogTimeRangeInSeconds.ToString(),
+            configData.DefaultLogTimeRangeInSeconds.ToString());
 
         if (changes.Count > 0)
         {

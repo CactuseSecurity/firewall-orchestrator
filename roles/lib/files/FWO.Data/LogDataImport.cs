@@ -11,8 +11,56 @@ namespace FWO.Data
         [JsonProperty("import_time"), JsonPropertyName("import_time")]
         public DateTimeOffset? ImportTime { get; set; }
 
+        /// <summary>
+        /// Period the log counts of the file were aggregated over. Optional, it overrides the
+        /// configured default log time range for this file.
+        /// </summary>
+        [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
+        public int? LogTimeRangeInSeconds { get; set; }
+
         [JsonProperty("logs"), JsonPropertyName("logs")]
         public List<LogDataImportEntry> Logs { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Period the stored log counts were aggregated over and the time they were imported. All import
+    /// files are expected to name the same period, so it is stored once for the whole log data in a
+    /// config entry and not per log entry.
+    /// </summary>
+    public class LogDataImportPeriod
+    {
+        /// <summary>
+        /// Config entry (of user 0) the period is stored in. It is written by every log data import and
+        /// therefore deliberately no setting: saving the settings page must not overwrite it.
+        /// </summary>
+        public const string kConfigKey = "logDataImportPeriod";
+
+        [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
+        public int LogTimeRangeInSeconds { get; set; }
+
+        [JsonProperty("import_time"), JsonPropertyName("import_time")]
+        public DateTimeOffset ImportTime { get; set; }
+
+        /// <summary>
+        /// Reads a stored period.
+        /// </summary>
+        /// <returns>The period, null if none is stored or the stored value is unusable.</returns>
+        public static LogDataImportPeriod? Parse(string? configValue)
+        {
+            if (string.IsNullOrWhiteSpace(configValue))
+            {
+                return null;
+            }
+            try
+            {
+                LogDataImportPeriod? period = System.Text.Json.JsonSerializer.Deserialize<LogDataImportPeriod>(configValue);
+                return period?.LogTimeRangeInSeconds > 0 ? period : null;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
+        }
     }
 
     /// <summary>

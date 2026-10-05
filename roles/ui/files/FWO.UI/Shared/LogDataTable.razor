@@ -4,7 +4,7 @@
 @inject DomEventService eventService
 @implements IDisposable
 
-<h5 class="mt-3">@(userConfig.GetText("log_data"))</h5>
+<h5 class="mt-3">@(LogDataTitle.Build(importPeriod, userConfig))</h5>
 @if (isLoading)
 {
     <Loading />
@@ -37,11 +37,16 @@ else
                 </Template>
             </Column>
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_count"))" Field="@(x => x.LogCount)" Sortable="true" Filterable="true" DefaultSortColumn="true" DefaultSortDescending="true" />
-            <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTimeLocal)" Sortable="true" Filterable="true">
-                <Template>
-                    @context.LogTimeLocal.ToString(kLogTimeFormat)
-                </Template>
-            </Column>
+            @* the import file names the period the log counts were aggregated over, so the time of the
+               last occurrence often adds nothing and is hidden by default (hideLogTimeColumn) *@
+            @if (!userConfig.HideLogTimeColumn)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_time"))" Field="@(x => x.LogTimeLocal)" Sortable="true" Filterable="true">
+                    <Template>
+                        @context.LogTimeLocal.ToString(kLogTimeFormat)
+                    </Template>
+                </Column>
+            }
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
@@ -71,6 +76,7 @@ else
     public int OwnerId { get; set; }
 
     private List<OwnerFirewallLogEntry> logEntries = [];
+    private LogDataImportPeriod? importPeriod;
     private bool isLoading = true;
     private int? loadedOwnerId;
 
@@ -111,9 +117,11 @@ else
             isLoading = true;
             List<OwnerFirewallLogEntry> loadedEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(
                 LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = requestedOwnerId, limit = kMaxLoadedEntries });
+            LogDataImportPeriod? loadedPeriod = await LoadImportPeriod();
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = loadedEntries;
+                importPeriod = loadedPeriod;
                 // the rows of another owner may be higher or lower, so the window is measured again
                 pageSizeMeasured = false;
             }
@@ -132,6 +140,25 @@ else
             {
                 isLoading = false;
             }
+        }
+    }
+
+    /// <summary>
+    /// Reads the period the log data was aggregated over, which the import stores once for all owners.
+    /// It only feeds the title, so a failed read leaves the plain title instead of hiding the rows.
+    /// </summary>
+    private async Task<LogDataImportPeriod?> LoadImportPeriod()
+    {
+        try
+        {
+            List<ConfigItem> configItems = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+                new { key = LogDataImportPeriod.kConfigKey });
+            return LogDataImportPeriod.Parse(configItems.FirstOrDefault()?.Value);
+        }
+        catch (Exception exception)
+        {
+            Log.WriteDebug("LogDataTable", $"reading the log data import period failed: {exception.Message}");
+            return null;
         }
     }
 

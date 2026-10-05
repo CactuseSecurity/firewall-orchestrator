@@ -372,6 +372,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("showLogDataInConnections"), JsonPropertyName("showLogDataInConnections")]
         public bool ShowLogDataInConnections { get; set; } = false;
 
+        [JsonProperty("hideLogTimeColumn"), JsonPropertyName("hideLogTimeColumn")]
+        public bool HideLogTimeColumn { get; set; } = true;
+
+        [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
+        public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;
+
         [JsonProperty("OwnerSoruceMappingID"), JsonPropertyName("OwnerSoruceMappingID")]
         public int OwnerSoruceMappingID { get; set; } = 0;
 

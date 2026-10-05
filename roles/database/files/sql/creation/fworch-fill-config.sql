@@ -78,6 +78,8 @@ insert into config (config_key, config_value, config_user) VALUES ('logDataReten
 insert into config (config_key, config_value, config_user) VALUES ('allowLogDataPortWithoutProtocol', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('replaceExistingLogData', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('showLogDataInConnections', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('hideLogTimeColumn', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('defaultLogTimeRangeInSeconds', '604800', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSubnetDataPath', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modNamingConvention', '{"networkAreaRequired":false,"useAppPart":false,"fixedPartLength":0,"freePartLength":0,"networkAreaPattern":"","appRolePattern":""}', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modCommonAreas', '[]', 0);

@@ -2,6 +2,7 @@ using FWO.Api.Client;
 using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Logging;
 using NetTools;
@@ -21,6 +22,8 @@ namespace FWO.Middleware.Server
         private const int TcpProtocol = 6;
         private const int UdpProtocol = 17;
         private const int LoggedEntriesPerMessage = 50;
+        // a source dated wrongly as a whole would otherwise write one warning per entry
+        private const int MaxReportedEntriesOutsideTimeRange = 50;
         // An unresolvable address only answers after the resolver timed out, so the lookups of a
         // batch overlap. The bound keeps the import from opening thousands of sockets at once.
         private const int ReverseLookupParallelism = 16;
@@ -116,9 +119,13 @@ namespace FWO.Middleware.Server
                 ReadFile(sourcePath + ".json");
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
+                int logTimeRangeInSeconds = ResolveLogTimeRange(importFileData.LogTimeRangeInSeconds, globalConfig.DefaultLogTimeRangeInSeconds);
                 // last checkpoint: acknowledging deletes the source file, so it must follow a completed write
                 cancellationToken.ThrowIfCancellationRequested();
-                await SaveEntries(importFileData.Logs, sourcePath, importFileData.ImportTime ?? DateTimeOffset.UtcNow);
+                DateTimeOffset importTime = importFileData.ImportTime ?? DateTimeOffset.UtcNow;
+                WarnAboutEntriesOutsideTimeRange(importFileData.Logs, importTime, logTimeRangeInSeconds, sourcePath);
+                await SaveEntries(importFileData.Logs, sourcePath, importTime);
+                await StoreImportPeriod(new LogDataImportPeriod { LogTimeRangeInSeconds = logTimeRangeInSeconds, ImportTime = importTime }, sourcePath);
                 await AcknowledgeImport(scriptPath, importFiles, sourcePath);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -131,6 +138,101 @@ namespace FWO.Middleware.Server
                 Log.WriteError(LogMessageTitle, message, exception);
                 await AddLogEntry(GlobalConst.kImportLogData, 2, LevelFile, message);
                 failedImports.Add(sourcePath);
+            }
+        }
+
+        /// <summary>
+        /// Determines the period the log counts of an import file were aggregated over. A period named
+        /// by the file overrides the configured default, which applies to files without one - like those
+        /// converted from CSV data, which cannot name it. A file naming a period which is not positive
+        /// is rejected as a whole and kept for the next run, the log table would present its counts as
+        /// traffic of a period which cannot exist.
+        /// </summary>
+        /// <returns>The period in seconds.</returns>
+        public static int ResolveLogTimeRange(int? fileLogTimeRangeInSeconds, int defaultLogTimeRangeInSeconds)
+        {
+            if (fileLogTimeRangeInSeconds is null)
+            {
+                return Math.Max(1, defaultLogTimeRangeInSeconds);
+            }
+            if (fileLogTimeRangeInSeconds < 1)
+            {
+                throw new InvalidDataException("The top level log_time_range_in_seconds of a log data file must be positive.");
+            }
+            return fileLogTimeRangeInSeconds.Value;
+        }
+
+        /// <summary>
+        /// Finds the entries whose log time lies outside the period the file was aggregated over, which
+        /// ends at the import time and reaches back by the log time range. An entry without log time is
+        /// stamped with the import time and therefore never outside.
+        /// </summary>
+        /// <returns>The entries logged before the period started or after the import.</returns>
+        public static List<LogDataImportEntry> FindEntriesOutsideTimeRange(IEnumerable<LogDataImportEntry> entries,
+            DateTimeOffset importTime, int logTimeRangeInSeconds)
+        {
+            DateTimeOffset rangeStart = importTime.AddSeconds(-logTimeRangeInSeconds);
+            return entries
+                .Where(entry => entry.LogTime is not null && (entry.LogTime < rangeStart || entry.LogTime > importTime))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Warns about every entry logged outside the period the file names (or the default period), at
+        /// most <see cref="MaxReportedEntriesOutsideTimeRange"/> of them. The entries are imported
+        /// anyway: their counts belong to the flow, only the period in the title of the log table does
+        /// not describe them correctly, which points at a wrong log time range or a stale export.
+        /// </summary>
+        private static void WarnAboutEntriesOutsideTimeRange(List<LogDataImportEntry> entries, DateTimeOffset importTime,
+            int logTimeRangeInSeconds, string sourcePath)
+        {
+            List<LogDataImportEntry> outsideEntries = FindEntriesOutsideTimeRange(entries, importTime, logTimeRangeInSeconds);
+            if (outsideEntries.Count == 0)
+            {
+                return;
+            }
+            DateTimeOffset rangeStart = importTime.AddSeconds(-logTimeRangeInSeconds);
+            foreach (LogDataImportEntry entry in outsideEntries.Take(MaxReportedEntriesOutsideTimeRange))
+            {
+                Log.WriteWarning(LogMessageTitle, $"Log entry of application '{entry.AppId}' ({entry.Source} -> {entry.Destination})" +
+                    $" in {sourcePath}.json was logged at {entry.LogTime:O}, outside the expected log time range" +
+                    $" {rangeStart:O} - {importTime:O}.");
+            }
+            Log.WriteWarning(LogMessageTitle, $"{outsideEntries.Count} log entries of {sourcePath}.json were logged outside the expected" +
+                $" log time range of {logTimeRangeInSeconds} seconds before {importTime:O}" +
+                (outsideEntries.Count > MaxReportedEntriesOutsideTimeRange ? $", the first {MaxReportedEntriesOutsideTimeRange} are listed above." : "."));
+        }
+
+        /// <summary>
+        /// Remembers the period the stored log counts were aggregated over and when they were imported.
+        /// All import files are expected to name the same period, so it is stored once for the whole log
+        /// data and not per entry; a source naming another period is reported, its period is stored anyway
+        /// because its entries are the current ones. The entries of the source are already written, so a
+        /// failure only leaves the title of the log table outdated and does not fail the import.
+        /// </summary>
+        private async Task StoreImportPeriod(LogDataImportPeriod period, string sourcePath)
+        {
+            try
+            {
+                List<ConfigItem> storedItems = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
+                    new { key = LogDataImportPeriod.kConfigKey });
+                LogDataImportPeriod? storedPeriod = LogDataImportPeriod.Parse(storedItems.FirstOrDefault()?.Value);
+                if (storedPeriod is not null && storedPeriod.LogTimeRangeInSeconds != period.LogTimeRangeInSeconds)
+                {
+                    Log.WriteWarning(LogMessageTitle, $"{sourcePath}.json is aggregated over {period.LogTimeRangeInSeconds} seconds," +
+                        $" the log data imported before was aggregated over {storedPeriod.LogTimeRangeInSeconds} seconds." +
+                        " All log data import files are expected to name the same log time range.");
+                }
+                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, new
+                {
+                    config_key = LogDataImportPeriod.kConfigKey,
+                    config_value = JsonSerializer.Serialize(period),
+                    config_user = 0
+                });
+            }
+            catch (Exception exception)
+            {
+                Log.WriteError(LogMessageTitle, $"The log time range of {sourcePath}.json could not be stored.", exception);
             }
         }
 

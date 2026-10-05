@@ -1,0 +1,119 @@
+using System.Globalization;
+using FWO.Config.Api;
+using FWO.Config.Api.Data;
+using FWO.Data;
+using FWO.Ui.Services;
+using NUnit.Framework;
+
+namespace FWO.Test
+{
+    [TestFixture]
+    internal class UiLogDataTitleTest
+    {
+        private const int kOneWeek = 604800;
+        private const int kDayAndAHalf = 129600;
+        private static readonly DateTimeOffset kImportTime = new(2026, 10, 5, 8, 30, 0, TimeSpan.Zero);
+        private static readonly Language[] kUiLanguages =
+        [
+            new Language { Name = "German", CultureInfo = "de-DE" },
+            new Language { Name = "English", CultureInfo = "en-US" }
+        ];
+
+        [Test]
+        public void Build_UsesThePlainTitleWithoutStoredPeriod()
+        {
+            Assert.That(LogDataTitle.Build(null, new SimulatedUserConfig()), Is.EqualTo("log_data"));
+        }
+
+        [Test]
+        public void Build_NamesThePeriodAndTheImportTime()
+        {
+            AggregatedTitleUserConfig userConfig = new();
+
+            string title = LogDataTitle.Build(new LogDataImportPeriod { LogTimeRangeInSeconds = kOneWeek, ImportTime = kImportTime }, userConfig);
+
+            Assert.That(title, Is.EqualTo($"Logs (aggregated over 1 {userConfig.GetText("Weeks")} from {LogDataTitle.FormatImportTime(kImportTime, userConfig)})"));
+        }
+
+        [Test]
+        public void FormatTimeRange_UsesTheLocalizedUnitTexts()
+        {
+            SimulatedUserConfig userConfig = new();
+            string weeks = userConfig.GetText("Weeks");
+            string days = userConfig.GetText("Days");
+            string hours = userConfig.GetText("Hours");
+            string minutes = userConfig.GetText("Minutes2");
+            string seconds = userConfig.GetText("Seconds");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(LogDataTitle.FormatTimeRange(kOneWeek, userConfig), Is.EqualTo($"1 {weeks}"));
+                Assert.That(LogDataTitle.FormatTimeRange(kDayAndAHalf, userConfig), Is.EqualTo($"1 {days} 12 {hours}"));
+                Assert.That(LogDataTitle.FormatTimeRange(61, userConfig), Is.EqualTo($"1 {minutes} 1 {seconds}"));
+            });
+        }
+
+        [TestCase("German", "de-DE")]
+        [TestCase("English", "en-US")]
+        public void FormatImportTime_UsesTheCultureOfTheUserLanguage(string language, string cultureName)
+        {
+            using UserConfig userConfig = CreateUserConfig(language);
+
+            string expected = kImportTime.ToLocalTime().DateTime.ToString("g", CultureInfo.GetCultureInfo(cultureName));
+            Assert.That(LogDataTitle.FormatImportTime(kImportTime, userConfig), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void GetUserCulture_FallsBackToTheDefaultLanguageWithoutUserLanguage()
+        {
+            SimulatedGlobalConfig globalConfig = new() { UiLanguages = kUiLanguages, DefaultLanguage = "German" };
+            using UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+
+            Assert.That(userConfig.GetUserCulture().Name, Is.EqualTo("de-DE"));
+        }
+
+        [Test]
+        public void GetUserCulture_UsesTheInvariantCultureForAnUnknownLanguage()
+        {
+            using UserConfig userConfig = CreateUserConfig("Klingon");
+
+            Assert.That(userConfig.GetUserCulture(), Is.EqualTo(CultureInfo.InvariantCulture));
+        }
+
+        [Test]
+        public void GetUserCulture_UsesTheInvariantCultureForAnInvalidCultureName()
+        {
+            Language[] languages = [new Language { Name = "English", CultureInfo = "not a culture!" }];
+            SimulatedGlobalConfig globalConfig = new() { UiLanguages = languages };
+            using UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            userConfig.SetLanguage("English");
+
+            Assert.That(userConfig.GetUserCulture(), Is.EqualTo(CultureInfo.InvariantCulture));
+        }
+
+        [Test]
+        public void GetUserCulture_UsesTheInvariantCultureWithoutGlobalConfig()
+        {
+            Assert.That(new SimulatedUserConfig().GetUserCulture(), Is.EqualTo(CultureInfo.InvariantCulture));
+        }
+
+        /// <summary>
+        /// Knows the text of the aggregated title, every other key is answered with itself.
+        /// </summary>
+        private sealed class AggregatedTitleUserConfig : SimulatedUserConfig
+        {
+            public override string GetText(string key)
+            {
+                return key == "log_data_aggregated" ? "Logs (aggregated over @@TIME_INTERVAL@@ from @@DATE@@)" : base.GetText(key);
+            }
+        }
+
+        private static UserConfig CreateUserConfig(string language)
+        {
+            SimulatedGlobalConfig globalConfig = new() { UiLanguages = kUiLanguages };
+            UserConfig userConfig = UserConfig.ForTextOnly(globalConfig, registerOnChangeHandler: false);
+            userConfig.SetLanguage(language);
+            return userConfig;
+        }
+    }
+}

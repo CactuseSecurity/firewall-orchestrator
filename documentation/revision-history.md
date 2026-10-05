@@ -14,6 +14,13 @@
   data import source pointing at the delivered script to the new name.
 - add generate_area_ip_data.py, which generates sample area IP data covering the app servers of an
   app-data file; generate_app_and_log_data.py now also writes this area IP data file.
+- the log table heading names the period the log counts were aggregated over and the import time,
+  localized, e.g. "Logs (aggregated over 1 Week(s) from 10/5/2026 10:00 AM)". The period is the new
+  setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
+  log data import file can override in the new optional top-level field log_time_range_in_seconds.
+  All imports are expected to use the same period; the middleware stores period and import time of
+  the last import once (config entry logDataImportPeriod) and warns about a changed period and about
+  entries logged outside it. New setting to hide the log time column (default: on) (issue #5391).
   
 ## 9.6.1 - 02.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of

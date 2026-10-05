@@ -3,7 +3,9 @@ using AngleSharp.Dom;
 using BlazorTable;
 using Bunit;
 using FWO.Api.Client;
+using FWO.Api.Client.Queries;
 using FWO.Config.Api;
+using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Ui.Services;
 using FWO.Ui.Shared;
@@ -24,6 +26,8 @@ namespace FWO.Test
         // items before them depend on the pager options
         private const int kNextPageItemFromEnd = 2;
         private const int kPreviousPageItemFromEnd = 3;
+        private const int kOneWeek = 604800;
+        private const string kStoredImportPeriod = """{"log_time_range_in_seconds": 604800, "import_time": "2026-10-05T08:30:00+00:00"}""";
 
         [Test]
         public async Task OnParametersSet_LoadsLogEntriesOfOwner()
@@ -128,6 +132,77 @@ namespace FWO.Test
             List<OwnerFirewallLogEntry> displayedEntries = GetPrivateField<List<OwnerFirewallLogEntry>>(component, "logEntries");
             Assert.That(displayedEntries.Single().LogCount, Is.EqualTo(8),
                 "the late answer of the previous owner must not replace the rows on screen");
+        }
+
+        [Test]
+        public async Task OnParametersSet_LoadsTheStoredImportPeriod()
+        {
+            LogDataTableTestApiConn apiConnection = new() { ImportPeriodValue = kStoredImportPeriod };
+            LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
+
+            await InvokeOnParametersSetAsync(component);
+
+            Assert.That(GetPrivateField<LogDataImportPeriod?>(component, "importPeriod")?.LogTimeRangeInSeconds, Is.EqualTo(kOneWeek));
+        }
+
+        [Test]
+        public async Task OnParametersSet_KeepsTheRowsWhenTheImportPeriodCannotBeRead()
+        {
+            LogDataTableTestApiConn apiConnection = new() { FailImportPeriodQuery = true };
+            LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
+
+            await InvokeOnParametersSetAsync(component);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetPrivateField<List<OwnerFirewallLogEntry>>(component, "logEntries"), Has.Count.EqualTo(1));
+                Assert.That(GetPrivateField<LogDataImportPeriod?>(component, "importPeriod"), Is.Null);
+            });
+        }
+
+        [Test]
+        public void Render_NamesTheAggregationPeriodInTheTitle()
+        {
+            using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn { ImportPeriodValue = kStoredImportPeriod }, new SimulatedUserConfig());
+
+            IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters.Add(component => component.OwnerId, 7));
+
+            page.WaitForAssertion(() => Assert.That(page.Find("h5").TextContent, Is.EqualTo("log_data_aggregated")));
+        }
+
+        [Test]
+        public void Render_UsesThePlainTitleWithoutStoredImportPeriod()
+        {
+            using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn(), new SimulatedUserConfig());
+
+            IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters.Add(component => component.OwnerId, 7));
+
+            page.WaitForAssertion(() => Assert.That(page.Find("h5").TextContent, Is.EqualTo(new SimulatedUserConfig().GetText("log_data"))));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Render_ShowsTheLogTimeColumnOnlyWhenItIsNotHidden(bool hideLogTimeColumn)
+        {
+            SimulatedUserConfig userConfig = new() { HideLogTimeColumn = hideLogTimeColumn };
+            using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn(), userConfig);
+
+            IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters.Add(component => component.OwnerId, 7));
+
+            page.WaitForAssertion(() => Assert.That(page.FindAll("tbody tr"), Is.Not.Empty));
+            List<string> headers = [.. page.FindAll("thead th").Select(header => header.TextContent)];
+            Assert.That(headers.Any(header => header.Contains(userConfig.GetText("log_time"))), Is.EqualTo(!hideLogTimeColumn));
+        }
+
+        private static BunitContext CreateRenderContext(ApiConnection apiConnection, UserConfig userConfig)
+        {
+            BunitContext context = new();
+            context.JSInterop.Mode = JSRuntimeMode.Loose;
+            context.Services.AddBlazorTable();
+            context.Services.AddSingleton(apiConnection);
+            context.Services.AddSingleton(userConfig);
+            context.Services.AddSingleton(new DomEventService());
+            return context;
         }
 
         private static LogDataTable CreateComponent(ApiConnection apiConnection, int ownerId)
@@ -410,6 +485,10 @@ namespace FWO.Test
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                if (query == ConfigQueries.getConfigItemByKey)
+                {
+                    return (QueryResponseType)(object)new List<ConfigItem>();
+                }
                 int ownerId = (int?)variables?.GetType().GetProperty("ownerId")?.GetValue(variables) ?? 0;
                 await GetAnswer(ownerId).Task;
                 // the log count identifies the owner the entries were loaded for
@@ -438,10 +517,16 @@ namespace FWO.Test
             public int? LastLimit { get; private set; }
             public bool FailQuery { get; init; }
             public int EntryCount { get; init; } = 1;
+            public string? ImportPeriodValue { get; init; }
+            public bool FailImportPeriodQuery { get; init; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
+                if (query == ConfigQueries.getConfigItemByKey)
+                {
+                    return Task.FromResult((QueryResponseType)(object)AnswerImportPeriod(variables));
+                }
                 QueryCount++;
                 LastOwnerId = (int?)variables?.GetType().GetProperty("ownerId")?.GetValue(variables);
                 LastLimit = (int?)variables?.GetType().GetProperty("limit")?.GetValue(variables);
@@ -453,6 +538,16 @@ namespace FWO.Test
                 List<OwnerFirewallLogEntry> entries = [.. Enumerable.Range(0, EntryCount)
                     .Select(_ => new OwnerFirewallLogEntry { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32" })];
                 return Task.FromResult((QueryResponseType)(object)entries);
+            }
+
+            private List<ConfigItem> AnswerImportPeriod(object? variables)
+            {
+                if (FailImportPeriodQuery)
+                {
+                    throw new InvalidOperationException("config query failed");
+                }
+                Assert.That(variables?.GetType().GetProperty("key")?.GetValue(variables), Is.EqualTo(LogDataImportPeriod.kConfigKey));
+                return ImportPeriodValue is null ? [] : [new ConfigItem { Key = LogDataImportPeriod.kConfigKey, Value = ImportPeriodValue }];
             }
         }
     }

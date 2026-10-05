@@ -28,3 +28,11 @@ SET config_value = regexp_replace(
         'g')
 WHERE config_key = 'importSubnetDataPath'
     AND strpos(config_value, '/scripts/customizing/area_ip_data_import/convertNwObjDataFromGit') > 0;
+
+-- log data table settings: hide the log time column and the log time range written into import
+-- files generated from CSV data, see issue #5391
+INSERT INTO config (config_key, config_value, config_user)
+VALUES
+    ('hideLogTimeColumn', 'True', 0),
+    ('defaultLogTimeRangeInSeconds', '604800', 0)
+ON CONFLICT DO NOTHING;

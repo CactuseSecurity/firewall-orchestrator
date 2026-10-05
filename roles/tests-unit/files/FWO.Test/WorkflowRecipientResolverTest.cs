@@ -14,6 +14,10 @@ namespace FWO.Test
         private const string kUserSearchPath = "ou=users,dc=test";
         private const string kRecipientDn = "uid=alice,ou=users,dc=test";
         private const string kRecipientEmail = "alice@example.test";
+        private static readonly List<string> kRecipientDns = [kRecipientDn];
+        private static readonly List<string> kRecipientEmails = [kRecipientEmail];
+        private static readonly List<string> kNoEmails = [];
+        private static readonly List<string> kEmptyEmails = [""];
 
         /// <summary>
         /// Caching an LDAP-resolved recipient in uiuser is a side effect. When the API drops
@@ -35,10 +39,69 @@ namespace FWO.Test
 
             Assert.Multiple(() =>
             {
-                Assert.That(recipients.Select(user => user.Email), Is.EqualTo(new[] { kRecipientEmail }));
+                Assert.That(recipients.Select(user => user.Email), Is.EqualTo(kRecipientEmails));
                 Assert.That(apiConnection.Queries, Does.Contain(AuthQueries.upsertUiUser),
                     "the upsert must have been attempted, otherwise the test does not cover the failure");
             });
+        }
+
+        /// <summary>
+        /// A uiuser that already has an email address is returned as is, without asking LDAP
+        /// or writing to uiuser.
+        /// </summary>
+        [Test]
+        public async Task ResolveUsers_WhenCachedUserHasEmail_ReturnsCachedUserWithoutLdapLookup()
+        {
+            RecipientApiConnection apiConnection = new();
+            apiConnection.CachedUsers.Add(new UiUser { Dn = kRecipientDn, Email = kRecipientEmail });
+            RecordingLdapClient ldapClient = new();
+            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+
+            List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(recipients.Select(user => user.Email), Is.EqualTo(kRecipientEmails));
+                Assert.That(ldapClient.ReadCalls, Is.Empty);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        /// <summary>
+        /// A uiuser without email address that LDAP does not know is still returned, so the
+        /// caller can decide how to handle the missing address.
+        /// </summary>
+        [Test]
+        public async Task ResolveUsers_WhenCachedUserHasNoEmailAndLdapMisses_ReturnsCachedUser()
+        {
+            RecipientApiConnection apiConnection = new();
+            apiConnection.CachedUsers.Add(new UiUser { Dn = kRecipientDn, Email = "" });
+            RecordingLdapClient ldapClient = new();
+            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+
+            List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(recipients.Select(user => user.Email), Is.EqualTo(kEmptyEmails));
+                Assert.That(ldapClient.ReadCalls, Does.Contain(kRecipientDn));
+                Assert.That(apiConnection.Queries, Does.Not.Contain(AuthQueries.upsertUiUser));
+            });
+        }
+
+        /// <summary>
+        /// A DN that is neither a uiuser nor an LDAP user yields no recipient.
+        /// </summary>
+        [Test]
+        public async Task ResolveUsers_WhenDnIsUnknown_ReturnsNoRecipient()
+        {
+            RecipientApiConnection apiConnection = new();
+            RecordingLdapClient ldapClient = new();
+            WorkflowRecipientResolver resolver = new(apiConnection, [CreateLdap(ldapClient)]);
+
+            List<UiUser> recipients = await resolver.ResolveUsers(kRecipientDns);
+
+            Assert.That(recipients.Select(user => user.Email), Is.EqualTo(kNoEmails));
         }
 
         private static TestableLdap CreateLdap(RecordingLdapClient client)
@@ -55,11 +118,13 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Knows no cached users and loses the API as soon as a user is to be written.
+        /// Returns <see cref="CachedUsers"/> as uiuser cache and loses the API as soon as a user is to be written.
         /// </summary>
         private sealed class RecipientApiConnection : SimulatedApiConnection
         {
             public List<string> Queries { get; } = [];
+
+            public List<UiUser> CachedUsers { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -67,7 +132,7 @@ namespace FWO.Test
 
                 if (query == AuthQueries.getUserEmails)
                 {
-                    return Task.FromResult((QueryResponseType)(object)new List<UiUser>());
+                    return Task.FromResult((QueryResponseType)(object)CachedUsers);
                 }
 
                 if (query == AuthQueries.upsertUiUser)

@@ -462,7 +462,7 @@ namespace FWO.Test
 
             if (!response.IsSuccessStatusCode)
             {
-                Assert.Ignore($"Configured integration credentials are not accepted in this environment. Got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync()}");
+                Assert.Ignore($"Configured integration credentials are not accepted in this environment. Got {(int)response.StatusCode} {response.StatusCode}. Content: {await response.Content.ReadAsStringAsync(cancellationToken)}");
             }
 
             return (await response.Content.ReadFromJsonAsync<TokenPair>(cancellationToken))!;

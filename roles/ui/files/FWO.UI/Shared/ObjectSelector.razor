@@ -124,8 +124,11 @@ else
     private async Task Search(string newSearchText)
     {
         searchText = newSearchText;
-        searchCancellation?.Cancel();
-        searchCancellation?.Dispose();
+        if (searchCancellation != null)
+        {
+            await searchCancellation.CancelAsync();
+            searchCancellation.Dispose();
+        }
         searchCancellation = new CancellationTokenSource();
         CancellationToken token = searchCancellation.Token;
         try

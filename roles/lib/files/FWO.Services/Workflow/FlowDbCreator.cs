@@ -136,38 +136,43 @@ namespace FWO.Services.Workflow
 
             foreach (IGrouping<int, FlowCreationPayload> managementPayloads in payloads.GroupBy(GetManagementGroupId))
             {
-                List<FlowCreationPayload> groupedPayloads = [.. managementPayloads];
-                FlowSyncFlowData context = await LoadFlowSyncData(managementPayloads.Key);
-                FlowGroupMaps groupMaps = BuildGroupMaps(context);
-
-                // single objects first, so that groups and accesses of the same run can already use them
-                foreach (FlowCreationPayload payload in groupedPayloads.Where(IsObjectTask))
-                {
-                    if (await PersistObjectPayload(payload, context, groupMaps))
-                    {
-                        persistedPayloads++;
-                    }
-                }
-
-                foreach (FlowCreationPayload payload in groupedPayloads.Where(IsGroupTask))
-                {
-                    if (await PersistGroupPayload(payload, context, groupMaps))
-                    {
-                        persistedPayloads++;
-                    }
-                }
-
-                foreach (FlowCreationPayload payload in groupedPayloads.Where(payload => !IsGroupTask(payload) && !IsObjectTask(payload)))
-                {
-                    if (await PersistAccessPayload(payload, context, groupMaps))
-                    {
-                        persistedPayloads++;
-                    }
-                }
+                persistedPayloads += await PersistManagementPayloads([.. managementPayloads], managementPayloads.Key);
             }
 
             Log.WriteInfo(LogMessageTitle, $"Persisted {persistedPayloads} of {payloads.Count} prepared Flow DB payloads.");
             return persistedPayloads == payloads.Count;
+        }
+
+        /// <summary>
+        /// Persists the payloads of one management and returns how many of them were stored.
+        /// </summary>
+        private async Task<int> PersistManagementPayloads(List<FlowCreationPayload> payloads, int managementId)
+        {
+            FlowSyncFlowData context = await LoadFlowSyncData(managementId);
+            FlowGroupMaps groupMaps = BuildGroupMaps(context);
+
+            // single objects first, so that groups and accesses of the same run can already use them
+            int persisted = await CountPersisted(payloads.Where(IsObjectTask), payload => PersistObjectPayload(payload, context, groupMaps));
+            persisted += await CountPersisted(payloads.Where(IsGroupTask), payload => PersistGroupPayload(payload, context, groupMaps));
+            persisted += await CountPersisted(payloads.Where(payload => !IsGroupTask(payload) && !IsObjectTask(payload)),
+                payload => PersistAccessPayload(payload, context, groupMaps));
+            return persisted;
+        }
+
+        /// <summary>
+        /// Persists the payloads one after the other and returns how many of them were stored.
+        /// </summary>
+        private static async Task<int> CountPersisted(IEnumerable<FlowCreationPayload> payloads, Func<FlowCreationPayload, Task<bool>> persist)
+        {
+            int persisted = 0;
+            foreach (FlowCreationPayload payload in payloads)
+            {
+                if (await persist(payload))
+                {
+                    persisted++;
+                }
+            }
+            return persisted;
         }
 
         private static int GetManagementGroupId(FlowCreationPayload payload)

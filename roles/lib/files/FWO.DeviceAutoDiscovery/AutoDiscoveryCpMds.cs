@@ -103,6 +103,10 @@ namespace FWO.DeviceAutoDiscovery
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Log.WriteDebug(Autodiscovery, $"found domain '{domain.Name}'");
+                if (!IsAcceptableDomainName(domain.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, domain.Name, domain.Uid);
                 currentManagement.IsSupermanager = false;
                 // session id pins this session to a specific domain (if domain is given during login)

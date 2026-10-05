@@ -23,8 +23,21 @@ if TYPE_CHECKING:
 
 
 class FakeResponse:
-    ok: bool = True
-    text: str = '{"ManagerSet": []}'
+    is_redirect: bool = False
+    status_code: int = 200
+    headers: dict[str, str] = {}  # noqa: RUF012
+
+    def __enter__(self) -> FakeResponse:  # noqa: PYI034
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def iter_content(self, chunk_size: int) -> list[bytes]:  # noqa: ARG002
+        return [b'{"ManagerSet": []}']
 
 
 class FakeSession:
@@ -46,7 +59,7 @@ class FakeSession:
     ) -> None:
         return None
 
-    def get(self, url: str, timeout: int) -> FakeResponse:  # noqa: ARG002
+    def get(self, url: str, **kwargs: Any) -> FakeResponse:  # noqa: ARG002
         return FakeResponse()
 
 

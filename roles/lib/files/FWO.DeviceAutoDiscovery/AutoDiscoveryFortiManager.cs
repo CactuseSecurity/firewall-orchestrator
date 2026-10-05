@@ -247,6 +247,10 @@ namespace FWO.DeviceAutoDiscovery
             List<Management> discoveredDevices = [];
             foreach (Adom adom in customAdoms)
             {
+                if (!IsAcceptableDomainName(adom.Name))
+                {
+                    continue;
+                }
                 Management currentManagement = CreateManagement(SuperManagement, adom.Name, adom.Uid);
                 if (adom.DeviceList != null)
                 {

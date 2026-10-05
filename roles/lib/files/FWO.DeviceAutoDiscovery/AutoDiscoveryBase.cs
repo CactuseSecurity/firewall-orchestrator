@@ -194,6 +194,27 @@ namespace FWO.DeviceAutoDiscovery
 
         protected virtual Management CreateManagement(Management superManagement, string domainName, string domainUid) { return new(); }
 
+        /// <summary>
+        /// Decides whether a domain name reported by the discovered manager may become the config path of a management.
+        /// </summary>
+        /// <remarks>
+        /// The importer reads the config of a management whose config path is a URI (http, https, file) from that URI
+        /// instead of the firewall API. A name chosen on the remote manager must never select such a source, so names
+        /// containing "://" are skipped. Firewall managers do not allow such names for their domains anyway.
+        /// </remarks>
+        /// <param name="domainName">The domain or ADOM name reported by the manager.</param>
+        /// <returns>True when the domain can be turned into a management.</returns>
+        public static bool IsAcceptableDomainName(string? domainName)
+        {
+            if (domainName != null && domainName.Contains("://", StringComparison.Ordinal))
+            {
+                Log.WriteWarning("Autodiscovery", $"Skipping discovered domain '{domainName}': a name in URI form would " +
+                    "make the importer read the config from that URI instead of the firewall API.");
+                return false;
+            }
+            return true;
+        }
+
 
         public List<ActionItem> ConvertToActions(List<Management> diffList)
         {

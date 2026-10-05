@@ -28,6 +28,12 @@
     the importer's import_management, and the undeployed, non-functional API helper scripts in
     roles/api/files/scripts (with their "--ssl" option, which switched checking off by default) together
     with the fwo_api.py scripting copy they relied on
+- security (GHSA-cg7h-hr7j-pr7w): bound the importer's direct import of config files from a URL or local file
+  - redirects are no longer followed; a redirect is rejected with its target in the import error
+  - downloads are streamed with a size limit of 256 MiB (decompressed, also checked against Content-Length),
+    5 minutes per read and 30 minutes in total; local files above the size limit are refused
+  - autodiscovery skips domains and ADOMs whose name is in URI form, so a remote manager cannot make the
+    importer read from a URL or local file
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

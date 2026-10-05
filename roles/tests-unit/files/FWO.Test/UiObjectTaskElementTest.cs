@@ -93,12 +93,28 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task ApplyToTask_RequiresAManagement()
+        public async Task ApplyToTask_RequiresAManagementForModify()
         {
             await using BunitContext context = CreateContext();
-            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), false, -1);
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), true, -1);
 
             Assert.That(component.Instance.ApplyToTask(), Is.EqualTo("E5127"));
+        }
+
+        [TestCase(-1)]
+        [TestCase(null)]
+        public async Task ApplyToTask_AcceptsAllManagementsForCreate(int? managementId)
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { TaskType = WfTaskType.object_create.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, false, managementId);
+            SetMember(component.Instance, "NetworkInput", "10.1.1.5");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Instance.ApplyToTask(), Is.Null);
+                Assert.That(task.Elements, Has.Count.EqualTo(1));
+            });
         }
 
         [Test]
@@ -304,6 +320,7 @@ namespace FWO.Test
                 Assert.That(apiConnection.QueryCount, Is.EqualTo(1));
                 Assert.That(component.FindComponent<FlowObjectTable<NetworkObject>>().Instance.FilteredItems.Count(), Is.EqualTo(WfObjectTaskHelper.kSearchLimit));
                 Assert.That(component.Markup, Does.Contain("refine_search"));
+                Assert.That(component.Markup, Does.Contain("search_network_object"));
             });
         }
 
@@ -354,6 +371,7 @@ namespace FWO.Test
             {
                 Assert.That(component.FindComponent<FlowObjectTable<NetworkService>>().Instance.FilteredItems.Count(), Is.EqualTo(1));
                 Assert.That(component.Markup, Does.Not.Contain("refine_search"));
+                Assert.That(component.Markup, Does.Contain("search_service_object"));
             });
         }
     }

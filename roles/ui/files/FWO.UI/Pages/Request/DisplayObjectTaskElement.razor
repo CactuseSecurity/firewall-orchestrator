@@ -229,7 +229,9 @@ else
     /// </summary>
     public string? ApplyToTask()
     {
-        if (ManagementId is not > 0)
+        // like group_create, an object to be created may be requested for all managements ("All");
+        // a modified object references an imported object of exactly one management
+        if (IsModify && ManagementId is not > 0)
         {
             return "E5127";
         }

@@ -3872,8 +3872,12 @@ INSERT INTO txt VALUES ('requested_state',      'German',   'Beantragt');
 INSERT INTO txt VALUES ('requested_state',      'English',  'Requested');
 INSERT INTO txt VALUES ('object',               'German',   'Objekt');
 INSERT INTO txt VALUES ('object',               'English',  'Object');
-INSERT INTO txt VALUES ('search_object',        'German',   'Objekt suchen (ab 3 Zeichen, Name oder IP-Adresse bzw. Port)');
-INSERT INTO txt VALUES ('search_object',        'English',  'Search object (from 3 characters, name or ip address resp. port)');
+INSERT INTO txt VALUES ('search_object',        'German',   'Objekt suchen');
+INSERT INTO txt VALUES ('search_object',        'English',  'Search object');
+INSERT INTO txt VALUES ('search_network_object','German',   'Objekt suchen (ab 3 Zeichen, Name oder IP-Adresse)');
+INSERT INTO txt VALUES ('search_network_object','English',  'Search object (from 3 characters, name or ip address)');
+INSERT INTO txt VALUES ('search_service_object','German',   'Service suchen (Name ab 3 Zeichen oder Port)');
+INSERT INTO txt VALUES ('search_service_object','English',  'Search service (name from 3 characters or port)');
 INSERT INTO txt VALUES ('refine_search',        'German',   'Es werden nur die ersten Treffer angezeigt, bitte die Suche verfeinern.');
 INSERT INTO txt VALUES ('refine_search',        'English',  'Only the first hits are shown, please refine the search.');
 INSERT INTO txt VALUES ('select_management_first','German', 'Bitte zuerst ein Management ausw&auml;hlen.');
@@ -8716,9 +8720,11 @@ INSERT INTO txt VALUES ('H8215', 'English', 'New Interface: This task type is pr
 INSERT INTO txt VALUES ('H8216', 'German',  'Gruppe anlegen: Um Netzwerkgruppen zu beantragen, m&auml;ssen der Gruppenname und eine Liste der zugeh&auml;rigen IP-Adressen bzw. IP-Adress-Bereichen angegeben werden.');
 INSERT INTO txt VALUES ('H8216', 'English', 'Create group: To order network groups, the group name and a list of associated IP addresses resp. IP ranges have to be inserted.');
 INSERT INTO txt VALUES ('H8217', 'German',  'Objekt anlegen: Beantragt genau ein einzelnes Netzwerkobjekt (Host, Netz oder Adressbereich) oder einen Service, der ohne Gruppe f&uuml;r sich steht.
-    Pflicht sind das Management sowie die IP-Adresse, das Netz mit Maske bzw. Start- und End-Adresse, beim Service das Protokoll und bei TCP/UDP der Port oder Portbereich. Der Name ist optional.');
+    Pflicht sind die IP-Adresse, das Netz mit Maske bzw. Start- und End-Adresse, beim Service das Protokoll und bei TCP/UDP der Port oder Portbereich. Der Name ist optional.
+    Wie bei Gruppen kann als Management auch "Alle" gew&auml;hlt werden.');
 INSERT INTO txt VALUES ('H8217', 'English', 'Create object: Orders exactly one single network object (host, network or address range) or service standing alone without a group.
-    Mandatory are the management and the ip address, the network with mask resp. start and end address, for a service the protocol and for TCP/UDP the port or port range. The name is optional.');
+    Mandatory are the ip address, the network with mask resp. start and end address, for a service the protocol and for TCP/UDP the port or port range. The name is optional.
+    As for groups, "All" may be selected as management.');
 INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein bestehendes, importiertes Netzwerkobjekt oder einen Service. Nach Auswahl des Managements wird das Objekt &uuml;ber die Suche (ab 3 Zeichen, Name oder IP-Adresse) ausgew&auml;hlt;
     die Felder werden mit den bisherigen Werten vorbelegt. Der Auftrag speichert den bisherigen und den neuen Stand und zeigt beide an. Ein Auftrag ohne ge&auml;nderte Werte wird abgewiesen.
     Beide Objekt-Auftragstypen werden noch nicht an externe Ticketsysteme &uuml;bergeben. Enth&auml;lt ein Ticket mit externer Anbindung neben Regel-Auftr&auml;gen auch Objekt-Auftr&auml;ge, werden die Auftr&auml;ge nach dem ersten Objekt-Auftrag nicht mehr &uuml;bergeben. Objekt-Auftr&auml;ge sollten daher in eigenen Tickets beantragt werden.');

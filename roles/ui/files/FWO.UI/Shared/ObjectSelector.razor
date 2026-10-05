@@ -15,7 +15,7 @@
                      FilteredCount="foundServices.Count"
                      TotalCount="foundServices.Count"
                      PageSize="kPageSize"
-                     SearchLabel="@(userConfig.GetText("search_object"))"
+                     SearchLabel="@SearchLabel"
                      ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                      SearchText="@searchText"
                      SearchTextChanged="Search">
@@ -45,7 +45,7 @@ else
                      FilteredCount="foundNetworkObjects.Count"
                      TotalCount="foundNetworkObjects.Count"
                      PageSize="kPageSize"
-                     SearchLabel="@(userConfig.GetText("search_object"))"
+                     SearchLabel="@SearchLabel"
                      ClearSearchLabel="@(userConfig.GetText("clear_input"))"
                      SearchText="@searchText"
                      SearchTextChanged="Search">
@@ -115,6 +115,7 @@ else
     private const int kPageSize = 5;
 
     private string searchText = "";
+    private string SearchLabel => userConfig.GetText(IsService ? "search_service_object" : "search_network_object");
     private List<NetworkObject> foundNetworkObjects = [];
     private List<NetworkService> foundServices = [];
     private bool limitReached;

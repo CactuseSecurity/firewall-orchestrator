@@ -149,12 +149,10 @@ namespace FWO.Test
                 ]
             };
             List<Management> deltaManagements = [];
+            List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [discovered];
 
-            MethodInfo? discoverMethod = typeof(AutoDiscoveryBase)
-                .GetMethod("DiscoverManagementDetails", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.That(discoverMethod, Is.Not.Null);
-
-            discoverMethod!.Invoke(null, [discovered, deltaManagements, new List<Management> { existing }, true, true]);
+            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements, discoveredManagements);
 
             Assert.That(deltaManagements, Is.Empty);
         }
@@ -173,8 +171,9 @@ namespace FWO.Test
             List<Management> deltaManagements = [];
 
             List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [discovered];
 
-            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements);
+            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements, discoveredManagements);
 
             Assert.That(deltaManagements, Has.Count.EqualTo(1));
             Assert.That(deltaManagements[0].Id, Is.EqualTo(7));
@@ -194,8 +193,9 @@ namespace FWO.Test
             List<Management> deltaManagements = [];
 
             List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [discovered];
 
-            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements);
+            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements, discoveredManagements);
 
             Assert.That(deltaManagements, Is.Empty);
         }
@@ -208,8 +208,9 @@ namespace FWO.Test
             List<Management> deltaManagements = [];
 
             List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [discovered];
 
-            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements);
+            InvokeDiscoverManagementDetails(discovered, deltaManagements, existingManagements, discoveredManagements);
 
             Assert.That(deltaManagements, Has.Count.EqualTo(1));
             Assert.That(deltaManagements[0], Is.SameAs(discovered));
@@ -223,8 +224,9 @@ namespace FWO.Test
             Management discovered = CreateAdomManagement(0, "new-adom-uid", "adomA", 1);
 
             List<Management> discoveredManagements = [discovered];
+            List<Management> existingManagements = [existing];
 
-            Management? found = InvokeFindManagementIfExist(existing, discoveredManagements);
+            Management? found = InvokeFindManagementIfExist(existing, discoveredManagements, existingManagements);
 
             Assert.That(found, Is.SameAs(discovered));
         }
@@ -237,8 +239,9 @@ namespace FWO.Test
             Management sameUid = CreateAdomManagement(8, "adom-uid", "adomA", 1);
 
             List<Management> existingManagements = [sameName, sameUid];
+            List<Management> discoveredManagements = [discovered];
 
-            Management? found = InvokeFindManagementIfExist(discovered, existingManagements);
+            Management? found = InvokeFindManagementIfExist(discovered, existingManagements, discoveredManagements);
 
             Assert.That(found, Is.SameAs(sameUid));
         }
@@ -250,8 +253,42 @@ namespace FWO.Test
             Management existing = CreateAdomManagement(7, "old-adom-uid", "", 1);
 
             List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [discovered];
 
-            Management? found = InvokeFindManagementIfExist(discovered, existingManagements);
+            Management? found = InvokeFindManagementIfExist(discovered, existingManagements, discoveredManagements);
+
+            Assert.That(found, Is.Null);
+        }
+
+        [Test]
+        public void DiscoverManagementDetails_TreatsAdomAsNew_WhenOldNameReusedAfterRename()
+        {
+            // ADOM "adomA" (uid 1) was renamed to "adomB", then a new ADOM "adomA" (uid 2) was created
+            Management existing = CreateAdomManagement(7, "adom-uid-1", "adomA", 1);
+            Management renamed = CreateAdomManagement(0, "adom-uid-1", "adomB", 1);
+            Management reusedName = CreateAdomManagement(0, "adom-uid-2", "adomA", 1);
+            List<Management> deltaManagements = [];
+            List<Management> existingManagements = [existing];
+            List<Management> discoveredManagements = [renamed, reusedName];
+
+            InvokeDiscoverManagementDetails(reusedName, deltaManagements, existingManagements, discoveredManagements);
+
+            Assert.That(deltaManagements, Has.Count.EqualTo(1));
+            Assert.That(deltaManagements[0], Is.SameAs(reusedName));
+            Assert.That(deltaManagements[0].Id, Is.EqualTo(0));
+        }
+
+        [Test]
+        public void FindManagementIfExist_SkipsConfigPathMatch_WhenCandidateClaimedByUid()
+        {
+            // stale DB entry "adomA" must not be kept alive by an ADOM that belongs to another DB entry by UID
+            Management claimedByUid = CreateAdomManagement(7, "adom-uid-1", "adomB", 1);
+            Management stale = CreateAdomManagement(8, "adom-uid-9", "adomA", 1);
+            Management discovered = CreateAdomManagement(0, "adom-uid-1", "adomA", 1);
+            List<Management> existingManagements = [claimedByUid, stale];
+            List<Management> discoveredManagements = [discovered];
+
+            Management? found = InvokeFindManagementIfExist(stale, discoveredManagements, existingManagements);
 
             Assert.That(found, Is.Null);
         }
@@ -271,21 +308,23 @@ namespace FWO.Test
             };
         }
 
-        private static void InvokeDiscoverManagementDetails(Management discovered, List<Management> deltaManagements, List<Management> existingManagements)
+        private static void InvokeDiscoverManagementDetails(Management discovered, List<Management> deltaManagements,
+            List<Management> existingManagements, List<Management> discoveredManagements)
         {
             MethodInfo? discoverMethod = typeof(AutoDiscoveryBase)
                 .GetMethod("DiscoverManagementDetails", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(discoverMethod, Is.Not.Null);
-            object[] arguments = [discovered, deltaManagements, existingManagements, true, true];
+            object[] arguments = [discovered, deltaManagements, existingManagements, discoveredManagements, true, true];
             discoverMethod!.Invoke(null, arguments);
         }
 
-        private static Management? InvokeFindManagementIfExist(Management management, List<Management> managementList)
+        private static Management? InvokeFindManagementIfExist(Management management, List<Management> managementList,
+            List<Management> sourceList)
         {
             MethodInfo? findMethod = typeof(AutoDiscoveryBase)
                 .GetMethod("FindManagementIfExist", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.That(findMethod, Is.Not.Null);
-            object[] arguments = [management, managementList, true];
+            object[] arguments = [management, managementList, sourceList, true];
             return (Management?)findMethod!.Invoke(null, arguments);
         }
     }

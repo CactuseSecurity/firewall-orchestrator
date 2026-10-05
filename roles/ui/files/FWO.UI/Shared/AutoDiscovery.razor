@@ -26,7 +26,7 @@
                                     }
                                     else
                                     {
-                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeManagementState(context, true)">@(userConfig.GetText("disable"))</button>
                                                 <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteManagement(context)">@(userConfig.GetText("delete"))</button>
@@ -40,7 +40,7 @@
                                 }
                                 else
                                 {
-                                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                                         <Authorized Context="ctx">
                                             <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmManagement(context)">@(userConfig.GetText("add"))</button>
                                         </Authorized>
@@ -70,7 +70,7 @@
                                             {
                                                 @if(Dev.Delete)
                                                 {
-                                                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                                                    <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                                                         <Authorized Context="ctx">
                                                             <button type="button" class="btn btn-sm btn-warning" @onclick="() => ChangeDeviceState(Dev, true)">@(userConfig.GetText("disable"))</button>
                                                             <button type="button" class="btn btn-sm btn-danger" @onclick="() => RequestDeleteDevice(Dev)">@(userConfig.GetText("delete"))</button>
@@ -89,7 +89,7 @@
                                                     }
                                                     else
                                                     {                    
-                                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                                                             <Authorized Context="ctx">
                                                                 <button type="button" class="btn btn-sm btn-success" @onclick="() => ConfirmDevice(Dev)">@(userConfig.GetText("add"))</button>
                                                             </Authorized>
@@ -124,7 +124,7 @@
         <div class="btn-group">
             @if(actAlertId != null)
             {
-                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                     <Authorized Context="ctx">
                         <button type="button" class="btn btn-sm btn-secondary" @onclick="async () => {await AcknowledgeCurrentPrompt(); await Close();}">@(userConfig.GetText("acknowledge"))</button>
                     </Authorized>
@@ -135,7 +135,7 @@
             }
             else if(somethingToDo)
             {
-                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.FwAdmin}")">
+                <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}")">
                     <Authorized Context="ctx">
                         <button type="button" class="btn btn-sm btn-warning" @onclick="async () => {await doAllChanges(); await Close();}">@(userConfig.GetText("do_all_changes"))</button>
                     </Authorized>

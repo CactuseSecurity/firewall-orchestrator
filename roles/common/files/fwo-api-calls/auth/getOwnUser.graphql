@@ -1,0 +1,19 @@
+# Loads the user of the calling session. The security state of a user is not a column a UI role
+# may read; the own_* computed fields return it for the row of the session user only (SEC-19).
+query getOwnUser($userId: Int!) {
+  uiuser (where: {uiuser_id: {_eq: $userId}}) {
+    uiuser_id
+    uuid
+    uiuser_username
+    uiuser_language
+    uiuser_password_must_be_changed: own_password_must_be_changed
+    uiuser_email
+    uiuser_first_name
+    uiuser_last_name
+    uiuser_last_login: own_last_login
+    uiuser_last_password_change: own_last_password_change
+    ldap_connection {
+      ldap_connection_id
+    }
+  }
+}

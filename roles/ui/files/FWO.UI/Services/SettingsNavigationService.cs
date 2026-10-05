@@ -42,28 +42,27 @@ namespace FWO.Ui.Services
     /// </summary>
     public static class SettingsNavigationService
     {
-        private const string kDeviceRoles = $"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}, {Roles.FwAdmin}";
-        private const string kAdminAuditorFwAdmin = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}";
+        private const string kDeviceRoles = $"{Roles.Admin}, {Roles.Importer}, {Roles.Auditor}";
         private const string kAdminAuditor = $"{Roles.Admin}, {Roles.Auditor}";
         private const string kAdminOnly = Roles.Admin;
 
         private static readonly List<SettingsNavEntry> kDeviceEntries = new()
         {
-            new("readonly_credential", "settings/credentials", Icons.Credential, kAdminAuditorFwAdmin),
-            new("managements", "settings/managements", Icons.Management, kAdminAuditorFwAdmin),
-            new("gateways", "settings/gateways", Icons.Gateway, kAdminAuditorFwAdmin)
+            new("readonly_credential", "settings/credentials", Icons.Credential, kAdminAuditor),
+            new("managements", "settings/managements", Icons.Management, kAdminAuditor),
+            new("gateways", "settings/gateways", Icons.Gateway, kAdminAuditor)
         };
 
         private static readonly List<SettingsNavEntry> kTopologyEntries = new()
         {
-            new("matrix", "/settings/matrix", Icons.Matrix, kAdminAuditorFwAdmin),
-            new("internet", "/settings/internet", Icons.Network, kAdminAuditorFwAdmin)
+            new("matrix", "/settings/matrix", Icons.Matrix, kAdminAuditor),
+            new("internet", "/settings/internet", Icons.Network, kAdminAuditor)
         };
 
         private static readonly List<SettingsNavEntry> kAuthorizationEntries = new()
         {
             new("ldap_conns", "settings/ldap", Icons.Ldap, kAdminAuditor),
-            new("tenants", "settings/tenants", Icons.Tenant, kAdminAuditorFwAdmin),
+            new("tenants", "settings/tenants", Icons.Tenant, kAdminAuditor),
             new("users", "settings/users", Icons.User, kAdminAuditor),
             new("groups", "settings/groups", Icons.UserGroup, kAdminAuditor),
             new("roles", "settings/roles", Icons.Role, kAdminAuditor)
@@ -123,6 +122,7 @@ namespace FWO.Ui.Services
         private static readonly List<SettingsNavEntry> kFwConfigChangeEntries = new()
         {
             new("fwconfigchangegeneral", "settings/fwconfigchangegeneral", Icons.Settings, kAdminAuditor),
+            new("prov_settings", "settings/fwconfigprovisioning", Icons.Settings, kAdminAuditor),
             new("ext_ticket_templates", "settings/exttickettemplates", Icons.Settings, kAdminAuditor)
         };
 
@@ -135,8 +135,8 @@ namespace FWO.Ui.Services
         private static readonly List<SettingsNavSection> kSections = new()
         {
             new("devices", kDeviceEntries, kDeviceRoles, "U5011"),
-            new("network_topology", kTopologyEntries, kAdminAuditorFwAdmin, "U5329"),
-            new("authorization", kAuthorizationEntries, kAdminAuditorFwAdmin, "U5012"),
+            new("network_topology", kTopologyEntries, kAdminAuditor, "U5329"),
+            new("authorization", kAuthorizationEntries, kAdminAuditor, "U5012"),
             new("owners", kOwnerEntries, kAdminAuditor),
             new("modules", kModuleEntries, kAdminAuditor, "U5017"),
             new("modelling", kModellingEntries, kAdminAuditor),

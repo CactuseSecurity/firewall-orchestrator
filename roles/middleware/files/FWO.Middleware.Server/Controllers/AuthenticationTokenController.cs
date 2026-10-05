@@ -113,7 +113,8 @@ namespace FWO.Middleware.Server.Controllers
         /// </summary>
         /// <remarks>This endpoint is restricted to users with the admin role. The administrator's
         /// credentials are validated before generating a token pair for the target user. The target user's password is
-        /// not required for this operation.</remarks>
+        /// not required for this operation. Supply options.targetLdapId when more than one LDAP
+        /// connection contains the target; an ambiguous target is rejected.</remarks>
         /// <param name="parameters">The parameters containing administrator credentials and the target user's information. Must include valid
         /// admin username and password, as well as the target user's name or distinguished name.</param>
         /// <returns>An <see cref="ActionResult{TokenPair}"/> containing the generated token pair for the target user if the
@@ -135,7 +136,7 @@ namespace FWO.Middleware.Server.Controllers
                     throw new AuthenticationException("Provided credentials do not belong to a user with role admin.");
                 }
 
-                UiUser targetUser = new() { Name = parameters.TargetUserName, Dn = parameters.TargetUserDn };
+                UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
 
                 UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                     ?? throw new AuthenticationException("Provided target user credentials are invalid.");
@@ -209,6 +210,7 @@ namespace FWO.Middleware.Server.Controllers
         /// AdminUsername (required) - Example: "admin" &#xA;
         /// AdminPassword (required) - Example: "password" &#xA;
         /// TargetUserDn OR TargetUserName (required) - Example: "uid=demo_user,ou=tenant0,ou=operator,ou=user,dc=fworch,dc=internal" OR "demo_user" 
+        /// Options.TargetLdapId (optional) - positive LDAP connection ID; required when the target matches multiple directories.
         /// </remarks>
         /// <param name="parameters">Admin credentials and target user identity.</param>
         /// <returns>User jwt, if credentials are valid.</returns>
@@ -219,9 +221,6 @@ namespace FWO.Middleware.Server.Controllers
             {
                 string adminUsername = parameters.AdminUsername;
                 string adminPassword = parameters.AdminPassword;
-                string targetUserName = parameters.TargetUserName;
-                string targetUserDn = parameters.TargetUserDn;
-
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
@@ -242,7 +241,7 @@ namespace FWO.Middleware.Server.Controllers
                 // Check if username is valid and generate jwt
                 try
                 {
-                    UiUser targetUser = new() { Name = targetUserName, Dn = targetUserDn };
+                    UiUser targetUser = AuthDirectoryBinding.BuildDelegatedTargetUser(parameters);
                     UiUser authenticatedTargetUser = await authManager.AuthenticateAndBuildUserAsync(targetUser, validatePassword: false)
                         ?? throw new AuthenticationException("Provided target user credentials are invalid.");
 

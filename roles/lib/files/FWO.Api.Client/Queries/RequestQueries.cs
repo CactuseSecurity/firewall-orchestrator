@@ -22,6 +22,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getTicketById;
         public static readonly string getTicketRequesterId;
         public static readonly string getAuditProofCriticalChangesForTicket;
+        public static readonly string getWorkflowTaskHistoryForTicket;
         public static readonly string getTicketIdIfExists;
         public static readonly string getTicketsByParameters;
         public static readonly string getRequestTasksByIds;
@@ -89,6 +90,8 @@ namespace FWO.Api.Client.Queries
         public static readonly string addCommentToApproval;
         public static readonly string addOwnerToReqTask;
         public static readonly string removeOwnerFromReqTask;
+        public static readonly string claimStateChangeExecution;
+        public static readonly string recordStateChangeExecution;
 
 
         static RequestQueries()
@@ -115,6 +118,7 @@ namespace FWO.Api.Client.Queries
                 getTicketById = ticketDetailsFragment + GetQueryText("request/getTicketById.graphql");
                 getTicketRequesterId = GetQueryText("request/getTicketRequesterId.graphql");
                 getAuditProofCriticalChangesForTicket = GetQueryText("request/getAuditProofCriticalChangesForTicket.graphql");
+                getWorkflowTaskHistoryForTicket = GetQueryText("request/getWorkflowTaskHistoryForTicket.graphql");
                 getTicketIdIfExists = GetQueryText("request/getTicketIdIfExists.graphql");
                 newTicket = GetQueryText("request/newTicket.graphql");
                 updateTicket = GetQueryText("request/updateTicket.graphql");
@@ -161,6 +165,8 @@ namespace FWO.Api.Client.Queries
                 replaceStateMatrixConfiguration = GetQueryText("request/replaceStateMatrixConfiguration.graphql");
                 getWorkflowVisibilityGroups = GetQueryText("request/getWorkflowVisibilityGroups.graphql");
                 getStateMatrixTransitionGroups = GetQueryText("request/getStateMatrixTransitionGroups.graphql");
+                claimStateChangeExecution = GetQueryText("request/claimStateChangeExecution.graphql");
+                recordStateChangeExecution = GetQueryText("request/recordStateChangeExecution.graphql");
                 createWorkflowVisibilityGroup = GetQueryText("request/createWorkflowVisibilityGroup.graphql");
                 updateWorkflowVisibilityGroup = GetQueryText("request/updateWorkflowVisibilityGroup.graphql");
                 deleteWorkflowVisibilityGroup = GetQueryText("request/deleteWorkflowVisibilityGroup.graphql");

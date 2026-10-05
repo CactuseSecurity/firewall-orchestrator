@@ -1,0 +1,17 @@
+# Returns the given Flow network object ids that still name a live catalog entry: one that is
+# offered in the request module, not retired, and in a state a request may still build on.
+# The predicate is carried by the query itself so that the answer does not depend on the select
+# permissions of the role it runs under.
+
+query getLiveFlowNwObjectIds($nwObjIds: [bigint!]!) {
+  nwobjects: flow_nwobject(
+    where: {
+      nwobj_id: { _in: $nwObjIds }
+      show_in_request_module: { _eq: true }
+      removed_date: { _is_null: true }
+      state: { _in: ["requested", "implemented"] }
+    }
+  ) {
+    nwobj_id
+  }
+}

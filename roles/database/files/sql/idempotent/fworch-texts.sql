@@ -567,53 +567,25 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Die Sichtbarkeit von Workflow-Tickets kann pro Phase auf "Beliebige Aufgabe" oder "Ticketstatus" eingestellt werden; "Beliebige Aufgabe" erhält das bisherige Verhalten.</li>
-    <li>Firewall Orchestrator betreibt nun eine eigene interne Zertifizierungsstelle. Alle internen Verbindungen werden gegen dieses Zertifikat gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren.</li>
-    <li>Die Zertifikate von LDAP-Servern werden nun gepr&uuml;ft, statt beliebige Zertifikate zu akzeptieren - auch die von externen Verzeichnisdiensten. Ist ein LDAP-Zertifikat selbst unterschrieben, von einer dem Middleware-Host unbekannten CA ausgestellt oder nicht f&uuml;r die konfigurierte Adresse g&uuml;ltig, schl&auml;gt die Anmeldung an diesem Verzeichnisdienst nun fehl. Die ausstellende CA muss dann in den Zertifikatsspeicher des Middleware-Hosts aufgenommen oder das Zertifikat f&uuml;r die konfigurierte Adresse neu ausgestellt werden.</li>
-    <li>Der Zugriff auf die GraphQL-API erfordert nun ein Client-Zertifikat. Eigene Skripte m&uuml;ssen ihre lokale Client-Identit&auml;t mitsenden, siehe <a target="_blank" href="/help/API/certificates">Hilfe zu Zertifikaten</a>.</li>
-    <li>Bei eigenen Apache-Zertifikaten kann der Installer nun eine Zwischenzertifikatskette pr&uuml;fen und f&uuml;r alle TLS-Clients bereitstellen.</li>
-    <li>Das &ouml;ffentliche interne CA-Zertifikat kann nun in den Einstellungen unter Standardeinstellungen angezeigt, kopiert und heruntergeladen werden.</li>
-    <li>Der Installer kann mit dem einmaligen Schalter <code>internalca_reset_certificates</code> die interne CA und alle von FWO verwalteten Zertifikate erneuern, ohne kundeneigene Zertifikate zu ver&auml;ndern.</li>
-    <li>In der Modellierung k&ouml;nnen App-Rollen nun nur noch von Verantwortlichen der Applikation mit der Rolle Modellierer angelegt, ge&auml;ndert oder gel&ouml;scht werden.</li>
-    <li>Die Passw&ouml;rter der LDAP-Verbindungen werden von der API nicht mehr herausgegeben. Beim Bearbeiten einer Verbindung bleibt das gespeicherte Passwort erhalten, solange das Feld leer bleibt.</li>
-    <li>Internal-Work-Regel&auml;nderungen laufen in die Genehmigungsphase statt direkt in die Planung; Email-Aktionen f&uuml;r Request Tasks k&ouml;nnen pro Task-Typ geb&uuml;ndelt werden, sodass eine Email alle passenden Request Tasks enth&auml;lt.</li>
-    <li>Matrix Import nimmt und validiert neue Felder f&uuml;r Network Zone Tree und speichert sie in der Datenbank.</li>
-    <li>Die automatische Eigent&uuml;merzuordnung von Regeln kann nun auf "Deaktiviert" gesetzt werden und ist nach einer Neuinstallation so voreingestellt. Damit lassen sich die &uuml;brigen Importer-Einstellungen speichern, ohne vorher eine Zuordnungsquelle einzurichten. Beim Umstellen auf "Deaktiviert" werden die bereits berechneten Zuordnungen entfernt.</li>
-    <li>Die Log-Daten einer Verbindung in der Modellierung f&uuml;llen nun das Browser-Fenster: die Tabelle zeigt so viele Zeilen pro Seite, wie das Fenster zul&auml;sst, und folgt einer &Auml;nderung der Fenstergr&ouml;&szlig;e. Eine neue Seitengr&ouml;&szlig;e wird nur auf der ersten Seite &uuml;bernommen und springt damit nie an eine andere Stelle der Log-Daten.</li>
-    <li>Auditoren k&ouml;nnen die Modellierungs-Formulare aller Applikationen - Verbindungen, bereitgestellte Schnittstellen und Common Services - nun &ouml;ffnen und die dort angezeigten Log-Daten einsehen. Speichern, L&ouml;schen und das Beantragen von Firewall-&Auml;nderungen bleiben den Verantwortlichen mit der Rolle Modellierer vorbehalten.</li>
-    <li>Modellierungs-Benachrichtigungen f&uuml;r Schnittstellenanfragen, Erinnerungen und Stilllegungen werden zentral verwaltet. Der Protokollierungsmodus kann auf "nur senden", "senden und protokollieren" oder "nur protokollieren" gesetzt werden; das E-Mail-Protokoll ist unter Monitoring verf&uuml;gbar.</li>
-    <li>Der neue REST-Endpunkt workflow/getAuditProofCriticalChanges liefert die revisionskritischen &Auml;nderungen eines Workflow-Tickets: die als revisionskritisch markierten Eintr&auml;ge der &Auml;nderungshistorie, also inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden. Er steht Administratoren und Auditoren zur Verf&uuml;gung und nennt neben dem Namen auch die Benutzer-ID des &Auml;ndernden, da nur diese f&auml;lschungssicher ist.</li>
-    <li>Die Protokollierung der Eigent&uuml;merzuordnung l&auml;sst sich nun in f&uuml;nf Stufen einstellen. Auf Installationen mit vielen Altregeln, die nie zugeordnet werden k&ouml;nnen, erzeugte bisher jeder Lauf eine Meldung pro Regel. Die Zusammenfassung jedes Laufs und fehlgeschlagene Importe werden unabh&auml;ngig davon immer protokolliert.</li>
-    <li>Probleme der Eigent&uuml;merzuordnung erscheinen nun als Alarm unter Monitoring statt nur im Logfile: nicht verarbeitete Importe, eine Quelle die keine Regel mehr trifft, und Abweichungen zwischen laufender Aktualisierung und vollst&auml;ndiger Neuberechnung. Ein Import, der zweimal hintereinander fehlschl&auml;gt, wird durch eine vollst&auml;ndige Neuberechnung automatisch repariert.</li>
-    <li>Die neue Seite Monitoring &ndash; Eigent&uuml;merzuordnung: L&auml;ufe zeigt, ob die laufende Aktualisierung denselben Stand erzeugt wie eine vollst&auml;ndige Neuberechnung, und listet die betroffenen Regeln samt Anlass auf.</li>
-    <li>Mehrere Fehler der laufenden Eigent&uuml;merzuordnung behoben: ein neu angelegter Eigent&uuml;mer konnte die Verarbeitung dauerhaft blockieren, Fehlschl&auml;ge wurden als Erfolg gemeldet, ein einzelner Fehler hielt alle nachfolgenden Importe auf, und eine Quelle ohne Treffer lie&szlig; veraltete Zuordnungen stehen.</li>
-    <li>Die Einstellungen haben nun ein Suchfeld oberhalb der Navigation, das die Einstellungsseiten nach ihren Bezeichnungen filtert, ohne Beachtung von Gro&szlig;- und Kleinschreibung sowie Umlauten.</li>
+    <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
+    <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
+    <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.3 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
+    <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
+    <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
+    <li>Im Antragsmodul werden die Grunddaten eines Auftrags und seine Elemente nun in getrennten Bereichen bearbeitet; der Auftragstyp bleibt dabei in beiden Bereichen synchron. Wird nach dem Ansehen eines bestehenden Auftrags ein neuer angelegt, startet dieser nun mit dem richtigen Auftragstyp, und die Gateway-Auswahl bleibt bei "Alle" stabil.</li>
+    <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>Workflow ticket visibility can be configured per phase as "Any task" or "Ticket state"; "Any task" preserves the previous behavior.</li>
-    <li>Firewall Orchestrator now operates its own internal certificate authority. All internal connections are verified against it instead of accepting any certificate.</li>
-    <li>LDAP server certificates are now verified instead of being accepted unconditionally, external directories included. A connection whose certificate is self-signed, issued by a CA the middleware host does not trust, or not valid for the configured address is now rejected, so its users can no longer log in. Add the issuing CA to the trust store of the middleware host, or have the certificate reissued for the configured address.</li>
-    <li>Access to the GraphQL API now requires a client certificate. Your own scripts have to present their local client identity, see <a target="_blank" href="/help/API/certificates">certificate help</a>.</li>
-    <li>For administrator-managed Apache certificates, the installer can now validate and serve an intermediate certificate chain to every TLS client.</li>
-    <li>The public internal CA certificate can now be viewed, copied and downloaded in the settings under Defaults.</li>
-    <li>The installer can renew the internal CA and every FWO-managed identity with the one-shot <code>internalca_reset_certificates</code> switch without changing customer-managed certificates.</li>
-    <li>In the modelling ui, application roles can now only be created, changed or deleted by an owner of the application holding the modeller role.</li>
-    <li>The passwords of the ldap connections are no longer handed out by the api. When editing a connection the stored password is kept as long as the field is left empty.</li>
-    <li>Internal work rule changes are routed into the approval phase instead of directly into planning; request task email actions can be bundled by task type so that one email covers all matching request tasks.</li>
-    <li>Matrix import takes and validates new fields for Network Zone Tree and stores them in the database.</li>
-    <li>The automatic owner mapping of rules can now be set to "Disabled" and a new installation starts with it. The remaining importer settings can therefore be saved without setting up a mapping source first. Switching to "Disabled" removes the mappings calculated so far.</li>
-    <li>The log data shown with a connection in the modelling ui now fills the browser window: the table takes as many rows per page as the window allows and follows a window resize. A new page size is only applied while the first page is shown, so it never moves you to a different part of the log.</li>
-    <li>Auditors can now open the modelling forms of every application - connections, provided interfaces and common services - and read the log data shown in them. Saving, deleting and requesting firewall changes remain with the responsible owners holding the modeller role.</li>
-    <li>Modelling notifications for interface requests, reminders and decommissioning are now managed centrally. The logging mode can be set to "send only", "send and log" or "log only"; the email log is available under Monitoring.</li>
-    <li>The new REST endpoint workflow/getAuditProofCriticalChanges returns the audit proof critical changes of a workflow ticket: the change history entries marked as audit proof critical, that is content changes made in a user session by someone other than the requester. It is available to administrators and auditors and reports the changing user''s id next to the name, as only the id is tamper proof.</li>
-    <li>Logging of the owner mapping can now be set to one of five levels. On installations with many legacy rules that can never be mapped, every run used to produce one message per rule. The summary of each run and failed imports are always logged regardless.</li>
-    <li>Problems of the owner mapping now appear as an alert under Monitoring instead of only in the log file: imports that could not be processed, a source that no longer matches any rule, and deviations between the running update and a full recalculation. An import that fails twice in a row is repaired automatically by a full recalculation.</li>
-    <li>The new page Monitoring &ndash; Owner mapping runs shows whether the running update produces the same state as a full recalculation, and lists the affected rules together with what caused the run.</li>
-    <li>Several defects of the running owner mapping fixed: a newly created owner could block processing permanently, failures were reported as success, a single failure held up all following imports, and a source without any match left obsolete mappings in place.</li>
-    <li>The settings now have a search field above the navigation that filters the settings pages by their labels, ignoring case and diacritics.</li>
+    <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
+    <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
+    <li>The middleware job scheduler was upgraded to Quartz.NET 4.3, together with updated libraries for, among others, email delivery and PDF generation.</li>
+    <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
+    <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
+    <li>In the request module, the basic data of a task and its elements are now edited in separate sections, with the task type kept in sync between them. A task created after viewing an existing one now starts with the correct task type, and the gateway selection stays stable when "All" is selected.</li>
+    <li>The Object Catalog and Service Catalog labels were clarified.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -695,6 +667,22 @@ INSERT INTO txt VALUES ('report',		        'German', 	'Report');
 INSERT INTO txt VALUES ('report',		        'English', 	'Report');
 INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
+INSERT INTO txt VALUES ('default_rules_view', 'German', 'Standard-Regelansicht');
+INSERT INTO txt VALUES ('default_rules_view', 'English', 'Default rules view');
+INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
+INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
+INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
+INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
+INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
+INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
+INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
+INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
+INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'German', 'Bereits oben aufgef&uuml;hrt');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'English', 'Already listed above');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
 INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
@@ -1299,10 +1287,10 @@ INSERT INTO txt VALUES ('review', 			    'German',	'Review');
 INSERT INTO txt VALUES ('review', 			    'English',	'Review');
 INSERT INTO txt VALUES ('verification', 		'German',	'Verifizierung');
 INSERT INTO txt VALUES ('verification', 		'English',	'Verification');
-INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt Kat.');
-INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Cat.');
-INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service Kat.');
-INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Cat.');
+INSERT INTO txt VALUES ('object_catalog', 	    'German', 	'Objekt-Katalog');
+INSERT INTO txt VALUES ('object_catalog', 		'English', 	'Object Catalog');
+INSERT INTO txt VALUES ('service_catalog', 	    'German', 	'Service-Katalog');
+INSERT INTO txt VALUES ('service_catalog', 		'English', 	'Service Catalog');
 INSERT INTO txt VALUES ('view', 			    'German', 	'Ansicht');
 INSERT INTO txt VALUES ('view', 			    'English', 	'View');
 INSERT INTO txt VALUES ('all_gateways',         'German', 	'Alle Gateways');
@@ -2785,6 +2773,8 @@ INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'German','&Auml;nderungsbenac
 INSERT INTO txt VALUES ('impChangeNotifyStartAt',  'English','Change notification start at');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','German','Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('updateRuleOwnerMappingSleepTime','English','Update Rule Owner Mapping sleep time (in seconds)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','German',  'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (nur Quelle Namensfeld)');
+INSERT INTO txt VALUES ('varianceNameFieldWaitTime','English', 'Wait time for rule owner mapping (source Name field only)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'German', 	'Flow-Sync-Intervall (in Sekunden)');
 INSERT INTO txt VALUES ('flowSyncSleepTime', 'English', 'Flow sync sleep time (in seconds)');
 INSERT INTO txt VALUES ('externalRequestSleepTime','German','Externes Auftrags-Intervall (in Sekunden)');
@@ -2887,6 +2877,8 @@ INSERT INTO txt VALUES ('ruleOwnershipMode',    'German',   'Regel-Eigent&uuml;m
 INSERT INTO txt VALUES ('ruleOwnershipMode',    'English',  'Rule Ownership Mode');
 INSERT INTO txt VALUES ('reqPriorities',        'German', 	'Priorit&auml;ten');
 INSERT INTO txt VALUES ('reqPriorities',        'English', 	'Priorities');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben');
+INSERT INTO txt VALUES ('reqCreateRequestTaskSortConfig', 'English', 'Request task sort priorities');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','German', 	'Autom. Erzeugen von Implementierungs-Auftr&auml;gen');
 INSERT INTO txt VALUES ('reqAutoCreateImplTasks','English', 'Auto-create implementation tasks');
 INSERT INTO txt VALUES ('reqConsiderBundling',  'German', 	'B&uuml;ndelung ber&uuml;cksichtigen');
@@ -3171,6 +3163,8 @@ INSERT INTO txt VALUES ('allow_modelling',      'German',   'Modelling erlauben'
 INSERT INTO txt VALUES ('allow_modelling',      'English',  'Allow modelling');
 INSERT INTO txt VALUES ('allow_recertification','German',   'Rezertifizierung erlauben');
 INSERT INTO txt VALUES ('allow_recertification','English',  'Allow recertification');
+INSERT INTO txt VALUES ('allow_task_split',     'German',   'Aufgabenteilung erlauben');
+INSERT INTO txt VALUES ('allow_task_split',     'English',  'Allow task split');
 INSERT INTO txt VALUES ('add_responsible_type', 'German',   'Verantwortlichkeitsstufe hinzuf&uuml;gen');
 INSERT INTO txt VALUES ('add_responsible_type', 'English',  'Add responsible type');
 INSERT INTO txt VALUES ('edit_responsible_type','German',   'Verantwortlichkeitsstufe bearbeiten');
@@ -3377,6 +3371,128 @@ INSERT INTO txt VALUES ('fwconfigchange',       'German', 	'FW Konfigurations&au
 INSERT INTO txt VALUES ('fwconfigchange',       'English', 	'FW Config Change');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','German', 	'Allgemein');
 INSERT INTO txt VALUES ('fwconfigchangegeneral','English', 	'General');
+INSERT INTO txt VALUES ('prov_settings',        'German', 	'Provisionierungs-Einstellungen');
+INSERT INTO txt VALUES ('prov_settings',        'English', 	'Provisioning settings');
+INSERT INTO txt VALUES ('prov_settings_intro',  'German', 	'Einstellungen werden von Global &uuml;ber Ger&auml;tetyp und Manager bis zum Gateway vererbt. W&auml;hlen Sie links eine Ebene aus und &uuml;berschreiben Sie bei Bedarf einzelne Werte.');
+INSERT INTO txt VALUES ('prov_settings_intro',  'English', 	'Settings are inherited from Global down through Device Type and Manager to Gateway. Select a level on the left and override individual values where needed.');
+INSERT INTO txt VALUES ('prov_hierarchy_hint',  'German', 	'Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway');
+INSERT INTO txt VALUES ('prov_hierarchy_hint',  'English', 	'Global > Device Type > Manager > Gateway');
+INSERT INTO txt VALUES ('prov_global',          'German', 	'Global');
+INSERT INTO txt VALUES ('prov_global',          'English', 	'Global');
+INSERT INTO txt VALUES ('prov_device_type',     'German', 	'Ger&auml;tetyp');
+INSERT INTO txt VALUES ('prov_device_type',     'English', 	'Device Type');
+INSERT INTO txt VALUES ('prov_manager',         'German', 	'Manager');
+INSERT INTO txt VALUES ('prov_manager',         'English', 	'Manager');
+INSERT INTO txt VALUES ('prov_gateway',         'German', 	'Gateway');
+INSERT INTO txt VALUES ('prov_gateway',         'English', 	'Gateway');
+INSERT INTO txt VALUES ('prov_set_here',        'German', 	'Hier festgelegt');
+INSERT INTO txt VALUES ('prov_set_here',        'English', 	'Set here');
+INSERT INTO txt VALUES ('prov_inherited',       'German', 	'Geerbt');
+INSERT INTO txt VALUES ('prov_inherited',       'English', 	'Inherited');
+INSERT INTO txt VALUES ('prov_inherited_from',  'German', 	'Geerbt von');
+INSERT INTO txt VALUES ('prov_inherited_from',  'English', 	'Inherited from');
+INSERT INTO txt VALUES ('prov_override_here',   'German', 	'Hier &uuml;berschreiben');
+INSERT INTO txt VALUES ('prov_override_here',   'English', 	'Override here');
+INSERT INTO txt VALUES ('prov_compiled_default', 'German', 	'Standardwert (auf keiner Ebene gesetzt)');
+INSERT INTO txt VALUES ('prov_compiled_default', 'English', 	'Default value (not set on any level)');
+INSERT INTO txt VALUES ('prov_unsaved_hint',    'German', 	'Diese Ebene hat ungespeicherte &Auml;nderungen. Speichern oder verwerfen Sie sie, bevor Sie eine andere Ebene ausw&auml;hlen.');
+INSERT INTO txt VALUES ('prov_unsaved_hint',    'English', 	'This level has unsaved changes. Save or discard them before selecting another level.');
+INSERT INTO txt VALUES ('prov_dormant_override', 'German', 	'Inaktive &Uuml;berschreibung');
+INSERT INTO txt VALUES ('prov_dormant_override', 'English', 	'Dormant override');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'German', 	'Diese gespeicherte Fortinet-Einstellung ist f&uuml;r den aktuellen Ger&auml;tetyp inaktiv. Sie bleibt f&uuml;r den Fall erhalten, dass die Ebene zur&uuml;ckverschoben wird, und kann hier entfernt werden.');
+INSERT INTO txt VALUES ('prov_dormant_override_hint', 'English', 	'This stored Fortinet setting is inactive for the current device type. It is retained in case the level is moved back and can be cleared here.');
+INSERT INTO txt VALUES ('prov_clear_override',  'German', 	'Gespeicherte &Uuml;berschreibung entfernen');
+INSERT INTO txt VALUES ('prov_clear_override',  'English', 	'Clear stored override');
+INSERT INTO txt VALUES ('prov_templates_placeholder', 'German', 	'z.B. Vorlage mit Platzhaltern wie {{rule_name}}');
+INSERT INTO txt VALUES ('prov_templates_placeholder', 'English', 	'e.g. template with placeholders like {{rule_name}}');
+INSERT INTO txt VALUES ('prov_implementation_mode', 'German', 	'Umsetzungsmodus');
+INSERT INTO txt VALUES ('prov_implementation_mode', 'English', 	'Implementation mode');
+INSERT INTO txt VALUES ('prov_implementation_mode_help', 'German', 	'Legt fest, wie Umsetzungsaufgaben f&uuml;r diese Ebene erzeugt werden.');
+INSERT INTO txt VALUES ('prov_implementation_mode_help', 'English', 	'Controls how implementation tasks are created for this level.');
+INSERT INTO txt VALUES ('prov_install_on',      'German', 	'Installieren auf');
+INSERT INTO txt VALUES ('prov_install_on',      'English', 	'Install on');
+INSERT INTO txt VALUES ('prov_install_on_help', 'German', 	'Zielinstallationsobjekt(e), z.B. ANY.');
+INSERT INTO txt VALUES ('prov_install_on_help', 'English', 	'Target install-on object(s), e.g. ANY.');
+INSERT INTO txt VALUES ('prov_logging',         'German', 	'Logging');
+INSERT INTO txt VALUES ('prov_logging',         'English', 	'Logging');
+INSERT INTO txt VALUES ('prov_logging_help',    'German', 	'Logging-Verhalten f&uuml;r erzeugte Regeln.');
+INSERT INTO txt VALUES ('prov_logging_help',    'English', 	'Logging behaviour for generated rules.');
+INSERT INTO txt VALUES ('prov_service_object_creation', 'German', 	'Anlage Service-Objekte');
+INSERT INTO txt VALUES ('prov_service_object_creation', 'English', 	'Service object creation');
+INSERT INTO txt VALUES ('prov_service_object_creation_help', 'German', 	'Ob Service-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
+INSERT INTO txt VALUES ('prov_service_object_creation_help', 'English', 	'Whether service objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
+INSERT INTO txt VALUES ('prov_address_object_creation', 'German', 	'Anlage Adress-Objekte');
+INSERT INTO txt VALUES ('prov_address_object_creation', 'English', 	'Address object creation');
+INSERT INTO txt VALUES ('prov_address_object_creation_help', 'German', 	'Ob Adress-Objekte im Super- oder Submanager angelegt werden (nur relevant, wenn ein Supermanager existiert).');
+INSERT INTO txt VALUES ('prov_address_object_creation_help', 'English', 	'Whether address objects are created in the supermanager or submanager (only relevant if a supermanager exists).');
+INSERT INTO txt VALUES ('prov_rule_type',       'German', 	'Regeltyp');
+INSERT INTO txt VALUES ('prov_rule_type',       'English', 	'Rule type');
+INSERT INTO txt VALUES ('prov_rule_type_help',  'German', 	'Welche Regelarten (Access/NAT/IPS) f&uuml;r diese Ebene behandelt werden.');
+INSERT INTO txt VALUES ('prov_rule_type_help',  'English', 	'Which rule kinds (Access/NAT/IPS) are handled for this level.');
+INSERT INTO txt VALUES ('prov_templates',       'German', 	'Vorlagen');
+INSERT INTO txt VALUES ('prov_templates',       'English', 	'Templates');
+INSERT INTO txt VALUES ('prov_templates_help',  'German', 	'Freitext-Vorlage(n) mit Platzhaltern f&uuml;r diese Ebene.');
+INSERT INTO txt VALUES ('prov_templates_help',  'English', 	'Free-text template(s) with placeholders for this level.');
+INSERT INTO txt VALUES ('prov_positioning_algorithm', 'German', 	'Positionierungs-Algorithmus');
+INSERT INTO txt VALUES ('prov_positioning_algorithm', 'English', 	'Positioning algorithm');
+INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'German', 	'Wo neue Regeln im Regelwerk platziert werden. Nicht auf Global-Ebene verf&uuml;gbar.');
+INSERT INTO txt VALUES ('prov_positioning_algorithm_help', 'English', 	'Where new rules are placed in the rulebase. Not available at the Global level.');
+INSERT INTO txt VALUES ('prov_rule_category',   'German', 	'Regelkategorie');
+INSERT INTO txt VALUES ('prov_rule_category',   'English', 	'Rule category');
+INSERT INTO txt VALUES ('prov_rule_category_help', 'German', 	'Ob die Regel als Anwendungs- oder als gemeinsame Service-Regel behandelt wird. Nicht auf Global-Ebene verf&uuml;gbar.');
+INSERT INTO txt VALUES ('prov_rule_category_help', 'English', 	'Whether the rule is treated as an application rule or a common-service rule. Not available at the Global level.');
+INSERT INTO txt VALUES ('prov_security_profiles', 'German', 	'Sicherheitsprofile');
+INSERT INTO txt VALUES ('prov_security_profiles', 'English', 	'Security profiles');
+INSERT INTO txt VALUES ('prov_security_profiles_help', 'German', 	'Namen der anzuwendenden Sicherheitsprofile (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_security_profiles_help', 'English', 	'Names of the security profiles to apply (Fortinet only).');
+INSERT INTO txt VALUES ('prov_zone_from',       'German', 	'Zone von');
+INSERT INTO txt VALUES ('prov_zone_from',       'English', 	'Zone from');
+INSERT INTO txt VALUES ('prov_zone_from_help',  'German', 	'Quellzone (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_zone_from_help',  'English', 	'Source zone (Fortinet only).');
+INSERT INTO txt VALUES ('prov_zone_to',         'German', 	'Zone nach');
+INSERT INTO txt VALUES ('prov_zone_to',         'English', 	'Zone to');
+INSERT INTO txt VALUES ('prov_zone_to_help',    'German', 	'Zielzone (nur Fortinet).');
+INSERT INTO txt VALUES ('prov_zone_to_help',    'English', 	'Destination zone (Fortinet only).');
+INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'German', 	'FWO automatisch');
+INSERT INTO txt VALUES ('prov_opt_fwo_auto',                         'English', 	'FWO automatic');
+INSERT INTO txt VALUES ('prov_opt_manual',                           'German', 	'Manuell');
+INSERT INTO txt VALUES ('prov_opt_manual',                           'English', 	'Manual');
+INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'German', 	'Tufin SecureChange');
+INSERT INTO txt VALUES ('prov_opt_tufin_sc',                         'English', 	'Tufin SecureChange');
+INSERT INTO txt VALUES ('prov_opt_no_implementation',                'German', 	'Keine (keine Implementierungsaufgabe)');
+INSERT INTO txt VALUES ('prov_opt_no_implementation',                'English', 	'None (no implementation task)');
+INSERT INTO txt VALUES ('prov_opt_log',                              'German', 	'Loggen');
+INSERT INTO txt VALUES ('prov_opt_log',                              'English', 	'Log');
+INSERT INTO txt VALUES ('prov_opt_log_track',                        'German', 	'Loggen und verfolgen');
+INSERT INTO txt VALUES ('prov_opt_log_track',                        'English', 	'Log and track');
+INSERT INTO txt VALUES ('prov_opt_none',                             'German', 	'Keine');
+INSERT INTO txt VALUES ('prov_opt_none',                             'English', 	'None');
+INSERT INTO txt VALUES ('prov_opt_always_access',                    'German', 	'Immer Access (Standard)');
+INSERT INTO txt VALUES ('prov_opt_always_access',                    'English', 	'Always access (standard)');
+INSERT INTO txt VALUES ('prov_opt_access_nat',                       'German', 	'Access und NAT behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_nat',                       'English', 	'Handle access and NAT');
+INSERT INTO txt VALUES ('prov_opt_access_ips',                       'German', 	'Access und IPS behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_ips',                       'English', 	'Handle access and IPS');
+INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'German', 	'Access, NAT und IPS behandeln');
+INSERT INTO txt VALUES ('prov_opt_access_nat_ips',                   'English', 	'Handle access, NAT and IPS');
+INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'German', 	'Check Point: Inline-Layer pro Zonenpaar');
+INSERT INTO txt VALUES ('prov_opt_cp_inline_layer_zone_pair',        'English', 	'Check Point: inline layer per zone pair');
+INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'German', 	'Fortinet: Ende der Zone');
+INSERT INTO txt VALUES ('prov_opt_fortinet_end_of_zone',             'English', 	'Fortinet: end of zone');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'German', 	'Check Point: Ende der App-Sektion');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section',            'English', 	'Check Point: end of app section');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'German', 	'Check Point: Ende der App-Sektion, Common Services unterscheiden');
+INSERT INTO txt VALUES ('prov_opt_cp_end_of_app_section_common_svc', 'English', 	'Check Point: end of app section, distinguish common services');
+INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'German', 	'Standard: Ende des Regelwerks');
+INSERT INTO txt VALUES ('prov_opt_default_end_of_rulebase',          'English', 	'Default: end of rulebase');
+INSERT INTO txt VALUES ('prov_opt_app',                              'German', 	'Applikation');
+INSERT INTO txt VALUES ('prov_opt_app',                              'English', 	'Application');
+INSERT INTO txt VALUES ('prov_opt_common_service',                   'German', 	'Common Service');
+INSERT INTO txt VALUES ('prov_opt_common_service',                   'English', 	'Common service');
+INSERT INTO txt VALUES ('prov_opt_supermanager',                     'German', 	'Supermanager');
+INSERT INTO txt VALUES ('prov_opt_supermanager',                     'English', 	'Supermanager');
+INSERT INTO txt VALUES ('prov_opt_submanager',                       'German', 	'Submanager');
+INSERT INTO txt VALUES ('prov_opt_submanager',                       'English', 	'Submanager');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'German', 	'Externe Ticket-Vorlagen');
 INSERT INTO txt VALUES ('ext_ticket_templates', 'English', 	'External ticket templates');
 INSERT INTO txt VALUES ('add_ext_ticket_system', 'German',  'Externes Ticket-System anlegen');
@@ -3425,6 +3541,8 @@ INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'German',   'Adr
 INSERT INTO txt VALUES ('flow_creation_mixed_address_families', 'English',  'Address range starts and ends in different address families');
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'German',   'Adresse konnte nicht gelesen werden');
 INSERT INTO txt VALUES ('flow_creation_unreadable_address', 'English',  'Address could not be read');
+INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'German',   'Flow-Objekt wird im Antragsmodul nicht mehr angeboten');
+INSERT INTO txt VALUES ('flow_creation_ineligible_flow_object', 'English',  'Flow object is no longer offered in the request module');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'German',   ' Modellierungsobjekte aktualisiert');
 INSERT INTO txt VALUES ('modelling_objects_updated', 'English',  ' modelling objects updated');
 INSERT INTO txt VALUES ('app_zone_pattern',		'German', 	'Muster App Zone');
@@ -3896,6 +4014,8 @@ INSERT INTO txt VALUES ('flow_compliance_api',  'German',   'Flow-Compliance');
 INSERT INTO txt VALUES ('flow_compliance_api',  'English',  'Flow Compliance');
 INSERT INTO txt VALUES ('flow_request_api',     'German',   'Flow-Antr&auml;ge');
 INSERT INTO txt VALUES ('flow_request_api',     'English',  'Flow Requests');
+INSERT INTO txt VALUES ('workflow_api',         'German',   'Workflow API');
+INSERT INTO txt VALUES ('workflow_api',         'English',  'Workflow API');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'German', 	'REST Dokumentation');
 INSERT INTO txt VALUES ('api_user_mgmt_head',   'English', 	'REST Documentation');
 INSERT INTO txt VALUES ('api_umgmt_auth',       'German', 	'Authentisierung');
@@ -4442,6 +4562,8 @@ INSERT INTO txt VALUES ('U9043', 'German',  'Keine Logdaten f&uuml;r nicht model
 INSERT INTO txt VALUES ('U9043', 'English', 'no log data for unmodelled connections available');
 INSERT INTO txt VALUES ('U9044', 'German',  'Benachrichtigungen an App-Verantwortliche wurden gesendet.');
 INSERT INTO txt VALUES ('U9044', 'English', 'Notifications were sent to App responsibles.');
+INSERT INTO txt VALUES ('U9045', 'German',  'Die Regel-Eigent&uuml;mer-Zuordnung ist gerade nicht verwendbar. Der Soll-Ist-Abgleich kann deshalb l&auml;nger dauern als gewohnt.');
+INSERT INTO txt VALUES ('U9045', 'English', 'The rule owner mapping cannot be used right now. The variance analysis may therefore take longer than usual.');
 
 -- error messages
 INSERT INTO txt VALUES ('E0001', 'German',  'Nicht klassifizierter Fehler: ');
@@ -4542,8 +4664,8 @@ INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&
 INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
 INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgew&auml;hlten Dienste m&uuml;ssen dasselbe Protokoll und denselben Portbereich haben');
 INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
-INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von einem Management verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen');
-INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by one or more management devices. Change the management credentials before deleting them.');
+INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
 INSERT INTO txt VALUES ('E5118', 'English', 'Upper limit has to be greater than lower limit in Port range.');
 INSERT INTO txt VALUES ('E5119', 'German',  'Inkonsistente Eingaben im G&uuml;ltigkeitsbereich.');
@@ -4785,6 +4907,10 @@ INSERT INTO txt VALUES ('E8015', 'German',  'Eigent&uuml;mer konnte nicht zugeor
 INSERT INTO txt VALUES ('E8015', 'English', 'Owner could not be assigned');
 INSERT INTO txt VALUES ('E8016', 'German',  'Eigent&uuml;mer konnte nicht entfernt werden');
 INSERT INTO txt VALUES ('E8016', 'English', 'Owner could not be removed');
+INSERT INTO txt VALUES ('E8017', 'German',  'Die Aufgabe verweist auf ein Flow-Objekt oder ein Protokoll, das im Antragsmodul nicht angefordert werden darf. Bitte die betroffenen Elemente neu ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E8017', 'English', 'The task references a flow object or protocol that may not be requested in the request module. Please select the affected elements again.');
+INSERT INTO txt VALUES ('E8018', 'German',  'Die Aktionen dieses Statuswechsels wurden nicht ausgef&uuml;hrt, weil sie f&uuml;r diesen Status bereits ausgef&uuml;hrt wurden. Der Statuswechsel selbst ist gespeichert. Wurde der Status zwischenzeitlich ohne Aktionen gesetzt, etwa &uuml;ber die Workflow-&Uuml;berwachung, m&uuml;ssen Email, externer Antrag und Flow-Erzeugung erneut angesto&szlig;en werden.');
+INSERT INTO txt VALUES ('E8018', 'English', 'The actions of this state change were not executed, because they had already been executed for this state. The state change itself is saved. If the state was set in between without its actions, for instance through workflow monitoring, then mail, external request and flow creation have to be triggered again.');
 
 INSERT INTO txt VALUES ('E8101', 'German',  'Email-Versand kann nicht getestet werden, da der aktuell angemeldete Nutzer keine Email-Adresse hinterlegt hat.');
 INSERT INTO txt VALUES ('E8101', 'English', 'Sending of emails cannot be tested because the logged-in user does not have an email address.');
@@ -4908,8 +5034,6 @@ INSERT INTO txt VALUES ('T0008', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung
 INSERT INTO txt VALUES ('T0008', 'English', '(for future use) users who can request firewall changes');
 INSERT INTO txt VALUES ('T0009', 'German',  '(f&uuml;r zuk&uuml;nftige Anwendung) Nutzer zum Anlegen von change request workflows');
 INSERT INTO txt VALUES ('T0009', 'English', '(for future use) users who can create change request workflows');
-INSERT INTO txt VALUES ('T0010', 'German',  'wie reporter-viewall, aber mit Erlaubnis, Devices anzulegen und zu &auml;ndern; desweiteren Berechtigungen als Planer und Implementer');
-INSERT INTO txt VALUES ('T0010', 'English', 'like reporter-viewall, but allowed to create and update devices; furthermore permissions as planner and implementer');
 INSERT INTO txt VALUES ('T0011', 'German',  'Nutzer mit vollem Zugriff auf den Firewall Orchestrator');
 INSERT INTO txt VALUES ('T0011', 'English', 'users with full access rights to firewall orchestrator');
 INSERT INTO txt VALUES ('T0012', 'German',  'Nutzer mit Berechtigung zum Rezertifizieren von Regeln');
@@ -5038,6 +5162,10 @@ INSERT INTO txt VALUES ('C9031', 'German',  'Sie ben&ouml;tigen die Rolle recert
 INSERT INTO txt VALUES ('C9031', 'English', 'You need the recertifier role to recertify this owner.');
 INSERT INTO txt VALUES ('C9032', 'German',  'Sie sind diesem Owner nicht als rezertifizierbare verantwortliche Person zugewiesen.');
 INSERT INTO txt VALUES ('C9032', 'English', 'You are not assigned to this owner as a recertifiable responsible person.');
+INSERT INTO txt VALUES ('C9033', 'German',  'Aufgabenteilung erlauben: Wenn deaktiviert, werden gemischte Gruppen&auml;nderungen nicht aufgespalten. Sie erhalten dann die fr&uuml;heste der beiden Priorit&auml;ten f&uuml;r "Mitglieder hinzuf&uuml;gen" oder "Mitglieder entfernen". Wenn aktiviert, werden gemischte Gruppen&auml;nderungen vor dem Sortieren in zwei separate Teilaufgaben aufgeteilt.');
+INSERT INTO txt VALUES ('C9033', 'English', 'Allow task split: If disabled, mixed group modifications are not split. They then get the earlier of the two priorities for "added members" or "removed members". If enabled, mixed group modifications are split into two separate tasks before sorting.');
+INSERT INTO txt VALUES ('C9034', 'German',  'Sortierpriorit&auml;ten f&uuml;r Antragsaufgaben: Hier kann die Reihenfolge festgelegt werden, in der neue Antragsaufgaben vor dem Speichern sortiert werden. Die Reihenfolge gilt von oben nach unten; gemischte Gruppen&auml;nderungen k&ouml;nnen optional in getrennte Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('C9034', 'English', 'Request task sort priorities: Defines the order used to sort newly created request tasks before saving. The order applies from top to bottom; mixed group modifications can optionally be split into separate subtasks.');
 
 -- help pages
 INSERT INTO txt VALUES ('H0001', 'German',  'Firewall Orchestrator ist eine Anwendung zum Erzeugen und Verwalten von verschiedenen Reports aus Konfigurationsdaten verteilter Firewallsysteme.
@@ -5474,6 +5602,8 @@ INSERT INTO txt VALUES ('H1525', 'German',  'Nur beim Report Eigent&uuml;mer: St
 INSERT INTO txt VALUES ('H1525', 'English', 'Only for Owners report: State and Criticality: These fields restrict the displayed owners to the selected lifecycle state and selected criticality. The default value "all" leaves the respective filter inactive.');
 INSERT INTO txt VALUES ('H1526', 'German',  'Nur beim Report Eigent&uuml;mer-Recertification und in den Berichtsvorlagen: Zus. Info w&auml;hlt einen Schl&uuml;ssel aus den Zusatzinformationen der Eigent&uuml;mer. Im Dialog kann der ausgew&auml;hlte Schl&uuml;ssel nur angezeigt oder als Filter auf Existenz, Nicht-Existenz oder einen exakten Wert verwendet werden.');
 INSERT INTO txt VALUES ('H1526', 'English', 'Only for Owner Recertification and in report templates: Add. Info selects a key from the owner additional information. In the dialog the selected key can be displayed only or used as a filter for existence, non-existence, or an exact value.');
+INSERT INTO txt VALUES ('H1527', 'German',  'Im Regel-Report legt die Regelansicht fest, ob die Regeln nach Gateway oder direkt nach Management-Regelwerk angezeigt werden. In der Management-Ansicht w&auml;hlen Sie statt Gateways unterhalb jedes Managements dessen Start-Regelwerke aus (auch solche ohne Gateway-Verkn&uuml;pfung). Jedes ausgew&auml;hlte Regelwerk wird wie ein Gateway als Regelbaum mit den davon aus verkn&uuml;pften Regelwerken (Layer, Inline-Layer und Sections) angezeigt; nutzen Gateways das Regelwerk mit unterschiedlichen Folge-Layern, erscheint je Variante ein eigener Baum. Ein Regelwerk, das bereits in einem vorherigen Baum vollst&auml;ndig aufgef&uuml;hrt ist, erscheint nur als Zeile mit einem Link auf diesen Baum.');
+INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view chooses between gateway rules and management rulebases. In the management view, select start rulebases below each management instead of gateways (including rulebases without a gateway link). Each selected rulebase is shown like a gateway as a rule tree with the rulebases linked from it (layers, inline layers and sections); if gateways use it with different following layers, each variant gets its own tree. A rulebase already listed completely in an earlier tree only appears as a row linking to that tree.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
@@ -6200,7 +6330,7 @@ INSERT INTO txt VALUES ('H5124', 'English', 'External Management Data: Data spec
 
 INSERT INTO txt VALUES ('H5130', 'German',  'Hier werden die Zugangsdaten f&uuml;r den Import der Firewall-Konfigurationen verwaltet.
 Diese k&ouml;nnen auch f&uuml;r den Zugriff auf mehrere Firewall-Managements verwendet werden.
-Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verwendet werden.
+Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten von keinem Management mehr f&uuml;r Import oder Export verwendet werden. Andernfalls werden die Managements genannt, denen zuerst andere Zugangsdaten zugewiesen werden m&uuml;ssen; das gilt auch f&uuml;r das Entfernen der Beispieldaten.
     <br>
     F&uuml;r den FortiGate Stand-Alone Import via REST API:
     <ol>
@@ -6220,7 +6350,7 @@ Ein L&ouml;schen ist erst m&ouml;glich, wenn die Zugangsdaten nirgends mehr verw
 ');
 INSERT INTO txt VALUES ('H5130', 'English', 'Manage credentials for importing firewall configuration data.
 Credentials can be used for logging in to one or multiple firewall managements.
-Credentials can only be deleted when they are not used for importing any management.
+Credentials can only be deleted when no management uses them for import or export. Otherwise the managements are named that need other credentials first; this also applies to removing the sample data.
     <br>
     For FortiGate stand-alone import via REST API:
     <ol>
@@ -6353,6 +6483,46 @@ INSERT INTO txt VALUES ('H5186', 'German',  'Erfolg: Zeigt an, ob der letzte Imp
 INSERT INTO txt VALUES ('H5186', 'English', 'Success: Flag showing the success of the last import.');
 INSERT INTO txt VALUES ('H5187', 'German',  'Fehler: Zeigt die Fehlermeldung, falls der letzte Import nicht erfolgreich war.');
 INSERT INTO txt VALUES ('H5187', 'English', 'Errors: Is only filled with an error message, if the success flag is false.');
+INSERT INTO txt VALUES ('H5160', 'German',  'Die Provisionierungs-Einstellungen legen fest, wie Regel&auml;nderungen auf den Firewalls umgesetzt werden. Sie sind hierarchisch aufgebaut: Global &gt; Ger&auml;tetyp &gt; Manager &gt; Gateway. Der Baum links zeigt die tats&auml;chlich vorhandenen Ger&auml;tetypen, Manager und Gateways; ausgeblendete Manager und reine Routing-Ger&auml;te fehlen.');
+INSERT INTO txt VALUES ('H5160', 'English', 'The provisioning settings define how rule changes are implemented on the firewalls. They are organised as a hierarchy: Global &gt; Device type &gt; Manager &gt; Gateway. The tree on the left shows the device types, managers and gateways that actually exist; hidden managers and pure routing devices are left out.');
+INSERT INTO txt VALUES ('H5161', 'German',  'Jede Ebene speichert nur die Werte, die sie selbst &uuml;berschreibt. Alle anderen Werte erbt sie von der n&auml;chsth&ouml;heren Ebene, auf der der Wert gesetzt ist. Ist er auf keiner Ebene gesetzt, gilt der Standardwert.');
+INSERT INTO txt VALUES ('H5161', 'English', 'Each level stores only the values it overrides itself. It inherits all other values from the nearest level above on which the value is set. If it is not set on any level, the default value applies.');
+INSERT INTO txt VALUES ('H5162', 'German',  'Hier &uuml;berschreiben: Ist der Schalter aktiv, wird der Wert auf der gew&auml;hlten Ebene gespeichert und gilt f&uuml;r diese Ebene und alle Ebenen darunter, die ihn nicht selbst &uuml;berschreiben. Beim Einschalten wird das Feld mit dem aktuell geltenden Wert vorbelegt; auch ein unver&auml;nderter Wert wird dann gespeichert und &auml;ndert sich nicht mehr mit der Ebene dar&uuml;ber. Wird der Schalter ausgeschaltet, wird der gespeicherte Wert beim Speichern entfernt und die Ebene erbt wieder.');
+INSERT INTO txt VALUES ('H5162', 'English', 'Override here: while the switch is on, the value is stored on the selected level and applies to this level and to all levels below that do not override it themselves. Switching it on fills the field with the value currently in effect; even an unchanged value is then stored and no longer follows the level above. Switching it off removes the stored value when saving, and the level inherits again.');
+INSERT INTO txt VALUES ('H5163', 'German',  'Bei geerbten Werten wird die Ebene angezeigt, von der der Wert stammt. Ein Klick darauf wechselt zu dieser Ebene und hebt das Feld hervor, sodass der Wert dort ge&auml;ndert werden kann.');
+INSERT INTO txt VALUES ('H5163', 'English', 'For inherited values the level the value comes from is shown. Clicking it switches to that level and highlights the field, so that the value can be changed there.');
+INSERT INTO txt VALUES ('H5164', 'German',  'Solange eine Ebene ungespeicherte &Auml;nderungen hat, kann keine andere Ebene ausgew&auml;hlt werden. Die &Auml;nderungen m&uuml;ssen zuerst gespeichert oder verworfen werden. Gespeichert werden nur die Felder, die tats&auml;chlich ge&auml;ndert wurden.');
+INSERT INTO txt VALUES ('H5164', 'English', 'While a level has unsaved changes, no other level can be selected. The changes have to be saved or discarded first. Only the fields that were actually changed are saved.');
+INSERT INTO txt VALUES ('H5165', 'German',  'Administratoren k&ouml;nnen die Einstellungen &auml;ndern, Auditoren k&ouml;nnen sie nur einsehen.');
+INSERT INTO txt VALUES ('H5165', 'English', 'Administrators can change the settings, auditors can only view them.');
+INSERT INTO txt VALUES ('H5166', 'German',  'Die Hierarchie folgt den Ger&auml;ten: Wird der Ger&auml;tetyp eines Managers ge&auml;ndert oder ein Gateway einem anderen Manager zugeordnet, nimmt er seine eigenen Werte mit und erbt ab dann von seinen neuen &uuml;bergeordneten Ebenen.');
+INSERT INTO txt VALUES ('H5166', 'English', 'The hierarchy follows the devices: if the device type of a manager is changed or a gateway is assigned to another manager, it keeps its own values and from then on inherits from its new parent levels.');
+INSERT INTO txt VALUES ('H5167', 'German',  'Nicht jede Einstellung wird auf jeder Ebene angeboten. Ger&auml;tespezifische Einstellungen gibt es erst ab der Ebene Ger&auml;tetyp, die Anlage von Objekten nur bis zur Ebene Manager, und die Fortinet-spezifischen Einstellungen nur unterhalb eines Fortinet-Ger&auml;tetyps. Wird eine Ebene von Fortinet weg verschoben, bleiben ihre eigenen Fortinet-Werte als inaktive &Uuml;berschreibungen sichtbar und k&ouml;nnen dort entfernt werden.');
+INSERT INTO txt VALUES ('H5167', 'English', 'Not every setting is offered on every level. Device-specific settings are only available from the device type level downwards, object creation only down to the manager level, and the Fortinet-specific settings only below a Fortinet device type. If a level is moved away from Fortinet, its own Fortinet values remain visible as dormant overrides and can be cleared there.');
+INSERT INTO txt VALUES ('H5168', 'German',  'Umsetzungsmodus: Wie Umsetzungsaufgaben f&uuml;r Regel&auml;nderungen erzeugt werden: FWO automatisch, Manuell, Tufin SecureChange oder Keine (keine Implementierungsaufgabe).');
+INSERT INTO txt VALUES ('H5168', 'English', 'Implementation mode: how implementation tasks are created for rule changes: FWO automatic, Manual, Tufin SecureChange, or None (no implementation task).');
+INSERT INTO txt VALUES ('H5169', 'German',  'Installieren auf: Das Installationsziel der erzeugten Regeln, z.B. ANY.');
+INSERT INTO txt VALUES ('H5169', 'English', 'Install on: the install-on target of the generated rules, e.g. ANY.');
+INSERT INTO txt VALUES ('H5190', 'German',  'Logging: Logging-Verhalten der erzeugten Regeln: Loggen, Loggen und verfolgen oder Keine.');
+INSERT INTO txt VALUES ('H5190', 'English', 'Logging: logging behaviour of the generated rules: Log, Log and track, or None.');
+INSERT INTO txt VALUES ('H5191', 'German',  'Anlage Service-Objekte: Ob Service-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
+INSERT INTO txt VALUES ('H5191', 'English', 'Service object creation: whether service objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
+INSERT INTO txt VALUES ('H5192', 'German',  'Anlage Adress-Objekte: Ob Adress-Objekte im Supermanager oder im Submanager angelegt werden. Nur relevant, wenn ein Supermanager existiert.');
+INSERT INTO txt VALUES ('H5192', 'English', 'Address object creation: whether address objects are created in the supermanager or in the submanager. Only relevant if a supermanager exists.');
+INSERT INTO txt VALUES ('H5193', 'German',  'Regeltyp: Welche Regelarten behandelt werden: Immer Access (Standard), Access und NAT, Access und IPS oder Access, NAT und IPS.');
+INSERT INTO txt VALUES ('H5193', 'English', 'Rule type: which rule kinds are handled: Always access (standard), access and NAT, access and IPS, or access, NAT and IPS.');
+INSERT INTO txt VALUES ('H5194', 'German',  'Vorlagen: Freitext-Vorlage(n) mit Platzhaltern wie {{rule_name}}.');
+INSERT INTO txt VALUES ('H5194', 'English', 'Templates: free-text template(s) with placeholders such as {{rule_name}}.');
+INSERT INTO txt VALUES ('H5195', 'German',  'Positionierungs-Algorithmus: Wo neue Regeln im Regelwerk platziert werden: Check Point Inline-Layer pro Zonenpaar, Fortinet Ende der Zone, Check Point Ende der App-Sektion (optional mit Unterscheidung der Common Services) oder Standard: Ende des Regelwerks.');
+INSERT INTO txt VALUES ('H5195', 'English', 'Positioning algorithm: where new rules are placed in the rulebase: Check Point inline layer per zone pair, Fortinet end of zone, Check Point end of app section (optionally distinguishing common services), or Default: end of rulebase.');
+INSERT INTO txt VALUES ('H5196', 'German',  'Regelkategorie: Ob eine Regel als Applikations- oder als Common-Service-Regel behandelt wird.');
+INSERT INTO txt VALUES ('H5196', 'English', 'Rule category: whether a rule is treated as an application rule or as a common-service rule.');
+INSERT INTO txt VALUES ('H5197', 'German',  'Sicherheitsprofile (nur Fortinet): Namen der anzuwendenden Sicherheitsprofile, ein Eintrag pro Zeile.');
+INSERT INTO txt VALUES ('H5197', 'English', 'Security profiles (Fortinet only): names of the security profiles to apply, one entry per row.');
+INSERT INTO txt VALUES ('H5198', 'German',  'Zone von (nur Fortinet): Quellzone der erzeugten Regeln.');
+INSERT INTO txt VALUES ('H5198', 'English', 'Zone from (Fortinet only): source zone of the generated rules.');
+INSERT INTO txt VALUES ('H5199', 'German',  'Zone nach (nur Fortinet): Zielzone der erzeugten Regeln.');
+INSERT INTO txt VALUES ('H5199', 'English', 'Zone to (Fortinet only): destination zone of the generated rules.');
 INSERT INTO txt VALUES ('H5201', 'German',  'Admins k&ouml;nnen mehrere unterschiedliche Ldap-Verbindungen einrichten und verwalten. Sie k&ouml;nnen alle zur Nutzerauthentifizierung genutzt werden.<br>
     Das interne Ldap (Bestandteil der Installation) wird mindestens f&uuml;r die Rollenzuordnung ben&ouml;tigt, kann aber auch f&uuml;r Nutzerauthentifizierung und Nutzergruppenverwaltung genutzt werden.<br>
     Die Ldap-Verbindungen k&ouml;nnen hinzugef&uuml;gt, ge&auml;ndert oder gel&ouml;scht werden.
@@ -6562,8 +6732,8 @@ INSERT INTO txt VALUES ('H5361', 'German',  'Reporting, Modellierung und Rezerti
 INSERT INTO txt VALUES ('H5361', 'English', 'Reporting, modelling and recertification (rule based): reporter, reporter-viewall, modeller, recertifier');
 INSERT INTO txt VALUES ('H5362', 'German',  'Workflow: requester, approver, planner, implementer, reviewer');
 INSERT INTO txt VALUES ('H5362', 'English', 'Workflow: requester, approver, planner, implementer, reviewer');
-INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, fw-admin, auditor, (anonymous)');
-INSERT INTO txt VALUES ('H5363', 'English', 'Superordinate roles: admin, fw-admin, auditor, (anonymous)');
+INSERT INTO txt VALUES ('H5363', 'German',  '&Uuml;bergeordnete Rollen: admin, auditor, (anonymous)');
+INSERT INTO txt VALUES ('H5363', 'English', 'Superordinate roles: admin, auditor, (anonymous)');
 INSERT INTO txt VALUES ('H5364', 'German',  'Technische Rollen: importer, dbbackup, middleware-server');
 INSERT INTO txt VALUES ('H5364', 'English', 'Technical roles: importer, dbbackup, middleware-server');
 INSERT INTO txt VALUES ('H5401', 'German',  'Der Admin kann verschiedene Standardwerte definieren, die dann f&uuml;r alle Nutzer gelten.<br>
@@ -6580,10 +6750,10 @@ INSERT INTO txt VALUES ('H5411', 'English', 'Default Language: The language whic
 ');
 INSERT INTO txt VALUES ('H5411a', 'German',  'Farbschema: Legt das Standard-Farbschema der Benutzeroberfl&auml;che fest, das f&uuml;r alle Nutzer gilt.');
 INSERT INTO txt VALUES ('H5411a', 'English', 'Color Scheme: Defines the default color scheme of the user interface, which is valid for all users.');
-INSERT INTO txt VALUES ('H5412', 'German',  'UI - Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die bei der Reporterzeugung und beim Aufbau der rechten Randleiste in einem Schritt geholt werden.
+INSERT INTO txt VALUES ('H5412', 'German',  'UI - Pro Abruf geholte Elemente: Definiert die (maximale) Anzahl der Objekte, die bei der Reporterzeugung, beim Aufbau der rechten Randleiste und beim Laden der Produktionsregeln f&uuml;r den Soll-Ist-Abgleich in einem Schritt geholt werden.
     Dies kann genutzt werden, um die Performanz zu optimieren, wenn n&ouml;tig.
 ');
-INSERT INTO txt VALUES ('H5412', 'English', 'UI - Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation and the build up of the right sidebar.
+INSERT INTO txt VALUES ('H5412', 'English', 'UI - Elements per fetch: Defines the (maximum) number of objects which are fetched in one step for the report creation, the build up of the right sidebar and the loading of production rules for the variance analysis.
     This can be used to optimize performance if necessary.
 ');
 INSERT INTO txt VALUES ('H5413', 'German',  'Max initiale Abrufe rechte Randleiste: Definiert die (maximale) Anzahl an Abrufen w&auml;hrend der Initialisierung der rechten Randleiste.
@@ -6724,6 +6894,8 @@ INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
 INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt Empf&auml;nger und Zeitplan der Benachrichtigungen fest. Der Text aus den Einstellungen f&uuml;r anstehende bzw. &uuml;berf&auml;llige Rezertifizierungen wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt. Die Eigent&uuml;mer-Rezertifizierungstabelle wird unabh&auml;ngig davon erzeugt: Bei HtmlInBody wird sie an den Emailtext angeh&auml;ngt, bei einem Anhang-Layout als Datei angeh&auml;ngt.');
 INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines the recipients and schedule of the notifications. The text from the upcoming or overdue recertification settings is inserted as @@CONTENT@@ into the notification body. The owner recertification table is generated independently: HtmlInBody appends it to the email body; an attachment layout sends it as a file.');
+INSERT INTO txt VALUES ('H5460', 'German',  'Legt fest, ob neue Regeln-Reports Gateway-Regeln oder Management-Regelwerke anzeigen. Die pers&ouml;nliche Einstellung hat Vorrang vor dem globalen Standard. Gespeicherte Report-Vorlagen behalten ihre eigene Ansicht. Die Ansicht kann im Report weiterhin ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H5460', 'English', 'Selects whether new rules reports show gateway rules or management rulebases. The personal setting overrides the global default. Saved report templates keep their own view. The view can still be changed in the report.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -6797,6 +6969,8 @@ INSERT INTO txt VALUES ('H5485b', 'German', 'Flow-Sync-Intervall (in Sekunden): 
 INSERT INTO txt VALUES ('H5485b', 'English','Flow sync sleep time (in seconds): Time between checking the import_control table and updating the flow schema if required. 0 disables the job.');
 INSERT INTO txt VALUES ('H5485c', 'German', 'Einstellungen f&uuml;r Trigger zur Synchronisierung von Flow-Daten');
 INSERT INTO txt VALUES ('H5485c', 'English','Flow Sync Event Trigger Settings');
+INSERT INTO txt VALUES ('H5485d', 'German', 'Wartezeit auf Regel-Eigent&uuml;mer-Zuordnung (in Sekunden): Wirkt nur bei der Zuordnungsquelle Namensfeld. Steht eine Zuordnung noch aus, wartet der Soll-Ist-Abgleich h&ouml;chstens so lange darauf, statt sofort auf die deutlich langsamere Markersuche auszuweichen. Der Wert sollte zum Aktualisierungs-Intervall dar&uuml;ber passen. 0 schaltet das Warten ab.');
+INSERT INTO txt VALUES ('H5485d', 'English','Wait time for rule owner mapping (in seconds): Only effective for the Name field mapping source. While a mapping is still pending, the variance analysis waits at most this long for it instead of falling back to the much slower marker search. The value should match the update interval above. 0 disables waiting.');
 INSERT INTO txt VALUES ('H5486', 'German',  '&Auml;nderungsbenachrichtigungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
 INSERT INTO txt VALUES ('H5486', 'English', 'Change notification start at: Start time for the import change checks.');
 INSERT INTO txt VALUES ('H5486a', 'German', 'Regel-Eigent&uuml;mer-Zuordnungs-Aktualisierungs-Start: Startzeit f&uuml;r die Checks auf importierte &Auml;nderungen.');
@@ -7159,6 +7333,8 @@ INSERT INTO txt VALUES ('H5598', 'German',  'Hier werden die globalen Einstellun
 INSERT INTO txt VALUES ('H5598', 'English', 'This page is used to manage global external request settings as well as configured external ticket systems and their templates.');
 INSERT INTO txt VALUES ('H5599', 'German',  'Tasktyp: Typ des Tasks im externen Auftragssystem.');
 INSERT INTO txt VALUES ('H5599', 'English', 'Task Type: Type of the task in the external ticket system.');
+INSERT INTO txt VALUES ('H5600', 'German',  'Antragsauftrags-Sortierung: Hier werden die Speichern-Priorit&auml;ten f&uuml;r Gruppenanlage, Gruppen&auml;nderung mit Hinzuf&uuml;gen, Zugriff, Regel&auml;nderung, Regel l&ouml;schen, Gruppen&auml;nderung mit Entfernen und Gruppenl&ouml;schung festgelegt. Wenn eine Gruppen&auml;nderung gleichzeitig Mitglieder hinzuf&uuml;gt und entfernt, kann sie in zwei Teilaufgaben aufgespalten werden.');
+INSERT INTO txt VALUES ('H5600', 'English', 'Request task sorting: Defines the save priorities for group creation, group modification with added members, access, rule modification, rule deletion, group modification with removed members, and group deletion. If a group modification both adds and removes members, it can be split into two separate tasks.');
 
 INSERT INTO txt VALUES ('H5601', 'German',  'Hier werden die allgemeinen Modellierungseinstellungen verwaltet.
     Dies betrifft vordefinierte Dienste, Anzeigeoptionen, Namenskonventionen und die restlichen Modelleinstellungen.
@@ -7781,10 +7957,10 @@ INSERT INTO txt VALUES ('H6906', 'German',  'Anmelden zur Generierung eines g&uu
 INSERT INTO txt VALUES ('H6906', 'English', 'Login to get a JWT for the steps further below');
 INSERT INTO txt VALUES ('H6907', 'German',  'Auflisten bereits vorhandener Reports im Archiv (hier der letzte generierte zum Schedule)');
 INSERT INTO txt VALUES ('H6907', 'English', 'List generated reports in archive (here we get the last one generated for the respective schedule)');
-INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zur&uuml;ck, die entweder zu <code>OwnerId</code> oder zu <code>IpAddress</code> passen. Genau eines dieser beiden Felder muss angegeben werden. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet: <code>Action</code> w&auml;hlt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-L&auml;nge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides gepr&uuml;ft wird. Eine Regel wird bereits dann als Treffer gewertet, wenn mindestens ein aufgel&ouml;stes Netzwerkobjekt im gepr&uuml;ften Feld die angegebene IPv4-Adresse enth&auml;lt und die Mindest-Prefix-L&auml;nge erf&uuml;llt. Falls <code>FieldSourceMapping</code> dennoch mitgesendet wird, ignoriert der Server dieses Feld.');
-INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match either <code>OwnerId</code> or <code>IpAddress</code>. Exactly one of those two fields must be provided. The <code>Filter</code> object is only used when filtering by IP address: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated. A rule already counts as a match when at least one resolved network object in the checked field contains the supplied IPv4 address and meets the minimum prefix length. If <code>FieldSourceMapping</code> is still sent, the server ignores it.');
-INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln f&uuml;r den angegebenen Eigent&uuml;mer zur&uuml;ck.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-L&auml;nge des gefundenen Netzwerkobjekts von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides gepr&uuml;ft wird.</li><li>Eine Regel wird zur&uuml;ckgegeben, sobald mindestens ein aufgel&ouml;stes Objekt im gepr&uuml;ften Feld passt; weitere nicht passende oder nicht unterst&uuml;tzte Objekte verhindern den Treffer nicht.</li><li><code>ownerInformation</code>: Enth&auml;lt die regelbezogene externe App-ID als <code>extAppId</code> sowie die aktiven Datenbank-IDs der Eigent&uuml;mer als Array <code>ownerIds</code>.</li><li><code>additionalInformation</code>: Enth&auml;lt aktuell nur <code>changeId</code>, wenn das entsprechende Mapping konfiguriert ist.</li></ul>');
-INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of the matching network object, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated.</li><li>A rule is returned as soon as at least one resolved object in the checked field matches; additional non-matching or unsupported objects do not block the match.</li><li><code>ownerInformation</code>: Contains the rule-level external app id as <code>extAppId</code> and the active owner database ids as the <code>ownerIds</code> array.</li><li><code>additionalInformation</code>: Currently contains only <code>changeId</code> when the mapping is configured.</li></ul>');
+INSERT INTO txt VALUES ('H6934', 'German',  'Der <code>GetRulesByFilter</code> Endpunkt gibt Regeln zur&uuml;ck, die entweder zu <code>OwnerId</code> oder zu <code>IpAddress</code> passen. Genau eines dieser beiden Felder muss angegeben werden. Das Objekt <code>Filter</code> wird nur beim Filtern per IP-Adresse verwendet: <code>Action</code> w&auml;hlt zwischen <code>accept</code>, <code>deny</code> oder <code>any</code>, <code>MinPrefixLength</code> setzt die minimale CIDR-Prefix-L&auml;nge und <code>InField</code> entscheidet, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird. Eine Regel wird als Treffer gewertet, wenn mindestens ein aufgel&ouml;stes Netzwerkobjekt im gepr&uuml;ften Feld die angegebene IPv4-Adresse enth&auml;lt. Unabh&auml;ngig von <code>InField</code> m&uuml;ssen alle unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel die Mindest-Prefix-L&auml;nge erf&uuml;llen. Falls <code>FieldSourceMapping</code> dennoch mitgesendet wird, ignoriert der Server dieses Feld.');
+INSERT INTO txt VALUES ('H6934', 'English', 'The <code>GetRulesByFilter</code> endpoint returns rules that match either <code>OwnerId</code> or <code>IpAddress</code>. Exactly one of those two fields must be provided. The <code>Filter</code> object is only used when filtering by IP address: <code>Action</code> selects <code>accept</code>, <code>deny</code>, or <code>any</code>, <code>MinPrefixLength</code> sets the minimum CIDR prefix length, and <code>InField</code> decides whether source, destination, or both are evaluated for the IP match. A rule counts as a match when at least one resolved network object in the checked field contains the supplied IPv4 address. Independently of <code>InField</code>, all supported IPv4 objects in both source and destination must meet the minimum prefix length. If <code>FieldSourceMapping</code> is still sent, the server ignores it.');
+INSERT INTO txt VALUES ('H6935', 'German',  '<ul><li><code>OwnerId</code>: Gibt alle Regeln f&uuml;r den angegebenen Eigent&uuml;mer zur&uuml;ck.</li><li><code>IpAddress</code>: Sucht Regeln anhand der angegebenen IP-Adresse.</li><li><code>Filter.Action</code>: Pflichtfeld beim IP-Filter; erlaubt sind <code>accept</code>, <code>deny</code> und <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimale Prefix-L&auml;nge aller unterst&uuml;tzten IPv4-Objekte in Quelle und Ziel von 0 bis 32.</li><li><code>Filter.InField</code>: Legt fest, ob Quelle, Ziel oder beides f&uuml;r den IP-Treffer gepr&uuml;ft wird; die Prefix-Pr&uuml;fung wird immer auf Quelle und Ziel angewendet.</li><li>Eine Regel wird nur zur&uuml;ckgegeben, wenn mindestens ein aufgel&ouml;stes Objekt im gepr&uuml;ften Feld die IP-Adresse enth&auml;lt und kein unterst&uuml;tztes IPv4-Objekt in Quelle oder Ziel die Mindest-Prefix-L&auml;nge verletzt. Nicht unterst&uuml;tzte Objekte werden ignoriert.</li><li><code>service[].port</code> enth&auml;lt den einzelnen bzw. ersten Zielport und den Wert <code>-1</code>, wenn kein Zielport vorhanden ist. <code>service[].portEnd</code> enth&auml;lt nur bei einem echten Portbereich dessen einschlie&szlig;liches Ende; bei einzelnen oder fehlenden Ports wird das Feld nicht ausgegeben.</li><li><code>ownerInformation</code>: Enth&auml;lt die regelbezogene externe App-ID als <code>extAppId</code> sowie die aktiven Datenbank-IDs der Eigent&uuml;mer als Array <code>ownerIds</code>.</li><li><code>additionalInformation</code>: Enth&auml;lt aktuell nur <code>changeId</code>, wenn das entsprechende Mapping konfiguriert ist.</li></ul>');
+INSERT INTO txt VALUES ('H6935', 'English', '<ul><li><code>OwnerId</code>: Returns all rules for the specified owner.</li><li><code>IpAddress</code>: Finds rules by the provided IP address.</li><li><code>Filter.Action</code>: Required for IP-based filtering; allowed values are <code>accept</code>, <code>deny</code>, and <code>any</code>.</li><li><code>Filter.MinPrefixLength</code>: Minimum prefix length of every supported IPv4 object in source and destination, from 0 to 32.</li><li><code>Filter.InField</code>: Defines whether source, destination, or both are evaluated for the IP match; the prefix check always applies to source and destination.</li><li>A rule is returned only when at least one resolved object in the checked field contains the IP address and no supported IPv4 object in source or destination violates the minimum prefix length. Unsupported objects are ignored.</li><li><code>service[].port</code> contains the single or starting destination port and is <code>-1</code> when no destination port is available. <code>service[].portEnd</code> contains the inclusive end only for a genuine port range; the field is omitted for single or missing ports.</li><li><code>ownerInformation</code>: Contains the rule-level external app id as <code>extAppId</code> and the active owner database ids as the <code>ownerIds</code> array.</li><li><code>additionalInformation</code>: Currently contains only <code>changeId</code> when the mapping is configured.</li></ul>');
 INSERT INTO txt VALUES ('H6936', 'German',  'Hinweis: <code>additionalInformation.changeId</code> wird nur gef&uuml;llt, wenn das konfigurierte Change-ID-Mapping mindestens einen Eintrag hat. Andernfalls bleibt <code>additionalInformation</code> leer. Unbekannte optionale Schl&uuml;ssel in der Anfrage, einschlie&szlig;lich <code>FieldSourceMapping</code>, werden ignoriert.');
 INSERT INTO txt VALUES ('H6936', 'English', 'Note: <code>additionalInformation.changeId</code> is only populated when the configured Change-ID mapping contains at least one entry. Otherwise <code>additionalInformation</code> stays empty. Unknown optional request keys, including <code>FieldSourceMapping</code>, are ignored.');
 INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem gemeinsamen Pr&auml;fix <code>/api/flow</code> bereitgestellt.
@@ -7792,13 +7968,13 @@ INSERT INTO txt VALUES ('H6940', 'German',  'Die Flow-REST-API wird unter dem ge
     <ul>
         <li><b>FlowCatalogController</b>: Lesezugriffe auf Adress-, Dienst- und Zeitobjekte f&uuml;r Flow- und Request-bezogene Auswahllisten sowie Id-Aufl&ouml;sungen.</li>
         <li><b>FlowComplianceController</b>: Policy-Auswahl und Compliance-Pr&uuml;fung f&uuml;r synthetische Flows.</li>
-        <li><b>FlowRequestController</b>: Endpunkte f&uuml;r Flow-bezogene Request-Erzeugung und Statusabfrage.</li>
+        <li><b>WorkflowTicketController</b>: Endpunkte f&uuml;r Workflow-Ticket-Erzeugung und Statusabfrage.</li>
     </ul>
     Die folgenden Seiten dokumentieren die drei Controller getrennt, damit die einzelnen Endpunkte schneller auffindbar bleiben.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow-Katalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow-Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow-Antr&auml;ge</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow-Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below the shared <code>/api/flow</code> prefix.
@@ -7806,13 +7982,13 @@ INSERT INTO txt VALUES ('H6940', 'English', 'The Flow REST API is exposed below 
     <ul>
         <li><b>FlowCatalogController</b>: Read-only lookups for address, service, and time objects that support flow and request selection workflows as well as id resolution.</li>
         <li><b>FlowComplianceController</b>: Policy selection and compliance checks for synthetic flows.</li>
-        <li><b>FlowRequestController</b>: Endpoints for flow-related request creation and status lookups.</li>
+        <li><b>WorkflowTicketController</b>: Endpoints for workflow ticket creation and status lookups.</li>
     </ul>
     The following pages document the three controllers separately so the individual endpoints stay easy to find.
     <ul>
         <li><a href="/help/API/flow/catalog">Flow Catalog</a></li>
         <li><a href="/help/API/flow/compliance">Flow Compliance</a></li>
-        <li><a href="/help/API/flow/request">Flow Requests</a></li>
+         <li><a href="/help/API/workflow/ticket">Workflow Tickets</a></li>
     </ul>
 ');
 INSERT INTO txt VALUES ('H6941', 'German',  'Der <b>FlowCatalogController</b> stellt lesende Katalogabfragen unter <code>/api/flow</code> bereit.
@@ -7895,23 +8071,65 @@ INSERT INTO txt VALUES ('H6942', 'English', 'The <b>FlowComplianceController</b>
 ');
 INSERT INTO txt VALUES ('H9085', 'German',  'Kann ein Objekt keiner konfigurierten Netzwerkzone zugeordnet werden, wird dies in geplanten Compliance-Pr&uuml;fungen und Berichten als nicht bewertbar gemeldet. Dies gilt insbesondere f&uuml;r IPv6-Objekte, wenn keine passende IPv6-Zone konfiguriert ist. Als nicht bewertbar wird eine Regel nur dann ausgewiesen, wenn f&uuml;r sie kein einziger echter Versto&szlig; festgestellt wurde; andernfalls bleiben die festgestellten Verst&ouml;&szlig;e der Regel ma&szlig;geblich und im Bericht sichtbar, zusammen mit dem Hinweis auf das nicht bewertbare Objekt.');
 INSERT INTO txt VALUES ('H9085', 'English', 'When an object cannot be assigned to a configured network zone, scheduled compliance checks and reports mark that object as not assessable. This applies especially to IPv6 objects when no matching IPv6 zone is configured. A rule is labelled not assessable only when no real violation was found for it at all; otherwise its detected violations stay decisive and visible in the report, together with the note about the object that could not be assessed.');
-INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>FlowRequestController</b> stellt die Flow-bezogenen Request-Funktionen unter <code>/api/flow</code> bereit.
+INSERT INTO txt VALUES ('H6943', 'German',  'Der <b>WorkflowTicketController</b> stellt die Workflow-Ticket-Funktionen unter <code>/api/workflow</code> bereit.
     <table class="table table-sm">
         <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Aktueller Stand</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Erzeugt einen neuen Flow-bezogenen Request.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Liefert den Status eines vorhandenen Requests.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Erzeugt ein neues Workflow-Ticket.</td><td>Implementiert. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Liefert den Status eines vorhandenen Workflow-Tickets.</td><td>Implementiert. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
 ');
-INSERT INTO txt VALUES ('H6943', 'English', 'The <b>FlowRequestController</b> provides flow-related request functions below <code>/api/flow</code>.
+INSERT INTO txt VALUES ('H6943', 'English', 'The <b>WorkflowTicketController</b> provides workflow ticket functions below <code>/api/workflow</code>.
     <table class="table table-sm">
         <thead><tr><th>Endpoint</th><th>Purpose</th><th>Current state</th></tr></thead>
         <tbody>
-            <tr><td><code>createRequest</code></td><td>Creates a new flow-related request.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "requestId": 12345}</code></td></tr>
-            <tr><td><code>getRequestStatus</code></td><td>Returns the status of an existing request.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
+            <tr><td><code>createTicket</code></td><td>Creates a new workflow ticket.</td><td>Implemented. Request: <code>{"requestorName": "Alice Example", "requestorId": "alice", "title": "Allow HTTPS to application server", "rules": [{...}]}</code><br />Response: <code>{"status": "created", "ticketId": 12345}</code></td></tr>
+            <tr><td><code>getTicketStatus</code></td><td>Returns the status of an existing workflow ticket.</td><td>Implemented. Request: <code>{"ticketId": 42}</code><br />Response: <code>{"status": "...", "statusComment": "..."}</code></td></tr>
         </tbody>
     </table>
+');
+INSERT INTO txt VALUES ('H6944', 'German',  'Die Workflow-REST-API stellt lesende Funktionen f&uuml;r Workflow-Tickets unter <code>/api/workflow</code> bereit.
+    Alle Endpunkte verwenden <code>POST</code> und stehen Administratoren und Auditoren zur Verf&uuml;gung.
+    <table class="table table-sm">
+        <thead><tr><th>Endpunkt</th><th>Zweck</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>getTicket</code></td><td>Liefert ein vorhandenes Ticket mit allen Details: Kopfdaten, Request Tasks samt Elementen, Genehmigungen, Implementierungs-Tasks, Eigent&uuml;mern und Kommentaren sowie die Ticket-Kommentare.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"taskType": "access"}}}</code><br />Response: <code>{"id": 42, "title": "...", "stateId": 49, "state": "...", "status": "...", "tasks": [{"id": 501, "taskNumber": 1, "elements": [...], "approvals": [...], "implementationTasks": [...], "owners": [...], "comments": [...]}], "comments": [...]}</code></td></tr>
+            <tr><td><code>getAuditProofCriticalChanges</code></td><td>Liefert die revisionskritischen &Auml;nderungen eines Tickets, neueste zuerst: inhaltliche &Auml;nderungen, die in einer Benutzersitzung von jemand anderem als dem Antragsteller vorgenommen wurden.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"changeUserName": "abc"}}}</code><br />Response: <code>{"changes": [{"changeTime": "2026-09-11T08:11:00", "changeUserName": "abc", "changeUserId": 7, "changeContent": "..."}]}</code></td></tr>
+        </tbody>
+    </table>
+    Gemeinsame Regeln beider Endpunkte:
+    <ul>
+        <li><code>ticketId</code> ist Pflicht und muss gr&ouml;&szlig;er als 0 sein. <code>options</code> ist optional und hat den Standardwert <code>{}</code>.</li>
+        <li>Alle Schl&uuml;ssel in <code>options.filter</code> sind optional; ein fehlender Schl&uuml;ssel oder <code>null</code> schr&auml;nkt das Ergebnis nicht ein. Mehrere Schl&uuml;ssel werden mit UND verkn&uuml;pft.
+            Texte werden exakt und ohne Beachtung der Gro&szlig;-/Kleinschreibung verglichen, Zeitstempel exakt auf der Uhrzeit der Installation; ein Offset oder ein abschlie&szlig;endes Z wird vorher umgerechnet.</li>
+        <li>Bei <code>getTicket</code> schr&auml;nkt der Filter nur die zur&uuml;ckgegebenen Request Tasks ein. Filterbar sind alle einfachen Felder eines Tasks, z.B. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> oder <code>targetBeginDate</code>. Schlie&szlig;t der Filter alle Tasks aus, wird das Ticket mit leerer Task-Liste geliefert.</li>
+        <li><code>state</code> enth&auml;lt den internen Workflow-Status, <code>status</code> den Status, den auch <code>/api/flow/getRequestStatus</code> meldet (bevorzugt der externe Statusname).</li>
+        <li>Zeitstempel werden ohne Offset in der Uhrzeit der Installation geliefert, da die zugrunde liegenden Spalten keine Zeitzone speichern.</li>
+        <li>Bei <code>getTicket</code> sind Request Tasks und Implementierungs-Tasks nach Task-Nummer sortiert, Elemente, Genehmigungen und Eigent&uuml;mer nach ihrer Id und Kommentare nach Erstellungszeit (&auml;lteste zuerst). Die Reihenfolge ist damit bei wiederholten Abfragen stabil.</li>
+        <li>Ung&uuml;ltige Requests werden mit 400 beantwortet, eine unbekannte <code>ticketId</code> mit 404. Beide liefern alle gefundenen Fehler gemeinsam im Format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
+    </ul>
+');
+INSERT INTO txt VALUES ('H6944', 'English', 'The Workflow REST API provides read access to workflow tickets below <code>/api/workflow</code>.
+    All endpoints use <code>POST</code> and are available to administrators and auditors.
+    <table class="table table-sm">
+        <thead><tr><th>Endpoint</th><th>Purpose</th><th>Request / Response</th></tr></thead>
+        <tbody>
+            <tr><td><code>getTicket</code></td><td>Returns an existing ticket with all its details: header data, request tasks with their elements, approvals, implementation tasks, owners and comments, and the ticket comments.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"taskType": "access"}}}</code><br />Response: <code>{"id": 42, "title": "...", "stateId": 49, "state": "...", "status": "...", "tasks": [{"id": 501, "taskNumber": 1, "elements": [...], "approvals": [...], "implementationTasks": [...], "owners": [...], "comments": [...]}], "comments": [...]}</code></td></tr>
+            <tr><td><code>getAuditProofCriticalChanges</code></td><td>Returns the audit proof critical changes of a ticket, newest first: content changes made in a user session by someone other than the requester.</td><td>Request: <code>{"ticketId": 42, "options": {"filter": {"changeUserName": "abc"}}}</code><br />Response: <code>{"changes": [{"changeTime": "2026-09-11T08:11:00", "changeUserName": "abc", "changeUserId": 7, "changeContent": "..."}]}</code></td></tr>
+        </tbody>
+    </table>
+    Rules shared by both endpoints:
+    <ul>
+        <li><code>ticketId</code> is required and must be greater than 0. <code>options</code> is optional and defaults to <code>{}</code>.</li>
+        <li>Every key in <code>options.filter</code> is optional; an omitted key or <code>null</code> does not restrict the result. Several keys are combined with AND.
+            Text is matched exactly and case-insensitively, timestamps exactly on the wall clock of the installation; an offset or a trailing Z is converted to it first.</li>
+        <li>For <code>getTicket</code> the filter only restricts the returned request tasks. Every simple field of a task can be filtered, e.g. <code>id</code>, <code>taskNumber</code>, <code>taskType</code>, <code>stateId</code>, <code>state</code>, <code>requestAction</code>, <code>managementId</code> or <code>targetBeginDate</code>. If the filter excludes every task, the ticket is returned with an empty task list.</li>
+        <li><code>state</code> holds the internal workflow state, <code>status</code> the status that <code>/api/flow/getRequestStatus</code> reports as well (the external state name where one is mapped).</li>
+        <li>Timestamps are returned without an offset on the wall clock of the installation, because the underlying columns store no time zone.</li>
+        <li>For <code>getTicket</code>, request tasks and implementation tasks are ordered by task number, elements, approvals and owners by their id, and comments by creation time (oldest first), so repeated calls return the same order.</li>
+        <li>Invalid requests are answered with 400, an unknown <code>ticketId</code> with 404. Both report every detected error together in the format <code>{"errors": [{"path": "options.filter.taskType", "message": "..."}]}</code>.</li>
+    </ul>
 ');
 INSERT INTO txt VALUES ('H6921', 'German',  'Der Import von Applikationsdaten wird aus einer oder mehreren .json-Dateien mit den in den <a href="/help/settings/modelling">Modellierungseinstellungen</a> definierten Pfaden und Namen gespeist.
     Dort kann auch jeweils ein gleichnamiges Python-Skript (mit der Endung .py) zur Erzeugung eben dieser Dateien hinterlegt werden. Die .json-Datei hat die folgende Struktur:
@@ -8405,6 +8623,8 @@ INSERT INTO txt VALUES ('H8140', 'German',  'Stop: Wird der letzte Implementieru
 INSERT INTO txt VALUES ('H8140', 'English', 'Stop: When the last implementation task of the request task is marked as finished by setting the stop date, the actual date is set here too.');
 INSERT INTO txt VALUES ('H8141', 'German',  'Liste der Implementierungs-Auftr&auml;ge falls schon vorhanden.');
 INSERT INTO txt VALUES ('H8141', 'English', 'List of implementation tasks if already existing.');
+INSERT INTO txt VALUES ('H8142', 'German',  'Flow-Objekte: Quelle, Ziel und Dienst k&ouml;nnen aus dem Flow-Katalog ausgew&auml;hlt werden. Angeboten werden nur Eintr&auml;ge, die in den <a href="/help/settings/flows/general">Flow-Einstellungen</a> f&uuml;r das Antragsmodul freigegeben, nicht zur&uuml;ckgezogen und in einem noch beantragbaren Status sind. Wird ein Eintrag zur&uuml;ckgezogen, w&auml;hrend ein Auftrag ge&ouml;ffnet ist, weist das Speichern den Auftrag ab; die betroffenen Elemente m&uuml;ssen dann neu ausgew&auml;hlt werden. Bereits gespeicherte Auftr&auml;ge bleiben lesbar und auch dann speicherbar, wenn die Plattform selbst einen internen Eintrag angeh&auml;ngt hat - etwa den Dienst "beliebiges IP-Protokoll" bei einem protokollunabh&auml;ngigen Antrag &uuml;ber die REST-Schnittstelle.');
+INSERT INTO txt VALUES ('H8142', 'English', 'Flow objects: source, destination and service can be picked from the flow catalog. Only entries that are released for the request module in the <a href="/help/settings/flows/general">flow settings</a>, that are not retired and that are in a state a request may still build on are offered. If an entry is withdrawn while a task is open, saving the task is refused and the affected elements have to be selected again. Tasks that are already stored stay readable and saveable, also when the platform itself attached an internal entry - such as the "any ip protocol" service of a protocol agnostic request made through the REST interface.');
 INSERT INTO txt VALUES ('H8151', 'German',  'Implementierungs-Auftrag (Implementation task): Stellt die technische Sicht f&uuml;r die konkrete Implementierung eines einzelnen Auftrags dar. Er enth&auml;lt folgende weitgehend dem fachlichen Auftrag entsprechenden Felder:');
 INSERT INTO txt VALUES ('H8151', 'English', 'Inplementation Task: Represents the technical view for the implementation of the request task. It contains following fields, mostly corresponding to the request task:');
 INSERT INTO txt VALUES ('H8152', 'German',  'Titel (abgeleitet): Wird automatisch aus dem Titel des fachlichen Auftrags und dem Ger&auml;tenamen zusammengesetzt.');
@@ -8503,12 +8723,12 @@ INSERT INTO txt VALUES ('H8301', 'English', 'Each processing step can only be do
     Although, single users can be in possession of several roles. Roles can be assigned individually or via <a href="/help/settings/groups">group membership</a>.
     Additionally there is the role of the admin, who has always full access. Depending on the roles of the user, only the relevant parts of the following chapters are visible.
 ');
-INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, fw-admin):
-    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Der fw-admin kann hier alle Tickets sehen.
+INSERT INTO txt VALUES ('H8311', 'German',  'Ticket-Liste (Rolle: requester, admin, auditor):
+    Dem Antragsteller steht eine &Uuml;bersicht &uuml;ber alle von ihm selbst angelegten Tickets aller Bearbeitungsstufen zur Verf&uuml;gung. Admin und Auditor k&ouml;nnen hier alle Tickets sehen.
     &Auml;nderungen an den Tickets sind in dieser Ansicht nicht m&ouml;glich.
 ');
-INSERT INTO txt VALUES ('H8311', 'English', 'Ticket List (Role: requester, fw-admin):
-    The requester gets an overview of all tickets in all processing states created by himself. The fw-admin has view on all tickets.
+INSERT INTO txt VALUES ('H8311', 'English', 'Ticket List (Role: requester, admin, auditor):
+    The requester gets an overview of all tickets in all processing states created by himself. Admin and auditor have view on all tickets.
     Changes on the tickets are not possible in this view.
 ');
 INSERT INTO txt VALUES ('H8312', 'German',  'Antrag stellen (Rolle: requester), voreingestellt:
@@ -8541,7 +8761,7 @@ INSERT INTO txt VALUES ('H8313', 'English', 'Approvals (Role: approver), presele
     Additionally there may be further preconfigured shown actions.
     A request task counts as approved, if all single approvals have reached the appropriate state. Henceforward the approver can not perform changes anymore.
 ');
-INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin), optional:
+INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner), optional:
     Im Workflow kann vorgesehen werden, dass die Implementierungs-Auftr&auml;ge aus den fachlichen Auftr&auml;gen manuell von einem Planer erzeugt werden.
     Ist diese Phase aktiviert, greift die automatische Erzeugung der Implementierungs-Auftr&auml;ge nicht (<a href="/help/settings/workflowcustomizing">Einstellungen</a>).
     Stattdessen kann der Planer beliebige Implementierungs-Auftr&auml;ge erzeugen, editieren und l&ouml;schen.
@@ -8554,7 +8774,7 @@ INSERT INTO txt VALUES ('H8314', 'German',  'Planungen (Rolle: planner, fw-admin
     Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r diese Planungsphase besitzen.
     Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
 ');
-INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin), optional:
+INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner), optional:
     The workflow can be designed to create implementation tasks from the request tasks manually by a planner.
     In case this phase is active, the automatic creation of implementation tasks is deactivated (<a href="/help/settings/workflowcustomizing">Customizing</a>).
     Instead, the planner can create, edit or delete arbitrarily implementation tasks.
@@ -8567,14 +8787,14 @@ INSERT INTO txt VALUES ('H8314', 'English', 'Plannings (Role: planner, fw-admin)
     After pushing the respective button a selection list appears with all users and groups, which own the necessary roles for the planning phase.
     If the task had been assigned to oneself this way, an option for direct assigning back is shown.
 ');
-INSERT INTO txt VALUES ('H8315', 'German',  'Implementierungen (Rolle: implementer, fw-admin), voreingestellt:
+INSERT INTO txt VALUES ('H8315', 'German',  'Implementierungen (Rolle: implementer), voreingestellt:
     Hier wird die technische Umsetzung der einzelnen Auftr&auml;ge unterst&uuml;tzt und dokumentiert. Die fachlichen Auftr&auml;ge sind im Ticket nicht sichtbar, lediglich die Implementierungs-Auftr&auml;ge.
     In der &Uuml;bersicht k&ouml;nnen f&uuml;r den Nutzer auch statt der Tickets direkt alle Implementierungs-Auftr&auml;ge oder nur die Implementierungs-Auftr&auml;ge f&uuml;r ein Ger&auml;t dargestellt werden.
     Die Implementierungs-Auftr&auml;ge k&ouml;nnen in dieser Phase auch anderen Nutzern oder Gruppen zugewiesen werden.
     Bei Bet&auml;tigen der entsprechenden Schaltfl&auml;che erscheint eine Auswahlliste aller Nutzer und internen Gruppen, welche den notwendigen Rollen f&uuml;r Implementierungsphase besitzen.
     Wurde einem selbst auf diese Weise der Auftrag zugewiesen, wird auch eine Option zum direkten Zur&uuml;ckzuweisen angeboten.
 ');
-INSERT INTO txt VALUES ('H8315', 'English', 'Implementations (Role: implementer, fw-admin), preselected:
+INSERT INTO txt VALUES ('H8315', 'English', 'Implementations (Role: implementer), preselected:
     Here the technical realization of the single tasks is supported and documented. Functional (request) tasks are not visible, only the implementation tasks.
     In the overview, instead of the tickets, also a list of all implementation task or the implementation tasks for a special device can be displayed.
     The implementation tasks can also be assigned to other users or groups in this phase.

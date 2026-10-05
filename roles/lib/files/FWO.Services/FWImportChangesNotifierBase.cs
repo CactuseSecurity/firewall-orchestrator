@@ -8,7 +8,7 @@ namespace FWO.Services
     {
         private int running = 0;
 
-        public async Task<bool> Run(TEventArgs? eventArgs = null)
+        public async Task<bool> Run(TEventArgs? eventArgs = null, CancellationToken cancellationToken = default)
         {
             if (Interlocked.Exchange(ref running, 1) == 1)
             {
@@ -16,7 +16,7 @@ namespace FWO.Services
             }
             try
             {
-                return await Execute(eventArgs);
+                return await Execute(eventArgs, cancellationToken);
             }
             finally
             {
@@ -24,6 +24,6 @@ namespace FWO.Services
             }
         }
 
-        protected abstract Task<bool> Execute(TEventArgs? eventArgs = null);
+        protected abstract Task<bool> Execute(TEventArgs? eventArgs, CancellationToken cancellationToken);
     }
 }

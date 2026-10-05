@@ -125,7 +125,13 @@ namespace FWO.Services.Workflow
         /// <summary>
         /// Selects the persisted request-task fields included in change history.
         /// </summary>
-        private static object RequestTaskHistorySnapshot(WfReqTask task)
+        /// <remarks>
+        /// Public so readers of the history (e.g. the audit-proof task diff in the middleware) project the
+        /// current state of a request task onto exactly the fields that were recorded.
+        /// </remarks>
+        /// <param name="task">Request task to project.</param>
+        /// <returns>An anonymous object holding the recorded request-task fields.</returns>
+        public static object RequestTaskHistorySnapshot(WfReqTask task)
         {
             return new
             {

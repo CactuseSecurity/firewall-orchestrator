@@ -1,4 +1,9 @@
 # Firewall Orchestrator Revision History
+## 9.6.2 - 05.10.2026
+- autodiscovery (FortiManager): an ADOM whose UID changed on the FortiManager is now recognized as existing
+  (matched by ADOM name within the same super manager) instead of being proposed for deletion and
+  re-creation; VDOMs missing in FWO are offered for addition. The name fallback is skipped if another
+  ADOM already matches the management by UID
 
 ## 9.6.1 - 01.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of

@@ -227,6 +227,58 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task ChangingTheManagement_DropsTheSelectedObject()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { Id = 5, TaskType = WfTaskType.object_modify.ToString() };
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, true, kManagementId);
+            NetworkObject imported = new() { Id = 4711, Name = "srv_web01", IP = "10.1.1.5/32", IpEnd = "10.1.1.5/32" };
+            await InvokePrivate(component, "SelectNetworkObject", imported);
+
+            component.Render(parameters => parameters.Add(p => p.ManagementId, kManagementId + 1));
+            SetMember(component.Instance, "NetworkInput", "10.1.1.6");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(GetMember<WfReqElement>(component.Instance, "original"), Is.Null);
+                Assert.That(GetMember<string>(component.Instance, "objectName"), Is.Null);
+                Assert.That(component.Instance.ApplyToTask(), Is.EqualTo("E5126"));
+                Assert.That(task.Elements, Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task ChangingTheManagement_DropsTheObjectOfAnExistingTask()
+        {
+            await using BunitContext context = CreateContext();
+            WfReqTask task = new() { Id = 5, TaskType = WfTaskType.object_modify.ToString(), ManagementId = kManagementId };
+            task.Elements.Add(new() { Id = 1, Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.unchanged.ToString(), Name = "srv_web01", NetworkId = 4711, Cidr = new("10.1.1.5") });
+            task.Elements.Add(new() { Id = 2, Field = ElemFieldType.source.ToString(), RequestAction = RequestAction.modify.ToString(), Name = "srv_web01", NetworkId = 4711, Cidr = new("10.1.1.6") });
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, task, true, kManagementId);
+
+            component.Render(parameters => parameters.Add(p => p.ManagementId, kManagementId + 1));
+            SetMember(component.Instance, "NetworkInput", "10.1.1.7");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(component.Instance.ApplyToTask(), Is.EqualTo("E5126"));
+                Assert.That(task.Elements.ConvertAll(element => element.Id), Is.EquivalentTo(kKeptElementIds));
+            });
+        }
+
+        [Test]
+        public async Task SetKind_KeepsTheTypedNameOfAnObjectToCreate()
+        {
+            await using BunitContext context = CreateContext();
+            IRenderedComponent<DisplayObjectTaskElement> component = RenderElement(context, new WfReqTask(), false, kManagementId);
+            SetMember(component.Instance, "objectName", "new_object");
+
+            await InvokePrivate(component, "SetKind", true);
+
+            Assert.That(GetMember<string>(component.Instance, "objectName"), Is.EqualTo("new_object"));
+        }
+
+        [Test]
         public async Task SelectService_PrefillsTheServiceValues()
         {
             await using BunitContext context = CreateContext();

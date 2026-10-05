@@ -88,6 +88,59 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task SearchNetworkObjects_SendsTheNetworkOfAHostWithMask()
+        {
+            RecordingApiConnection apiConnection = new();
+
+            await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).SearchNetworkObjects(kManagementId, "10.1.1.5/24");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchNetworkObjectsForRequestByIp));
+                Assert.That(apiConnection.LastVariables.GetProperty("ip").GetString(), Is.EqualTo("10.1.1.0/24"));
+            });
+        }
+
+        [TestCase("4711")]
+        [TestCase("10.1.1")]
+        public async Task SearchNetworkObjects_SearchesIncompleteAddressesByName(string text)
+        {
+            RecordingApiConnection apiConnection = new();
+
+            await new WfObjectSearch(apiConnection, new ClaimsPrincipal()).SearchNetworkObjects(kManagementId, text);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.LastQuery, Is.EqualTo(ObjectQueries.searchNetworkObjectsForRequestByName));
+                Assert.That(apiConnection.LastVariables.GetProperty("pattern").GetString(), Is.EqualTo($"%{text}%"));
+            });
+        }
+
+        [TestCase("10.1.1.5", "10.1.1.5")]
+        [TestCase("10.1.2.0/24", "10.1.2.0/24")]
+        [TestCase("10.1.1.5/24", "10.1.1.0/24")]
+        [TestCase("0.0.0.0/0", "0.0.0.0/0")]
+        [TestCase("2001:db8::1", "2001:db8::1")]
+        [TestCase("2001:db8::1/64", "2001:db8::/64")]
+        [TestCase("4711", null)]
+        [TestCase("123", null)]
+        [TestCase("10.1", null)]
+        [TestCase("10.1.1", null)]
+        [TestCase("010.1.1.5", null)]
+        [TestCase("10.1.1.256", null)]
+        [TestCase("10.1.1.5/33", null)]
+        [TestCase("10.1.1.5/", null)]
+        [TestCase("10.1.1.5/+24", null)]
+        [TestCase("10.1.1.5/24/8", null)]
+        [TestCase("2001:db8::1/129", null)]
+        [TestCase("fe80::1%3", null)]
+        [TestCase("srv_web01", null)]
+        public void ToCidrSearchValue_AcceptsOnlyCompleteAddresses(string text, string? expected)
+        {
+            Assert.That(WfObjectSearch.ToCidrSearchValue(text), Is.EqualTo(expected));
+        }
+
+        [Test]
         public async Task SearchServices_SearchesAPortEvenWhenShort()
         {
             RecordingApiConnection apiConnection = new() { Result = new List<NetworkService>() };

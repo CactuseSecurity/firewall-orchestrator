@@ -117,6 +117,7 @@ else
     private WfReqTask? initializedTask;
     private bool isService;
     private WfReqElement? original;
+    private int? selectionManagementId;
     private WfReqElement? requested;
     private NetworkObject? selectedNetworkObject;
     private NetworkService? selectedService;
@@ -167,6 +168,11 @@ else
             initializedTask = ReqTask;
             InitFromTask();
         }
+        else if (IsModify && original != null && selectionManagementId != ManagementId)
+        {
+            // the selected object belongs to the previous management and is no longer offered by the search
+            ClearSelection();
+        }
     }
 
     private void InitFromTask()
@@ -188,6 +194,8 @@ else
             selectedService = isService ? new() { Id = original.ServiceId ?? 0, Name = original.Name ?? "", ProtoId = original.ProtoId,
                 DestinationPort = original.Port, DestinationPortEnd = original.PortEnd } : null;
         }
+        // stored elements reference an object of the management stored with the task
+        selectionManagementId = original != null ? ReqTask.ManagementId ?? ManagementId : null;
     }
 
     private void SetKind(bool service)
@@ -197,15 +205,27 @@ else
             return;
         }
         isService = service;
+        ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
         original = null;
         selectedNetworkObject = null;
         selectedService = null;
+        selectionManagementId = null;
+        if (IsModify)
+        {
+            // the name was prefilled from the dropped object
+            objectName = null;
+        }
         NetworkInput = "";
         PortInput = "";
     }
 
     private void SelectNetworkObject(NetworkObject? networkObject)
     {
+        selectionManagementId = ManagementId;
         selectedNetworkObject = networkObject;
         original = networkObject == null ? null
             : WfObjectTaskHelper.ToNwObjectElement(networkObject, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement(ElemFieldType.source);
@@ -215,6 +235,7 @@ else
 
     private void SelectService(NetworkService? service)
     {
+        selectionManagementId = ManagementId;
         selectedService = service;
         original = service == null ? null
             : WfObjectTaskHelper.ToNwServiceElement(service, RequestAction.unchanged.ToString(), ReqTask.Id).ToReqElement();
@@ -235,7 +256,7 @@ else
         {
             return "E5127";
         }
-        if (IsModify && original == null)
+        if (IsModify && (original == null || selectionManagementId != ManagementId))
         {
             return "E5126";
         }

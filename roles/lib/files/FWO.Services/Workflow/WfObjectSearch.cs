@@ -3,7 +3,10 @@ using FWO.Api.Client.Queries;
 using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Workflow;
+using NetTools;
+using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
 
@@ -20,9 +23,16 @@ namespace FWO.Services.Workflow
         private const char kLikeEscape = '\\';
         private const char kLikeWildcard = '%';
         private const char kLikeSingleCharacter = '_';
+        private const char kPrefixSeparator = '/';
+        private const char kOctetSeparator = '.';
+        private const int kIpv4OctetCount = 4;
+        private const int kMaxOctetLength = 3;
+        private const int kIpv4Bits = 32;
+        private const int kIpv6Bits = 128;
 
         /// <summary>
-        /// Searches network objects by ip address, when the text is one, or else by a part of the name.
+        /// Searches network objects by ip address, when the text is a complete address or network (see
+        /// ToCidrSearchValue), or else by a part of the name.
         /// Texts shorter than WfObjectTaskHelper.kMinSearchLength return no hits without querying the api.
         /// </summary>
         public async Task<List<NetworkObject>> SearchNetworkObjects(int managementId, string searchText)
@@ -32,14 +42,15 @@ namespace FWO.Services.Workflow
             {
                 return [];
             }
-            if (IPAddress.TryParse(text.StripOffNetmask(), out _))
+            string? cidr = ToCidrSearchValue(text);
+            if (cidr != null)
             {
                 return await apiConnection.RunWithWorkflowRole(user, () =>
                     apiConnection.SendQueryAsync<List<NetworkObject>>(ObjectQueries.searchNetworkObjectsForRequestByIp, new
                     {
                         mgmId = managementId,
                         objTypeIds = WfObjectTaskHelper.NetworkObjectTypeIds,
-                        ip = text,
+                        ip = cidr,
                         limit = WfObjectTaskHelper.kSearchLimit
                     }));
             }
@@ -84,6 +95,49 @@ namespace FWO.Services.Workflow
                     pattern = ToContainsPattern(text),
                     limit = WfObjectTaskHelper.kSearchLimit
                 }));
+        }
+
+        /// <summary>
+        /// Returns the canonical cidr literal for a completely typed address or network, or null when the text is
+        /// none and is to be searched as name. IPAddress.TryParse alone accepts short forms like "4711" or "10.1.1",
+        /// which PostgreSQL rejects as cidr or reads as a different network; a host with mask ("10.1.1.5/24") is
+        /// reduced to its network, since cidr does not accept bits right of the mask.
+        /// </summary>
+        public static string? ToCidrSearchValue(string text)
+        {
+            string[] parts = text.Split(kPrefixSeparator);
+            if (parts.Length > 2 || !IPAddress.TryParse(parts[0], out IPAddress? address) || !IsCompleteNotation(parts[0], address))
+            {
+                return null;
+            }
+            if (parts.Length == 1)
+            {
+                return address.ToString();
+            }
+            int maxPrefix = address.AddressFamily == AddressFamily.InterNetwork ? kIpv4Bits : kIpv6Bits;
+            if (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out int prefix) || prefix > maxPrefix)
+            {
+                return null;
+            }
+            return new IPAddressRange(address, prefix).ToCidrString();
+        }
+
+        private static bool IsCompleteNotation(string text, IPAddress address)
+        {
+            return address.AddressFamily switch
+            {
+                AddressFamily.InterNetwork => IsDottedDecimal(text),
+                AddressFamily.InterNetworkV6 => address.ScopeId == 0,
+                _ => false
+            };
+        }
+
+        private static bool IsDottedDecimal(string text)
+        {
+            string[] octets = text.Split(kOctetSeparator);
+            // leading zeros are rejected: .NET and PostgreSQL disagree whether "010" is octal
+            return octets.Length == kIpv4OctetCount && octets.All(octet => octet.Length is > 0 and <= kMaxOctetLength
+                && octet.All(char.IsAsciiDigit) && (octet.Length == 1 || octet[0] != '0'));
         }
 
         /// <summary>

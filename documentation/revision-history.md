@@ -59,6 +59,19 @@
   - a database integration test checks the visibility in a rolled back transaction, including unrelated
     visible devices and managements, negated sources and destinations, rules enforced on one or several
     gateways, rules without enforcing gateways, full management visibility and the admin tenant
+- security (GHSA-p8qh-59qx-rjj4): the Cisco ASA importer no longer imports access-list entries it does not fully
+  understand with a broader meaning
+  - so far an address it did not understand (e.g. "interface inside", a source port, any6) became "any", unknown
+    port operators (lt, gt, neq) and icmp types became any port or any icmp, unknown trailing tokens were ignored,
+    and entries that failed to parse were skipped with a warning (dropping e.g. a deny entry)
+  - every token of an extended access-list entry must now be understood; otherwise the import fails with the
+    config line number, token position and the unsupported construct, and the last imported config stays
+    unchanged
+  - newly supported: any6, IPv6 hosts and prefixes, name aliases in subnet addresses, lt / gt ports, icmp types,
+    log options, "line N" and time-range (imported as rule time)
+  - still not supported (import fails): interface, user and security-group addresses, source ports, neq and
+    icmp codes
+  - rule uids of entries that were already parsed correctly do not change
 
 ## 9.6.2 - 05.10.2026
 

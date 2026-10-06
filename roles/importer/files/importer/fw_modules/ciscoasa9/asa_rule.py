@@ -8,7 +8,7 @@ service, source, and destination references.
 
 import fwo_base
 from fw_modules.ciscoasa9.asa_models import AccessList, AccessListEntry, AsaProtocolGroup, EndpointKind
-from fw_modules.ciscoasa9.asa_network import get_network_rule_endpoint
+from fw_modules.ciscoasa9.asa_network import get_network_rule_endpoint, get_subnet_endpoint_address
 from fw_modules.ciscoasa9.asa_service import create_any_protocol_service, create_service_for_acl_entry
 from fwo_log import FWOLogger
 from models.networkobject import NetworkObject
@@ -89,9 +89,9 @@ def resolve_network_reference_for_rule(endpoint: EndpointKind, network_objects: 
     # Create network object if needed and get reference
     network_obj = get_network_rule_endpoint(endpoint, network_objects)
 
-    # Return reference - convert subnet mask to CIDR if present
+    # Return reference - convert subnet mask to CIDR if present (the address may be a name alias)
     if hasattr(endpoint, "mask") and endpoint.mask is not None:
-        return str(IPNetwork(f"{endpoint.value}/{endpoint.mask}"))
+        return str(IPNetwork(f"{get_subnet_endpoint_address(endpoint, network_objects)}/{endpoint.mask}"))
     return network_obj.obj_uid
 
 
@@ -117,8 +117,11 @@ def create_rule_from_acl_entry(
         Normalized rule object
 
     """
-    # Generate unique rule UID by hashing entry dict
-    rule_uid = fwo_base.generate_hash_from_dict(entry.model_dump())
+    # Generate unique rule UID by hashing entry dict; time_range is left out when unset, so that
+    # the UIDs of entries without a time-range stay the same as before the field existed
+    rule_uid = fwo_base.generate_hash_from_dict(
+        entry.model_dump(exclude={"time_range"}) if entry.time_range is None else entry.model_dump()
+    )
 
     # Resolve service reference
     svc_ref = resolve_service_reference_for_rule(entry, protocol_groups, service_objects)
@@ -143,7 +146,7 @@ def create_rule_from_acl_entry(
         rule_action=RuleAction.ACCEPT if entry.action == "permit" else RuleAction.DROP,
         rule_track=RuleTrack.NONE,
         rule_installon=None,  # gateway_uid, TODO: commented out for now to avoid duplication issues
-        rule_time=None,
+        rule_time=entry.time_range,
         rule_name=access_list_name,
         rule_uid=rule_uid,
         rule_custom_fields=None,

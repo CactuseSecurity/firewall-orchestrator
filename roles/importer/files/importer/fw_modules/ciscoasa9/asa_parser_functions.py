@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 
 from fw_modules.ciscoasa9.asa_models import (
-    AccessListEntry,
     AsaNetworkObject,
     AsaNetworkObjectGroup,
     AsaNetworkObjectGroupMember,
@@ -12,7 +11,6 @@ from fw_modules.ciscoasa9.asa_models import (
     AsaServiceObjectGroup,
     ClassMap,
     DnsInspectParameters,
-    EndpointKind,
     InspectionAction,
     Interface,
     NatRule,
@@ -22,14 +20,15 @@ from fw_modules.ciscoasa9.asa_models import (
 from fwo_log import FWOLogger
 
 
-def clean_lines(text: str) -> list[str]:
-    lines: list[str] = []
-    for raw in text.splitlines():
+def clean_numbered_lines(text: str) -> list[tuple[int, str]]:
+    """Return the config lines with their 1-based line number in the original text."""
+    lines: list[tuple[int, str]] = []
+    for line_number, raw in enumerate(text.splitlines(), start=1):
         line = raw.rstrip()
         # Skip leading metadata/comment lines starting with ':' (as in "show run")
         if line.strip().startswith(":"):
             continue
-        lines.append(line)
+        lines.append((line_number, line))
     return lines
 
 
@@ -53,39 +52,6 @@ def consume_block(lines: list[str], start_idx: int) -> tuple[list[str], int]:
         # another directive starts; end this block
         break
     return block, i
-
-
-def parse_endpoint(tokens: list[str]) -> tuple[EndpointKind, int]:
-    """
-    Parse an ACL endpoint from tokens; returns (EndpointKind, tokens_consumed).
-    Supported:
-      any
-      host A.B.C.D
-      object NAME
-      object-group NAME
-      A.B.C.D MASK
-    """
-    if not tokens:
-        return EndpointKind(kind="any", value="any"), 0
-
-    t0 = tokens[0]
-    if t0 == "any":
-        return EndpointKind(kind="any", value="any"), 1
-    if t0 == "host" and len(tokens) >= 2:  # noqa: PLR2004
-        return EndpointKind(kind="host", value=tokens[1]), 2
-    if t0 == "object" and len(tokens) >= 2:  # noqa: PLR2004
-        return EndpointKind(kind="object", value=tokens[1]), 2
-    if t0 == "object-group" and len(tokens) >= 2:  # noqa: PLR2004
-        return EndpointKind(kind="object-group", value=tokens[1]), 2
-    # subnet notation: ip + mask
-    if (
-        len(tokens) >= 2  # noqa: PLR2004
-        and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[0])
-        and re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", tokens[1])
-    ):
-        return EndpointKind(kind="subnet", value=tokens[0], mask=tokens[1]), 2
-    # fallback
-    return EndpointKind(kind="any", value="any"), 1
 
 
 def _find_description(blocks: list[str]) -> str | None:
@@ -548,116 +514,6 @@ def parse_policy_map_block(block: list[str], pm_name: str) -> PolicyMap:
         idx = next_idx
 
     return pm
-
-
-def _parse_access_list_entry_protocol(
-    parts: list[str],
-    protocol_groups: list[AsaProtocolGroup],
-    svc_objects: list[AsaServiceObject],
-    svc_obj_groups: list[AsaServiceObjectGroup],
-) -> tuple[EndpointKind, list[str]]:
-    """
-    Parse the protocol part of an access-list entry.
-    Returns (protocol EndpointKind, remaining tokens list[str]).
-    """
-    # Determine protocol
-    protocol = None
-    tokens = []  # Ensure tokens is always initialized
-    if parts[4] == "object-group":
-        group_name = parts[5]
-        if any(group.name == group_name for group in protocol_groups):
-            protocol = EndpointKind(kind="protocol-group", value=group_name)
-        elif any(group.name == group_name for group in svc_obj_groups):
-            protocol = EndpointKind(kind="service-group", value=group_name)
-        else:
-            raise ValueError(f"Unknown object-group: {group_name}")
-        tokens = parts[6:]
-    elif parts[4] == "object":
-        obj_name = parts[5]
-        if any(obj.name == obj_name for obj in svc_objects):
-            protocol = EndpointKind(kind="service", value=obj_name)
-        else:
-            raise ValueError(f"Unknown service object: {obj_name}")
-        tokens = parts[6:]
-    else:
-        protocol = EndpointKind(kind="protocol", value=parts[4].lower())
-        tokens = parts[5:]
-
-    return protocol, tokens
-
-
-def _parse_access_list_entry_dest_port(tokens: list[str], protocol: EndpointKind) -> tuple[EndpointKind, list[str]]:
-    """
-    Parse the destination port part of an access-list entry.
-    Returns (dst_port EndpointKind, remaining tokens list[str]).
-    """
-    dst_port = EndpointKind(kind="any", value="any")  # Default value
-    if len(tokens) >= 2 and tokens[0] == "eq":  # noqa: PLR2004
-        dst_port = EndpointKind(kind="eq", value=tokens[1])
-        tokens = tokens[2:]
-    elif len(tokens) >= 3 and tokens[0] == "range":  # noqa: PLR2004
-        dst_port = EndpointKind(kind="range", value=f"{tokens[1]} {tokens[2]}")
-        tokens = tokens[3:]
-    elif len(tokens) >= 2 and tokens[0] == "object-group":  # noqa: PLR2004
-        dst_port = EndpointKind(kind="service-group", value=tokens[1])
-        tokens = tokens[2:]
-    elif len(tokens) >= 2 and tokens[0] == "object":  # noqa: PLR2004
-        dst_port = EndpointKind(kind="service", value=tokens[1])
-        tokens = tokens[2:]
-
-    # If protocol is a service-group and dst_port is empty, set dst_port to the group name
-    if protocol.kind == "service-group" and dst_port.value == "any":
-        dst_port = EndpointKind(kind="service-group", value=protocol.value)
-    elif protocol.kind == "service" and dst_port.value == "any":
-        dst_port = EndpointKind(kind="service", value=protocol.value)
-
-    return dst_port, tokens
-
-
-def parse_access_list_entry(
-    line: str,
-    protocol_groups: list[AsaProtocolGroup],
-    svc_objects: list[AsaServiceObject],
-    svc_obj_groups: list[AsaServiceObjectGroup],
-) -> AccessListEntry:
-    """
-    Parse an access-list entry line and return an AccessListEntry object.
-    Handles various formats as specified in the requirements.
-    """
-    # Tokenize the line after 'access-list'
-    parts = line.split()
-    acl_name = parts[1]  # Access list name
-    action = parts[3].lower()  # Action (permit/deny)
-
-    # Parse protocol or protocol/service object-group
-    protocol, tokens = _parse_access_list_entry_protocol(parts, protocol_groups, svc_objects, svc_obj_groups)
-
-    # Parse source endpoint
-    src, consumed = parse_endpoint(tokens)
-    tokens = tokens[consumed:]
-
-    # Parse destination endpoint
-    dst, consumed = parse_endpoint(tokens)
-    tokens = tokens[consumed:]
-
-    # Parse destination port
-    dst_port, tokens = _parse_access_list_entry_dest_port(tokens, protocol)
-
-    # Optional inactive flag
-    inactive = "inactive" in tokens
-
-    # Ensure action is either 'permit' or 'deny' for type safety
-    action_literal = "permit" if action == "permit" else "deny"
-
-    return AccessListEntry(
-        acl_name=acl_name,
-        action=action_literal,
-        protocol=protocol,
-        src=src,
-        dst=dst,
-        dst_port=dst_port,
-        inactive=inactive,
-    )
 
 
 def parse_protocol_object_group_block(block: list[str]) -> AsaProtocolGroup:

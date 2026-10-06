@@ -196,110 +196,100 @@ $$ LANGUAGE 'plpgsql' STABLE;
 
 
 
-CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(rule_from rule_from, hasura_session json)
-RETURNS boolean AS $$
-    DECLARE
-        t_id integer;
-        show boolean DEFAULT false;
-        rule_to_obj RECORD;
-        i_dev_id integer;
-    BEGIN
-        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
-        SELECT INTO i_dev_id dev_id FROM rule_from LEFT JOIN rule USING (rule_id);
-        IF t_id IS NULL THEN
-            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id = 1 THEN
-            show := true;
-        ELSE
-            IF rulebase_fully_visible_to_tenant(i_dev_id, t_id) THEN
-                show := true;
-            ELSE
-                IF EXISTS ( -- ip of rule_from object is in tenant_network of tenant
-                    SELECT rf.obj_id FROM rule_from rf
-                        LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
-                        LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-                        LEFT JOIN tenant_network ON
-                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                    WHERE rule_from_id = rule_from.rule_from_id AND tenant_id = t_id
-                ) THEN
-                    show := true;
-                ELSE -- check if all rule_from objects visible since relevant rule_to exists
-                    FOR rule_to_obj IN
-                        SELECT rt.*, tenant_network.tenant_id
-                        FROM rule_to rt
-                            LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
-                            LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat_id)
-                            LEFT JOIN firewall.nw_object object ON (objgrp_flat_member_id=object.obj_id)
-                            LEFT JOIN tenant_network ON
-                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                        WHERE rt.rule_id = rule_from.rule_id
-                    LOOP
-                        IF rule_to_obj.tenant_id = t_id THEN
-                            show := true;
-                            EXIT;
-                        END IF;
-                    END LOOP;
-                END IF;
-            END IF;
-        END IF;
+-- The row parameters must not be named like the rule_from / rule_to tables: inside a query a table of the same
+-- name takes precedence, so the device of an arbitrary rule was used for the full rulebase visibility check
+-- (GHSA-v8hx-cx2q-j75v). Renaming an input parameter needs the old function to be dropped first.
+DROP FUNCTION IF EXISTS public.rule_from_relevant_for_tenant(rule_from, json);
+DROP FUNCTION IF EXISTS public.rule_to_relevant_for_tenant(rule_to, json);
 
-        RETURN show;
+-- true if a member of the (flattened) network object overlaps with a network of the tenant
+-- b_negated: the object is negated (either by itself or by the rule side it is used in)
+-- plpgsql instead of sql: a sql function querying tables cannot be inlined and would be planned on every call
+CREATE OR REPLACE FUNCTION nw_obj_in_tenant_network(i_obj_id bigint, b_negated boolean, i_tenant_id integer)
+RETURNS boolean AS $$
+    BEGIN
+        PERFORM 1 FROM objgrp_flat og
+            JOIN firewall.nw_object o ON (o.obj_id = og.objgrp_flat_member_id)
+            JOIN tenant_network tn ON (ip_ranges_overlap(o.obj_ip, o.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, b_negated))
+        WHERE og.objgrp_flat_id = i_obj_id AND tn.tenant_id = i_tenant_id
+        LIMIT 1;
+        RETURN FOUND;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
-
-
-CREATE OR REPLACE FUNCTION rule_to_relevant_for_tenant(rule_to rule_to, hasura_session json)
+-- a rule_from row is visible to a tenant if the rulebase of its rule is fully visible to the tenant,
+-- if the source object itself overlaps with a tenant network
+-- or if any destination object of the same rule overlaps with a tenant network
+CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(p_rule_from rule_from, hasura_session json)
 RETURNS boolean AS $$
     DECLARE
-        t_id integer;
-        show boolean DEFAULT false;
-        rule_from_obj RECORD;
-        i_dev_id integer;
+        i_tenant_id integer;
+        r_rule RECORD;
     BEGIN
-        t_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
-        SELECT INTO i_dev_id dev_id FROM rule_to LEFT JOIN rule USING (rule_id);
+        i_tenant_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
-        IF t_id IS NULL THEN
+        IF i_tenant_id IS NULL THEN
             RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
-        ELSIF t_id = 1 THEN
-            show := true;
-        ELSE
-            IF rulebase_fully_visible_to_tenant(i_dev_id, t_id) THEN
-                show := true;
-            ELSE
-                IF EXISTS ( -- ip of rule_to object is in tenant_network of tenant
-                    SELECT rt.obj_id FROM rule_to rt
-                        LEFT JOIN rule r ON (rt.rule_id=r.rule_id)
-                        LEFT JOIN objgrp_flat ON (rt.obj_id=objgrp_flat.objgrp_flat_id)
-                        LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-                        LEFT JOIN tenant_network ON
-                            (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rt.negated != r.rule_dst_neg))
-                    WHERE rule_to_id = rule_to.rule_to_id AND tenant_id = t_id
-                ) THEN
-                    show := true;
-                ELSE -- check if all rule_to objects visible since relevant rule_from exists
-                    FOR rule_from_obj IN
-                        SELECT rf.*, tenant_network.tenant_id
-                        FROM rule_from rf
-                            LEFT JOIN rule r ON (rf.rule_id=r.rule_id)
-                            LEFT JOIN objgrp_flat ON (rf.obj_id=objgrp_flat_id)
-                            LEFT JOIN firewall.nw_object object ON (objgrp_flat.objgrp_flat_member_id=object.obj_id)
-                            LEFT JOIN tenant_network ON
-                                (ip_ranges_overlap(obj_ip, obj_ip_end, tenant_net_ip, tenant_net_ip_end, rf.negated != r.rule_src_neg))
-                        WHERE rf.rule_id = rule_to.rule_id
-                    LOOP
-                        IF rule_from_obj.tenant_id = t_id THEN
-                            show := true;
-                            EXIT;
-                        END IF;
-                    END LOOP;
-                END IF;
-            END IF;
+        ELSIF i_tenant_id = 1 THEN
+            RETURN true;
         END IF;
 
-        RETURN show;
+        SELECT r.dev_id, r.rule_src_neg, r.rule_dst_neg INTO r_rule FROM rule r WHERE r.rule_id = p_rule_from.rule_id;
+
+        IF NOT FOUND THEN
+            RETURN false;
+        ELSIF rulebase_fully_visible_to_tenant(r_rule.dev_id, i_tenant_id) THEN
+            RETURN true;
+        END IF;
+
+        IF nw_obj_in_tenant_network(p_rule_from.obj_id, p_rule_from.negated != r_rule.rule_src_neg, i_tenant_id) THEN
+            RETURN true;
+        END IF;
+
+        -- all rule_from objects are visible if a rule_to object of the same rule is in a tenant network
+        PERFORM 1 FROM rule_to rt
+        WHERE rt.rule_id = p_rule_from.rule_id
+            AND nw_obj_in_tenant_network(rt.obj_id, rt.negated != r_rule.rule_dst_neg, i_tenant_id)
+        LIMIT 1;
+        RETURN FOUND;
+    END;
+$$ LANGUAGE 'plpgsql' STABLE;
+
+-- a rule_to row is visible to a tenant if the rulebase of its rule is fully visible to the tenant,
+-- if the destination object itself overlaps with a tenant network
+-- or if any source object of the same rule overlaps with a tenant network
+CREATE OR REPLACE FUNCTION rule_to_relevant_for_tenant(p_rule_to rule_to, hasura_session json)
+RETURNS boolean AS $$
+    DECLARE
+        i_tenant_id integer;
+        r_rule RECORD;
+    BEGIN
+        i_tenant_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
+
+        IF i_tenant_id IS NULL THEN
+            RAISE EXCEPTION 'No tenant id found in hasura session'; --> only happens when using auth via x-hasura-admin-secret (no tenant id is set)
+        ELSIF i_tenant_id = 1 THEN
+            RETURN true;
+        END IF;
+
+        SELECT r.dev_id, r.rule_src_neg, r.rule_dst_neg INTO r_rule FROM rule r WHERE r.rule_id = p_rule_to.rule_id;
+
+        IF NOT FOUND THEN
+            RETURN false;
+        ELSIF rulebase_fully_visible_to_tenant(r_rule.dev_id, i_tenant_id) THEN
+            RETURN true;
+        END IF;
+
+        IF nw_obj_in_tenant_network(p_rule_to.obj_id, p_rule_to.negated != r_rule.rule_dst_neg, i_tenant_id) THEN
+            RETURN true;
+        END IF;
+
+        -- all rule_to objects are visible if a rule_from object of the same rule is in a tenant network
+        PERFORM 1 FROM rule_from rf
+        WHERE rf.rule_id = p_rule_to.rule_id
+            AND nw_obj_in_tenant_network(rf.obj_id, rf.negated != r_rule.rule_src_neg, i_tenant_id)
+        LIMIT 1;
+        RETURN FOUND;
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 

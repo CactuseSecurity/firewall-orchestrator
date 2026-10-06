@@ -6,3 +6,13 @@
 
 - debug:
     msg: starting database integration tests
+
+# the probe runs in a single transaction that is always rolled back and fails on the first wrong visibility
+- name: test that rule_from / rule_to tenant visibility only depends on the rule itself (GHSA-v8hx-cx2q-j75v)
+  command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
+  args:
+    stdin: "{{ lookup('file', 'database/test-rule-endpoint-tenant-visibility.sql') }}"
+  register: test_rule_endpoint_tenant_visibility
+  changed_when: false
+  become: true
+  become_user: postgres

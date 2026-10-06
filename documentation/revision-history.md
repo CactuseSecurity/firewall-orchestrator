@@ -25,6 +25,7 @@
   - add_demo_data now defaults to the value of testkeys: a standard installation creates no sample users,
     owners or devices with publicly known passwords; installations with testkeys=yes get them automatically
   - demo data can still be requested explicitly with -e add_demo_data=yes, which logs a security warning
+  - the GitHub test installations request demo data explicitly, as the integration tests rely on it
   - remove the unused fixed importer_password from the middleware inventory
 - security (GHSA-3cwm-h5cm-r3f8, rated low, accepted risk): harden the SonarCloud workflows, which keep building
   pull requests of trusted fork owners with the Sonar token in the pull_request_target context
@@ -42,6 +43,16 @@
   - a new unique index allows at most one active external request (one without finish date) per ticket, so
     concurrent calls cannot start the request chain twice; requests closed manually by an admin now get a
     finish date as well, and upgrades set the missing finish dates of already closed requests
+- security (GHSA-v8hx-cx2q-j75v): the tenant visibility of rule sources and destinations (rule_from /
+  rule_to) no longer depends on unrelated devices
+  - the full rulebase check used the device of an arbitrary rule instead of the device of the checked rule,
+    because the row parameter had the same name as its table; a tenant could therefore see the ip filtered
+    sources and destinations of a rule as soon as any other device or management was fully visible to it,
+    and lose sight of those of a fully visible device
+  - the row parameters are renamed (p_rule_from / p_rule_to) and all columns are qualified
+  - a database integration test checks the visibility in a rolled back transaction, including unrelated
+    visible devices and managements, negated sources and destinations, full rulebase visibility and the
+    admin tenant
 
 ## 9.6.2 - 05.10.2026
 

@@ -39,6 +39,14 @@
     owners or devices with publicly known passwords; installations with testkeys=yes get them automatically
   - demo data can still be requested explicitly with -e add_demo_data=yes, which logs a security warning
   - remove the unused fixed importer_password from the middleware inventory
+- security (GHSA-3cwm-h5cm-r3f8, rated low, accepted risk): harden the SonarCloud workflows, which keep building
+  pull requests of trusted fork owners with the Sonar token in the pull_request_target context
+  - remove all caching from both SonarCloud workflows, so that a cache entry written by pull request code
+    cannot run in later runs
+  - pin all actions of both SonarCloud workflows to commit SHAs
+  - document the accepted residual risk and its conditions (project-scoped token with Browse and Execute
+    Analysis only, no other secrets, no caches) in documentation/developer-docs/github/sonarcloud-workflow.md
+  - a policy test enforces the conditions that can be checked from the repository
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

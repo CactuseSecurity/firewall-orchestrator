@@ -1,5 +1,8 @@
 -- Regression probe for GHSA-v8hx-cx2q-j75v: the tenant visibility of a rule_from / rule_to row must depend only on
--- the row itself, its rule and the device of that rule - never on other devices, rules or rule endpoints.
+-- the row itself, its rule and the gateways of that rule - never on other devices, rules or rule endpoints.
+-- The gateways of a rule are those in rule_enforced_on_gateway, or for a rule without explicit gateways those
+-- linking its rulebase (rule.dev_id is obsolete and stays NULL, as with the importer).
+-- Each case is checked for rule_from, rule_to and rule, and for the tenant simulation functions.
 --
 -- Runs in a single transaction that is always rolled back, so it leaves no data behind. Any failed expectation
 -- raises an exception, which makes psql (ON_ERROR_STOP) exit with a non-zero code.
@@ -30,6 +33,25 @@ CREATE FUNCTION pg_temp.rule_to_visible(p_rule_key text, p_tenant_id bigint) RET
     FROM rule_to rt WHERE rt.rule_id = pg_temp.probe(p_rule_key)
 $$ LANGUAGE sql STABLE;
 
+CREATE FUNCTION pg_temp.rule_visible(p_rule_key text, p_tenant_id bigint) RETURNS boolean AS $$
+    SELECT rule_relevant_for_tenant(r, pg_temp.tenant_session(p_tenant_id))
+    FROM rule r WHERE r.rule_id = pg_temp.probe(p_rule_key)
+$$ LANGUAGE sql STABLE;
+
+-- tenant simulation by the admin tenant: the rule is listed for the first gateway of its management
+-- (both gateways use the rulebase) and shows its endpoints
+CREATE FUNCTION pg_temp.simulated_rule_visible(p_rule_key text, p_tenant_id bigint) RETURNS boolean AS $$
+    SELECT pg_temp.probe(p_rule_key) IN (
+            SELECT sim.rule_id FROM device d, get_rules_for_tenant(d, p_tenant_id::integer, pg_temp.tenant_session(1)) sim
+            WHERE d.dev_id = pg_temp.probe('dev_' || split_part(p_rule_key, '_', 1)))
+$$ LANGUAGE sql STABLE;
+
+CREATE FUNCTION pg_temp.simulated_endpoints_visible(p_rule_key text, p_tenant_id bigint) RETURNS boolean AS $$
+    SELECT (SELECT count(*) FROM get_rule_froms_for_tenant(r, p_tenant_id::integer, pg_temp.tenant_session(1))) > 0
+        AND (SELECT count(*) FROM get_rule_tos_for_tenant(r, p_tenant_id::integer, pg_temp.tenant_session(1))) > 0
+    FROM rule r WHERE r.rule_id = pg_temp.probe(p_rule_key)
+$$ LANGUAGE sql STABLE;
+
 CREATE FUNCTION pg_temp.expect(p_case text, p_actual boolean, p_expected boolean) RETURNS void AS $$
 BEGIN
     IF p_actual IS DISTINCT FROM p_expected THEN
@@ -38,11 +60,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- expects both endpoints of a rule to have the same visibility (a rule is shown either completely or not at all)
+-- expects the rule and both its endpoints to have the same visibility (a rule is shown either completely or not at all)
 CREATE FUNCTION pg_temp.expect_rule(p_case text, p_rule_key text, p_tenant_id bigint, p_expected boolean) RETURNS void AS $$
 BEGIN
     PERFORM pg_temp.expect(p_case || ' (rule_from)', pg_temp.rule_from_visible(p_rule_key, p_tenant_id), p_expected);
     PERFORM pg_temp.expect(p_case || ' (rule_to)', pg_temp.rule_to_visible(p_rule_key, p_tenant_id), p_expected);
+    PERFORM pg_temp.expect(p_case || ' (rule)', pg_temp.rule_visible(p_rule_key, p_tenant_id), p_expected);
+    IF p_tenant_id != 1 THEN -- the admin tenant cannot be simulated
+        PERFORM pg_temp.expect(p_case || ' (simulated rule)', pg_temp.simulated_rule_visible(p_rule_key, p_tenant_id), p_expected);
+        PERFORM pg_temp.expect(p_case || ' (simulated endpoints)', pg_temp.simulated_endpoints_visible(p_rule_key, p_tenant_id), p_expected);
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -57,6 +84,7 @@ DECLARE
     i_network_typ_id integer;
     i_mgm_id integer;
     i_dev_id integer;
+    i_gw2_id integer;
     i_rulebase_id integer;
     i_import_id bigint;
     i_tenant_id integer;
@@ -90,11 +118,17 @@ BEGIN
             RETURNING mgm_id INTO i_mgm_id;
         INSERT INTO device (mgm_id, dev_typ_id, dev_name)
             VALUES (i_mgm_id, i_dev_typ_id, 'ghsa_v8hx_probe_' || r_mgm.mgm_key) RETURNING dev_id INTO i_dev_id;
+        INSERT INTO device (mgm_id, dev_typ_id, dev_name)
+            VALUES (i_mgm_id, i_dev_typ_id, 'ghsa_v8hx_probe_' || r_mgm.mgm_key || '_gw2') RETURNING dev_id INTO i_gw2_id;
         INSERT INTO import_control (mgm_id, import_type_id) VALUES (i_mgm_id, i_import_type_id)
             RETURNING control_id INTO i_import_id;
         INSERT INTO rulebase (name, uid, mgm_id)
             VALUES ('ghsa_v8hx_probe', 'ghsa_v8hx_probe_' || r_mgm.mgm_key, i_mgm_id) RETURNING id INTO i_rulebase_id;
-        INSERT INTO probe_id VALUES ('mgm_' || r_mgm.mgm_key, i_mgm_id), ('dev_' || r_mgm.mgm_key, i_dev_id);
+        -- both gateways use the rulebase
+        INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created)
+            VALUES (i_dev_id, i_rulebase_id, true, i_import_id), (i_gw2_id, i_rulebase_id, true, i_import_id);
+        INSERT INTO probe_id VALUES ('mgm_' || r_mgm.mgm_key, i_mgm_id), ('dev_' || r_mgm.mgm_key, i_dev_id),
+            ('gw2_' || r_mgm.mgm_key, i_gw2_id);
 
         FOR r_obj IN SELECT * FROM (VALUES
                 ('outside_src', '192.168.10.1/32', '192.168.10.1/32'),
@@ -112,21 +146,28 @@ BEGIN
             INSERT INTO probe_id VALUES (r_mgm.mgm_key || '_' || r_obj.obj_key, i_obj_id);
         END LOOP;
 
+        -- enforced_on: the gateways in rule_enforced_on_gateway ("none": no entry, as for nat rules)
         FOR r_rule IN SELECT * FROM (VALUES
-                ('hidden', 'outside_src', false, 'outside_dst', false),
-                ('src_in_tenant', 'tenant_host', false, 'outside_dst', false),
-                ('dst_in_tenant', 'outside_src', false, 'tenant_host', false),
-                ('src_negated_host', 'outside_src', true, 'outside_dst', false),
-                ('src_negated_any', 'any', true, 'outside_dst', false),
-                ('dst_negated_host', 'outside_src', false, 'outside_dst', true),
-                ('dst_negated_any', 'outside_src', false, 'any', true)
-            ) AS r(rule_key, src_key, src_neg, dst_key, dst_neg)
+                ('hidden', 'outside_src', false, 'outside_dst', false, 'dev'),
+                ('src_in_tenant', 'tenant_host', false, 'outside_dst', false, 'dev'),
+                ('dst_in_tenant', 'outside_src', false, 'tenant_host', false, 'dev'),
+                ('src_negated_host', 'outside_src', true, 'outside_dst', false, 'dev'),
+                ('src_negated_any', 'any', true, 'outside_dst', false, 'dev'),
+                ('dst_negated_host', 'outside_src', false, 'outside_dst', true, 'dev'),
+                ('dst_negated_any', 'outside_src', false, 'any', true, 'dev'),
+                ('on_gw2_only', 'outside_src', false, 'outside_dst', false, 'gw2'),
+                ('on_both', 'outside_src', false, 'outside_dst', false, 'both'),
+                ('not_enforced', 'outside_src', false, 'outside_dst', false, 'none')
+            ) AS r(rule_key, src_key, src_neg, dst_key, dst_neg, enforced_on)
         LOOP
-            INSERT INTO rule (mgm_id, dev_id, rulebase_id, rule_create, action_id, track_id, rule_name,
+            INSERT INTO rule (mgm_id, rulebase_id, rule_create, action_id, track_id, rule_name,
                     rule_src, rule_dst, rule_svc, rule_action, rule_track, rule_src_neg, rule_dst_neg)
-                VALUES (i_mgm_id, i_dev_id, i_rulebase_id, i_import_id, i_action_id, i_track_id, r_rule.rule_key,
+                VALUES (i_mgm_id, i_rulebase_id, i_import_id, i_action_id, i_track_id, r_rule.rule_key,
                     r_rule.src_key, r_rule.dst_key, 'any', 'accept', 'none', r_rule.src_neg, r_rule.dst_neg)
                 RETURNING rule_id INTO i_rule_id;
+            INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+                SELECT i_rule_id, gw.dev_id, i_import_id FROM (VALUES ('dev', i_dev_id), ('gw2', i_gw2_id)) AS gw(gw_key, dev_id)
+                WHERE r_rule.enforced_on IN (gw.gw_key, 'both');
             INSERT INTO rule_from (rule_id, obj_id, rf_create)
                 VALUES (i_rule_id, pg_temp.probe(r_mgm.mgm_key || '_' || r_rule.src_key), i_import_id);
             INSERT INTO rule_to (rule_id, obj_id, rt_create)
@@ -162,6 +203,20 @@ SELECT pg_temp.expect_rule('target rule with unrelated device removed', 'target_
 INSERT INTO tenant_to_management (tenant_id, management_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('mgm_other'), false);
 SELECT pg_temp.expect_rule('target rule with unrelated management fully visible', 'target_hidden', pg_temp.probe('tenant'), false);
 DELETE FROM tenant_to_management WHERE management_id = pg_temp.probe('mgm_other');
+
+-- full visibility through the gateways the rule is enforced on
+INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
+SELECT pg_temp.expect_rule('rule enforced on another gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('rule enforced on two gateways, one fully visible', 'target_on_both', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('rule without enforcing gateways, rulebase linked to a visible gateway', 'target_not_enforced', pg_temp.probe('tenant'), true);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_target');
+INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('gw2_target'), false);
+SELECT pg_temp.expect_rule('rule enforced on the fully visible gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('rule enforced on the other gateway only', 'target_hidden', pg_temp.probe('tenant'), false);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('gw2_target');
+INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_other'), false);
+SELECT pg_temp.expect_rule('rule without enforcing gateways, unrelated gateway visible', 'target_not_enforced', pg_temp.probe('tenant'), false);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
 
 -- full rulebase visibility of the target device and management
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), true);

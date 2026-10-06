@@ -50,9 +50,15 @@
     sources and destinations of a rule as soon as any other device or management was fully visible to it,
     and lose sight of those of a fully visible device
   - the row parameters are renamed (p_rule_from / p_rule_to) and all columns are qualified
+  - the full visibility of a rule no longer uses the obsolete rule.dev_id, which the importer does not write
+    (so far, unshared device and management mappings of a tenant had no effect on rules). A rule is fully
+    visible if the tenant has an unshared mapping to its management or to one of the gateways it is enforced
+    on (rule_enforced_on_gateway); for a rule without such gateways, e.g. a nat rule, to a gateway linking
+    its rulebase. This applies to rules, rule sources and destinations and to the tenant simulation, which
+    now lists the rules of the rulebases linked to a gateway
   - a database integration test checks the visibility in a rolled back transaction, including unrelated
-    visible devices and managements, negated sources and destinations, full rulebase visibility and the
-    admin tenant
+    visible devices and managements, negated sources and destinations, rules enforced on one or several
+    gateways, rules without enforcing gateways, full management visibility and the admin tenant
 
 ## 9.6.2 - 05.10.2026
 

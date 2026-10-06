@@ -241,6 +241,11 @@
                         }
                     </div>
                 }
+                else if(WfObjectTaskHelper.IsObjectTask(WfHandler.ActImplTask.TaskType))
+                {
+                    <DisplayObjectTaskElement ReqTask="WfHandler.ActReqTask" IsModify="@(WfHandler.ActImplTask.TaskType == WfTaskType.object_modify.ToString())"
+                        ManagementId="WfHandler.ActReqTask.ManagementId" EditMode="false" DisplayIpProtos="displayIpProtos" />
+                }
 
                 <div class="form-group row mt-2">
                     <div class="col-sm-1">

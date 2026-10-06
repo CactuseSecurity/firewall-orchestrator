@@ -1,6 +1,24 @@
 # Firewall Orchestrator Revision History
 
-## 9.6.1 - 01.10.2026
+## 9.6.2 - 02.10.2026
+
+- add workflow task types object_create and object_modify for a single network object (host, network,
+  address range) or service that stands alone without a group. Only the request side is covered: the
+  tasks can be created, edited, approved and passed through the workflow; implementation tasks show the
+  object read-only. External ticket systems reject both task types, the Check Point integration follows in a
+  later version
+- the workflow action "create flow" stores the object of an object_create task as flow object in state
+  requested (or binds it to the flow object of the same values) and links the request element to it, as it
+  does for group members; object_modify is not mapped to the flow database yet
+- object_modify references an existing imported object, which is selected through a server side search
+  limited to the visible managements. The old values are stored in the task as unchanged element, the
+  new values as modify element, as rule_modify does for the rule content
+- the requester role may read active network objects and services of its visible managements (only the
+  columns needed for the search, at most 50 rows per query)
+- the upgrade copies the group_create state matrices of every workflow configuration for both new task
+  types; both task types stay unavailable until an admin adds them to the available task types
+
+## 9.6.1 - 05.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the
   rulebases linked from it for the gateways using it
@@ -14,6 +32,10 @@
 - request workflow UI: fix task-type initialization when creating a task after viewing an existing task, and keep the selected gateway option stable when "All" is selected
 - request workflow UI: correct owner-field layout and improve request-task, implementation-task, ticket and access-element test coverage through dedicated test fixtures
 - clarify the localized Object Catalog and Service Catalog labels
+- autodiscovery (FortiManager): an ADOM whose UID changed on the FortiManager is now recognized as existing
+  (matched by ADOM name within the same super manager) instead of being proposed for deletion and
+  re-creation; VDOMs missing in FWO are offered for addition. The name fallback is skipped if another
+  ADOM already matches the management by UID
 
 ## 9.6.0 - 30.09.2026
 - middleware: upgrade of the job scheduler Quartz.NET from 3.21 to 4.1 (Quartz.Extensions.Hosting and

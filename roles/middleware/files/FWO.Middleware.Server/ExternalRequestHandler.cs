@@ -35,6 +35,17 @@ namespace FWO.Middleware.Server
         private List<UserGroup>? ownerGroups = [];
         private bool actInternalWork = false;
 
+        /// <summary>
+        /// States closing an external request without further processing; reaching them sets the finish date,
+        /// which marks the request as no longer active (see unique index uidx_ext_request_one_active_per_ticket)
+        /// </summary>
+        private static readonly List<string> kFinalRequestStates =
+        [
+            ExtStates.ExtReqAckRejected.ToString(),
+            ExtStates.ExtReqAcknowledged.ToString(),
+            ExtStates.ExtReqDiscarded.ToString()
+        ];
+
         private enum CreateNextRequestResult
         {
             Continue,
@@ -196,6 +207,17 @@ namespace FWO.Middleware.Server
         {
             try
             {
+                if (kFinalRequestStates.Contains(request.ExtRequestState))
+                {
+                    var FinalVariables = new
+                    {
+                        id = request.Id,
+                        extRequestState = request.ExtRequestState,
+                        finishDate = DateTime.Now
+                    };
+                    await ApiConnection.SendQueryAsync<ReturnId>(ExtRequestQueries.updateExtRequestFinal, FinalVariables);
+                    return;
+                }
                 var Variables = new
                 {
                     id = request.Id,

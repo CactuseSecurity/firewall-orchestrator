@@ -49,6 +49,9 @@ CREATE UNIQUE index if not exists owner_responsible_owner_dn_type_unique on owne
 CREATE index if not exists owner_responsible_dn_idx on owner_responsible(dn);
 CREATE UNIQUE index if not exists owner_responsible_type_name_unique on owner_responsible_type(name);
 CREATE UNIQUE INDEX IF NOT EXISTS request_workflow_configuration_single_active ON request.workflow_configuration (is_active) WHERE is_active;
+-- at most one active (not yet finished) external request per ticket, so concurrent calls cannot start the request chain
+-- of a ticket twice; the middleware sets finish_date when closing a request, before it creates the next one
+CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
 
 Create index "IX_Relationship68" on "changelog_object" ("control_id");
 Create index "IX_Relationship76" on "changelog_service" ("control_id");

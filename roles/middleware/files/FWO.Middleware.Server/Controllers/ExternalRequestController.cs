@@ -24,20 +24,6 @@ namespace FWO.Middleware.Server.Controllers
         private readonly Func<long, Task<bool>> sendFirstRequest;
 
         /// <summary>
-        /// External request states which indicate that the request chain of a ticket is still being processed.
-        /// Same set as used by the UI to decide whether a ticket may be reinitialized.
-        /// </summary>
-        private static readonly List<string> kOpenRequestStates =
-        [
-            ExtStates.ExtReqInitialized.ToString(),
-            ExtStates.ExtReqFailed.ToString(),
-            ExtStates.ExtReqRequested.ToString(),
-            ExtStates.ExtReqInProgress.ToString(),
-            ExtStates.ExtReqRejected.ToString(),
-            ExtStates.ExtReqDone.ToString()
-        ];
-
-        /// <summary>
 		/// Constructor needing jwt writer, ldap list and connection
 		/// </summary>
 		public ExternalRequestController(ApiConnection apiConnection) : this(apiConnection, null)
@@ -86,7 +72,7 @@ namespace FWO.Middleware.Server.Controllers
             {
                 return Conflict("The ticket is already completed.");
             }
-            if (await HasOpenExternalRequest(ticket.Id))
+            if (await HasUnfinishedExternalRequest(ticket.Id))
             {
                 return Conflict("The external requests of the ticket are still being processed.");
             }
@@ -161,10 +147,13 @@ namespace FWO.Middleware.Server.Controllers
             return mayRequest;
         }
 
-        private async Task<bool> HasOpenExternalRequest(long ticketId)
+        /// <summary>
+        /// A request without finish date is still being processed; same criterion as the unique index uidx_ext_request_one_active_per_ticket.
+        /// </summary>
+        private async Task<bool> HasUnfinishedExternalRequest(long ticketId)
         {
-            List<ExternalRequest> openRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getOpenRequests, new { states = kOpenRequestStates });
-            return openRequests.Any(request => request.TicketId == ticketId);
+            List<ExternalRequest> unfinishedRequests = await apiConnection.SendQueryAsync<List<ExternalRequest>>(ExtRequestQueries.getUnfinishedRequestsOfTicket, new { ticketId });
+            return unfinishedRequests.Count > 0;
         }
     }
 }

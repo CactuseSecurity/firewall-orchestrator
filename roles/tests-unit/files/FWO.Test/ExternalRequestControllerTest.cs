@@ -58,7 +58,7 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.InstanceOf<NotFoundResult>());
             Assert.That(sender.SentTicketIds, Is.Empty);
-            Assert.That(apiConnection.OpenRequestQueryCount, Is.Zero);
+            Assert.That(apiConnection.UnfinishedRequestQueryCount, Is.Zero);
         }
 
         [Test]
@@ -142,12 +142,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Post_TicketWithOpenRequestIsRefused()
+        public async Task Post_TicketWithUnfinishedRequestIsRefused()
         {
             ExternalRequestControllerTestApiConnection apiConnection = new()
             {
                 Ticket = CreateTicket(kOwnApp),
-                OpenRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId }]
+                UnfinishedRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId }]
             };
             RequestSender sender = new();
             ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
@@ -159,12 +159,12 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Post_OpenRequestOfOtherTicketDoesNotBlockReinit()
+        public async Task Post_UnfinishedRequestOfOtherTicketDoesNotBlockReinit()
         {
             ExternalRequestControllerTestApiConnection apiConnection = new()
             {
                 Ticket = CreateTicket(kOwnApp),
-                OpenRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId + 1 }]
+                UnfinishedRequests = [new ExternalRequest { Id = 1, TicketId = kTicketId + 1 }]
             };
             RequestSender sender = new();
             ExternalRequestController controller = CreateController(apiConnection, sender, Roles.Admin, null);
@@ -254,9 +254,9 @@ namespace FWO.Test
         private sealed class ExternalRequestControllerTestApiConnection : SimulatedApiConnection
         {
             public WfTicket? Ticket { get; init; }
-            public List<ExternalRequest> OpenRequests { get; init; } = [];
+            public List<ExternalRequest> UnfinishedRequests { get; init; } = [];
             public int QueryCount { get; private set; }
-            public int OpenRequestQueryCount { get; private set; }
+            public int UnfinishedRequestQueryCount { get; private set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
@@ -265,10 +265,12 @@ namespace FWO.Test
                 {
                     return Task.FromResult((QueryResponseType)(object)Ticket!);
                 }
-                if (typeof(QueryResponseType) == typeof(List<ExternalRequest>) && query == ExtRequestQueries.getOpenRequests)
+                if (typeof(QueryResponseType) == typeof(List<ExternalRequest>) && query == ExtRequestQueries.getUnfinishedRequestsOfTicket)
                 {
-                    OpenRequestQueryCount++;
-                    return Task.FromResult((QueryResponseType)(object)OpenRequests);
+                    UnfinishedRequestQueryCount++;
+                    long ticketId = variables?.GetType().GetProperty("ticketId")?.GetValue(variables) is long id ? id : 0;
+                    List<ExternalRequest> result = [.. UnfinishedRequests.Where(request => request.TicketId == ticketId)];
+                    return Task.FromResult((QueryResponseType)(object)result);
                 }
                 throw new AssertionException($"Unexpected query: {query}");
             }

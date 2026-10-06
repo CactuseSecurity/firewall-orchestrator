@@ -4,14 +4,17 @@ using FWO.Basics;
 using FWO.Config.Api.Data;
 using FWO.Data;
 using FWO.Data.Middleware;
+using FWO.Middleware.Server;
 using FWO.Middleware.Server.Controllers;
 using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using NetTools;
 using System.Net;
+using System.Security.Cryptography;
 using System.Threading;
 
 namespace FWO.Test
@@ -19,6 +22,9 @@ namespace FWO.Test
     [TestFixture]
     internal class ComplianceControllerTest
     {
+        private static readonly List<int> kSingleManagement = [1];
+        private static readonly List<Ldap> kNoLdaps = [];
+
         [Test]
         public async Task StartInitialComplianceCheck_ReturnsAcceptedAndMarksJobSucceeded()
         {
@@ -143,7 +149,7 @@ namespace FWO.Test
         [Test]
         public async Task Post_ReturnsExceptionMessageWhenImportFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
             string result = await controller.Post(new ImportMatrixParameters
             {
@@ -159,14 +165,14 @@ namespace FWO.Test
         [Test]
         public async Task Get_ReturnsEmptyStringWhenReportGenerationFails()
         {
-            ComplianceController controller = new(new DummyApiConnection());
+            ComplianceController controller = CreateComplianceController();
 
-            string result = await controller.Get(new ComplianceReportParameters
+            ActionResult<string> result = await controller.Get(new ComplianceReportParameters
             {
-                ManagementIds = [1]
+                ManagementIds = kSingleManagement
             });
 
-            Assert.That(result, Is.Empty);
+            Assert.That(result.Value, Is.Empty);
         }
 
         [Test]
@@ -455,6 +461,11 @@ namespace FWO.Test
 
             Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
             Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("must contain at least one entry"));
+        }
+
+        private static ComplianceController CreateComplianceController()
+        {
+            return new ComplianceController(new DummyApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), kNoLdaps);
         }
 
         private sealed class DummyApiConnection : ApiConnection

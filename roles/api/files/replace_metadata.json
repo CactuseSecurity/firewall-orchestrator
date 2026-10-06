@@ -13854,6 +13854,52 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "mgm_id",
+                      "obj_id",
+                      "obj_ip",
+                      "obj_ip_end",
+                      "obj_name",
+                      "obj_typ_id",
+                      "removed"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "active": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "obj_typ_id": {
+                            "_in": [
+                              1,
+                              3,
+                              4,
+                              12
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "limit": 50
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [
@@ -23381,6 +23427,48 @@
                     "filter": {},
                     "allow_aggregations": true
                   }
+                },
+                {
+                  "role": "requester",
+                  "permission": {
+                    "columns": [
+                      "active",
+                      "ip_proto_id",
+                      "mgm_id",
+                      "removed",
+                      "svc_id",
+                      "svc_name",
+                      "svc_port",
+                      "svc_port_end",
+                      "svc_typ_id"
+                    ],
+                    "filter": {
+                      "_and": [
+                        {
+                          "mgm_id": {
+                            "_in": "x-hasura-visible-managements"
+                          }
+                        },
+                        {
+                          "active": {
+                            "_eq": true
+                          }
+                        },
+                        {
+                          "removed": {
+                            "_is_null": true
+                          }
+                        },
+                        {
+                          "svc_typ_id": {
+                            "_eq": 1
+                          }
+                        }
+                      ]
+                    },
+                    "limit": 50
+                  },
+                  "comment": ""
                 }
               ],
               "update_permissions": [

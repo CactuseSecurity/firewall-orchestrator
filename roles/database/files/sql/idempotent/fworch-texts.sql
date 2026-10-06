@@ -53,6 +53,10 @@ INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('object_create',        'German',   'Objekt anlegen');
+INSERT INTO txt VALUES ('object_create',        'English',  'Create Object');
+INSERT INTO txt VALUES ('object_modify',        'German',   'Objekt &auml;ndern');
+INSERT INTO txt VALUES ('object_modify',        'English',  'Modify Object');
 INSERT INTO txt VALUES ('new_interface',        'German', 	'Neue Schnittstelle');
 INSERT INTO txt VALUES ('new_interface',        'English', 	'New Interface');
 INSERT INTO txt VALUES ('TicketCreation',       'German',   'Ticket-Erstellung');
@@ -575,6 +579,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
     <li>Im Antragsmodul werden die Grunddaten eines Auftrags und seine Elemente nun in getrennten Bereichen bearbeitet; der Auftragstyp bleibt dabei in beiden Bereichen synchron. Wird nach dem Ansehen eines bestehenden Auftrags ein neuer angelegt, startet dieser nun mit dem richtigen Auftragstyp, und die Gateway-Auswahl bleibt bei "Alle" stabil.</li>
     <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
     <li>Die TLS-Zertifikatspr&uuml;fung wird nun je Verbindungsart eingestellt: f&uuml;r alle Firewall-Verbindungen (Import, Autodiscovery, Check Point-&Auml;nderungsauftr&auml;ge), alle externen Ticket-Systeme und den Email-Server. Neuinstallationen pr&uuml;fen per Default gegen den Zertifikatsspeicher des Hosts; ein Upgrade beh&auml;lt das bisherige Verhalten. Ungepr&uuml;fte Verbindungen werden im Log gemeldet.</li>
+    <li>Die neuen Auftragstypen "Objekt anlegen" und "Objekt &auml;ndern" beantragen ein einzelnes Netzwerkobjekt (Host, Netz, Adressbereich) oder einen Service ohne Gruppe. Beim &Auml;ndern wird das bestehende Objekt &uuml;ber eine Suche ausgew&auml;hlt, der Auftrag zeigt alten und neuen Stand. Die Auftragstypen m&uuml;ssen in den Workflow-Anpassungen freigeschaltet werden und werden noch nicht an externe Ticketsysteme &uuml;bergeben; siehe <a target="_blank" href="/help/workflow/tasktypes">Hilfe zu Auftragstypen</a>.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
@@ -588,6 +593,7 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
     <li>In the request module, the basic data of a task and its elements are now edited in separate sections, with the task type kept in sync between them. A task created after viewing an existing one now starts with the correct task type, and the gateway selection stays stable when "All" is selected.</li>
     <li>The Object Catalog and Service Catalog labels were clarified.</li>
     <li>TLS certificate checking is now configured per connection type: for all firewall connections (import, autodiscovery, Check Point change requests), all external ticket systems and the email server. New installations check against the host trust store by default; an upgrade keeps the previous behaviour. Unchecked connections are reported in the log.</li>
+    <li>The new task types "Create Object" and "Modify Object" request a single network object (host, network, address range) or service without a group. When modifying, the existing object is selected through a search and the task shows the old and the new state. The task types have to be enabled in the workflow customizing settings and are not yet passed to external ticket systems; see <a target="_blank" href="/help/workflow/tasktypes">task type help</a>.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3886,6 +3892,24 @@ INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;
 INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
 INSERT INTO txt VALUES ('group_requests',       'German',   'Gruppenantr&auml;ge');
 INSERT INTO txt VALUES ('group_requests',       'English',  'Group Requests');
+INSERT INTO txt VALUES ('object_requests',      'German',   'Objektantr&auml;ge');
+INSERT INTO txt VALUES ('object_requests',      'English',  'Object Requests');
+INSERT INTO txt VALUES ('previous_state',       'German',   'Bisher');
+INSERT INTO txt VALUES ('previous_state',       'English',  'Previous');
+INSERT INTO txt VALUES ('requested_state',      'German',   'Beantragt');
+INSERT INTO txt VALUES ('requested_state',      'English',  'Requested');
+INSERT INTO txt VALUES ('object',               'German',   'Objekt');
+INSERT INTO txt VALUES ('object',               'English',  'Object');
+INSERT INTO txt VALUES ('search_object',        'German',   'Objekt suchen');
+INSERT INTO txt VALUES ('search_object',        'English',  'Search object');
+INSERT INTO txt VALUES ('search_network_object','German',   'Objekt suchen (ab 3 Zeichen, Name oder IP-Adresse)');
+INSERT INTO txt VALUES ('search_network_object','English',  'Search object (from 3 characters, name or ip address)');
+INSERT INTO txt VALUES ('search_service_object','German',   'Service suchen (Name ab 3 Zeichen oder Port)');
+INSERT INTO txt VALUES ('search_service_object','English',  'Search service (name from 3 characters or port)');
+INSERT INTO txt VALUES ('refine_search',        'German',   'Es werden nur die ersten Treffer angezeigt, bitte die Suche verfeinern.');
+INSERT INTO txt VALUES ('refine_search',        'English',  'Only the first hits are shown, please refine the search.');
+INSERT INTO txt VALUES ('select_management_first','German', 'Bitte zuerst ein Management ausw&auml;hlen.');
+INSERT INTO txt VALUES ('select_management_first','English','Please select a management first.');
 INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
 INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
 INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
@@ -4668,6 +4692,14 @@ INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&
 INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
 INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgew&auml;hlten Dienste m&uuml;ssen dasselbe Protokoll und denselben Portbereich haben');
 INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
+INSERT INTO txt VALUES ('E5124', 'German',  'Bitte ein g&uuml;ltiges Objekt angeben: IP-Adresse, Netz oder Adressbereich bzw. Protokoll und bei TCP/UDP einen Port oder Portbereich.');
+INSERT INTO txt VALUES ('E5124', 'English', 'Please enter a valid object: ip address, network or address range resp. protocol and for TCP/UDP a port or port range.');
+INSERT INTO txt VALUES ('E5125', 'German',  'Die eingegebenen Werte entsprechen dem bestehenden Objekt, es wurde nichts ge&auml;ndert.');
+INSERT INTO txt VALUES ('E5125', 'English', 'The values entered equal the existing object, nothing has been changed.');
+INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
+INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
+INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -8733,6 +8765,18 @@ INSERT INTO txt VALUES ('H8215', 'English', 'New Interface: This task type is pr
 ');
 INSERT INTO txt VALUES ('H8216', 'German',  'Gruppe anlegen: Um Netzwerkgruppen zu beantragen, m&auml;ssen der Gruppenname und eine Liste der zugeh&auml;rigen IP-Adressen bzw. IP-Adress-Bereichen angegeben werden.');
 INSERT INTO txt VALUES ('H8216', 'English', 'Create group: To order network groups, the group name and a list of associated IP addresses resp. IP ranges have to be inserted.');
+INSERT INTO txt VALUES ('H8217', 'German',  'Objekt anlegen: Beantragt genau ein einzelnes Netzwerkobjekt (Host, Netz oder Adressbereich) oder einen Service, der ohne Gruppe f&uuml;r sich steht.
+    Pflicht sind die IP-Adresse, das Netz mit Maske bzw. Start- und End-Adresse, beim Service das Protokoll und bei TCP/UDP der Port oder Portbereich. Der Name ist optional.
+    Wie bei Gruppen kann als Management auch "Alle" gew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H8217', 'English', 'Create object: Orders exactly one single network object (host, network or address range) or service standing alone without a group.
+    Mandatory are the ip address, the network with mask resp. start and end address, for a service the protocol and for TCP/UDP the port or port range. The name is optional.
+    As for groups, "All" may be selected as management.');
+INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein bestehendes, importiertes Netzwerkobjekt oder einen Service. Nach Auswahl des Managements wird das Objekt &uuml;ber die Suche (ab 3 Zeichen, Name oder IP-Adresse) ausgew&auml;hlt;
+    die Felder werden mit den bisherigen Werten vorbelegt. Der Auftrag speichert den bisherigen und den neuen Stand und zeigt beide an. Ein Auftrag ohne ge&auml;nderte Werte wird abgewiesen.
+    Beide Objekt-Auftragstypen werden noch nicht an externe Ticketsysteme &uuml;bergeben. Enth&auml;lt ein Ticket mit externer Anbindung neben Regel-Auftr&auml;gen auch Objekt-Auftr&auml;ge, werden die Auftr&auml;ge nach dem ersten Objekt-Auftrag nicht mehr &uuml;bergeben. Objekt-Auftr&auml;ge sollten daher in eigenen Tickets beantragt werden.');
+INSERT INTO txt VALUES ('H8218', 'English', 'Modify object: Changes an existing, imported network object or service. After choosing the management the object is selected through the search (from 3 characters, name or ip address);
+    the fields are prefilled with the current values. The task stores the previous and the new state and shows both. A task without changed values is rejected.
+    Both object task types are not yet passed to external ticket systems. If a ticket with external integration contains object tasks besides rule tasks, the tasks after the first object task are no longer passed on. Object tasks should therefore be requested in tickets of their own.');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

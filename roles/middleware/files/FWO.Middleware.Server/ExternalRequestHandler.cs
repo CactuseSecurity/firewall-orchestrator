@@ -468,7 +468,7 @@ namespace FWO.Middleware.Server
             // TODO: to be refined
             if (oldRequest != null && UserConfig.ExternalRequestWaitCycles > 0 &&
                 // last request handled group
-                (oldRequest.ExtRequestType == "(NetworkObjectModify, CREATE)" || oldRequest.ExtRequestType == "(NetworkObjectModify, UPDATE)") &&
+                IsNetworkObjectGroupChange(oldRequest.ExtRequestType) &&
                     // now access request
                     (taskType == WfTaskType.access.ToString() ||
                     // or last request created new objects in group
@@ -477,6 +477,13 @@ namespace FWO.Middleware.Server
                 return UserConfig.ExternalRequestWaitCycles;
             }
             return 0;
+        }
+        private static bool IsNetworkObjectGroupChange(string externalRequestType)
+        {
+            return externalRequestType.Equals("(NetworkObjectModify, CREATE)", StringComparison.OrdinalIgnoreCase)
+            || externalRequestType.Equals("(NetworkObjectModify, UPDATE)", StringComparison.OrdinalIgnoreCase)
+            || externalRequestType.Equals(WfTaskType.group_create.ToString(), StringComparison.OrdinalIgnoreCase)
+            || externalRequestType.Equals(WfTaskType.group_modify.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool IsSameRuleOnDiffGw(WfReqTask? task1, WfReqTask? task2)

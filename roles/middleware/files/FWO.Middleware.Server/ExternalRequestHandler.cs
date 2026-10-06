@@ -458,11 +458,14 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// qad heuristic for Tufin SC (public only for unit testing)
+        /// qad heuristic: wait after a network object group change in the external system before sending
+        /// the next request (public only for unit testing).
+        /// Waits before an access request, or before any request if the old request created new objects in the group.
+        /// The new object detection only recognizes the Tufin SC request format.
         /// </summary>
-        /// <param name="taskType"></param>
-        /// <param name="oldRequest"></param>
-        /// <returns></returns>
+        /// <param name="taskType">task type of the next request task</param>
+        /// <param name="oldRequest">previously sent external request, if any</param>
+        /// <returns>number of wait cycles, 0 if no waiting is needed</returns>
         public int GetWaitCycles(string taskType, ExternalRequest? oldRequest)
         {
             // TODO: to be refined
@@ -478,6 +481,14 @@ namespace FWO.Middleware.Server
             }
             return 0;
         }
+
+        /// <summary>
+        /// Checks if an external request type is a network object group creation or modification,
+        /// either in Tufin SC format (e.g. "(NetworkObjectModify, CREATE)") or as workflow task type
+        /// (e.g. "group_create", used by CheckPoint). Comparison is case-insensitive.
+        /// </summary>
+        /// <param name="externalRequestType">type of the external request</param>
+        /// <returns>true if the request type is a group creation or modification</returns>
         private static bool IsNetworkObjectGroupChange(string externalRequestType)
         {
             return externalRequestType.Equals("(NetworkObjectModify, CREATE)", StringComparison.OrdinalIgnoreCase)

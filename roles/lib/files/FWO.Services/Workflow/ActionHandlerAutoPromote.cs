@@ -99,6 +99,8 @@ namespace FWO.Services.Workflow
                 .Concat(ticket.Tasks.Where(task =>
                     task.TaskType == WfTaskType.group_create.ToString()
                     || task.TaskType == WfTaskType.group_modify.ToString()
+                    || task.TaskType == WfTaskType.object_create.ToString()
+                    || task.TaskType == WfTaskType.object_modify.ToString()
                     || (string.Equals(task.RequestAction, nameof(RequestAction.delete), StringComparison.OrdinalIgnoreCase)
                         && task.GetRuleElements().Count > 0)))
                 .Distinct()

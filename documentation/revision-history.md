@@ -1,13 +1,12 @@
 # Firewall Orchestrator Revision History
 
-## 9.7.1 - 07.10.2026
+## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
   results across imports and allow disabling new lookups in Settings - Logging.
 - store aggregation period and import time on each log row. The table heading uses only the
   displayed rows; mixed or unknown periods are shown per row. Existing rows retain unknown
   timing until reimported. Counts and timing are updated together, including additive imports.
 
-## 9.7.0 - 07.10.2026
 - enrich imported log data with the external application IDs and network areas containing each
   source and destination address, plus reverse-DNS names. The connection log table displays the
   six new values and leaves unavailable metadata empty. The values are calculated once per import

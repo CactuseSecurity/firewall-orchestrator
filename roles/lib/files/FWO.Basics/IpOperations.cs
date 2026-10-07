@@ -202,9 +202,12 @@ namespace FWO.Basics
                 return TryParseIpAddress(input, out address);
             }
 
+            string prefixText = input[(slashIndex + 1)..];
             if (slashIndex != input.LastIndexOf('/')
+                || prefixText.Length == 0
+                || prefixText.Any(character => !char.IsAsciiDigit(character))
                 || !TryParseIpAddress(input[..slashIndex], out IPAddress? parsedAddress)
-                || !int.TryParse(input[(slashIndex + 1)..], out int parsedPrefixLength)
+                || !int.TryParse(prefixText, NumberStyles.None, CultureInfo.InvariantCulture, out int parsedPrefixLength)
                 || !TryGetNetworkRange(parsedAddress, parsedPrefixLength, out _))
             {
                 return false;

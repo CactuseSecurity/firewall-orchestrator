@@ -54,7 +54,7 @@ public class ApiExampleCatalogTest
 
         Assert.That(catalog.TryGetExample(typeof(GetAddressObjectIdRequest), out object? addressLookupExample), Is.True);
         GetAddressObjectIdRequest addressLookup = (GetAddressObjectIdRequest)addressLookupExample!;
-        Assert.That(addressLookup.IpNetwork, Is.EqualTo("192.0.2.10"));
+        Assert.That(addressLookup.IpHost, Is.EqualTo("192.0.2.10"));
     }
 
     /// <summary>

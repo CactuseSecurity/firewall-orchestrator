@@ -243,8 +243,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -388,8 +387,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             Rules =
@@ -428,8 +426,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -490,8 +487,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -547,8 +543,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -608,8 +603,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             AddressGroups =
@@ -696,8 +690,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -767,8 +760,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -911,8 +903,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1052,8 +1043,7 @@ internal class WorkflowTicketServiceTest
                     {
                         Id = -1,
                         Name = "app-server-1",
-                        IpStart = "192.0.2.10",
-                        IpEnd = "192.0.2.10"
+                        IpHost = "192.0.2.10"
                     }
                 ],
                 ServiceObjects =
@@ -1137,8 +1127,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1197,8 +1186,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1284,8 +1272,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1368,8 +1355,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1462,8 +1448,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1577,8 +1562,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1649,8 +1633,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1789,8 +1772,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1890,8 +1872,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -1955,8 +1936,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2017,8 +1997,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = 0,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2077,8 +2056,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2135,8 +2113,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2208,8 +2185,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2333,8 +2309,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2402,8 +2377,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2474,8 +2448,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2546,8 +2519,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2618,8 +2590,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2689,8 +2660,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2806,8 +2776,7 @@ internal class WorkflowTicketServiceTest
                 {
                     Id = -1,
                     Name = "app-server-1",
-                    IpStart = "192.0.2.10",
-                    IpEnd = "192.0.2.10"
+                    IpHost = "192.0.2.10"
                 }
             ],
             ServiceObjects =
@@ -2884,8 +2853,7 @@ internal class WorkflowTicketServiceTest
         {
             Id = -1,
             Name = "app-server-1",
-            IpStart = "192.0.2.10",
-            IpEnd = "192.0.2.10"
+            IpHost = "192.0.2.10"
         };
     }
 

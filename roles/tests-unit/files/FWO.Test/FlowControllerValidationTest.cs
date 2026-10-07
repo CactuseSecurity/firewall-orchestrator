@@ -239,19 +239,15 @@ internal class FlowControllerValidationTest
     }
 
     [Test]
-    public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingIpBounds()
+    public async Task FlowControllerValidation_GetAddressObjectId_RejectsMissingAddressRepresentation()
     {
         using FlowCatalogService service = new(new ValidationApiConnection(), new GlobalConfig());
         FlowCatalogController controller = new(service);
 
-        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
-        {
-            IpStart = string.Empty,
-            IpEnd = "10.0.0.2"
-        });
+        ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest());
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("'ipStart'"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("exactly one"));
     }
 
     [Test]
@@ -262,12 +258,11 @@ internal class FlowControllerValidationTest
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
-            IpStart = "banana",
-            IpEnd = "10.0.0.2"
+            IpRange = ["banana", "10.0.0.2"]
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipStart'"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
     }
 
     [Test]
@@ -278,13 +273,11 @@ internal class FlowControllerValidationTest
 
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
-            IpStart = "10.0.0.1/24",
-            IpEnd = "10.0.0.2/32"
+            IpRange = ["10.0.0.1/24", "10.0.0.2"]
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("Only '/32' is allowed"));
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("use 'ipNetwork'"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("invalid 'ipRange[0]'"));
     }
 
     [Test]
@@ -296,11 +289,11 @@ internal class FlowControllerValidationTest
         ActionResult<AddressObjectIdResponse> result = await controller.GetAddressObjectId(new GetAddressObjectIdRequest
         {
             IpNetwork = "10.0.0.0/24",
-            IpStart = "10.0.0.1"
+            IpHost = "10.0.0.1"
         });
 
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
-        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("not both"));
+        Assert.That(((BadRequestObjectResult)result.Result!).Value?.ToString(), Does.Contain("exactly one"));
     }
 
     [TestCase("10.0.0.1/24")]
@@ -319,25 +312,23 @@ internal class FlowControllerValidationTest
         Assert.That(result.Result, Is.TypeOf<BadRequestObjectResult>());
     }
 
-    [TestCase("192.000.002.010", "192.0.2.10", "192.0.2.10")]
-    [TestCase("192.000.002.000/24", "192.0.2.0", "192.0.2.255")]
-    [TestCase("2001:db8::/126", "2001:db8::", "2001:db8::3")]
-    [TestCase("2001:db8::192.000.002.010", "2001:db8::c000:20a", "2001:db8::c000:20a")]
-    [TestCase("", "192.000.002.010/32", "192.000.002.020/32")]
+    [TestCase("host", "192.000.002.010", "", "192.0.2.10", "192.0.2.10")]
+    [TestCase("network", "192.000.002.000/24", "", "192.0.2.0", "192.0.2.255")]
+    [TestCase("network", "2001:db8::/126", "", "2001:db8::", "2001:db8::3")]
+    [TestCase("host", "2001:db8::192.000.002.010", "", "2001:db8::c000:20a", "2001:db8::c000:20a")]
+    [TestCase("range", "192.000.002.010", "192.000.002.020", "192.0.2.10", "192.0.2.20")]
     public async Task GetAddressObjectId_QueriesNormalizedBoundsAndReturnsIdentifier(
-        string ipNetwork, string ipStart, string ipEnd)
+        string representation, string firstValue, string secondValue, string expectedStart, string expectedEnd)
     {
         AddressObjectLookupApiConnection api = new();
         using FlowCatalogService service = new(api, new GlobalConfig());
         FlowCatalogController controller = new(service);
-        GetAddressObjectIdRequest request = new()
+        GetAddressObjectIdRequest request = representation switch
         {
-            IpNetwork = ipNetwork,
-            IpStart = string.IsNullOrEmpty(ipNetwork) ? ipStart : "",
-            IpEnd = string.IsNullOrEmpty(ipNetwork) ? ipEnd : ""
+            "host" => new() { IpHost = firstValue },
+            "network" => new() { IpNetwork = firstValue },
+            _ => new() { IpRange = [firstValue, secondValue] }
         };
-        string expectedStart = string.IsNullOrEmpty(ipNetwork) ? "192.0.2.10" : ipStart;
-        string expectedEnd = string.IsNullOrEmpty(ipNetwork) ? "192.0.2.20" : ipEnd;
 
         for (int pass = 0; pass < 2; pass++)
         {
@@ -351,7 +342,8 @@ internal class FlowControllerValidationTest
                 Assert.That(where.GetProperty("ip_end").GetProperty("_eq").GetString(), Is.EqualTo(expectedEnd));
                 Assert.That(response.Id, Is.EqualTo(42));
                 Assert.That(response.Name, Is.EqualTo("address-object"));
-                Assert.That(request.IpNetwork, Is.Empty);
+                Assert.That(request.NormalizedIpStart, Is.EqualTo(expectedStart));
+                Assert.That(request.NormalizedIpEnd, Is.EqualTo(expectedEnd));
             });
         }
     }
@@ -619,14 +611,14 @@ internal class FlowControllerValidationTest
                 "GetAddressObjectId",
                 [
                     new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-                    new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-                    new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup."),
-                    new RequestKeyDefinition("ipNetwork", "Bare IP address or canonical CIDR network to use instead of ipStart and ipEnd.")
+                    new RequestKeyDefinition("ipHost", "One maskless IPv4 or IPv6 address."),
+                    new RequestKeyDefinition("ipNetwork", "One canonical IPv4 or IPv6 CIDR network."),
+                    new RequestKeyDefinition("ipRange", "Two maskless addresses defining an inclusive range.")
                 ]),
             RequestFilterValidationSchema.ForVisibleInRequest("GetAddressObjectId"),
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2"}""",
-            """{"filter":{"visibleInRequest":false},"ipStart":"10.0.0.1","ipEnd":"10.0.0.2","typo":1}""",
-            "ipStart"));
+            """{"filter":{"visibleInRequest":false},"ipRange":["10.0.0.1","10.0.0.2"]}""",
+            """{"filter":{"visibleInRequest":false},"ipRange":["10.0.0.1","10.0.0.2"],"typo":1}""",
+            "ipRange"));
 
         yield return new TestCaseData(new LookupRequestCase(
             "GetTimeObjectId",

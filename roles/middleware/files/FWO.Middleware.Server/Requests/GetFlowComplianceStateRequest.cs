@@ -41,26 +41,29 @@ public sealed class GetFlowComplianceStateRequest : IRequestWithRootAdditionalDa
     /// <summary>
     /// Represents the IpRangeRequest type.
     /// </summary>
-    public sealed class IpRangeRequest : IRequestWithAdditionalData
+    public sealed class IpRangeRequest : IRequestWithAdditionalData, IAddressInput
     {
         /// <summary>
-        /// Gets the inclusive range start. Supply this together with ipEnd, or supply ipNetwork instead.
+        /// Gets one maskless IPv4 or IPv6 address.
         /// </summary>
-        [JsonPropertyName("ipStart")]
-        public string IpStart { get; set; } = string.Empty;
+        [JsonPropertyName("ipHost")]
+        public string IpHost { get; set; } = string.Empty;
 
         /// <summary>
-        /// Gets the inclusive range end. Supply this together with ipStart, or supply ipNetwork instead.
-        /// </summary>
-        [JsonPropertyName("ipEnd")]
-        public string IpEnd { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Gets a bare IPv4/IPv6 address or canonical CIDR network. This is mutually exclusive with ipStart and ipEnd.
-        /// IPv4 requires four decimal octets, including leading zeros. IPv6 scope identifiers are rejected.
+        /// Gets one canonical IPv4 or IPv6 CIDR network.
         /// </summary>
         [JsonPropertyName("ipNetwork")]
         public string IpNetwork { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Gets an inclusive range containing exactly two maskless addresses.
+        /// </summary>
+        [JsonPropertyName("ipRange")]
+        public List<string>? IpRange { get; set; }
+
+        internal string NormalizedIpStart { get; set; } = string.Empty;
+
+        internal string NormalizedIpEnd { get; set; } = string.Empty;
 
         /// <summary>
         /// Gets the AdditionalData value.

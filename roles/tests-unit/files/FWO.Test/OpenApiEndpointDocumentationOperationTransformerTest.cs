@@ -313,10 +313,10 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
         JsonElement source = document.RootElement.GetProperty("source")[0];
         JsonElement destination = document.RootElement.GetProperty("destination")[0];
         Assert.That(source.GetProperty("ipNetwork").GetString(), Is.EqualTo("192.0.2.0/24"));
-        Assert.That(source.TryGetProperty("ipStart", out _), Is.False);
-        Assert.That(source.TryGetProperty("ipEnd", out _), Is.False);
-        Assert.That(destination.GetProperty("ipStart").GetString(), Is.EqualTo("198.51.100.20"));
-        Assert.That(destination.GetProperty("ipEnd").GetString(), Is.EqualTo("198.51.100.29"));
+        Assert.That(source.TryGetProperty("ipHost", out _), Is.False);
+        Assert.That(source.TryGetProperty("ipRange", out _), Is.False);
+        Assert.That(destination.GetProperty("ipRange")[0].GetString(), Is.EqualTo("198.51.100.20"));
+        Assert.That(destination.GetProperty("ipRange")[1].GetString(), Is.EqualTo("198.51.100.29"));
         Assert.That(destination.TryGetProperty("ipNetwork", out _), Is.False);
     }
 
@@ -326,15 +326,15 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     [Test]
     public async Task TransformAsync_WithAddressInputExamples_UsesOnlySelectedRepresentation()
     {
-        (Type RequestType, string ExpectedNetwork, int ExpectedRangeCount)[] cases =
+        (Type RequestType, int ExpectedHostCount, int ExpectedNetworkCount, int ExpectedRangeCount)[] cases =
         [
-            (typeof(GetFlowComplianceStateRequest), "192.0.2.0/24", 1),
-            (typeof(ResolveZonesForObjectsRequest), "10.0.0.0/24", 1),
-            (typeof(GetAddressObjectIdRequest), "192.0.2.10", 0)
+            (typeof(GetFlowComplianceStateRequest), 0, 1, 1),
+            (typeof(ResolveZonesForObjectsRequest), 0, 1, 1),
+            (typeof(GetAddressObjectIdRequest), 1, 0, 0)
         ];
         OpenApiApiExampleOperationTransformer transformer = CreateTransformerWithExamples();
 
-        foreach ((Type requestType, string expectedNetwork, int expectedRangeCount) in cases)
+        foreach ((Type requestType, int expectedHostCount, int expectedNetworkCount, int expectedRangeCount) in cases)
         {
             OpenApiOperation operation = CreateOperation();
             operation.RequestBody = new OpenApiRequestBody
@@ -353,28 +353,33 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
             string exampleJson = operation.RequestBody.Content!["application/json"].Example!.ToJsonString();
             using JsonDocument document = JsonDocument.Parse(exampleJson);
             JsonElement[] entries = GetAddressEntries(document.RootElement).ToArray();
+            int hostCount = 0;
             int networkCount = 0;
             int rangeCount = 0;
             foreach (JsonElement entry in entries)
             {
+                bool hasHost = entry.TryGetProperty("ipHost", out JsonElement host);
                 bool hasNetwork = entry.TryGetProperty("ipNetwork", out JsonElement network);
-                bool hasStart = entry.TryGetProperty("ipStart", out JsonElement start);
-                bool hasEnd = entry.TryGetProperty("ipEnd", out JsonElement end);
-                Assert.That(hasStart, Is.EqualTo(hasEnd), entry.ToString());
-                Assert.That(hasNetwork ^ (hasStart && hasEnd), Is.True, entry.ToString());
+                bool hasRange = entry.TryGetProperty("ipRange", out JsonElement range);
+                Assert.That((hasHost ? 1 : 0) + (hasNetwork ? 1 : 0) + (hasRange ? 1 : 0), Is.EqualTo(1), entry.ToString());
+                if (hasHost)
+                {
+                    hostCount++;
+                    Assert.That(host.GetString(), Is.Not.Null.And.Not.Empty);
+                }
                 if (hasNetwork)
                 {
                     networkCount++;
-                    Assert.That(network.GetString(), Is.EqualTo(expectedNetwork));
+                    Assert.That(network.GetString(), Does.Contain('/'));
                 }
-                else
+                if (hasRange)
                 {
                     rangeCount++;
-                    Assert.That(start.GetString(), Is.Not.Null.And.Not.Empty);
-                    Assert.That(end.GetString(), Is.Not.Null.And.Not.Empty);
+                    Assert.That(range.GetArrayLength(), Is.EqualTo(2));
                 }
             }
-            Assert.That(networkCount, Is.EqualTo(1));
+            Assert.That(hostCount, Is.EqualTo(expectedHostCount));
+            Assert.That(networkCount, Is.EqualTo(expectedNetworkCount));
             Assert.That(rangeCount, Is.EqualTo(expectedRangeCount));
         }
     }
@@ -383,9 +388,9 @@ public class OpenApiEndpointDocumentationOperationTransformerTest
     {
         if (node.ValueKind == JsonValueKind.Object)
         {
-            if (node.TryGetProperty("ipNetwork", out _)
-                || node.TryGetProperty("ipStart", out _)
-                || node.TryGetProperty("ipEnd", out _))
+            if (node.TryGetProperty("ipHost", out _)
+                || node.TryGetProperty("ipNetwork", out _)
+                || node.TryGetProperty("ipRange", out _))
             {
                 yield return node;
             }

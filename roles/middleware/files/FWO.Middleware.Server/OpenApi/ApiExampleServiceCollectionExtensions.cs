@@ -100,8 +100,7 @@ public sealed class CreateTicketRequestExample : ApiExampleProvider<CreateTicket
                 Id = -1,
                 Predicate = CreateTicketPredicates.kCreate,
                 Name = "app-server-1",
-                IpStart = "192.0.2.10",
-                IpEnd = "192.0.2.10"
+                IpHost = "192.0.2.10"
             }
         ],
         AddressGroups =
@@ -203,7 +202,7 @@ public sealed class GetAddressObjectIdRequestExample : ApiExampleProvider<GetAdd
         {
             VisibleInRequest = true
         },
-        IpNetwork = "192.0.2.10"
+        IpHost = "192.0.2.10"
     };
 }
 
@@ -226,8 +225,7 @@ public sealed class GetFlowComplianceStateRequestExample : ApiExampleProvider<Ge
         [
             new GetFlowComplianceStateRequest.IpRangeRequest
             {
-                IpStart = "198.51.100.20",
-                IpEnd = "198.51.100.29"
+                IpRange = ["198.51.100.20", "198.51.100.29"]
             }
         ],
         Service =
@@ -273,8 +271,7 @@ public sealed class ResolveZonesForObjectsRequestExample : ApiExampleProvider<Re
                             {
                                 Name = "leaf",
                                 Type = "ip_range",
-                                IpStart = "10.0.1.1",
-                                IpEnd = "10.0.1.10"
+                                IpRange = ["10.0.1.1", "10.0.1.10"]
                             }
                         ]
                     }

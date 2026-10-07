@@ -44,9 +44,8 @@ public class ComplianceZoneController(ComplianceZoneService complianceZoneServic
 
     /// <summary>
     /// Returns the zones occupied by object trees.
-    /// Each leaf accepts either a bare IPv4/IPv6 address or canonical CIDR network through ipNetwork,
-    /// or an inclusive IPv4/IPv6 range through ipStart and ipEnd. The two forms are mutually exclusive.
-    /// Range bounds may include host masks (/32 and /128), which are ignored; broader masks belong in ipNetwork.
+    /// Each leaf accepts exactly one address representation: ipHost, canonical ipNetwork, or a
+    /// two-entry ipRange. Hosts and range endpoints must be maskless.
     /// IPv4 requires four decimal octets, including leading zeros. Standard IPv6 is accepted; scope identifiers are rejected.
     /// CIDR values must carry the network address itself; values with host bits set are rejected.
     /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form

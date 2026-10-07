@@ -55,9 +55,9 @@ public class FlowCatalogController : ControllerBase
         nameof(GetAddressObjectId),
         [
             new RequestKeyDefinition("filter", "Optional filter container for request-visible settings."),
-            new RequestKeyDefinition("ipStart", "Start IP address for the address object lookup."),
-            new RequestKeyDefinition("ipEnd", "End IP address for the address object lookup."),
-            new RequestKeyDefinition("ipNetwork", "Bare IP address or canonical CIDR network to use instead of ipStart and ipEnd.")
+            new RequestKeyDefinition("ipHost", "One maskless IPv4 or IPv6 address."),
+            new RequestKeyDefinition("ipNetwork", "One canonical IPv4 or IPv6 CIDR network."),
+            new RequestKeyDefinition("ipRange", "Two maskless addresses defining an inclusive range.")
         ]);
     private static readonly RequestFilterValidationSchema ServiceObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetServiceObjectId));
     private static readonly RequestFilterValidationSchema TimeObjectIdFilterSchema = RequestFilterValidationSchema.ForVisibleInRequest(nameof(GetTimeObjectId));
@@ -280,9 +280,8 @@ public class FlowCatalogController : ControllerBase
     /// <summary>
     /// Resolves an address object identifier from the supplied lookup request against the shared flow catalog.
     /// This lookup is not scoped to a modeller or owner.
-    /// Supply either a bare IPv4/IPv6 address or canonical CIDR network through ipNetwork,
-    /// or an inclusive IPv4/IPv6 range through ipStart and ipEnd. The two forms are mutually exclusive.
-    /// Range bounds may include host masks (/32 and /128), which are ignored; broader masks belong in ipNetwork.
+    /// Supply exactly one address representation: ipHost, ipNetwork, or ipRange.
+    /// Hosts and range endpoints must be maskless; networks must use canonical CIDR notation.
     /// IPv4 requires four decimal octets, including leading zeros. Standard IPv6 is accepted; scope identifiers are rejected.
     /// CIDR values must carry the network address itself; values with host bits set are rejected.
     /// IPv6 values that only re-encode an IPv4 address are rejected as well, i.e. the IPv4-mapped form
@@ -297,21 +296,18 @@ public class FlowCatalogController : ControllerBase
             return errorResult!;
         }
 
-        if (!FlowComplianceRequestValidator.TryValidateAndNormalizeIpInput(
-            request.IpNetwork,
-            request.IpStart,
-            request.IpEnd,
+        if (!AddressInputNormalizer.TryValidateAndNormalize(
+            request,
             "'address' entry at index 0",
-            out var normalizedBounds,
+            out NormalizedAddressBounds normalizedBounds,
             out string? addressErrorMessage))
         {
             return BadRequest(addressErrorMessage);
         }
 
-        request.IpStart = normalizedBounds.IpStart;
-        request.IpEnd = normalizedBounds.IpEnd;
-        request.IpNetwork = string.Empty;
-        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.IpStart, request.IpEnd, request.Filter?.VisibleInRequest));
+        request.NormalizedIpStart = normalizedBounds.IpStart;
+        request.NormalizedIpEnd = normalizedBounds.IpEnd;
+        return Ok(await flowCatalogService.GetAddressObjectIdAsync(request.NormalizedIpStart, request.NormalizedIpEnd, request.Filter?.VisibleInRequest));
     }
 
     private static bool TryValidateVisibleInRequestRequest<TRequest>(

@@ -2,6 +2,7 @@
   slurp:
     src: "{{ middleware_ldif_dir }}/{{ outer_item }}.ldif"
   register: big_encoded_ldif_file
+  become: true
 
 - name: decode big ldif file
   set_fact:

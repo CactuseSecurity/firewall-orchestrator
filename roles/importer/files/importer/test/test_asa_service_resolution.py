@@ -29,6 +29,9 @@ if TYPE_CHECKING:
     from models.fwconfig_normalized import FwConfigNormalized
     from models.serviceobject import ServiceObject
 
+    # only used in annotations: a runtime alias with "int | None" would need Python 3.10
+    ServiceTuple = tuple[int | None, int | None, int | None]
+
 FIXTURE_CONFIG = Path(__file__).resolve().parents[1] / "fw_modules" / "ciscoasa9" / "test_asa.conf"
 TCP = 6
 UDP = 17
@@ -39,8 +42,6 @@ DNS_PORT = 53
 WWW_PORT = 80
 EXTRA_GROUPS = "object-group service WEB_TCP tcp\n port-object eq www\n!\n"
 ANY = EndpointKind(kind="any", value="any")
-
-ServiceTuple = tuple[int | None, int | None, int | None]
 
 
 def normalize_with(acl_lines: str) -> FwConfigNormalized:

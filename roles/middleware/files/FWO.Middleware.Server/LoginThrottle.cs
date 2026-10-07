@@ -185,6 +185,11 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Consumes one attempt of the client address; trusted clients (UI and middleware hosts) are not limited.
+        /// </summary>
+        /// <param name="client">Client address as seen after forwarded-header processing.</param>
+        /// <returns>True if the client may make another attempt.</returns>
         private bool TryConsumeClientAttempt(IPAddress? client)
         {
             if (client != null && trustedClients.Contains(Normalize(client)))
@@ -243,6 +248,11 @@ namespace FWO.Middleware.Server
         private readonly string? userKey;
         private int ended;
 
+        /// <summary>
+        /// Creates an admitted attempt.
+        /// </summary>
+        /// <param name="throttle">The throttle that admitted the attempt.</param>
+        /// <param name="userKey">Key of the user name and client; null for anonymous attempts, which are not counted.</param>
         internal LoginAttempt(LoginThrottle throttle, string? userKey)
         {
             this.throttle = throttle;

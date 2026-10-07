@@ -341,3 +341,21 @@ def test_time_range_is_imported_as_time_object_and_passes_the_consistency_check(
 
 def test_config_without_time_range_has_no_time_objects() -> None:
     assert normalize_fixture_with("").time_objects == {}
+
+
+def test_consecutive_service_group_members_are_all_kept() -> None:
+    config = parse_asa_config(
+        "object service S1\n service tcp destination eq 81\n"
+        "object service S2\n service tcp destination eq 82\n"
+        "object service S3\n service tcp destination eq 83\n"
+        "object-group service G1 tcp\n port-object eq 91\n"
+        "object-group service G2 tcp\n port-object eq 92\n"
+        "object-group service G3 tcp\n port-object eq 93\n"
+        "object-group service ALL_GROUPS\n group-object G1\n group-object G2\n group-object G3\n"
+        "object-group service ALL_OBJECTS\n service-object object S1\n service-object object S2\n"
+        " service-object object S3\n"
+    )
+
+    nested_refs: dict[str, list[str]] = {group.name: group.nested_refs for group in config.service_object_groups}
+    assert nested_refs["ALL_GROUPS"] == ["G1", "G2", "G3"]
+    assert nested_refs["ALL_OBJECTS"] == ["S1", "S2", "S3"]

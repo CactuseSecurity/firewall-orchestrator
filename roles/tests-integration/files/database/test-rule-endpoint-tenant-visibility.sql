@@ -218,6 +218,16 @@ SELECT pg_temp.expect('rule change adding a plain host in a tenant network is re
         jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_src_in_tenant'))),
         pg_temp.probe('tenant')::integer),
     true);
+SELECT pg_temp.expect('rule change to a negated any source is not relevant (neither rule is visible)',
+    has_relevant_change(jsonb_populate_record(NULL::changelog_rule,
+        jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_src_negated_any'))),
+        pg_temp.probe('tenant')::integer),
+    false);
+SELECT pg_temp.expect('rule change to a negated source outside the tenant networks is relevant (the rule becomes visible)',
+    has_relevant_change(jsonb_populate_record(NULL::changelog_rule,
+        jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_src_negated_host'))),
+        pg_temp.probe('tenant')::integer),
+    true);
 SELECT pg_temp.expect('rule change outside the tenant networks is not relevant',
     has_relevant_change(jsonb_populate_record(NULL::changelog_rule,
         jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_on_gw2_only'))),
@@ -271,7 +281,8 @@ BEGIN
         SELECT pg_temp.probe('mgm_target'), import_type_id, now() FROM stm_import WHERE import_type_name = 'rule'
         RETURNING control_id INTO i_import2_id;
 
-    -- the importer keeps the rule_id of an unchanged rule whose install-on changed and marks the old entry removed
+    -- a rule whose gateways come from the rulebase links (no install-on) keeps its rule_id when it is moved to
+    -- another gateway: the importer marks the old entry removed and adds the new one
     INSERT INTO rule (mgm_id, rulebase_id, rule_create, action_id, track_id, rule_name, rule_src, rule_dst, rule_svc,
             rule_action, rule_track)
         SELECT r.mgm_id, r.rulebase_id, r.rule_create, r.action_id, r.track_id, 'moved_to_gw2', r.rule_src, r.rule_dst,

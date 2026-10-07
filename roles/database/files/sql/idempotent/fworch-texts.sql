@@ -6596,12 +6596,12 @@ INSERT INTO txt VALUES ('H5214', 'English', 'Tenant Level: If tenants are part o
 ');
 INSERT INTO txt VALUES ('H5215', 'German',  'Typ*: Implementierungstyp des Ldap, welcher die Syntax des Zugangs festlegt. Zur Zeit werden "OpenLdap" und "ActiveDirectory" unterst&uuml;tzt.
     "Default" ist eine &Uuml;bermenge von verschiedenen Syntax-Varianten, die m&ouml;glicherweise weiterhilft, wenn die anderen nicht anwendbar sind.<br>
-    Der Typ legt auch den Anmeldenamen fest: Nutzer melden sich mit ihrem Kontonamen an, d.h. mit sAMAccountName bei "ActiveDirectory", mit uid bei "OpenLdap" und mit einem der beiden bei "Default".
+    Der Typ legt auch den Anmeldenamen fest: Nutzer melden sich mit ihrem Kontonamen an, d.h. mit sAMAccountName bei "ActiveDirectory", mit uid bei "OpenLdap" und bei "Default" mit sAMAccountName, wenn der Eintrag einen hat, sonst mit uid.
     Andere Namen desselben Kontos wie cn, userPrincipalName (UPN), die Email-Adresse oder ein weiterer Wert einer mehrwertigen uid werden nicht akzeptiert.
 ');
 INSERT INTO txt VALUES ('H5215', 'English', 'Type*: Implementation type of the Ldap, which defines the syntax of the access. Currently "OpenLdap" and "ActiveDirectory" are supported.
     "Default" is a supergroup of several syntax variants, which may be appropriate, if the others are not applicable.<br>
-    The type also defines the login name: users log in with their account name, i.e. with sAMAccountName for "ActiveDirectory", with uid for "OpenLdap" and with either of them for "Default".
+    The type also defines the login name: users log in with their account name, i.e. with sAMAccountName for "ActiveDirectory", with uid for "OpenLdap" and for "Default" with sAMAccountName if the entry has one, otherwise with uid.
     Other names of the same account like cn, userPrincipalName (UPN), the email address or a further value of a multi-valued uid are not accepted.
 ');
 INSERT INTO txt VALUES ('H5216', 'German',  'Suchmusterl&auml;nge: Minimale L&auml;nge f&uuml;r Suchmuster im Ldap.

@@ -13,8 +13,9 @@
     can behave differently after an upgrade:
     - autodiscovery and Check Point change requests follow importCheckCertificates: with checking switched on,
       they are now checked as well, against the trust store of the middleware and UI hosts
-    - the importer names the OS CA bundle explicitly, so REQUESTS_CA_BUNDLE no longer applies to the firewall
-      API calls; add a private CA to the trust store of the importer host instead
+    - the importer names the OS CA bundle explicitly for the Check Point, FortiManager and FortiOS API calls, so
+      REQUESTS_CA_BUNDLE no longer applies to them (OPNsense imports and config downloads still use it if set);
+      add a private CA to the trust store of the importer host instead
   - unchecked connections are reported once per endpoint in the log
   - the Tufin RLM app data customizing script reads checkCertificates from its config file
   - remove obsolete certificate options: the log-only ssl_verification/suppress_cert_warnings arguments of
@@ -34,7 +35,9 @@
   - demo data can still be requested explicitly with -e add_demo_data=yes, which logs a security warning
   - upgrades leave existing demo data in place, including the users user1_demo and user2_demo with their
     publicly known passwords. Remove it with the "Remove Sample Data" buttons in the settings (users, groups,
-    tenants, managements, credentials, owners); the daily check raises an alert as long as sample data exists
+    tenants, managements, credentials, owners). The users page and the daily check only know users that logged
+    in at least once: click "Synchronize to LDAP" on the users page first, so that the demo users of the internal
+    LDAP are listed and removed as well; the daily check raises an alert as long as known sample data exists
   - testkeys is defined for all hosts in inventory/group_vars/all.yml (it was only set for the middleware), so
     all hosts of a distributed installation agree on creating the demo data
   - the GitHub test installations request demo data explicitly, as the JWT integration test logs in with a user
@@ -68,7 +71,8 @@
     report, which means no violations
 - security: LDAP login
   - a login looks up exactly one directory entry with an exact, escaped filter on the login attribute
-    (sAMAccountName for Active Directory, uid for OpenLDAP, either one for the default type) and checks the
+    (sAMAccountName for Active Directory, uid for OpenLDAP; for the default type the sAMAccountName of an entry
+    that has one, otherwise its uid) and checks the
     password only for that entry. Breaking change: users who logged in with their cn, userPrincipalName or mail
     address, or with another than the first value of a multi-valued uid, have to use their account name now.
     Logins with the userPrincipalName or the mail address are not supported on purpose: these names are not
@@ -79,8 +83,9 @@
     32 waiting logins and 4 parallel user searches and password checks are allowed, and all directory work of a
     login has to finish within 10 seconds. Refused logins are answered with 429 (A0006) or 503 (A0007) and
     Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md)
-  - when a login runs out of time or is cancelled, its LDAP connections are closed, which ends the directory
-    operations still waiting for an answer
+  - when a login runs out of time or is cancelled, its LDAP connections are closed, and every directory operation
+    of a login waits at most 10 seconds for an answer, so a directory that does not answer cannot keep the LDAP
+    operations occupied
   - login attempts of a user that are still running count as possible failures, so concurrent guesses cannot
     exceed the failure limit; the group and role lookups of logins share the 4 parallel LDAP operations
 - security (GHSA-v8hx-cx2q-j75v): the tenant visibility of rule sources and destinations (rule_from /
@@ -119,6 +124,8 @@
   - newly supported: any6, IPv6 hosts and prefixes, name aliases in subnet addresses, lt / gt ports, icmp types,
     log options, "line N" and time-range (imported as rule time with a time object named like the time-range;
     its absolute and periodic times are not imported)
+  - service object groups keep all members: every second of several consecutive group-object or "service-object
+    object" lines was dropped so far
   - the services of the imported rules keep the restrictions of the entry: a protocol group with a port gets that
     port for each of its protocols (so far any port), a port group of a tcp or udp entry only contributes its
     services of that protocol (as a group named "<group> (tcp)" if it has others), icmp6 types and sctp ports

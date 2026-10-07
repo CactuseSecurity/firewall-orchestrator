@@ -61,7 +61,9 @@ namespace FWO.Middleware.Server
                 connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
                 await connection.ConnectAsync(Address, Port, cancellationToken);
 
-                return new NovellLdapConnectionAdapter(connection, cancellationToken);
+                // a connection with a deadline belongs to a login: its operations must not outlast the login deadline
+                TimeSpan? operationTimeLimit = cancellationToken.CanBeCanceled ? LdapAuthenticationGate.kTotalTimeout : null;
+                return new NovellLdapConnectionAdapter(connection, cancellationToken, operationTimeLimit);
             }
 
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

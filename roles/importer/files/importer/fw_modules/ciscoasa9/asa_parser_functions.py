@@ -362,7 +362,8 @@ def _consume_service_references(service_group_block: list[str]) -> list[str]:
     """Helper to consume service-object and group-object lines from a service object group block."""
     nested_refs: list[str] = []
 
-    for b in service_group_block:
+    # iterate over a copy: consumed lines are removed from the block, which would skip the following line
+    for b in list(service_group_block):
         s = b.strip()
         mobj = re.match(r"^service-object\s+object\s+(\S+)$", s, re.IGNORECASE)
         mgrp = re.match(r"^group-object\s+(\S+)$", s, re.IGNORECASE)

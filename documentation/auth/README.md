@@ -26,7 +26,8 @@ See <rbac.md>
 ## Login name
 
 Users log in with their account name: `sAMAccountName` for an Active Directory connection, `uid` for an OpenLDAP
-connection, and either of them for a connection of the default type. The middleware looks up exactly one entry with
+connection, and for a connection of the default type the `sAMAccountName` of an entry that has one, otherwise its
+`uid`. The middleware looks up exactly one entry with
 an exact match on this attribute and checks the password only for that entry. Other names of the same account, such
 as the `cn`, the `userPrincipalName`, the mail address or a further value of a multi-valued `uid`, are not accepted
 (since 9.6.3). Login names containing LDAP filter characters (`*`, `\`, `(`, `)` or NUL) are rejected without any
@@ -54,9 +55,10 @@ unauthenticated requests from turning into a flood of directory operations, the 
 | Time for all directory work of one login | 10 s | `503` with `A0007` |
 
 Anonymous token requests (no user name or password) cause no LDAP work and are never limited. When a login runs out
-of time or its HTTP request is cancelled, the middleware closes the login's LDAP connections. This ends the directory
-operations still waiting for an answer (the LDAP library does not stop them otherwise), so a directory that does not
-answer cannot keep the LDAP slots occupied. A directory that needs more than 10 s for a login cannot be used for logins.
+of time or its HTTP request is cancelled, the middleware closes the login's LDAP connections, and every directory
+operation of a login waits at most 10 s for an answer (the LDAP library does not stop a waiting operation otherwise).
+So a directory that does not answer cannot keep the LDAP slots occupied for longer than that. A directory that needs
+more than 10 s for a login cannot be used for logins.
 Token refreshes are not rate limited, as they require a valid refresh token, but share the deadline; a refresh that
 runs out of time answers `503` without consuming the token.
 

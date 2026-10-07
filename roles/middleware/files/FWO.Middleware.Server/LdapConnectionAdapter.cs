@@ -67,18 +67,44 @@ namespace FWO.Middleware.Server
         /// </summary>
         /// <remarks>
         /// Novell waits for the answer to a bind, read or search without observing the cancellation token. So the
-        /// connection is closed when the token is cancelled, which ends the waiting operations: otherwise an abandoned
+        /// connection is closed when the token is cancelled, which ends most waiting operations: otherwise an abandoned
         /// login would hold its LDAP slot until the directory answers (see LdapAuthenticationGate).
+        /// The connection is closed on a thread pool thread, not in the cancellation callback: closing it while a bind is
+        /// still being sent can block until the directory answers, which would block whoever cancels (the deadline timer
+        /// or the request). Some operations still wait after the close, so the time limit ends them as a backstop.
         /// </remarks>
         /// <param name="connection">The connected Novell connection.</param>
         /// <param name="cancellationToken">Closes the connection when cancelled; default for connections without a deadline.</param>
-        internal NovellLdapConnectionAdapter(LdapConnection connection, CancellationToken cancellationToken = default)
+        /// <param name="operationTimeLimit">Longest time a single operation waits for an answer; null for no limit.</param>
+        internal NovellLdapConnectionAdapter(LdapConnection connection, CancellationToken cancellationToken = default, TimeSpan? operationTimeLimit = null)
         {
             this.connection = connection;
+            if (operationTimeLimit is TimeSpan timeLimit)
+            {
+                ApplyOperationTimeLimit(connection, timeLimit);
+            }
             if (cancellationToken.CanBeCanceled)
             {
-                cancellationRegistration = cancellationToken.Register(Dispose);
+                cancellationRegistration = cancellationToken.Register(
+                    static adapter => ThreadPool.UnsafeQueueUserWorkItem(static state => state.Dispose(), (NovellLdapConnectionAdapter)adapter!, preferLocal: false),
+                    this);
             }
+        }
+
+        /// <summary>
+        /// Limits the time every bind, read and search of the connection waits for an answer of the directory.
+        /// </summary>
+        /// <param name="connection">The Novell connection.</param>
+        /// <param name="timeLimit">Longest time to wait for an answer.</param>
+        internal static void ApplyOperationTimeLimit(LdapConnection connection, TimeSpan timeLimit)
+        {
+            int milliseconds = (int)Math.Ceiling(timeLimit.TotalMilliseconds);
+            LdapConstraints constraints = connection.Constraints;
+            constraints.TimeLimit = milliseconds;
+            connection.Constraints = constraints;
+            LdapSearchConstraints searchConstraints = connection.SearchConstraints;
+            searchConstraints.TimeLimit = milliseconds;
+            connection.Constraints = searchConstraints;
         }
 
         public bool Bound => connection.Bound;

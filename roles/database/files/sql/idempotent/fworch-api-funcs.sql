@@ -138,10 +138,14 @@ RETURNS boolean AS $$
             RETURN true;
         END IF;
 
+        -- the objects are compared with their effective negation (the object or the rule side negated), as in
+        -- rule_from_relevant_for_tenant: a rule side that got negated changes the meaning of all its objects
         PERFORM 1 FROM ( -- set of difference between rule_from of old and new rule
-            SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id
+            SELECT rf.obj_id, rf.negated != r.rule_src_neg AS negated FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id) WHERE rf.rule_id = cl_rule.old_rule_id
+            EXCEPT SELECT rf.obj_id, rf.negated != r.rule_src_neg FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id) WHERE rf.rule_id = cl_rule.new_rule_id
             UNION
-            (SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_from WHERE rule_id = cl_rule.old_rule_id)
+            (SELECT rf.obj_id, rf.negated != r.rule_src_neg FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id) WHERE rf.rule_id = cl_rule.new_rule_id
+            EXCEPT SELECT rf.obj_id, rf.negated != r.rule_src_neg FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id) WHERE rf.rule_id = cl_rule.old_rule_id)
         ) AS diff
         WHERE nw_obj_in_tenant_network(diff.obj_id, diff.negated, tenant)
         LIMIT 1;
@@ -150,9 +154,11 @@ RETURNS boolean AS $$
         END IF;
 
         PERFORM 1 FROM ( -- set of difference between rule_to of old and new rule
-            SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id EXCEPT SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id
+            SELECT rt.obj_id, rt.negated != r.rule_dst_neg AS negated FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id) WHERE rt.rule_id = cl_rule.old_rule_id
+            EXCEPT SELECT rt.obj_id, rt.negated != r.rule_dst_neg FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id) WHERE rt.rule_id = cl_rule.new_rule_id
             UNION
-            (SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.new_rule_id EXCEPT SELECT obj_id, negated FROM rule_to WHERE rule_id = cl_rule.old_rule_id)
+            (SELECT rt.obj_id, rt.negated != r.rule_dst_neg FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id) WHERE rt.rule_id = cl_rule.new_rule_id
+            EXCEPT SELECT rt.obj_id, rt.negated != r.rule_dst_neg FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id) WHERE rt.rule_id = cl_rule.old_rule_id)
         ) AS diff
         WHERE nw_obj_in_tenant_network(diff.obj_id, diff.negated, tenant)
         LIMIT 1;
@@ -473,9 +479,13 @@ RETURNS SETOF rule AS $$
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
         ELSE -- same visibility as rule_relevant_for_tenant, section headers only for fully visible rules
             RETURN QUERY
+                -- the rules linked to the gateway are collected once (uncorrelated), not per rule of the whole table
                 SELECT r.* FROM rule r
-                WHERE r.rulebase_id IN (SELECT rl.to_rulebase_id FROM rulebase_link rl WHERE rl.gw_id = device_row.dev_id
-                        AND link_valid_for_rule_version(rl.created, rl.removed, r.rule_create, r.removed))
+                WHERE r.rule_id IN (
+                        SELECT linked.rule_id FROM rule linked
+                            JOIN rulebase_link rl ON (rl.to_rulebase_id = linked.rulebase_id)
+                        WHERE rl.gw_id = device_row.dev_id
+                            AND link_valid_for_rule_version(rl.created, rl.removed, linked.rule_create, linked.removed))
                     AND (rule_fully_visible_to_tenant(r, tenant)
                         OR (r.rule_head_text IS NULL AND (rule_froms_in_tenant_network(r.rule_id, r.rule_src_neg, tenant)
                             OR rule_tos_in_tenant_network(r.rule_id, r.rule_dst_neg, tenant))))

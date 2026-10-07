@@ -6,9 +6,15 @@
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change
     requests, which accepted any certificate so far; the importer uses the OS CA bundle instead of certifi
   - email servers (new emailCheckCertificates) and external ticket systems (new
-    extTicketSystemsCheckCertificates), which accepted any certificate so far
-  - fresh installations check all connection types by default; upgrades keep the previous behaviour
-    (unchanged importCheckCertificates, the new switches off where such a connection is configured)
+    extTicketSystemsCheckCertificates), which accepted any certificate so far; certificate revocation is not
+    checked online (no CRL / OCSP requests), as for all other connections
+  - fresh installations check all connection types by default. Upgrades keep the value of importCheckCertificates
+    and switch the new email and ticket system checks off where such a connection is configured. Two connections
+    can behave differently after an upgrade:
+    - autodiscovery and Check Point change requests follow importCheckCertificates: with checking switched on,
+      they are now checked as well, against the trust store of the middleware and UI hosts
+    - the importer names the OS CA bundle explicitly, so REQUESTS_CA_BUNDLE no longer applies to the firewall
+      API calls; add a private CA to the trust store of the importer host instead
   - unchecked connections are reported once per endpoint in the log
   - the Tufin RLM app data customizing script reads checkCertificates from its config file
   - remove obsolete certificate options: the log-only ssl_verification/suppress_cert_warnings arguments of
@@ -18,20 +24,29 @@
 - security (GHSA-cg7h-hr7j-pr7w): bound the importer's direct import of config files from a URL or local file
   - redirects are no longer followed; a redirect is rejected with its target in the import error
   - downloads are streamed with a size limit of 256 MiB (decompressed, also checked against Content-Length),
-    5 minutes per read and 30 minutes in total; local files above the size limit are refused
+    5 minutes per read and 30 minutes in total, checked while the data arrives
+  - local files must be regular files (no devices or pipes) and are read up to the size limit only
   - autodiscovery skips domains and ADOMs whose name is in URI form, so a remote manager cannot make the
     importer read from a URL or local file
 - security (GHSA-3v53-q5h9-pvfh): no demo data by default
   - add_demo_data now defaults to the value of testkeys: a standard installation creates no sample users,
     owners or devices with publicly known passwords; installations with testkeys=yes get them automatically
   - demo data can still be requested explicitly with -e add_demo_data=yes, which logs a security warning
-  - the GitHub test installations request demo data explicitly, as the integration tests rely on it
+  - upgrades leave existing demo data in place, including the users user1_demo and user2_demo with their
+    publicly known passwords. Remove it with the "Remove Sample Data" buttons in the settings (users, groups,
+    tenants, managements, credentials, owners); the daily check raises an alert as long as sample data exists
+  - testkeys is defined for all hosts in inventory/group_vars/all.yml (it was only set for the middleware), so
+    all hosts of a distributed installation agree on creating the demo data
+  - the GitHub test installations request demo data explicitly, as the JWT integration test logs in with a user
+    of the sample LDAP data
   - remove the unused fixed importer_password from the middleware inventory
 - security (GHSA-3cwm-h5cm-r3f8, rated low, accepted risk): harden the SonarCloud workflows, which keep building
   pull requests of trusted fork owners with the Sonar token in the pull_request_target context
   - remove all caching from both SonarCloud workflows, so that a cache entry written by pull request code
     cannot run in later runs
   - pin all actions of both SonarCloud workflows to commit SHAs
+  - pull_request_target runs use the workflow file of the default branch (main), so the hardening takes effect
+    for pull requests once it has reached main
   - document the accepted residual risk and its conditions (project-scoped token with Browse and Execute
     Analysis only, no other secrets, no caches) in documentation/developer-docs/github/sonarcloud-workflow.md
   - a policy test enforces the conditions that can be checked from the repository
@@ -43,6 +58,27 @@
   - a new unique index allows at most one active external request (one without finish date) per ticket, so
     concurrent calls cannot start the request chain twice; requests closed manually by an admin now get a
     finish date as well, and upgrades set the missing finish dates of already closed requests
+- security (GHSA-fhcc-7hg5-jj89): the compliance report api (POST /api/Compliance/Report) is limited to the
+  caller's scope
+  - only admin and auditor may call it, as in the UI; reporter, reporter-viewall and recertifier now get 403
+  - the report runs with the caller's own permissions and covers the requested managementIds; a management
+    that is not visible to the caller or not relevant for the compliance check is answered with 400
+  - the report shows the stored results of the last compliance check instead of running a new check
+  - failures are answered with an error status (401, 429 or 503 with Retry-After, 500) instead of an empty
+    report, which means no violations
+- security: LDAP login
+  - a login looks up exactly one directory entry with an exact, escaped filter on the login attribute
+    (sAMAccountName for Active Directory, uid for OpenLDAP, either one for the default type) and checks the
+    password only for that entry. Breaking change: users who logged in with their cn, userPrincipalName or mail
+    address, or with another than the first value of a multi-valued uid, have to use their account name now
+  - login names containing LDAP filter characters (*, \\, (, ) or NUL) are rejected without directory access
+  - logins are limited per client address (30 attempts per minute) and per user name and client (10 failures per
+    minute); the UI and middleware hosts are exempt from the per-client limit. At most 16 directories per login,
+    32 waiting logins and 4 parallel user searches and password checks are allowed, and all directory work of a
+    login has to finish within 10 seconds. Refused logins are answered with 429 (A0006) or 503 (A0007) and
+    Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md)
+  - when a login runs out of time or is cancelled, its LDAP connections are closed, which ends the directory
+    operations still waiting for an answer
 - security (GHSA-v8hx-cx2q-j75v): the tenant visibility of rule sources and destinations (rule_from /
   rule_to) no longer depends on unrelated devices
   - the full rulebase check used the device of an arbitrary rule instead of the device of the checked rule,
@@ -53,12 +89,17 @@
   - the full visibility of a rule no longer uses the obsolete rule.dev_id, which the importer does not write
     (so far, unshared device and management mappings of a tenant had no effect on rules). A rule is fully
     visible if the tenant has an unshared mapping to its management or to one of the gateways it is enforced
-    on (rule_enforced_on_gateway); for a rule without such gateways, e.g. a nat rule, to a gateway linking
-    its rulebase. This applies to rules, rule sources and destinations and to the tenant simulation, which
-    now lists the rules of the rulebases linked to a gateway
+    on (rule_enforced_on_gateway); for a rule that applies to all gateways, or a nat rule, to a gateway linking
+    its rulebase. An access rule installed on targets that are no gateways of the management (e.g. a gateway
+    group) is not fully visible. Only gateway links valid for the rule version count: a rule or rulebase moved
+    to another gateway is no longer fully visible through the old one, while historic rule versions stay
+    visible through the gateways they were enforced on. This applies to rules, rule sources and destinations
+    and to the tenant simulation, which now lists the rules of the rulebases linked to a gateway
+  - a new index on rule_enforced_on_gateway (rule_id) keeps these checks fast
   - a database integration test checks the visibility in a rolled back transaction, including unrelated
-    visible devices and managements, negated sources and destinations, rules enforced on one or several
-    gateways, rules without enforcing gateways, full management visibility and the admin tenant
+    visible devices and managements (with rule.dev_id set as in older data), negated sources and destinations,
+    rules enforced on one or several gateways, rules for all gateways, nat rules, rules installed on unknown
+    targets, moved rules and rulebases, historic rule versions, full management visibility and the admin tenant
 - security (GHSA-p8qh-59qx-rjj4): the Cisco ASA importer no longer imports access-list entries it does not fully
   understand with a broader meaning
   - so far an address it did not understand (e.g. "interface inside", a source port, any6) became "any", unknown
@@ -66,14 +107,17 @@
     and entries that failed to parse were skipped with a warning (dropping e.g. a deny entry)
   - every token of an extended access-list entry must now be understood; otherwise the import fails with the
     config line number, token position and the unsupported construct, and the last imported config stays
-    unchanged
+    unchanged. This includes port numbers and names (0 to 65535, known names, ranges in ascending order)
   - newly supported: any6, IPv6 hosts and prefixes, name aliases in subnet addresses, lt / gt ports, icmp types,
-    log options, "line N" and time-range (imported as rule time)
+    log options, "line N" and time-range (imported as rule time with a time object named like the time-range;
+    its absolute and periodic times are not imported)
   - still not supported (import fails): interface, user and security-group addresses, source ports, neq and
     icmp codes
-  - rule uids of entries that were already parsed correctly do not change
+  - rule uids of entries that were already parsed correctly do not change. Entries whose meaning changed (icmp
+    with a type, lt / gt ports, any6 and IPv6 addresses, subnets given by a name alias, entries with a
+    time-range) get new uids, so they show up as removed and added on the first import after the upgrade
 
-## 9.6.2 - 05.10.2026
+## 9.6.2 - 02.10.2026
 
 - add workflow task types object_create and object_modify for a single network object (host, network,
   address range) or service that stands alone without a group. Only the request side is covered: the

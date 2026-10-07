@@ -1,4 +1,6 @@
 using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using FWO.Middleware.Server;
 using Novell.Directory.Ldap;
@@ -105,6 +107,95 @@ namespace FWO.Test
             NovellLdapConnectionAdapter adapter = new(new LdapConnection());
 
             Assert.That(async () => await adapter.RenameAsync(kUserDn, "uid=user2", true), Throws.Exception);
+        }
+
+        private static readonly TimeSpan kCancelAfter = TimeSpan.FromMilliseconds(200);
+        private static readonly TimeSpan kWaitLimit = TimeSpan.FromSeconds(10);
+        private const int kConnectionTimeoutMs = 3000;
+        private const int kReadBufferSize = 1024;
+
+        /// <summary>
+        /// Reads what the client sent until the client closes the connection.
+        /// </summary>
+        private static async Task<bool> IsClosedByClientAsync(TcpClient server)
+        {
+            using CancellationTokenSource timeout = new(kWaitLimit);
+            byte[] buffer = new byte[kReadBufferSize];
+            NetworkStream stream = server.GetStream();
+            try
+            {
+                while (await stream.ReadAsync(buffer, timeout.Token) > 0)
+                {
+                    // discard the bind request
+                }
+                return true;
+            }
+            catch (IOException)
+            {
+                return true; // connection reset by the client
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+        }
+
+        [Test]
+        public async Task Cancellation_ClosesTheConnectionAndEndsAWaitingBind()
+        {
+            // a directory that accepts the connection but never answers: Novell's bind waits without observing the token
+            TcpListener listener = new(IPAddress.Loopback, 0);
+            listener.Start();
+            try
+            {
+                int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+                Task<TcpClient> accepted = listener.AcceptTcpClientAsync();
+                LdapConnection connection = new() { ConnectionTimeout = kConnectionTimeoutMs };
+                await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
+                using TcpClient server = await accepted;
+                using CancellationTokenSource cancellation = new();
+                using NovellLdapConnectionAdapter adapter = new(connection, cancellation.Token);
+
+                // the deadline is armed first, as Novell may block the calling thread until the answer arrives
+                cancellation.CancelAfter(kCancelAfter);
+                Task bind = Task.Run(() => adapter.BindAsync("uid=user,dc=example,dc=com", "secret", cancellation.Token));
+                Task finished = await Task.WhenAny(bind, Task.Delay(kWaitLimit));
+
+                Assert.That(finished, Is.SameAs(bind), "the bind kept waiting after the cancellation");
+                Assert.That(bind.IsFaulted || bind.IsCanceled, Is.True);
+                Assert.That(await IsClosedByClientAsync(server), Is.True);
+            }
+            finally
+            {
+                listener.Stop();
+            }
+        }
+
+        [Test]
+        public async Task Dispose_ClosesTheConnectionOnlyOnceAndIgnoresALaterCancellation()
+        {
+            TcpListener listener = new(IPAddress.Loopback, 0);
+            listener.Start();
+            try
+            {
+                int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+                Task<TcpClient> accepted = listener.AcceptTcpClientAsync();
+                LdapConnection connection = new() { ConnectionTimeout = kConnectionTimeoutMs };
+                await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
+                using TcpClient server = await accepted;
+                using CancellationTokenSource cancellation = new();
+                NovellLdapConnectionAdapter adapter = new(connection, cancellation.Token);
+
+                adapter.Dispose();
+                adapter.Dispose();
+
+                Assert.DoesNotThrow(cancellation.Cancel);
+                Assert.That(await IsClosedByClientAsync(server), Is.True);
+            }
+            finally
+            {
+                listener.Stop();
+            }
         }
     }
 }

@@ -29,7 +29,7 @@ SYSTEM_CA_BUNDLE_CANDIDATES: list[str] = [
 ]
 
 
-def set_global_values(verify_certs_in: bool | str | None, suppress_cert_warnings_in: bool | None):
+def set_global_values(verify_certs_in: bool | str | None, suppress_cert_warnings_in: bool | None) -> None:
     global verify_certs, suppress_cert_warnings  # noqa: PLW0603
     verify_certs = verify_certs_in
     suppress_cert_warnings = suppress_cert_warnings_in

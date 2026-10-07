@@ -10,10 +10,12 @@ using FWO.Middleware.Server.Requests;
 using FWO.Middleware.Server.Responses;
 using FWO.Middleware.Server.Services;
 using NUnit.Framework;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using NetTools;
 using System.Net;
+using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Threading;
 
@@ -163,7 +165,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Get_ReturnsEmptyStringWhenReportGenerationFails()
+        public async Task Get_ReturnsServerErrorInsteadOfAnEmptyReportWhenReportGenerationFails()
         {
             ComplianceController controller = CreateComplianceController();
 
@@ -172,7 +174,54 @@ namespace FWO.Test
                 ManagementIds = kSingleManagement
             });
 
-            Assert.That(result.Value, Is.Empty);
+            Assert.That(result.Value, Is.Null);
+            Assert.That(result.Result, Is.InstanceOf<ObjectResult>());
+            Assert.That(((ObjectResult)result.Result!).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+        }
+
+        [TestCase(StatusCodes.Status429TooManyRequests, LoginCapacityException.kTooManyAttempts)]
+        [TestCase(StatusCodes.Status503ServiceUnavailable, LoginCapacityException.kUnavailable)]
+        public void ReportErrorResult_DirectoriesAtCapacity_AnswersTheCapacityStatusWithRetryAfter(int statusCode, string message)
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+
+            ObjectResult result = controller.ReportErrorResult(new LoginCapacityException(message, statusCode));
+
+            Assert.That(result.StatusCode, Is.EqualTo(statusCode));
+            Assert.That(result.Value, Is.EqualTo(message));
+            Assert.That(httpContext.Response.Headers.RetryAfter.ToString(), Is.EqualTo(LoginThrottle.kRetryAfterSeconds.ToString()));
+        }
+
+        [Test]
+        public void ReportErrorResult_CallerNotFoundInDirectories_AnswersUnauthorized()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            ObjectResult result = controller.ReportErrorResult(new AuthenticationException("A0002 Invalid credentials"));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+        }
+
+        [Test]
+        public void ReportErrorResult_RequestAbortedByCaller_AnswersClientClosedRequest()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext);
+            using CancellationTokenSource aborted = new();
+            aborted.Cancel();
+            httpContext.RequestAborted = aborted.Token;
+
+            ObjectResult result = controller.ReportErrorResult(new OperationCanceledException(aborted.Token));
+
+            Assert.That(result.StatusCode, Is.EqualTo(StatusCodes.Status499ClientClosedRequest));
+        }
+
+        [Test]
+        public void ReportErrorResult_CancellationWithoutAbortedRequestAndOtherErrors_AnswerServerError()
+        {
+            ComplianceController controller = CreateComplianceControllerWithHttpContext(out _);
+
+            Assert.That(controller.ReportErrorResult(new OperationCanceledException()).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
+            Assert.That(controller.ReportErrorResult(new InvalidOperationException("boom")).StatusCode, Is.EqualTo(StatusCodes.Status500InternalServerError));
         }
 
         [Test]
@@ -466,6 +515,14 @@ namespace FWO.Test
         private static ComplianceController CreateComplianceController()
         {
             return new ComplianceController(new DummyApiConnection(), new JwtWriter(new RsaSecurityKey(RSA.Create(2048))), kNoLdaps);
+        }
+
+        private static ComplianceController CreateComplianceControllerWithHttpContext(out DefaultHttpContext httpContext)
+        {
+            ComplianceController controller = CreateComplianceController();
+            httpContext = new DefaultHttpContext();
+            controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+            return controller;
         }
 
         private sealed class DummyApiConnection : ApiConnection

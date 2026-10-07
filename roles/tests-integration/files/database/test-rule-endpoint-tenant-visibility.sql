@@ -1,7 +1,10 @@
 -- Regression probe for GHSA-v8hx-cx2q-j75v: the tenant visibility of a rule_from / rule_to row must depend only on
 -- the row itself, its rule and the gateways of that rule - never on other devices, rules or rule endpoints.
--- The gateways of a rule are those in rule_enforced_on_gateway, or for a rule without explicit gateways those
--- linking its rulebase (rule.dev_id is obsolete and stays NULL, as with the importer).
+-- The gateways of a rule are those in rule_enforced_on_gateway valid for the rule version, or for a rule with an
+-- all-gateways entry or a nat rule without entries those linking its rulebase. An access rule without entries is
+-- installed on targets unknown to the management and is never fully visible.
+-- rule.dev_id is obsolete: it is set like in v8 data, so that the original flaw (taking the device of an arbitrary
+-- rule) would show, but the functions must not use it.
 -- Each case is checked for rule_from, rule_to and rule, and for the tenant simulation functions.
 --
 -- Runs in a single transaction that is always rolled back, so it leaves no data behind. Any failed expectation
@@ -145,29 +148,33 @@ BEGIN
                 VALUES (i_obj_id, i_obj_id, i_import_id);
             INSERT INTO probe_id VALUES (r_mgm.mgm_key || '_' || r_obj.obj_key, i_obj_id);
         END LOOP;
+        INSERT INTO probe_id VALUES ('rulebase_' || r_mgm.mgm_key, i_rulebase_id), ('import_' || r_mgm.mgm_key, i_import_id);
 
-        -- enforced_on: the gateways in rule_enforced_on_gateway ("none": no entry, as for nat rules)
+        -- enforced_on: the gateways in rule_enforced_on_gateway ("all": an all-gateways entry, "none": no entry)
         FOR r_rule IN SELECT * FROM (VALUES
-                ('hidden', 'outside_src', false, 'outside_dst', false, 'dev'),
-                ('src_in_tenant', 'tenant_host', false, 'outside_dst', false, 'dev'),
-                ('dst_in_tenant', 'outside_src', false, 'tenant_host', false, 'dev'),
-                ('src_negated_host', 'outside_src', true, 'outside_dst', false, 'dev'),
-                ('src_negated_any', 'any', true, 'outside_dst', false, 'dev'),
-                ('dst_negated_host', 'outside_src', false, 'outside_dst', true, 'dev'),
-                ('dst_negated_any', 'outside_src', false, 'any', true, 'dev'),
-                ('on_gw2_only', 'outside_src', false, 'outside_dst', false, 'gw2'),
-                ('on_both', 'outside_src', false, 'outside_dst', false, 'both'),
-                ('not_enforced', 'outside_src', false, 'outside_dst', false, 'none')
-            ) AS r(rule_key, src_key, src_neg, dst_key, dst_neg, enforced_on)
+                ('hidden', 'outside_src', false, 'outside_dst', false, 'dev', true),
+                ('src_in_tenant', 'tenant_host', false, 'outside_dst', false, 'dev', true),
+                ('dst_in_tenant', 'outside_src', false, 'tenant_host', false, 'dev', true),
+                ('src_negated_host', 'outside_src', true, 'outside_dst', false, 'dev', true),
+                ('src_negated_any', 'any', true, 'outside_dst', false, 'dev', true),
+                ('dst_negated_host', 'outside_src', false, 'outside_dst', true, 'dev', true),
+                ('dst_negated_any', 'outside_src', false, 'any', true, 'dev', true),
+                ('on_gw2_only', 'outside_src', false, 'outside_dst', false, 'gw2', true),
+                ('on_both', 'outside_src', false, 'outside_dst', false, 'both', true),
+                ('on_all', 'outside_src', false, 'outside_dst', false, 'all', true),
+                ('install_on_unknown', 'outside_src', false, 'outside_dst', false, 'none', true),
+                ('nat_not_enforced', 'outside_src', false, 'outside_dst', false, 'none', false)
+            ) AS r(rule_key, src_key, src_neg, dst_key, dst_neg, enforced_on, is_access_rule)
         LOOP
-            INSERT INTO rule (mgm_id, rulebase_id, rule_create, action_id, track_id, rule_name,
-                    rule_src, rule_dst, rule_svc, rule_action, rule_track, rule_src_neg, rule_dst_neg)
-                VALUES (i_mgm_id, i_rulebase_id, i_import_id, i_action_id, i_track_id, r_rule.rule_key,
-                    r_rule.src_key, r_rule.dst_key, 'any', 'accept', 'none', r_rule.src_neg, r_rule.dst_neg)
+            INSERT INTO rule (mgm_id, dev_id, rulebase_id, rule_create, action_id, track_id, rule_name,
+                    rule_src, rule_dst, rule_svc, rule_action, rule_track, rule_src_neg, rule_dst_neg, access_rule, nat_rule)
+                VALUES (i_mgm_id, i_dev_id, i_rulebase_id, i_import_id, i_action_id, i_track_id, r_rule.rule_key,
+                    r_rule.src_key, r_rule.dst_key, 'any', 'accept', 'none', r_rule.src_neg, r_rule.dst_neg,
+                    r_rule.is_access_rule, NOT r_rule.is_access_rule)
                 RETURNING rule_id INTO i_rule_id;
             INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
-                SELECT i_rule_id, gw.dev_id, i_import_id FROM (VALUES ('dev', i_dev_id), ('gw2', i_gw2_id)) AS gw(gw_key, dev_id)
-                WHERE r_rule.enforced_on IN (gw.gw_key, 'both');
+                SELECT i_rule_id, gw.dev_id, i_import_id FROM (VALUES ('dev', i_dev_id), ('gw2', i_gw2_id), ('all', NULL)) AS gw(gw_key, dev_id)
+                WHERE r_rule.enforced_on IN (gw.gw_key, 'both') AND (gw.gw_key != 'all' OR r_rule.enforced_on = 'all');
             INSERT INTO rule_from (rule_id, obj_id, rf_create)
                 VALUES (i_rule_id, pg_temp.probe(r_mgm.mgm_key || '_' || r_rule.src_key), i_import_id);
             INSERT INTO rule_to (rule_id, obj_id, rt_create)
@@ -208,15 +215,87 @@ DELETE FROM tenant_to_management WHERE management_id = pg_temp.probe('mgm_other'
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
 SELECT pg_temp.expect_rule('rule enforced on another gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), false);
 SELECT pg_temp.expect_rule('rule enforced on two gateways, one fully visible', 'target_on_both', pg_temp.probe('tenant'), true);
-SELECT pg_temp.expect_rule('rule without enforcing gateways, rulebase linked to a visible gateway', 'target_not_enforced', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('rule for all gateways, rulebase linked to a visible gateway', 'target_on_all', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('nat rule without enforcing gateways, rulebase linked to a visible gateway', 'target_nat_not_enforced', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('access rule installed on targets unknown to the management', 'target_install_on_unknown', pg_temp.probe('tenant'), false);
 DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_target');
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('gw2_target'), false);
 SELECT pg_temp.expect_rule('rule enforced on the fully visible gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), true);
 SELECT pg_temp.expect_rule('rule enforced on the other gateway only', 'target_hidden', pg_temp.probe('tenant'), false);
 DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('gw2_target');
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_other'), false);
-SELECT pg_temp.expect_rule('rule without enforcing gateways, unrelated gateway visible', 'target_not_enforced', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('nat rule without enforcing gateways, unrelated gateway visible', 'target_nat_not_enforced', pg_temp.probe('tenant'), false);
 DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
+
+-- only links valid for the rule version count: a current rule moved to another gateway, a historic rule version that
+-- was enforced on the gateway, and a rulebase moved to another gateway (with a nat rule, which follows the rulebase)
+DO $$
+DECLARE
+    i_import2_id bigint;
+    i_rule_id bigint;
+    i_rulebase_id integer;
+BEGIN
+    -- a finished import, as only one running import per management is allowed
+    INSERT INTO import_control (mgm_id, import_type_id, stop_time)
+        SELECT pg_temp.probe('mgm_target'), import_type_id, now() FROM stm_import WHERE import_type_name = 'rule'
+        RETURNING control_id INTO i_import2_id;
+
+    -- the importer keeps the rule_id of an unchanged rule whose install-on changed and marks the old entry removed
+    INSERT INTO rule (mgm_id, rulebase_id, rule_create, action_id, track_id, rule_name, rule_src, rule_dst, rule_svc,
+            rule_action, rule_track)
+        SELECT r.mgm_id, r.rulebase_id, r.rule_create, r.action_id, r.track_id, 'moved_to_gw2', r.rule_src, r.rule_dst,
+            r.rule_svc, r.rule_action, r.rule_track
+        FROM rule r WHERE r.rule_id = pg_temp.probe('target_hidden')
+        RETURNING rule_id INTO i_rule_id;
+    INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created, removed)
+        VALUES (i_rule_id, pg_temp.probe('dev_target'), pg_temp.probe('import_target'), i_import2_id),
+            (i_rule_id, pg_temp.probe('gw2_target'), i_import2_id, NULL);
+    INSERT INTO rule_from (rule_id, obj_id, rf_create) VALUES (i_rule_id, pg_temp.probe('target_outside_src'), pg_temp.probe('import_target'));
+    INSERT INTO rule_to (rule_id, obj_id, rt_create) VALUES (i_rule_id, pg_temp.probe('target_outside_dst'), pg_temp.probe('import_target'));
+    INSERT INTO probe_id VALUES ('target_moved_to_gw2', i_rule_id);
+
+    -- a rule version removed by the second import, while it was enforced on the first gateway
+    INSERT INTO rule (mgm_id, rulebase_id, rule_create, removed, action_id, track_id, rule_name, rule_src, rule_dst,
+            rule_svc, rule_action, rule_track)
+        SELECT r.mgm_id, r.rulebase_id, r.rule_create, i_import2_id, r.action_id, r.track_id, 'historic_on_dev',
+            r.rule_src, r.rule_dst, r.rule_svc, r.rule_action, r.rule_track
+        FROM rule r WHERE r.rule_id = pg_temp.probe('target_hidden')
+        RETURNING rule_id INTO i_rule_id;
+    INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created, removed)
+        VALUES (i_rule_id, pg_temp.probe('dev_target'), pg_temp.probe('import_target'), i_import2_id);
+    INSERT INTO rule_from (rule_id, obj_id, rf_create) VALUES (i_rule_id, pg_temp.probe('target_outside_src'), pg_temp.probe('import_target'));
+    INSERT INTO rule_to (rule_id, obj_id, rt_create) VALUES (i_rule_id, pg_temp.probe('target_outside_dst'), pg_temp.probe('import_target'));
+    INSERT INTO probe_id VALUES ('target_historic_on_dev', i_rule_id);
+
+    -- a rulebase linked to the first gateway until the second import, and to the second gateway since then
+    INSERT INTO rulebase (name, uid, mgm_id)
+        VALUES ('ghsa_v8hx_probe_moved', 'ghsa_v8hx_probe_target_moved', pg_temp.probe('mgm_target')) RETURNING id INTO i_rulebase_id;
+    INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created, removed)
+        VALUES (pg_temp.probe('dev_target'), i_rulebase_id, true, pg_temp.probe('import_target'), i_import2_id),
+            (pg_temp.probe('gw2_target'), i_rulebase_id, true, i_import2_id, NULL);
+    INSERT INTO rule (mgm_id, rulebase_id, rule_create, action_id, track_id, rule_name, rule_src, rule_dst, rule_svc,
+            rule_action, rule_track, access_rule, nat_rule)
+        SELECT r.mgm_id, i_rulebase_id, i_import2_id, r.action_id, r.track_id, 'nat_in_moved_rulebase', r.rule_src,
+            r.rule_dst, r.rule_svc, r.rule_action, r.rule_track, false, true
+        FROM rule r WHERE r.rule_id = pg_temp.probe('target_hidden')
+        RETURNING rule_id INTO i_rule_id;
+    INSERT INTO rule_from (rule_id, obj_id, rf_create) VALUES (i_rule_id, pg_temp.probe('target_outside_src'), i_import2_id);
+    INSERT INTO rule_to (rule_id, obj_id, rt_create) VALUES (i_rule_id, pg_temp.probe('target_outside_dst'), i_import2_id);
+    INSERT INTO probe_id VALUES ('target_nat_in_moved_rulebase', i_rule_id);
+END $$;
+
+INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
+SELECT pg_temp.expect_rule('current rule moved away from the visible gateway', 'target_moved_to_gw2', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('historic rule version enforced on the visible gateway', 'target_historic_on_dev', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('rule of a rulebase moved away from the visible gateway', 'target_nat_in_moved_rulebase', pg_temp.probe('tenant'), false);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_target');
+INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('gw2_target'), false);
+SELECT pg_temp.expect_rule('current rule moved to the visible gateway', 'target_moved_to_gw2', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('historic rule version not enforced on the visible gateway', 'target_historic_on_dev', pg_temp.probe('tenant'), false);
+-- the simulation lists rules per gateway of the first device only, so the positive case is checked without it
+SELECT pg_temp.expect('rule of a rulebase moved to the visible gateway (rule)', pg_temp.rule_visible('target_nat_in_moved_rulebase', pg_temp.probe('tenant')), true);
+SELECT pg_temp.expect('rule of a rulebase moved to the visible gateway (rule_from)', pg_temp.rule_from_visible('target_nat_in_moved_rulebase', pg_temp.probe('tenant')), true);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('gw2_target');
 
 -- full rulebase visibility of the target device and management
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), true);

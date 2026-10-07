@@ -11,6 +11,7 @@ using FWO.Middleware.Server.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FWO.Report;
+using System.Security.Authentication;
 using System.Security.Claims;
 
 namespace FWO.Middleware.Server.Controllers
@@ -55,9 +56,17 @@ namespace FWO.Middleware.Server.Controllers
         /// for the compliance check if no management ids are given.
         /// </remarks>
         /// <param name="parameters">ComplianceReportParameters</param>
-        /// <returns>Report as csv string, or the validation errors if a requested management is not accessible</returns>
+        /// <returns>Report as csv string (empty if there are no violations); 400 with the validation errors if a requested
+        /// management is not accessible; 401 if the caller can no longer be found in the directories; 429 or 503 with
+        /// Retry-After if the directories are busy or did not answer; 500 if the report could not be generated</returns>
         [HttpPost("Report")]
         [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(RequestValidationErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status503ServiceUnavailable)]
         public async Task<ActionResult<string>> Get([FromBody] ComplianceReportParameters parameters)
         {
             try
@@ -81,9 +90,37 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (Exception exception)
             {
-                Log.WriteError("Get Compliance Report", "Error while getting report.", exception);
+                return ReportErrorResult(exception);
             }
-            return "";
+        }
+
+        /// <summary>
+        /// Answers a failed report request with a status code, so that a failure cannot be mistaken for an empty report
+        /// (an empty csv string means that there are no violations).
+        /// </summary>
+        /// <param name="exception">The exception that ended the report generation.</param>
+        /// <returns>429 or 503 with Retry-After if the directories needed to rebuild the caller are busy or did not
+        /// answer; 401 if the caller can no longer be found in the directories; 499 if the caller cancelled the request;
+        /// 500 otherwise.</returns>
+        internal ObjectResult ReportErrorResult(Exception exception)
+        {
+            switch (exception)
+            {
+                case LoginCapacityException capacityException:
+                    if (HttpContext != null)
+                    {
+                        HttpContext.Response.Headers.RetryAfter = LoginThrottle.kRetryAfterSeconds.ToString();
+                    }
+                    return StatusCode(capacityException.StatusCode, capacityException.Message);
+                case AuthenticationException authenticationException:
+                    Log.WriteWarning("Get Compliance Report", $"Caller could not be rebuilt from the directories: {authenticationException.Message}");
+                    return StatusCode(StatusCodes.Status401Unauthorized, authenticationException.Message);
+                case OperationCanceledException when HttpContext?.RequestAborted.IsCancellationRequested == true:
+                    return StatusCode(StatusCodes.Status499ClientClosedRequest, "The request was cancelled.");
+                default:
+                    Log.WriteError("Get Compliance Report", "Error while getting report.", exception);
+                    return StatusCode(StatusCodes.Status500InternalServerError, "The compliance report could not be generated.");
+            }
         }
 
         /// <summary>

@@ -52,11 +52,15 @@ namespace FWO.Mail
         /// With checking on, MailKit's default validation against the host trust store applies.
         /// With checking off, any certificate is accepted and a warning is logged once per server,
         /// because the authentication password then travels over an unverified channel.
+        /// The online revocation check (CRL/OCSP) MailKit enables by default stays off, like for the REST
+        /// clients: it would fail for internal CAs without revocation endpoints and on hosts without
+        /// access to them.
         /// </remarks>
         /// <param name="smtp">The SMTP client to configure.</param>
         /// <param name="emailConn">The email connection holding the setting.</param>
         public static void ConfigureCertificateValidation(SmtpClient smtp, EmailConnection emailConn)
         {
+            smtp.CheckCertificateRevocation = false;
             if (emailConn.CheckCertificates)
             {
                 smtp.ServerCertificateValidationCallback = null;

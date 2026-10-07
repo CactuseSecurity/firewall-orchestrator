@@ -52,7 +52,7 @@ Recommended: Ubuntu 24.04, Debian 12
 - you may also access the web UI and API remotely by replacing localhost with your systems IP address or resolvable hostname
 
 ## Using the Web Interface
-Per default the system systems comes with sample data pre-installed to allow for quick testing of functionality. The sample data may be removed at any time using the "Remove sample data" buttons in the settings section.
+Sample data (demo users, owners and devices with publicly known passwords) is only installed with `-e testkeys=yes` or `-e add_demo_data=yes`, for testing in isolated environments. Upgrades leave existing sample data in place. The sample data may be removed at any time using the "Remove sample data" buttons in the respective settings section.
 
 ## How to integrate your own firewall systems
 

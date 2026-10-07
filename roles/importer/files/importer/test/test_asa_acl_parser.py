@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 import fwo_base
 import pytest
@@ -13,11 +14,15 @@ from fw_modules.ciscoasa9.asa_models import (
     Names,
 )
 from fw_modules.ciscoasa9.asa_network import get_network_rule_endpoint, normalize_names
+from fw_modules.ciscoasa9.asa_normalize import normalize_config
 from fw_modules.ciscoasa9.asa_parser import parse_asa_config
 from fw_modules.ciscoasa9.asa_rule import create_rule_from_acl_entry, resolve_network_reference_for_rule
 from fwo_exceptions import FwoImporterError
+from model_controllers.check_consistency import FwConfigImportCheckConsistency
+from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 
 if TYPE_CHECKING:
+    from models.fwconfig_normalized import FwConfigNormalized
     from models.networkobject import NetworkObject
     from models.serviceobject import ServiceObject
 
@@ -171,6 +176,11 @@ def test_line_number_and_deny_are_parsed() -> None:
         (f"{ACL_PREFIX} tcp any any lt 0", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any gt 65535", 7, "is empty"),
         (f"{ACL_PREFIX} tcp any any lt nosuchport", 8, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any any eq nosuchport", 8, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any any eq 99999", 8, "port '99999' out of range"),
+        (f"{ACL_PREFIX} tcp any any range 1 99999", 9, "port '99999' out of range"),
+        (f"{ACL_PREFIX} tcp any any range nosuchport 80", 8, "unknown port 'nosuchport'"),
+        (f"{ACL_PREFIX} tcp any any range 100 10", 7, "port range '100 10' ends before it starts"),
         (f"{ACL_PREFIX} icmp any any unreachable 3", 8, "unsupported icmp code"),
         (f"{ACL_PREFIX} icmp any any nosuchtype", 7, "unknown icmp type"),
         (f"{ACL_PREFIX} tcp any any eq 22 garbage", 9, "unexpected token 'garbage'"),
@@ -300,3 +310,32 @@ def test_time_range_is_imported_as_rule_time() -> None:
 
     assert rule.rule_time == "WORKHOURS"
     assert rule.rule_uid != rule_without_time_range.rule_uid
+
+
+def normalize_fixture_with(extra_lines: str) -> "FwConfigNormalized":
+    """Parse and normalize the fixture config with additional lines, as the import does."""
+    config_in = FwConfigManagerListController.generate_empty_config()
+    config_in.native_config = parse_asa_config(
+        FIXTURE_CONFIG.read_text().rstrip("\n") + "\n" + extra_lines
+    ).model_dump()
+    import_state = MagicMock()
+    import_state.mgm_details.uid = "asa"
+    return normalize_config(config_in, import_state).ManagerSet[0].configs[0]
+
+
+def test_time_range_is_imported_as_time_object_and_passes_the_consistency_check() -> None:
+    normalized: FwConfigNormalized = normalize_fixture_with(
+        "access-list TIMED extended permit tcp any any eq 22 time-range WORKHOURS\n"
+        "access-group TIMED in interface inside\n"
+    )
+    checker = FwConfigImportCheckConsistency(MagicMock())
+
+    checker.check_time_object_consistency(normalized, None)
+
+    assert "WORKHOURS" in [rule.rule_time for rulebase in normalized.rulebases for rule in rulebase.rules.values()]
+    assert normalized.time_objects["WORKHOURS"].time_obj_name == "WORKHOURS"
+    assert checker.issues == {}
+
+
+def test_config_without_time_range_has_no_time_objects() -> None:
+    assert normalize_fixture_with("").time_objects == {}

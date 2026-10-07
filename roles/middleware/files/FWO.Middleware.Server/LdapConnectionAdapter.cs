@@ -59,10 +59,26 @@ namespace FWO.Middleware.Server
     internal sealed class NovellLdapConnectionAdapter : ILdapClient
     {
         private readonly LdapConnection connection;
+        private readonly CancellationTokenRegistration cancellationRegistration;
+        private int disposed;
 
-        internal NovellLdapConnectionAdapter(LdapConnection connection)
+        /// <summary>
+        /// Wraps a connected Novell connection.
+        /// </summary>
+        /// <remarks>
+        /// Novell waits for the answer to a bind, read or search without observing the cancellation token. So the
+        /// connection is closed when the token is cancelled, which ends the waiting operations: otherwise an abandoned
+        /// login would hold its LDAP slot until the directory answers (see LdapAuthenticationGate).
+        /// </remarks>
+        /// <param name="connection">The connected Novell connection.</param>
+        /// <param name="cancellationToken">Closes the connection when cancelled; default for connections without a deadline.</param>
+        internal NovellLdapConnectionAdapter(LdapConnection connection, CancellationToken cancellationToken = default)
         {
             this.connection = connection;
+            if (cancellationToken.CanBeCanceled)
+            {
+                cancellationRegistration = cancellationToken.Register(Dispose);
+            }
         }
 
         public bool Bound => connection.Bound;
@@ -128,9 +144,17 @@ namespace FWO.Middleware.Server
             return connection.RenameAsync(distinguishedName, newRdn, deleteOldRdn);
         }
 
+        /// <summary>
+        /// Closes the connection once, also when called by the cancellation of its token.
+        /// </summary>
         public void Dispose()
         {
-            connection.Dispose();
+            if (Interlocked.Exchange(ref disposed, 1) == 0)
+            {
+                // Unregister instead of Dispose: it does not wait for the callback, which may be this very call
+                cancellationRegistration.Unregister();
+                connection.Dispose();
+            }
         }
     }
 }

@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import gzip
 import json
+import os
 import re
+import socket
+import threading
+import time
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
@@ -9,6 +14,7 @@ import fwo_file_import
 import fwo_globals
 import pytest
 import requests
+import urllib3
 from fwo_exceptions import ConfigFileNotFoundError, ConfigFileRejectedError
 from models.import_state import ImportState
 
@@ -17,6 +23,10 @@ if TYPE_CHECKING:
 
 CONFIG_URL = "https://config.example/config.json"
 SMALL_CONFIG = b'{"ManagerSet": []}'
+TRICKLE_INTERVAL = 0.2
+TRICKLE_BYTES = 30
+TRICKLE_TOTAL_TIMEOUT = 0.5
+TRICKLE_MAX_SECONDS = 3.0
 
 
 class FakeResponse:
@@ -45,9 +55,52 @@ class FakeResponse:
         if self.status_code >= 400:
             raise requests.exceptions.HTTPError(f"{self.status_code} Client Error")
 
-    def iter_content(self, chunk_size: int) -> list[bytes]:  # noqa: ARG002
+    @property
+    def raw(self) -> FakeRaw:
         self.content_read = True
-        return self.chunks
+        return FakeRaw(self.chunks)
+
+
+class FakeRaw:
+    """Serves the chunks like urllib3's read1: whatever is available, then b'' at the end."""
+
+    def __init__(self, chunks: list[bytes]) -> None:
+        self.chunks = list(chunks)
+
+    def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
+        return self.chunks.pop(0) if self.chunks else b""
+
+
+class FailingRaw:
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
+        raise self.error
+
+
+def serve_once(response_head: bytes, body_parts: list[bytes], interval: float) -> int:
+    """Answer one http request with the head and the body parts sent one by one; returns the port."""
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+
+    def serve() -> None:
+        connection, _ = server.accept()
+        try:
+            connection.recv(4096)
+            connection.sendall(response_head)
+            for part in body_parts:
+                time.sleep(interval)
+                connection.sendall(part)
+        except OSError:
+            pass  # the client gave up, as expected for a rejected download
+        finally:
+            connection.close()
+            server.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    return server.getsockname()[1]
 
 
 class FakeSession:
@@ -159,6 +212,46 @@ class TestReadBounded:
             fwo_file_import.read_bounded([b"a", b"b"], max_bytes=100, total_timeout=10)
 
 
+class TestReceivedChunks:
+    def test_total_deadline_is_checked_while_a_slow_server_sends(self) -> None:
+        head = f"HTTP/1.1 200 OK\r\nContent-Length: {TRICKLE_BYTES}\r\n\r\n".encode()
+        port = serve_once(head, [b"x"] * TRICKLE_BYTES, TRICKLE_INTERVAL)
+        started = time.monotonic()
+
+        with requests.get(f"http://127.0.0.1:{port}/", stream=True, timeout=(5, 5)) as response:  # noqa: SIM117
+            with pytest.raises(ConfigFileRejectedError, match="exceeds the limit"):
+                fwo_file_import.read_bounded(
+                    fwo_file_import.iter_received_chunks(response.raw), total_timeout=TRICKLE_TOTAL_TIMEOUT
+                )
+
+        assert time.monotonic() - started < TRICKLE_MAX_SECONDS
+
+    def test_compressed_content_is_decoded(self) -> None:
+        body = gzip.compress(SMALL_CONFIG)
+        head = f"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Length: {len(body)}\r\n\r\n".encode()
+        port = serve_once(head, [body], 0)
+
+        with requests.get(f"http://127.0.0.1:{port}/", stream=True, timeout=(5, 5)) as response:
+            content = fwo_file_import.read_bounded(fwo_file_import.iter_received_chunks(response.raw))
+
+        assert content == SMALL_CONFIG
+
+    @pytest.mark.parametrize(
+        ("error", "expected"),
+        [
+            (urllib3.exceptions.DecodeError("bad gzip"), requests.exceptions.ContentDecodingError),
+            (
+                urllib3.exceptions.ReadTimeoutError(urllib3.HTTPConnectionPool("127.0.0.1"), "/", "read timed out"),
+                requests.exceptions.ConnectionError,
+            ),
+            (urllib3.exceptions.ProtocolError("connection broken"), requests.exceptions.ChunkedEncodingError),
+        ],
+    )
+    def test_urllib3_errors_are_raised_as_requests_errors(self, error: Exception, expected: type[Exception]) -> None:
+        with pytest.raises(expected):
+            list(fwo_file_import.iter_received_chunks(FailingRaw(error)))  # type: ignore[arg-type]
+
+
 class TestLocalFile:
     def test_reads_local_file_with_and_without_uri_prefix(self, tmp_path: Path) -> None:
         config_file = tmp_path / "config.json"
@@ -183,3 +276,21 @@ class TestLocalFile:
 
         with pytest.raises(ConfigFileNotFoundError, match="unspecified error"):
             read(str(config_file))
+
+    def test_pipe_is_rejected_without_blocking(self, tmp_path: Path) -> None:
+        pipe = tmp_path / "config.json"
+        os.mkfifo(pipe)
+
+        with pytest.raises(ConfigFileRejectedError, match="is not a regular file"):
+            fwo_file_import.read_local_config_file(str(pipe))
+
+    def test_device_behind_a_symlink_is_rejected(self, tmp_path: Path) -> None:
+        link = tmp_path / "config.json"
+        link.symlink_to("/dev/zero")
+
+        with pytest.raises(ConfigFileNotFoundError, match="is not a regular file"):
+            read(str(link))
+
+    def test_missing_file_is_reported(self, tmp_path: Path) -> None:
+        with pytest.raises(ConfigFileNotFoundError, match="unspecified error"):
+            read(str(tmp_path / "missing.json"))

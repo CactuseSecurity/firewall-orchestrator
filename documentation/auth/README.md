@@ -23,6 +23,15 @@ There is also multi-tenancy support which you can use to implement per-tenant pe
 
 See <rbac.md>
 
+## Login name
+
+Users log in with their account name: `sAMAccountName` for an Active Directory connection, `uid` for an OpenLDAP
+connection, and either of them for a connection of the default type. The middleware looks up exactly one entry with
+an exact match on this attribute and checks the password only for that entry. Other names of the same account, such
+as the `cn`, the `userPrincipalName`, the mail address or a further value of a multi-valued `uid`, are not accepted
+(since 9.6.3). Login names containing LDAP filter characters (`*`, `\`, `(`, `)` or NUL) are rejected without any
+directory access.
+
 ## Login limits
 
 Every login with credentials makes the middleware search and bind in the active LDAP connections. To keep
@@ -35,12 +44,15 @@ unauthenticated requests from turning into a flood of directory operations, the 
 | Failed logins per user name and client address and minute | 10 | `429` with `A0006` and `Retry-After` |
 | Active LDAP connections one login may be tried against | 16 | `503` with `A0007` (logged as error) |
 | Logins waiting for LDAP at the same time | 32 | `429` with `A0006` |
-| LDAP operations running at the same time (all logins) | 4 | queued until a slot is free |
+| User searches and password checks running at the same time (all logins) | 4 | queued until a slot is free |
 | Time for all directory work of one login | 10 s | `503` with `A0007` |
 
-Anonymous token requests (no user name or password) cause no LDAP work and are never limited. A cancelled HTTP
-request cancels its outstanding directory work. Token refreshes are not rate limited, as they require a valid
-refresh token, but share the deadline; a refresh that runs out of time answers `503` without consuming the token.
+Anonymous token requests (no user name or password) cause no LDAP work and are never limited. When a login runs out
+of time or its HTTP request is cancelled, the middleware closes the login's LDAP connections. This ends the directory
+operations still waiting for an answer (the LDAP library does not stop them otherwise), so a directory that does not
+answer cannot keep the LDAP slots occupied. A directory that needs more than 10 s for a login cannot be used for logins.
+Token refreshes are not rate limited, as they require a valid refresh token, but share the deadline; a refresh that
+runs out of time answers `503` without consuming the token.
 
 The client address is the one the local Apache reverse proxy appends to `X-Forwarded-For`. Addresses of the
 middleware host itself and the UI hosts are exempt from the per-client limit, because every login through the UI

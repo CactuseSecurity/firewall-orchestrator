@@ -257,6 +257,19 @@ namespace FWO.Test
             Assert.That(smtp.ServerCertificateValidationCallback, Is.Null);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ConfigureCertificateValidation_DoesNotCheckRevocationOnline(bool checkCertificates)
+        {
+            using MailKit.Net.Smtp.SmtpClient smtp = new();
+            Assert.That(smtp.CheckCertificateRevocation, Is.True, "MailKit default changed - revisit this test");
+
+            MailKitMailer.ConfigureCertificateValidation(smtp,
+                new EmailConnection { ServerAddress = $"revocation-{Guid.NewGuid():N}.example.test", Port = 465, CheckCertificates = checkCertificates });
+
+            Assert.That(smtp.CheckCertificateRevocation, Is.False);
+        }
+
         [Test]
         public void ConfigureCertificateValidation_WithoutChecking_AcceptsAnyCertificate()
         {

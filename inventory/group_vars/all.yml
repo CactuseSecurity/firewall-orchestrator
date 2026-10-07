@@ -82,6 +82,10 @@ installation_mode: new
 # Set this to true only when FWO components are installed on separate hosts.
 distributed_install: false
 install_syslog: true
+# Fixed test keys and passwords (e.g. the static jwt generation key) if set to yes - only for testing, never for
+# production. Defined here for all hosts, as add_demo_data below is derived from it on every host: a value set for
+# a single group would make hosts disagree about creating the demo data.
+testkeys: no
 # Demo data (sample devices, owners and LDAP users with publicly known passwords) is only meant for
 # development, test and demo installations. It is created automatically with testkeys=yes and can be
 # requested explicitly with -e add_demo_data=yes.

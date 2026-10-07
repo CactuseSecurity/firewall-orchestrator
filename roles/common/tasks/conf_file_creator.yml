@@ -11,6 +11,23 @@
       dest: "/etc/{{ product_name }}"
       state: link
 
+  # fworch.json must hold a list of strings here: the .NET components cannot read the file otherwise and refuse to
+  # start. A comma separated string (e.g. -e login_trusted_client_hosts=ui1,ui2) is accepted and split.
+  - name: check the type of the trusted login client hosts
+    assert:
+      that:
+        - login_trusted_client_hosts is string or (login_trusted_client_hosts is iterable and login_trusted_client_hosts is not mapping)
+      fail_msg: >-
+        login_trusted_client_hosts must be a list of host names or addresses, or a comma separated string of them,
+        not {{ login_trusted_client_hosts | type_debug }}.
+      quiet: true
+
+  - name: normalize the trusted login client hosts to a list of host names
+    set_fact:
+      login_trusted_client_host_list: >-
+        {{ (login_trusted_client_hosts.split(',') if login_trusted_client_hosts is string else login_trusted_client_hosts)
+           | map('string') | map('trim') | reject('equalto', '') | unique | list }}
+
   - name: set config values
     set_fact:
       config_json:
@@ -30,7 +47,7 @@
         tls_ca_certificate: "{{ internalca_trust_bundle }}"
         internal_ca_certificate: "{{ internalca_ca_certificate_local }}"
         remote_addresses: []
-        login_trusted_client_hosts: "{{ login_trusted_client_hosts }}"
+        login_trusted_client_hosts: "{{ login_trusted_client_host_list }}"
 
   - name: create central conf file by dumping varibale as json file
     copy: 

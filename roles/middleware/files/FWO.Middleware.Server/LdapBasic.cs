@@ -61,7 +61,7 @@ namespace FWO.Middleware.Server
                 connection = new(ldapOptions) { SecureSocketLayer = Tls, ConnectionTimeout = timeOutInMs };
                 await connection.ConnectAsync(Address, Port, cancellationToken);
 
-                return new NovellLdapConnectionAdapter(connection);
+                return new NovellLdapConnectionAdapter(connection, cancellationToken);
             }
 
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -353,6 +353,8 @@ namespace FWO.Middleware.Server
                 using ILdapClient connection = await GetBoundConnection(SearchUser, SearchUserPwd, followReferrals: true, cancellationToken: cancellationToken);
 
                 List<LdapEntry> possibleUserEntries = await FindUserEntries(user, connection, validateCredentials, cancellationToken);
+                // a cancelled login closes the connection, which ends the search without results instead of throwing
+                cancellationToken.ThrowIfCancellationRequested();
 
                 // If credentials are not checked return user that was found first
                 // It could happen that multiple users with the same name were found (impossible if dn was provided)
@@ -378,6 +380,8 @@ namespace FWO.Middleware.Server
                 Log.WriteError($"Non-LDAP exception \"{Address}:{Port}\"", "Unexpected error while trying to validate user", exception);
             }
 
+            // the failure may stem from the connection closed by the cancellation: that is no invalid login
+            cancellationToken.ThrowIfCancellationRequested();
             Log.WriteDebug("Invalid Credentials", $"Invalid login credentials - could not authenticate user \"{user.Name}\" on {Address}:{Port}.");
             return null;
         }

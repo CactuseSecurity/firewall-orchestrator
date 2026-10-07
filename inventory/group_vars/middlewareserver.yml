@@ -24,6 +24,3 @@ sample_role_purpose: demo
 sample_user1_pw: cactus1
 sample_user2_pw: cactus2
 
-# use static jwt generation test key if set to yes
-# only for testing, not for production environment
-testkeys: no

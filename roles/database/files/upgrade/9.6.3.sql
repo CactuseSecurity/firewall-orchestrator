@@ -33,3 +33,7 @@ WHERE request.ticket_id = newest.ticket_id
         OR request.ext_request_state IN ('ExtReqAckRejected', 'ExtReqAcknowledged', 'ExtReqDiscarded'));
 
 CREATE UNIQUE INDEX IF NOT EXISTS uidx_ext_request_one_active_per_ticket ON ext_request (ticket_id) WHERE finish_date IS NULL;
+
+-- The tenant visibility functions (rule_fully_visible_to_tenant) look up the gateways of a rule for every rule,
+-- rule_from and rule_to row a tenant reads (GHSA-v8hx-cx2q-j75v); without an index each lookup scans the table.
+CREATE INDEX IF NOT EXISTS idx_rule_enforced_on_gateway_rule_id ON rule_enforced_on_gateway (rule_id);

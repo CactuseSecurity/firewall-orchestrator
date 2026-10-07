@@ -16,6 +16,7 @@ namespace FWO.Test
     {
         private const string kClearTextSecret = "theClearTextSecret";
         private static readonly string kUserDn = "uid=user,ou=users,dc=example,dc=com";
+        private static readonly List<string> kUserDnList = [kUserDn];
         private static readonly string kSearchUser = "cn=search,dc=example,dc=com";
         private static readonly string kSearchPassword = LdapTestSupport.CreateEncryptedSecret("searchpwd");
         private static readonly string kRoleDn = "cn=AppOwners,ou=roles,dc=example,dc=com";
@@ -112,6 +113,53 @@ namespace FWO.Test
             Assert.That(entry, Is.SameAs(user));
             Assert.That(connection.BindCalls, Has.Count.EqualTo(1));
             Assert.That(connection.BindCalls[0].User, Is.EqualTo(kUserDn));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Login_CancellationDuringTheSearchIsNoInvalidLogin(bool validateCredentials)
+        {
+            using CancellationTokenSource cancellation = new();
+            RecordingLdapClient connection = new()
+            {
+                // a closed connection ends the search without results
+                SearchResponder = (_, _, _, _, _) =>
+                {
+                    cancellation.Cancel();
+                    return LdapTestSupport.CreateSearchResults();
+                }
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, validateCredentials, cancellation.Token));
+        }
+
+        [Test]
+        public void Memberships_CancellationDuringTheLookupIsNoEmptyResult()
+        {
+            using IDisposable mainKey = LdapTestSupport.UseTestMainKey();
+            using CancellationTokenSource cancellation = new();
+            RecordingLdapClient connection = new()
+            {
+                SearchResponder = (_, _, _, _, _) =>
+                {
+                    cancellation.Cancel();
+                    return LdapTestSupport.CreateSearchResults();
+                }
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                SearchUser = kSearchUser,
+                SearchUserPwd = kSearchPassword,
+                GroupSearchPath = "ou=groups,dc=example,dc=com"
+            };
+
+            Assert.CatchAsync<OperationCanceledException>(async () =>
+                await ldap.GetGroups(kUserDnList, cancellation.Token));
         }
 
         [Test]

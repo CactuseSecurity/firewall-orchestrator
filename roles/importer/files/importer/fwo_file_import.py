@@ -5,12 +5,13 @@ read config from file
 import json
 import time
 import traceback
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
 import fwo_globals
 import requests
+import urllib3
 from fwo_api_call import FwoApiCall
 from fwo_const import (
     CONFIG_FILE_CHUNK_SIZE,
@@ -141,7 +142,26 @@ def download_config_file(url: str) -> bytes:
                 raise ConfigFileRejectedError(
                     f"declared size of {declared_length} bytes exceeds the limit of {CONFIG_FILE_MAX_BYTES} bytes"
                 )
-            return read_bounded(response.iter_content(chunk_size=CONFIG_FILE_CHUNK_SIZE))
+            return read_bounded(iter_received_chunks(response.raw))
+
+
+def iter_received_chunks(raw: urllib3.response.BaseHTTPResponse) -> Iterator[bytes]:
+    """
+    Yield the decompressed content of a streamed response as soon as any of it is received.
+
+    Reading fixed-size chunks would wait until a whole chunk has arrived, so a server sending a byte now and then
+    could keep a download running far beyond the total time limit. urllib3 errors are raised as the requests
+    exceptions that reading through requests would raise.
+    """
+    try:
+        while chunk := raw.read1(CONFIG_FILE_CHUNK_SIZE, decode_content=True):
+            yield chunk
+    except urllib3.exceptions.DecodeError as error:
+        raise requests.exceptions.ContentDecodingError(error) from error
+    except urllib3.exceptions.ReadTimeoutError as error:
+        raise requests.exceptions.ConnectionError(error) from error
+    except urllib3.exceptions.HTTPError as error:
+        raise requests.exceptions.ChunkedEncodingError(error) from error
 
 
 def read_bounded(
@@ -152,7 +172,8 @@ def read_bounded(
     """
     Collect the chunks of a download, aborting as soon as the size or time limit is exceeded.
 
-    The chunks are decompressed already, so a compressed response is limited by its real size.
+    The chunks are decompressed already, so a compressed response is limited by its real size. The limits are checked
+    after every chunk, so the chunks must be yielded as they are received (see iter_received_chunks).
     """
     deadline = time.monotonic() + total_timeout
     content = bytearray()
@@ -166,10 +187,17 @@ def read_bounded(
 
 
 def read_local_config_file(filename: str, max_bytes: int = CONFIG_FILE_MAX_BYTES) -> dict[str, Any]:
-    """Read a config file from the local file system, refusing files above the size limit."""
+    """
+    Read a config file from the local file system, refusing anything but a regular file and files above the size limit.
+
+    Devices and pipes report no size (/dev/zero never ends, a pipe without writer blocks), and a file can grow after
+    its size was checked, so at most one byte more than the limit is read instead of trusting the reported size.
+    """
     path = Path(filename)
-    size = path.stat().st_size
-    if size > max_bytes:
-        raise ConfigFileRejectedError(f"config file of {size} bytes exceeds the limit of {max_bytes} bytes")
-    with path.open() as json_file:
-        return json.load(json_file)
+    if path.exists() and not path.is_file():
+        raise ConfigFileRejectedError(f"{filename} is not a regular file")
+    with path.open("rb") as config_file:
+        content = config_file.read(max_bytes + 1)
+    if len(content) > max_bytes:
+        raise ConfigFileRejectedError(f"config file exceeds the limit of {max_bytes} bytes")
+    return json.loads(content)

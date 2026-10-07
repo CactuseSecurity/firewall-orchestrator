@@ -108,6 +108,8 @@ namespace FWO.Middleware.Server
                     Log.WriteError($"Non-LDAP exception {Address}:{Port}", "Unexpected error while trying to get memberships", exception);
                 }
             }
+            // a cancelled login closes the connection, which ends the lookup early: incomplete memberships must not be used
+            cancellationToken.ThrowIfCancellationRequested();
 
             Log.WriteDebug($"Found the following roles / groups for user {dnList.FirstOrDefault()} in {Address}:{Port}:", string.Join("\n", userMemberships));
             return userMemberships;

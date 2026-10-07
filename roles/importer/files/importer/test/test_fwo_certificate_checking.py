@@ -36,8 +36,19 @@ class FakeResponse:
     def raise_for_status(self) -> None:
         return None
 
-    def iter_content(self, chunk_size: int) -> list[bytes]:  # noqa: ARG002
-        return [b'{"ManagerSet": []}']
+    @property
+    def raw(self) -> FakeRaw:
+        return FakeRaw()
+
+
+class FakeRaw:
+    """Serves the config like urllib3's read1: the content, then b'' at the end."""
+
+    def __init__(self) -> None:
+        self.chunks: list[bytes] = [b'{"ManagerSet": []}']
+
+    def read1(self, amt: int, decode_content: bool) -> bytes:  # noqa: ARG002
+        return self.chunks.pop(0) if self.chunks else b""
 
 
 class FakeSession:

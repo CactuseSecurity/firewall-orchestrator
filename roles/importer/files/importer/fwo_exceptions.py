@@ -119,7 +119,7 @@ class FwoApiServiceUnavailableError(Exception):
 class ConfigFileRejectedError(Exception):
     """a config file to import exceeds a limit or is served through a redirect"""
 
-    def __init__(self, message: str = "Config file rejected"):
+    def __init__(self, message: str = "Config file rejected") -> None:
         self.message = message
         super().__init__(self.message)
 

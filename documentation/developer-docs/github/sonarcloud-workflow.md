@@ -27,6 +27,10 @@ the quality gate and is a required status check for `develop`, so the gate (amon
 | fork of an owner listed in the repository variable `SONAR_TRUSTED_FORK_OWNERS` | analyzed |
 | any other fork | the job fails, so the pull request cannot be merged until a maintainer takes it over |
 
+Like every `pull_request_target` workflow, it runs the workflow file of the default branch `main`, not the version
+in the pull request or in `develop`. Changes to `sonarcloud-pr.yml` therefore take effect for pull requests only
+once they have reached `main`.
+
 ## Accepted residual risk (GHSA-3cwm-h5cm-r3f8)
 
 The SonarScanner for .NET has to build and test the code between its `begin` and `end` steps, and
@@ -44,16 +48,19 @@ no longer holds, the rating has to be reassessed.
    analyses for this project. **Keep it that way when the token is replaced.**
 2. `SONAR_TOKEN` is the only secret this workflow uses, and the workflow token is read-only
    (`contents: read`, checkout without persisted credentials).
-3. No workflow restores caches. Code running in the `pull_request_target` context can write cache
-   entries of the base branch; restoring them would let attacker code run again in later runs.
+3. No workflow restores caches. Pull request code running in the `pull_request_target` context must not
+   be able to leave anything behind that a later run executes. Whether GitHub lets such runs write cache
+   entries of the default branch (current runs only get read access) is not relied on.
 4. The quality gate is not the only control before merging (tests, reviews and approval are
    required as well).
 
 Remaining risks that are accepted:
 
-- The trusted owner list checks who opened the pull request, not the code it contains. A trusted
-  owner who opens a pull request with someone else's commits runs that code with the token.
-  Review external commits before taking them over into a pull request from your fork.
+- The trusted owner list checks the owner of the repository the pull request comes from
+  (`pull_request.head.repo.owner`), not who opened it or the code it contains. Everyone with push access
+  to a trusted owner's fork, and every trusted owner who takes over someone else's commits, runs that
+  code with the token. Review external commits before taking them over into your fork, and do not give
+  others push access to it.
 - A compromised account of a trusted owner can obtain the token and upload forged analyses until
   the token is replaced.
 

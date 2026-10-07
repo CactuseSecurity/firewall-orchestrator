@@ -239,36 +239,69 @@ RETURNS boolean AS $$
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
+-- true if a gateway link (rule_enforced_on_gateway or rulebase_link row) applies to a rule version:
+-- a current rule only counts the current links, a removed rule version the links that existed during its lifetime.
+-- So a rule moved to another gateway, or a rulebase linked to another gateway, stops being visible through the old
+-- gateway, while historic rule versions stay linked to the gateways they were enforced on.
+-- All arguments are import ids (control_id); sql instead of plpgsql, so the expression is inlined into the queries.
+CREATE OR REPLACE FUNCTION link_valid_for_rule_version(i_link_created bigint, i_link_removed bigint, i_rule_created bigint, i_rule_removed bigint)
+RETURNS boolean AS $$
+    SELECT CASE
+        WHEN i_rule_removed IS NULL THEN i_link_removed IS NULL
+        ELSE COALESCE(i_link_created, 0) < i_rule_removed AND (i_link_removed IS NULL OR i_link_removed > i_rule_created)
+    END
+$$ LANGUAGE sql IMMUTABLE;
+
+-- the rule row replaces the single columns, as the lifetime of the rule version is needed as well
+DROP FUNCTION IF EXISTS public.rule_fully_visible_to_tenant(bigint, integer, integer, integer);
+
 -- true if the tenant may see the rule completely: the tenant has an unshared mapping to the management of the rule
--- or to a gateway the rule applies to. These are the gateways in rule_enforced_on_gateway; a rule without such a
--- gateway there (nat rules, or dev_id NULL: all gateways) applies to all gateways linking its rulebase.
+-- or to a gateway the rule applies to. These are the gateways in rule_enforced_on_gateway; a rule with only an
+-- all-gateways entry there (dev_id NULL), or a non-access rule without entries (nat rules), applies to all gateways
+-- linking its rulebase. The importer gives every access rule explicit entries, so an access rule without any entry
+-- is installed on targets that are no gateways of the management (e.g. a gateway group): it is not fully visible.
+-- Only links valid for the rule version count, see link_valid_for_rule_version.
 -- rule.dev_id is not used: it is no longer written by the importer (v9 rulebase model).
--- Removed links are included on purpose, as historic rule versions are linked to gateways by them.
-CREATE OR REPLACE FUNCTION rule_fully_visible_to_tenant(i_rule_id bigint, i_mgm_id integer, i_rulebase_id integer, i_tenant_id integer)
+CREATE OR REPLACE FUNCTION rule_fully_visible_to_tenant(p_rule rule, i_tenant_id integer)
 RETURNS boolean AS $$
     BEGIN
         PERFORM 1 FROM tenant_to_management ttm
-        WHERE ttm.management_id = i_mgm_id AND ttm.tenant_id = i_tenant_id AND NOT ttm.shared;
+        WHERE ttm.management_id = p_rule.mgm_id AND ttm.tenant_id = i_tenant_id AND NOT ttm.shared;
         IF FOUND THEN
             RETURN true;
         END IF;
 
         PERFORM 1 FROM rule_enforced_on_gateway reg
             JOIN tenant_to_device ttd ON (ttd.device_id = reg.dev_id)
-        WHERE reg.rule_id = i_rule_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+        WHERE reg.rule_id = p_rule.rule_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+            AND link_valid_for_rule_version(reg.created, reg.removed, p_rule.rule_create, p_rule.removed)
         LIMIT 1;
         IF FOUND THEN
             RETURN true;
         END IF;
 
-        PERFORM 1 FROM rule_enforced_on_gateway reg WHERE reg.rule_id = i_rule_id AND reg.dev_id IS NOT NULL LIMIT 1;
+        PERFORM 1 FROM rule_enforced_on_gateway reg
+        WHERE reg.rule_id = p_rule.rule_id AND reg.dev_id IS NOT NULL
+            AND link_valid_for_rule_version(reg.created, reg.removed, p_rule.rule_create, p_rule.removed)
+        LIMIT 1;
         IF FOUND THEN -- the rule is restricted to explicit gateways, none of them is fully visible
             RETURN false;
         END IF;
 
+        IF COALESCE(p_rule.access_rule, true) THEN
+            PERFORM 1 FROM rule_enforced_on_gateway reg
+            WHERE reg.rule_id = p_rule.rule_id AND reg.dev_id IS NULL
+                AND link_valid_for_rule_version(reg.created, reg.removed, p_rule.rule_create, p_rule.removed)
+            LIMIT 1;
+            IF NOT FOUND THEN -- install-on targets unknown to the management: do not guess from the rulebase links
+                RETURN false;
+            END IF;
+        END IF;
+
         PERFORM 1 FROM rulebase_link rl
             JOIN tenant_to_device ttd ON (ttd.device_id = rl.gw_id)
-        WHERE rl.to_rulebase_id = i_rulebase_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+        WHERE rl.to_rulebase_id = p_rule.rulebase_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+            AND link_valid_for_rule_version(rl.created, rl.removed, p_rule.rule_create, p_rule.removed)
         LIMIT 1;
         RETURN FOUND;
     END;
@@ -281,7 +314,7 @@ CREATE OR REPLACE FUNCTION rule_from_relevant_for_tenant(p_rule_from rule_from, 
 RETURNS boolean AS $$
     DECLARE
         i_tenant_id integer;
-        r_rule RECORD;
+        r_rule rule;
     BEGIN
         i_tenant_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
@@ -291,11 +324,11 @@ RETURNS boolean AS $$
             RETURN true;
         END IF;
 
-        SELECT r.mgm_id, r.rulebase_id, r.rule_src_neg, r.rule_dst_neg INTO r_rule FROM rule r WHERE r.rule_id = p_rule_from.rule_id;
+        SELECT r.* INTO r_rule FROM rule r WHERE r.rule_id = p_rule_from.rule_id;
 
         IF NOT FOUND THEN
             RETURN false;
-        ELSIF rule_fully_visible_to_tenant(p_rule_from.rule_id, r_rule.mgm_id, r_rule.rulebase_id, i_tenant_id) THEN
+        ELSIF rule_fully_visible_to_tenant(r_rule, i_tenant_id) THEN
             RETURN true;
         ELSIF nw_obj_in_tenant_network(p_rule_from.obj_id, p_rule_from.negated != r_rule.rule_src_neg, i_tenant_id) THEN
             RETURN true;
@@ -313,7 +346,7 @@ CREATE OR REPLACE FUNCTION rule_to_relevant_for_tenant(p_rule_to rule_to, hasura
 RETURNS boolean AS $$
     DECLARE
         i_tenant_id integer;
-        r_rule RECORD;
+        r_rule rule;
     BEGIN
         i_tenant_id := (hasura_session ->> 'x-hasura-tenant-id')::integer;
 
@@ -323,11 +356,11 @@ RETURNS boolean AS $$
             RETURN true;
         END IF;
 
-        SELECT r.mgm_id, r.rulebase_id, r.rule_src_neg, r.rule_dst_neg INTO r_rule FROM rule r WHERE r.rule_id = p_rule_to.rule_id;
+        SELECT r.* INTO r_rule FROM rule r WHERE r.rule_id = p_rule_to.rule_id;
 
         IF NOT FOUND THEN
             RETURN false;
-        ELSIF rule_fully_visible_to_tenant(p_rule_to.rule_id, r_rule.mgm_id, r_rule.rulebase_id, i_tenant_id) THEN
+        ELSIF rule_fully_visible_to_tenant(r_rule, i_tenant_id) THEN
             RETURN true;
         ELSIF nw_obj_in_tenant_network(p_rule_to.obj_id, p_rule_to.negated != r_rule.rule_dst_neg, i_tenant_id) THEN
             RETURN true;
@@ -429,13 +462,14 @@ RETURNS boolean AS $$
             RETURN true;
         END IF;
 
-        RETURN rule_fully_visible_to_tenant(rule.rule_id, rule.mgm_id, rule.rulebase_id, t_id)
+        RETURN rule_fully_visible_to_tenant(rule, t_id)
             OR rule_froms_in_tenant_network(rule.rule_id, rule.rule_src_neg, t_id)
             OR rule_tos_in_tenant_network(rule.rule_id, rule.rule_dst_neg, t_id);
     END;
 $$ LANGUAGE 'plpgsql' STABLE;
 
--- the rules of a device are the rules of the rulebases linked to it (rule.dev_id is no longer written by the importer)
+-- the rules of a device are the rules of the rulebases linked to it while the rule version was valid
+-- (rule.dev_id is no longer written by the importer)
 CREATE OR REPLACE FUNCTION get_rules_for_tenant(device_row device, tenant integer, hasura_session json)
 RETURNS SETOF rule AS $$
     DECLARE
@@ -452,8 +486,9 @@ RETURNS SETOF rule AS $$
         ELSE -- same visibility as rule_relevant_for_tenant, section headers only for fully visible rules
             RETURN QUERY
                 SELECT r.* FROM rule r
-                WHERE r.rulebase_id IN (SELECT rl.to_rulebase_id FROM rulebase_link rl WHERE rl.gw_id = device_row.dev_id)
-                    AND (rule_fully_visible_to_tenant(r.rule_id, r.mgm_id, r.rulebase_id, tenant)
+                WHERE r.rulebase_id IN (SELECT rl.to_rulebase_id FROM rulebase_link rl WHERE rl.gw_id = device_row.dev_id
+                        AND link_valid_for_rule_version(rl.created, rl.removed, r.rule_create, r.removed))
+                    AND (rule_fully_visible_to_tenant(r, tenant)
                         OR (r.rule_head_text IS NULL AND (rule_froms_in_tenant_network(r.rule_id, r.rule_src_neg, tenant)
                             OR rule_tos_in_tenant_network(r.rule_id, r.rule_dst_neg, tenant))))
                 ORDER BY r.rule_name;
@@ -474,7 +509,7 @@ RETURNS SETOF rule_from AS $$
             RAISE EXCEPTION 'A non-tenant-0 user was trying to generate a report for another tenant.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
-        ELSIF rule_fully_visible_to_tenant(rule.rule_id, rule.mgm_id, rule.rulebase_id, tenant)
+        ELSIF rule_fully_visible_to_tenant(rule, tenant)
             OR rule_tos_in_tenant_network(rule.rule_id, rule.rule_dst_neg, tenant) THEN
             RETURN QUERY SELECT rf.* FROM rule_from rf WHERE rf.rule_id = rule.rule_id;
         ELSE
@@ -498,7 +533,7 @@ RETURNS SETOF rule_to AS $$
             RAISE EXCEPTION 'A non-tenant-0 user was trying to generate a report for another tenant.';
         ELSIF tenant = 1 THEN
             RAISE EXCEPTION 'Tenant0 cannot be simulated.';
-        ELSIF rule_fully_visible_to_tenant(rule.rule_id, rule.mgm_id, rule.rulebase_id, tenant)
+        ELSIF rule_fully_visible_to_tenant(rule, tenant)
             OR rule_froms_in_tenant_network(rule.rule_id, rule.rule_src_neg, tenant) THEN
             RETURN QUERY SELECT rt.* FROM rule_to rt WHERE rt.rule_id = rule.rule_id;
         ELSE

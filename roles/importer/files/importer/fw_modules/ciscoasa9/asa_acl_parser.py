@@ -264,17 +264,24 @@ def _parse_explicit_destination_service(
 
 
 def _parse_port_operator(parts: list[str], pos: int) -> tuple[EndpointKind, int]:
-    """Parse eq/lt/gt/range; neq cannot be represented as a single port range."""
+    """
+    Parse eq/lt/gt/range; neq cannot be represented as a single port range.
+
+    Every port must be a number from 0 to 65535 or a known port name. eq and range keep the port as written,
+    so the rule uids of valid entries stay the same.
+    """
     operator = parts[pos].lower()
     if operator == "neq":
         raise AsaConfigParseError(f"unsupported port operator 'neq {' '.join(parts[pos + 1 : pos + 2])}'", pos)
     port = _expect_token(parts, pos + 1, f"port after '{operator}'")
+    port_number = _port_number(port, pos + 1)
     if operator == "eq":
         return EndpointKind(kind="eq", value=port), pos + 2
     if operator == "range":
         port_end = _expect_token(parts, pos + 2, "end port of range")
+        if _port_number(port_end, pos + 2) < port_number:
+            raise AsaConfigParseError(f"port range '{port} {port_end}' ends before it starts", pos)
         return EndpointKind(kind="range", value=f"{port} {port_end}"), pos + 3
-    port_number = _port_number(port, pos + 1)
     if operator == "lt":
         if port_number <= MIN_PORT:
             raise AsaConfigParseError(f"port range 'lt {port}' is empty", pos)

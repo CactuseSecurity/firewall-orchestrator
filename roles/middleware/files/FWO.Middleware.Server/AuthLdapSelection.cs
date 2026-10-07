@@ -59,12 +59,12 @@ namespace FWO.Middleware.Server
     /// </summary>
     internal static class LdapAuthenticationGate
     {
-        internal const int MaxConcurrentOperations = 4;
-        internal const int MaxConcurrentRequests = 32;
+        internal const int kMaxConcurrentOperations = 4;
+        internal const int kMaxConcurrentRequests = 32;
         internal static readonly TimeSpan kTotalTimeout = TimeSpan.FromSeconds(10);
         private const string kLogCategory = "User Authentication";
-        private static readonly SemaphoreSlim kSlots = new(MaxConcurrentOperations, MaxConcurrentOperations);
-        private static readonly SemaphoreSlim kRequests = new(MaxConcurrentRequests, MaxConcurrentRequests);
+        private static readonly SemaphoreSlim kSlots = new(kMaxConcurrentOperations, kMaxConcurrentOperations);
+        private static readonly SemaphoreSlim kRequests = new(kMaxConcurrentRequests, kMaxConcurrentRequests);
 
         /// <summary>
         /// Maximum number of directories one login may fan out to, see <see cref="LoginThrottleSettings.MaxDirectories"/>.
@@ -101,7 +101,7 @@ namespace FWO.Middleware.Server
 
             if (!await kRequests.WaitAsync(0, cancellationToken))
             {
-                Log.WriteWarning(kLogCategory, $"Login refused: {MaxConcurrentRequests} logins are already waiting for LDAP.");
+                Log.WriteWarning(kLogCategory, $"Login refused: {kMaxConcurrentRequests} logins are already waiting for LDAP.");
                 throw new LoginCapacityException(LoginCapacityException.kTooManyAttempts, StatusCodes.Status429TooManyRequests);
             }
             using CancellationTokenSource deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -140,6 +140,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Holds one slot until the LDAP attempt finishes or observes cancellation.
         /// </summary>
+        /// <remarks>
+        /// Novell does not observe the token while it waits for an answer; the attempt ends on cancellation because the
+        /// connection created with the token is closed then (NovellLdapConnectionAdapter).
+        /// </remarks>
         private static async Task<T> RunOneAsync<T>(Func<CancellationToken, Task<T>> attempt, CancellationToken cancellationToken)
         {
             await kSlots.WaitAsync(cancellationToken);

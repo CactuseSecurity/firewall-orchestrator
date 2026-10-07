@@ -86,8 +86,8 @@ namespace FWO.Test
                 }).ToList();
 
             Task<int[]> run = LdapAuthenticationGate.RunAsync(attempts, CancellationToken.None);
-            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref active) == LdapAuthenticationGate.MaxConcurrentOperations);
-            Assert.That(peak, Is.EqualTo(LdapAuthenticationGate.MaxConcurrentOperations));
+            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref active) == LdapAuthenticationGate.kMaxConcurrentOperations);
+            Assert.That(peak, Is.EqualTo(LdapAuthenticationGate.kMaxConcurrentOperations));
             release.SetResult();
 
             int[] results = await run;
@@ -108,11 +108,11 @@ namespace FWO.Test
                 }).ToList();
 
             Task<int[]> run = LdapAuthenticationGate.RunAsync(attempts, cancellation.Token);
-            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref started) == LdapAuthenticationGate.MaxConcurrentOperations);
+            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref started) == LdapAuthenticationGate.kMaxConcurrentOperations);
             cancellation.Cancel();
 
             Assert.ThrowsAsync<TaskCanceledException>(async () => await run);
-            Assert.That(started, Is.EqualTo(LdapAuthenticationGate.MaxConcurrentOperations));
+            Assert.That(started, Is.EqualTo(LdapAuthenticationGate.kMaxConcurrentOperations));
         }
 
         [Test]
@@ -128,7 +128,7 @@ namespace FWO.Test
                 }
             };
             List<Task<int[]>> running = [];
-            for (int index = 0; index < LdapAuthenticationGate.MaxConcurrentRequests; index++)
+            for (int index = 0; index < LdapAuthenticationGate.kMaxConcurrentRequests; index++)
             {
                 running.Add(LdapAuthenticationGate.RunAsync(attempts, CancellationToken.None));
             }
@@ -145,7 +145,7 @@ namespace FWO.Test
         public async Task RunAsync_DeadlineCancelsSlowAttemptsAndAnswersUnavailable()
         {
             int cancelled = 0;
-            List<Func<CancellationToken, Task<int>>> attempts = Enumerable.Range(0, LdapAuthenticationGate.MaxConcurrentOperations + 1)
+            List<Func<CancellationToken, Task<int>>> attempts = Enumerable.Range(0, LdapAuthenticationGate.kMaxConcurrentOperations + 1)
                 .Select<int, Func<CancellationToken, Task<int>>>(index => async token =>
                 {
                     try
@@ -166,7 +166,7 @@ namespace FWO.Test
 
             Assert.That(exception!.StatusCode, Is.EqualTo(StatusCodes.Status503ServiceUnavailable));
             Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)));
-            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref cancelled) == LdapAuthenticationGate.MaxConcurrentOperations);
+            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref cancelled) == LdapAuthenticationGate.kMaxConcurrentOperations);
         }
 
         [Test]

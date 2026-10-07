@@ -1,5 +1,12 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.1 - 07.10.2026
+- resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
+  results across imports and allow disabling new lookups in Settings - Logging.
+- store aggregation period and import time on each log row. The table heading uses only the
+  displayed rows; mixed or unknown periods are shown per row. Existing rows retain unknown
+  timing until reimported. Counts and timing are updated together, including additive imports.
+
 ## 9.7.0 - 07.10.2026
 - enrich imported log data with the external application IDs and network areas containing each
   source and destination address, plus reverse-DNS names. The connection log table displays the
@@ -18,9 +25,7 @@
   localized, e.g. "Logs (aggregated over 1 Week(s) from 10/5/2026 10:00 AM)". The period is the new
   setting Settings - Logging - default log time range (default: 7 days, used for CSV imports), which a
   log data import file can override in the new optional top-level field log_time_range_in_seconds.
-  All imports are expected to use the same period; the middleware stores period and import time of
-  the last import once (config entry logDataImportPeriod) and warns about a changed period and about
-  entries logged outside it. New setting to hide the log time column (default: on) (issue #5391).
+  The middleware warns about entries logged outside the supplied period. New setting to hide the log time column (default: on) (issue #5391).
   
 ## 9.6.2 - 02.10.2026
 

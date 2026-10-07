@@ -13,6 +13,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string deleteExpiredLogEntries;
         public static readonly string getUnmodelledLogEntriesByOwner;
         public static readonly string getIpMetadataSources;
+        public static readonly string getIpMetadata;
         public static readonly string deleteOrphanedIpMetadata;
 
         static LogDataQueries()
@@ -24,6 +25,7 @@ namespace FWO.Api.Client.Queries
                 deleteLogEntriesOfOwners = GetQueryText("logging/deleteLogEntriesOfOwners.graphql");
                 deleteExpiredLogEntries = GetQueryText("logging/deleteExpiredLogEntries.graphql");
                 getUnmodelledLogEntriesByOwner = GetQueryText("logging/getUnmodelledLogEntriesByOwner.graphql");
+                getIpMetadata = GetQueryText("logging/getIpMetadata.graphql");
                 getIpMetadataSources = GetQueryText("logging/getIpMetadataSources.graphql");
                 deleteOrphanedIpMetadata = GetQueryText("logging/deleteOrphanedIpMetadata.graphql");
             }

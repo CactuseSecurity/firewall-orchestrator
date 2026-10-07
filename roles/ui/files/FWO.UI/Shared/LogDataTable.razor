@@ -48,6 +48,19 @@ else
                 </Column>
             }
             <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("rule_name"))" Field="@(x => x.LoggingRuleName)" Sortable="true" Filterable="true" />
+            @if (importPeriod is null)
+            {
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_aggregation_period"))" Field="@(x => x.LogTimeRangeInSeconds)" Sortable="true">
+                    <Template>
+                        @(context.LogTimeRangeInSeconds is > 0 ? LogDataTitle.FormatTimeRange(context.LogTimeRangeInSeconds.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+                <Column TableItem="OwnerFirewallLogEntry" Title="@(userConfig.GetText("log_import_time"))" Field="@(x => x.ImportTime)" Sortable="true">
+                    <Template>
+                        @(context.ImportTime.HasValue ? LogDataTitle.FormatImportTime(context.ImportTime.Value, userConfig) : userConfig.GetText("unknown"))
+                    </Template>
+                </Column>
+            }
             <Pager ShowPageNumber="true" ShowTotalCount="true" />
         </Table>
     </div>
@@ -117,7 +130,7 @@ else
             isLoading = true;
             List<OwnerFirewallLogEntry> loadedEntries = await apiConnection.SendQueryAsync<List<OwnerFirewallLogEntry>>(
                 LogDataQueries.getUnmodelledLogEntriesByOwner, new { ownerId = requestedOwnerId, limit = kMaxLoadedEntries });
-            LogDataImportPeriod? loadedPeriod = await LoadImportPeriod();
+            LogDataImportPeriod? loadedPeriod = LogDataTitle.GetCommonPeriod(loadedEntries);
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = loadedEntries;
@@ -131,6 +144,7 @@ else
             if (IsCurrentLoad(requestedOwnerId))
             {
                 logEntries = [];
+                importPeriod = null;
                 DisplayMessageInUi(exception, userConfig.GetText("log_data"), "", true);
             }
         }
@@ -140,25 +154,6 @@ else
             {
                 isLoading = false;
             }
-        }
-    }
-
-    /// <summary>
-    /// Reads the period the log data was aggregated over, which the import stores once for all owners.
-    /// It only feeds the title, so a failed read leaves the plain title instead of hiding the rows.
-    /// </summary>
-    private async Task<LogDataImportPeriod?> LoadImportPeriod()
-    {
-        try
-        {
-            List<ConfigItem> configItems = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                new { key = LogDataImportPeriod.kConfigKey });
-            return LogDataImportPeriod.Parse(configItems.FirstOrDefault()?.Value);
-        }
-        catch (Exception exception)
-        {
-            Log.WriteDebug("LogDataTable", $"reading the log data import period failed: {exception.Message}");
-            return null;
         }
     }
 

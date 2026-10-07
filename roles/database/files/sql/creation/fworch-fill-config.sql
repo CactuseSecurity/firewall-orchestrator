@@ -76,6 +76,7 @@ insert into config (config_key, config_value, config_user) VALUES ('importLogDat
 insert into config (config_key, config_value, config_user) VALUES ('importLogDataMaxEntries', '1000', 0);
 insert into config (config_key, config_value, config_user) VALUES ('logDataRetentionDays', '90', 0);
 insert into config (config_key, config_value, config_user) VALUES ('allowLogDataPortWithoutProtocol', 'False', 0);
+insert into config (config_key, config_value, config_user) VALUES ('resolveLogDataDns', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('replaceExistingLogData', 'True', 0);
 insert into config (config_key, config_value, config_user) VALUES ('showLogDataInConnections', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('hideLogTimeColumn', 'True', 0);

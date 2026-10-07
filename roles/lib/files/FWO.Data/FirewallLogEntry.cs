@@ -29,6 +29,12 @@ namespace FWO.Data
         [JsonProperty("log_time"), JsonPropertyName("log_time")]
         public DateTimeOffset LogTime { get; set; }
 
+        [JsonProperty("import_time"), JsonPropertyName("import_time")]
+        public DateTimeOffset? ImportTime { get; set; }
+
+        [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
+        public int? LogTimeRangeInSeconds { get; set; }
+
         [JsonProperty("logging_rule_name"), JsonPropertyName("logging_rule_name")]
         public string? LoggingRuleName { get; set; }
     }
@@ -49,6 +55,9 @@ namespace FWO.Data
 
         [JsonProperty("dns"), JsonPropertyName("dns")]
         public string Dns { get; set; } = "";
+
+        [JsonProperty("dns_lookup_completed"), JsonPropertyName("dns_lookup_completed")]
+        public bool DnsLookupCompleted { get; set; }
     }
 
     /// <summary>

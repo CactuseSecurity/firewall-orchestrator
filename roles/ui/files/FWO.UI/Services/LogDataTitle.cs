@@ -16,9 +16,8 @@ namespace FWO.Ui.Services
         private const string kImportTimeFormat = "g";
 
         /// <summary>
-        /// Title for the log data. All import files are expected to name the same period, so the period
-        /// stored by the last import describes the whole table. Without a stored period, e.g. before
-        /// the first import, the plain title is used.
+        /// Title for log rows sharing one known aggregation period and import time.
+        /// Without a common period, the plain title is used and the rows show their own timing.
         /// </summary>
         public static string Build(LogDataImportPeriod? period, UserConfig userConfig)
         {
@@ -29,6 +28,27 @@ namespace FWO.Ui.Services
             return userConfig.GetText("log_data_aggregated")
                 .Replace(Placeholder.TIME_INTERVAL, FormatTimeRange(period.LogTimeRangeInSeconds, userConfig))
                 .Replace(Placeholder.DATE, FormatImportTime(period.ImportTime, userConfig));
+        }
+
+        /// <summary>
+        /// Uses only the displayed rows. A common title is safe only when every row has the
+        /// same known aggregation period and import time.
+        /// </summary>
+        public static LogDataImportPeriod? GetCommonPeriod(IEnumerable<FirewallLogEntry> entries)
+        {
+            List<FirewallLogEntry> rows = entries.ToList();
+            FirewallLogEntry? first = rows.FirstOrDefault();
+            if (first?.ImportTime is null || first.LogTimeRangeInSeconds is not > 0
+                || rows.Any(row => row.ImportTime != first.ImportTime
+                    || row.LogTimeRangeInSeconds != first.LogTimeRangeInSeconds))
+            {
+                return null;
+            }
+            return new LogDataImportPeriod
+            {
+                ImportTime = first.ImportTime.Value,
+                LogTimeRangeInSeconds = first.LogTimeRangeInSeconds.Value
+            };
         }
 
         /// <summary>

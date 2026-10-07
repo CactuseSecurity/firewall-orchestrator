@@ -14,7 +14,7 @@ namespace FWO.Test
 {
     /// <summary>
     /// Covers the log time range every log data import file has to name and the import period the
-    /// middleware stores once for the whole log data.
+    /// middleware stores with each imported row.
     /// </summary>
     [TestFixture]
     internal class LogDataImportPeriodTest
@@ -102,46 +102,6 @@ namespace FWO.Test
             Assert.That(importFile?.LogTimeRangeInSeconds, Is.EqualTo(GlobalConst.kDefaultLogTimeRangeInSeconds));
         }
 
-        [Test]
-        public async Task StoreImportPeriod_StoresThePeriodForTheWholeLogData()
-        {
-            PeriodTestApiConn apiConnection = new();
-
-            await InvokeStoreImportPeriod(CreateImport(apiConnection), new LogDataImportPeriod { LogTimeRangeInSeconds = kOneHour, ImportTime = kImportTime });
-
-            LogDataImportPeriod? storedPeriod = LogDataImportPeriod.Parse(apiConnection.StoredValue);
-            Assert.Multiple(() =>
-            {
-                Assert.That(apiConnection.StoredKey, Is.EqualTo(LogDataImportPeriod.kConfigKey));
-                Assert.That(apiConnection.StoredUser, Is.Zero, "the period belongs to the whole log data, not to a user");
-                Assert.That(storedPeriod?.LogTimeRangeInSeconds, Is.EqualTo(kOneHour));
-                Assert.That(storedPeriod?.ImportTime, Is.EqualTo(kImportTime));
-            });
-        }
-
-        [Test]
-        public async Task StoreImportPeriod_StoresADifferingRangeAsTheCurrentOne()
-        {
-            PeriodTestApiConn apiConnection = new()
-            {
-                StoredValue = JsonSerializer.Serialize(new LogDataImportPeriod { LogTimeRangeInSeconds = kOneDay, ImportTime = kImportTime })
-            };
-
-            await InvokeStoreImportPeriod(CreateImport(apiConnection), new LogDataImportPeriod { LogTimeRangeInSeconds = kOneHour, ImportTime = kImportTime });
-
-            Assert.That(LogDataImportPeriod.Parse(apiConnection.StoredValue)?.LogTimeRangeInSeconds, Is.EqualTo(kOneHour),
-                "the entries of the source are the current ones, so is their period");
-        }
-
-        [Test]
-        public void StoreImportPeriod_DoesNotFailTheImportWhenThePeriodCannotBeStored()
-        {
-            PeriodTestApiConn apiConnection = new() { FailUpsert = true };
-
-            Assert.DoesNotThrowAsync(() => InvokeStoreImportPeriod(CreateImport(apiConnection),
-                new LogDataImportPeriod { LogTimeRangeInSeconds = kOneHour, ImportTime = kImportTime }));
-        }
-
         [TestCase(null)]
         [TestCase("")]
         [TestCase("not json")]
@@ -162,12 +122,12 @@ namespace FWO.Test
             PeriodTestApiConn apiConnection = new();
 
             List<string> failedImports = await RunWithTemporarySource(apiConnection, kOneDay,
-                sourcePath => File.WriteAllText(sourcePath + ".json", """{"logs": []}"""));
+                sourcePath => File.WriteAllText(sourcePath + ".json", """{"logs": [{"app_id": "APP-1", "log_count": 1, "source": "192.0.2.1", "destination": "198.51.100.1"}]}"""));
 
             Assert.Multiple(() =>
             {
                 Assert.That(failedImports, Is.Empty);
-                Assert.That(LogDataImportPeriod.Parse(apiConnection.StoredValue)?.LogTimeRangeInSeconds, Is.EqualTo(kOneDay));
+                Assert.That(apiConnection.InsertedEntries.Single().LogTimeRangeInSeconds, Is.EqualTo(kOneDay));
             });
         }
 
@@ -187,7 +147,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(failedImports, Has.Count.EqualTo(1));
-                Assert.That(apiConnection.StoredValue, Is.Null);
+                Assert.That(apiConnection.InsertedEntries, Is.Empty);
             });
         }
 
@@ -202,9 +162,9 @@ namespace FWO.Test
             PeriodTestApiConn apiConnection = new();
 
             List<string> failedImports = await RunWithTemporarySource(apiConnection, kOneDay, sourcePath => File.WriteAllText(sourcePath + ".json",
-                """{"import_time": "2026-10-05T08:30:00+00:00", "log_time_range_in_seconds": 3600, "logs": []}"""));
+                """{"import_time": "2026-10-05T08:30:00+00:00", "log_time_range_in_seconds": 3600, "logs": [{"app_id": "APP-1", "log_count": 1, "source": "192.0.2.1", "destination": "198.51.100.1"}]}"""));
 
-            LogDataImportPeriod? storedPeriod = LogDataImportPeriod.Parse(apiConnection.StoredValue);
+            FirewallLogEntryInput? storedPeriod = apiConnection.InsertedEntries.SingleOrDefault();
             Assert.Multiple(() =>
             {
                 Assert.That(failedImports, Is.Empty);
@@ -262,15 +222,7 @@ namespace FWO.Test
                 ImportLogDataPath = importPath,
                 DefaultLogTimeRangeInSeconds = defaultLogTimeRange
             };
-            return new LogDataImport(apiConnection, globalConfig, _ => Task.FromResult(""));
-        }
-
-        private static async Task InvokeStoreImportPeriod(LogDataImport import, LogDataImportPeriod period)
-        {
-            MethodInfo method = typeof(LogDataImport).GetMethod("StoreImportPeriod", BindingFlags.NonPublic | BindingFlags.Instance)
-                ?? throw new MissingMethodException(typeof(LogDataImport).FullName, "StoreImportPeriod");
-            object[] arguments = [period, "/usr/local/fworch/scripts/customizing/log_data_import/source"];
-            await (Task)method.Invoke(import, arguments)!;
+            return new LogDataImport(apiConnection, globalConfig, (_, _) => Task.FromResult(""));
         }
 
         private static void ConfigureAllowedCustomizationRoots(string fwoHome)
@@ -303,38 +255,40 @@ namespace FWO.Test
         }
 
         /// <summary>
-        /// Answers the queries of an import without log entries and records the stored import period.
+        /// Answers import queries and records the timing written with log rows.
         /// </summary>
         private sealed class PeriodTestApiConn : SimulatedApiConnection
         {
-            public string? StoredKey { get; private set; }
-            public string? StoredValue { get; set; }
-            public int? StoredUser { get; private set; }
-            public bool FailUpsert { get; init; }
+            public List<FirewallLogEntryInput> InsertedEntries { get; } = [];
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == ConfigQueries.getConfigItemByKey)
+                if (query == ConfigQueries.getConfigItemByKey || query == ConfigQueries.upsertConfigItem)
                 {
-                    List<ConfigItem> items = StoredValue is null ? [] : [new ConfigItem { Key = LogDataImportPeriod.kConfigKey, Value = StoredValue }];
-                    return Task.FromResult((QueryResponseType)(object)items);
-                }
-                if (query == ConfigQueries.upsertConfigItem)
-                {
-                    if (FailUpsert)
-                    {
-                        throw new InvalidOperationException("upsert failed");
-                    }
-                    StoredKey = GetVariable<string>(variables, "config_key");
-                    StoredValue = GetVariable<string>(variables, "config_value");
-                    StoredUser = GetVariable<int>(variables, "config_user");
-                    return Task.FromResult(default(QueryResponseType)!);
+                    Assert.Fail("Import timing must be persisted with log rows, not global config.");
                 }
                 if (query == OwnerQueries.getOwnerId)
                 {
-                    // no application is known, the entries of a source are therefore not written
-                    return Task.FromResult((QueryResponseType)(object)new List<OwnerIdModel>());
+                    List<OwnerIdModel> owners = [new() { Id = 11 }];
+                    return Task.FromResult((QueryResponseType)(object)owners);
+                }
+                if (query == LogDataQueries.getIpMetadataSources)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<IpMetadataSource>());
+                }
+                if (query == LogDataQueries.getIpMetadata)
+                {
+                    return Task.FromResult((QueryResponseType)(object)new List<IpMetadata>());
+                }
+                if (query == ImportQueries.addImportForLog)
+                {
+                    InsertImportControl control = new() { Returning = [new ImportControl { ControlId = 4711 }] };
+                    return Task.FromResult((QueryResponseType)(object)control);
+                }
+                if (query == LogDataQueries.replaceLogEntries || query == LogDataQueries.insertLogEntries)
+                {
+                    InsertedEntries.AddRange(GetVariable<List<FirewallLogEntryInput>>(variables, "entries") ?? []);
                 }
                 if (query == MonitorQueries.addDataImportLogEntry)
                 {

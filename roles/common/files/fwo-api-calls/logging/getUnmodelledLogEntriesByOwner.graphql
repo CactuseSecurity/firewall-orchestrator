@@ -15,6 +15,8 @@ query getUnmodelledLogEntriesByOwner($ownerId: Int!, $limit: Int!) {
     service_port
     allowed
     log_time
+    import_time
+    log_time_range_in_seconds
     logging_rule_name
     source_metadata {
       app_ids

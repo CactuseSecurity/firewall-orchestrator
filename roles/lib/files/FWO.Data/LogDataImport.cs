@@ -23,15 +23,12 @@ namespace FWO.Data
     }
 
     /// <summary>
-    /// Period the stored log counts were aggregated over and the time they were imported. All import
-    /// files are expected to name the same period, so it is stored once for the whole log data in a
-    /// config entry and not per log entry.
+    /// Aggregation period and import time shared by a set of displayed log rows.
     /// </summary>
     public class LogDataImportPeriod
     {
         /// <summary>
-        /// Config entry (of user 0) the period is stored in. It is written by every log data import and
-        /// therefore deliberately no setting: saving the settings page must not overwrite it.
+        /// Legacy global config entry, retained for parsing old serialized periods only.
         /// </summary>
         public const string kConfigKey = "logDataImportPeriod";
 

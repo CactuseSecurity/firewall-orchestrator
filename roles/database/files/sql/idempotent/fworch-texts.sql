@@ -569,33 +569,19 @@ INSERT INTO txt VALUES ('welcome_to',           'German', 	'Willkommen zu Firewa
 INSERT INTO txt VALUES ('welcome_to',           'English', 	'Welcome to Firewall Orchestrator');
 INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firewall Orchestrator Version');
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
-INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
+INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
-    <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
-    <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
-    <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.3 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
-    <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
-    <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
-    <li>Importierte Logdaten zeigen nun f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen.</li>
-    <li>Die &Uuml;berschrift der Logdaten-Tabelle nennt nun den Zeitraum, &uuml;ber den die Trefferz&auml;hler aggregiert wurden, und den Importzeitpunkt in der Sprache des Benutzers. Er ist unter Einstellungen - Logging einstellbar (Standard: 7 Tage) und kann von einer JSON-Importdatei im neuen Feld log_time_range_in_seconds &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet.</li>
-    <li>Im Antragsmodul werden die Grunddaten eines Auftrags und seine Elemente nun in getrennten Bereichen bearbeitet; der Auftragstyp bleibt dabei in beiden Bereichen synchron. Wird nach dem Ansehen eines bestehenden Auftrags ein neuer angelegt, startet dieser nun mit dem richtigen Auftragstyp, und die Gateway-Auswahl bleibt bei "Alle" stabil.</li>
-    <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
-    <li>Die neuen Auftragstypen "Objekt anlegen" und "Objekt &auml;ndern" beantragen ein einzelnes Netzwerkobjekt (Host, Netz, Adressbereich) oder einen Service ohne Gruppe. Beim &Auml;ndern wird das bestehende Objekt &uuml;ber eine Suche ausgew&auml;hlt, der Auftrag zeigt alten und neuen Stand. Die Auftragstypen m&uuml;ssen in den Workflow-Anpassungen freigeschaltet werden und werden noch nicht an externe Ticketsysteme &uuml;bergeben; siehe <a target="_blank" href="/help/workflow/tasktypes">Hilfe zu Auftragstypen</a>.</li>
+    <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
+    <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet.</li>
+    <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
-INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
+INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
-    <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
-    <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
-    <li>The middleware job scheduler was upgraded to Quartz.NET 4.3, together with updated libraries for, among others, email delivery and PDF generation.</li>
-    <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
-    <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
-    <li>Imported log data now shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses.</li>
-    <li>The heading of the log data table now names the period the log counts were aggregated over and the import time, localized for the user. It is configurable under Settings - Logging (default: 7 days) and can be overridden by a JSON import file in the new field log_time_range_in_seconds. The log time column is hidden by default.</li>
-    <li>In the request module, the basic data of a task and its elements are now edited in separate sections, with the task type kept in sync between them. A task created after viewing an existing one now starts with the correct task type, and the gateway selection stays stable when "All" is selected.</li>
-    <li>The Object Catalog and Service Catalog labels were clarified.</li>
-    <li>The new task types "Create Object" and "Modify Object" request a single network object (host, network, address range) or service without a group. When modifying, the existing object is selected through a search and the task shows the old and the new state. The task types have to be enabled in the workflow customizing settings and are not yet passed to external ticket systems; see <a target="_blank" href="/help/workflow/tasktypes">task type help</a>.</li>
+    <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
+    <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default.</li>
+    <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -3237,6 +3223,12 @@ INSERT INTO txt VALUES ('defaultLogTimeRange', 'German', 'Standard-Logzeitraum')
 INSERT INTO txt VALUES ('defaultLogTimeRange', 'English', 'Default log time range');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
 INSERT INTO txt VALUES ('log_data', 'English', 'Log data');
+INSERT INTO txt VALUES ('resolveLogDataDns', 'German', 'Reverse-DNS f&uuml;r Logdaten aufl&ouml;sen');
+INSERT INTO txt VALUES ('resolveLogDataDns', 'English', 'Resolve reverse DNS for log data');
+INSERT INTO txt VALUES ('log_aggregation_period', 'German', 'Aggregationszeitraum');
+INSERT INTO txt VALUES ('log_aggregation_period', 'English', 'Aggregation period');
+INSERT INTO txt VALUES ('log_import_time', 'German', 'Importzeitpunkt');
+INSERT INTO txt VALUES ('log_import_time', 'English', 'Import time');
 INSERT INTO txt VALUES ('log_data_aggregated', 'German', 'Logs (aggregiert &uuml;ber @@TIME_INTERVAL@@ vom @@DATE@@)');
 INSERT INTO txt VALUES ('log_data_aggregated', 'English', 'Logs (aggregated over @@TIME_INTERVAL@@ from @@DATE@@)');
 INSERT INTO txt VALUES ('source_app_ids', 'German', 'Quell-App-IDs');
@@ -7460,10 +7452,14 @@ INSERT INTO txt VALUES ('H5699', 'German', 'Aufbewahrungsdauer der Logdaten (Tag
 INSERT INTO txt VALUES ('H5699', 'English', 'Log data retention (days): Log entries whose log time is older are removed after every import. The value must be at least 1, otherwise every entry would be deleted right after it was imported.');
 INSERT INTO txt VALUES ('H5700', 'German', 'Port ohne Protokoll in Logdaten zulassen: Erlaubt Logeintr&auml;ge mit Port, aber ohne Protokollangabe. Ohne diese Option werden solche Eintr&auml;ge verworfen, da ein Port nur zu TCP oder UDP geh&ouml;ren kann.');
 INSERT INTO txt VALUES ('H5700', 'English', 'Allow port without protocol in log data: Accepts log entries which contain a port but no protocol. Without this option such entries are discarded, because a port belongs to TCP or UDP only.');
-INSERT INTO txt VALUES ('H5705', 'German', 'Spalte Zeitpunkt in Logdaten ausblenden: Blendet in der Logdaten-Tabelle die Spalte mit dem Zeitpunkt des letzten Auftretens eines Flows aus. Der Zeitraum, &uuml;ber den die Trefferz&auml;hler aggregiert wurden, steht in der &Uuml;berschrift der Tabelle. Standardm&auml;&szlig;ig aktiviert.');
-INSERT INTO txt VALUES ('H5705', 'English', 'Hide log time column in log data: Hides the column with the time of the last occurrence of a flow in the log data table. The period the log counts were aggregated over is shown in the heading of the table. Enabled by default.');
+INSERT INTO txt VALUES ('H5705', 'German', 'Spalte Zeitpunkt in Logdaten ausblenden: Blendet in der Logdaten-Tabelle die Spalte mit dem Zeitpunkt des letzten Auftretens eines Flows aus. Der Zeitraum, &uuml;ber den die Trefferz&auml;hler aggregiert wurden, steht in der &Uuml;berschrift oder bei unterschiedlichen Zeitr&auml;umen pro Zeile. Standardm&auml;&szlig;ig aktiviert.');
+INSERT INTO txt VALUES ('H5705', 'English', 'Hide log time column in log data: Hides the column with the time of the last occurrence of a flow in the log data table. The period the log counts were aggregated over is shown in the heading or per row when periods differ. Enabled by default.');
 INSERT INTO txt VALUES ('H5706', 'German', 'Standard-Logzeitraum: Zeitraum, &uuml;ber den die Trefferz&auml;hler aggregiert wurden, wenn die Importdatei ihn nicht selbst angibt. Eine JSON-Importdatei kann den Zeitraum im Feld log_time_range_in_seconds angeben und &uuml;berschreibt damit diesen Standardwert; beim Import aus CSV-Dateien gilt immer der Standardwert. Standard ist 7 Tage.');
 INSERT INTO txt VALUES ('H5706', 'English', 'Default log time range: Period the log counts were aggregated over when the import file does not name it. A JSON import file can name the period in field log_time_range_in_seconds, which overrides this default; imports from CSV files always use the default. The default is 7 days.');
+INSERT INTO txt VALUES ('H5707', 'German', 'Reverse-DNS f&uuml;r Logdaten aufl&ouml;sen: Neue Adressen werden asynchron aufgel&ouml;st. Gespeicherte Ergebnisse (auch ohne Namen) werden wiederverwendet, solange die Adresse in den Logdaten vorkommt. Deaktivieren verhindert neue DNS-Abfragen, erh&auml;lt aber vorhandene Namen. Nach erneuter Aktivierung werden bisher nicht aufgel&ouml;ste Adressen aufgel&ouml;st. Standardm&auml;&szlig;ig aktiviert.');
+INSERT INTO txt VALUES ('H5707', 'English', 'Resolve reverse DNS for log data: New addresses are resolved asynchronously. Stored results (including empty names) are reused while the address occurs in log data. Disabling prevents new DNS queries but retains existing names. Re-enabling resolves addresses that have not yet been looked up. Enabled by default.');
+INSERT INTO txt VALUES ('H5708', 'German', 'Logdaten-Zeitraum: Die &Uuml;berschrift beschreibt nur die angezeigten Zeilen mit gemeinsamem Aggregationszeitraum und Importzeitpunkt. Bei unterschiedlichen oder unbekannten Angaben werden Zeitraum und Importzeitpunkt pro Zeile angezeigt. Alte Daten ohne gespeicherten Zeitraum bleiben unbekannt, bis sie erneut importiert werden.');
+INSERT INTO txt VALUES ('H5708', 'English', 'Log data period: The heading describes only displayed rows sharing an aggregation period and import time. When values differ or are unknown, the period and import time are shown per row. Old data without a stored period remains unknown until reimported.');
 INSERT INTO txt VALUES ('H5692', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen: L&ouml;scht beim Import einer JSON-Datei alle vorhandenen Logeintr&auml;ge f&uuml;r jede darin enthaltene, bekannte externe Applikations-ID und ersetzt sie atomar durch die neuen Eintr&auml;ge. Unbekannte Applikations-IDs werden ignoriert.');
 INSERT INTO txt VALUES ('H5692', 'English', 'Replace existing log data of imported applications: When importing a JSON file, deletes all existing log entries for every known external application ID contained in it and atomically replaces them with the new entries. Unknown application IDs are ignored.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.

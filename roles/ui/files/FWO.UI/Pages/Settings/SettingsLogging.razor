@@ -70,6 +70,12 @@
                 <input id="cbx_port_without_protocol" type="checkbox" class="w-100" @bind="configData.AllowLogDataPortWithoutProtocol" />
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5707"))">
+            <label for="cbx_resolve_log_dns" class="col-form-label col-sm-4">@(userConfig.GetText("resolveLogDataDns")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_resolve_log_dns" type="checkbox" class="w-100" @bind="configData.ResolveLogDataDns" />
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5692"))">
             <label for="cbx_replace_existing_log_data" class="col-form-label col-sm-4">@(userConfig.GetText("replaceExistingLogData")):</label>
             <div class="col-sm-1">
@@ -188,7 +194,7 @@ else
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             bool oldShowLogData = globalConfig.ShowLogDataInConnections;
             LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol,
-                globalConfig.ReplaceExistingLogData, globalConfig.HideLogTimeColumn, globalConfig.DefaultLogTimeRangeInSeconds);
+                globalConfig.ReplaceExistingLogData, globalConfig.HideLogTimeColumn, globalConfig.DefaultLogTimeRangeInSeconds, globalConfig.ResolveLogDataDns);
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
             WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
@@ -230,7 +236,7 @@ else
     /// Settings of the log data page which are only needed for the audit entry.
     /// </summary>
     private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting, bool HideLogTimeColumn,
-        int DefaultLogTimeRangeInSeconds);
+        int DefaultLogTimeRangeInSeconds, bool ResolveDns);
 
     private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
         int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
@@ -247,6 +253,7 @@ else
             configData.AllowLogDataPortWithoutProtocol.ToString());
         AddSettingChange(changes, nameof(ConfigData.ReplaceExistingLogData), oldSettings.ReplaceExisting.ToString(),
             configData.ReplaceExistingLogData.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ResolveLogDataDns), oldSettings.ResolveDns.ToString(), configData.ResolveLogDataDns.ToString());
         AddSettingChange(changes, nameof(ConfigData.HideLogTimeColumn), oldSettings.HideLogTimeColumn.ToString(),
             configData.HideLogTimeColumn.ToString());
         AddSettingChange(changes, nameof(ConfigData.DefaultLogTimeRangeInSeconds), oldSettings.DefaultLogTimeRangeInSeconds.ToString(),

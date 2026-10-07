@@ -2879,6 +2879,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ]
@@ -2900,6 +2902,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2912,6 +2916,8 @@
                   "permission": {
                     "columns": [
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "owner_id"
                     ],
                     "filter": {}
@@ -2931,6 +2937,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2955,6 +2963,8 @@
                       "allowed",
                       "modelled",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name",
                       "owner_id"
                     ],
@@ -2975,6 +2985,8 @@
                       "log_count",
                       "allowed",
                       "log_time",
+                      "import_time",
+                      "log_time_range_in_seconds",
                       "logging_rule_name"
                     ],
                     "filter": {},
@@ -3039,7 +3051,8 @@
                       "ip_address",
                       "app_ids",
                       "area_ids",
-                      "dns"
+                      "dns",
+                      "dns_lookup_completed"
                     ]
                   },
                   "comment": ""
@@ -3066,7 +3079,8 @@
                       "ip_address",
                       "app_ids",
                       "area_ids",
-                      "dns"
+                      "dns",
+                      "dns_lookup_completed"
                     ],
                     "filter": {}
                   },
@@ -3110,7 +3124,8 @@
                     "columns": [
                       "app_ids",
                       "area_ids",
-                      "dns"
+                      "dns",
+                      "dns_lookup_completed"
                     ],
                     "filter": {},
                     "check": null

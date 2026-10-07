@@ -15,7 +15,7 @@ namespace FWO.Middleware.Server
     /// Imports normalized logging data produced by customization scripts.
     /// </summary>
     public class LogDataImport(ApiConnection apiConnection, GlobalConfig globalConfig,
-        Func<IPAddress, Task<string>>? reverseDnsLookup = null) : DataImportBase(apiConnection, globalConfig)
+        Func<IPAddress, CancellationToken, Task<string>>? reverseDnsLookup = null) : DataImportBase(apiConnection, globalConfig)
     {
         private const string LogMessageTitle = "Import Log Data";
         private const string LevelFile = "Import File";
@@ -27,12 +27,13 @@ namespace FWO.Middleware.Server
         // An unresolvable address only answers after the resolver timed out, so the lookups of a
         // batch overlap. The bound keeps the import from opening thousands of sockets at once.
         private const int ReverseLookupParallelism = 16;
-        private readonly Func<IPAddress, Task<string>> reverseDnsLookup = reverseDnsLookup ?? IpOperations.DnsReverseLookUp;
+        private readonly Func<IPAddress, CancellationToken, Task<string>> reverseDnsLookup = reverseDnsLookup
+            ?? (async (address, token) => (await IpOperations.DnsReverseLookUpAllAsync(address, token)).FirstOrDefault() ?? "");
 
         /// <summary>
         /// Runs configured log data imports and removes expired entries.
         /// </summary>
-        /// <param name="cancellationToken">Stops before the next source; a source already being written is completed and acknowledged.</param>
+        /// <param name="cancellationToken">Stops during preparation; a database write is completed and acknowledged.</param>
         /// <returns>Sources which could not be imported.</returns>
         public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
@@ -120,12 +121,11 @@ namespace FWO.Middleware.Server
                 LogDataImportFile importFileData = JsonSerializer.Deserialize<LogDataImportFile>(importFile)
                     ?? throw new JsonException("Log data file could not be parsed.");
                 int logTimeRangeInSeconds = ResolveLogTimeRange(importFileData.LogTimeRangeInSeconds, globalConfig.DefaultLogTimeRangeInSeconds);
-                // last checkpoint: acknowledging deletes the source file, so it must follow a completed write
+                // Preparation can still be cancelled; writes must finish before acknowledgement.
                 cancellationToken.ThrowIfCancellationRequested();
                 DateTimeOffset importTime = importFileData.ImportTime ?? DateTimeOffset.UtcNow;
                 WarnAboutEntriesOutsideTimeRange(importFileData.Logs, importTime, logTimeRangeInSeconds, sourcePath);
-                await SaveEntries(importFileData.Logs, sourcePath, importTime);
-                await StoreImportPeriod(new LogDataImportPeriod { LogTimeRangeInSeconds = logTimeRangeInSeconds, ImportTime = importTime }, sourcePath);
+                await SaveEntries(importFileData.Logs, sourcePath, importTime, logTimeRangeInSeconds, cancellationToken);
                 await AcknowledgeImport(scriptPath, importFiles, sourcePath);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -204,39 +204,6 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Remembers the period the stored log counts were aggregated over and when they were imported.
-        /// All import files are expected to name the same period, so it is stored once for the whole log
-        /// data and not per entry; a source naming another period is reported, its period is stored anyway
-        /// because its entries are the current ones. The entries of the source are already written, so a
-        /// failure only leaves the title of the log table outdated and does not fail the import.
-        /// </summary>
-        private async Task StoreImportPeriod(LogDataImportPeriod period, string sourcePath)
-        {
-            try
-            {
-                List<ConfigItem> storedItems = await apiConnection.SendQueryAsync<List<ConfigItem>>(ConfigQueries.getConfigItemByKey,
-                    new { key = LogDataImportPeriod.kConfigKey });
-                LogDataImportPeriod? storedPeriod = LogDataImportPeriod.Parse(storedItems.FirstOrDefault()?.Value);
-                if (storedPeriod is not null && storedPeriod.LogTimeRangeInSeconds != period.LogTimeRangeInSeconds)
-                {
-                    Log.WriteWarning(LogMessageTitle, $"{sourcePath}.json is aggregated over {period.LogTimeRangeInSeconds} seconds," +
-                        $" the log data imported before was aggregated over {storedPeriod.LogTimeRangeInSeconds} seconds." +
-                        " All log data import files are expected to name the same log time range.");
-                }
-                await apiConnection.SendQueryAsync<object>(ConfigQueries.upsertConfigItem, new
-                {
-                    config_key = LogDataImportPeriod.kConfigKey,
-                    config_value = JsonSerializer.Serialize(period),
-                    config_user = 0
-                });
-            }
-            catch (Exception exception)
-            {
-                Log.WriteError(LogMessageTitle, $"The log time range of {sourcePath}.json could not be stored.", exception);
-            }
-        }
-
-        /// <summary>
         /// Merges entries describing the same flow of the same owner into a single entry.
         /// The database keeps one row per owner, source, destination and service, so one batch
         /// must not contain the same flow twice. The log counts are added up within a batch, while
@@ -271,7 +238,8 @@ namespace FWO.Middleware.Server
         /// the meantime. What could not be imported is written to the log by
         /// <see cref="LogUnimportedEntries"/> before the source is removed.
         /// </summary>
-        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime)
+        private async Task SaveEntries(List<LogDataImportEntry> sourceEntries, string sourcePath, DateTimeOffset importTime,
+            int logTimeRangeInSeconds, CancellationToken cancellationToken)
         {
             List<NormalizedLogEntry> normalizedEntries = NormalizeValidEntries(sourceEntries, importTime, globalConfig.AllowLogDataPortWithoutProtocol);
             int invalidEntries = Math.Max(0, sourceEntries.Count - normalizedEntries.Count);
@@ -290,11 +258,19 @@ namespace FWO.Middleware.Server
             if (entries.Count == 0)
             {
                 LogUnimportedEntries(sourceEntries, sourcePath, globalConfig.ImportLogDataMaxEntries);
+                cancellationToken.ThrowIfCancellationRequested();
                 await RemoveReplacedEntries(sourceOwnerIds, sourcePath, sourceEntries.Count);
                 return;
             }
 
-            List<IpMetadata> metadata = await BuildIpMetadata(entries);
+            foreach (FirewallLogEntryInput entry in entries)
+            {
+                entry.ImportTime = importTime;
+                entry.LogTimeRangeInSeconds = logTimeRangeInSeconds;
+            }
+            List<IpMetadata> metadata = await BuildIpMetadata(entries, cancellationToken);
+            // Once writing starts it must complete, including acknowledgement of the source.
+            cancellationToken.ThrowIfCancellationRequested();
             await RunAsImport(() => WriteEntries(entries, metadata, sourceOwnerIds));
 
             string message = $"Imported {entries.Count} log entries from {sourcePath}.json";
@@ -410,7 +386,7 @@ namespace FWO.Middleware.Server
         /// run with a bounded parallelism, because an address without a PTR record only answers
         /// after the resolver timed out and a batch holds thousands of addresses.
         /// </summary>
-        private async Task<List<IpMetadata>> BuildIpMetadata(List<FirewallLogEntryInput> entries)
+        private async Task<List<IpMetadata>> BuildIpMetadata(List<FirewallLogEntryInput> entries, CancellationToken cancellationToken)
         {
             List<string> addresses = entries
                 .SelectMany(entry => new List<string> { entry.Source, entry.Destination })
@@ -419,10 +395,13 @@ namespace FWO.Middleware.Server
             List<IpMetadataSource> allSources = await apiConnection.SendQueryAsync<List<IpMetadataSource>>(
                 LogDataQueries.getIpMetadataSources);
             List<PreparedMetadataSource> preparedSources = PrepareMetadataSources(allSources);
+            List<IpMetadata> storedMetadata = await apiConnection.SendQueryAsync<List<IpMetadata>>(
+                LogDataQueries.getIpMetadata, new { addresses });
+            Dictionary<string, IpMetadata> storedByAddress = storedMetadata.ToDictionary(item => item.IpAddress, StringComparer.Ordinal);
             IpMetadata[] metadata = new IpMetadata[addresses.Count];
             await Parallel.ForAsync(0, addresses.Count,
-                new ParallelOptions { MaxDegreeOfParallelism = ReverseLookupParallelism },
-                async (index, _) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources));
+                new ParallelOptions { MaxDegreeOfParallelism = ReverseLookupParallelism, CancellationToken = cancellationToken },
+                async (index, token) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources, storedByAddress, token));
             return [.. metadata];
         }
 
@@ -453,7 +432,8 @@ namespace FWO.Middleware.Server
         /// resolves its name. The values are sorted, so repeated imports of the same address write
         /// the same row and the display order does not depend on the order of the ranges.
         /// </summary>
-        private async Task<IpMetadata> BuildAddressMetadata(string address, List<PreparedMetadataSource> preparedSources)
+        private async Task<IpMetadata> BuildAddressMetadata(string address, List<PreparedMetadataSource> preparedSources,
+            Dictionary<string, IpMetadata> storedByAddress, CancellationToken cancellationToken)
         {
             IPAddress ipAddress = IPAddress.Parse(address.StripOffNetmask());
             IPAddressRange addressRange = new(ipAddress, ipAddress);
@@ -461,6 +441,14 @@ namespace FWO.Middleware.Server
                 .Where(source => IpOperations.RangeOverlapExists(source.Range, addressRange))
                 .Select(source => source.Source)
                 .ToList();
+            storedByAddress.TryGetValue(address, out IpMetadata? stored);
+            bool lookupCompleted = stored?.DnsLookupCompleted == true;
+            string dns = stored?.Dns ?? "";
+            if (!lookupCompleted && globalConfig.ResolveLogDataDns)
+            {
+                dns = await ResolveDns(ipAddress, cancellationToken);
+                lookupCompleted = true;
+            }
             return new IpMetadata
             {
                 IpAddress = address,
@@ -468,8 +456,30 @@ namespace FWO.Middleware.Server
                 AreaIds = SortedDistinctValues(matchingSources
                     .SelectMany(source => source.AreaMemberships)
                     .Select(membership => membership.Area?.IdString)),
-                Dns = await reverseDnsLookup(ipAddress)
+                Dns = dns,
+                DnsLookupCompleted = lookupCompleted
             };
+        }
+
+        /// <summary>
+        /// Resolves PTR records asynchronously. DNS failures leave the name empty, while shutdown
+        /// cancellation leaves the source available for retry without changing stored log data.
+        /// </summary>
+        private async Task<string> ResolveDns(IPAddress address, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await reverseDnsLookup(address, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                Log.WriteDebug(LogMessageTitle, $"Reverse-DNS lookup of {address} failed: {exception.Message}");
+                return "";
+            }
         }
 
         private static List<string> SortedDistinctValues(IEnumerable<string?> values)

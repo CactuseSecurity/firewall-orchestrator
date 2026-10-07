@@ -166,6 +166,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(configData.HideLogTimeColumn, Is.True);
+                Assert.That(configData.ResolveLogDataDns, Is.True);
                 Assert.That(configData.DefaultLogTimeRangeInSeconds, Is.EqualTo(604800));
             });
         }
@@ -178,6 +179,7 @@ namespace FWO.Test
             SimulatedGlobalConfig globalConfig = new();
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
             editableConfig.HideLogTimeColumn = false;
+            editableConfig.ResolveLogDataDns = false;
             SetMember(component, "globalConfig", globalConfig);
             SetMember(component, "apiConnection", apiConnection);
             SetMember(component, "userConfig", new SimulatedUserConfig());
@@ -194,6 +196,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "hideLogTimeColumn").Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "resolveLogDataDns").Value, Is.EqualTo("False"));
                 Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "defaultLogTimeRangeInSeconds").Value, Is.EqualTo("86400"));
             });
         }

@@ -25,6 +25,68 @@ namespace FWO.Test
             Assert.That(LogDataTitle.Build(null, new SimulatedUserConfig()), Is.EqualTo("log_data"));
         }
 
+        /// <summary>
+        /// A title may describe rows from one source or older imports only using their own timing.
+        /// </summary>
+        [Test]
+        public void GetCommonPeriod_UsesTheRowsImportTime()
+        {
+            List<FirewallLogEntry> entries =
+            [
+                new OwnerFirewallLogEntry { ImportTime = kImportTime, LogTimeRangeInSeconds = kOneWeek },
+                new OwnerFirewallLogEntry { ImportTime = kImportTime, LogTimeRangeInSeconds = kOneWeek }
+            ];
+
+            LogDataImportPeriod? period = LogDataTitle.GetCommonPeriod(entries);
+
+            Assert.That(period?.ImportTime, Is.EqualTo(kImportTime));
+            Assert.That(period?.LogTimeRangeInSeconds, Is.EqualTo(kOneWeek));
+        }
+
+        /// <summary>
+        /// Retained rows from other runs or periods must not inherit the newest timing.
+        /// </summary>
+        [TestCase(true)]
+        [TestCase(false)]
+        public void GetCommonPeriod_RejectsMixedTiming(bool differentTime)
+        {
+            List<FirewallLogEntry> entries =
+            [
+                new OwnerFirewallLogEntry { ImportTime = kImportTime, LogTimeRangeInSeconds = kOneWeek },
+                new OwnerFirewallLogEntry
+                {
+                    ImportTime = differentTime ? kImportTime.AddDays(-1) : kImportTime,
+                    LogTimeRangeInSeconds = differentTime ? kOneWeek : kDayAndAHalf
+                }
+            ];
+
+            Assert.That(LogDataTitle.GetCommonPeriod(entries), Is.Null);
+        }
+
+        /// <summary>
+        /// Upgrade-era rows and empty tables cannot provide a reliable aggregation title.
+        /// </summary>
+        [TestCase(null)]
+        [TestCase(0)]
+        [TestCase(-1)]
+        public void GetCommonPeriod_RejectsUnknownOrInvalidPeriod(int? seconds)
+        {
+            List<FirewallLogEntry> entries = [new OwnerFirewallLogEntry { ImportTime = kImportTime, LogTimeRangeInSeconds = seconds }];
+            Assert.That(LogDataTitle.GetCommonPeriod(entries), Is.Null);
+        }
+
+        /// <summary>
+        /// Missing import times and empty tables use the plain title.
+        /// </summary>
+        [Test]
+        public void GetCommonPeriod_RejectsUnknownTimeAndEmptyRows()
+        {
+            List<FirewallLogEntry> entries = [new OwnerFirewallLogEntry { LogTimeRangeInSeconds = kOneWeek }];
+            Assert.That(LogDataTitle.GetCommonPeriod(entries), Is.Null);
+            entries.Clear();
+            Assert.That(LogDataTitle.GetCommonPeriod(entries), Is.Null);
+        }
+
         [Test]
         public void Build_NamesThePeriodAndTheImportTime()
         {

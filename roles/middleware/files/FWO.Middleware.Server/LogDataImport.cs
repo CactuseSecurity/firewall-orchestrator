@@ -28,7 +28,15 @@ namespace FWO.Middleware.Server
         // batch overlap. The bound keeps the import from opening thousands of sockets at once.
         private const int ReverseLookupParallelism = 16;
         private readonly Func<IPAddress, CancellationToken, Task<string>> reverseDnsLookup = reverseDnsLookup
-            ?? (async (address, token) => (await IpOperations.DnsReverseLookUpAllAsync(address, token)).FirstOrDefault() ?? "");
+            ?? (async (address, token) => SelectDnsName(await IpOperations.DnsReverseLookUpAllAsync(address, token)));
+
+        /// <summary>
+        /// Selects the first PTR name directly from the indexable DNS result collection.
+        /// </summary>
+        internal static string SelectDnsName(IReadOnlyList<string> names)
+        {
+            return names.Count == 0 ? "" : names[0] ?? "";
+        }
 
         /// <summary>
         /// Runs configured log data imports and removes expired entries.

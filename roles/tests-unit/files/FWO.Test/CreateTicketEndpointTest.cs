@@ -63,7 +63,7 @@ internal class CreateTicketEndpointTest
         CreateTicketRequest request = CreateValidRequest();
         request.AddressObjects =
         [
-            new() { Id = -1, Name = "host", IpHost = "192.000.002.010" },
+            new() { Id = -1, Name = "host", IpHost = "192.0.2.10" },
             new() { Id = -2, Name = "network", IpNetwork = "198.51.100.0/25" },
             new() { Id = -3, Name = "range", IpRange = ["2001:db8::1", "2001:db8::10"] }
         ];

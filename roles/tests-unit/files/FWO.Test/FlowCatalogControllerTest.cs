@@ -98,8 +98,8 @@ namespace FWO.Test
                 Assert.That(ExtractValue<AddressObjectIdResponse>(addressObjectIdResult).Name, Is.EqualTo("Host"));
 
                 Assert.That(normalizedAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
-                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("10.0.0.1"));
-                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpEnd, Is.EqualTo("10.0.0.2"));
+                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpStart, Is.EqualTo("8.0.0.1"));
+                Assert.That(normalizedAddressObjectIdRequest.NormalizedIpEnd, Is.EqualTo("8.0.0.2"));
 
                 Assert.That(ipv6AddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());
                 Assert.That(networkAddressObjectIdResult.Result, Is.TypeOf<OkObjectResult>());

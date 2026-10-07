@@ -63,7 +63,7 @@ namespace FWO.Middleware.Server
 
                 // a connection with a deadline belongs to a login: its operations must not outlast the login deadline
                 TimeSpan? operationTimeLimit = cancellationToken.CanBeCanceled ? LdapAuthenticationGate.kTotalTimeout : null;
-                return new NovellLdapConnectionAdapter(connection, cancellationToken, operationTimeLimit);
+                return new NovellLdapConnectionAdapter(connection, operationTimeLimit, cancellationToken);
             }
 
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -159,7 +159,7 @@ namespace FWO.Test
                 await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
                 using TcpClient server = await accepted;
                 using CancellationTokenSource cancellation = new();
-                using NovellLdapConnectionAdapter adapter = new(connection, cancellation.Token);
+                using NovellLdapConnectionAdapter adapter = new(connection, cancellationToken: cancellation.Token);
 
                 // the deadline is armed first, as Novell may block the calling thread until the answer arrives
                 cancellation.CancelAfter(kCancelAfter);
@@ -189,7 +189,7 @@ namespace FWO.Test
                 await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
                 using TcpClient server = await accepted;
                 using CancellationTokenSource cancellation = new();
-                NovellLdapConnectionAdapter adapter = new(connection, cancellation.Token);
+                NovellLdapConnectionAdapter adapter = new(connection, cancellationToken: cancellation.Token);
 
                 adapter.Dispose();
                 adapter.Dispose();
@@ -222,7 +222,7 @@ namespace FWO.Test
                     await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
                     servers.Add(await accepted);
                     using CancellationTokenSource cancellation = new();
-                    using NovellLdapConnectionAdapter adapter = new(connection, cancellation.Token, kTestOperationTimeLimit);
+                    using NovellLdapConnectionAdapter adapter = new(connection, kTestOperationTimeLimit, cancellation.Token);
                     int cancelDelay = Random.Shared.Next(kMaxCancelDelayMicroseconds);
 
                     Task bind = Task.Run(() => adapter.BindAsync("uid=user,dc=example,dc=com", "secret", cancellation.Token));
@@ -259,7 +259,7 @@ namespace FWO.Test
                 LdapConnection connection = new() { ConnectionTimeout = kConnectionTimeoutMs };
                 await connection.ConnectAsync(IPAddress.Loopback.ToString(), port);
                 using TcpClient server = await accepted;
-                using NovellLdapConnectionAdapter adapter = new(connection, CancellationToken.None, kTestOperationTimeLimit);
+                using NovellLdapConnectionAdapter adapter = new(connection, kTestOperationTimeLimit, CancellationToken.None);
 
                 Task bind = Task.Run(() => adapter.BindAsync("uid=user,dc=example,dc=com", "secret", CancellationToken.None));
 

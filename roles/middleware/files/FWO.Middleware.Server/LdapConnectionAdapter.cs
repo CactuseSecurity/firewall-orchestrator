@@ -74,9 +74,9 @@ namespace FWO.Middleware.Server
         /// or the request). Some operations still wait after the close, so the time limit ends them as a backstop.
         /// </remarks>
         /// <param name="connection">The connected Novell connection.</param>
-        /// <param name="cancellationToken">Closes the connection when cancelled; default for connections without a deadline.</param>
         /// <param name="operationTimeLimit">Longest time a single operation waits for an answer; null for no limit.</param>
-        internal NovellLdapConnectionAdapter(LdapConnection connection, CancellationToken cancellationToken = default, TimeSpan? operationTimeLimit = null)
+        /// <param name="cancellationToken">Closes the connection when cancelled; default for connections without a deadline.</param>
+        internal NovellLdapConnectionAdapter(LdapConnection connection, TimeSpan? operationTimeLimit = null, CancellationToken cancellationToken = default)
         {
             this.connection = connection;
             if (operationTimeLimit is TimeSpan timeLimit)

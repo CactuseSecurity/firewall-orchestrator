@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 # This script deletes internal groups in FWO
+from __future__ import annotations
+
 import argparse
 import functools
 import json

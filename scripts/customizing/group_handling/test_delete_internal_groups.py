@@ -1,13 +1,17 @@
 # ruff: noqa: INP001
+from __future__ import annotations
+
 import importlib.util
 import json
 import logging
 import sys
 from pathlib import Path
-from types import ModuleType, TracebackType
-from typing import Any, ClassVar, Self, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
 
 import pytest
+
+if TYPE_CHECKING:
+    from types import ModuleType, TracebackType
 
 SAMPLE_CLIENT_CERT = "/etc/fworch/secrets/client/client.crt"
 SAMPLE_CLIENT_KEY = "/etc/fworch/secrets/client/client.key"

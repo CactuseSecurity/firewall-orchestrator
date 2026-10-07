@@ -1,4 +1,6 @@
 # library for FWORCH API calls
+from __future__ import annotations
+
 import argparse
 import functools
 import getpass

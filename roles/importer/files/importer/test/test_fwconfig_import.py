@@ -1,6 +1,8 @@
 # pyright: reportPrivateUsage=false
+from __future__ import annotations
+
 from types import SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock, patch
 
 import fwo_globals
@@ -14,7 +16,9 @@ from models.fwconfigmanager import FwConfigManager
 from models.gateway import Gateway
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
-from services.service_provider import ServiceProvider
+
+if TYPE_CHECKING:
+    from services.service_provider import ServiceProvider
 
 
 @pytest.fixture

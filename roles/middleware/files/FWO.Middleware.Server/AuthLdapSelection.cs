@@ -138,6 +138,22 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
+        /// Runs a directory operation of a login (group or role lookup) in one of the slots shared with the user
+        /// searches and password checks, so the slots bound all directory work of logins.
+        /// </summary>
+        /// <remarks>
+        /// Only operations with a deadline take a slot: their connection is closed on cancellation, which frees the
+        /// slot. An operation without a deadline (outside the login flow) could hold it forever and is run directly.
+        /// </remarks>
+        /// <param name="operation">The directory operation, receiving the token it has to observe.</param>
+        /// <param name="cancellationToken">Deadline of the login; default for operations outside the login flow.</param>
+        /// <returns>The result of the operation.</returns>
+        internal static Task<T> RunInSlotAsync<T>(Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken)
+        {
+            return cancellationToken.CanBeCanceled ? RunOneAsync(operation, cancellationToken) : operation(cancellationToken);
+        }
+
+        /// <summary>
         /// Holds one slot until the LDAP attempt finishes or observes cancellation.
         /// </summary>
         /// <remarks>

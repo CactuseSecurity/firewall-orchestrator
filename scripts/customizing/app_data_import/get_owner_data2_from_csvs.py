@@ -22,19 +22,23 @@ sample config file /usr/local/orch/etc/secrets/customizingConfig.json
 }
 """
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
-import logging
 import sys
 from asyncio.log import logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import urllib3
 
 from scripts.customizing.fwo_custom_lib.basic_helpers import get_logger, read_custom_config
 from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"

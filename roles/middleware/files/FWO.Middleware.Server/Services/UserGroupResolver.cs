@@ -92,7 +92,7 @@ public class UserGroupResolver
     private static async Task<List<string>> GetGroupsForDn(Ldap ldap, string userDn, CancellationToken cancellationToken)
     {
         List<string> userDnList = [userDn];
-        return await ldap.GetGroups(userDnList, cancellationToken);
+        return await LdapAuthenticationGate.RunInSlotAsync(token => ldap.GetGroups(userDnList, token), cancellationToken);
     }
 
     private static string? GetGroupPath(Ldap ldap)

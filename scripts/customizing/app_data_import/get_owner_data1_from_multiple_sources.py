@@ -17,16 +17,17 @@
 #       csvFiles # array of file basenames containing the app data
 #       ldapPath # full ldap user path (used for building DN from user basename) #noqa: ERA001
 
+from __future__ import annotations
+
 import argparse
 import csv
 import ipaddress
 import json
-import logging
 import socket
 import sys
 from asyncio.log import logger
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 import urllib3
@@ -38,6 +39,9 @@ from scripts.customizing.fwo_custom_lib.basic_helpers import (
     resolve_requests_verify,
 )
 from scripts.customizing.fwo_custom_lib.git_helpers import update_git_repo
+
+if TYPE_CHECKING:
+    import logging
 
 base_dir: str = "/usr/local/fworch/"
 base_dir_etc: str = base_dir + "etc/"

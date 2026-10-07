@@ -59,17 +59,25 @@ namespace FWO.Middleware.Server.Controllers
         private IPAddress? ClientAddress => HttpContext?.Connection.RemoteIpAddress;
 
         /// <summary>
-        /// Answers 429 before any LDAP work if the client or the user name exceeded its login limit.
+        /// Admits a login attempt to the directories, unless the client or the user name exceeded its login limit.
         /// </summary>
         /// <param name="userName">Login name of the attempt; null for anonymous requests, which are never limited.</param>
-        /// <returns>The 429 result, or null if the attempt may proceed.</returns>
-        private ObjectResult? RejectIfThrottled(string? userName)
+        /// <returns>The attempt, to be disposed when it ends, or null if it has to be answered with 429 (see ThrottledResult).</returns>
+        private LoginAttempt? BeginAttempt(string? userName)
         {
-            if (loginThrottle.TryBeginAttempt(userName, ClientAddress))
+            LoginAttempt? attempt = loginThrottle.BeginAttempt(userName, ClientAddress);
+            if (attempt == null)
             {
-                return null;
+                Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {ClientAddress} refused: login limit exceeded.");
             }
-            Log.WriteWarning(kLoginLogCategory, $"Login attempt for user \"{userName}\" from {ClientAddress} refused: login limit exceeded.");
+            return attempt;
+        }
+
+        /// <summary>
+        /// Answers a login refused by the login limits before any LDAP work.
+        /// </summary>
+        private ObjectResult ThrottledResult()
+        {
             return CapacityResult(new LoginCapacityException(LoginCapacityException.kTooManyAttempts, StatusCodes.Status429TooManyRequests));
         }
 
@@ -88,7 +96,7 @@ namespace FWO.Middleware.Server.Controllers
         /// <summary>
         /// Authenticates a user by password and counts invalid credentials against the user's failure limit.
         /// </summary>
-        private async Task<UiUser?> AuthenticateWithPasswordAsync(AuthManager authManager, UiUser? user)
+        private async Task<UiUser?> AuthenticateWithPasswordAsync(AuthManager authManager, UiUser? user, LoginAttempt attempt)
         {
             try
             {
@@ -96,7 +104,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (AuthenticationException)
             {
-                loginThrottle.RecordFailure(user?.Name, ClientAddress);
+                attempt.RecordFailure();
                 throw;
             }
         }
@@ -127,14 +135,15 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                if (RejectIfThrottled(user?.Name) is ObjectResult throttled)
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
                 {
-                    return throttled;
+                    return ThrottledResult();
                 }
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
-                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user);
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
 
                 // Creates access and refresh token and stores the refresh token hash in DB
                 TokenPair tokenPair = await authManager.CreateTokenPair(authenticatedUser);
@@ -172,15 +181,16 @@ namespace FWO.Middleware.Server.Controllers
         {
             try
             {
-                if (RejectIfThrottled(parameters.AdminUsername) is ObjectResult throttled)
+                using LoginAttempt? attempt = BeginAttempt(parameters.AdminUsername);
+                if (attempt == null)
                 {
-                    return throttled;
+                    return ThrottledResult();
                 }
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = parameters.AdminUsername, Password = parameters.AdminPassword };
 
-                UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser)
+                UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
                     ?? throw new AuthenticationException("Provided admin credentials are invalid.");
 
                 if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
@@ -239,14 +249,15 @@ namespace FWO.Middleware.Server.Controllers
                         user = new UiUser { Name = username, Password = password };
                 }
 
-                if (RejectIfThrottled(user?.Name) is ObjectResult throttled)
+                using LoginAttempt? attempt = BeginAttempt(user?.Name);
+                if (attempt == null)
                 {
-                    return throttled;
+                    return ThrottledResult();
                 }
 
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
 
-                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user);
+                UiUser? authenticatedUser = await AuthenticateWithPasswordAsync(authManager, user, attempt);
 
                 TimeSpan accessLifetime = authenticatedUser == null ? tokenLifetimeProvider.GetAnonymousTokenLifetime() : await tokenLifetimeProvider.GetUserAccessTokenLifetimeAsync(apiConnection);
 
@@ -286,16 +297,17 @@ namespace FWO.Middleware.Server.Controllers
             {
                 string adminUsername = parameters.AdminUsername;
                 string adminPassword = parameters.AdminPassword;
-                if (RejectIfThrottled(adminUsername) is ObjectResult throttled)
+                using LoginAttempt? attempt = BeginAttempt(adminUsername);
+                if (attempt == null)
                 {
-                    return throttled;
+                    return ThrottledResult();
                 }
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection, tokenLifetimeProvider);
                 UiUser adminUser = new() { Name = adminUsername, Password = adminPassword };
                 // Check if admin valids are valid
                 try
                 {
-                    UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser)
+                    UiUser authenticatedAdminUser = await AuthenticateWithPasswordAsync(authManager, adminUser, attempt)
                         ?? throw new AuthenticationException("Provided admin credentials are invalid.");
                     if (!authenticatedAdminUser.Roles.Contains(Roles.Admin))
                     {

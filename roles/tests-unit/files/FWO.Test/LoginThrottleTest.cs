@@ -16,94 +16,132 @@ namespace FWO.Test
         private static readonly List<string> kUnresolvableHosts = ["unresolvable.invalid"];
 
         [Test]
-        public void TryBeginAttempt_NeverLimitsAnonymousRequests()
+        public void BeginAttempt_NeverLimitsAnonymousRequests()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 1);
 
             for (int attempt = 0; attempt < 5; attempt++)
             {
-                Assert.That(throttle.TryBeginAttempt(null, kClient), Is.True);
-                Assert.That(throttle.TryBeginAttempt("", kClient), Is.True);
+                Assert.That(Admits(throttle, null, kClient), Is.True);
+                Assert.That(Admits(throttle, "", kClient), Is.True);
             }
         }
 
         [Test]
-        public void TryBeginAttempt_LimitsCredentialedAttemptsPerClient()
+        public void BeginAttempt_LimitsCredentialedAttemptsPerClient()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 2, userFailures: 10);
 
-            Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.True);
-            Assert.That(throttle.TryBeginAttempt("bob", kClient), Is.True);
-            Assert.That(throttle.TryBeginAttempt("carol", kClient), Is.False);
-            Assert.That(throttle.TryBeginAttempt("carol", kOtherClient), Is.True);
+            Assert.That(Admits(throttle, "alice", kClient), Is.True);
+            Assert.That(Admits(throttle, "bob", kClient), Is.True);
+            Assert.That(Admits(throttle, "carol", kClient), Is.False);
+            Assert.That(Admits(throttle, "carol", kOtherClient), Is.True);
         }
 
         [Test]
-        public void TryBeginAttempt_TreatsIpv4MappedAddressAsSameClient()
+        public void BeginAttempt_TreatsIpv4MappedAddressAsSameClient()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10);
 
-            Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.True);
-            Assert.That(throttle.TryBeginAttempt("alice", kClient.MapToIPv6()), Is.False);
+            Assert.That(Admits(throttle, "alice", kClient), Is.True);
+            Assert.That(Admits(throttle, "alice", kClient.MapToIPv6()), Is.False);
         }
 
         [Test]
-        public void TryBeginAttempt_ExemptsTrustedClientsFromClientLimit()
+        public void BeginAttempt_ExemptsTrustedClientsFromClientLimit()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10, trusted: kTrustedUiServer);
 
             for (int attempt = 0; attempt < 5; attempt++)
             {
-                Assert.That(throttle.TryBeginAttempt($"user{attempt}", kUiServer), Is.True);
+                Assert.That(Admits(throttle, $"user{attempt}", kUiServer), Is.True);
             }
         }
 
         [Test]
-        public void TryBeginAttempt_BlocksUserAfterFailuresFromSameClientOnly()
+        public void BeginAttempt_BlocksUserAfterFailuresFromSameClientOnly()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 2, trusted: kTrustedUiServer);
 
-            throttle.RecordFailure("Alice", kUiServer);
-            Assert.That(throttle.TryBeginAttempt("alice", kUiServer), Is.True);
-            throttle.RecordFailure(" alice ", kUiServer);
+            Fail(throttle, "Alice", kUiServer);
+            Assert.That(Admits(throttle, "alice", kUiServer), Is.True);
+            Fail(throttle, " alice ", kUiServer);
 
-            Assert.That(throttle.TryBeginAttempt("ALICE", kUiServer), Is.False, "trusted clients stay subject to the user limit");
-            Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.True);
-            Assert.That(throttle.TryBeginAttempt("bob", kUiServer), Is.True);
+            Assert.That(Admits(throttle, "ALICE", kUiServer), Is.False, "trusted clients stay subject to the user limit");
+            Assert.That(Admits(throttle, "alice", kClient), Is.True);
+            Assert.That(Admits(throttle, "bob", kUiServer), Is.True);
         }
 
         [Test]
-        public void TryBeginAttempt_SuccessfulAttemptsDoNotCountAsFailures()
+        public void BeginAttempt_SuccessfulAttemptsDoNotCountAsFailures()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 1);
 
             for (int attempt = 0; attempt < 5; attempt++)
             {
-                Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.True);
+                Assert.That(Admits(throttle, "alice", kClient), Is.True);
             }
         }
 
         [Test]
-        public async Task TryBeginAttempt_AllowsAttemptsAgainAfterWindow()
+        public async Task BeginAttempt_AllowsAttemptsAgainAfterWindow()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 1, window: TimeSpan.FromMilliseconds(100));
-            throttle.RecordFailure("alice", kClient);
-            Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.False);
+            Fail(throttle, "alice", kClient);
+            Assert.That(Admits(throttle, "alice", kClient), Is.False);
 
             using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(5));
-            while (!throttle.TryBeginAttempt("alice", kClient))
+            while (!Admits(throttle, "alice", kClient))
             {
                 await Task.Delay(50, timeout.Token);
             }
         }
 
         [Test]
-        public void TryBeginAttempt_GroupsUnknownClients()
+        public void BeginAttempt_GroupsUnknownClients()
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 1, userFailures: 10);
 
-            Assert.That(throttle.TryBeginAttempt("alice", null), Is.True);
-            Assert.That(throttle.TryBeginAttempt("bob", null), Is.False);
+            Assert.That(Admits(throttle, "alice", null), Is.True);
+            Assert.That(Admits(throttle, "bob", null), Is.False);
+        }
+
+        [Test]
+        public void BeginAttempt_CountsRunningAttemptsOfTheUserAsPossibleFailures()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 2);
+
+            LoginAttempt? first = throttle.BeginAttempt("alice", kClient);
+            using LoginAttempt? second = throttle.BeginAttempt("alice", kClient);
+            using LoginAttempt? refused = throttle.BeginAttempt("alice", kClient);
+            using LoginAttempt? otherUser = throttle.BeginAttempt("bob", kClient);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(first, Is.Not.Null);
+                Assert.That(second, Is.Not.Null);
+                Assert.That(refused, Is.Null, "concurrent guesses must not exceed the failure limit");
+                Assert.That(otherUser, Is.Not.Null);
+            });
+            first!.Dispose();
+            first.Dispose();
+            Assert.That(Admits(throttle, "alice", kClient), Is.True, "an ended attempt frees its place once");
+            using LoginAttempt? third = throttle.BeginAttempt("alice", kClient);
+            Assert.That(third, Is.Not.Null);
+            Assert.That(Admits(throttle, "alice", kClient), Is.False);
+        }
+
+        [Test]
+        public void BeginAttempt_FailureOfAnEndedAttemptStaysCounted()
+        {
+            using LoginThrottle throttle = CreateThrottle(clientAttempts: 100, userFailures: 1);
+
+            using (LoginAttempt attempt = throttle.BeginAttempt("alice", kClient)!)
+            {
+                attempt.RecordFailure();
+            }
+
+            Assert.That(Admits(throttle, "alice", kClient), Is.False);
         }
 
         [Test]
@@ -111,10 +149,10 @@ namespace FWO.Test
         {
             using LoginThrottle throttle = CreateThrottle(clientAttempts: 10, userFailures: 1);
 
-            throttle.RecordFailure(null, kClient);
-            throttle.RecordFailure("", kClient);
+            Fail(throttle, null, kClient);
+            Fail(throttle, "", kClient);
 
-            Assert.That(throttle.TryBeginAttempt("alice", kClient), Is.True);
+            Assert.That(Admits(throttle, "alice", kClient), Is.True);
         }
 
         [Test]
@@ -144,6 +182,24 @@ namespace FWO.Test
                 Assert.That(settings.TrustedClientAddresses, Does.Contain(IPAddress.Loopback));
                 Assert.That(settings.TrustedClientAddresses, Does.Contain(IPAddress.IPv6Loopback));
             });
+        }
+
+        /// <summary>
+        /// Begins an attempt and ends it at once, like a login that did not fail.
+        /// </summary>
+        private static bool Admits(LoginThrottle throttle, string? userName, IPAddress? client)
+        {
+            using LoginAttempt? attempt = throttle.BeginAttempt(userName, client);
+            return attempt != null;
+        }
+
+        /// <summary>
+        /// Begins an attempt that fails.
+        /// </summary>
+        private static void Fail(LoginThrottle throttle, string? userName, IPAddress? client)
+        {
+            using LoginAttempt attempt = throttle.BeginAttempt(userName, client) ?? throw new AssertionException("attempt refused");
+            attempt.RecordFailure();
         }
 
         private static LoginThrottle CreateThrottle(int clientAttempts, int userFailures, List<IPAddress>? trusted = null, TimeSpan? window = null)

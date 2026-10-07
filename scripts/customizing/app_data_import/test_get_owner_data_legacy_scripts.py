@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 import logging
-from pathlib import Path
-from types import TracebackType
-from typing import Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 import pytest
 import requests
 
 import scripts.customizing.app_data_import.get_owner_data1_from_multiple_sources as source1
 import scripts.customizing.app_data_import.get_owner_data2_from_csvs as source2
+
+if TYPE_CHECKING:
+    from pathlib import Path
+    from types import TracebackType
 
 
 class FakeResponse:

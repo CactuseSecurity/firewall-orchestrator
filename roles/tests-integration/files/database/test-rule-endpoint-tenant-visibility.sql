@@ -85,6 +85,7 @@ DECLARE
     i_track_id integer;
     i_host_typ_id integer;
     i_network_typ_id integer;
+    i_group_typ_id integer;
     i_mgm_id integer;
     i_dev_id integer;
     i_gw2_id integer;
@@ -103,6 +104,7 @@ BEGIN
     SELECT min(track_id) INTO i_track_id FROM stm_track;
     SELECT obj_typ_id INTO i_host_typ_id FROM stm_obj_typ WHERE obj_typ_name = 'host';
     SELECT obj_typ_id INTO i_network_typ_id FROM stm_obj_typ WHERE obj_typ_name = 'network';
+    SELECT obj_typ_id INTO i_group_typ_id FROM stm_obj_typ WHERE obj_typ_name = 'group';
 
     INSERT INTO import_credential (credential_name, username, secret)
         VALUES ('ghsa_v8hx_probe', 'probe', 'probe') RETURNING id INTO i_credential_id;
@@ -144,16 +146,22 @@ BEGIN
                 VALUES (i_mgm_id, CASE WHEN r_obj.ip = r_obj.ip_end THEN i_host_typ_id ELSE i_network_typ_id END,
                     i_import_id, r_obj.obj_key, r_obj.ip::cidr, r_obj.ip_end::cidr)
                 RETURNING obj_id INTO i_obj_id;
-            INSERT INTO objgrp_flat (objgrp_flat_id, objgrp_flat_member_id, import_created)
-                VALUES (i_obj_id, i_obj_id, i_import_id);
             INSERT INTO probe_id VALUES (r_mgm.mgm_key || '_' || r_obj.obj_key, i_obj_id);
         END LOOP;
+        -- as with the importer, only groups have objgrp_flat rows (the group itself and its members): plain objects
+        -- have none and are matched by their own address
+        INSERT INTO firewall.nw_object (mgm_id, obj_typ_id, obj_create, obj_name)
+            VALUES (i_mgm_id, i_group_typ_id, i_import_id, 'tenant_group') RETURNING obj_id INTO i_obj_id;
+        INSERT INTO objgrp_flat (objgrp_flat_id, objgrp_flat_member_id, import_created)
+            VALUES (i_obj_id, i_obj_id, i_import_id), (i_obj_id, pg_temp.probe(r_mgm.mgm_key || '_tenant_host'), i_import_id);
+        INSERT INTO probe_id VALUES (r_mgm.mgm_key || '_tenant_group', i_obj_id);
         INSERT INTO probe_id VALUES ('rulebase_' || r_mgm.mgm_key, i_rulebase_id), ('import_' || r_mgm.mgm_key, i_import_id);
 
         -- enforced_on: the gateways in rule_enforced_on_gateway ("all": an all-gateways entry, "none": no entry)
         FOR r_rule IN SELECT * FROM (VALUES
                 ('hidden', 'outside_src', false, 'outside_dst', false, 'dev', true),
                 ('src_in_tenant', 'tenant_host', false, 'outside_dst', false, 'dev', true),
+                ('src_group_in_tenant', 'tenant_group', false, 'outside_dst', false, 'dev', true),
                 ('dst_in_tenant', 'outside_src', false, 'tenant_host', false, 'dev', true),
                 ('src_negated_host', 'outside_src', true, 'outside_dst', false, 'dev', true),
                 ('src_negated_any', 'any', true, 'outside_dst', false, 'dev', true),
@@ -187,11 +195,34 @@ END $$;
 -- ip based visibility of the target rules (no device or management of the tenant is unfiltered)
 SELECT pg_temp.expect_rule('rule outside the tenant networks', 'target_hidden', pg_temp.probe('tenant'), false);
 SELECT pg_temp.expect_rule('source in a tenant network', 'target_src_in_tenant', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('source group with a member in a tenant network', 'target_src_group_in_tenant', pg_temp.probe('tenant'), true);
 SELECT pg_temp.expect_rule('destination in a tenant network', 'target_dst_in_tenant', pg_temp.probe('tenant'), true);
 SELECT pg_temp.expect_rule('negated source host', 'target_src_negated_host', pg_temp.probe('tenant'), true);
 SELECT pg_temp.expect_rule('negated source any', 'target_src_negated_any', pg_temp.probe('tenant'), false);
 SELECT pg_temp.expect_rule('negated destination host', 'target_dst_negated_host', pg_temp.probe('tenant'), true);
 SELECT pg_temp.expect_rule('negated destination any', 'target_dst_negated_any', pg_temp.probe('tenant'), false);
+
+-- the objects of the tenant simulation and the changelog filter use the same ip based visibility
+SELECT pg_temp.expect('objects for the tenant include a plain host in its network',
+    pg_temp.probe('target_tenant_host') IN (
+        SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
+        WHERE m.mgm_id = pg_temp.probe('mgm_target')),
+    true);
+SELECT pg_temp.expect('objects for the tenant leave out objects only used in invisible rules',
+    pg_temp.probe('target_any') IN (
+        SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
+        WHERE m.mgm_id = pg_temp.probe('mgm_target')),
+    false);
+SELECT pg_temp.expect('rule change adding a plain host in a tenant network is relevant',
+    has_relevant_change(jsonb_populate_record(NULL::changelog_rule,
+        jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_src_in_tenant'))),
+        pg_temp.probe('tenant')::integer),
+    true);
+SELECT pg_temp.expect('rule change outside the tenant networks is not relevant',
+    has_relevant_change(jsonb_populate_record(NULL::changelog_rule,
+        jsonb_build_object('old_rule_id', pg_temp.probe('target_hidden'), 'new_rule_id', pg_temp.probe('target_on_gw2_only'))),
+        pg_temp.probe('tenant')::integer),
+    false);
 
 -- an endpoint negated on its own on top of a negated rule side is not negated
 UPDATE rule_from SET negated = true WHERE rule_id = pg_temp.probe('target_src_negated_any');

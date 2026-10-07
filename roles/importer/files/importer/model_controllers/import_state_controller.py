@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import traceback
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 import fwo_globals
 import urllib3
 from dateutil import parser
 from fwo_api import FwoApi
-from fwo_api_call import FwoApiCall
 from fwo_config import read_config
 from fwo_const import FWO_CONFIG_FILENAME, GRAPHQL_QUERY_PATH
 from fwo_exceptions import FwoImporterError
@@ -20,6 +22,9 @@ from model_controllers.management_controller import (
     ManagerInfo,
 )
 from models.import_state import ImportState
+
+if TYPE_CHECKING:
+    from fwo_api_call import FwoApiCall
 
 """Used for storing state during import process per management"""
 

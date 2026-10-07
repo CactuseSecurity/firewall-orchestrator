@@ -255,7 +255,7 @@ namespace FWO.Middleware.Server.Controllers
                 ldapRoleRequests.Add(Task.Run(async () =>
                 {
                     // Get roles from current Ldap
-                    List<string> currentRoles = await currentLdap.GetRoles(dnList, cancellationToken);
+                    List<string> currentRoles = await LdapAuthenticationGate.RunInSlotAsync(token => currentLdap.GetRoles(dnList, token), cancellationToken);
 
                     lock (rolesLock)
                     {

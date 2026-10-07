@@ -890,6 +890,34 @@ namespace FWO.Test
         }
 
         [Test]
+        public async Task GetTokenPairForUser_Returns429_AfterInvalidAdminCredentials()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            ActionResult<TokenPair> failure = await controller.GetTokenPairForUser(parameters);
+            ActionResult<TokenPair> blocked = await controller.GetTokenPairForUser(parameters);
+
+            Assert.That(failure.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
+        public async Task GetAsyncForUser_Returns429_AfterInvalidAdminCredentials()
+        {
+            AuthenticationTokenController controller = CreateThrottledController(new List<Ldap> { CreateAuthLdap(new RecordingLdapClient()) },
+                new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 100, userFailures: 1));
+            AuthenticationTokenGetForUserParameters parameters = new() { AdminUsername = "admin", AdminPassword = "wrong", TargetUserName = "target" };
+
+            ActionResult<string> failure = await controller.GetAsyncForUser(parameters);
+            ActionResult<string> blocked = await controller.GetAsyncForUser(parameters);
+
+            Assert.That(failure.Result, Is.TypeOf<BadRequestObjectResult>());
+            AssertCapacityResult(blocked.Result, StatusCodes.Status429TooManyRequests, "A0006");
+        }
+
+        [Test]
         public async Task GetTokenPair_NeverThrottlesAnonymousBootstrapRequests()
         {
             AuthenticationTokenController controller = CreateThrottledController([], new RecordingApiConnection(), CreateLoginThrottle(clientAttempts: 1, userFailures: 1));

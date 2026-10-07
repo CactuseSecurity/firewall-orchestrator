@@ -1,8 +1,13 @@
-from pathlib import Path
+from __future__ import annotations
 
-import pytest
+from typing import TYPE_CHECKING
 
 from scripts.customizing.fwo_custom_lib import basic_helpers
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
 def test_resolve_requests_verify_switched_off_returns_false(tmp_path: Path) -> None:

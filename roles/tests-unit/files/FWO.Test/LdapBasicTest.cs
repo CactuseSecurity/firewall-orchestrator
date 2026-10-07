@@ -26,6 +26,7 @@ namespace FWO.Test
         private static readonly string kDescription = "Application owners";
         private static readonly string[] kOwnerGroupValues = { "ownergroup" };
         private static readonly string[] kUidValues = { "user" };
+        private static readonly string[] kOtherUidValues = { "other" };
         private static readonly string[] kMailValues = { kMail };
         private static readonly string[] kDescriptionValues = { kDescription };
         private static readonly string[] kUniqueMemberValues = { kUserDn };
@@ -72,6 +73,49 @@ namespace FWO.Test
 
             Assert.That(entry, Is.Null);
             Assert.That(ldap.ConnectCount, Is.Zero);
+        }
+
+        [TestCase(LdapType.ActiveDirectory, "(sAMAccountName=user)", "uid=")]
+        [TestCase(LdapType.OpenLdap, "(uid=user)", "sAMAccountName=")]
+        [TestCase(LdapType.Default, "(|(sAMAccountName=user)(uid=user))", "cn=")]
+        public async Task Login_SearchesTheTrimmedNameExactlyInTheLoginAttributeOfTheDirectoryType(LdapType type, string expectedFilterPart, string unexpectedFilterPart)
+        {
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults()
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com",
+                Type = (int)type
+            };
+
+            await ldap.GetLdapEntry(new UiUser { Name = " user ", Password = "secret" }, true);
+
+            string filter = connection.SearchCalls[0].Filter;
+            Assert.That(filter, Does.Contain(expectedFilterPart));
+            Assert.That(filter, Does.Not.Contain(unexpectedFilterPart));
+            Assert.That(filter, Does.Not.Contain("userPrincipalName").And.Not.Contain("mail="));
+        }
+
+        [Test]
+        public async Task Login_DoesNotBindAnEntryWhoseNameDiffersFromTheLoginName()
+        {
+            // e.g. an entry matched by a second uid value or by uid while its sAMAccountName differs
+            LdapEntry entry = LdapTestSupport.CreateEntry(kUserDn, new LdapAttribute("uid", kOtherUidValues));
+            RecordingLdapClient connection = new()
+            {
+                SearchResults = LdapTestSupport.CreateSearchResults(entry)
+            };
+            global::FWO.Test.TestableLdap ldap = new(connection)
+            {
+                UserSearchPath = "ou=users,dc=example,dc=com"
+            };
+
+            LdapEntry? result = await ldap.GetLdapEntry(new UiUser { Name = "user", Password = "secret" }, true);
+
+            Assert.That(result, Is.Null);
+            Assert.That(connection.BindCalls, Is.Empty);
         }
 
         [Test]

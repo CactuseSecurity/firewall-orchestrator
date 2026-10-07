@@ -70,7 +70,9 @@
   - a login looks up exactly one directory entry with an exact, escaped filter on the login attribute
     (sAMAccountName for Active Directory, uid for OpenLDAP, either one for the default type) and checks the
     password only for that entry. Breaking change: users who logged in with their cn, userPrincipalName or mail
-    address, or with another than the first value of a multi-valued uid, have to use their account name now
+    address, or with another than the first value of a multi-valued uid, have to use their account name now.
+    Logins with the userPrincipalName or the mail address are not supported on purpose: these names are not
+    guaranteed to be unique, and a login matching several entries could select another account than intended
   - login names containing LDAP filter characters (*, \\, (, ) or NUL) are rejected without directory access
   - logins are limited per client address (30 attempts per minute) and per user name and client (10 failures per
     minute); the UI and middleware hosts are exempt from the per-client limit. At most 16 directories per login,
@@ -79,6 +81,8 @@
     Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md)
   - when a login runs out of time or is cancelled, its LDAP connections are closed, which ends the directory
     operations still waiting for an answer
+  - login attempts of a user that are still running count as possible failures, so concurrent guesses cannot
+    exceed the failure limit; the group and role lookups of logins share the 4 parallel LDAP operations
 - security (GHSA-v8hx-cx2q-j75v): the tenant visibility of rule sources and destinations (rule_from /
   rule_to) no longer depends on unrelated devices
   - the full rulebase check used the device of an arbitrary rule instead of the device of the checked rule,
@@ -96,6 +100,10 @@
     visible through the gateways they were enforced on. This applies to rules, rule sources and destinations
     and to the tenant simulation, which now lists the rules of the rulebases linked to a gateway
   - a new index on rule_enforced_on_gateway (rule_id) keeps these checks fast
+  - plain network objects (no group) used directly in a rule are matched against the tenant networks by their
+    own address; so far only group members were matched, as the importer writes objgrp_flat rows for groups
+    only, so such rules were not visible to the tenant. This also applies to the tenant simulation of objects
+    and rule changes
   - a database integration test checks the visibility in a rolled back transaction, including unrelated
     visible devices and managements (with rule.dev_id set as in older data), negated sources and destinations,
     rules enforced on one or several gateways, rules for all gateways, nat rules, rules installed on unknown
@@ -111,6 +119,11 @@
   - newly supported: any6, IPv6 hosts and prefixes, name aliases in subnet addresses, lt / gt ports, icmp types,
     log options, "line N" and time-range (imported as rule time with a time object named like the time-range;
     its absolute and periodic times are not imported)
+  - the services of the imported rules keep the restrictions of the entry: a protocol group with a port gets that
+    port for each of its protocols (so far any port), a port group of a tcp or udp entry only contributes its
+    services of that protocol (as a group named "<group> (tcp)" if it has others), icmp6 types and sctp ports
+    are kept, and numeric protocols get their protocol number (so far 0). A port or service that cannot be
+    represented fails the import instead of being imported as any
   - still not supported (import fails): interface, user and security-group addresses, source ports, neq and
     icmp codes
   - rule uids of entries that were already parsed correctly do not change. Entries whose meaning changed (icmp

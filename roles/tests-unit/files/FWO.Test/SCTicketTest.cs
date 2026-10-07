@@ -1,3 +1,5 @@
+using FWO.Api.Client;
+using System.Reflection;
 using NUnit.Framework;
 using NUnit.Framework.Legacy;
 using FWO.Data;
@@ -397,6 +399,20 @@ namespace FWO.Test
                 LookupRequesterId = lookupRequesterId,
                 Templates = ticketSystem.Templates
             };
+        }
+
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void Constructor_CreatesTheClientWithTheTicketSystemCertificateCheck(bool firewallConnections, bool ticketSystems)
+        {
+            SCTicket ticket = new(new ExternalTicketSystem { Url = "https://securechange.example.test/" },
+                new ExternalCertificateChecks(firewallConnections, ticketSystems));
+
+            object client = typeof(SCTicket).GetField("SCClient", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(ticket)
+                ?? throw new MissingFieldException(nameof(SCTicket), "SCClient");
+            object? checkCertificates = typeof(RestApiClient).GetField("CheckCertificates", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(client);
+
+            Assert.That(checkCertificates, Is.EqualTo(ticketSystems));
         }
     }
 }

@@ -403,12 +403,7 @@ namespace FWO.Middleware.Server
 
             try
             {
-                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress)
-                {
-                    CheckCertificates = GlobalConfig.EmailCheckCertificates
-                };
+                EmailConnection emailConnection = CreateEmailConnection(GlobalConfig);
 
                 bool sent = await MailKitMailer.SendAsync(mail, emailConnection, notification.Layout == NotificationLayout.HtmlInBody, new());
                 await CompleteNotificationLog(logId, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,
@@ -573,18 +568,28 @@ namespace FWO.Middleware.Server
             }
         }
 
+        /// <summary>
+        /// Builds the connection to the email server from the global email settings, including the certificate check.
+        /// </summary>
+        /// <param name="globalConfig">Global config holding the email settings.</param>
+        /// <returns>The email connection with the decrypted password.</returns>
+        internal static EmailConnection CreateEmailConnection(GlobalConfig globalConfig)
+        {
+            string decryptedSecret = AesEnc.TryDecrypt(globalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
+            return new EmailConnection(globalConfig.EmailServerAddress, globalConfig.EmailPort,
+                globalConfig.EmailTls, globalConfig.EmailUser, decryptedSecret, globalConfig.EmailSenderAddress)
+            {
+                CheckCertificates = globalConfig.EmailCheckCertificates
+            };
+        }
+
         private async Task<NotificationDeliveryResult> SendPreparedBundle(List<FwoNotification> notifications, MailData mail)
         {
             List<int> sendableLogIds = await LogBundledNotifications(notifications, mail);
 
             try
             {
-                string decryptedSecret = AesEnc.TryDecrypt(GlobalConfig.EmailPassword, false, "NotificationService", "Could not decrypt mailserver password.");
-                EmailConnection emailConnection = new(GlobalConfig.EmailServerAddress, GlobalConfig.EmailPort,
-                    GlobalConfig.EmailTls, GlobalConfig.EmailUser, decryptedSecret, GlobalConfig.EmailSenderAddress)
-                {
-                    CheckCertificates = GlobalConfig.EmailCheckCertificates
-                };
+                EmailConnection emailConnection = CreateEmailConnection(GlobalConfig);
 
                 bool sent = await MailKitMailer.SendAsync(mail, emailConnection, false, new());
                 await CompleteNotificationLogs(sendableLogIds, sent ? NotificationLogStatus.Sent : NotificationLogStatus.Failed,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -312,7 +314,7 @@ def test_time_range_is_imported_as_rule_time() -> None:
     assert rule.rule_uid != rule_without_time_range.rule_uid
 
 
-def normalize_fixture_with(extra_lines: str) -> "FwConfigNormalized":
+def normalize_fixture_with(extra_lines: str) -> FwConfigNormalized:
     """Parse and normalize the fixture config with additional lines, as the import does."""
     config_in = FwConfigManagerListController.generate_empty_config()
     config_in.native_config = parse_asa_config(

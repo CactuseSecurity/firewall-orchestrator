@@ -105,6 +105,10 @@ namespace FWO.Middleware.Server
         private readonly HashSet<IPAddress> trustedClients;
         private readonly PartitionedRateLimiter<string> clientAttempts;
         private readonly PartitionedRateLimiter<string> userFailures;
+        private readonly int userFailuresPerWindow;
+        // attempts of a user name and client that are still running: each of them may still fail
+        private readonly Dictionary<string, int> pendingAttempts = [];
+        private readonly object attemptLock = new();
 
         /// <summary>Retry hint for rejected clients, matching the limiter window.</summary>
         public const int kRetryAfterSeconds = 60;
@@ -123,41 +127,72 @@ namespace FWO.Middleware.Server
             trustedClients = settings.TrustedClientAddresses.Select(Normalize).ToHashSet();
             clientAttempts = CreateLimiter(settings.ClientAttemptsPerMinute, window);
             userFailures = CreateLimiter(settings.UserFailuresPerMinute, window);
+            userFailuresPerWindow = settings.UserFailuresPerMinute;
         }
 
         /// <summary>
-        /// Consumes one attempt of the client and checks the failures of the user.
+        /// Consumes one attempt of the client and checks the failures of the user, counting the attempts of the user
+        /// that are still running as possible failures: otherwise concurrent attempts would all pass the check before
+        /// the first failure is recorded.
         /// </summary>
         /// <param name="userName">Login name of the attempt; null or empty for anonymous requests.</param>
         /// <param name="client">Client address as seen after forwarded-header processing.</param>
-        /// <returns>True if the attempt may proceed to the directories.</returns>
-        public bool TryBeginAttempt(string? userName, IPAddress? client)
+        /// <returns>The attempt, to be disposed when it ends, or null if the attempt must not proceed to the directories.</returns>
+        public LoginAttempt? BeginAttempt(string? userName, IPAddress? client)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
-                return true;
+                return new LoginAttempt(this, null);
             }
-            if (userFailures.GetStatistics(UserKey(userName, client))?.CurrentAvailablePermits <= 0)
+            string userKey = UserKey(userName, client);
+            lock (attemptLock)
             {
-                return false;
+                long availableFailures = userFailures.GetStatistics(userKey)?.CurrentAvailablePermits ?? userFailuresPerWindow;
+                int pending = pendingAttempts.GetValueOrDefault(userKey);
+                if (availableFailures - pending <= 0 || !TryConsumeClientAttempt(client))
+                {
+                    return null;
+                }
+                pendingAttempts[userKey] = pending + 1;
             }
+            return new LoginAttempt(this, userKey);
+        }
+
+        /// <summary>
+        /// Records a failed attempt of the user key.
+        /// </summary>
+        internal void RecordFailure(string userKey)
+        {
+            using RateLimitLease lease = userFailures.AttemptAcquire(userKey);
+        }
+
+        /// <summary>
+        /// Ends a running attempt of the user key.
+        /// </summary>
+        internal void EndAttempt(string userKey)
+        {
+            lock (attemptLock)
+            {
+                int pending = pendingAttempts.GetValueOrDefault(userKey) - 1;
+                if (pending > 0)
+                {
+                    pendingAttempts[userKey] = pending;
+                }
+                else
+                {
+                    pendingAttempts.Remove(userKey);
+                }
+            }
+        }
+
+        private bool TryConsumeClientAttempt(IPAddress? client)
+        {
             if (client != null && trustedClients.Contains(Normalize(client)))
             {
                 return true;
             }
             using RateLimitLease lease = clientAttempts.AttemptAcquire(ClientKey(client));
             return lease.IsAcquired;
-        }
-
-        /// <summary>
-        /// Records a failed login of the user from the client.
-        /// </summary>
-        public void RecordFailure(string? userName, IPAddress? client)
-        {
-            if (!string.IsNullOrWhiteSpace(userName))
-            {
-                using RateLimitLease lease = userFailures.AttemptAcquire(UserKey(userName, client));
-            }
         }
 
         /// <summary>
@@ -195,6 +230,45 @@ namespace FWO.Middleware.Server
                     QueueLimit = 0,
                     AutoReplenishment = true
                 }));
+        }
+    }
+
+    /// <summary>
+    /// A login attempt admitted by the <see cref="LoginThrottle"/>; it counts as a possible failure of its user until
+    /// it is disposed. Anonymous attempts are not counted.
+    /// </summary>
+    public sealed class LoginAttempt : IDisposable
+    {
+        private readonly LoginThrottle throttle;
+        private readonly string? userKey;
+        private int ended;
+
+        internal LoginAttempt(LoginThrottle throttle, string? userKey)
+        {
+            this.throttle = throttle;
+            this.userKey = userKey;
+        }
+
+        /// <summary>
+        /// Records that the credentials of the attempt were invalid.
+        /// </summary>
+        public void RecordFailure()
+        {
+            if (userKey != null)
+            {
+                throttle.RecordFailure(userKey);
+            }
+        }
+
+        /// <summary>
+        /// Ends the attempt; a recorded failure stays counted.
+        /// </summary>
+        public void Dispose()
+        {
+            if (userKey != null && Interlocked.Exchange(ref ended, 1) == 0)
+            {
+                throttle.EndAttempt(userKey);
+            }
         }
     }
 }

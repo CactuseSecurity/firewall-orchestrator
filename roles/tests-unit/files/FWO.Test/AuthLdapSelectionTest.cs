@@ -204,6 +204,31 @@ namespace FWO.Test
         }
 
         /// <summary>Waits briefly for the asynchronous attempts to start.</summary>
+        [Test]
+        public async Task RunInSlotAsync_LoginOperationsShareTheSlotsAndOthersRunDirectly()
+        {
+            TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            int started = 0;
+            using CancellationTokenSource loginDeadline = new();
+            List<Task<int>> occupying = Enumerable.Range(0, LdapAuthenticationGate.kMaxConcurrentOperations)
+                .Select(index => LdapAuthenticationGate.RunInSlotAsync(async token =>
+                {
+                    Interlocked.Increment(ref started);
+                    await release.Task.WaitAsync(token);
+                    return index;
+                }, loginDeadline.Token)).ToList();
+            await WaitForStartedAttemptsAsync(() => Volatile.Read(ref started) == LdapAuthenticationGate.kMaxConcurrentOperations);
+
+            Task<int> queuedLoginOperation = LdapAuthenticationGate.RunInSlotAsync(_ => Task.FromResult(1), loginDeadline.Token);
+            int operationWithoutDeadline = await LdapAuthenticationGate.RunInSlotAsync(_ => Task.FromResult(2), CancellationToken.None);
+
+            Assert.That(operationWithoutDeadline, Is.EqualTo(2), "an operation without a deadline must not wait for a slot");
+            Assert.That(queuedLoginOperation.IsCompleted, Is.False, "a login operation has to wait for a free slot");
+            release.SetResult();
+            Assert.That(await queuedLoginOperation, Is.EqualTo(1));
+            await Task.WhenAll(occupying);
+        }
+
         private static async Task WaitForStartedAttemptsAsync(Func<bool> condition)
         {
             using CancellationTokenSource timeout = new(TimeSpan.FromSeconds(2));

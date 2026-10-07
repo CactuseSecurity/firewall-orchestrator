@@ -32,6 +32,12 @@ as the `cn`, the `userPrincipalName`, the mail address or a further value of a m
 (since 9.6.3). Login names containing LDAP filter characters (`*`, `\`, `(`, `)` or NUL) are rejected without any
 directory access.
 
+Logins with the `userPrincipalName` or the mail address are not supported on purpose. Unlike the account name, these
+attributes are not guaranteed to be unique within a directory and across the connected directories, and a login
+that matched several entries could select another account than the one the user intended. Users who logged in with
+one of these names before 9.6.3 have to use their account name. The LDAP type of a connection (settings, LDAP
+connections) determines which attribute is the account name.
+
 ## Login limits
 
 Every login with credentials makes the middleware search and bind in the active LDAP connections. To keep
@@ -41,10 +47,10 @@ unauthenticated requests from turning into a flood of directory operations, the 
 | Limit | Default | Answer when exceeded |
 |---|---|---|
 | Credentialed login attempts per client address and minute | 30 | `429` with `A0006` and `Retry-After` |
-| Failed logins per user name and client address and minute | 10 | `429` with `A0006` and `Retry-After` |
+| Failed logins per user name and client address and minute (running attempts count as possible failures) | 10 | `429` with `A0006` and `Retry-After` |
 | Active LDAP connections one login may be tried against | 16 | `503` with `A0007` (logged as error) |
 | Logins waiting for LDAP at the same time | 32 | `429` with `A0006` |
-| User searches and password checks running at the same time (all logins) | 4 | queued until a slot is free |
+| LDAP operations running at the same time (user searches, password checks, group and role lookups of all logins) | 4 | queued until a slot is free |
 | Time for all directory work of one login | 10 s | `503` with `A0007` |
 
 Anonymous token requests (no user name or password) cause no LDAP work and are never limited. When a login runs out
@@ -59,6 +65,11 @@ middleware host itself and the UI hosts are exempt from the per-client limit, be
 arrives from the UI server's address. The per-user failure limit still applies to them, so repeated wrong
 passwords for one user through the UI block further attempts for that user from the UI for up to a minute.
 This includes service accounts such as `importer` when they log in from the same host as the UI.
+
+As logins through the UI are not limited per client, the limits that apply to all logins together (logins waiting
+for LDAP, LDAP operations at the same time) can be reached by anyone who sends many logins with arbitrary user names
+through the UI login form. Other users then get `429` or `503` until the flood stops; the directories themselves are
+not overloaded.
 
 The limits can be changed in `/etc/fworch/fworch.json`; the middleware reads them at startup:
 

@@ -408,7 +408,9 @@ def create_service_for_protocol_entry_with_single_protocol(
                 f"so the {entry.protocol.value} entry would permit nothing."
             )
         return restricted
-    raise ValueError(f"Unsupported destination '{entry.dst_port.kind} {entry.dst_port.value}' for an access-list entry.")
+    raise ValueError(
+        f"Unsupported destination '{entry.dst_port.kind} {entry.dst_port.value}' for an access-list entry."
+    )
 
 
 def create_service_for_protocol_entry(entry: AccessListEntry, service_objects: dict[str, ServiceObject]) -> str:
@@ -457,7 +459,9 @@ def create_service_for_acl_entry(entry: AccessListEntry, service_objects: dict[s
     raise ValueError(f"Unsupported protocol '{entry.protocol.kind} {entry.protocol.value}' for an access-list entry.")
 
 
-def restrict_service_to_protocol(service_ref: str, protocol: str, service_objects: dict[str, ServiceObject]) -> str | None:
+def restrict_service_to_protocol(
+    service_ref: str, protocol: str, service_objects: dict[str, ServiceObject]
+) -> str | None:
     """
     Restrict a service object or group to the services of one protocol.
 

@@ -60,7 +60,9 @@ def create_service_for_protocol_group_entry(
             create_service_for_protocol_entry(single_protocol_entry, service_objects).split(fwo_const.LIST_DELIMITER)
         )
     if not svc_refs:
-        raise ValueError(f"Service '{entry.dst_port.value}' contains no service of protocol group '{entry.protocol.value}'.")
+        raise ValueError(
+            f"Service '{entry.dst_port.value}' contains no service of protocol group '{entry.protocol.value}'."
+        )
     return fwo_base.sort_and_join(svc_refs)
 
 

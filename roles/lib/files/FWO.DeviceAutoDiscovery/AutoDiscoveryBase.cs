@@ -46,12 +46,12 @@ namespace FWO.DeviceAutoDiscovery
                 bool compareManagementsByUid = SuperManagement.DeviceType.Name == "FortiManager";
                 foreach (Management discoveredMgmt in discoveredManagements.Where(x => x.ConfigPath != "global"))
                 {
-                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, compareManagementsByUid, compareManagementsByUid);
+                    DiscoverManagementDetails(discoveredMgmt, deltaManagements, existingManagements, discoveredManagements, compareManagementsByUid, compareManagementsByUid);
                 }
                 // deleted managements
                 foreach (Management existMgmtDisregardingUid in existingManagements.Where(mgt => mgt.SuperManagerId == SuperManagement.Id && mgt.ConfigPath != "global"))
                 {
-                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements, compareManagementsByUid);
+                    Management? foundMgmt = FindManagementIfExist(existMgmtDisregardingUid, discoveredManagements, existingManagements, compareManagementsByUid);
                     if (foundMgmt == null && !existMgmtDisregardingUid.ImportDisabled)
                     {
                         existMgmtDisregardingUid.Delete = true;
@@ -70,10 +70,11 @@ namespace FWO.DeviceAutoDiscovery
             Management discoveredMgmt,
             List<Management> deltaManagements,
             List<Management> existingManagements,
+            List<Management> discoveredManagements,
             bool compareDevicesByUidOnly,
             bool compareManagementsByUid)
         {
-            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements, compareManagementsByUid);
+            Management? existMgmtDisregardingUid = FindManagementIfExist(discoveredMgmt, existingManagements, discoveredManagements, compareManagementsByUid);
             if (existMgmtDisregardingUid == null)
             {
                 // new management
@@ -126,11 +127,15 @@ namespace FWO.DeviceAutoDiscovery
             }
         }
 
-        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList, bool compareManagementsByUid)
+        private static Management? FindManagementIfExist(Management mgm, List<Management> mgmtList,
+            List<Management> sourceList, bool compareManagementsByUid)
         {
             if (compareManagementsByUid)
             {
-                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm));
+                // fall back to ADOM name if the ADOM UID changed on the FortiManager
+                return mgmtList.FirstOrDefault(m => ManagementUidMatches(m, mgm))
+                    ?? mgmtList.FirstOrDefault(m => ManagementConfigPathMatches(m, mgm)
+                        && !sourceList.Any(other => ManagementUidMatches(other, m)));
             }
 
             Management? existingManagement = mgmtList.FirstOrDefault(m => m.Equals(mgm));
@@ -149,6 +154,16 @@ namespace FWO.DeviceAutoDiscovery
             return !string.IsNullOrEmpty(first.Uid) &&
                    !string.IsNullOrEmpty(second.Uid) &&
                    first.Uid.GenerousCompare(second.Uid) &&
+                   first.SuperManagerId == second.SuperManagerId;
+        }
+
+        /// <summary>
+        /// Matches FortiManager child managements by ADOM name (config path) within the same super manager.
+        /// </summary>
+        private static bool ManagementConfigPathMatches(Management first, Management second)
+        {
+            return !string.IsNullOrEmpty(first.ConfigPath) &&
+                   first.ConfigPath == second.ConfigPath &&
                    first.SuperManagerId == second.SuperManagerId;
         }
 

@@ -1,38 +1,85 @@
--- Metadata calculated during the log data import for every logged address, see issue #5269.
--- Keyed by the address itself, because the same address is reported by several owners and its
--- applications, network areas and name do not depend on the owner which logged it.
-CREATE TABLE IF NOT EXISTS logging.ip_metadata
-(
-    ip_address CIDR PRIMARY KEY,
-    app_ids TEXT[] NOT NULL DEFAULT '{}',
-    area_ids TEXT[] NOT NULL DEFAULT '{}',
-    dns TEXT NOT NULL DEFAULT ''
-);
+-- New workflow task types object_create and object_modify (single network object or service without group).
+-- Every existing workflow configuration gets its own copy of the group_create phase matrices for both new
+-- task types, so that later changes to the group matrices do not affect the object task types and vice versa.
+-- A configuration that already has a mapping for a new task type is left untouched, so repeated upgrades
+-- neither duplicate the copies nor restore mappings an admin removed later.
+DO $object_task_type_matrices$
+DECLARE
+    v_configuration RECORD;
+    v_source_phase RECORD;
+    v_source_group RECORD;
+    v_task_type Varchar;
+    v_phase_name Varchar;
+    v_group_name Varchar;
+    v_new_phase_id int;
+    v_new_group_id int;
+BEGIN
+    FOREACH v_task_type IN ARRAY ARRAY['object_create', 'object_modify']
+    LOOP
+        FOR v_configuration IN
+            SELECT configuration.id, configuration.name
+            FROM request.workflow_configuration configuration
+            WHERE NOT EXISTS (
+                SELECT 1 FROM request.workflow_configuration_phase mapping
+                WHERE mapping.configuration_id = configuration.id AND mapping.task_type = v_task_type)
+        LOOP
+            FOR v_source_phase IN
+                SELECT mapping.phase, matrix_phase.id, matrix_phase.phase AS matrix_phase, matrix_phase.active,
+                    matrix_phase.lowest_input_state, matrix_phase.lowest_start_state, matrix_phase.lowest_end_state,
+                    matrix_phase.phase_visibility_mode
+                FROM request.workflow_configuration_phase mapping
+                JOIN request.state_matrix_phase matrix_phase ON matrix_phase.id = mapping.phase_matrix_id
+                WHERE mapping.configuration_id = v_configuration.id AND mapping.task_type = 'group_create'
+            LOOP
+                v_phase_name := v_configuration.name || '_' || v_task_type || '_' || v_source_phase.phase;
+                IF EXISTS (SELECT 1 FROM request.state_matrix_phase WHERE name = v_phase_name) THEN
+                    v_phase_name := v_phase_name || '_' || v_configuration.id;
+                END IF;
 
--- support the orphan check which removes metadata of addresses no log entry refers to any more.
--- The unique constraint of log_entry leads with owner_id and cannot answer it.
-CREATE INDEX IF NOT EXISTS idx_log_entry_source ON logging.log_entry (source);
-CREATE INDEX IF NOT EXISTS idx_log_entry_destination ON logging.log_entry (destination);
+                INSERT INTO request.state_matrix_phase (name, phase, active, lowest_input_state, lowest_start_state,
+                    lowest_end_state, phase_visibility_mode)
+                VALUES (v_phase_name, v_source_phase.matrix_phase, v_source_phase.active, v_source_phase.lowest_input_state,
+                    v_source_phase.lowest_start_state, v_source_phase.lowest_end_state, v_source_phase.phase_visibility_mode)
+                RETURNING id INTO v_new_phase_id;
 
-GRANT SELECT ON logging.ip_metadata TO fwo_ro;
+                INSERT INTO request.workflow_configuration_phase (configuration_id, task_type, phase, phase_matrix_id)
+                VALUES (v_configuration.id, v_task_type, v_source_phase.phase, v_new_phase_id)
+                ON CONFLICT (configuration_id, task_type, phase) DO NOTHING;
 
--- the area IP data conversion script was renamed from convertNwObjDataFromGit to
--- convert_area_ip_data_from_git. The installer removes the old file, so a configured import source
--- pointing at the delivered script is moved to the new name. Only paths of the delivered script are
--- changed, a copy elsewhere keeps its configured name. Repeated runs find nothing left to replace.
-UPDATE config
-SET config_value = regexp_replace(
-        config_value,
-        '/scripts/customizing/area_ip_data_import/convertNwObjDataFromGit(\.py|\.json)?"',
-        '/scripts/customizing/area_ip_data_import/convert_area_ip_data_from_git\1"',
-        'g')
-WHERE config_key = 'importSubnetDataPath'
-    AND strpos(config_value, '/scripts/customizing/area_ip_data_import/convertNwObjDataFromGit') > 0;
+                INSERT INTO request.state_matrix_derived_state (phase_matrix_id, from_state_id, derived_state_id)
+                SELECT v_new_phase_id, derived_state.from_state_id, derived_state.derived_state_id
+                FROM request.state_matrix_derived_state derived_state
+                WHERE derived_state.phase_matrix_id = v_source_phase.id
+                ON CONFLICT (phase_matrix_id, from_state_id) DO NOTHING;
 
--- log data table settings: hide the log time column and the log time range written into import
--- files generated from CSV data, see issue #5391
-INSERT INTO config (config_key, config_value, config_user)
-VALUES
-    ('hideLogTimeColumn', 'True', 0),
-    ('defaultLogTimeRangeInSeconds', '604800', 0)
-ON CONFLICT DO NOTHING;
+                FOR v_source_group IN
+                    SELECT transition_group.id, transition_group.name, transition_group.description, transition_group.phase,
+                        transition_group.visibility_group_id, transition_group.exclusive, phase_group.sort_order
+                    FROM request.state_matrix_phase_transition_group phase_group
+                    JOIN request.state_matrix_transition_group transition_group ON transition_group.id = phase_group.transition_group_id
+                    WHERE phase_group.phase_matrix_id = v_source_phase.id
+                LOOP
+                    v_group_name := v_phase_name || '_transitions_' || v_source_group.id;
+
+                    INSERT INTO request.state_matrix_transition_group (name, description, phase, visibility_group_id, exclusive)
+                    VALUES (v_group_name, v_source_group.description, v_source_group.phase,
+                        v_source_group.visibility_group_id, v_source_group.exclusive)
+                    ON CONFLICT (name) DO NOTHING;
+
+                    SELECT id INTO v_new_group_id FROM request.state_matrix_transition_group WHERE name = v_group_name;
+
+                    INSERT INTO request.state_matrix_phase_transition_group (phase_matrix_id, transition_group_id, sort_order)
+                    VALUES (v_new_phase_id, v_new_group_id, v_source_group.sort_order)
+                    ON CONFLICT (phase_matrix_id, transition_group_id) DO NOTHING;
+
+                    INSERT INTO request.state_matrix_transition (transition_group_id, from_state_id, to_state_id, sort_order)
+                    SELECT v_new_group_id, transition.from_state_id, transition.to_state_id, transition.sort_order
+                    FROM request.state_matrix_transition transition
+                    WHERE transition.transition_group_id = v_source_group.id
+                    ON CONFLICT (transition_group_id, from_state_id, to_state_id) DO NOTHING;
+                END LOOP;
+            END LOOP;
+        END LOOP;
+    END LOOP;
+END;
+$object_task_type_matrices$;

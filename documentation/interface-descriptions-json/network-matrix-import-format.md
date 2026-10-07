@@ -72,6 +72,25 @@ communications.
 Every `communication_to.id_string` must identify a zone available in the
 resulting matrix. Communications not listed for a source zone are restricted.
 
+### Auto-calculated Internet Zone
+
+While auto-calculated Internet zones are enabled in the settings, the document may contain one
+zone with the reserved `id_string` `AUTO_CALCULATED_ZONE_INTERNET` to define the communications
+with the Internet. Only its `id_string` and `communication_to` are used: `subnets` must be
+empty, because FWO calculates the zone's ranges on every import, and the `name` given in the
+document is not persisted. If internet auto-calculation is disabled, the import is rejected.
+
+```json
+{
+  "name": "Internet",
+  "id_string": "AUTO_CALCULATED_ZONE_INTERNET",
+  "subnets": [],
+  "communication_to": [
+    { "id_string": "dmz" }
+  ]
+}
+```
+
 ## Subnet Object
 
 A subnet entry supports a single address, CIDR notation, or an inclusive range.

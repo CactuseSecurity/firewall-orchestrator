@@ -377,7 +377,10 @@ namespace FWO.Middleware.Server
         /// </summary>
         private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importFileName, DeviceNameResolver deviceLookup)
         {
-            counters = new() { AllZones = importedMatrix.NetworkZones.Count };
+            // The auto-calculated internet zone is created by UpdateSpecialZones, only its communications are imported.
+            List<NetworkZoneData> regularZones = [.. importedMatrix.NetworkZones
+                .Where(zone => zone.IdString != NetworkZoneService.kAutoCalculatedInternetZoneIdString)];
+            counters = new() { AllZones = regularZones.Count };
             ZoneIds.Clear();
             if (MatrixId == 0)
             {
@@ -388,8 +391,7 @@ namespace FWO.Middleware.Server
                 await UpdateMatrix(importFileName, importedMatrix.Comment);
             }
 
-            foreach (var incomingZone in importedMatrix.NetworkZones
-                .Where(zone => zone.IdString != NetworkZoneService.kAutoCalculatedInternetZoneIdString))
+            foreach (var incomingZone in regularZones)
             {
                 await SaveZone(incomingZone);
             }

@@ -91,9 +91,11 @@ namespace FWO.Middleware.Server
             set => connection.Constraints = value;
         }
 
+        // The overloads without a token serve operations without a deadline (administration, synchronization) and opt out
+        // of cancellation explicitly; logins use the overloads with a token, see the constructor.
         public Task BindAsync(string user, string password)
         {
-            return connection.BindAsync(user, password);
+            return connection.BindAsync(user, password, CancellationToken.None);
         }
 
         /// <inheritdoc />
@@ -104,7 +106,7 @@ namespace FWO.Middleware.Server
 
         public Task<LdapEntry?> ReadAsync(string distinguishedName)
         {
-            return connection.ReadAsync(distinguishedName);
+            return connection.ReadAsync(distinguishedName, CancellationToken.None);
         }
 
         /// <inheritdoc />
@@ -115,7 +117,7 @@ namespace FWO.Middleware.Server
 
         public async Task<ILdapSearchResults?> SearchAsync(string? baseDn, int scope, string filter, string[]? attributes, bool typesOnly)
         {
-            return await connection.SearchAsync(baseDn, scope, filter, attributes, typesOnly);
+            return await connection.SearchAsync(baseDn, scope, filter, attributes, typesOnly, CancellationToken.None);
         }
 
         /// <inheritdoc />
@@ -126,22 +128,22 @@ namespace FWO.Middleware.Server
 
         public Task AddAsync(LdapEntry entry)
         {
-            return connection.AddAsync(entry);
+            return connection.AddAsync(entry, CancellationToken.None);
         }
 
         public Task DeleteAsync(string distinguishedName)
         {
-            return connection.DeleteAsync(distinguishedName);
+            return connection.DeleteAsync(distinguishedName, CancellationToken.None);
         }
 
         public Task ModifyAsync(string distinguishedName, LdapModification[] mods)
         {
-            return connection.ModifyAsync(distinguishedName, mods);
+            return connection.ModifyAsync(distinguishedName, mods, CancellationToken.None);
         }
 
         public Task RenameAsync(string distinguishedName, string newRdn, bool deleteOldRdn)
         {
-            return connection.RenameAsync(distinguishedName, newRdn, deleteOldRdn);
+            return connection.RenameAsync(distinguishedName, newRdn, deleteOldRdn, CancellationToken.None);
         }
 
         /// <summary>

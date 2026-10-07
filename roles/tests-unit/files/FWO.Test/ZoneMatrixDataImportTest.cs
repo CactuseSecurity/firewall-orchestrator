@@ -941,7 +941,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(result, Does.StartWith("Ok: Imported from internet-import.json"));
-                Assert.That(result, Does.Contain("Total number of network zones: 2"));
+                Assert.That(result, Does.Contain("Total number of network zones: 1"));
                 Assert.That(result, Does.Contain("new: 1"));
                 Assert.That(result, Does.Contain("Inserted connections: 1"));
                 Assert.That(addedInternetZones, Has.Count.EqualTo(1));

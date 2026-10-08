@@ -6,9 +6,11 @@ import json
 import time
 from typing import TYPE_CHECKING, Any, ClassVar, cast
 
+import fwo_api as fwo_api_module
 import pytest
 import requests
 from fwo_api import JWT_REFRESH_MARGIN_SECONDS, FwoApi, _JwtExpiredResponseError
+from fwo_config import TlsIdentity
 from fwo_exceptions import FwoApiLoginFailedError, FwoImporterError
 from services.enums import Lifetime, Services
 
@@ -74,8 +76,14 @@ class _FakeSession(requests.Session):
         return cast("requests.Response", self._next_response(url))
 
 
+def _read_test_tls_identity(_config_file: str) -> TlsIdentity:
+    return TlsIdentity("/tmp/client.crt", "/tmp/client.key", "/tmp/ca.crt")  # noqa: S108
+
+
 def _patch_session(monkeypatch: pytest.MonkeyPatch, session: _FakeSession) -> None:
     monkeypatch.setattr(requests, "Session", lambda: session)
+    # keep the session bootstrap away from the real /etc/fworch config
+    monkeypatch.setattr(fwo_api_module, "read_tls_identity", _read_test_tls_identity)
 
 
 def _register_fwo_config(service_provider: ServiceProvider, base_url: str = BASE_URL) -> None:

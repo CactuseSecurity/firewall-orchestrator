@@ -26,7 +26,7 @@ namespace FWO.Middleware.Server
         private const int MaxReportedEntriesOutsideTimeRange = 50;
         // An unresolvable address only answers after the resolver timed out, so the lookups of a
         // batch overlap. The bound keeps the import from opening thousands of sockets at once.
-        private const int ReverseLookupParallelism = 16;
+        internal const int ReverseLookupParallelism = 16;
         // returns null if the DNS server gave no definitive answer, so the address is looked up again later
         private readonly Func<IPAddress, CancellationToken, Task<string?>> reverseDnsLookup = reverseDnsLookup
             ?? (async (address, token) => SelectDnsName(await IpOperations.TryDnsReverseLookUpAllAsync(address, token)));
@@ -412,30 +412,35 @@ namespace FWO.Middleware.Server
             List<IpMetadata> storedMetadata = await apiConnection.SendQueryAsync<List<IpMetadata>>(
                 LogDataQueries.getIpMetadata, new { addresses });
             Dictionary<string, IpMetadata> storedByAddress = storedMetadata.ToDictionary(item => item.IpAddress, StringComparer.Ordinal);
-            // read once, the config subscription may change it while the lookups run
-            bool resolveDns = globalConfig.ResolveLogDataDns;
+            // the setting is read once, the config subscription may change it while the lookups run
+            ReverseLookupBatch lookupBatch = new(globalConfig.ResolveLogDataDns);
             IpMetadata[] metadata = new IpMetadata[addresses.Count];
             await Parallel.ForAsync(0, addresses.Count,
                 new ParallelOptions { MaxDegreeOfParallelism = ReverseLookupParallelism, CancellationToken = cancellationToken },
                 async (index, token) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources,
-                    storedByAddress, resolveDns, token));
-            WarnAboutFailedDnsLookups(metadata, resolveDns);
+                    storedByAddress, lookupBatch, token));
+            WarnAboutFailedDnsLookups(metadata, lookupBatch);
             return [.. metadata];
         }
 
         /// <summary>
-        /// With lookups enabled, an address is left without a completed lookup only when its lookup failed.
-        /// Such addresses are looked up again by the next import, so a DNS outage does not leave them
-        /// without name for good.
+        /// With lookups enabled, an address is left without a completed lookup only when its lookup failed
+        /// or was skipped because no DNS server could be reached. Such addresses are looked up again by the
+        /// next import, so a DNS outage does not leave them without name for good.
         /// </summary>
-        private static void WarnAboutFailedDnsLookups(IpMetadata[] metadata, bool resolveDns)
+        private static void WarnAboutFailedDnsLookups(IpMetadata[] metadata, ReverseLookupBatch lookupBatch)
         {
             int failedLookups = metadata.Count(item => !item.DnsLookupCompleted);
-            if (resolveDns && failedLookups > 0)
+            if (!lookupBatch.Enabled || failedLookups == 0)
             {
-                Log.WriteWarning(LogMessageTitle, $"Reverse-DNS lookup of {failedLookups} of {metadata.Length} addresses" +
-                    " got no definitive answer, they are looked up again by the next import.");
+                return;
             }
+            string reason = lookupBatch.ResolverUnreachable
+                ? "no DNS server could be reached, so the remaining lookups of this import were skipped"
+                : "the DNS server gave no definitive answer";
+            Log.WriteWarning(LogMessageTitle, $"Reverse-DNS lookup of {failedLookups} of {metadata.Length} addresses did not complete" +
+                $" ({reason}), they are looked up again by the next import. If no DNS server is reachable from the middleware," +
+                " disable the setting 'Resolve reverse DNS for log data' under Settings - Logging.");
         }
 
         /// <summary>
@@ -466,7 +471,7 @@ namespace FWO.Middleware.Server
         /// the same row and the display order does not depend on the order of the ranges.
         /// </summary>
         private async Task<IpMetadata> BuildAddressMetadata(string address, List<PreparedMetadataSource> preparedSources,
-            Dictionary<string, IpMetadata> storedByAddress, bool resolveDns, CancellationToken cancellationToken)
+            Dictionary<string, IpMetadata> storedByAddress, ReverseLookupBatch lookupBatch, CancellationToken cancellationToken)
         {
             IPAddress ipAddress = IPAddress.Parse(address.StripOffNetmask());
             IPAddressRange addressRange = new(ipAddress, ipAddress);
@@ -477,9 +482,9 @@ namespace FWO.Middleware.Server
             storedByAddress.TryGetValue(address, out IpMetadata? stored);
             bool lookupCompleted = stored?.DnsLookupCompleted == true;
             string dns = stored?.Dns ?? "";
-            if (!lookupCompleted && resolveDns)
+            if (!lookupCompleted && lookupBatch.ShouldLookUp)
             {
-                string? resolvedDns = await ResolveDns(ipAddress, cancellationToken);
+                string? resolvedDns = await ResolveDns(ipAddress, lookupBatch, cancellationToken);
                 if (resolvedDns is not null)
                 {
                     dns = resolvedDns;
@@ -501,10 +506,11 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Resolves PTR records asynchronously. DNS failures return null, so the lookup is not marked as
         /// completed and is repeated by the next import, while shutdown cancellation leaves the source
-        /// available for retry without changing stored log data.
+        /// available for retry without changing stored log data. A lookup which throws reached no DNS
+        /// server, so the batch skips its remaining lookups instead of waiting for the same timeout again.
         /// </summary>
         /// <returns>The name, an empty string for an address without name, or null if the lookup failed.</returns>
-        private async Task<string?> ResolveDns(IPAddress address, CancellationToken cancellationToken)
+        private async Task<string?> ResolveDns(IPAddress address, ReverseLookupBatch lookupBatch, CancellationToken cancellationToken)
         {
             try
             {
@@ -517,6 +523,7 @@ namespace FWO.Middleware.Server
             catch (Exception exception)
             {
                 Log.WriteDebug(LogMessageTitle, $"Reverse-DNS lookup of {address} failed: {exception.Message}");
+                lookupBatch.MarkResolverUnreachable();
                 return null;
             }
         }
@@ -535,6 +542,39 @@ namespace FWO.Middleware.Server
         /// An address range of <see cref="LogDataQueries.getIpMetadataSources"/> with its parsed bounds.
         /// </summary>
         private sealed record PreparedMetadataSource(IPAddressRange Range, IpMetadataSource Source);
+
+        /// <summary>
+        /// Reverse lookups of one import batch. Once a lookup found no DNS server answering, the remaining
+        /// addresses of the batch are not looked up, because each of them would only wait for the same
+        /// timeout. They stay without completed lookup and are looked up again by the next import.
+        /// </summary>
+        private sealed class ReverseLookupBatch(bool enabled)
+        {
+            private volatile bool resolverUnreachable;
+
+            /// <summary>
+            /// Whether reverse lookups are enabled for this batch.
+            /// </summary>
+            public bool Enabled { get; } = enabled;
+
+            /// <summary>
+            /// Whether a lookup of this batch found no DNS server answering.
+            /// </summary>
+            public bool ResolverUnreachable => resolverUnreachable;
+
+            /// <summary>
+            /// Whether a further address of this batch is to be looked up.
+            /// </summary>
+            public bool ShouldLookUp => Enabled && !resolverUnreachable;
+
+            /// <summary>
+            /// Stops the further lookups of this batch.
+            /// </summary>
+            public void MarkResolverUnreachable()
+            {
+                resolverUnreachable = true;
+            }
+        }
 
         /// <summary>
         /// Warns about the entries which are not imported although their source file is

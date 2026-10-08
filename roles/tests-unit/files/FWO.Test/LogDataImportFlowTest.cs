@@ -18,6 +18,8 @@ namespace FWO.Test
     [TestFixture]
     internal class LogDataImportFlowTest
     {
+        private const int kAddressPairsOfUnreachableDnsTest = 32;
+
         [Test]
         public void ReplaceLogEntriesMutation_DeletesAndInsertsAtomically()
         {
@@ -800,7 +802,38 @@ namespace FWO.Test
         }
 
         /// <summary>
+        /// Once no DNS server answers, the remaining addresses of the batch are not looked up: each of them
+        /// would only wait for the same timeout. They stay eligible for the next import.
+        /// </summary>
+        [Test]
+        public async Task SaveEntries_SkipsTheRemainingLookupsWhenNoDnsServerAnswers()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            int lookupCalls = 0;
+            LogDataImport import = CreateImport(apiConnection, reverseDnsLookup: (_, _) =>
+            {
+                Interlocked.Increment(ref lookupCalls);
+                throw new System.Net.Sockets.SocketException();
+            });
+            List<LogDataImportEntry> entries = [.. Enumerable.Range(1, kAddressPairsOfUnreachableDnsTest)
+                .Select(index => NewSourceEntry("APP-1", 1, $"192.0.2.{index}", $"198.51.100.{index}"))];
+
+            await InvokeSaveEntries(import, entries);
+
+            Assert.Multiple(() =>
+            {
+                // every parallel worker stops after its own failed lookup at the latest
+                Assert.That(lookupCalls, Is.LessThanOrEqualTo(LogDataImport.ReverseLookupParallelism));
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(kAddressPairsOfUnreachableDnsTest));
+                Assert.That(apiConnection.InsertedMetadata, Has.Count.EqualTo(2 * kAddressPairsOfUnreachableDnsTest));
+                Assert.That(apiConnection.InsertedMetadata.Select(item => item.DnsLookupCompleted), Is.All.False);
+            });
+        }
+
+        /// <summary>
         /// A lookup without definitive answer keeps a stored name and is repeated by the next import.
+        /// A server answering without result does not stop the other lookups of the batch.
         /// </summary>
         [Test]
         public async Task SaveEntries_RetriesFailedDnsLookupsWithTheNextImport()

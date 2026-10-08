@@ -1,0 +1,75 @@
+name: Publish release SBOM
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of an existing, published stable release to generate and attach SBOMs for
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  source-sbom:
+    name: Generate and publish source SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate stable release
+        id: validate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          if [[ ! "$TAG_NAME" =~ ^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping SBOM publication for non-stable release tag '$TAG_NAME'."
+            exit 0
+          fi
+          # fails the job when no release exists for the tag
+          is_prerelease="$(gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease)"
+          if [[ "$is_prerelease" == "true" ]]; then
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping SBOM publication for pre-release '$TAG_NAME'."
+            exit 0
+          fi
+          echo "stable=true" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release source
+        if: steps.validate.outputs.stable == 'true'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          ref: ${{ steps.validate.outputs.tag }}
+          persist-credentials: false
+
+      - name: Set up Python
+        if: steps.validate.outputs.stable == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Generate source SBOMs
+        if: steps.validate.outputs.stable == 'true'
+        env:
+          TAG_NAME: ${{ steps.validate.outputs.tag }}
+        run: |
+          python scripts/sbom/generate_sbom.py \
+            --mode source \
+            --output-dir sbom \
+            --reference-platform debian-testing \
+            --product-version "${TAG_NAME#v}" \
+            --merge
+
+      - name: Attach SBOMs to release
+        if: steps.validate.outputs.stable == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.validate.outputs.tag }}
+        run: gh release upload "$TAG_NAME" sbom/*.cdx.json sbom/fwo-sbom-details/*.cdx.json --repo "$GITHUB_REPOSITORY" --clobber

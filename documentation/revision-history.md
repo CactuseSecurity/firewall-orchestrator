@@ -115,7 +115,9 @@
     and to the tenant simulation, which now lists the rules of the rulebases linked to a gateway
   - upgrades date the rulebase links and gateway entries created by the v9 migration back to the lifetime of the
     migrated rule versions, so rule versions removed before the upgrade to v9 stay visible to the tenants of
-    their gateways; links of gateways added later and data imported by v9 are not changed
+    the gateway recorded on each v8 rule; each gateway/rulebase link is restored only as far back as those rules
+    prove it existed. Other gateways, including those added before the migration but after an old rule version
+    was removed, do not gain that version's history; links added later and data imported by v9 are not changed
   - a new index on rule_enforced_on_gateway (rule_id) keeps these checks fast
   - plain network objects (no group) used directly in a rule are matched against the tenant networks by their
     own address; so far only group members were matched, as the importer writes objgrp_flat rows for groups

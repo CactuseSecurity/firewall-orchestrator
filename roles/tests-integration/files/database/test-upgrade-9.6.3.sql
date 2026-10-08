@@ -43,9 +43,10 @@ CREATE FUNCTION pg_temp.gateway_entry(p_rule_key text, p_gw_key text) RETURNS te
     WHERE reg.rule_id = pg_temp.probe(p_rule_key) AND reg.dev_id = pg_temp.probe(p_gw_key)
 $$ LANGUAGE sql STABLE;
 
-CREATE FUNCTION pg_temp.rulebase_link(p_gw_key text) RETURNS text AS $$
+CREATE FUNCTION pg_temp.rulebase_link(p_gw_key text, p_rulebase_key text DEFAULT 'rulebase') RETURNS text AS $$
     SELECT string_agg(concat(rl.created - pg_temp.probe('import_base'), '-', rl.removed - pg_temp.probe('import_base')), ',')
     FROM rulebase_link rl WHERE rl.gw_id = pg_temp.probe(p_gw_key)
+        AND rl.to_rulebase_id = pg_temp.probe(p_rulebase_key)
 $$ LANGUAGE sql STABLE;
 
 CREATE FUNCTION pg_temp.fully_visible(p_rule_key text, p_gw_key text) RETURNS text AS $$
@@ -146,6 +147,7 @@ BEGIN
         RETURNING id INTO i_rulebase_id;
     INSERT INTO rulebase (name, uid, mgm_id) VALUES ('upgrade_963_probe', 'upgrade_963_probe_v9', i_mgm_v9_id)
         RETURNING id INTO i_rulebase_v9_id;
+    INSERT INTO probe_id VALUES ('rulebase', i_rulebase_id), ('rulebase_v9', i_rulebase_v9_id);
     INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created, link_type)
         VALUES (i_gw_id, i_rulebase_id, true, i_import_ids[3], 2),
             (i_gw_added_id, i_rulebase_id, true, i_import_ids[4], 2),
@@ -170,9 +172,104 @@ BEGIN
     END LOOP;
 END $$;
 
+-- F29: both gateways below already exist when v9 migrates the management. The late gateway has no old rule
+-- evidence; the evidenced gateway only enforced a later rule version [2,3). Neither enforced the historic [1,2)
+-- version, although the migration gave both spurious Policy Targets entries for it.
+DO $$
+DECLARE
+    i_mgm_id integer;
+    i_dev_typ_id integer;
+    i_rulebase_id integer;
+    i_late_gw_id integer;
+    i_evidenced_gw_id integer;
+    i_unproven_rulebase_id integer;
+    i_rule_id bigint;
+BEGIN
+    SELECT d.mgm_id, d.dev_typ_id INTO i_mgm_id, i_dev_typ_id
+        FROM device d WHERE d.dev_id = pg_temp.probe('gw');
+    SELECT r.rulebase_id INTO i_rulebase_id FROM rule r WHERE r.rule_id = pg_temp.probe('historic');
+    INSERT INTO device (mgm_id, dev_typ_id, dev_name)
+        VALUES (i_mgm_id, i_dev_typ_id, 'upgrade_963_probe_late_before_migration') RETURNING dev_id INTO i_late_gw_id;
+    INSERT INTO device (mgm_id, dev_typ_id, dev_name)
+        VALUES (i_mgm_id, i_dev_typ_id, 'upgrade_963_probe_evidenced') RETURNING dev_id INTO i_evidenced_gw_id;
+    INSERT INTO probe_id VALUES ('gw_late', i_late_gw_id), ('gw_evidenced', i_evidenced_gw_id);
+
+    INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created, link_type)
+        VALUES (i_late_gw_id, i_rulebase_id, true, pg_temp.probe('import_base') + 3, 2),
+            (i_evidenced_gw_id, i_rulebase_id, true, pg_temp.probe('import_base') + 3, 2);
+    INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+        VALUES (pg_temp.probe('historic'), i_late_gw_id, pg_temp.probe('import_base') + 3),
+            (pg_temp.probe('historic'), i_evidenced_gw_id, pg_temp.probe('import_base') + 3);
+
+    INSERT INTO rule (mgm_id, dev_id, rulebase_id, rule_create, removed, action_id, track_id, rule_name,
+            rule_src, rule_dst, rule_svc, rule_action, rule_track)
+        SELECT r.mgm_id, i_evidenced_gw_id, r.rulebase_id, pg_temp.probe('import_base') + 2,
+            pg_temp.probe('import_base') + 3, r.action_id, r.track_id, 'historic_evidenced',
+            'any', 'any', 'any', 'accept', 'none'
+        FROM rule r WHERE r.rule_id = pg_temp.probe('historic')
+        RETURNING rule_id INTO i_rule_id;
+    INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+        VALUES (i_rule_id, i_evidenced_gw_id, pg_temp.probe('import_base') + 3);
+    INSERT INTO probe_id VALUES ('historic_evidenced', i_rule_id);
+
+    -- NAT rules use the rulebase-link fallback rather than explicit gateway entries. The same isolation applies.
+    INSERT INTO rule (mgm_id, dev_id, rulebase_id, rule_create, removed, action_id, track_id, rule_name,
+            rule_src, rule_dst, rule_svc, rule_action, rule_track, access_rule)
+        SELECT r.mgm_id, r.dev_id, r.rulebase_id, r.rule_create, r.removed, r.action_id, r.track_id,
+            'historic_nat', 'any', 'any', 'any', 'accept', 'none', false
+        FROM rule r WHERE r.rule_id = pg_temp.probe('historic')
+        RETURNING rule_id INTO i_rule_id;
+    INSERT INTO probe_id VALUES ('historic_nat', i_rule_id);
+
+    -- Evidence for the original gateway's first rulebase must not backdate a different rulebase on that gateway.
+    INSERT INTO rulebase (name, uid, mgm_id)
+        VALUES ('upgrade_963_probe_unproven', 'upgrade_963_probe_unproven', i_mgm_id)
+        RETURNING id INTO i_unproven_rulebase_id;
+    INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created, link_type)
+        VALUES (pg_temp.probe('gw'), i_unproven_rulebase_id, true, pg_temp.probe('import_base') + 3, 2);
+    INSERT INTO probe_id VALUES ('unproven_rulebase', i_unproven_rulebase_id);
+END $$;
+
 -- without the upgrade, the historic rule version has no gateway valid during its lifetime
 SELECT pg_temp.expect('historic rule version before the upgrade', pg_temp.fully_visible('historic', 'gw'), 'false');
 SELECT pg_temp.expect('historic rule version simulated before the upgrade', pg_temp.simulated('historic', 'gw'), 'false');
+
+-- These checks run after both upgrade executions, verifying the historical authorization boundary and idempotency.
+CREATE FUNCTION pg_temp.expect_restored_history_isolated() RETURNS void AS $$
+BEGIN
+    PERFORM pg_temp.expect('spurious gateway entry for a gateway added before migration',
+        pg_temp.gateway_entry('historic', 'gw_late'), '3-');
+    PERFORM pg_temp.expect('link without historical enforcement evidence', pg_temp.rulebase_link('gw_late'), '3-');
+    PERFORM pg_temp.expect('historic rule hidden from a gateway added before migration',
+        pg_temp.fully_visible('historic', 'gw_late'), 'false');
+    PERFORM pg_temp.expect('historic rule not simulated on a gateway added before migration',
+        pg_temp.simulated('historic', 'gw_late'), 'false');
+
+    PERFORM pg_temp.expect('gateway entry restored from its own rule history',
+        pg_temp.gateway_entry('historic_evidenced', 'gw_evidenced'), '2-3');
+    PERFORM pg_temp.expect('gateway link restored only to its own rule history',
+        pg_temp.rulebase_link('gw_evidenced'), '2-');
+    PERFORM pg_temp.expect('historic rule visible on its evidenced gateway',
+        pg_temp.fully_visible('historic_evidenced', 'gw_evidenced'), 'true');
+    PERFORM pg_temp.expect('historic rule simulated on its evidenced gateway',
+        pg_temp.simulated('historic_evidenced', 'gw_evidenced'), 'true');
+    PERFORM pg_temp.expect('spurious earlier version entry unchanged on an evidenced gateway',
+        pg_temp.gateway_entry('historic', 'gw_evidenced'), '3-');
+    PERFORM pg_temp.expect('earlier rule hidden from a gateway with later evidence',
+        pg_temp.fully_visible('historic', 'gw_evidenced'), 'false');
+    PERFORM pg_temp.expect('earlier rule not simulated on a gateway with later evidence',
+        pg_temp.simulated('historic', 'gw_evidenced'), 'false');
+
+    PERFORM pg_temp.expect('historic NAT rule visible on its original gateway',
+        pg_temp.fully_visible('historic_nat', 'gw'), 'true');
+    PERFORM pg_temp.expect('historic NAT rule hidden from a gateway without evidence',
+        pg_temp.fully_visible('historic_nat', 'gw_late'), 'false');
+    PERFORM pg_temp.expect('historic NAT rule hidden from a gateway with later evidence',
+        pg_temp.fully_visible('historic_nat', 'gw_evidenced'), 'false');
+    PERFORM pg_temp.expect('evidence for one rulebase does not backdate another rulebase',
+        pg_temp.rulebase_link('gw', 'unproven_rulebase'), '3-');
+END;
+$$ LANGUAGE plpgsql;
 
 -- @run-upgrade-9.6.3
 
@@ -184,7 +281,7 @@ SELECT pg_temp.expect('gateway entry of the current rule', pg_temp.gateway_entry
 SELECT pg_temp.expect('gateway entry of a rule removed after the upgrade', pg_temp.gateway_entry('removed_after_upgrade', 'gw'), '3-');
 SELECT pg_temp.expect('rulebase link of the migration', pg_temp.rulebase_link('gw'), '1-');
 SELECT pg_temp.expect('rulebase link of a gateway added after the upgrade', pg_temp.rulebase_link('gw_added'), '4-');
-SELECT pg_temp.expect('rulebase link of a v9 management', pg_temp.rulebase_link('gw_v9'), concat(pg_temp.probe('import_v9_3') - pg_temp.probe('import_base'), '-'));
+SELECT pg_temp.expect('rulebase link of a v9 management', pg_temp.rulebase_link('gw_v9', 'rulebase_v9'), concat(pg_temp.probe('import_v9_3') - pg_temp.probe('import_base'), '-'));
 
 SELECT pg_temp.expect('historic rule version on its gateway', pg_temp.fully_visible('historic', 'gw'), 'true');
 SELECT pg_temp.expect('historic rule version simulated on its gateway', pg_temp.simulated('historic', 'gw'), 'true');
@@ -193,6 +290,7 @@ SELECT pg_temp.expect('historic rule version simulated on a gateway added after 
 SELECT pg_temp.expect('current rule on its gateway', pg_temp.fully_visible('current', 'gw'), 'true');
 SELECT pg_temp.expect('v9 rule version removed before its gateway was added', pg_temp.fully_visible('v9_historic', 'gw_v9'), 'false');
 SELECT pg_temp.expect('v9 rule version simulated on a gateway added after its removal', pg_temp.simulated('v9_historic', 'gw_v9'), 'false');
+SELECT pg_temp.expect_restored_history_isolated();
 
 -- second run: no email server and no ticket system URL, so the certificates are checked; the rule data stays the same
 DELETE FROM config WHERE config_key IN ('emailCheckCertificates', 'extTicketSystemsCheckCertificates') AND config_user = 0;
@@ -208,5 +306,6 @@ SELECT pg_temp.expect('gateway entry of the historic rule version (repeated)', p
 SELECT pg_temp.expect('gateway entry of the current rule (repeated)', pg_temp.gateway_entry('current', 'gw'), '3-');
 SELECT pg_temp.expect('rulebase link of the migration (repeated)', pg_temp.rulebase_link('gw'), '1-');
 SELECT pg_temp.expect('rulebase link of a gateway added after the upgrade (repeated)', pg_temp.rulebase_link('gw_added'), '4-');
+SELECT pg_temp.expect_restored_history_isolated();
 
 ROLLBACK;

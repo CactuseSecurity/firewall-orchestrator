@@ -43,27 +43,31 @@ CREATE INDEX IF NOT EXISTS idx_rule_enforced_on_gateway_rule_id ON rule_enforced
 -- import before the upgrade, which is after the removal of these versions. The tenant visibility functions only count
 -- links valid during the lifetime of a rule version (link_valid_for_rule_version), so the tenants of the gateways no
 -- longer saw them. Only v8 data is changed: the v9 importer does not write rule.dev_id.
--- Gateway entries: the importer never adds an entry to a rule version that was already removed, such entries come
--- from the migration. They get the lifetime of their rule version.
+-- The migration also attached Policy Targets rules to gateways that did not enforce those versions. Only the
+-- gateway recorded on the v8 rule is evidence of historical enforcement; other entries must not be dated back.
 UPDATE rule_enforced_on_gateway reg
 SET created = r.rule_create, removed = r.removed
 FROM rule r
-WHERE r.rule_id = reg.rule_id AND r.dev_id IS NOT NULL AND r.removed IS NOT NULL AND reg.created >= r.removed;
+WHERE r.rule_id = reg.rule_id AND reg.dev_id = r.dev_id AND r.removed IS NOT NULL AND reg.created >= r.removed;
 
--- Rulebase links: the migration created the first links of each management. Where v8 rule versions were removed
--- until then, they are dated back to the first import of the management. Links added by the importer later are not
--- changed, so a gateway added after the upgrade does not see older rule versions. Once the links are dated back, no
--- rule version was removed until the first link, so running this again changes nothing.
+-- Only the first links of a management can come from the migration. Restore each gateway/rulebase link as far
+-- back as a removed v8 rule on that same gateway and rulebase proves it existed, never to the management's first
+-- import. Gateways added before the migration but after a rule version's removal must not gain its history.
+-- Links added after the migration, and links without historical enforcement evidence, remain unchanged.
 WITH first_link AS (
     SELECT gw.mgm_id, min(rl.created) AS created
     FROM rulebase_link rl JOIN device gw ON (gw.dev_id = rl.gw_id)
     GROUP BY gw.mgm_id
 ), migrated_link AS (
-    SELECT fl.mgm_id, fl.created, (SELECT min(ic.control_id) FROM import_control ic WHERE ic.mgm_id = fl.mgm_id) AS first_import
-    FROM first_link fl
-    WHERE EXISTS (SELECT 1 FROM rule r WHERE r.mgm_id = fl.mgm_id AND r.dev_id IS NOT NULL AND r.removed <= fl.created)
+    SELECT rl.id, min(r.rule_create) AS created
+    FROM rulebase_link rl
+        JOIN device gw ON (gw.dev_id = rl.gw_id)
+        JOIN first_link fl ON (fl.mgm_id = gw.mgm_id AND fl.created = rl.created)
+        JOIN rule r ON (r.dev_id = rl.gw_id AND r.rulebase_id = rl.to_rulebase_id AND r.mgm_id = gw.mgm_id)
+    WHERE r.removed <= rl.created
+    GROUP BY rl.id
 )
 UPDATE rulebase_link rl
-SET created = ml.first_import
-FROM device gw, migrated_link ml
-WHERE gw.dev_id = rl.gw_id AND ml.mgm_id = gw.mgm_id AND rl.created = ml.created AND ml.first_import < ml.created;
+SET created = ml.created
+FROM migrated_link ml
+WHERE rl.id = ml.id AND ml.created < rl.created;

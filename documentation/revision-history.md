@@ -103,6 +103,8 @@
 ## 9.7.1 - 09.10.2026
 - installer: show a summary of elapsed task time per role at the end of the playbook, longest first;
   repeated executions of the same role are combined, including handlers
+- add nullable, forward-compatible rule-position storage to implementation tasks
+- add a dedicated GraphQL persistence operation that stores, replaces, or clears only the rule position
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
   - firewall connections (importCheckCertificates): now also covers autodiscovery and Check Point change
@@ -407,7 +409,6 @@
   does not report the managements it has not reached as deleted
 - middleware: jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now allows
   180 seconds (TimeoutStopSec) before killing the process
-
 ## 9.5.10 - 29.09.2026
 - add database storage for hierarchical provisioning configuration nodes and sparse per-node setting overrides
 - add DTOs for hierarchical provisioning configuration

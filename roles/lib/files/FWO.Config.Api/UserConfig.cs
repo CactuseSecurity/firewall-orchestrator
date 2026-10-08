@@ -215,14 +215,27 @@ namespace FWO.Config.Api
         }
 
         /// <summary>
-        /// Central visibility decision for report types: combines the global on/off switch
-        /// (<see cref="ConfigData.AvailableReportTypes"/>) with any per-role "Visible"/"Not Visible" override
-        /// configured in <see cref="ConfigData.ReportTypeVisibilityByRole"/>. An explicit per-role override
-        /// always wins - it can reinstate a report type that was disabled globally, or hide one that wasn't.
-        /// Only when the role's setting is "Inherited" does the global switch act as the fallback, alongside
-        /// the standard role-category visibility rules.
+        /// Role-based visibility of a report type, used for templates, schedules and the archive: combines the
+        /// standard role-category rules with any per-role "Visible"/"Not Visible" override configured in
+        /// <see cref="ConfigData.ReportTypeVisibilityByRole"/>. The global switch
+        /// (<see cref="ConfigData.AvailableReportTypes"/>) is not applied here, see <see cref="CanSelectReportTypeForGeneration"/>.
         /// </summary>
         public bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed = true)
+        {
+            return CanUseReportType(reportType, modellingOwnerAllowed, applyGlobalSwitch: false);
+        }
+
+        /// <summary>
+        /// Visibility of a report type in the report-type chooser of the report generation: additionally applies the
+        /// global switch (<see cref="ConfigData.AvailableReportTypes"/>) to roles set to "Inherited". An explicit
+        /// per-role override always wins - it can reinstate a report type that was disabled globally, or hide one that wasn't.
+        /// </summary>
+        public bool CanSelectReportTypeForGeneration(ReportType reportType)
+        {
+            return CanUseReportType(reportType, modellingOwnerAllowed: true, applyGlobalSwitch: true);
+        }
+
+        private bool CanUseReportType(ReportType reportType, bool modellingOwnerAllowed, bool applyGlobalSwitch)
         {
             if (reportType == ReportType.Undefined)
             {
@@ -236,7 +249,7 @@ namespace FWO.Config.Api
             }
 
             Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> overrides = ParseReportTypeVisibilityByRole();
-            bool globallyAvailable = ParseAvailableReportTypes().Contains(reportType);
+            bool globallyAvailable = !applyGlobalSwitch || ParseAvailableReportTypes().Contains(reportType);
             return applicableRoles.Any(role => IsReportTypeVisibleForRole(reportType, role, overrides, modellingOwnerAllowed, globallyAvailable));
         }
 
@@ -304,7 +317,7 @@ namespace FWO.Config.Api
         /// Parses <see cref="ConfigData.AvailableReportTypes"/>, memoizing the result against the raw config
         /// string the same way <see cref="ParseReportTypeVisibilityByRole"/> does. Malformed config data is
         /// treated as "nothing globally available" rather than throwing, since this now runs on every
-        /// <see cref="CanUseReportType"/> call.
+        /// <see cref="CanSelectReportTypeForGeneration"/> call.
         /// </summary>
         private HashSet<ReportType> ParseAvailableReportTypes()
         {

@@ -444,7 +444,7 @@
         try
         {
 
-            // Build the chooser from the complete report-type set and let CanUseReportType (which combines
+            // Build the chooser from the complete report-type set and let CanSelectReportTypeForGeneration (which combines
             // global availability with the per-role tri-state) decide what is selectable - a report type
             // removed from the global list must still be reachable via an explicit per-role "Visible" override.
             availableReportTypes = ReportTypeGroups.CustomSortReportType(
@@ -552,7 +552,7 @@
 
     private bool IsSelectableReportType(ReportType reportType)
     {
-        return userConfig.CanUseReportType(reportType);
+        return userConfig.CanSelectReportTypeForGeneration(reportType);
     }
 
     private void AdjustDeviceSelection()

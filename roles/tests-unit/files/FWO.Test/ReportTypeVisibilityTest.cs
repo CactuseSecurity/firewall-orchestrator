@@ -150,16 +150,26 @@ namespace FWO.Test
         }
 
         [Test]
-        public void CanUseReportType_InheritedIsHiddenWhenNotGloballyAvailable()
+        public void CanSelectReportTypeForGeneration_InheritedIsHiddenWhenNotGloballyAvailable()
         {
             UserConfig userConfig = BuildUserConfig(Roles.Modeller);
             userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType>());
 
-            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.False);
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.Connections), Is.False);
         }
 
         [Test]
-        public void CanUseReportType_ExplicitVisibleOverridesGloballyDisabledReportType()
+        public void CanSelectReportTypeForGeneration_InheritedIsShownWhenGloballyAvailable()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Modeller);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType> { ReportType.Connections });
+
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.Connections), Is.True);
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.Rules), Is.False);
+        }
+
+        [Test]
+        public void CanSelectReportTypeForGeneration_ExplicitVisibleOverridesGloballyDisabledReportType()
         {
             UserConfig userConfig = BuildUserConfig(Roles.Modeller);
             userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType>());
@@ -168,11 +178,11 @@ namespace FWO.Test
                 [Roles.Modeller] = new() { [ReportType.Connections] = ReportTypeVisibilityOption.Visible }
             });
 
-            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.True);
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.Connections), Is.True);
         }
 
         [Test]
-        public void CanUseReportType_ExplicitNotVisibleOverridesGloballyEnabledReportType()
+        public void CanSelectReportTypeForGeneration_ExplicitNotVisibleOverridesGloballyEnabledReportType()
         {
             UserConfig userConfig = BuildUserConfig(Roles.Modeller);
             userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType> { ReportType.Connections });
@@ -181,7 +191,32 @@ namespace FWO.Test
                 [Roles.Modeller] = new() { [ReportType.Connections] = ReportTypeVisibilityOption.NotVisible }
             });
 
-            Assert.That(userConfig.CanUseReportType(ReportType.Connections), Is.False);
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.Connections), Is.False);
+        }
+
+        [Test]
+        public void CanUseReportType_IgnoresGlobalSwitchForTemplatesSchedulesAndArchive()
+        {
+            // e.g. the seeded template "Last Week Approved Tickets" (TicketReport) on a default installation,
+            // where TicketReport is not part of the global list of available report types
+            UserConfig userConfig = BuildUserConfig(Roles.Admin);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType> { ReportType.Rules });
+
+            Assert.That(userConfig.CanUseReportType(ReportType.TicketReport), Is.True);
+            Assert.That(userConfig.CanSelectReportTypeForGeneration(ReportType.TicketReport), Is.False);
+        }
+
+        [Test]
+        public void CanUseReportType_ExplicitNotVisibleStillHidesTemplates()
+        {
+            UserConfig userConfig = BuildUserConfig(Roles.Admin);
+            userConfig.AvailableReportTypes = System.Text.Json.JsonSerializer.Serialize(new List<ReportType>());
+            userConfig.ReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Serialize(new()
+            {
+                [Roles.Admin] = new() { [ReportType.TicketReport] = ReportTypeVisibilityOption.NotVisible }
+            });
+
+            Assert.That(userConfig.CanUseReportType(ReportType.TicketReport), Is.False);
         }
 
         [Test]

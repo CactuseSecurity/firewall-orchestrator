@@ -45,6 +45,15 @@ namespace FWO.Services.RuleTreeBuilder
         /// </summary>
         public bool IsPolicyHeader { get; set; } = false;
         /// <summary>
+        /// Flag to mark a visible, unnumbered row standing in for a rulebase that is listed completely
+        /// in another rule tree of the report (management rulebases view). It has no children.
+        /// </summary>
+        public bool IsRulebaseReference { get; set; } = false;
+        /// <summary>
+        /// Id of the rulebase a reference row stands for (see <see cref="IsRulebaseReference"/>).
+        /// </summary>
+        public int ReferencedRulebaseId { get; set; }
+        /// <summary>
         /// Flag to mark items that act as roots of concatenations
         /// </summary>
         public bool IsConcatenationRoot { get; set; } = false;

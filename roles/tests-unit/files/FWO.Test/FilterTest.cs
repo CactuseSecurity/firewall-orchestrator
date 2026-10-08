@@ -7,6 +7,7 @@ using FWO.Basics;
 using FWO.Data;
 using FWO.Data.Report;
 using FWO.Data.Workflow;
+using FWO.Api.Client.Queries;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Text.Json;
@@ -16,7 +17,21 @@ namespace FWO.Test
     [Parallelizable]
     public partial class FilterTest
     {
+        [Test]
+        public void RulebaseManagementListQueryHasNoUnusedParameters()
+        {
+            string query = DeviceQueries.getManagementsForRulebaseReporting;
+
+            StringAssert.Contains("query getManagementsForRulebaseReporting", query);
+            StringAssert.Contains("id: mgm_id", query);
+            StringAssert.Contains("rulebase_links(", query);
+            StringAssert.Contains("rulebaseByFromRulebaseId", query);
+            StringAssert.DoesNotContain("$", query);
+        }
+
         private const int kRegexTimeoutMilliseconds = 1000;
+        private static readonly List<int> kSelectedRulebaseManagementIds = [7];
+        private static readonly List<int> kSelectedRulebaseIds = [70, 71];
         private static readonly List<string> kDynamicObjectTypes = ["dynamic_net_obj", "domain"];
 
         private delegate void StubExtractDelegate(ref DynGraphqlQuery query, ReportType? reportType);
@@ -409,12 +424,52 @@ namespace FWO.Test
             Assert.That(query.FullQuery, Is.Empty);
             StringAssert.Contains("rulebase_links", query.StandardRulesStructureQuery);
             StringAssert.DoesNotContain("rules (", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("rule { rulebase_id }", query.StandardRulesStructureQuery);
             StringAssert.Contains("query standardRulesPage", query.StandardRulesPageQuery);
             StringAssert.Contains("firewall_rule", query.StandardRulesPageQuery);
             StringAssert.Contains("$rulebaseIds: [Int!]", query.StandardRulesPageQuery);
             StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
             StringAssert.Contains("rulebase_id", query.StandardRulesPageQuery);
             StringAssert.Contains("rule_id: asc", query.StandardRulesPageQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ManagementRulebaseQueryUsesExplicitManagementsWithoutGatewayLinks()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+            template.ReportParams.ManagementRulebaseView = true;
+            template.ReportParams.SelectedRulebases.Add(new SelectedRulebase { ManagementId = 7, RulebaseId = 70 });
+            template.ReportParams.SelectedRulebases.Add(new SelectedRulebase { ManagementId = 7, RulebaseId = 71 });
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.RelevantManagementIds, Is.EqualTo(kSelectedRulebaseManagementIds));
+            Assert.That(query.SelectedRulebaseIds, Is.EqualTo(kSelectedRulebaseIds));
+            StringAssert.Contains("rulebase_links( where: { id: { _is_null: true } }", query.StandardRulesStructureQuery);
+            StringAssert.DoesNotContain("dev_id: {_in:", query.StandardRulesStructureQuery);
+            StringAssert.Contains("is_section", query.StandardRulesStructureQuery);
+            StringAssert.Contains("rule { rulebase_id }", query.StandardRulesStructureQuery);
+            StringAssert.Contains("rulebase_id: { _in: $rulebaseIds }", query.StandardRulesPageQuery);
+        }
+
+        [Test]
+        [Parallelizable]
+        public void ManagementRulebaseQueryWithActiveTenantFilterFetchesIncomingRulebaseLinks()
+        {
+            ReportTemplate template = new();
+            template.ReportParams.ReportType = (int)ReportType.Rules;
+            template.ReportParams.ManagementRulebaseView = true;
+            template.ReportParams.TenantFilter.IsActive = true;
+            template.ReportParams.TenantFilter.TenantId = 2;
+            template.ReportParams.SelectedRulebases.Add(new SelectedRulebase { ManagementId = 7, RulebaseId = 70 });
+
+            DynGraphqlQuery query = Compiler.Compile(template);
+
+            Assert.That(query.StandardRulesStructureQuery, Is.Empty);
+            StringAssert.Contains("rule { rulebase_id }", query.FullQuery);
+            StringAssert.Contains("where: { id: { _is_null: true } }", query.FullQuery);
         }
 
         [Test]

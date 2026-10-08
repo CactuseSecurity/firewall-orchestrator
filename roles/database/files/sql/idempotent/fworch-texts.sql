@@ -53,6 +53,10 @@ INSERT INTO txt VALUES ('group_modify',         'German',   'Gruppe &auml;ndern'
 INSERT INTO txt VALUES ('group_modify',         'English',  'Modify Group');
 INSERT INTO txt VALUES ('group_delete',         'German',   'Gruppe l&ouml;schen');
 INSERT INTO txt VALUES ('group_delete',         'English',  'Delete Group');
+INSERT INTO txt VALUES ('object_create',        'German',   'Objekt anlegen');
+INSERT INTO txt VALUES ('object_create',        'English',  'Create Object');
+INSERT INTO txt VALUES ('object_modify',        'German',   'Objekt &auml;ndern');
+INSERT INTO txt VALUES ('object_modify',        'English',  'Modify Object');
 INSERT INTO txt VALUES ('new_interface',        'German', 	'Neue Schnittstelle');
 INSERT INTO txt VALUES ('new_interface',        'English', 	'New Interface');
 INSERT INTO txt VALUES ('TicketCreation',       'German',   'Ticket-Erstellung');
@@ -567,17 +571,27 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
-    <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.1 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
+    <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
+    <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
+    <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.3 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
     <li>Beim Stoppen der Middleware werden laufende geplante Jobs nun abgebrochen, statt auf ihr Ende zu warten. Jeder Job h&auml;lt am n&auml;chsten sicheren Punkt an und hinterl&auml;sst keine halbfertigen Ergebnisse: ein abgebrochener Report wird weder archiviert noch versendet, ein unterbrochener App-Daten-Import wird als nicht erfolgreich abgeschlossen und deaktiviert keine noch nicht verarbeiteten Apps, und eine unterbrochene automatische Ger&auml;teerkennung meldet noch nicht gepr&uuml;fte Managements nicht als gel&ouml;scht.</li>
     <li>Die Jobs haben beim Herunterfahren bis zu 2 Minuten Zeit, sich zu beenden; die systemd-Unit fworch-middleware wartet daf&uuml;r nun bis zu 180 Sekunden, bevor sie den Prozess beendet.</li>
+    <li>Im Antragsmodul werden die Grunddaten eines Auftrags und seine Elemente nun in getrennten Bereichen bearbeitet; der Auftragstyp bleibt dabei in beiden Bereichen synchron. Wird nach dem Ansehen eines bestehenden Auftrags ein neuer angelegt, startet dieser nun mit dem richtigen Auftragstyp, und die Gateway-Auswahl bleibt bei "Alle" stabil.</li>
+    <li>Die Bezeichnungen Objekt-Katalog und Service-Katalog wurden verdeutlicht.</li>
+    <li>Die neuen Auftragstypen "Objekt anlegen" und "Objekt &auml;ndern" beantragen ein einzelnes Netzwerkobjekt (Host, Netz, Adressbereich) oder einen Service ohne Gruppe. Beim &Auml;ndern wird das bestehende Objekt &uuml;ber eine Suche ausgew&auml;hlt, der Auftrag zeigt alten und neuen Stand. Die Auftragstypen m&uuml;ssen in den Workflow-Anpassungen freigeschaltet werden und werden noch nicht an externe Ticketsysteme &uuml;bergeben; siehe <a target="_blank" href="/help/workflow/tasktypes">Hilfe zu Auftragstypen</a>.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
-    <li>The middleware job scheduler was upgraded to Quartz.NET 4.1, together with updated libraries for, among others, email delivery and PDF generation.</li>
+    <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
+    <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
+    <li>The middleware job scheduler was upgraded to Quartz.NET 4.3, together with updated libraries for, among others, email delivery and PDF generation.</li>
     <li>Stopping the middleware now cancels running scheduled jobs instead of waiting for them to finish. Each job stops at its next safe point and leaves no half-done result behind: a cancelled report is neither archived nor sent, an interrupted app data import is closed as unsuccessful and does not deactivate the apps it has not reached, and an interrupted device auto discovery does not report the managements it has not reached as deleted.</li>
     <li>Jobs get up to 2 minutes to unwind on shutdown; the systemd unit fworch-middleware now waits up to 180 seconds before stopping the process.</li>
+    <li>In the request module, the basic data of a task and its elements are now edited in separate sections, with the task type kept in sync between them. A task created after viewing an existing one now starts with the correct task type, and the gateway selection stays stable when "All" is selected.</li>
+    <li>The Object Catalog and Service Catalog labels were clarified.</li>
+    <li>The new task types "Create Object" and "Modify Object" request a single network object (host, network, address range) or service without a group. When modifying, the existing object is selected through a search and the task shows the old and the new state. The task types have to be enabled in the workflow customizing settings and are not yet passed to external ticket systems; see <a target="_blank" href="/help/workflow/tasktypes">task type help</a>.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
 ');
@@ -659,6 +673,22 @@ INSERT INTO txt VALUES ('report',		        'German', 	'Report');
 INSERT INTO txt VALUES ('report',		        'English', 	'Report');
 INSERT INTO txt VALUES ('report_type',		    'German', 	'Report-Typ');
 INSERT INTO txt VALUES ('report_type',		    'English', 	'Report Type');
+INSERT INTO txt VALUES ('default_rules_view', 'German', 'Standard-Regelansicht');
+INSERT INTO txt VALUES ('default_rules_view', 'English', 'Default rules view');
+INSERT INTO txt VALUES ('rules_view', 'German', 'Regelansicht');
+INSERT INTO txt VALUES ('rules_view', 'English', 'Rules view');
+INSERT INTO txt VALUES ('gateway_rules_view', 'German', 'Gateway-Regeln');
+INSERT INTO txt VALUES ('gateway_rules_view', 'English', 'Gateway rules');
+INSERT INTO txt VALUES ('management_rulebases_view', 'German', 'Management-Regelwerke');
+INSERT INTO txt VALUES ('management_rulebases_view', 'English', 'Management rulebases');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'German', 'Bitte mindestens ein Regelwerk ausw&auml;hlen.');
+INSERT INTO txt VALUES ('no_rulebase_selected', 'English', 'Select at least one rulebase.');
+INSERT INTO txt VALUES ('select_rulebase', 'German', 'Regelwerk(e) ausw&auml;hlen');
+INSERT INTO txt VALUES ('select_rulebase', 'English', 'Select rulebase(s)');
+INSERT INTO txt VALUES ('rulebases', 'German', 'Regelwerke');
+INSERT INTO txt VALUES ('rulebases', 'English', 'Rulebases');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'German', 'Bereits oben aufgef&uuml;hrt');
+INSERT INTO txt VALUES ('rulebase_listed_above', 'English', 'Already listed above');
 INSERT INTO txt VALUES ('report_time',		    'German', 	'Report-Zeit');
 INSERT INTO txt VALUES ('report_time',		    'English', 	'Report Time');
 INSERT INTO txt VALUES ('tenant_view',		    'German', 	'Mandantenansicht');
@@ -3858,6 +3888,24 @@ INSERT INTO txt VALUES ('external_requests',    'German',   'Externe Auftr&auml;
 INSERT INTO txt VALUES ('external_requests',    'English',  'External Requests');
 INSERT INTO txt VALUES ('group_requests',       'German',   'Gruppenantr&auml;ge');
 INSERT INTO txt VALUES ('group_requests',       'English',  'Group Requests');
+INSERT INTO txt VALUES ('object_requests',      'German',   'Objektantr&auml;ge');
+INSERT INTO txt VALUES ('object_requests',      'English',  'Object Requests');
+INSERT INTO txt VALUES ('previous_state',       'German',   'Bisher');
+INSERT INTO txt VALUES ('previous_state',       'English',  'Previous');
+INSERT INTO txt VALUES ('requested_state',      'German',   'Beantragt');
+INSERT INTO txt VALUES ('requested_state',      'English',  'Requested');
+INSERT INTO txt VALUES ('object',               'German',   'Objekt');
+INSERT INTO txt VALUES ('object',               'English',  'Object');
+INSERT INTO txt VALUES ('search_object',        'German',   'Objekt suchen');
+INSERT INTO txt VALUES ('search_object',        'English',  'Search object');
+INSERT INTO txt VALUES ('search_network_object','German',   'Objekt suchen (ab 3 Zeichen, Name oder IP-Adresse)');
+INSERT INTO txt VALUES ('search_network_object','English',  'Search object (from 3 characters, name or ip address)');
+INSERT INTO txt VALUES ('search_service_object','German',   'Service suchen (Name ab 3 Zeichen oder Port)');
+INSERT INTO txt VALUES ('search_service_object','English',  'Search service (name from 3 characters or port)');
+INSERT INTO txt VALUES ('refine_search',        'German',   'Es werden nur die ersten Treffer angezeigt, bitte die Suche verfeinern.');
+INSERT INTO txt VALUES ('refine_search',        'English',  'Only the first hits are shown, please refine the search.');
+INSERT INTO txt VALUES ('select_management_first','German', 'Bitte zuerst ein Management ausw&auml;hlen.');
+INSERT INTO txt VALUES ('select_management_first','English','Please select a management first.');
 INSERT INTO txt VALUES ('request_content',      'German',   'Auftragsinhalt');
 INSERT INTO txt VALUES ('request_content',      'English',  'Request content');
 INSERT INTO txt VALUES ('bundled_tasks',        'German',   'Geb&uuml;ndelte Auftr&auml;ge');
@@ -4640,6 +4688,14 @@ INSERT INTO txt VALUES ('E5122', 'German',  'Bitte mindestens einen Dienst ausw&
 INSERT INTO txt VALUES ('E5122', 'English', 'Please select at least one service');
 INSERT INTO txt VALUES ('E5123', 'German',  'Die ausgew&auml;hlten Dienste m&uuml;ssen dasselbe Protokoll und denselben Portbereich haben');
 INSERT INTO txt VALUES ('E5123', 'English', 'Selected services must share the same protocol and port range');
+INSERT INTO txt VALUES ('E5124', 'German',  'Bitte ein g&uuml;ltiges Objekt angeben: IP-Adresse, Netz oder Adressbereich bzw. Protokoll und bei TCP/UDP einen Port oder Portbereich.');
+INSERT INTO txt VALUES ('E5124', 'English', 'Please enter a valid object: ip address, network or address range resp. protocol and for TCP/UDP a port or port range.');
+INSERT INTO txt VALUES ('E5125', 'German',  'Die eingegebenen Werte entsprechen dem bestehenden Objekt, es wurde nichts ge&auml;ndert.');
+INSERT INTO txt VALUES ('E5125', 'English', 'The values entered equal the existing object, nothing has been changed.');
+INSERT INTO txt VALUES ('E5126', 'German',  'Bitte das zu &auml;ndernde Objekt ausw&auml;hlen.');
+INSERT INTO txt VALUES ('E5126', 'English', 'Please select the object to be modified.');
+INSERT INTO txt VALUES ('E5127', 'German',  'Bitte ein Management ausw&auml;hlen, zu dem das Objekt geh&ouml;rt.');
+INSERT INTO txt VALUES ('E5127', 'English', 'Please select the management the object belongs to.');
 INSERT INTO txt VALUES ('E5117', 'German',  'L&ouml;schen der Login-Daten nicht m&ouml;glich, da diese von den genannten Managements verwendet werden. Dort zuerst andere Login-Daten ausw&auml;hlen.');
 INSERT INTO txt VALUES ('E5117', 'English', 'Deletion of credentials not allowed as they are in use by the managements named. Change the credentials of these managements before deleting them.');
 INSERT INTO txt VALUES ('E5118', 'German',  'Die obere Grenze muss gr&ouml;sser als die untere Grenze des Portbereichs sein.');
@@ -5578,6 +5634,8 @@ INSERT INTO txt VALUES ('H1525', 'German',  'Nur beim Report Eigent&uuml;mer: St
 INSERT INTO txt VALUES ('H1525', 'English', 'Only for Owners report: State and Criticality: These fields restrict the displayed owners to the selected lifecycle state and selected criticality. The default value "all" leaves the respective filter inactive.');
 INSERT INTO txt VALUES ('H1526', 'German',  'Nur beim Report Eigent&uuml;mer-Recertification und in den Berichtsvorlagen: Zus. Info w&auml;hlt einen Schl&uuml;ssel aus den Zusatzinformationen der Eigent&uuml;mer. Im Dialog kann der ausgew&auml;hlte Schl&uuml;ssel nur angezeigt oder als Filter auf Existenz, Nicht-Existenz oder einen exakten Wert verwendet werden.');
 INSERT INTO txt VALUES ('H1526', 'English', 'Only for Owner Recertification and in report templates: Add. Info selects a key from the owner additional information. In the dialog the selected key can be displayed only or used as a filter for existence, non-existence, or an exact value.');
+INSERT INTO txt VALUES ('H1527', 'German',  'Im Regel-Report legt die Regelansicht fest, ob die Regeln nach Gateway oder direkt nach Management-Regelwerk angezeigt werden. In der Management-Ansicht w&auml;hlen Sie statt Gateways unterhalb jedes Managements dessen Start-Regelwerke aus (auch solche ohne Gateway-Verkn&uuml;pfung). Jedes ausgew&auml;hlte Regelwerk wird wie ein Gateway als Regelbaum mit den davon aus verkn&uuml;pften Regelwerken (Layer, Inline-Layer und Sections) angezeigt; nutzen Gateways das Regelwerk mit unterschiedlichen Folge-Layern, erscheint je Variante ein eigener Baum. Ein Regelwerk, das bereits in einem vorherigen Baum vollst&auml;ndig aufgef&uuml;hrt ist, erscheint nur als Zeile mit einem Link auf diesen Baum.');
+INSERT INTO txt VALUES ('H1527', 'English', 'In the Rules report, Rules view chooses between gateway rules and management rulebases. In the management view, select start rulebases below each management instead of gateways (including rulebases without a gateway link). Each selected rulebase is shown like a gateway as a rule tree with the rulebases linked from it (layers, inline layers and sections); if gateways use it with different following layers, each variant gets its own tree. A rulebase already listed completely in an earlier tree only appears as a row linking to that tree.');
 
 INSERT INTO txt VALUES ('H1601', 'German',  'Die rechte Randleiste hat mehrere Reiter, die je nach Report eingeblendet werden: F&uuml;r regelbasierte Reports werden unter "Alle" s&auml;mtliche aktuell abgeholten Objekte dargestellt,
     w&auml;hrend unter "Report" nur die Objekte der im Report vorkommenden Regeln gezeigt werden.
@@ -6868,6 +6926,8 @@ INSERT INTO txt VALUES ('H5458', 'German',  'Rezertifizierungsmodus: Methode der
 INSERT INTO txt VALUES ('H5458', 'English', 'Recertification Mode: Type of recertification.');
 INSERT INTO txt VALUES ('H5459', 'German',  'Rezert Check - Benachrichtigungen: Legt Empf&auml;nger und Zeitplan der Benachrichtigungen fest. Der Text aus den Einstellungen f&uuml;r anstehende bzw. &uuml;berf&auml;llige Rezertifizierungen wird als @@CONTENT@@ in den Benachrichtigungstext eingesetzt. Die Eigent&uuml;mer-Rezertifizierungstabelle wird unabh&auml;ngig davon erzeugt: Bei HtmlInBody wird sie an den Emailtext angeh&auml;ngt, bei einem Anhang-Layout als Datei angeh&auml;ngt.');
 INSERT INTO txt VALUES ('H5459', 'English', 'Recert Check - Notifications: Defines the recipients and schedule of the notifications. The text from the upcoming or overdue recertification settings is inserted as @@CONTENT@@ into the notification body. The owner recertification table is generated independently: HtmlInBody appends it to the email body; an attachment layout sends it as a file.');
+INSERT INTO txt VALUES ('H5460', 'German',  'Legt fest, ob neue Regeln-Reports Gateway-Regeln oder Management-Regelwerke anzeigen. Die pers&ouml;nliche Einstellung hat Vorrang vor dem globalen Standard. Gespeicherte Report-Vorlagen behalten ihre eigene Ansicht. Die Ansicht kann im Report weiterhin ge&auml;ndert werden.');
+INSERT INTO txt VALUES ('H5460', 'English', 'Selects whether new rules reports show gateway rules or management rulebases. The personal setting overrides the global default. Saved report templates keep their own view. The view can still be changed in the report.');
 INSERT INTO txt VALUES ('H5461', 'German',  'Jeder Nutzer kann seine eigene bevorzugte Sprache f&uuml;r die Anwendung einstellen.<br>
     Alle Texte werden in dieser Sprache dargestellt, soweit verf&uuml;gbar. Wenn nicht, wird die Standardsprache verwendet. Wenn der Text auch dort nicht verf&uuml;gbar ist, wird Englisch genutzt.
     Die Standardsprache beim ersten Anmelden kann vom Admin f&uuml;r alle Nutzer in den <a href="/help/settings/defaults">Standardeinstellungen</a> definiert werden.<br><br>
@@ -8687,6 +8747,18 @@ INSERT INTO txt VALUES ('H8215', 'English', 'New Interface: This task type is pr
 ');
 INSERT INTO txt VALUES ('H8216', 'German',  'Gruppe anlegen: Um Netzwerkgruppen zu beantragen, m&auml;ssen der Gruppenname und eine Liste der zugeh&auml;rigen IP-Adressen bzw. IP-Adress-Bereichen angegeben werden.');
 INSERT INTO txt VALUES ('H8216', 'English', 'Create group: To order network groups, the group name and a list of associated IP addresses resp. IP ranges have to be inserted.');
+INSERT INTO txt VALUES ('H8217', 'German',  'Objekt anlegen: Beantragt genau ein einzelnes Netzwerkobjekt (Host, Netz oder Adressbereich) oder einen Service, der ohne Gruppe f&uuml;r sich steht.
+    Pflicht sind die IP-Adresse, das Netz mit Maske bzw. Start- und End-Adresse, beim Service das Protokoll und bei TCP/UDP der Port oder Portbereich. Der Name ist optional.
+    Wie bei Gruppen kann als Management auch "Alle" gew&auml;hlt werden.');
+INSERT INTO txt VALUES ('H8217', 'English', 'Create object: Orders exactly one single network object (host, network or address range) or service standing alone without a group.
+    Mandatory are the ip address, the network with mask resp. start and end address, for a service the protocol and for TCP/UDP the port or port range. The name is optional.
+    As for groups, "All" may be selected as management.');
+INSERT INTO txt VALUES ('H8218', 'German',  'Objekt &auml;ndern: &Auml;ndert ein bestehendes, importiertes Netzwerkobjekt oder einen Service. Nach Auswahl des Managements wird das Objekt &uuml;ber die Suche (ab 3 Zeichen, Name oder IP-Adresse) ausgew&auml;hlt;
+    die Felder werden mit den bisherigen Werten vorbelegt. Der Auftrag speichert den bisherigen und den neuen Stand und zeigt beide an. Ein Auftrag ohne ge&auml;nderte Werte wird abgewiesen.
+    Beide Objekt-Auftragstypen werden noch nicht an externe Ticketsysteme &uuml;bergeben. Enth&auml;lt ein Ticket mit externer Anbindung neben Regel-Auftr&auml;gen auch Objekt-Auftr&auml;ge, werden die Auftr&auml;ge nach dem ersten Objekt-Auftrag nicht mehr &uuml;bergeben. Objekt-Auftr&auml;ge sollten daher in eigenen Tickets beantragt werden.');
+INSERT INTO txt VALUES ('H8218', 'English', 'Modify object: Changes an existing, imported network object or service. After choosing the management the object is selected through the search (from 3 characters, name or ip address);
+    the fields are prefilled with the current values. The task stores the previous and the new state and shows both. A task without changed values is rejected.
+    Both object task types are not yet passed to external ticket systems. If a ticket with external integration contains object tasks besides rule tasks, the tasks after the first object task are no longer passed on. Object tasks should therefore be requested in tickets of their own.');
 INSERT INTO txt VALUES ('H8301', 'German',  'Jeder Verarbeitungsschritt kann nur von Nutzern mit entsprechenden <a href="/help/settings/roles">Rollen</a> get&auml;tigt werden.
     Dabei k&ouml;nnen einzelnen Nutzern auch mehrere Rollen zufallen. Die Rollen k&ouml;nnen individuell oder &uuml;ber <a href="/help/settings/groups">Gruppenzugeh&ouml;rigkeit</a> zugewiesen werden.
     Hinzu kommt die Rolle des admin, welche einen Komplettzugriff erlaubt. Je nach Rolle des Bearbeiters sind nur die f&uuml;r ihn relevanten Teile der folgenden Rubriken sichtbar.

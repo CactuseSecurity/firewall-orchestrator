@@ -27,7 +27,11 @@ namespace FWO.Test
         private const int kNextPageItemFromEnd = 2;
         private const int kPreviousPageItemFromEnd = 3;
         private const int kOneWeek = 604800;
-        private const string kStoredImportPeriod = """{"log_time_range_in_seconds": 604800, "import_time": "2026-10-05T08:30:00+00:00"}""";
+        private static readonly LogDataImportPeriod kRowPeriod = new()
+        {
+            LogTimeRangeInSeconds = kOneWeek,
+            ImportTime = new DateTimeOffset(2026, 10, 5, 8, 30, 0, TimeSpan.Zero)
+        };
 
         [Test]
         public async Task OnParametersSet_LoadsLogEntriesOfOwner()
@@ -137,7 +141,7 @@ namespace FWO.Test
         [Test]
         public async Task OnParametersSet_UsesThePeriodOfTheDisplayedRows()
         {
-            LogDataTableTestApiConn apiConnection = new() { ImportPeriodValue = kStoredImportPeriod };
+            LogDataTableTestApiConn apiConnection = new() { RowPeriod = kRowPeriod };
             LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
 
             await InvokeOnParametersSetAsync(component);
@@ -146,9 +150,9 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task OnParametersSet_IgnoresLegacyGlobalPeriod()
+        public async Task OnParametersSet_LeavesThePeriodEmptyForRowsWithoutTiming()
         {
-            LogDataTableTestApiConn apiConnection = new() { ImportPeriodValue = kStoredImportPeriod, UnknownRowPeriod = true };
+            LogDataTableTestApiConn apiConnection = new();
             LogDataTable component = CreateComponent(apiConnection, ownerId: 7);
 
             await InvokeOnParametersSetAsync(component);
@@ -163,7 +167,7 @@ namespace FWO.Test
         [Test]
         public void Render_NamesTheAggregationPeriodInTheTitle()
         {
-            using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn { ImportPeriodValue = kStoredImportPeriod }, new SimulatedUserConfig());
+            using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn { RowPeriod = kRowPeriod }, new SimulatedUserConfig());
 
             IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters.Add(component => component.OwnerId, 7));
 
@@ -171,7 +175,7 @@ namespace FWO.Test
         }
 
         [Test]
-        public void Render_UsesThePlainTitleWithoutStoredImportPeriod()
+        public void Render_UsesThePlainTitleForRowsWithoutTiming()
         {
             using BunitContext context = CreateRenderContext(new LogDataTableTestApiConn(), new SimulatedUserConfig());
 
@@ -187,7 +191,7 @@ namespace FWO.Test
         public void Render_MixedImportsShowTimingPerRow()
         {
             using BunitContext context = CreateRenderContext(
-                new LogDataTableTestApiConn { ImportPeriodValue = kStoredImportPeriod, EntryCount = 2, MixedRowPeriod = true },
+                new LogDataTableTestApiConn { RowPeriod = kRowPeriod, EntryCount = 2, MixedRowPeriod = true },
                 new SimulatedUserConfig());
 
             IRenderedComponent<LogDataTable> page = context.Render<LogDataTable>(parameters => parameters.Add(component => component.OwnerId, 7));
@@ -506,10 +510,7 @@ namespace FWO.Test
             public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == ConfigQueries.getConfigItemByKey)
-                {
-                    return (QueryResponseType)(object)new List<ConfigItem>();
-                }
+                Assert.That(query, Is.EqualTo(LogDataQueries.getUnmodelledLogEntriesByOwner), "the table reads nothing but the log entries");
                 int ownerId = (int?)variables?.GetType().GetProperty("ownerId")?.GetValue(variables) ?? 0;
                 await GetAnswer(ownerId).Task;
                 // the log count identifies the owner the entries were loaded for
@@ -538,17 +539,14 @@ namespace FWO.Test
             public int? LastLimit { get; private set; }
             public bool FailQuery { get; init; }
             public int EntryCount { get; init; } = 1;
-            public string? ImportPeriodValue { get; init; }
-            public bool UnknownRowPeriod { get; init; }
+            public LogDataImportPeriod? RowPeriod { get; init; }
             public bool MixedRowPeriod { get; init; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
                 string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
             {
-                if (query == ConfigQueries.getConfigItemByKey)
-                {
-                    return Task.FromResult((QueryResponseType)(object)AnswerImportPeriod(variables));
-                }
+                // the timing is read from the rows, so the table must not query anything else
+                Assert.That(query, Is.EqualTo(LogDataQueries.getUnmodelledLogEntriesByOwner), "the table reads nothing but the log entries");
                 QueryCount++;
                 LastOwnerId = (int?)variables?.GetType().GetProperty("ownerId")?.GetValue(variables);
                 LastLimit = (int?)variables?.GetType().GetProperty("limit")?.GetValue(variables);
@@ -559,16 +557,9 @@ namespace FWO.Test
 
                 List<OwnerFirewallLogEntry> entries = [.. Enumerable.Range(0, EntryCount)
                     .Select(index => new OwnerFirewallLogEntry { LogCount = 42, Source = "192.0.2.1/32", Destination = "198.51.100.1/32",
-                        ImportTime = UnknownRowPeriod ? null : LogDataImportPeriod.Parse(ImportPeriodValue)?.ImportTime.AddDays(MixedRowPeriod ? -index : 0),
-                        LogTimeRangeInSeconds = UnknownRowPeriod ? null : LogDataImportPeriod.Parse(ImportPeriodValue)?.LogTimeRangeInSeconds })];
+                        ImportTime = RowPeriod?.ImportTime.AddDays(MixedRowPeriod ? -index : 0),
+                        LogTimeRangeInSeconds = RowPeriod?.LogTimeRangeInSeconds })];
                 return Task.FromResult((QueryResponseType)(object)entries);
-            }
-
-            private List<ConfigItem> AnswerImportPeriod(object? variables)
-            {
-                Assert.Fail("Log timing must be read from rows, never from the legacy global config.");
-                Assert.That(variables?.GetType().GetProperty("key")?.GetValue(variables), Is.EqualTo(LogDataImportPeriod.kConfigKey));
-                return ImportPeriodValue is null ? [] : [new ConfigItem { Key = LogDataImportPeriod.kConfigKey, Value = ImportPeriodValue }];
             }
         }
     }

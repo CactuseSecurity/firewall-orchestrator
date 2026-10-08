@@ -2,7 +2,8 @@
 
 ## 9.7.0 - 07.10.2026
 - resolve reverse DNS asynchronously with shutdown cancellation; reuse stored names and empty
-  results across imports and allow disabling new lookups in Settings - Logging.
+  results across imports and allow disabling new lookups in Settings - Logging. A lookup without
+  definitive answer (DNS server unreachable, server failure, refused) is repeated by the next import.
 - store aggregation period and import time on each log row. The table heading uses only the
   displayed rows; mixed or unknown periods are shown per row. Existing rows retain unknown
   timing until reimported. Counts and timing are updated together, including additive imports.

@@ -228,7 +228,7 @@ namespace FWO.Test
                 NewMetadataSource("203.0.113.0", "203.0.113.255", "APP-C", "AREA-3")
             ]);
             LogDataImport import = CreateImport(apiConnection, reverseDnsLookup: (address, _) =>
-                Task.FromResult(address.ToString() == "192.0.2.1" ? "source.example.test" : ""));
+                Task.FromResult<string?>(address.ToString() == "192.0.2.1" ? "source.example.test" : ""));
             List<LogDataImportEntry> sourceEntries =
             [
                 NewSourceEntry("APP-1", 5, "192.0.2.1", "198.51.100.1"),
@@ -727,7 +727,7 @@ namespace FWO.Test
             LogDataImport import = CreateImport(apiConnection, reverseDnsLookup: (_, _) =>
             {
                 Interlocked.Increment(ref lookupCalls);
-                return Task.FromResult("");
+                return Task.FromResult<string?>("");
             });
             List<LogDataImportEntry> entries = [NewSourceEntry("APP-1", 1, "192.0.2.1", "198.51.100.1")];
 
@@ -750,7 +750,7 @@ namespace FWO.Test
             LogDataImport import = CreateImport(apiConnection, resolveDns: false, reverseDnsLookup: (_, _) =>
             {
                 Interlocked.Increment(ref lookupCalls);
-                return Task.FromResult("");
+                return Task.FromResult<string?>("");
             });
             List<LogDataImportEntry> entries = [NewSourceEntry("APP-1", 1, "192.0.2.1", "198.51.100.1")];
 
@@ -768,7 +768,7 @@ namespace FWO.Test
             LogDataImport enabledImport = CreateImport(apiConnection, reverseDnsLookup: (_, _) =>
             {
                 Interlocked.Increment(ref lookupCalls);
-                return Task.FromResult("new.example.test");
+                return Task.FromResult<string?>("new.example.test");
             });
             await InvokeSaveEntries(enabledImport, entries);
             Assert.That(lookupCalls, Is.EqualTo(1), "re-enabling resolves only the address not previously looked up");
@@ -790,8 +790,57 @@ namespace FWO.Test
 
             await InvokeSaveEntries(import, entries);
 
-            Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
-            Assert.That(apiConnection.InsertedMetadata.Select(item => item.Dns), Is.All.Empty);
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.InsertedEntries, Has.Count.EqualTo(1));
+                Assert.That(apiConnection.InsertedMetadata.Select(item => item.Dns), Is.All.Empty);
+                Assert.That(apiConnection.InsertedMetadata.Select(item => item.DnsLookupCompleted), Is.All.False,
+                    "a failed lookup must not be stored as an address without name");
+            });
+        }
+
+        /// <summary>
+        /// A lookup without definitive answer keeps a stored name and is repeated by the next import.
+        /// </summary>
+        [Test]
+        public async Task SaveEntries_RetriesFailedDnsLookupsWithTheNextImport()
+        {
+            LogDataImportTestApiConn apiConnection = new();
+            apiConnection.OwnerIdsByAppId["APP-1"] = 11;
+            apiConnection.StoredMetadata.Add(new IpMetadata { IpAddress = "192.0.2.1/32", Dns = "old.example.test" });
+            int lookupCalls = 0;
+            LogDataImport failingImport = CreateImport(apiConnection, reverseDnsLookup: (_, _) =>
+            {
+                Interlocked.Increment(ref lookupCalls);
+                return Task.FromResult<string?>(null);
+            });
+            List<LogDataImportEntry> entries = [NewSourceEntry("APP-1", 1, "192.0.2.1", "198.51.100.1")];
+
+            await InvokeSaveEntries(failingImport, entries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(lookupCalls, Is.EqualTo(2));
+                Assert.That(apiConnection.InsertedMetadata.Select(item => item.DnsLookupCompleted), Is.All.False);
+                Assert.That(apiConnection.InsertedMetadata.Single(item => item.IpAddress == "192.0.2.1/32").Dns, Is.EqualTo("old.example.test"));
+            });
+            apiConnection.StoredMetadata.Clear();
+            apiConnection.StoredMetadata.AddRange(apiConnection.InsertedMetadata);
+            apiConnection.InsertedMetadata.Clear();
+            LogDataImport workingImport = CreateImport(apiConnection, reverseDnsLookup: (address, _) =>
+            {
+                Interlocked.Increment(ref lookupCalls);
+                return Task.FromResult<string?>(address.ToString() == "192.0.2.1" ? "new.example.test" : "");
+            });
+
+            await InvokeSaveEntries(workingImport, entries);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(lookupCalls, Is.EqualTo(4), "both failed addresses are looked up again");
+                Assert.That(apiConnection.InsertedMetadata.Select(item => item.DnsLookupCompleted), Is.All.True);
+                Assert.That(apiConnection.InsertedMetadata.Single(item => item.IpAddress == "192.0.2.1/32").Dns, Is.EqualTo("new.example.test"));
+            });
         }
 
         /// <summary>
@@ -818,7 +867,7 @@ namespace FWO.Test
 
         private static LogDataImport CreateImport(ApiConnection apiConnection, string importPath = "[]",
             int maxEntries = 1000, int retentionDays = 90, bool replaceExisting = true,
-            Func<System.Net.IPAddress, CancellationToken, Task<string>>? reverseDnsLookup = null, bool resolveDns = true)
+            Func<System.Net.IPAddress, CancellationToken, Task<string?>>? reverseDnsLookup = null, bool resolveDns = true)
         {
             SimulatedGlobalConfig globalConfig = new()
             {
@@ -828,7 +877,7 @@ namespace FWO.Test
                 ReplaceExistingLogData = replaceExisting,
                 ResolveLogDataDns = resolveDns
             };
-            return new LogDataImport(apiConnection, globalConfig, reverseDnsLookup ?? ((_, _) => Task.FromResult("")));
+            return new LogDataImport(apiConnection, globalConfig, reverseDnsLookup ?? ((_, _) => Task.FromResult<string?>("")));
         }
 
         private static IpMetadataSource NewMetadataSource(string ip, string ipEnd, string appId, string areaId)

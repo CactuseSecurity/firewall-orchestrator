@@ -102,15 +102,6 @@ namespace FWO.Test
             Assert.That(importFile?.LogTimeRangeInSeconds, Is.EqualTo(GlobalConst.kDefaultLogTimeRangeInSeconds));
         }
 
-        [TestCase(null)]
-        [TestCase("")]
-        [TestCase("not json")]
-        [TestCase("""{"log_time_range_in_seconds": 0}""")]
-        public void Parse_ReturnsNullForAMissingOrUnusablePeriod(string? configValue)
-        {
-            Assert.That(LogDataImportPeriod.Parse(configValue), Is.Null);
-        }
-
         [Test]
         [NonParallelizable]
         public async Task Run_StoresTheDefaultLogTimeRangeForAnImportFileWithoutRange()
@@ -222,7 +213,7 @@ namespace FWO.Test
                 ImportLogDataPath = importPath,
                 DefaultLogTimeRangeInSeconds = defaultLogTimeRange
             };
-            return new LogDataImport(apiConnection, globalConfig, (_, _) => Task.FromResult(""));
+            return new LogDataImport(apiConnection, globalConfig, (_, _) => Task.FromResult<string?>(""));
         }
 
         private static void ConfigureAllowedCustomizationRoots(string fwoHome)

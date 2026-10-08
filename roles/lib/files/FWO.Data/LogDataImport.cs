@@ -27,37 +27,12 @@ namespace FWO.Data
     /// </summary>
     public class LogDataImportPeriod
     {
-        /// <summary>
-        /// Legacy global config entry, retained for parsing old serialized periods only.
-        /// </summary>
-        public const string kConfigKey = "logDataImportPeriod";
-
         [JsonProperty("log_time_range_in_seconds"), JsonPropertyName("log_time_range_in_seconds")]
         public int LogTimeRangeInSeconds { get; set; }
 
         [JsonProperty("import_time"), JsonPropertyName("import_time")]
         public DateTimeOffset ImportTime { get; set; }
 
-        /// <summary>
-        /// Reads a stored period.
-        /// </summary>
-        /// <returns>The period, null if none is stored or the stored value is unusable.</returns>
-        public static LogDataImportPeriod? Parse(string? configValue)
-        {
-            if (string.IsNullOrWhiteSpace(configValue))
-            {
-                return null;
-            }
-            try
-            {
-                LogDataImportPeriod? period = System.Text.Json.JsonSerializer.Deserialize<LogDataImportPeriod>(configValue);
-                return period?.LogTimeRangeInSeconds > 0 ? period : null;
-            }
-            catch (System.Text.Json.JsonException)
-            {
-                return null;
-            }
-        }
     }
 
     /// <summary>

@@ -29,6 +29,15 @@ namespace FWO.Test
             Assert.That(LogDataImport.SelectDnsName(kEmptyDnsNames), Is.Empty);
         }
 
+        /// <summary>
+        /// A lookup without definitive answer stays distinguishable from an address without name.
+        /// </summary>
+        [Test]
+        public void SelectDnsName_ReturnsNullForAFailedLookup()
+        {
+            Assert.That(LogDataImport.SelectDnsName(null), Is.Null);
+        }
+
         [Test]
         public void NormalizeEntries_UsesHighestCountsAndNormalizesIps()
         {

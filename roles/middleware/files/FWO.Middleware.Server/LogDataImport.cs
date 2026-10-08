@@ -15,7 +15,7 @@ namespace FWO.Middleware.Server
     /// Imports normalized logging data produced by customization scripts.
     /// </summary>
     public class LogDataImport(ApiConnection apiConnection, GlobalConfig globalConfig,
-        Func<IPAddress, CancellationToken, Task<string>>? reverseDnsLookup = null) : DataImportBase(apiConnection, globalConfig)
+        Func<IPAddress, CancellationToken, Task<string?>>? reverseDnsLookup = null) : DataImportBase(apiConnection, globalConfig)
     {
         private const string LogMessageTitle = "Import Log Data";
         private const string LevelFile = "Import File";
@@ -27,14 +27,20 @@ namespace FWO.Middleware.Server
         // An unresolvable address only answers after the resolver timed out, so the lookups of a
         // batch overlap. The bound keeps the import from opening thousands of sockets at once.
         private const int ReverseLookupParallelism = 16;
-        private readonly Func<IPAddress, CancellationToken, Task<string>> reverseDnsLookup = reverseDnsLookup
-            ?? (async (address, token) => SelectDnsName(await IpOperations.DnsReverseLookUpAllAsync(address, token)));
+        // returns null if the DNS server gave no definitive answer, so the address is looked up again later
+        private readonly Func<IPAddress, CancellationToken, Task<string?>> reverseDnsLookup = reverseDnsLookup
+            ?? (async (address, token) => SelectDnsName(await IpOperations.TryDnsReverseLookUpAllAsync(address, token)));
 
         /// <summary>
         /// Selects the first PTR name directly from the indexable DNS result collection.
         /// </summary>
-        internal static string SelectDnsName(IReadOnlyList<string> names)
+        /// <returns>The first name, an empty string for an address without name, or null for a failed lookup.</returns>
+        internal static string? SelectDnsName(IReadOnlyList<string>? names)
         {
+            if (names is null)
+            {
+                return null;
+            }
             return names.Count == 0 ? "" : names[0] ?? "";
         }
 
@@ -406,11 +412,30 @@ namespace FWO.Middleware.Server
             List<IpMetadata> storedMetadata = await apiConnection.SendQueryAsync<List<IpMetadata>>(
                 LogDataQueries.getIpMetadata, new { addresses });
             Dictionary<string, IpMetadata> storedByAddress = storedMetadata.ToDictionary(item => item.IpAddress, StringComparer.Ordinal);
+            // read once, the config subscription may change it while the lookups run
+            bool resolveDns = globalConfig.ResolveLogDataDns;
             IpMetadata[] metadata = new IpMetadata[addresses.Count];
             await Parallel.ForAsync(0, addresses.Count,
                 new ParallelOptions { MaxDegreeOfParallelism = ReverseLookupParallelism, CancellationToken = cancellationToken },
-                async (index, token) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources, storedByAddress, token));
+                async (index, token) => metadata[index] = await BuildAddressMetadata(addresses[index], preparedSources,
+                    storedByAddress, resolveDns, token));
+            WarnAboutFailedDnsLookups(metadata, resolveDns);
             return [.. metadata];
+        }
+
+        /// <summary>
+        /// With lookups enabled, an address is left without a completed lookup only when its lookup failed.
+        /// Such addresses are looked up again by the next import, so a DNS outage does not leave them
+        /// without name for good.
+        /// </summary>
+        private static void WarnAboutFailedDnsLookups(IpMetadata[] metadata, bool resolveDns)
+        {
+            int failedLookups = metadata.Count(item => !item.DnsLookupCompleted);
+            if (resolveDns && failedLookups > 0)
+            {
+                Log.WriteWarning(LogMessageTitle, $"Reverse-DNS lookup of {failedLookups} of {metadata.Length} addresses" +
+                    " got no definitive answer, they are looked up again by the next import.");
+            }
         }
 
         /// <summary>
@@ -441,7 +466,7 @@ namespace FWO.Middleware.Server
         /// the same row and the display order does not depend on the order of the ranges.
         /// </summary>
         private async Task<IpMetadata> BuildAddressMetadata(string address, List<PreparedMetadataSource> preparedSources,
-            Dictionary<string, IpMetadata> storedByAddress, CancellationToken cancellationToken)
+            Dictionary<string, IpMetadata> storedByAddress, bool resolveDns, CancellationToken cancellationToken)
         {
             IPAddress ipAddress = IPAddress.Parse(address.StripOffNetmask());
             IPAddressRange addressRange = new(ipAddress, ipAddress);
@@ -452,10 +477,14 @@ namespace FWO.Middleware.Server
             storedByAddress.TryGetValue(address, out IpMetadata? stored);
             bool lookupCompleted = stored?.DnsLookupCompleted == true;
             string dns = stored?.Dns ?? "";
-            if (!lookupCompleted && globalConfig.ResolveLogDataDns)
+            if (!lookupCompleted && resolveDns)
             {
-                dns = await ResolveDns(ipAddress, cancellationToken);
-                lookupCompleted = true;
+                string? resolvedDns = await ResolveDns(ipAddress, cancellationToken);
+                if (resolvedDns is not null)
+                {
+                    dns = resolvedDns;
+                    lookupCompleted = true;
+                }
             }
             return new IpMetadata
             {
@@ -470,10 +499,12 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Resolves PTR records asynchronously. DNS failures leave the name empty, while shutdown
-        /// cancellation leaves the source available for retry without changing stored log data.
+        /// Resolves PTR records asynchronously. DNS failures return null, so the lookup is not marked as
+        /// completed and is repeated by the next import, while shutdown cancellation leaves the source
+        /// available for retry without changing stored log data.
         /// </summary>
-        private async Task<string> ResolveDns(IPAddress address, CancellationToken cancellationToken)
+        /// <returns>The name, an empty string for an address without name, or null if the lookup failed.</returns>
+        private async Task<string?> ResolveDns(IPAddress address, CancellationToken cancellationToken)
         {
             try
             {
@@ -486,7 +517,7 @@ namespace FWO.Middleware.Server
             catch (Exception exception)
             {
                 Log.WriteDebug(LogMessageTitle, $"Reverse-DNS lookup of {address} failed: {exception.Message}");
-                return "";
+                return null;
             }
         }
 

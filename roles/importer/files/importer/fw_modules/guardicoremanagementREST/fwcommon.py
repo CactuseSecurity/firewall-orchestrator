@@ -1,4 +1,5 @@
 from fw_modules.guardicoremanagementREST import gc_getter, gc_normalizer
+from fw_modules.guardicoremanagementREST.gc_gateway import ensure_policy_gateway
 from fw_modules.guardicoremanagementREST.gc_models import GuardicoreConfig
 from fwo_base import ensure_device_name, write_native_config_to_file
 from fwo_exceptions import FwoNativeConfigParseError
@@ -25,6 +26,7 @@ class GuardicoreManagementRESTCommon(FwCommon):
         except ValidationError as ve:
             raise FwoNativeConfigParseError(f"Error while parsing Guardicore native config: {ve!s}")
 
+        ensure_policy_gateway(import_state)
         write_native_config_to_file(import_state.state, config_in.native_config)
 
         config_in.ManagerSet[0].configs = [gc_normalizer.normalize_config(native_config, mgm_details)]

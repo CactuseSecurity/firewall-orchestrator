@@ -17,6 +17,9 @@
   Rules are split into chained rulebases named "<section number> <section> <ruleset>" so that their alphabetical
   order matches the Guardicore section order (override allow, override alert, override block, allow, alert, block).
   Services are built from protocols, ports, port ranges, excluded ports and ICMP matches
+- importer: create a dummy FWO gateway when importing a Guardicore management without a registered gateway.
+  Guardicore enforces policies on hosts; this record only groups policy links and rule assignments in FWO.
+  Existing gateways are reused. Deploy both the importer changes and Hasura metadata to enable registration
 - importer: the normalized config takes an optional list of labels (key, value) that is upserted into
   labelling.label_key / labelling.label_value on every import
 - importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as

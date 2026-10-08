@@ -9460,6 +9460,45 @@
                   }
                 }
               ],
+              "insert_permissions": [
+                {
+                  "role": "importer",
+                  "permission": {
+                    "check": {
+                      "stm_dev_typ": {
+                        "dev_typ_name": {
+                          "_eq": "Guardicore Gateway"
+                        },
+                        "dev_typ_version": {
+                          "_eq": "REST"
+                        }
+                      },
+                      "management": {
+                        "stm_dev_typ": {
+                          "dev_typ_name": {
+                            "_eq": "Guardicore Management"
+                          },
+                          "dev_typ_version": {
+                            "_eq": "REST"
+                          }
+                        }
+                      }
+                    },
+                    "set": {
+                      "do_not_import": false,
+                      "hide_in_gui": false,
+                      "dev_comment": "Dummy gateway grouping host-based Guardicore policies."
+                    },
+                    "columns": [
+                      "dev_name",
+                      "dev_uid",
+                      "dev_typ_id",
+                      "mgm_id"
+                    ]
+                  },
+                  "comment": "Allow the importer to register dummy gateways for host-based Guardicore policies only."
+                }
+              ],
               "select_permissions": [
                 {
                   "role": "approver",

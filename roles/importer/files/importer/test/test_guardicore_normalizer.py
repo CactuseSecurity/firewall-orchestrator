@@ -72,6 +72,32 @@ class TestNormalizeConfig:
 
 
 class TestFwCommon:
+    def test_get_config_registers_policy_gateway(
+        self, import_state_controller: ImportStateController, mocker: MockerFixture
+    ) -> None:
+        mocker.patch.object(fwcommon, "write_native_config_to_file")
+        mocker.patch.object(
+            import_state_controller.api_call,
+            "call",
+            side_effect=[
+                {"data": {"stm_dev_typ": [{"dev_typ_id": 34}]}},
+                {"data": {"insert_device": {"returning": [{"newId": 42}]}}},
+            ],
+        )
+        config_in = FwConfigManagerListController()
+        config_in.native_config = load_native_config()
+
+        _, config_out = GuardicoreManagementRESTCommon().get_config(config_in, import_state_controller)
+
+        normalized = config_out.ManagerSet[0].configs[0]
+        gateway_uid = normalized.gateways[0].Uid
+        assert gateway_uid is not None
+        assert import_state_controller.state.lookup_gateway_id(gateway_uid) == 42
+        assert normalized.gateways[0].RulebaseLinks
+        assert all(
+            rule.rule_installon == gateway_uid for rulebase in normalized.rulebases for rule in rulebase.rules.values()
+        )
+
     def test_get_config_uses_given_native_config(
         self, import_state_controller: ImportStateController, mocker: MockerFixture
     ) -> None:
@@ -79,6 +105,7 @@ class TestFwCommon:
         fetch = mocker.patch.object(gc_getter, "get_native_config")
         config_in = FwConfigManagerListController()
         config_in.native_config = load_native_config()
+        import_state_controller.state.gateway_map = {3: {"Mock Management": 42}}
 
         result, config_out = GuardicoreManagementRESTCommon().get_config(config_in, import_state_controller)
 
@@ -95,6 +122,7 @@ class TestFwCommon:
         fetch = mocker.patch.object(gc_getter, "get_native_config", return_value=load_native_config())
         config_in = FwConfigManagerListController()
 
+        import_state_controller.state.gateway_map = {3: {"Mock Management": 42}}
         GuardicoreManagementRESTCommon().get_config(config_in, import_state_controller)
 
         fetch.assert_called_once_with("https://mock.example.com:443", "mock-user", "mock-secret")

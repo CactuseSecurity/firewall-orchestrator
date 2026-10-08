@@ -10,6 +10,11 @@
         msg: Ansible 2.13 or above is required
       when: ansible_version.full is version('2.13', '<')
 
+    # Before the first task that changes the host, so an unsupported OS release is left
+    # exactly as it was.
+    - name: check that the operating system release is supported
+      include_tasks: validate-os-platform.yml
+
     - name: create remote installer tmp directory
       file:
         path: "{{ installer_tmp_dir }}"

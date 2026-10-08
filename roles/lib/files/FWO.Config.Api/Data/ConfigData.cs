@@ -378,6 +378,12 @@ namespace FWO.Config.Api.Data
         [JsonProperty("hideLogTimeColumn"), JsonPropertyName("hideLogTimeColumn")]
         public bool HideLogTimeColumn { get; set; } = true;
 
+        /// <summary>
+        /// Includes the time alongside the start date in the log aggregation heading.
+        /// </summary>
+        [JsonProperty("showLogTimeRangeStartTime"), JsonPropertyName("showLogTimeRangeStartTime")]
+        public bool ShowLogTimeRangeStartTime { get; set; } = false;
+
         [JsonProperty("defaultLogTimeRangeInSeconds"), JsonPropertyName("defaultLogTimeRangeInSeconds")]
         public int DefaultLogTimeRangeInSeconds { get; set; } = GlobalConst.kDefaultLogTimeRangeInSeconds;
 

@@ -34,6 +34,7 @@ WHERE config_key = 'importSubnetDataPath'
 INSERT INTO config (config_key, config_value, config_user)
 VALUES
     ('hideLogTimeColumn', 'True', 0),
+    ('showLogTimeRangeStartTime', 'False', 0),
     ('defaultLogTimeRangeInSeconds', '604800', 0)
 ON CONFLICT DO NOTHING;
 

@@ -572,7 +572,7 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firew
 INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 <ul>
     <li>Importierte Logdaten zeigen f&uuml;r Quell- und Zieladressen die zugeh&ouml;rigen externen App-IDs, Netzwerk-Areas und Reverse-DNS-Namen. DNS-Ergebnisse werden wiederverwendet; neue Lookups k&ouml;nnen unter Einstellungen - Logging deaktiviert werden.</li>
-    <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet.</li>
+    <li>Die Logdaten-Tabelle zeigt den Aggregationszeitraum und Importzeitpunkt der angezeigten Daten. Bei unterschiedlichen oder unbekannten Zeitr&auml;umen erscheinen diese Angaben pro Zeile. Der Standardzeitraum ist unter Einstellungen - Logging einstellbar (7 Tage) und kann von JSON-Importdateien &uuml;berschrieben werden. Die Spalte Zeitpunkt ist standardm&auml;&szlig;ig ausgeblendet. Die &Uuml;berschrift zeigt standardm&auml;&szlig;ig nur das Startdatum; die Uhrzeit kann unter Einstellungen - Logging aktiviert werden.</li>
     <li>Die Area-IP-Daten-Konvertierung hei&szlig;t nun convert_area_ip_data_from_git.py. generate_area_ip_data.py erzeugt Area-IP-Testdaten.</li>
     <li>Details: siehe <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">Release Notes.</a></li>
 </ul>
@@ -580,7 +580,7 @@ INSERT INTO txt VALUES ('whats_new_facts', 'German', '
 INSERT INTO txt VALUES ('whats_new_facts', 'English', '
 <ul>
     <li>Imported log data shows matching external application IDs, network areas, and reverse-DNS names for source and destination addresses. DNS results are reused; new lookups can be disabled under Settings - Logging.</li>
-    <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default.</li>
+    <li>The log data table shows the aggregation period and import time of the displayed data. When periods differ or are unknown, these values appear per row. The default period is configurable under Settings - Logging (7 days) and can be overridden by JSON import files. The log time column is hidden by default. The heading shows only the start date by default; the time can be enabled under Settings - Logging.</li>
     <li>The area IP data converter is now named convert_area_ip_data_from_git.py. generate_area_ip_data.py generates area IP test data.</li>
     <li>Details: see <a target="_blank" href="https://github.com/CactuseSecurity/firewall-orchestrator/releases">release notes.</a></li>
 </ul>
@@ -3219,6 +3219,8 @@ INSERT INTO txt VALUES ('showLogDataInConnections', 'German', 'Logdaten in Verbi
 INSERT INTO txt VALUES ('showLogDataInConnections', 'English', 'Show log data in connections');
 INSERT INTO txt VALUES ('hideLogTimeColumn', 'German', 'Spalte Zeitpunkt in Logdaten ausblenden');
 INSERT INTO txt VALUES ('hideLogTimeColumn', 'English', 'Hide log time column in log data');
+INSERT INTO txt VALUES ('showLogTimeRangeStartTime', 'German', 'Uhrzeit am Beginn des Logzeitraums anzeigen');
+INSERT INTO txt VALUES ('showLogTimeRangeStartTime', 'English', 'Show time at start of log time range');
 INSERT INTO txt VALUES ('defaultLogTimeRange', 'German', 'Standard-Logzeitraum');
 INSERT INTO txt VALUES ('defaultLogTimeRange', 'English', 'Default log time range');
 INSERT INTO txt VALUES ('log_data', 'German', 'Logdaten');
@@ -7460,6 +7462,8 @@ INSERT INTO txt VALUES ('H5707', 'German', 'Reverse-DNS f&uuml;r Logdaten aufl&o
 INSERT INTO txt VALUES ('H5707', 'English', 'Resolve reverse DNS for log data: New addresses are resolved asynchronously. Stored results (including empty names) are reused while the address occurs in log data. A lookup the DNS server did not answer, e.g. during a DNS outage, is repeated by the next import; if no DNS server can be reached, the import skips its remaining lookups. Without a reachable DNS server, disable this option. Disabling prevents new DNS queries but retains existing names. Re-enabling resolves addresses that have not yet been looked up. Enabled by default.');
 INSERT INTO txt VALUES ('H5708', 'German', 'Logdaten-Zeitraum: Die &Uuml;berschrift beschreibt nur die angezeigten Zeilen mit gemeinsamem Aggregationszeitraum und Importzeitpunkt. Bei unterschiedlichen oder unbekannten Angaben werden Zeitraum und Importzeitpunkt pro Zeile angezeigt. Alte Daten ohne gespeicherten Zeitraum bleiben unbekannt, bis sie erneut importiert werden.');
 INSERT INTO txt VALUES ('H5708', 'English', 'Log data period: The heading describes only displayed rows sharing an aggregation period and import time. When values differ or are unknown, the period and import time are shown per row. Old data without a stored period remains unknown until reimported.');
+INSERT INTO txt VALUES ('H5709', 'German', 'Uhrzeit am Beginn des Logzeitraums anzeigen: Zeigt in der &Uuml;berschrift der Logdaten-Tabelle neben dem Startdatum auch die Uhrzeit im Format der Benutzersprache an. Standardm&auml;&szlig;ig deaktiviert, sodass nur das Datum angezeigt wird.');
+INSERT INTO txt VALUES ('H5709', 'English', 'Show time at start of log time range: Includes the time alongside the start date in the log data table heading, using the format of the user language. Disabled by default, so only the date is displayed.');
 INSERT INTO txt VALUES ('H5692', 'German', 'Vorhandene Logdaten importierter Applikationen ersetzen: L&ouml;scht beim Import einer JSON-Datei alle vorhandenen Logeintr&auml;ge f&uuml;r jede darin enthaltene, bekannte externe Applikations-ID und ersetzt sie atomar durch die neuen Eintr&auml;ge. Unbekannte Applikations-IDs werden ignoriert.');
 INSERT INTO txt VALUES ('H5692', 'English', 'Replace existing log data of imported applications: When importing a JSON file, deletes all existing log entries for every known external application ID contained in it and atomically replaces them with the new entries. Unknown application IDs are ignored.');
 INSERT INTO txt VALUES ('H5612', 'German',  'Import Appdaten-Intervall (in Stunden): Zeitintervall zwischen zwei Appdaten-Import-L&auml;ufen.

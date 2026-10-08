@@ -87,14 +87,19 @@ namespace FWO.Test
             Assert.That(LogDataTitle.GetCommonPeriod(entries), Is.Null);
         }
 
-        [Test]
-        public void Build_NamesThePeriodAndTheImportTime()
+        /// <summary>
+        /// The heading defaults to a date and can include the time without changing the period.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public void Build_NamesThePeriodAndTheConfiguredStartDate(bool showTime)
         {
-            AggregatedTitleUserConfig userConfig = new();
+            AggregatedTitleUserConfig userConfig = new() { ShowLogTimeRangeStartTime = showTime };
 
             string title = LogDataTitle.Build(new LogDataImportPeriod { LogTimeRangeInSeconds = kOneWeek, ImportTime = kImportTime }, userConfig);
 
-            Assert.That(title, Is.EqualTo($"Logs (aggregated over 1 {userConfig.GetText("Weeks")} from {LogDataTitle.FormatImportTime(kImportTime, userConfig)})"));
+            string expectedDate = kImportTime.ToLocalTime().DateTime.ToString(showTime ? "g" : "d", userConfig.GetUserCulture());
+            Assert.That(title, Is.EqualTo($"Logs (aggregated over 1 {userConfig.GetText("Weeks")} from {expectedDate})"));
         }
 
         [Test]
@@ -115,13 +120,30 @@ namespace FWO.Test
             });
         }
 
-        [TestCase("German", "de-DE")]
-        [TestCase("English", "en-US")]
-        public void FormatImportTime_UsesTheCultureOfTheUserLanguage(string language, string cultureName)
+        /// <summary>
+        /// Both display modes retain the localized date and server-local timezone.
+        /// </summary>
+        [TestCase("German", "de-DE", false)]
+        [TestCase("German", "de-DE", true)]
+        [TestCase("English", "en-US", false)]
+        [TestCase("English", "en-US", true)]
+        public void FormatImportTime_UsesTheCultureOfTheUserLanguage(string language, string cultureName, bool includeTime)
         {
             using UserConfig userConfig = CreateUserConfig(language);
 
-            string expected = kImportTime.ToLocalTime().DateTime.ToString("g", CultureInfo.GetCultureInfo(cultureName));
+            string expected = kImportTime.ToLocalTime().DateTime.ToString(includeTime ? "g" : "d", CultureInfo.GetCultureInfo(cultureName));
+            Assert.That(LogDataTitle.FormatImportTime(kImportTime, userConfig, includeTime), Is.EqualTo(expected));
+        }
+
+        /// <summary>
+        /// Import time columns keep the time even when the heading shows only a date.
+        /// </summary>
+        [Test]
+        public void FormatImportTime_IncludesTimeByDefault()
+        {
+            using UserConfig userConfig = CreateUserConfig("English");
+
+            string expected = kImportTime.ToLocalTime().DateTime.ToString("g", userConfig.GetUserCulture());
             Assert.That(LogDataTitle.FormatImportTime(kImportTime, userConfig), Is.EqualTo(expected));
         }
 

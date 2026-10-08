@@ -94,6 +94,12 @@
                 <input id="cbx_hide_log_time_column" type="checkbox" class="w-100" @bind="configData.HideLogTimeColumn" />
             </div>
         </div>
+        <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5709"))">
+            <label for="cbx_show_log_range_start_time" class="col-form-label col-sm-4">@(userConfig.GetText("showLogTimeRangeStartTime")):</label>
+            <div class="col-sm-1">
+                <input id="cbx_show_log_range_start_time" type="checkbox" class="w-100" @bind="configData.ShowLogTimeRangeStartTime" />
+            </div>
+        </div>
         <div class="form-group row mt-2" data-toggle="tooltip" title="@(userConfig.PureLine("H5706"))">
             <label class="col-form-label col-sm-4">@(userConfig.GetText("defaultLogTimeRange")):</label>
             <div class="col-sm-8 d-inline-flex">
@@ -194,7 +200,8 @@ else
             int oldMaxEntries = globalConfig.ImportLogDataMaxEntries;
             bool oldShowLogData = globalConfig.ShowLogDataInConnections;
             LogDataSettings oldSettings = new(globalConfig.LogDataRetentionDays, globalConfig.AllowLogDataPortWithoutProtocol,
-                globalConfig.ReplaceExistingLogData, globalConfig.HideLogTimeColumn, globalConfig.DefaultLogTimeRangeInSeconds, globalConfig.ResolveLogDataDns);
+                globalConfig.ReplaceExistingLogData, globalConfig.HideLogTimeColumn, globalConfig.DefaultLogTimeRangeInSeconds,
+                globalConfig.ResolveLogDataDns, globalConfig.ShowLogTimeRangeStartTime);
             PrepareConfigData();
             await globalConfig.WriteToDatabase(configData, apiConnection);
             WriteSettingsAudit(oldPath, oldScriptArgs, oldInterval, oldIntervalUnit, oldMaxEntries, oldShowLogData, oldSettings);
@@ -236,7 +243,7 @@ else
     /// Settings of the log data page which are only needed for the audit entry.
     /// </summary>
     private record LogDataSettings(int RetentionDays, bool AllowPortWithoutProtocol, bool ReplaceExisting, bool HideLogTimeColumn,
-        int DefaultLogTimeRangeInSeconds, bool ResolveDns);
+        int DefaultLogTimeRangeInSeconds, bool ResolveDns, bool ShowLogTimeRangeStartTime);
 
     private void WriteSettingsAudit(string oldPath, string oldScriptArgs, int oldInterval, LogDataImportIntervalUnit oldIntervalUnit,
         int oldMaxEntries, bool oldShowLogData, LogDataSettings oldSettings)
@@ -256,6 +263,8 @@ else
         AddSettingChange(changes, nameof(ConfigData.ResolveLogDataDns), oldSettings.ResolveDns.ToString(), configData.ResolveLogDataDns.ToString());
         AddSettingChange(changes, nameof(ConfigData.HideLogTimeColumn), oldSettings.HideLogTimeColumn.ToString(),
             configData.HideLogTimeColumn.ToString());
+        AddSettingChange(changes, nameof(ConfigData.ShowLogTimeRangeStartTime), oldSettings.ShowLogTimeRangeStartTime.ToString(),
+            configData.ShowLogTimeRangeStartTime.ToString());
         AddSettingChange(changes, nameof(ConfigData.DefaultLogTimeRangeInSeconds), oldSettings.DefaultLogTimeRangeInSeconds.ToString(),
             configData.DefaultLogTimeRangeInSeconds.ToString());
 

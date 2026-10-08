@@ -14,6 +14,7 @@ namespace FWO.Ui.Services
     {
         // short date and time pattern of the user culture, e.g. 05.10.2026 14:30 or 10/5/2026 2:30 PM
         private const string kImportTimeFormat = "g";
+        private const string kImportDateFormat = "d";
 
         /// <summary>
         /// Title for log rows sharing one known aggregation period and import time.
@@ -27,7 +28,7 @@ namespace FWO.Ui.Services
             }
             return userConfig.GetText("log_data_aggregated")
                 .Replace(Placeholder.TIME_INTERVAL, FormatTimeRange(period.LogTimeRangeInSeconds, userConfig))
-                .Replace(Placeholder.DATE, FormatImportTime(period.ImportTime, userConfig));
+                .Replace(Placeholder.DATE, FormatImportTime(period.ImportTime, userConfig, userConfig.ShowLogTimeRangeStartTime));
         }
 
         /// <summary>
@@ -63,10 +64,11 @@ namespace FWO.Ui.Services
         /// <summary>
         /// Import time in the timezone of the server the UI runs on, as every timestamp of the
         /// application is displayed, and in the date format of the user language.
+        /// The aggregation heading can omit the time; import time columns retain it.
         /// </summary>
-        public static string FormatImportTime(DateTimeOffset importTime, UserConfig userConfig)
+        public static string FormatImportTime(DateTimeOffset importTime, UserConfig userConfig, bool includeTime = true)
         {
-            return importTime.ToLocalTime().DateTime.ToString(kImportTimeFormat, userConfig.GetUserCulture());
+            return importTime.ToLocalTime().DateTime.ToString(includeTime ? kImportTimeFormat : kImportDateFormat, userConfig.GetUserCulture());
         }
     }
 }

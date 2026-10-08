@@ -166,19 +166,25 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(configData.HideLogTimeColumn, Is.True);
+                Assert.That(configData.ShowLogTimeRangeStartTime, Is.False);
                 Assert.That(configData.ResolveLogDataDns, Is.True);
                 Assert.That(configData.DefaultLogTimeRangeInSeconds, Is.EqualTo(604800));
             });
         }
 
-        [Test]
-        public async Task Save_PersistsTheLogTableSettings()
+        /// <summary>
+        /// Both start-time display choices survive saving the logging settings.
+        /// </summary>
+        [TestCase(false)]
+        [TestCase(true)]
+        public async Task Save_PersistsTheLogTableSettings(bool showStartTime)
         {
             SettingsLogging component = new();
             RecordingSettingsApiConn apiConnection = new();
-            SimulatedGlobalConfig globalConfig = new();
+            SimulatedGlobalConfig globalConfig = new() { ShowLogTimeRangeStartTime = !showStartTime };
             ConfigData editableConfig = await globalConfig.GetEditableConfig();
             editableConfig.HideLogTimeColumn = false;
+            editableConfig.ShowLogTimeRangeStartTime = showStartTime;
             editableConfig.ResolveLogDataDns = false;
             SetMember(component, "globalConfig", globalConfig);
             SetMember(component, "apiConnection", apiConnection);
@@ -196,6 +202,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "hideLogTimeColumn").Value, Is.EqualTo("False"));
+                Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "showLogTimeRangeStartTime").Value, Is.EqualTo(showStartTime.ToString()));
                 Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "resolveLogDataDns").Value, Is.EqualTo("False"));
                 Assert.That(apiConnection.LastUpsertConfigItems.Single(item => item.Key == "defaultLogTimeRangeInSeconds").Value, Is.EqualTo("86400"));
             });

@@ -191,10 +191,10 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         }
         else if (request.Query.IpAddress is not null && request.Query.Filter is not null)
         {
-            info += $"IpAddress: {request.Query.IpAddress}"
+            info += $"IpAddress: {request.Query.IpAddress}, "
                     + "Filter: {"
-                    + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}"
-                    + $"InField: {request.Query.Filter.InField}"
+                    + $"MinPrefixLength: {request.Query.Filter.MinPrefixLength}, "
+                    + $"InField: {request.Query.Filter.InField}, "
                     + $"Action: {request.Query.Filter.Action}"
                     + "}";
         }
@@ -274,42 +274,42 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         switch (inField)
         {
             case FilterFields.Source:
-            {
-                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: true));
-                if (sourceEvaluation != IpFilterEvaluation.Match)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
 
-                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
-            }
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: false));
+                }
             case FilterFields.Destination:
-            {
-                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: false));
-                if (destinationEvaluation != IpFilterEvaluation.Match)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    if (destinationEvaluation != IpFilterEvaluation.Match)
+                    {
+                        return false;
+                    }
 
-                return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
-            }
+                    return ipHelper.MeetsMinimumPrefix(minPrefix, GetRuleNetworkObjects(rule, isSource: true));
+                }
             case FilterFields.Both:
-            {
-                IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: true));
-                if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
                 {
-                    return false;
-                }
+                    IpFilterEvaluation sourceEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: true));
+                    if (sourceEvaluation == IpFilterEvaluation.PrefixViolation)
+                    {
+                        return false;
+                    }
 
-                IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
-                    GetRuleNetworkObjects(rule, isSource: false));
-                return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
-                       (sourceEvaluation == IpFilterEvaluation.Match ||
-                        destinationEvaluation == IpFilterEvaluation.Match);
-            }
+                    IpFilterEvaluation destinationEvaluation = ipHelper.EvaluateField(ipAddress, minPrefix,
+                        GetRuleNetworkObjects(rule, isSource: false));
+                    return destinationEvaluation != IpFilterEvaluation.PrefixViolation &&
+                           (sourceEvaluation == IpFilterEvaluation.Match ||
+                            destinationEvaluation == IpFilterEvaluation.Match);
+                }
             default:
                 throw new ArgumentException($"Invalid InField: {inField}");
         }

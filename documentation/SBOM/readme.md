@@ -30,6 +30,16 @@ This creates layered source SBOMs for:
 - Ansible collections from `collections/requirements.yml`
 - a merged `fwo-combined.cdx.json`
 
+Every component carries its origin in the `fwo:source` property as a path relative
+to the repository root (e.g. `roles/importer/files/importer/requirements.txt`), so
+the SBOMs neither depend on nor reveal the checkout location. Components of the
+combined SBOM name their detail file in `fwo:merged-from`.
+
+Python requirements with an environment marker (e.g.
+`ansible==10.7.0; python_version < '3.11'`) are only installed where the marker
+applies. They are listed with CycloneDX `scope: optional` and keep the marker in the
+`fwo:marker` property, so mutually exclusive versions can be told apart.
+
 Everything below `documentation/SBOM/generated/` is ignored by git, so generated
 SBOMs are never committed by accident.
 

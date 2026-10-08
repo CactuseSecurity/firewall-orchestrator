@@ -50,12 +50,13 @@ collections:
         encoding="utf-8",
     )
 
-    components = generate_sbom.components_from_ansible_requirements(requirements)
+    components = generate_sbom.components_from_ansible_requirements(requirements, tmp_path)
 
     assert [(component.name, component.version) for component in components] == [
         ("community.postgresql", "3.10.0"),
         ("ansible.posix", None),
     ]
+    assert {component.properties["fwo:source"] for component in components} == {"requirements.yml"}
 
 
 def test_components_from_csproj_reads_package_references(tmp_path: Path) -> None:
@@ -77,14 +78,15 @@ def test_components_from_csproj_reads_package_references(tmp_path: Path) -> None
     assert len(components) == 1
     assert components[0].name == "Newtonsoft.Json"
     assert components[0].purl == "pkg:nuget/Newtonsoft.Json@13.0.3"
+    assert components[0].properties["fwo:source"] == "roles/lib/files/FWO.Test/FWO.Test.csproj"
 
 
-def test_component_from_package_reference_reads_child_version(tmp_path: Path) -> None:
+def test_component_from_package_reference_reads_child_version() -> None:
     package_reference = ET.Element("PackageReference", {"Update": "Serilog"})
     version = ET.SubElement(package_reference, "Version")
     version.text = "4.0.0"
 
-    component = generate_sbom.component_from_package_reference(package_reference, tmp_path / "test.csproj")
+    component = generate_sbom.component_from_package_reference(package_reference, "test.csproj")
 
     assert component is not None
     assert component.name == "Serilog"
@@ -92,10 +94,10 @@ def test_component_from_package_reference_reads_child_version(tmp_path: Path) ->
     assert component.purl == "pkg:nuget/Serilog@4.0.0"
 
 
-def test_component_from_package_reference_skips_missing_name(tmp_path: Path) -> None:
+def test_component_from_package_reference_skips_missing_name() -> None:
     package_reference = ET.Element("PackageReference", {"Version": "1.0.0"})
 
-    assert generate_sbom.component_from_package_reference(package_reference, tmp_path / "test.csproj") is None
+    assert generate_sbom.component_from_package_reference(package_reference, "test.csproj") is None
 
 
 def test_component_to_cyclonedx_omits_optional_fields() -> None:
@@ -116,18 +118,48 @@ def test_components_from_requirements_handles_missing_and_markers(tmp_path: Path
     requirements = tmp_path / "requirements.txt"
     requirements.write_text("Flask[async]===3.0.0; python_version > '3.11'\n", encoding="utf-8")
 
-    missing_components = generate_sbom.components_from_requirements(tmp_path / "missing.txt")
-    components = generate_sbom.components_from_requirements(requirements)
+    missing_components = generate_sbom.components_from_requirements(tmp_path / "missing.txt", tmp_path)
+    components = generate_sbom.components_from_requirements(requirements, tmp_path)
 
     assert missing_components == []
     assert len(components) == 1
     assert components[0].name == "Flask"
     assert components[0].version == "3.0.0"
     assert components[0].purl == "pkg:pypi/flask@3.0.0"
+    assert components[0].properties == {
+        "fwo:source": "requirements.txt",
+        "fwo:marker": "python_version > '3.11'",
+        "fwo:requirement": "Flask[async]===3.0.0",
+    }
+    assert components[0].scope == "optional"
+
+
+def test_parse_requirement_line_keeps_mutually_exclusive_marker_requirements_apart() -> None:
+    lines = [
+        "ansible==10.7.0; python_version < '3.11'",
+        "ansible==12.3.0; python_version >= '3.11'",
+        "cryptography==50.0.2",
+    ]
+
+    components = [generate_sbom.parse_requirement_line(line, "requirements.txt") for line in lines]
+
+    assert [
+        (component.version, component.scope, component.properties.get("fwo:marker"))
+        for component in components
+        if component is not None
+    ] == [
+        ("10.7.0", "optional", "python_version < '3.11'"),
+        ("12.3.0", "optional", "python_version >= '3.11'"),
+        ("50.0.2", None, None),
+    ]
+    assert components[0] is not None
+    assert components[0].to_cyclonedx()["scope"] == "optional"
+    assert components[2] is not None
+    assert "scope" not in components[2].to_cyclonedx()
 
 
 def test_components_from_ansible_requirements_handles_missing_file(tmp_path: Path) -> None:
-    assert generate_sbom.components_from_ansible_requirements(tmp_path / "missing.yml") == []
+    assert generate_sbom.components_from_ansible_requirements(tmp_path / "missing.yml", tmp_path) == []
 
 
 def test_components_from_dpkg() -> None:
@@ -436,6 +468,19 @@ def test_source_boms_writes_all_source_layers(tmp_path: Path) -> None:
     assert all(
         json.loads(path.read_text(encoding="utf-8"))["metadata"]["component"]["version"] == "9.5.10" for path in paths
     )
+    sources = {
+        prop["value"]
+        for path in paths
+        for component in json.loads(path.read_text(encoding="utf-8"))["components"]
+        for prop in component["properties"]
+        if prop["name"] == "fwo:source"
+    }
+    assert sources == {
+        "roles/lib/files/FWO.Test/FWO.Test.csproj",
+        "roles/importer/files/importer/requirements.txt",
+        "scripts/requirements.txt",
+        "collections/requirements.yml",
+    }
 
 
 def test_installed_boms_writes_os_and_container_layers(tmp_path: Path) -> None:
@@ -518,6 +563,23 @@ def test_write_bom_deduplicates_bom_refs_and_keeps_sources(tmp_path: Path) -> No
     ]
     assert bom_components[1]["properties"] == [{"name": "fwo:source", "value": "a.csproj; b.csproj"}]
     assert bom_components[0]["properties"] == [{"name": "fwo:source", "value": "a.txt"}]
+
+
+def test_write_bom_deduplication_keeps_scope_only_if_all_occurrences_agree(tmp_path: Path) -> None:
+    components = [
+        generate_sbom.Component(name="ansible", version="12.3.0", purl="pkg:pypi/ansible@12.3.0", scope="optional"),
+        generate_sbom.Component(name="ansible", version="12.3.0", purl="pkg:pypi/ansible@12.3.0", scope="optional"),
+        generate_sbom.Component(name="requests", version="2.34.2", purl="pkg:pypi/requests@2.34.2", scope="optional"),
+        generate_sbom.Component(name="requests", version="2.34.2", purl="pkg:pypi/requests@2.34.2"),
+    ]
+
+    bom_path = generate_sbom.write_bom(tmp_path, "scope.cdx.json", "scope", components, {})
+    bom_components = json.loads(bom_path.read_text(encoding="utf-8"))["components"]
+
+    assert [(component["name"], component.get("scope")) for component in bom_components] == [
+        ("ansible", "optional"),
+        ("requests", None),
+    ]
 
 
 def test_write_and_merge_boms(tmp_path: Path) -> None:
@@ -614,6 +676,7 @@ def test_components_from_bom_path_reads_component_properties(tmp_path: Path) -> 
                         "name": "requests",
                         "version": "2.32.0",
                         "purl": "pkg:pypi/requests@2.32.0",
+                        "scope": "optional",
                         "properties": [
                             {"name": "language", "value": "python"},
                             {"name": None, "value": "ignored"},
@@ -632,8 +695,9 @@ def test_components_from_bom_path_reads_component_properties(tmp_path: Path) -> 
     assert components[0].name == "requests"
     assert components[0].properties == {
         "language": "python",
-        "fwo:merged-from": str(bom_path),
+        "fwo:merged-from": "input.cdx.json",
     }
+    assert components[0].scope == "optional"
 
 
 def test_properties_from_bom_item_skips_non_list_properties() -> None:

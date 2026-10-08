@@ -33,6 +33,13 @@ VERSION_REQUIREMENT_PARTS = 3
 PROPERTY_SOURCE = "fwo:source"
 PROPERTY_MODE = "fwo:mode"
 PROPERTY_REFERENCE_PLATFORM = "fwo:reference-platform"
+PROPERTY_REQUIREMENT = "fwo:requirement"
+PROPERTY_MARKER = "fwo:marker"
+PROPERTY_MERGED_FROM = "fwo:merged-from"
+REQUIREMENT_MARKER_SEPARATOR = ";"
+# CycloneDX scope of a requirement that only applies to some environments (PEP 508 marker), e.g. ansible 10.7.0
+# for Python < 3.11 only: it is not installed everywhere, so it must not be reported as unconditionally required
+SCOPE_OPTIONAL = "optional"
 PROPERTY_VALUE_SEPARATOR = "; "
 PURL_SAFE_CHARS = ":"
 PURL_QUALIFIER_SAFE_CHARS = ":/"
@@ -59,6 +66,7 @@ class Component:
     component_type: str = "library"
     purl: str | None = None
     properties: dict[str, str] = field(default_factory=dict)  # pyright: ignore[reportUnknownVariableType]
+    scope: str | None = None
 
     def key(self) -> tuple[str, str, str]:
         return self.name, self.version or "", self.purl or ""
@@ -76,6 +84,8 @@ class Component:
             component["version"] = self.version
         if self.purl:
             component["purl"] = self.purl
+        if self.scope:
+            component["scope"] = self.scope
         if self.properties:
             component["properties"] = [{"name": key, "value": value} for key, value in sorted(self.properties.items())]
         return component
@@ -125,19 +135,22 @@ def deduplicate_components(components: Iterable[Component]) -> list[Component]:
     """
     Collapse components sharing a bom-ref, which CycloneDX requires to be unique within a BOM.
 
-    Property values of the collapsed components are kept, joined in sorted order.
+    Property values of the collapsed components are kept, joined in sorted order. The collapsed component only
+    keeps a scope all of them agree on, so one unconditional occurrence makes it required again.
     """
-    merged: dict[str, tuple[Component, dict[str, set[str]]]] = {}
+    merged: dict[str, tuple[Component, dict[str, set[str]], set[str | None]]] = {}
     for component in components:
-        _, property_values = merged.setdefault(component.bom_ref(), (component, {}))
+        _, property_values, scopes = merged.setdefault(component.bom_ref(), (component, {}, set()))
+        scopes.add(component.scope)
         for key, value in component.properties.items():
             property_values.setdefault(key, set()).add(value)
     return [
         replace(
             component,
             properties={key: PROPERTY_VALUE_SEPARATOR.join(sorted(values)) for key, values in property_values.items()},
+            scope=next(iter(scopes)) if len(scopes) == 1 else None,
         )
-        for component, property_values in merged.values()
+        for component, property_values, scopes in merged.values()
     ]
 
 
@@ -169,24 +182,38 @@ def write_bom(
 
 
 def parse_requirement_line(line: str, source: str) -> Component | None:
+    """
+    Parse one requirements.txt line into a component.
+
+    A PEP 508 environment marker is kept in the fwo:marker property and makes the component optional, because
+    the requirement is only installed where the marker applies.
+    """
     clean_line = line.split("#", 1)[0].strip()
     if not clean_line or clean_line.startswith("-"):
         return None
-    clean_line = clean_line.split(";", 1)[0].strip()
+    clean_line, _, marker = (part.strip() for part in clean_line.partition(REQUIREMENT_MARKER_SEPARATOR))
     package_match = PACKAGE_NAME_RE.match(clean_line)
     if not package_match:
         return None
     name = package_match.group(0)
     version = None
     properties: dict[str, str] = {PROPERTY_SOURCE: source}
+    if marker:
+        properties[PROPERTY_MARKER] = marker
     requirement_parts = REQUIREMENT_SPLIT_RE.split(clean_line, maxsplit=1)
     if len(requirement_parts) == VERSION_REQUIREMENT_PARTS:
         operator = requirement_parts[1]
         spec_version = requirement_parts[2].split(",", 1)[0].strip()
-        properties["fwo:requirement"] = clean_line
+        properties[PROPERTY_REQUIREMENT] = clean_line
         if operator in {"==", "==="}:
             version = spec_version
-    return Component(name=name, version=version, purl=build_pypi_purl(name, version), properties=properties)
+    return Component(
+        name=name,
+        version=version,
+        purl=build_pypi_purl(name, version),
+        properties=properties,
+        scope=SCOPE_OPTIONAL if marker else None,
+    )
 
 
 def build_pypi_purl(name: str, version: str | None) -> str | None:
@@ -194,10 +221,15 @@ def build_pypi_purl(name: str, version: str | None) -> str | None:
     return f"pkg:pypi/{normalized_name}@{version}" if version else f"pkg:pypi/{normalized_name}"
 
 
-def components_from_requirements(requirements_file: Path) -> list[Component]:
+def repo_relative_source(path: Path, repo_root: Path) -> str:
+    """Return a repository-relative source path, so SBOMs do not depend on (or leak) the checkout location."""
+    return path.relative_to(repo_root).as_posix()
+
+
+def components_from_requirements(requirements_file: Path, repo_root: Path) -> list[Component]:
     if not requirements_file.exists():
         return []
-    source = str(requirements_file)
+    source = repo_relative_source(requirements_file, repo_root)
     return [
         component
         for line in requirements_file.read_text(encoding="utf-8").splitlines()
@@ -211,13 +243,13 @@ def components_from_csproj(repo_root: Path) -> list[Component]:
         # Project files are local repository inputs, not untrusted XML uploads.
         tree = ET.parse(csproj)  # noqa: S314
         for package_reference in tree.findall(".//PackageReference"):
-            component = component_from_package_reference(package_reference, csproj)
+            component = component_from_package_reference(package_reference, repo_relative_source(csproj, repo_root))
             if component is not None:
                 components.append(component)
     return components
 
 
-def component_from_package_reference(package_reference: ET.Element, csproj: Path) -> Component | None:
+def component_from_package_reference(package_reference: ET.Element, source: str) -> Component | None:
     name = package_reference.attrib.get("Include") or package_reference.attrib.get("Update")
     if not name:
         return None
@@ -226,7 +258,7 @@ def component_from_package_reference(package_reference: ET.Element, csproj: Path
         name=name,
         version=version,
         purl=f"pkg:nuget/{name}@{version}" if version else f"pkg:nuget/{name}",
-        properties={PROPERTY_SOURCE: str(csproj)},
+        properties={PROPERTY_SOURCE: source},
     )
 
 
@@ -235,9 +267,10 @@ def package_reference_child_version(package_reference: ET.Element) -> str | None
     return version_node.text.strip() if version_node is not None and version_node.text else None
 
 
-def components_from_ansible_requirements(requirements_file: Path) -> list[Component]:
+def components_from_ansible_requirements(requirements_file: Path, repo_root: Path) -> list[Component]:
     if not requirements_file.exists():
         return []
+    source = repo_relative_source(requirements_file, repo_root)
     components: list[Component] = []
     current_name: str | None = None
     current_version: str | None = None
@@ -245,24 +278,24 @@ def components_from_ansible_requirements(requirements_file: Path) -> list[Compon
         line = raw_line.strip()
         if line.startswith("- name:"):
             if current_name:
-                components.append(ansible_component(current_name, current_version, requirements_file))
+                components.append(ansible_component(current_name, current_version, source))
             current_name = line.split(":", 1)[1].strip().strip("\"'")
             current_version = None
         elif line.startswith("version:") and current_name:
             current_version = line.split(":", 1)[1].strip().strip("\"'")
     if current_name:
-        components.append(ansible_component(current_name, current_version, requirements_file))
+        components.append(ansible_component(current_name, current_version, source))
     return components
 
 
-def ansible_component(name: str, version: str | None, source: Path) -> Component:
+def ansible_component(name: str, version: str | None, source: str) -> Component:
     namespace_name = name.replace(".", "/")
     return Component(
         name=name,
         version=version,
         component_type="library",
         purl=f"pkg:generic/ansible/{namespace_name}@{version}" if version else f"pkg:generic/ansible/{namespace_name}",
-        properties={PROPERTY_SOURCE: str(source)},
+        properties={PROPERTY_SOURCE: source},
     )
 
 
@@ -452,7 +485,7 @@ def source_boms(
             output_dir,
             "fwo-python-importer.cdx.json",
             "Firewall Orchestrator Python Importer",
-            components_from_requirements(repo_root / "roles/importer/files/importer/requirements.txt"),
+            components_from_requirements(repo_root / "roles/importer/files/importer/requirements.txt", repo_root),
             properties,
             product_version,
         ),
@@ -460,8 +493,8 @@ def source_boms(
             output_dir,
             "fwo-python-scripts.cdx.json",
             "Firewall Orchestrator Python Scripts",
-            components_from_requirements(repo_root / "scripts/requirements.txt")
-            + components_from_requirements(repo_root / "requirements.txt"),
+            components_from_requirements(repo_root / "scripts/requirements.txt", repo_root)
+            + components_from_requirements(repo_root / "requirements.txt", repo_root),
             properties,
             product_version,
         ),
@@ -469,7 +502,7 @@ def source_boms(
             output_dir,
             "fwo-ansible.cdx.json",
             "Firewall Orchestrator Ansible",
-            components_from_ansible_requirements(repo_root / "collections/requirements.yml"),
+            components_from_ansible_requirements(repo_root / "collections/requirements.yml", repo_root),
             properties,
             product_version,
         ),
@@ -565,7 +598,8 @@ def component_from_bom_item(typed_item: JsonObject, bom_path: Path) -> Component
         version=str(typed_item["version"]) if "version" in typed_item else None,
         component_type=str(typed_item.get("type", "library")),
         purl=str(typed_item["purl"]) if "purl" in typed_item else None,
-        properties=properties_from_bom_item(typed_item) | {"fwo:merged-from": str(bom_path)},
+        properties=properties_from_bom_item(typed_item) | {PROPERTY_MERGED_FROM: bom_path.name},
+        scope=str(typed_item["scope"]) if "scope" in typed_item else None,
     )
 
 

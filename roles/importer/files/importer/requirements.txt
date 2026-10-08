@@ -15,7 +15,6 @@ graphql-core==3.2.12
 
 # SSH
 scrapli==2026.10.3
-scrapli-community==2025.1.30
 
 # Test
 pytest==9.1.1

@@ -9,9 +9,21 @@
   and only one active assignment per object and label is allowed
 - database: add columns rule_src_labels and rule_dst_labels (jsonb) to firewall.rule for the labels of an imported rule
 - config: add setting labelLogic (default AND) for combining the labels of a rule side
-- the labelling schema is still in development: it is part of a fresh installation only and has no upgrade script yet
 - api: track the labelling tables in Hasura with read access for auditor, importer and middleware-server and write
   access (no delete) for importer (labels, change events, rule assignments) and middleware-server
+- importer: new module for Akamai Guardicore Segmentation (device types Guardicore Management / Guardicore Gateway,
+  REST, issue #4945). Labels become network object groups of their IP addresses (IP criteria plus the IPs of the
+  assets carrying the label), ANDed labels of a rule side become groups of the intersection of their IP addresses.
+  Rules are split into chained rulebases named "<section number> <section> <ruleset>" so that their alphabetical
+  order matches the Guardicore section order (override allow, override alert, override block, allow, alert, block).
+  Services are built from protocols, ports, port ranges, excluded ports and ICMP matches
+- importer: the normalized config takes an optional list of labels (key, value) that is upserted into
+  labelling.label_key / labelling.label_value on every import
+- importer, middleware: rules carry the labels of their source and destination in rule_src_labels / rule_dst_labels as
+  {"label-key": "label-value", ...}, several values of one key as array of values, null without labels; the
+  normalized config of the middleware returns them, so that unchanged labels are not reported as rule changes
+- upgrade: 999.0.0.sql adds the labelling schema, the rule label columns, the labelLogic setting and the Guardicore
+  device types to existing installations
 
 ## 9.6.2 - 02.10.2026
 - add workflow task types object_create and object_modify for a single network object (host, network,

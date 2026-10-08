@@ -201,8 +201,8 @@ Create table firewall.rule
 	"flow_access_id" BIGINT,
 	"rule_src_zone" Text,
 	"rule_dst_zone" Text,
-	"rule_src_labels" jsonb,
-	"rule_dst_labels" jsonb,
+	"rule_src_labels" jsonb, -- {"label-key": "label-value", ...}, several values of one key as array, null without labels
+	"rule_dst_labels" jsonb, -- {"label-key": "label-value", ...}, several values of one key as array, null without labels
 	primary key ("rule_id")
 );
 

@@ -6,9 +6,9 @@ namespace FWO.Test
 {
     /// <summary>
     /// Pins the labelling schema (issue #4949) across the places that have to agree: the creation scripts of a new
-    /// installation and the Hasura metadata. Nothing in the build runs the sql, so a table missing in the metadata
-    /// or a permission granted too widely would first show up in a running installation. The schema is still in
-    /// development and has no upgrade script yet, as no installation carries it.
+    /// installation, the upgrade script of existing installations and the Hasura metadata. Nothing in the build runs
+    /// the sql, so a table missing in the upgrade or the metadata or a permission granted too widely would first show
+    /// up in a running installation.
     /// </summary>
     [TestFixture]
     [Parallelizable]
@@ -20,6 +20,9 @@ namespace FWO.Test
         private const string kForeignKeysFile = "fworch-create-foreign-keys.sql";
         private const string kIndicesFile = "fworch-create-indices.sql";
         private const string kFillConfigFile = "fworch-fill-config.sql";
+        private const string kFillStmFile = "fworch-fill-stm.sql";
+        private const string kLabellingSchemaUpgrade = "create schema if not exists labelling;";
+        private const string kLabelLogicUpgrade = "VALUES ('labelLogic', 'AND', 0) ON CONFLICT DO NOTHING;";
         private const string kLabelLogicDefault = "VALUES ('labelLogic', 'AND', 0);";
         private const string kMetadataFile = "replace_metadata.json";
         private const string kMiddlewareRole = "middleware-server";
@@ -32,6 +35,8 @@ namespace FWO.Test
 
         private static readonly string kCreationDirectory = Path.Combine("roles", "database", "files", "sql", "creation");
         private static readonly string kMetadataDirectory = Path.Combine("roles", "api", "files");
+        private static readonly string kUpgradeDirectory = Path.Combine("roles", "database", "files", "upgrade");
+        private static readonly List<string> kGuardicoreDeviceTypes = ["'Guardicore Management','REST'", "'Guardicore Gateway','REST'"];
         private static readonly List<string> kRuleLabelColumns = ["rule_src_labels", "rule_dst_labels"];
         private static readonly List<string> kWriterRoles = [kImporterRole, kMiddlewareRole];
         private static readonly List<string> kLinkTablesWithHistory =
@@ -50,6 +55,8 @@ namespace FWO.Test
         private string foreignKeys = "";
         private string indices = "";
         private string fillConfig = "";
+        private string fillStm = "";
+        private string upgrade = "";
         private List<JsonNode> metadataTables = [];
 
         [OneTimeSetUp]
@@ -60,6 +67,8 @@ namespace FWO.Test
             foreignKeys = ReadFile(kCreationDirectory, kForeignKeysFile);
             indices = ReadFile(kCreationDirectory, kIndicesFile);
             fillConfig = ReadFile(kCreationDirectory, kFillConfigFile);
+            fillStm = ReadFile(kCreationDirectory, kFillStmFile);
+            upgrade = ReadLabellingUpgrade();
             JsonNode metadata = JsonNode.Parse(ReadFile(kMetadataDirectory, kMetadataFile))
                 ?? throw new AssertionException("The Hasura metadata is empty.");
             metadataTables = [.. Nodes(metadata["args"]?["metadata"]?["sources"])
@@ -107,6 +116,60 @@ namespace FWO.Test
         public void Creation_DefaultsTheLabelLogicToAnd()
         {
             Assert.That(fillConfig, Does.Contain(kLabelLogicDefault));
+        }
+
+        /// <summary>
+        /// Existing installations get every labelling table, guarded so that a repeated upgrade does not fail.
+        /// </summary>
+        [Test]
+        public void Upgrade_CreatesEveryLabellingTable()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(TableNames(upgrade), Is.EquivalentTo(TableNames(creationTables)));
+                Assert.That(Regex.Matches(upgrade, @"create table labelling\.", RegexOptions.IgnoreCase), Is.Empty);
+            });
+        }
+
+        /// <summary>
+        /// Existing installations get every labelling foreign key, each dropped first so that it can be added again,
+        /// and every labelling index.
+        /// </summary>
+        [Test]
+        public void Upgrade_AddsEveryForeignKeyAndIndex()
+        {
+            List<string> upgradeKeys = Matches(ForeignKeyRegex(), upgrade);
+            Assert.Multiple(() =>
+            {
+                Assert.That(upgradeKeys, Is.EquivalentTo(Matches(ForeignKeyRegex(), foreignKeys)));
+                Assert.That(Matches(IndexRegex(), upgrade), Is.EquivalentTo(Matches(IndexRegex(), indices)));
+                foreach (string key in upgradeKeys)
+                {
+                    Assert.That(upgrade, Does.Contain($"DROP CONSTRAINT IF EXISTS {key};"), key);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Existing installations get the label columns of the rule table, the label logic setting and the device
+        /// types of the Guardicore importer that writes the labels.
+        /// </summary>
+        [Test]
+        public void Upgrade_AddsRuleLabelColumnsLabelLogicAndDeviceTypes()
+        {
+            Assert.Multiple(() =>
+            {
+                foreach (string column in kRuleLabelColumns)
+                {
+                    Assert.That(upgrade, Does.Contain($"ALTER TABLE firewall.rule ADD COLUMN IF NOT EXISTS {column} jsonb;"), column);
+                }
+                Assert.That(upgrade, Does.Contain(kLabelLogicUpgrade));
+                foreach (string deviceType in kGuardicoreDeviceTypes)
+                {
+                    Assert.That(fillStm, Does.Contain(deviceType), deviceType);
+                    Assert.That(upgrade, Does.Contain(deviceType), deviceType);
+                }
+            });
         }
 
         /// <summary>
@@ -257,6 +320,26 @@ namespace FWO.Test
                 }
             }
             Assert.Ignore($"{fileName} is not reachable in this environment, so the labelling schema cannot be checked.");
+            return "";
+        }
+
+        /// <summary>
+        /// Reads the upgrade script that adds the labelling schema, whichever version it is named after.
+        /// </summary>
+        /// <returns>The content of the upgrade script.</returns>
+        private static string ReadLabellingUpgrade()
+        {
+            for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            {
+                DirectoryInfo upgradeDirectory = new(Path.Combine(directory.FullName, kUpgradeDirectory));
+                if (upgradeDirectory.Exists)
+                {
+                    return upgradeDirectory.GetFiles("*.sql").Select(file => File.ReadAllText(file.FullName))
+                        .FirstOrDefault(content => content.Contains(kLabellingSchemaUpgrade, StringComparison.OrdinalIgnoreCase))
+                        ?? throw new AssertionException("No upgrade script adds the labelling schema.");
+                }
+            }
+            Assert.Ignore("The upgrade scripts are not reachable in this environment, so the labelling upgrade cannot be checked.");
             return "";
         }
 

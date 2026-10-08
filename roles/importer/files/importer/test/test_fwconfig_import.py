@@ -7,11 +7,13 @@ import fwo_globals
 import pytest
 from fwo_exceptions import FwoApiFailedDeleteOldImportsError, FwoImporterError, ImportInterruptionError
 from model_controllers.fwconfig_import import FwConfigImport
+from model_controllers.fwconfig_import_label import FwConfigImportLabel
 from model_controllers.fwconfigmanagerlist_controller import FwConfigManagerListController
 from model_controllers.management_controller import ManagementController
 from models.fwconfig_normalized import FwConfigNormalized
 from models.fwconfigmanager import FwConfigManager
 from models.gateway import Gateway
+from models.label import LabelNormalized
 from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 from services.service_provider import ServiceProvider
@@ -229,6 +231,20 @@ class TestUpdateDiffs:
         rule_updater.assert_called_once_with(previous_config)
         gateway_updater.assert_called_once_with()
 
+    def test_upserts_labels_of_the_config(self, importer: FwConfigImport, monkeypatch: pytest.MonkeyPatch):
+        monkeypatch.setattr(fwo_globals, "shutdown_requested", False)
+        labels = [LabelNormalized(key_name="AppRole", value="AR1")]
+        importer.normalized_config = FwConfigNormalized(labels=labels)
+        with (
+            patch.object(FwConfigImportLabel, "upsert_labels") as label_upserter,
+            patch.object(importer._fw_config_import_object, "update_object_diffs"),
+            patch.object(importer._fw_config_import_rule, "update_rulebase_diffs"),
+            patch.object(importer._fw_config_import_gateway, "update_gateway_diffs"),
+        ):
+            importer.update_diffs(FwConfigNormalized(), None, make_manager())
+
+        label_upserter.assert_called_once_with(labels)
+
     def test_shutdown_after_object_diffs_interrupts(self, importer: FwConfigImport, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(fwo_globals, "shutdown_requested", True)
         with (
@@ -425,6 +441,15 @@ class TestSortListsAndConsistency:
         with patch.object(FwConfigImport, "get_latest_config_from_db", return_value=db_config):
             importer.consistency_check_config_against_db()
         assert db_config.gateways == []
+
+    def test_consistency_check_ignores_labels(self, importer: FwConfigImport):
+        importer.normalized_config = FwConfigNormalized(labels=[LabelNormalized(key_name="Stage", value="Prod")])
+        with (
+            patch.object(FwConfigImport, "get_latest_config_from_db", return_value=FwConfigNormalized()),
+            patch("model_controllers.fwconfig_import.FWOLogger.warning") as warning_logger,
+        ):
+            importer.consistency_check_config_against_db()
+        warning_logger.assert_not_called()
 
     def test_consistency_check_logs_differences(self, importer: FwConfigImport):
         importer.normalized_config = FwConfigNormalized(rulebases=[make_rulebase("rb-a")])

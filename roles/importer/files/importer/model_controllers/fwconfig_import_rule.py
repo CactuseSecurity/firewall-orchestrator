@@ -1264,6 +1264,8 @@ class FwConfigImportRule:
             rule_comment=rule.rule_comment,
             rule_src_zone=rule.rule_src_zone,
             rule_dst_zone=rule.rule_dst_zone,
+            rule_src_labels=rule.rule_src_labels,
+            rule_dst_labels=rule.rule_dst_labels,
             access_rule=rule.access_rule,
             nat_rule=rule.nat_rule,
             is_global=False,

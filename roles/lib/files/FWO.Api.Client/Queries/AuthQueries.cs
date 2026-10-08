@@ -26,6 +26,7 @@ namespace FWO.Api.Client.Queries
         public static readonly string getUserEmails;
         public static readonly string getUserByDn;
         public static readonly string getUserByDbId;
+        public static readonly string getOwnUser;
         public static readonly string upsertUiUser;
         public static readonly string updateUserEmail;
         public static readonly string updateUserLanguage;
@@ -74,6 +75,7 @@ namespace FWO.Api.Client.Queries
                 getUserEmails = GetQueryText("auth/getUserEmails.graphql");
                 getUserByDn = GetQueryText("auth/getUserByDn.graphql");
                 getUserByDbId = GetQueryText("auth/getUserByDbId.graphql");
+                getOwnUser = GetQueryText("auth/getOwnUser.graphql");
                 upsertUiUser = GetQueryText("auth/upsertUiUser.graphql");
                 updateUserEmail = GetQueryText("auth/updateUserEmail.graphql");
                 updateUserLanguage = GetQueryText("auth/updateUserLanguage.graphql");

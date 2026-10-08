@@ -6,7 +6,7 @@
 @inject UserConfig userConfig
 
 @page "/monitoring/rule_owner_mapping"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Auditor}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 <div class="input-group">
     <h3>@(userConfig.GetText("rule_owner_mapping_runs"))</h3>

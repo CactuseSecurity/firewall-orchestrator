@@ -20,7 +20,7 @@ public static class TicketResponseMapper
     /// </summary>
     /// <param name="ticket">Ticket as loaded from the API.</param>
     /// <param name="states">Workflow state names used to resolve every state id.</param>
-    /// <param name="status">Ticket status as reported by getRequestStatus.</param>
+    /// <param name="status">Ticket status as reported by getTicketStatus.</param>
     /// <param name="filter">Optional request task filter; null returns every task.</param>
     /// <returns>The response for the ticket.</returns>
     public static GetTicketResponse Map(WfTicket ticket, WfStateDict states, string status, TicketTaskFilter? filter)

@@ -107,6 +107,8 @@ For a chronological, version-by-version listing (8.0 onwards) see
 
 | Feature | Introduced in |
 | --- | --- |
+| Rules report management rulebases view (start rulebase selection, including rulebases without gateway) | 9.6.1 |
+| Configurable global and personal default rules report view (gateway rules or management rulebases) | 9.6.1 |
 | Report scheduling | 5.0.1 |
 | Default report templates | 5.1.04 |
 | First compliance report template | 5.1.05 |

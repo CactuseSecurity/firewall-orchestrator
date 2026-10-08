@@ -171,7 +171,6 @@ namespace FWO.Test
 
         [TestCase(Roles.Admin, false)]
         [TestCase(Roles.Auditor, true)]
-        [TestCase(Roles.FwAdmin, true)]
         public async Task InternetSaveButtonReflectsTheUserRole(string role, bool expectedDisabled)
         {
             SimulatedGlobalConfig globalConfig = new();
@@ -186,7 +185,6 @@ namespace FWO.Test
 
         [TestCase(Roles.Admin, false)]
         [TestCase(Roles.Auditor, true)]
-        [TestCase(Roles.FwAdmin, true)]
         public async Task NetworkMatrixSaveButtonReflectsTheUserRole(string role, bool expectedDisabled)
         {
             SimulatedGlobalConfig globalConfig = CreateMatrixConfig();
@@ -228,7 +226,7 @@ namespace FWO.Test
                 {
                     Assert.That(savedValues, Has.Count.EqualTo(4));
                     Assert.That(savedValues["importedMatrixReadOnly"], Is.EqualTo(bool.FalseString));
-                    Assert.That(savedValues["complianceDesignatedZoneMatrix"], Is.EqualTo("2"));
+                    Assert.That(savedValues["designatedZoneMatrix"], Is.EqualTo("2"));
                     Assert.That(savedValues["matrixAllowNestedZones"], Is.EqualTo(bool.TrueString));
                     Assert.That(savedValues["sortMatrixByID"], Is.EqualTo(bool.TrueString));
                 });
@@ -240,7 +238,7 @@ namespace FWO.Test
             return new SimulatedGlobalConfig
             {
                 ImportedMatrixReadOnly = true,
-                ComplianceDesignatedZoneMatrixId = 1,
+                DesignatedZoneMatrixId = 1,
                 MatrixAllowNestedZones = false,
                 SortMatrixByID = false
             };

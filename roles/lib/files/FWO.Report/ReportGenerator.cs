@@ -23,6 +23,13 @@ namespace FWO.Report
         /// rule_owner mapping run.</param>
         private sealed record OwnerReportRun(RuleOwnerWaitState RuleOwnerWaitState, CancellationToken Token);
 
+        /// <summary>
+        /// Generates a report from the given template.
+        /// </summary>
+        /// <remarks>
+        /// When <paramref name="token"/> is canceled, the partially generated report is returned (the UI shows it
+        /// after the user stops a generation). Callers that persist or send the report must check the token afterwards.
+        /// </remarks>
         public static async Task<ReportBase?> GenerateFromTemplate(ReportTemplate reportTemplate, ApiConnection apiConnection, UserConfig userConfig, Action<Exception?, string, string, bool> displayMessageInUi, CancellationToken? token = null, IRuleTreeBuilder? ruleTreeBuilder = null)
         {
             try
@@ -61,7 +68,7 @@ namespace FWO.Report
                         rep =>
                         {
                             report.ReportData.ManagementData = rep.ManagementData;
-                            SetRelevantManagements(report.ReportData.ManagementData, reportTemplate.ReportParams.DeviceFilter);
+                            SetRelevantManagementsForReport(report.ReportData.ManagementData, reportTemplate.ReportParams);
                             return Task.CompletedTask;
                         }, token);
                     if (report.ReportType == ReportType.RecertEventReport)
@@ -181,7 +188,7 @@ namespace FWO.Report
                 CancellationToken = run.Token,
                 WaitState = run.RuleOwnerWaitState
             };
-            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter);
+            ModellingVarianceResult result = await varianceAnalysis.AnalyseRulesVsModelledConnections(ownerReport.Connections, modellingFilter, cancellationToken: run.Token);
             ownerReport.Connections = result.ConnsNotImplemented;
             ownerReport.RuleDifferences = result.RuleDifferences;
             ownerReport.MissingAppRoles = result.MissingAppRoles;
@@ -223,6 +230,18 @@ namespace FWO.Report
                     }
                     return Task.CompletedTask;
                 }, token);
+        }
+
+        /// <summary>
+        /// Marks managements outside the device selection as ignored. Not applied in management rulebases view,
+        /// where the selected rulebases already define the scope and managements may have no gateway at all.
+        /// </summary>
+        internal static void SetRelevantManagementsForReport(List<ManagementReport> managementsReport, ReportParams reportParams)
+        {
+            if (!reportParams.IsManagementRulebaseView())
+            {
+                SetRelevantManagements(managementsReport, reportParams.DeviceFilter);
+            }
         }
 
         private static void SetRelevantManagements(List<ManagementReport> managementsReport, DeviceFilter deviceFilter)

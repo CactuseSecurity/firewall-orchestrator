@@ -67,6 +67,7 @@ namespace FWO.Test
         }
 
         private static readonly string[] kZoneCDestination = ["zone-c"];
+        private static readonly string[] kZoneADestination = ["zone-a"];
         private static readonly string[] kMissingZoneDestination = ["zone-does-not-exist"];
         private static readonly string[] kOtherMissingZoneDestination = ["zone-also-missing"];
         private static readonly string[] kAutoInternetDestination = [NetworkZoneService.kAutoCalculatedInternetZoneIdString];
@@ -102,6 +103,35 @@ namespace FWO.Test
         [
             new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
             new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private static readonly DeviceRefData[] kAccessToBorderPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
+        private static readonly DeviceRefData[] kCoreOnlyPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore }
+        ];
+
+        private static readonly DeviceRefData[] kCoreToBorderPath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
+        ];
+
+        private static readonly DeviceRefData[] kRepeatedDevicePath =
+        [
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess },
+            new() { MgmtName = kMgmtA, DeviceName = kFwCore },
+            new() { MgmtName = kMgmtA, DeviceName = kFwAccess }
+        ];
+
+        private static readonly DeviceRefData[] kBorderOnlyInternetPath =
+        [
+            new() { MgmtName = kMgmtB, DeviceName = kBorderRouter }
         ];
 
         private static readonly DeviceRefData[] kInternetPath =
@@ -816,22 +846,23 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_RejectsZoneUsingTheReservedInternetIdString()
+        public async Task Run_RejectsAutoCalculatedInternetZoneWithSubnets()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
             ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
 
             string result = await import.Run(
-                "reserved-internet.json",
+                "internet-with-subnets.json",
                 CreateImportJson(
                     "Matrix A",
-                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet", "192.0.2.0/24")),
                 "tester",
                 "cn=tester");
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} must not contain subnets"));
+                Assert.That(result, Does.Not.Contain("is not enabled"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.updateNetworkZone), Is.EqualTo(0));
@@ -862,24 +893,97 @@ namespace FWO.Test
         }
 
         [Test]
-        public async Task Run_RejectsReservedZoneIdStringAlsoWhenAutoCalculationIsDisabled()
+        public async Task Run_RejectsAutoCalculatedInternetZoneWhenAutoCalculationIsDisabled()
         {
             ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
             ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
 
             string result = await import.Run(
-                "reserved-internet-disabled.json",
+                "internet-disabled.json",
                 CreateImportJson(
                     "Matrix A",
-                    CreateZone(NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Reserved", "192.0.2.0/24")),
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
                 "tester",
                 "cn=tester");
 
             Assert.Multiple(() =>
             {
-                Assert.That(result, Does.Contain($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString}"));
+                Assert.That(result, Does.Contain($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} is not enabled"));
+                Assert.That(result, Does.Not.Contain("must not contain subnets"));
                 Assert.That(apiConnection.Count(ComplianceQueries.addCriterion), Is.EqualTo(0));
                 Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        [Test]
+        public async Task Run_ImportsAutoCalculatedInternetZoneOnlyAsSpecialZoneWithItsCommunications()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            apiConnection.MatrixZoneResponses.Add(CreateReloadedZoneAWithFlaggedAutoInternet());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "internet-import.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
+                "tester",
+                "cn=tester");
+
+            List<object?> addedInternetZones = apiConnection.Calls
+                .Where(call => call.Query == NetworkZoneQueries.addNetworkZone
+                    && ReadProperty(call.Variables, "idString") as string == NetworkZoneService.kAutoCalculatedInternetZoneIdString)
+                .Select(call => call.Variables)
+                .ToList();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from internet-import.json"));
+                Assert.That(result, Does.Contain("Total number of network zones: 1"));
+                Assert.That(result, Does.Contain("new: 1"));
+                Assert.That(result, Does.Contain("Inserted connections: 1"));
+                Assert.That(addedInternetZones, Has.Count.EqualTo(1));
+                Assert.That(ReadProperty(addedInternetZones.Single(), "isAutoCalculatedInternetZone"), Is.EqualTo(true));
+            });
+        }
+
+        [Test]
+        public async Task Run_DoesNotOverwriteExistingAutoCalculatedInternetZoneOnReimport()
+        {
+            ZoneMatrixImportApiConnection apiConnection = new()
+            {
+                MatrixByNameResponse =
+                [
+                    new ComplianceCriterion
+                    {
+                        Id = 55,
+                        Name = "Matrix A",
+                        ImportSource = "seed.json"
+                    }
+                ],
+                Managements = CreateDeviceInventory()
+            };
+            apiConnection.MatrixZoneResponses.Add(CreateMatrixZonesWithAutoCalculatedZones());
+            ZoneMatrixDataImport import = new(apiConnection, CreateAutoCalcConfig());
+
+            string result = await import.Run(
+                "internet-reimport.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", "192.0.2.0/24"),
+                    CreateAutoInternetZone(kZoneADestination)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.StartWith("Ok: Imported from internet-reimport.json"));
+                Assert.That(result, Does.Contain("new: 0"));
+                Assert.That(result, Does.Contain("updated: 0"));
+                Assert.That(result, Does.Contain("Deleted: 0"));
+                Assert.That(result, Does.Contain("Inserted connections: 1"));
             });
         }
 
@@ -1196,6 +1300,159 @@ namespace FWO.Test
             });
         }
 
+        /// <summary>
+        /// Verifies that paths agreeing on every successor are accepted. Zone B states a shorter path
+        /// that ends where zone A also ends, which contradicts nothing.
+        /// </summary>
+        [Test]
+        public async Task Run_WithConsistentRootPaths_DoesNotReportTreeError()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "consistent-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRootPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreOnlyPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.Not.Contain("Inconsistent path to root"));
+        }
+
+        /// <summary>
+        /// Verifies that a gateway leading towards two different successors is rejected, and that the
+        /// message names the gateway rather than only the subnet.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayLeadingToTwoSuccessors_IsRejected()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "forked-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRootPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kAccessToBorderPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwAccess)));
+                Assert.That(apiConnection.Count(NetworkZoneQueries.addNetworkZone), Is.EqualTo(0));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a gateway cannot attach directly to the root network in one subnet and sit
+        /// behind another gateway in the next. The missing successor is compared like any other value.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayAtRootAndBehindAnother_IsRejected()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "root-and-behind.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kCoreOnlyPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreToBorderPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwCore)));
+                Assert.That(result, Does.Contain("but - was expected"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that a gateway attaching to the root network is named in the message when it is the
+        /// contradicting side, so that the missing successor never renders as an empty name.
+        /// </summary>
+        [Test]
+        public async Task Run_WithGatewayBehindAnotherAndAtRoot_NamesTheRootNetwork()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "behind-and-root.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kCoreToBorderPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet, pathToRoot: kCoreOnlyPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("Inconsistent path to root"));
+                Assert.That(result, Does.Contain("leads to - but"));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that successors forming a ring are reported as a cycle. A ring can only arise from a
+        /// path that revisits a gateway, because a contradicting successor never replaces the one
+        /// recorded first, so this path is rejected for both reasons.
+        /// </summary>
+        [Test]
+        public async Task Run_WithPathRevisitingAGateway_ReportsCycle()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "cyclic-tree.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet, pathToRoot: kRepeatedDevicePath)),
+                "tester",
+                "cn=tester");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(result, Does.Contain("cycle"));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwAccess)));
+                Assert.That(result, Does.Contain(DeviceNameResolver.Describe(kMgmtA, kFwCore)));
+            });
+        }
+
+        /// <summary>
+        /// Verifies that paths to the internet are deliberately left unchecked. Two subnets may reach the
+        /// internet over different gateways, which must not be mistaken for a broken tree.
+        /// </summary>
+        [Test]
+        public async Task Run_WithDifferingInternetPaths_IsAccepted()
+        {
+            ZoneMatrixImportApiConnection apiConnection = CreateNewMatrixConnection();
+            ZoneMatrixDataImport import = new(apiConnection, CreateNoAutoCalcConfig());
+
+            string result = await import.Run(
+                "differing-internet.json",
+                CreateImportJson(
+                    "Matrix A",
+                    CreateZone("zone-a", "Zone A", kZoneASubnet,
+                        pathToRoot: kRootPath, pathToInternet: kInternetPath),
+                    CreateZone("zone-b", "Zone B", kSecondSubnet,
+                        pathToRoot: kCoreOnlyPath, pathToInternet: kBorderOnlyInternetPath)),
+                "tester",
+                "cn=tester");
+
+            Assert.That(result, Does.Not.Contain("Inconsistent path to root"));
+        }
+
         private static ZoneMatrixImportApiConnection CreateNewMatrixConnection()
         {
             ZoneMatrixImportApiConnection apiConnection = new()
@@ -1225,6 +1482,18 @@ namespace FWO.Test
                 CreateExistingZone(101, "zone-a", "Zone A"),
                 CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet")
             ];
+        }
+
+        /// <summary>
+        /// Zones as reloaded after UpdateSpecialZones created the auto-calculated internet zone beside zone A.
+        /// </summary>
+        /// <returns>Zone A and the flagged auto-calculated internet zone.</returns>
+        private static List<ComplianceNetworkZone> CreateReloadedZoneAWithFlaggedAutoInternet()
+        {
+            ComplianceNetworkZone internetZone =
+                CreateExistingZone(102, NetworkZoneService.kAutoCalculatedInternetZoneIdString, "Internet");
+            internetZone.IsAutoCalculatedInternetZone = true;
+            return [CreateExistingZone(101, "zone-a", "Zone A"), internetZone];
         }
 
         private static List<ComplianceNetworkZone> CreateReloadedZoneA()
@@ -1346,6 +1615,32 @@ namespace FWO.Test
             }
 
             return zone;
+        }
+
+        /// <summary>
+        /// Builds the auto-calculated internet zone as an import document defines it: no subnets, only communications.
+        /// </summary>
+        /// <param name="commTargets">Zones the internet zone may communicate to.</param>
+        /// <returns>The imported internet zone.</returns>
+        private static NetworkZoneData CreateAutoInternetZone(string[] commTargets)
+        {
+            return new NetworkZoneData
+            {
+                IdString = NetworkZoneService.kAutoCalculatedInternetZoneIdString,
+                Name = "Internet",
+                CommData = commTargets.Select(target => new CommunicationData { IdString = target }).ToList()
+            };
+        }
+
+        /// <summary>
+        /// Reads one property off the anonymous variables object of a sent query.
+        /// </summary>
+        /// <param name="variables">Variables object of the query.</param>
+        /// <param name="propertyName">Name of the property to read.</param>
+        /// <returns>The property value, or null when it does not exist.</returns>
+        private static object? ReadProperty(object? variables, string propertyName)
+        {
+            return variables?.GetType().GetProperty(propertyName)?.GetValue(variables);
         }
 
         private static ComplianceNetworkZone CreateExistingZone(int id, string idString, string name)

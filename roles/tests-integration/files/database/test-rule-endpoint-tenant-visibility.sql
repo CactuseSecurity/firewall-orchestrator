@@ -252,6 +252,43 @@ INSERT INTO tenant_to_management (tenant_id, management_id, shared) VALUES (pg_t
 SELECT pg_temp.expect_rule('target rule with unrelated management fully visible', 'target_hidden', pg_temp.probe('tenant'), false);
 DELETE FROM tenant_to_management WHERE management_id = pg_temp.probe('mgm_other');
 
+-- v8-to-v9 migrations could attach a rule to gateways of an unrelated management. Neither explicit gateway
+-- entries nor rulebase links may grant visibility through that foreign management.
+INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+    VALUES (pg_temp.probe('target_hidden'), pg_temp.probe('dev_other'), pg_temp.probe('import_target'));
+INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created)
+    VALUES (pg_temp.probe('dev_other'), pg_temp.probe('rulebase_target'), true, pg_temp.probe('import_target'));
+INSERT INTO tenant_to_device (tenant_id, device_id, shared)
+    VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_other'), false);
+SELECT pg_temp.expect_rule('foreign explicit gateway entry', 'target_hidden', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('foreign rulebase link for an all-gateways rule', 'target_on_all', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('foreign rulebase link for a nat rule', 'target_nat_not_enforced', pg_temp.probe('tenant'), false);
+-- Even an otherwise visible rule must not be listed under a foreign gateway by the simulation.
+SELECT pg_temp.expect('ip-visible rule is not simulated under a foreign gateway',
+    pg_temp.probe('target_src_in_tenant') IN (
+        SELECT sim.rule_id FROM device d, get_rules_for_tenant(d, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) sim
+        WHERE d.dev_id = pg_temp.probe('dev_other')), false);
+
+-- A child management's gateway may legitimately enforce its global management's rules.
+UPDATE management SET multi_device_manager_id = pg_temp.probe('mgm_target') WHERE mgm_id = pg_temp.probe('mgm_other');
+SELECT pg_temp.expect_rule('global rule with an explicit child-management gateway', 'target_hidden', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('global all-gateways rule linked to a child gateway', 'target_on_all', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect_rule('global nat rule linked to a child gateway', 'target_nat_not_enforced', pg_temp.probe('tenant'), true);
+SELECT pg_temp.expect('global rule is simulated under its child-management gateway',
+    pg_temp.probe('target_hidden') IN (
+        SELECT sim.rule_id FROM device d, get_rules_for_tenant(d, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) sim
+        WHERE d.dev_id = pg_temp.probe('dev_other')), true);
+
+-- The relation is directional: a gateway of the global management cannot expose a child's rules.
+UPDATE management SET multi_device_manager_id = NULL WHERE mgm_id = pg_temp.probe('mgm_other');
+UPDATE management SET multi_device_manager_id = pg_temp.probe('mgm_other') WHERE mgm_id = pg_temp.probe('mgm_target');
+SELECT pg_temp.expect_rule('gateway of a parent management cannot expose a child rule', 'target_hidden', pg_temp.probe('tenant'), false);
+SELECT pg_temp.expect_rule('gateway of a parent management cannot expose a child nat rule', 'target_nat_not_enforced', pg_temp.probe('tenant'), false);
+UPDATE management SET multi_device_manager_id = NULL WHERE mgm_id = pg_temp.probe('mgm_target');
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
+DELETE FROM rule_enforced_on_gateway WHERE rule_id = pg_temp.probe('target_hidden') AND dev_id = pg_temp.probe('dev_other');
+DELETE FROM rulebase_link WHERE gw_id = pg_temp.probe('dev_other') AND to_rulebase_id = pg_temp.probe('rulebase_target');
+
 -- full visibility through the gateways the rule is enforced on
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
 SELECT pg_temp.expect_rule('rule enforced on another gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), false);
@@ -325,6 +362,19 @@ BEGIN
     INSERT INTO rule_to (rule_id, obj_id, rt_create) VALUES (i_rule_id, pg_temp.probe('target_outside_dst'), i_import2_id);
     INSERT INTO probe_id VALUES ('target_nat_in_moved_rulebase', i_rule_id);
 END $$;
+
+-- Migrated foreign gateway entries on historic versions must also fail closed, even when valid for their lifetime.
+INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created, removed)
+    SELECT r.rule_id, pg_temp.probe('dev_other'), r.rule_create, r.removed
+    FROM rule r WHERE r.rule_id = pg_temp.probe('target_historic_on_dev');
+INSERT INTO tenant_to_device (tenant_id, device_id, shared)
+    VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_other'), false);
+SELECT pg_temp.expect_rule('historic rule with a foreign gateway entry', 'target_historic_on_dev', pg_temp.probe('tenant'), false);
+UPDATE management SET multi_device_manager_id = pg_temp.probe('mgm_target') WHERE mgm_id = pg_temp.probe('mgm_other');
+SELECT pg_temp.expect_rule('historic global rule with a child gateway entry', 'target_historic_on_dev', pg_temp.probe('tenant'), true);
+UPDATE management SET multi_device_manager_id = NULL WHERE mgm_id = pg_temp.probe('mgm_other');
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
+DELETE FROM rule_enforced_on_gateway WHERE rule_id = pg_temp.probe('target_historic_on_dev') AND dev_id = pg_temp.probe('dev_other');
 
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
 SELECT pg_temp.expect_rule('current rule moved away from the visible gateway', 'target_moved_to_gw2', pg_temp.probe('tenant'), false);

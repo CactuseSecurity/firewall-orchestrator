@@ -36,8 +36,9 @@
   - upgrades leave existing demo data in place, including the users user1_demo and user2_demo with their
     publicly known passwords. Remove it with the "Remove Sample Data" buttons in the settings (users, groups,
     tenants, managements, credentials, owners). The users page and the daily check only know users that logged
-    in at least once: click "Synchronize to LDAP" on the users page first, so that the demo users of the internal
-    LDAP are listed and removed as well; the daily check raises an alert as long as known sample data exists
+    in at least once: click "Synchronize to LDAP" on the users page first and reload the page, so that the demo
+    users of the internal LDAP are listed and removed as well; the daily check raises an alert as long as known
+    sample data exists
   - testkeys is defined for all hosts in inventory/group_vars/all.yml (it was only set for the middleware), so
     all hosts of a distributed installation agree on creating the demo data
   - the GitHub test installations request demo data explicitly, as the JWT integration test logs in with a user
@@ -85,7 +86,7 @@
     Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md)
   - when a login runs out of time or is cancelled, its LDAP connections are closed, and every directory operation
     of a login waits at most 10 seconds for an answer, so a directory that does not answer cannot keep the LDAP
-    operations occupied
+    slots occupied for longer than 10 seconds after cancellation
   - login attempts of a user that are still running count as possible failures, so concurrent guesses cannot
     exceed the failure limit; the group and role lookups of logins share the 4 parallel LDAP operations
 - security (GHSA-v8hx-cx2q-j75v): the tenant visibility of rule sources and destinations (rule_from /
@@ -102,7 +103,9 @@
     its rulebase. An access rule installed on targets that are no gateways of the management (e.g. a gateway
     group) is not fully visible. Only gateway links valid for the rule version count: a rule or rulebase moved
     to another gateway is no longer fully visible through the old one, while historic rule versions stay
-    visible through the gateways they were enforced on. This applies to rules, rule sources and destinations
+    visible through the gateways they were enforced on. Gateway links only count within the rule's management
+    or a child of its global management; foreign gateway entries left by the v9 migration cannot grant visibility.
+    This applies to rules, rule sources and destinations
     and to the tenant simulation, which now lists the rules of the rulebases linked to a gateway
   - a new index on rule_enforced_on_gateway (rule_id) keeps these checks fast
   - plain network objects (no group) used directly in a rule are matched against the tenant networks by their

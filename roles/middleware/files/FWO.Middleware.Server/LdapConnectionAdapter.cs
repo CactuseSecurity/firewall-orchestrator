@@ -102,9 +102,6 @@ namespace FWO.Middleware.Server
             LdapConstraints constraints = connection.Constraints;
             constraints.TimeLimit = milliseconds;
             connection.Constraints = constraints;
-            LdapSearchConstraints searchConstraints = connection.SearchConstraints;
-            searchConstraints.TimeLimit = milliseconds;
-            connection.Constraints = searchConstraints;
         }
 
         public bool Bound => connection.Bound;

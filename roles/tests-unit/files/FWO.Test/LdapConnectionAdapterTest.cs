@@ -120,6 +120,29 @@ namespace FWO.Test
         private static readonly TimeSpan kCancelReturnLimit = TimeSpan.FromSeconds(1);
 
         /// <summary>
+        /// A single constraint update limits both ordinary operations and searches without losing search settings.
+        /// </summary>
+        [Test]
+        public void OperationTimeLimit_UpdatesBothConstraintViewsAndPreservesSearchSettings()
+        {
+            using LdapConnection connection = new();
+            LdapSearchConstraints original = connection.SearchConstraints;
+            original.MaxResults = kReadBufferSize;
+            original.ReferralFollowing = true;
+            connection.Constraints = original;
+
+            using NovellLdapConnectionAdapter adapter = new(connection, kTestOperationTimeLimit);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(connection.Constraints.TimeLimit, Is.EqualTo(kTestOperationTimeLimit.TotalMilliseconds));
+                Assert.That(connection.SearchConstraints.TimeLimit, Is.EqualTo(kTestOperationTimeLimit.TotalMilliseconds));
+                Assert.That(connection.SearchConstraints.MaxResults, Is.EqualTo(original.MaxResults));
+                Assert.That(connection.SearchConstraints.ReferralFollowing, Is.True);
+            });
+        }
+
+        /// <summary>
         /// Reads what the client sent until the client closes the connection.
         /// </summary>
         private static async Task<bool> IsClosedByClientAsync(TcpClient server)

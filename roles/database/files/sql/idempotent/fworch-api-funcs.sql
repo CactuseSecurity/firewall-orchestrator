@@ -264,6 +264,8 @@ DROP FUNCTION IF EXISTS public.rule_fully_visible_to_tenant(bigint, integer, int
 -- linking its rulebase. The importer gives every access rule explicit entries, so an access rule without any entry
 -- is installed on targets that are no gateways of the management (e.g. a gateway group): it is not fully visible.
 -- Only links valid for the rule version count, see link_valid_for_rule_version.
+-- Gateways must belong to the rule's management or a child of its global management. The v9 migration could
+-- create foreign gateway entries; those must never grant full visibility, including for historic rule versions.
 -- rule.dev_id is not used: it is no longer written by the importer (v9 rulebase model).
 CREATE OR REPLACE FUNCTION rule_fully_visible_to_tenant(p_rule rule, i_tenant_id integer)
 RETURNS boolean AS $$
@@ -276,7 +278,10 @@ RETURNS boolean AS $$
 
         PERFORM 1 FROM rule_enforced_on_gateway reg
             JOIN tenant_to_device ttd ON (ttd.device_id = reg.dev_id)
+            JOIN device gw ON (gw.dev_id = reg.dev_id)
+            JOIN management gw_mgm ON (gw_mgm.mgm_id = gw.mgm_id)
         WHERE reg.rule_id = p_rule.rule_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+            AND (gw.mgm_id = p_rule.mgm_id OR gw_mgm.multi_device_manager_id = p_rule.mgm_id)
             AND link_valid_for_rule_version(reg.created, reg.removed, p_rule.rule_create, p_rule.removed)
         LIMIT 1;
         IF FOUND THEN
@@ -303,7 +308,10 @@ RETURNS boolean AS $$
 
         PERFORM 1 FROM rulebase_link rl
             JOIN tenant_to_device ttd ON (ttd.device_id = rl.gw_id)
+            JOIN device gw ON (gw.dev_id = rl.gw_id)
+            JOIN management gw_mgm ON (gw_mgm.mgm_id = gw.mgm_id)
         WHERE rl.to_rulebase_id = p_rule.rulebase_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
+            AND (gw.mgm_id = p_rule.mgm_id OR gw_mgm.multi_device_manager_id = p_rule.mgm_id)
             AND link_valid_for_rule_version(rl.created, rl.removed, p_rule.rule_create, p_rule.removed)
         LIMIT 1;
         RETURN FOUND;
@@ -484,7 +492,9 @@ RETURNS SETOF rule AS $$
                 WHERE r.rule_id IN (
                         SELECT linked.rule_id FROM rule linked
                             JOIN rulebase_link rl ON (rl.to_rulebase_id = linked.rulebase_id)
+                            JOIN management gw_mgm ON (gw_mgm.mgm_id = device_row.mgm_id)
                         WHERE rl.gw_id = device_row.dev_id
+                            AND (linked.mgm_id = device_row.mgm_id OR gw_mgm.multi_device_manager_id = linked.mgm_id)
                             AND link_valid_for_rule_version(rl.created, rl.removed, linked.rule_create, linked.removed))
                     AND (rule_fully_visible_to_tenant(r, tenant)
                         OR (r.rule_head_text IS NULL AND (rule_froms_in_tenant_network(r.rule_id, r.rule_src_neg, tenant)

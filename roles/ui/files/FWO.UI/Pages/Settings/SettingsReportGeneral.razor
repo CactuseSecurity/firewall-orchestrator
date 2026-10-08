@@ -110,7 +110,11 @@
         <div class="form-group row" data-toggle="tooltip" title="@(userConfig.PureLine("H5463"))">
             <label class="col-form-label col-sm-3">@(userConfig.GetText("reportTypeVisibilityByRole")):</label>
             <div class="col-sm-9">
-                @if (availableRoles.Count > 0)
+                @if (!rolesLoaded)
+                {
+                    <Loading />
+                }
+                else if (availableRoles.Count > 0)
                 {
                     <div class="form-group row mb-2">
                         <label class="col-form-label col-sm-2">@(userConfig.GetText("role")):</label>
@@ -154,7 +158,7 @@
                 }
                 else
                 {
-                    <Loading />
+                    <span class="col-form-label">@(userConfig.GetText("E5251"))</span>
                 }
             </div>
         </div>
@@ -192,6 +196,7 @@ else
     private List<LegacyReportSchedulerConfig> legacyReportSchedulerConfigs = [];
     private bool ShowMigrateSchedulerConfigDialog;
     private List<string> availableRoles = [];
+    private bool rolesLoaded = false;
     private string selectedRole = "";
     private Dictionary<string, Dictionary<ReportType, ReportTypeVisibilityOption>> reportTypeVisibilityByRole = [];
 
@@ -226,10 +231,18 @@ else
             selectedRole = "";
             savedReportTypeVisibilityByRole = ReportTypeRoleVisibilityConfig.Parse(configData.ReportTypeVisibilityByRole);
             reportTypeVisibilityByRole = BuildReportTypeVisibilityByRole(availableRoles, savedReportTypeVisibilityByRole);
+            if (availableRoles.Count == 0)
+            {
+                DisplayMessageInUi(null, userConfig.GetText("fetch_roles"), userConfig.GetText("E5251"), true);
+            }
         }
         catch (Exception exception)
         {
             DisplayMessageInUi(exception, userConfig.GetText("read_config"), userConfig.GetText("E5301"), false);
+        }
+        finally
+        {
+            rolesLoaded = true;
         }
     }
 

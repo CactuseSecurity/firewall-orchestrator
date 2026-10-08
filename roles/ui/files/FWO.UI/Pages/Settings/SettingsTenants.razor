@@ -4,7 +4,7 @@
 @using System.Net
 
 @page "/settings/tenants"
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject MiddlewareClient middlewareClient
@@ -118,7 +118,7 @@
     </Body>
     <Footer>
         <div class="btn-group">
-            <ExecutionModeAuthorizeView Roles="admin, fw-admin">
+            <ExecutionModeAuthorizeView Roles="@Roles.Admin">
                 <Authorized>
                     @if (addDeleteAllowed && !AddTenantMode)
                     {
@@ -215,9 +215,8 @@
     {
         try
         {
-            // Auditor and FwAdmin have read-only / limited access. Adding (POST) and deleting (DELETE)
-            // tenants is admin-only at the REST layer (TenantController), so only Admin sees those affordances.
-            // FwAdmin may still edit (PUT) existing tenants via the save button in the edit dialog.
+            // Auditor has read-only access. Adding, changing and deleting tenants is admin-only at the
+            // REST layer (TenantController), so only Admin sees those affordances.
             addDeleteAllowed = userConfig.CanUseAnyRole(Roles.Admin);
             await GetTenantsFromLdap();
             uiUsers = await apiConnection.SendQueryAsync<List<UiUser>>(AuthQueries.getUsers);

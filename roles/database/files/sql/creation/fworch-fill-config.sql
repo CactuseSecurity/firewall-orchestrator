@@ -5,6 +5,7 @@ insert into config (config_key, config_value, config_user) VALUES ('uiHostName',
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('defaultManagementRulebaseView', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'False', 0);
@@ -175,5 +176,11 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenL
 INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetimeUnit', 'Hours', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqCreateRequestTaskSortConfig', '{"group_create_priority":0,"group_modify_add_priority":1,"access_priority":2,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+
+INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
+VALUES ('global', 'global', 'Global', 0)
+ON CONFLICT (node_type, object_key) DO NOTHING;

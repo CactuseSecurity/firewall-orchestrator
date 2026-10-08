@@ -1,0 +1,256 @@
+@using FWO.Ui.Display
+@using FWO.Data
+@using FWO.Data.Workflow
+@using FWO.Services.Workflow
+@using FWO.Ui.Services
+
+@inject UserConfig userConfig
+
+@if (TaskType == WfTaskType.access || TaskType == WfTaskType.rule_modify)
+{
+    <DisplayAccessElements Sources="actSources" @bind-SourcesToAdd="sourcesToAdd" @bind-SourcesToDelete="sourcesToDelete"
+        Destinations="actDestinations" @bind-DestinationsToAdd="destinationsToAdd" @bind-DestinationsToDelete="destinationsToDelete"
+        Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+        IpProtos="DisplayIpProtos" SelectableIpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" EditMode="WfHandler.EditReqTaskMode"
+        EditSources="CanEditField(WorkflowEditableFieldKeys.Source)"
+        EditDestinations="CanEditField(WorkflowEditableFieldKeys.Destination)"
+        EditServices="CanEditField(WorkflowEditableFieldKeys.Services)" />
+}
+else if (TaskType == WfTaskType.rule_delete)
+{
+    <DisplayRules @bind-Rules="actRules" TaskId="WfHandler.ActReqTask.Id" EditMode="CanEditField(WorkflowEditableFieldKeys.Rules)" />
+}
+else if (TaskType == WfTaskType.group_create)
+{
+    <div class="form-group row mt-2">
+        @if (WfHandler.EditReqTaskMode)
+        {
+            <div class="col-sm-2">
+                <input class="form-check-input" type="radio" checked="@(!grpTypeSvc)" name="shortcutRange" id="nwGrp" @onchange="() => grpTypeSvc = false">
+                <label class="col-sm-1 col-form-label col-form-label-sm" for="nwGrp">@(userConfig.GetText("network_group"))</label>
+            </div>
+            <div class="col-sm-2">
+                <input class="form-check-input" type="radio" checked="@(grpTypeSvc)" name="shortcutRange" id="svcGrp" @onchange="() => grpTypeSvc = true">
+                <label class="col-sm-1 col-form-label col-form-label-sm" for="svcGrp">@(userConfig.GetText("service_group"))</label>
+            </div>
+            <div class="col-sm-4">
+                @if (!grpTypeSvc)
+                {
+                    <IpSelector IpAddresses="actSources" @bind-IpsToAdd="sourcesToAdd" @bind-IpsToDelete="sourcesToDelete" WithLabel="false" />
+                }
+                else
+                {
+                    <ServiceSelector Services="actServices" @bind-ServicesToAdd="servicesToAdd" @bind-ServicesToDelete="servicesToDelete"
+                        IpProtos="SelectableIpProtos" TaskId="WfHandler.ActReqTask.Id" WithLabel="false" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="list-group col-sm-4">
+                @foreach (var source in actSources)
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@DisplayObjectElement(source)</label>
+                    </div>
+                }
+                @foreach (var service in actServices)
+                {
+                    <div class="list-group-item border bg-secondary">
+                        <label>@DisplayServiceElement(service)</label>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+else if (WfObjectTaskHelper.IsObjectTask(TaskType))
+{
+    <DisplayObjectTaskElement @ref="objectTaskElement" ReqTask="WfHandler.ActReqTask" IsModify="@(TaskType == WfTaskType.object_modify)"
+        ManagementId="ManagementId" EditMode="WfHandler.EditReqTaskMode" SelectableIpProtos="SelectableIpProtos" DisplayIpProtos="DisplayIpProtos" />
+}
+
+@code
+{
+    [Parameter]
+    public WfHandler WfHandler { get; set; } = new();
+
+    [Parameter]
+    public WfTaskType TaskType { get; set; } = WfTaskType.access;
+
+    [Parameter]
+    public Func<string, bool> CanEditField { get; set; } = _ => false;
+
+    [Parameter]
+    public List<IpProtocol> DisplayIpProtos { get; set; } = [];
+
+    [Parameter]
+    public List<IpProtocol> SelectableIpProtos { get; set; } = [];
+
+    [Parameter]
+    public Device? RuleDevice { get; set; }
+
+    [Parameter]
+    public EventCallback<Device?> RuleDeviceChanged { get; set; }
+
+    /// <summary>
+    /// Management of the task, which the object of an object task belongs to.
+    /// </summary>
+    [Parameter]
+    public int? ManagementId { get; set; }
+
+    private DisplayObjectTaskElement? objectTaskElement;
+
+    private List<NwObjectElement> actSources = [];
+    private List<NwObjectElement> actDestinations = [];
+    private List<NwServiceElement> actServices = [];
+    private List<NwRuleElement> actRules = [];
+
+    private List<NwObjectElement> sourcesToAdd = [];
+    private List<NwObjectElement> sourcesToDelete = [];
+    private List<NwObjectElement> destinationsToAdd = [];
+    private List<NwObjectElement> destinationsToDelete = [];
+    private List<NwServiceElement> servicesToAdd = [];
+    private List<NwServiceElement> servicesToDelete = [];
+    private bool grpTypeSvc;
+    private long initializedTaskId = -1;
+
+    public int SourceCount => actSources.Count;
+    public int DestinationCount => actDestinations.Count;
+    public int ServiceCount => actServices.Count;
+    public int RuleCount => actRules.Count;
+
+    /// <summary>
+    /// Checks the entered object of an object task and writes it into the request task. Returns the text key
+    /// of the error message, or null when the object was applied.
+    /// </summary>
+    public string? ApplyObjectTask()
+    {
+        // ApplyToTask returns null on success, so a missing object block must not be folded in with ??
+        return objectTaskElement == null ? "E5124" : objectTaskElement.ApplyToTask();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (initializedTaskId != WfHandler.ActReqTask.Id)
+        {
+            initializedTaskId = WfHandler.ActReqTask.Id;
+            InitializeElements();
+        }
+    }
+
+    public void InitializeElements()
+    {
+        ResetPendingChanges();
+        actSources = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.source);
+        actDestinations = WfHandler.ActReqTask.GetNwObjectElements(ElemFieldType.destination);
+        actServices = WfHandler.ActReqTask.GetServiceElements();
+        actRules = WfHandler.ActReqTask.GetRuleElements();
+        grpTypeSvc = actServices.Count > 0;
+    }
+
+    public void ResetPendingChanges()
+    {
+        sourcesToAdd = [];
+        sourcesToDelete = [];
+        destinationsToAdd = [];
+        destinationsToDelete = [];
+        servicesToAdd = [];
+        servicesToDelete = [];
+    }
+
+    public void ApplyChanges(Device? ruleDevice = null)
+    {
+        foreach (var src in sourcesToDelete)
+        {
+            actSources.Remove(src);
+            RemoveElem(src.ElemId);
+        }
+        foreach (var dst in destinationsToDelete)
+        {
+            actDestinations.Remove(dst);
+            RemoveElem(dst.ElemId);
+        }
+        foreach (var svc in servicesToDelete)
+        {
+            actServices.Remove(svc);
+            RemoveElem(svc.ElemId);
+        }
+        if (TaskType != WfTaskType.group_create || !grpTypeSvc)
+        {
+            foreach (var src in sourcesToAdd)
+            {
+                src.TaskId = WfHandler.ActReqTask.Id;
+                actSources.Add(src);
+                WfHandler.ActReqTask.Elements.Add(src.ToReqElement(ElemFieldType.source));
+            }
+        }
+        foreach (var dst in destinationsToAdd)
+        {
+            dst.TaskId = WfHandler.ActReqTask.Id;
+            actDestinations.Add(dst);
+            WfHandler.ActReqTask.Elements.Add(dst.ToReqElement(ElemFieldType.destination));
+        }
+        if (TaskType != WfTaskType.group_create || grpTypeSvc)
+        {
+            foreach (var svc in servicesToAdd)
+            {
+                svc.TaskId = WfHandler.ActReqTask.Id;
+                actServices.Add(svc);
+                WfHandler.ActReqTask.Elements.Add(svc.ToReqElement());
+            }
+        }
+
+        sourcesToDelete = [];
+        destinationsToDelete = [];
+        servicesToDelete = [];
+        sourcesToAdd = [];
+        destinationsToAdd = [];
+        servicesToAdd = [];
+
+        WfHandler.ActReqTask.Elements.RemoveAll(x => x.Field == ElemFieldType.rule.ToString());
+        foreach (var rule in actRules)
+        {
+            WfReqElement reqElem = rule.ToReqElement();
+            reqElem.DeviceId = (ruleDevice ?? RuleDevice)?.Id;
+            reqElem.RequestAction = WfHandler.ActReqTask.RequestAction;
+            WfHandler.ActReqTask.Elements.Add(reqElem);
+        }
+    }
+
+    private void RemoveElem(long elemId)
+    {
+        WfReqElement? oldElem = WfHandler.ActReqTask.Elements.FirstOrDefault(x => x.Id == elemId);
+        if (oldElem != null)
+        {
+            WfHandler.ActReqTask.RemovedElements.Add(oldElem);
+            WfHandler.ActReqTask.Elements.Remove(oldElem);
+        }
+    }
+
+    private string DisplayObjectElement(NwObjectElement element)
+    {
+        if (!string.IsNullOrEmpty(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrEmpty(element.Name) && string.IsNullOrEmpty(element.IpString))
+        {
+            return element.Name;
+        }
+        return NwObjDisplay.DisplayIp(element.IpString, element.IpEndString);
+    }
+
+    private string DisplayServiceElement(NwServiceElement element)
+    {
+        if (!string.IsNullOrEmpty(element.GroupName))
+        {
+            return element.GroupName;
+        }
+        if (!string.IsNullOrEmpty(element.Name) && element.Port is null or 0)
+        {
+            return element.Name;
+        }
+        return DisplayBase.DisplayService(element, DisplayIpProtos);
+    }
+}

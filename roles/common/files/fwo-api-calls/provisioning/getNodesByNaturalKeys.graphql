@@ -1,0 +1,29 @@
+query getNodesByNaturalKeys(
+  $globalKeys: [String!]!
+  $deviceTypeKeys: [String!]!
+  $managementKeys: [String!]!
+  $gatewayKeys: [String!]!
+) {
+  provisioning_config_node(
+    where: {
+      _or: [
+        {node_type: {_eq: "global"}, object_key: {_in: $globalKeys}}
+        {node_type: {_eq: "device_type"}, object_key: {_in: $deviceTypeKeys}}
+        {node_type: {_eq: "management"}, object_key: {_in: $managementKeys}}
+        {node_type: {_eq: "gateway"}, object_key: {_in: $gatewayKeys}}
+      ]
+    }
+  ) {
+    id
+    node_type
+    object_key
+    parent_id
+    display_name
+    sort_order
+    values(order_by: {config_key: asc}) {
+      node_id
+      config_key
+      config_value
+    }
+  }
+}

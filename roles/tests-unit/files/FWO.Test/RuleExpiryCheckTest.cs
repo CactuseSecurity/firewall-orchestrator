@@ -55,6 +55,50 @@ namespace FWO.Test
         }
 
         [Test]
+        public void CheckRuleExpiry_CanceledAfterFirstOwner_SkipsRemainingOwnersAndUpdatesLastSent()
+        {
+            using CancellationTokenSource cancellationTokenSource = new();
+            RuleExpiryCheckTestApiConn apiConnection = new()
+            {
+                Notifications = [CreateRuleTimerNotification(1)],
+                ExpiredRuleEntries = [CreateExpiredRuleEntry(1, 1001), CreateExpiredRuleEntry(2, 2001)],
+                OnInsertNotificationLog = cancellationTokenSource.Cancel
+            };
+            RuleExpiryCheck check = new(apiConnection, CreateGlobalConfig());
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () => await check.CheckRuleExpiry(cancellationTokenSource.Token));
+
+            Assert.That(apiConnection.InsertNotificationLogCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.UpdateLastSentCalls, Is.EqualTo(1));
+            Assert.That(apiConnection.LastUpdatedNotificationIdCount, Is.EqualTo(1));
+        }
+
+        private static ExpiredRuleEntryInput CreateExpiredRuleEntry(int ownerId, int ruleId)
+        {
+            return new ExpiredRuleEntryInput
+            {
+                OwnerId = ownerId,
+                OwnerName = $"Owner{ownerId}",
+                OwnerExtAppId = $"APP{ownerId}",
+                RuleId = ruleId,
+                RuleUid = $"uid-{ruleId}",
+                RuleName = $"Allow {ruleId}",
+                RuleNumber = 10,
+                ManagementId = 5,
+                RulebaseName = "RB1",
+                SourceShort = "SrcShort",
+                SourceLong = "SrcLong",
+                DestinationShort = "DstShort",
+                DestinationLong = "DstLong",
+                ServiceShort = "SvcShort",
+                ServiceLong = "SvcLong",
+                CustomFields = "{}",
+                LastHit = DateTime.Now.AddDays(-5),
+                RuleTimes = [new() { TimeObjId = ruleId, TimeObjName = $"TO-{ruleId}", EndTime = DateTime.Now.AddDays(-2) }]
+            };
+        }
+
+        [Test]
         public async Task CheckRuleExpiry_DoesNotSend_WhenNotificationIsNotDue()
         {
             RuleExpiryCheckTestApiConn apiConnection = new();
@@ -449,6 +493,9 @@ namespace FWO.Test
             public List<FwoNotification> Notifications { get; set; } = [];
             public List<ExpiredRuleEntryInput> ExpiredRuleEntries { get; set; } = [];
             public int LastUpdatedNotificationIdCount { get; private set; }
+            public int UpdateLastSentCalls { get; private set; }
+            public int InsertNotificationLogCalls { get; private set; }
+            public Action? OnInsertNotificationLog { get; set; }
 
             public override Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null, string? operationName = null, FWO.Api.Client.QueryChunkingOptions? chunkingOptions = null)
             {
@@ -476,12 +523,15 @@ namespace FWO.Test
 
                 if (responseType == typeof(ReturnId) && query == NotificationQueries.updateNotificationsLastSent)
                 {
+                    ++UpdateLastSentCalls;
                     LastUpdatedNotificationIdCount = CountIds(variables);
                     return Task.FromResult((QueryResponseType)(object)new ReturnId { AffectedRows = LastUpdatedNotificationIdCount });
                 }
 
                 if (responseType == typeof(ReturnIdWrapper) && query == NotificationQueries.insertNotificationLog)
                 {
+                    ++InsertNotificationLogCalls;
+                    OnInsertNotificationLog?.Invoke();
                     return Task.FromResult((QueryResponseType)(object)new ReturnIdWrapper
                     {
                         ReturnIds = [new ReturnId { Id = 1 }]

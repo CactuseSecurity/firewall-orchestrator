@@ -35,6 +35,15 @@ JWT_REFRESH_MARGIN_SECONDS = 60  # proactively refresh once the JWT has less tha
 _NO_ENDPOINT_ERROR = object()
 
 
+def _as_json_object(value: object) -> dict[str, Any] | None:
+    """
+    Returns value typed as a parsed JSON object if it is a dict, otherwise None.
+    """
+    if isinstance(value, dict):
+        return cast("dict[str, Any]", value)
+    return None
+
+
 class _JwtExpiredResponseError(Exception):
     """
     Internal signal raised when the FWO API accepted the HTTP request but rejected the JWT
@@ -324,8 +333,9 @@ class FwoApi:
         is the usual {"errors": [...]} shape or a bare list of error objects.
         """
         errors: list[Any] | None
-        if isinstance(response_body, dict):
-            errors = cast("dict[str, Any]", response_body).get("errors")
+        response_object = _as_json_object(response_body)
+        if response_object is not None:
+            errors = response_object.get("errors")
         elif isinstance(response_body, list):
             errors = cast("list[Any]", response_body)
         else:
@@ -334,10 +344,10 @@ class FwoApi:
         if not errors:
             return False
 
+        error_objects = (_as_json_object(error) for error in errors)
         return any(
-            FwoApi._is_jwt_expired_error_entry(cast("dict[str, Any]", error))
-            for error in errors
-            if isinstance(error, dict)
+            error_object is not None and FwoApi._is_jwt_expired_error_entry(error_object)
+            for error_object in error_objects
         )
 
     @staticmethod
@@ -689,14 +699,15 @@ class FwoApi:
 
         r.raise_for_status()
 
-        if not isinstance(response_body, dict):
+        response_object = _as_json_object(response_body)
+        if response_object is None:
             # a body that parses but is not an object (a bare "null" or list, say) carries no
             # data/errors this class can hand back - callers may only ever see a dict
             error_txt = f"fwo_api: expected a JSON object as API response body, got {type(response_body).__name__}"
             FWOLogger.error(error_txt)
             raise FwoImporterError(error_txt)
 
-        return cast("dict[str, Any]", response_body)
+        return response_object
 
     def show_api_call_info(self, url: str, query: dict[str, Any], headers: dict[str, Any], typ: str = "debug"):
         max_query_size_to_display = 1000

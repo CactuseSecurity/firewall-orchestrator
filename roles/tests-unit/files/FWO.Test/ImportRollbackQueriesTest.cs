@@ -29,16 +29,10 @@ namespace FWO.Test
         public void RollbackImportDataFragment_CarriesTheDataStatements_WithoutDeletingImportControl()
         {
             // the importer reuses the same fragment but must keep the import_control row
-            string fragment = Queries.Compact(" " + File.ReadAllText(
-                Path.Combine(QueryBasePath, "import", "fragments", "rollbackImportDataFields.graphql")) + " ");
-
-            Assert.That(fragment, Does.Contain("fragment rollbackImportDataFields on mutation_root"));
-            Assert.That(fragment, Does.Not.Contain("delete_import_control"));
-            Assert.That(fragment, Does.Contain("_in: $importIds"));
+            Assert.That(ImportQueries.rollbackImportDataFields, Does.Contain("fragment rollbackImportDataFields on mutation_root"));
+            Assert.That(ImportQueries.rollbackImportDataFields, Does.Not.Contain("delete_import_control"));
+            Assert.That(ImportQueries.rollbackImportDataFields, Does.Contain("_in: $importIds"));
         }
-
-        private static string QueryBasePath =>
-            Path.Combine(Environment.GetEnvironmentVariable("FWO_BASE_DIR") ?? "", "fwo-api-calls");
 
         private static int CountOccurrences(string text, string value)
         {

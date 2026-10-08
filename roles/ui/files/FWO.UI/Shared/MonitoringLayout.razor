@@ -9,7 +9,7 @@
 <Sidebar PositionLeft="true" Collapsible="true" Resizeable="true" @bind-Width="sidebarWidth">
     <div class="me-2 ms-2 mt-4 mb-4">
         <ul class="navbar-nav navbar-dark flex-column">
-            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}, {Roles.FwAdmin}")">
+            <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Auditor}")">
                 <li class="nav-item px-2">
                     <h5>@(userConfig.GetText("system"))</h5>
                 </li>
@@ -49,6 +49,11 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/scheduler">
                         <span class="@Icons.Schedule"></span> Scheduler
+                    </NavLink>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/rule_owner_mapping">
+                        <span class="@Icons.Owner"></span> @(userConfig.GetText("rule_owner_mapping_runs"))
                     </NavLink>
                 </li>
                 <hr />
@@ -120,6 +125,15 @@
                 <li class="nav-item px-2">
                     <NavLink class="nav-link" href="monitoring/workflow">
                         <span class="@Icons.Workflow"></span> @(userConfig.GetText("tickets"))
+                    </NavLink>
+                </li>
+                <hr />
+                <li class="nav-item px-2">
+                    <h5>@(userConfig.GetText("notifications"))</h5>
+                </li>
+                <li class="nav-item px-2">
+                    <NavLink class="nav-link" href="monitoring/email_log">
+                        <span class="@Icons.Email"></span> @(userConfig.GetText("email_log"))
                     </NavLink>
                 </li>
                 <hr />

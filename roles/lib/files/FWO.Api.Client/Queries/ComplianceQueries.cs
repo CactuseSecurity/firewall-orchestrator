@@ -4,11 +4,6 @@ namespace FWO.Api.Client.Queries
 {
     public class ComplianceQueries : Queries
     {
-        public static readonly string addNetworkZone;
-        public static readonly string removeNetworkZone;
-        public static readonly string getNetworkZonesForMatrix;
-        public static readonly string updateNetworkZone;
-
         public static readonly string updateNetworkZoneCommunication;
 
         public static readonly string addViolations;
@@ -46,11 +41,6 @@ namespace FWO.Api.Client.Queries
         {
             try
             {
-                addNetworkZone = GetQueryText("compliance/addNetworkZone.graphql");
-                removeNetworkZone = GetQueryText("compliance/removeNetworkZone.graphql");
-                getNetworkZonesForMatrix = GetQueryText("compliance/getNetworkZonesForMatrix.graphql");
-                updateNetworkZone = GetQueryText("compliance/updateNetworkZone.graphql");
-
                 updateNetworkZoneCommunication = GetQueryText("compliance/updateNetworkZoneCommunication.graphql");
 
                 addViolations = GetQueryText("compliance/addViolations.graphql");

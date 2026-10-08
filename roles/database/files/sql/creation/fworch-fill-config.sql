@@ -5,6 +5,7 @@ insert into config (config_key, config_value, config_user) VALUES ('uiHostName',
 insert into config (config_key, config_value, config_user) VALUES ('elementsPerFetch', '100', 0);
 insert into config (config_key, config_value, config_user) VALUES ('maxInitialFetchesRightSidebar', '10', 0);
 insert into config (config_key, config_value, config_user) VALUES ('autoFillRightSidebar', 'True', 0);
+insert into config (config_key, config_value, config_user) VALUES ('defaultManagementRulebaseView', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('dataRetentionTime', '731', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importSleepTime', '40', 0);
 insert into config (config_key, config_value, config_user) VALUES ('importCheckCertificates', 'False', 0);
@@ -82,17 +83,8 @@ insert into config (config_key, config_value, config_user) VALUES ('modNamingCon
 insert into config (config_key, config_value, config_user) VALUES ('modCommonAreas', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modAppServerTypes', '[{"Id":0,"Name":"Default"}]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqInterfaceName', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailReceiver', 'OwnerGroupOnly', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailRequesterInCc', 'true', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailOtherAddresses', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modReqEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTicketTitle', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modReqTaskTitle', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailReceiver', 'None', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailOtherAddresses', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailSubject', '', 0);
-insert into config (config_key, config_value, config_user) VALUES ('modDecommEmailBody', '', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationMode', 'FullyIntegrated', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStates', '[]', 0);
 insert into config (config_key, config_value, config_user) VALUES ('modIntegrationStateMarker', 'ImplementationState', 0);
@@ -143,6 +135,7 @@ insert into config (config_key, config_value, config_user) VALUES ('varianceAnal
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisStartAt', '00:00:00', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisSync', 'false', 0);
 insert into config (config_key, config_value, config_user) VALUES ('varianceAnalysisRefresh', 'false', 0);
+insert into config (config_key, config_value, config_user) VALUES ('varianceNameFieldWaitTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('resolveNetworkAreas', 'False', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckSleepTime', '0', 0);
 insert into config (config_key, config_value, config_user) VALUES ('complianceCheckStartAt', '00:00:00', 0);
@@ -183,5 +176,11 @@ INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenL
 INSERT INTO config (config_key, config_value, config_user) VALUES ('accessTokenLifetimeUnit', 'Hours', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetime', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('refreshTokenLifetimeUnit', 'Days', 0);
+insert into config (config_key, config_value, config_user) VALUES ('reqCreateRequestTaskSortConfig', '{"group_create_priority":0,"group_modify_add_priority":1,"access_priority":2,"rule_modify_priority":3,"rule_delete_priority":4,"group_modify_remove_priority":5,"group_delete_priority":6,"allow_task_split":true}', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('pathAnalysisAlgorithm', '1', 0);
 INSERT INTO config (config_key, config_value, config_user) VALUES ('allowFullRollback', 'false', 0);
+INSERT INTO config (config_key, config_value, config_user) VALUES ('designatedZoneMatrix', '0', 0);
+
+INSERT INTO provisioning_config_node (node_type, object_key, display_name, sort_order)
+VALUES ('global', 'global', 'Global', 0)
+ON CONFLICT (node_type, object_key) DO NOTHING;

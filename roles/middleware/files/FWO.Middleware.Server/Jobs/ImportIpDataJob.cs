@@ -31,18 +31,24 @@ namespace FWO.Middleware.Server.Jobs
         }
 
         /// <inheritdoc />
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
             Log.WriteDebug(LogMessageTitle, "Process started");
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 AreaIpDataImport import = new(apiConnection, globalConfig);
-                List<string> failedImports = await import.Run();
+                List<string> failedImports = await import.Run(cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 if (failedImports.Count > 0)
                 {
                     throw new ProcessingFailedException($"{LogMessageTitle} failed for {string.Join(", ", failedImports)}.");
                 }
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                Log.WriteDebug(LogMessageTitle, $"{nameof(ImportIpDataJob)} stopped.");
             }
             catch (Exception exc)
             {

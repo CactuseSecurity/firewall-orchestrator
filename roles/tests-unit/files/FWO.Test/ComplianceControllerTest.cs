@@ -173,7 +173,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsZonesForConfiguredMatrix()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone
                 {
@@ -204,7 +204,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_PassesConfiguredMatrixIdToGraphQl()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
             ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
@@ -213,7 +213,7 @@ namespace FWO.Test
 
             Assert.That(apiConnection.LastMatrixQuery, Is.EqualTo(ComplianceQueries.getMatrixById));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastMatrixQueryVariables, "criterionId"), Is.EqualTo(12));
-            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(ComplianceQueries.getNetworkZonesForMatrix));
+            Assert.That(apiConnection.LastNetworkZoneQuery, Is.EqualTo(NetworkZoneQueries.getNetworkZonesForMatrix));
             Assert.That(GetAnonymousProperty<int>(apiConnection.LastNetworkZoneQueryVariables, "criterionId"), Is.EqualTo(12));
         }
 
@@ -221,7 +221,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsEmptyListWhenConfiguredMatrixWasDeleted()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }]);
             ComplianceZoneController controller = new(CreateZoneService(apiConnection, 12));
@@ -256,7 +256,7 @@ namespace FWO.Test
         public async Task GetDesignatedZoneMatrixZones_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
@@ -272,7 +272,7 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsZonesForNestedGroups()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [
                     new ComplianceNetworkZone
@@ -346,7 +346,7 @@ namespace FWO.Test
         public async Task ResolveZonesForObjects_ReturnsServerErrorWhenServiceFails()
         {
             DummyApiConnection apiConnection = new(
-                [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }],
+                [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }],
                 [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }],
                 [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }],
                 throwOnNetworkZoneQuery: true);
@@ -373,7 +373,7 @@ namespace FWO.Test
         [Test]
         public async Task ResolveZonesForObjects_ReturnsBadRequestListingUnassignableRanges()
         {
-            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
             List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
             IPAddressRange[] ipv4ZoneRanges = [new IPAddressRange(IPAddress.Parse("10.0.0.1"), IPAddress.Parse("10.0.0.1"))];
             List<ComplianceNetworkZone> zones =
@@ -414,7 +414,7 @@ namespace FWO.Test
         {
             // Only the deliberate unassignable-ranges signal may reach the client. Any other argument exception
             // raised inside the service is a defect and must be logged as a server error instead of echoed as 400.
-            ConfigItem[] configItems = [new ConfigItem { Key = "complianceDesignatedZoneMatrix", Value = "12", User = 0 }];
+            ConfigItem[] configItems = [new ConfigItem { Key = "designatedZoneMatrix", Value = "12", User = 0 }];
             List<ComplianceCriterion> matrices = [new ComplianceCriterion { Id = 12, Name = "Designated Matrix" }];
             List<ComplianceNetworkZone> zones = [new ComplianceNetworkZone { Id = 99, Name = "DMZ" }];
             DummyApiConnection apiConnection = new(
@@ -558,7 +558,7 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)matrices);
                 }
 
-                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == ComplianceQueries.getNetworkZonesForMatrix)
+                if (typeof(QueryResponseType) == typeof(List<ComplianceNetworkZone>) && query == NetworkZoneQueries.getNetworkZonesForMatrix)
                 {
                     if (throwOnNetworkZoneQuery)
                     {
@@ -592,7 +592,7 @@ namespace FWO.Test
         {
             SimulatedGlobalConfig globalConfig = new()
             {
-                ComplianceDesignatedZoneMatrixId = matrixId
+                DesignatedZoneMatrixId = matrixId
             };
 
             return new ComplianceZoneService(apiConnection, globalConfig);

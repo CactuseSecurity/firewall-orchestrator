@@ -65,14 +65,14 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
 
     private async Task<List<ComplianceNetworkZone>> LoadDesignatedZoneMatrixZonesAsync()
     {
-        if (globalConfig.ComplianceDesignatedZoneMatrixId <= 0)
+        if (globalConfig.DesignatedZoneMatrixId <= 0)
         {
             return [];
         }
 
         List<ComplianceCriterion> designatedMatrices = await apiConnection.SendQueryAsync<List<ComplianceCriterion>>(
             ComplianceQueries.getMatrixById,
-            new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
+            new { criterionId = globalConfig.DesignatedZoneMatrixId }) ?? [];
 
         if (designatedMatrices.Count == 0)
         {
@@ -80,8 +80,8 @@ public sealed class ComplianceZoneService(ApiConnection apiConnection, GlobalCon
         }
 
         return await apiConnection.SendQueryAsync<List<ComplianceNetworkZone>>(
-            ComplianceQueries.getNetworkZonesForMatrix,
-            new { criterionId = globalConfig.ComplianceDesignatedZoneMatrixId }) ?? [];
+            NetworkZoneQueries.getNetworkZonesForMatrix,
+            new { criterionId = globalConfig.DesignatedZoneMatrixId }) ?? [];
     }
 
     private static List<IPAddressRange> CollectRanges(IEnumerable<ResolveZonesForObjectsRequest.ObjectRequest> objects)

@@ -54,7 +54,7 @@ namespace FWO.Ui.Display
         }
         public static string DisplaySectionHeader(Rule rule, int ColumnCount)
         {
-            return $"<tr><td class=\"bg-gray\" colspan=\"{ColumnCount}\"><b>{rule.SectionHeader}</b></td></tr>";
+            return $"<tr><td class=\"bg-gray\" colspan=\"{ColumnCount}\"><b>{HtmlOutputEncoder.EncodeText(rule.SectionHeader)}</b></td></tr>";
         }
 
         public static string DisplayNextRecert(RuleMetadata ruleMetadata)

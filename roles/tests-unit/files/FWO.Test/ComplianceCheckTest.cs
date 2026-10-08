@@ -213,7 +213,7 @@ namespace FWO.Test
                     [new Management { Id = 2, Name = "Mgmt2" }]);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>())
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>())
                 .Returns(permissiveZones, restrictiveZones);
 
             Rule rule = CreateSimpleRule(99, destinationHigh: true);
@@ -227,7 +227,7 @@ namespace FWO.Test
                 Assert.That(secondRunCompliant, Is.False);
                 Assert.That(ComplianceCheck.Managements!.Single().Id, Is.EqualTo(2));
                 ApiConnection.AsSub().Received(2).SendQueryAsync<List<Management>>(DeviceQueries.getManagementNames);
-                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix, Arg.Any<object>());
+                ApiConnection.AsSub().Received(2).SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix, Arg.Any<object>());
             });
         }
 
@@ -275,12 +275,12 @@ namespace FWO.Test
                 .Returns(policy);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 101)))
                 .Returns(matrixAZones);
 
             ApiConnection.AsSub()
-                .SendQueryAsync<List<ComplianceNetworkZone>>(ComplianceQueries.getNetworkZonesForMatrix,
+                .SendQueryAsync<List<ComplianceNetworkZone>>(NetworkZoneQueries.getNetworkZonesForMatrix,
                     Arg.Is<object>(vars => HasCriterionId(vars, 102)))
                 .Returns(matrixBZones);
 
@@ -619,6 +619,47 @@ namespace FWO.Test
 
             Assert.That(compliant, Is.True);
             Assert.That(ComplianceCheck.CurrentViolationsInCheck, Is.Empty);
+        }
+
+        [Test]
+        public async Task RunComplianceCheck_CanceledWhileCheckingRules_PreparesNoViolationChanges()
+        {
+            // Arrange
+
+            await SetUpBasic(setupRelevantManagements: true, createPolicy: true, createRules: true);
+
+            AggregateCount count = new AggregateCount();
+            count.Aggregate.Count = ComplianceCheck.RulesInCheck!.Count;
+            ApiConnection
+                .AsSub().SendQueryAsync<AggregateCount>(RuleQueries.countActiveRules, Arg.Any<object>())
+                .Returns(Task.FromResult(count));
+            using CancellationTokenSource cancellationTokenSource = new();
+            List<Rule> rules = ComplianceCheck.RulesInCheck!;
+            ApiConnection.AsSub()
+                .SendQueryAsync<List<Rule>>(RuleQueries.getRulesForSelectedManagements, Arg.Any<object?>())
+                .Returns(_ =>
+                {
+                    cancellationTokenSource.Cancel();
+                    return Task.FromResult(rules);
+                });
+
+            // Act
+
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Standard, cancellationTokenSource.Token));
+
+            // Assert
+
+            Assert.That(ComplianceCheck.CurrentViolationsInCheck, Is.Empty);
+            Assert.That(Logger.Logmessages.Values.Any(m => m.Contains("Compliance check completed.")), Is.False);
+        }
+
+        [Test]
+        public void RunComplianceCheck_PreCanceledToken_StopsBeforeQuerying()
+        {
+            Assert.ThrowsAsync<OperationCanceledException>(async () =>
+                await ComplianceCheck.RunComplianceCheck(ComplianceCheckType.Variable, new CancellationToken(canceled: true)));
+            Assert.That(ApiConnection.AsSub().ReceivedCalls(), Is.Empty);
         }
 
         [Test]

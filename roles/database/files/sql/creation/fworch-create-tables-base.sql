@@ -93,7 +93,7 @@ Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar,
-	"uuid" Varchar NOT NULL UNIQUE,
+	"uuid" Varchar NOT NULL,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),
@@ -336,8 +336,29 @@ create table notification
 	bundle_type Varchar,
 	bundle_id Varchar,
 	recipient_bcc Varchar,
-	email_address_bcc Varchar
+	email_address_bcc Varchar,
+	logging Varchar NOT NULL DEFAULT 'send_only',
+	active Boolean NOT NULL DEFAULT TRUE
   );
+
+create table notification_log
+(
+    id SERIAL PRIMARY KEY,
+    "timestamp" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    notification_id INTEGER NOT NULL,
+    notification_type Varchar NOT NULL,
+    "to" Varchar NOT NULL DEFAULT '',
+    cc Varchar NOT NULL DEFAULT '',
+    bcc Varchar NOT NULL DEFAULT '',
+    subject Varchar NOT NULL DEFAULT '',
+    deadline_type Varchar NOT NULL DEFAULT 'None',
+    deadline TIMESTAMP WITH TIME ZONE,
+    status Varchar NOT NULL DEFAULT 'Pending',
+    error Varchar NOT NULL DEFAULT ''
+ );
+
+create index if not exists notification_log_timestamp_id_idx
+    on notification_log ("timestamp" desc, id desc);
 
 -- configuration
 
@@ -371,6 +392,28 @@ Create table "config"
 	"config_value" VARCHAR,
 	"config_user" Integer,
 	primary key ("config_key","config_user")
+);
+
+Create table "provisioning_config_node"
+(
+	"id" BIGSERIAL,
+	"node_type" Varchar NOT NULL,
+	"object_key" Varchar NOT NULL,
+	"parent_id" BIGINT,
+	"display_name" Varchar NOT NULL Default '',
+	"sort_order" Integer,
+	primary key ("id"),
+	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+);
+
+Create table "provisioning_config_value"
+(
+	"node_id" BIGINT NOT NULL,
+	"config_key" Varchar NOT NULL,
+	"config_value" Jsonb NOT NULL,
+	primary key ("node_id","config_key")
 );
 
 create table time_object

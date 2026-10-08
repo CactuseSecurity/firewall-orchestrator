@@ -257,7 +257,7 @@ namespace FWO.Services.Workflow
         {
             if (apiConnection != null)
             {
-                List<Device> devices = await PathAnalysis.GetAllDevices(reqTask.Elements, apiConnection);
+                List<Device> devices = await RoutingBasedPathAnalyzer.GetAllDevices(reqTask.Elements, apiConnection);
                 WfTicket? storedTicket = await LoadTicketForImplTaskCreation(reqTask, devices.Count);
                 foreach (var device in devices)
                 {
@@ -346,7 +346,10 @@ namespace FWO.Services.Workflow
 
         private async Task<WfReqTask> LoadReqTaskDetailsForImplCreation(WfReqTask reqTask)
         {
-            if (reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
+            // Only access tasks need their elements reloaded. Generic tasks, including new-interface tasks,
+            // intentionally have no request elements and must keep the active ticket instance unchanged.
+            if (reqTask.TaskType != WfTaskType.access.ToString()
+                || reqTask.Elements.Count > 0 || reqTask.Id <= 0 || reqTask.TicketId <= 0 || dbAcc == null)
             {
                 return reqTask;
             }

@@ -1,5 +1,5 @@
 ### general settings
-product_version: "9.5.2"
+product_version: "9.6.2"
 # The oldest product version an upgrade may start from, enforced by
 # roles/common/tasks/validate-upgrade-source-version.yml before anything touches the
 # database. It exists because 9.5.0 removed the migration files below 8.0:
@@ -87,6 +87,14 @@ api_docu: false
 force_install: false
 allowRepoChangesForRedhat: false
 docker_network: ""
+
+### SBOM generation
+generate_sbom: false
+sbom_reference_platform: "debian-testing"
+sbom_output_dir: "{{ fworch_home }}/sbom"
+sbom_fetch_to_controller: false
+sbom_controller_output_dir: "{{ playbook_dir }}/documentation/SBOM/generated/installed"
+sbom_controller_source_dir: "{{ installer_controller_tmp_dir }}/sbom-source"
 
 ### operating system settings
 user_id: 60320
@@ -345,6 +353,19 @@ http_proxy_import_parameter: ""
 # http_proxy=http://USERNAME:PASSWORD@1.2.3.4:8080/
 
 # OS 
+# The oldest supported major release per distribution (as in ansible_facts['distribution']),
+# enforced by roles/common/tasks/validate-os-platform.yml before the installer changes the
+# host. Distributions not listed here are refused, Ubuntu is accepted on LTS releases only,
+# and Debian testing/unstable (no release number) are accepted as newer than any stable
+# release. Keep documentation/installer/basic-installation.md in sync.
+supported_os_minimum_major_versions:
+  Debian: 12
+  Ubuntu: 22
+  RedHat: 9
+  Rocky: 9
+# Install on an unsupported operating system release anyway, with a warning instead of the
+# failure - for development and for testing new releases only.
+allow_unsupported_os: false
 debian_testing_version: "12"
   # should actually be 13 but microsoft does not yet provide https://packages.microsoft.com/config/debian/13
 debian_testing_release_name: trixie

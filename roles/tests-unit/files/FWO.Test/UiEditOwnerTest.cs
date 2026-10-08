@@ -8,7 +8,9 @@ using FWO.Data;
 using FWO.Data.Workflow;
 using FWO.Middleware.Client;
 using FWO.Services.EventMediator;
+using FWO.Services.EventMediator.Events;
 using FWO.Services.EventMediator.Interfaces;
+using FWO.Test.Mocks;
 using FWO.Ui.Pages.Settings;
 using FWO.Ui.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -65,7 +67,8 @@ namespace FWO.Test
             List<OwnerResponsibleType>? responsibleTypes = null,
             List<FwoOwner>? existingOwners = null,
             List<OwnerLifeCycleState>? ownerLifeCycleStates = null,
-            EditOwnerTestApiConn? apiConn = null)
+            EditOwnerTestApiConn? apiConn = null,
+            IEventMediator? eventMediator = null)
         {
             context.JSInterop.Mode = JSRuntimeMode.Loose;
             context.Services.AddAuthorizationCore();
@@ -75,7 +78,7 @@ namespace FWO.Test
             context.Services.AddSingleton(new MiddlewareClient("http://localhost/"));
             context.Services.AddSingleton<UserConfig>(new EditOwnerTestUserConfig());
             context.Services.AddSingleton<DomEventService>();
-            context.Services.AddSingleton<IEventMediator>(new EventMediator());
+            context.Services.AddSingleton<IEventMediator>(eventMediator ?? new EventMediator());
 
             IRenderedComponent<CascadingAuthenticationState> wrapper = context.Render<CascadingAuthenticationState>(parameters => parameters
                 .AddChildContent<EditOwner>(child => child
@@ -348,6 +351,47 @@ namespace FWO.Test
             bool changed = (bool)GetPrivateMethod("HasRelevantOwnerMappingChanges").Invoke(editOwner.Instance, null)!;
 
             Assert.That(changed, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_MarksTheRebuildAsTriggeredByChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 7, Name = "Owner C", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            List<NwObjectElement> currentIps = [new("10.0.0.2/32", 1)];
+            SetPrivateField(editOwner.Instance, "OriginalOwnedIpKeys", new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "10.0.0.1/32|10.0.0.1/32" });
+            SetPrivateField(editOwner.Instance, "ActIpAddresses", currentIps);
+
+            Task reinitialize = (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            // the publish is synchronous, so the event is recorded before the method awaits the rebuild
+            PublishedEventRecord published = eventMediator.PublishedEvents.Single();
+            UpdateRuleOwnerMappingEventArgs args = ((UpdateRuleOwnerMappingEvent)published.Event).EventArgs;
+            args.Completion!.SetResult(true);
+            await reinitialize;
+
+            Assert.That(published.Name, Is.EqualTo("UpdateOwnerRuleMappings"));
+            Assert.That(args.isFullReInitialize, Is.True);
+            // without this flag the rebuild the admin just asked for is reported as drift of the incremental
+            // mapping, because HasRelevantOwnerMappingChanges is true exactly when the rebuilt state will
+            // differ from the stored one - see IndicatesDrift in UpdateRuleOwnerMappingBase
+            Assert.That(args.TriggeredByChange, Is.True);
+        }
+
+        [Test]
+        public async Task EditOwner_ReinitializeRuleOwnerMapping_PublishesNothing_WhenNoMappingRelevantChange()
+        {
+            await using BunitContext context = new();
+            RecordingEventMediator eventMediator = new();
+            FwoOwner owner = new() { Id = 8, Name = "Owner D", OwnerLifeCycleStateId = 1 };
+            IRenderedComponent<EditOwner> editOwner = RenderEditOwner(context, owner, readOnly: false, eventMediator: eventMediator);
+
+            await (Task)GetPrivateMethod("ReinitializeRuleOwnerMappingIfNeeded").Invoke(editOwner.Instance, null)!;
+
+            Assert.That(eventMediator.PublishedEvents, Is.Empty);
         }
 
         [Test]

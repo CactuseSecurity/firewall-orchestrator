@@ -81,7 +81,7 @@ class TestWaitWithShutdownCheck:
         monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         monkeypatch.setattr(fwo_globals, "shutdown_requested", False)
 
@@ -100,7 +100,7 @@ class TestWaitWithShutdownCheck:
         monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         monkeypatch.setattr(fwo_globals, "shutdown_requested", True)
 
@@ -119,7 +119,7 @@ class TestWaitWithShutdownCheck:
         monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         monkeypatch.setattr(fwo_globals, "shutdown_requested", False)
 
@@ -144,7 +144,7 @@ class TestWaitWithShutdownCheck:
         monkeypatch: pytest.MonkeyPatch,
     ):
         # Arrange
-        mock_sleep = mocker.patch("importer.import_main_loop.time.sleep")
+        mock_sleep = mocker.patch("importer.import_main_loop.time").sleep
         mock_logger = mocker.patch("importer.import_main_loop.FWOLogger")
         monkeypatch.setattr(fwo_globals, "shutdown_requested", True)
 

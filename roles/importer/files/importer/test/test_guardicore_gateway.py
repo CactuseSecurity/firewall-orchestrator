@@ -43,7 +43,9 @@ def test_reuses_registered_gateway(import_state_controller: ImportStateControlle
 
 
 def test_registration_permission_is_guardicore_only() -> None:
-    repo_root = next(parent for parent in Path(__file__).resolve().parents if (parent / "roles/api").is_dir())
+    repo_root = next((parent for parent in Path(__file__).resolve().parents if (parent / "roles/api").is_dir()), None)
+    if repo_root is None:
+        pytest.skip("Hasura metadata is only available in the source repository, not in an installed importer")
     metadata = json.loads((repo_root / "roles/api/files/replace_metadata.json").read_text(encoding="utf-8"))
     tables = metadata["args"]["metadata"]["sources"][0]["tables"]
     device = next(table for table in tables if table["table"] == {"name": "device", "schema": "public"})

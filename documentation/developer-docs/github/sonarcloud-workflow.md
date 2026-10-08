@@ -72,3 +72,7 @@ pull request code in the `pull_request_target` context, gate trusted sources bef
 stay read-only and use no secret but `SONAR_TOKEN`; other `pull_request_target` workflows must use
 no secrets; no workflow may use caches; and the Sonar workflows must pin their actions. Condition 1
 cannot be checked from the repository and must be verified in SonarCloud whenever the token changes.
+The test reads the workflows with a YAML parser, as GitHub does, so comments, quoting, anchors and flow
+collections cannot hide a trigger, a secret, a write permission or a checkout of the pull request head
+(including `gh pr checkout` and `git fetch … pull/<n>/head`). A secret selected at run time
+(`secrets[matrix.name]`) counts as access to all secrets.

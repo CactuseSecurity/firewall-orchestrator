@@ -266,6 +266,8 @@ DROP FUNCTION IF EXISTS public.rule_fully_visible_to_tenant(bigint, integer, int
 -- Only links valid for the rule version count, see link_valid_for_rule_version.
 -- Gateways must belong to the rule's management or a child of its global management. The v9 migration could
 -- create foreign gateway entries; those must never grant full visibility, including for historic rule versions.
+-- An explicit gateway entry also needs a link of that gateway to the rule's rulebase: the migration gave every
+-- 'Policy Targets' rule entries for the gateways of all rulebases, also those of the same management.
 -- rule.dev_id is not used: it is no longer written by the importer (v9 rulebase model).
 CREATE OR REPLACE FUNCTION rule_fully_visible_to_tenant(p_rule rule, i_tenant_id integer)
 RETURNS boolean AS $$
@@ -280,9 +282,11 @@ RETURNS boolean AS $$
             JOIN tenant_to_device ttd ON (ttd.device_id = reg.dev_id)
             JOIN device gw ON (gw.dev_id = reg.dev_id)
             JOIN management gw_mgm ON (gw_mgm.mgm_id = gw.mgm_id)
+            JOIN rulebase_link rl ON (rl.gw_id = reg.dev_id AND rl.to_rulebase_id = p_rule.rulebase_id)
         WHERE reg.rule_id = p_rule.rule_id AND ttd.tenant_id = i_tenant_id AND NOT ttd.shared
             AND (gw.mgm_id = p_rule.mgm_id OR gw_mgm.multi_device_manager_id = p_rule.mgm_id)
             AND link_valid_for_rule_version(reg.created, reg.removed, p_rule.rule_create, p_rule.removed)
+            AND link_valid_for_rule_version(rl.created, rl.removed, p_rule.rule_create, p_rule.removed)
         LIMIT 1;
         IF FOUND THEN
             RETURN true;
@@ -418,20 +422,39 @@ RETURNS SETOF firewall.nw_object AS $$
             RAISE EXCEPTION 'Tenant 1 (admin) cannot be simulated.';
         ELSE
             -- the objects used in a rule that is visible to the tenant by its ip addresses (an object or a member of it
-            -- in a tenant network, or the other side of the rule in a tenant network), see nw_obj_in_tenant_network
+            -- in a tenant network, or the other side of the rule in a tenant network), see nw_obj_in_tenant_network.
+            -- Set based instead of calling the per object helpers for every rule_from / rule_to row: the endpoints in
+            -- a tenant network are determined once, the other side of their rules is then a join.
             RETURN QUERY
+                WITH endpoint AS (
+                    SELECT rf.rule_id, rf.obj_id, true AS is_source, rf.negated != r.rule_src_neg AS negated
+                    FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id)
+                    WHERE r.mgm_id = management_row.mgm_id AND r.rule_head_text IS NULL
+                    UNION ALL
+                    SELECT rt.rule_id, rt.obj_id, false, rt.negated != r.rule_dst_neg
+                    FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id)
+                    WHERE r.mgm_id = management_row.mgm_id AND r.rule_head_text IS NULL
+                ), endpoint_address AS ( -- the own address of the object and, for a group, those of its members
+                    SELECT e.rule_id, e.obj_id, e.is_source, e.negated, o.obj_ip, o.obj_ip_end
+                    FROM endpoint e JOIN firewall.nw_object o ON (o.obj_id = e.obj_id)
+                    UNION ALL
+                    SELECT e.rule_id, e.obj_id, e.is_source, e.negated, member.obj_ip, member.obj_ip_end
+                    FROM endpoint e
+                        JOIN objgrp_flat og ON (og.objgrp_flat_id = e.obj_id)
+                        JOIN firewall.nw_object member ON (member.obj_id = og.objgrp_flat_member_id)
+                ), endpoint_in_tenant AS (
+                    SELECT DISTINCT ea.rule_id, ea.obj_id, ea.is_source
+                    FROM endpoint_address ea
+                        JOIN tenant_network tn ON (ip_ranges_overlap(ea.obj_ip, ea.obj_ip_end, tn.tenant_net_ip, tn.tenant_net_ip_end, ea.negated))
+                    WHERE tn.tenant_id = tenant
+                )
                 SELECT o.* FROM firewall.nw_object o
                 WHERE o.mgm_id = management_row.mgm_id
-                    AND (o.obj_id IN (
-                            SELECT rf.obj_id FROM rule_from rf JOIN rule r ON (r.rule_id = rf.rule_id)
-                            WHERE r.mgm_id = management_row.mgm_id AND r.rule_head_text IS NULL
-                                AND (nw_obj_in_tenant_network(rf.obj_id, rf.negated != r.rule_src_neg, tenant)
-                                    OR rule_tos_in_tenant_network(r.rule_id, r.rule_dst_neg, tenant)))
-                        OR o.obj_id IN (
-                            SELECT rt.obj_id FROM rule_to rt JOIN rule r ON (r.rule_id = rt.rule_id)
-                            WHERE r.mgm_id = management_row.mgm_id AND r.rule_head_text IS NULL
-                                AND (nw_obj_in_tenant_network(rt.obj_id, rt.negated != r.rule_dst_neg, tenant)
-                                    OR rule_froms_in_tenant_network(r.rule_id, r.rule_src_neg, tenant))))
+                    AND o.obj_id IN (
+                        SELECT eit.obj_id FROM endpoint_in_tenant eit
+                        UNION -- all objects of the other side of a rule with an endpoint in a tenant network
+                        SELECT e.obj_id FROM endpoint e
+                            JOIN endpoint_in_tenant eit ON (eit.rule_id = e.rule_id AND eit.is_source != e.is_source))
                 ORDER BY o.obj_name;
         END IF;
     END;

@@ -87,4 +87,10 @@ The limits can be changed in `/etc/fworch/fworch.json`; the middleware reads the
 `login_trusted_client_hosts` is written by the installer from the `frontends` inventory group (inventory names
 and `ansible_host` values). It is refreshed on every upgrade, so set the inventory variable
 `login_trusted_client_hosts` instead of editing the file if you need other hosts. Host names that cannot be
-resolved at startup are logged as a warning and not exempt.
+resolved at startup are logged as a warning and not exempt. The inventory variable may be a list, a comma separated
+string (`-e login_trusted_client_hosts=ui1,ui2`) or a JSON list given as a string
+(`-e 'login_trusted_client_hosts=["ui1","ui2"]'`).
+
+The middleware also reads hand-edited values: the numbers may be given as strings (`"16"`) and
+`login_trusted_client_hosts` as a comma separated string. A value of another type is ignored with a warning in the
+log, and the default applies.

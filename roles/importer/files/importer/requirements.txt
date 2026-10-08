@@ -21,6 +21,8 @@ scrapli-community==2025.1.30
 pytest==9.1.1
 pytest-mock==3.16.0
 pytest-cov==7.1.0
+# workflow policy tests (scripts/ci) parse the GitHub workflows
+PyYAML==6.0.3
 
 # Linting
 ruff==0.16.4

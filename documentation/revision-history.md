@@ -53,7 +53,9 @@
     for pull requests once it has reached main
   - document the accepted residual risk and its conditions (project-scoped token with Browse and Execute
     Analysis only, no other secrets, no caches) in documentation/developer-docs/github/sonarcloud-workflow.md
-  - a policy test enforces the conditions that can be checked from the repository
+  - a policy test enforces the conditions that can be checked from the repository; it reads the workflows with a
+    YAML parser, so comments, quoting, anchors, flow collections, dynamic secret indexes or a checkout with
+    gh pr checkout cannot hide a violation
 - security (GHSA-qqm3-cf7w-65wr): the middleware endpoint starting the external requests of a ticket no longer
   accepts foreign ticket ids
   - modellers may only start the external requests of tickets whose request tasks all belong to owners they
@@ -83,7 +85,9 @@
     minute); the UI and middleware hosts are exempt from the per-client limit. At most 16 directories per login,
     32 waiting logins and 4 parallel user searches and password checks are allowed, and all directory work of a
     login has to finish within 10 seconds. Refused logins are answered with 429 (A0006) or 503 (A0007) and
-    Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md)
+    Retry-After; the limits can be set in fworch.json (login_* keys, see documentation/auth/README.md). A
+    login_* value of the wrong type is ignored with a warning instead of stopping the middleware, and the
+    installer also accepts login_trusted_client_hosts as a JSON list given as a string
   - when a login runs out of time or is cancelled, its LDAP connections are closed, and every directory operation
     of a login waits at most 10 seconds for an answer, so a directory that does not answer cannot keep the LDAP
     slots occupied for longer than 10 seconds after cancellation
@@ -105,17 +109,24 @@
     to another gateway is no longer fully visible through the old one, while historic rule versions stay
     visible through the gateways they were enforced on. Gateway links only count within the rule's management
     or a child of its global management; foreign gateway entries left by the v9 migration cannot grant visibility.
+    A gateway entry also only counts while the gateway links the rule's rulebase: the v9 migration gave rules
+    installed on "Policy Targets" entries for the gateways of all rulebases, also of the same management.
     This applies to rules, rule sources and destinations
     and to the tenant simulation, which now lists the rules of the rulebases linked to a gateway
+  - upgrades date the rulebase links and gateway entries created by the v9 migration back to the lifetime of the
+    migrated rule versions, so rule versions removed before the upgrade to v9 stay visible to the tenants of
+    their gateways; links of gateways added later and data imported by v9 are not changed
   - a new index on rule_enforced_on_gateway (rule_id) keeps these checks fast
   - plain network objects (no group) used directly in a rule are matched against the tenant networks by their
     own address; so far only group members were matched, as the importer writes objgrp_flat rows for groups
     only, so such rules were not visible to the tenant. This also applies to the tenant simulation of objects
-    and rule changes
+    and rule changes; the simulation of objects determines the visible objects set based (about 15 times
+    faster than with a check per rule source and destination)
   - a database integration test checks the visibility in a rolled back transaction, including unrelated
     visible devices and managements (with rule.dev_id set as in older data), negated sources and destinations,
     rules enforced on one or several gateways, rules for all gateways, nat rules, rules installed on unknown
-    targets, moved rules and rulebases, historic rule versions, full management visibility and the admin tenant
+    targets, moved rules and rulebases, historic rule versions, full management visibility and the admin tenant;
+    a second one runs the 9.6.3 upgrade twice and checks the certificate switches and the migrated gateway links
 - security (GHSA-p8qh-59qx-rjj4): the Cisco ASA importer no longer imports access-list entries it does not fully
   understand with a broader meaning
   - so far an address it did not understand (e.g. "interface inside", a source port, any6) became "any", unknown

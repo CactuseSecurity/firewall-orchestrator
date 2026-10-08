@@ -11,21 +11,30 @@
       dest: "/etc/{{ product_name }}"
       state: link
 
-  # fworch.json must hold a list of strings here: the .NET components cannot read the file otherwise and refuse to
-  # start. A comma separated string (e.g. -e login_trusted_client_hosts=ui1,ui2) is accepted and split.
+  # fworch.json holds a list of strings here (the middleware ignores other values and logs a warning). A comma
+  # separated string (e.g. -e login_trusted_client_hosts=ui1,ui2) is accepted and split, a JSON list given as a
+  # string (e.g. -e 'login_trusted_client_hosts=["ui1","ui2"]') is parsed.
+  - name: parse trusted login client hosts given as a JSON list string
+    set_fact:
+      login_trusted_client_hosts_value: >-
+        {{ login_trusted_client_hosts | from_json
+           if login_trusted_client_hosts is string and login_trusted_client_hosts | trim is match('[[]')
+           else login_trusted_client_hosts }}
+
   - name: check the type of the trusted login client hosts
     assert:
       that:
-        - login_trusted_client_hosts is string or (login_trusted_client_hosts is iterable and login_trusted_client_hosts is not mapping)
+        - login_trusted_client_hosts_value is string or (login_trusted_client_hosts_value is iterable and login_trusted_client_hosts_value is not mapping)
+        - login_trusted_client_hosts_value is string or login_trusted_client_hosts_value | reject('string') | reject('number') | list | length == 0
       fail_msg: >-
         login_trusted_client_hosts must be a list of host names or addresses, or a comma separated string of them,
-        not {{ login_trusted_client_hosts | type_debug }}.
+        not {{ login_trusted_client_hosts_value | type_debug }} {{ login_trusted_client_hosts_value }}.
       quiet: true
 
   - name: normalize the trusted login client hosts to a list of host names
     set_fact:
       login_trusted_client_host_list: >-
-        {{ (login_trusted_client_hosts.split(',') if login_trusted_client_hosts is string else login_trusted_client_hosts)
+        {{ (login_trusted_client_hosts_value.split(',') if login_trusted_client_hosts_value is string else login_trusted_client_hosts_value)
            | map('string') | map('trim') | reject('equalto', '') | unique | list }}
 
   - name: set config values

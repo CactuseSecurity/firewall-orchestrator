@@ -208,6 +208,21 @@ SELECT pg_temp.expect('objects for the tenant include a plain host in its networ
         SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
         WHERE m.mgm_id = pg_temp.probe('mgm_target')),
     true);
+SELECT pg_temp.expect('objects for the tenant include a group with a member in its network',
+    pg_temp.probe('target_tenant_group') IN (
+        SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
+        WHERE m.mgm_id = pg_temp.probe('mgm_target')),
+    true);
+SELECT pg_temp.expect('objects for the tenant include the destination of a rule with a source in its network',
+    pg_temp.probe('target_outside_dst') IN (
+        SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
+        WHERE m.mgm_id = pg_temp.probe('mgm_target')),
+    true);
+SELECT pg_temp.expect('objects for the tenant include the source of a rule with a destination in its network',
+    pg_temp.probe('target_outside_src') IN (
+        SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
+        WHERE m.mgm_id = pg_temp.probe('mgm_target')),
+    true);
 SELECT pg_temp.expect('objects for the tenant leave out objects only used in invisible rules',
     pg_temp.probe('target_any') IN (
         SELECT o.obj_id FROM management m, get_objects_for_tenant(m, pg_temp.probe('tenant')::integer, pg_temp.tenant_session(1)) o
@@ -289,6 +304,31 @@ DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
 DELETE FROM rule_enforced_on_gateway WHERE rule_id = pg_temp.probe('target_hidden') AND dev_id = pg_temp.probe('dev_other');
 DELETE FROM rulebase_link WHERE gw_id = pg_temp.probe('dev_other') AND to_rulebase_id = pg_temp.probe('rulebase_target');
 
+-- The migration also gave 'Policy Targets' rules entries for the gateways of the other rulebases of the same
+-- management: an explicit gateway entry only counts while the gateway links the rule's rulebase.
+DO $$
+DECLARE
+    i_gw3_id integer;
+BEGIN
+    INSERT INTO device (mgm_id, dev_typ_id, dev_name)
+        SELECT d.mgm_id, d.dev_typ_id, 'ghsa_v8hx_probe_target_gw3' FROM device d WHERE d.dev_id = pg_temp.probe('dev_target')
+        RETURNING dev_id INTO i_gw3_id;
+    INSERT INTO probe_id VALUES ('gw3_target', i_gw3_id);
+END $$;
+INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created)
+    VALUES (pg_temp.probe('target_hidden'), pg_temp.probe('gw3_target'), pg_temp.probe('import_target'));
+INSERT INTO tenant_to_device (tenant_id, device_id, shared)
+    VALUES (pg_temp.probe('tenant'), pg_temp.probe('gw3_target'), false);
+SELECT pg_temp.expect_rule('explicit gateway entry of a gateway not linking the rulebase', 'target_hidden', pg_temp.probe('tenant'), false);
+INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created, removed)
+    VALUES (pg_temp.probe('gw3_target'), pg_temp.probe('rulebase_target'), true, pg_temp.probe('import_target'), pg_temp.probe('import_target'));
+SELECT pg_temp.expect_rule('explicit gateway entry of a gateway no longer linking the rulebase', 'target_hidden', pg_temp.probe('tenant'), false);
+UPDATE rulebase_link SET removed = NULL WHERE gw_id = pg_temp.probe('gw3_target');
+SELECT pg_temp.expect_rule('explicit gateway entry of a gateway linking the rulebase', 'target_hidden', pg_temp.probe('tenant'), true);
+DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('gw3_target');
+DELETE FROM rule_enforced_on_gateway WHERE dev_id = pg_temp.probe('gw3_target');
+DELETE FROM rulebase_link WHERE gw_id = pg_temp.probe('gw3_target');
+
 -- full visibility through the gateways the rule is enforced on
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
 SELECT pg_temp.expect_rule('rule enforced on another gateway only', 'target_on_gw2_only', pg_temp.probe('tenant'), false);
@@ -363,10 +403,13 @@ BEGIN
     INSERT INTO probe_id VALUES ('target_nat_in_moved_rulebase', i_rule_id);
 END $$;
 
--- Migrated foreign gateway entries on historic versions must also fail closed, even when valid for their lifetime.
+-- Migrated foreign gateway entries on historic versions must also fail closed, even when valid for their lifetime
+-- and linked to the rulebase.
 INSERT INTO rule_enforced_on_gateway (rule_id, dev_id, created, removed)
     SELECT r.rule_id, pg_temp.probe('dev_other'), r.rule_create, r.removed
     FROM rule r WHERE r.rule_id = pg_temp.probe('target_historic_on_dev');
+INSERT INTO rulebase_link (gw_id, to_rulebase_id, is_initial, created)
+    VALUES (pg_temp.probe('dev_other'), pg_temp.probe('rulebase_target'), true, pg_temp.probe('import_target'));
 INSERT INTO tenant_to_device (tenant_id, device_id, shared)
     VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_other'), false);
 SELECT pg_temp.expect_rule('historic rule with a foreign gateway entry', 'target_historic_on_dev', pg_temp.probe('tenant'), false);
@@ -375,6 +418,7 @@ SELECT pg_temp.expect_rule('historic global rule with a child gateway entry', 't
 UPDATE management SET multi_device_manager_id = NULL WHERE mgm_id = pg_temp.probe('mgm_other');
 DELETE FROM tenant_to_device WHERE device_id = pg_temp.probe('dev_other');
 DELETE FROM rule_enforced_on_gateway WHERE rule_id = pg_temp.probe('target_historic_on_dev') AND dev_id = pg_temp.probe('dev_other');
+DELETE FROM rulebase_link WHERE gw_id = pg_temp.probe('dev_other') AND to_rulebase_id = pg_temp.probe('rulebase_target');
 
 INSERT INTO tenant_to_device (tenant_id, device_id, shared) VALUES (pg_temp.probe('tenant'), pg_temp.probe('dev_target'), false);
 SELECT pg_temp.expect_rule('current rule moved away from the visible gateway', 'target_moved_to_gw2', pg_temp.probe('tenant'), false);

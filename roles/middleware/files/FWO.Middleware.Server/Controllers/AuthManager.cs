@@ -27,6 +27,11 @@ namespace FWO.Middleware.Server.Controllers
         private readonly string UserAuthentication = "User Authentication";
         private const string kValidationLogCategory = "Token Validation";
 
+        /// <summary>
+        /// Deadline for all directory work of one login (authentication, groups and roles); shorter in tests.
+        /// </summary>
+        internal TimeSpan LoginTimeout { get; set; } = LdapAuthenticationGate.kTotalTimeout;
+
         public AuthManager(JwtWriter jwtWriter, List<Ldap> ldaps, ApiConnection apiConnection, TokenLifetimeProvider? tokenLifetimeProvider = null)
         {
             this.jwtWriter = jwtWriter;
@@ -79,7 +84,7 @@ namespace FWO.Middleware.Server.Controllers
         private async Task<(LdapEntry, Ldap)> ResolveDirectoryContextAsync(UiUser user, bool validatePassword, int boundLdapId, CancellationToken cancellationToken)
         {
             using CancellationTokenSource deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            deadline.CancelAfter(LdapAuthenticationGate.kTotalTimeout);
+            deadline.CancelAfter(LoginTimeout);
             try
             {
                 // Retrieve ldap entry for user (throws exception if credentials are invalid)
@@ -104,7 +109,7 @@ namespace FWO.Middleware.Server.Controllers
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                throw LdapAuthenticationGate.DeadlineExceeded(LdapAuthenticationGate.kTotalTimeout);
+                throw LdapAuthenticationGate.DeadlineExceeded(LoginTimeout);
             }
         }
 

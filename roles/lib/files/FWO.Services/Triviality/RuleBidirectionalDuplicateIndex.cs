@@ -83,7 +83,7 @@ namespace FWO.Services.Triviality
         {
             return [..
                 NetworkService.FlattenRuleServices(services)
-                    .Select(service => CreateServiceSignature(service))
+                    .Select(CreateServiceSignature)
                     .Distinct()
                     .OrderBy(signature => signature.ProtocolId ?? -1)
                     .ThenBy(signature => signature.SourcePortStart)
@@ -94,19 +94,14 @@ namespace FWO.Services.Triviality
 
         private static ServiceSignature CreateServiceSignature(NetworkService service)
         {
-            int? protocolId = service.Protocol?.Id ?? service.ProtoId;
-            int sourcePortStart = service.SourcePort ?? 0;
-            int sourcePortEnd = service.SourcePortEnd ?? service.SourcePort ?? 0;
-            int destinationPortStart = service.DestinationPort ?? 0;
-            int destinationPortEnd = service.DestinationPortEnd ?? service.DestinationPort ?? 0;
-
-            if (protocolId.HasValue)
-            {
-                return new(protocolId.Value, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
-            }
-
-            return new(null, sourcePortStart, sourcePortEnd, destinationPortStart, destinationPortEnd);
+            return new(
+                service.Protocol?.Id ?? service.ProtoId,
+                service.SourcePort ?? 0,
+                service.SourcePortEnd ?? service.SourcePort ?? 0,
+                service.DestinationPort ?? 0,
+                service.DestinationPortEnd ?? service.DestinationPort ?? 0);
         }
+
         private static string CreateRuleKey(Rule rule)
         {
             if (!string.IsNullOrWhiteSpace(rule.Uid))

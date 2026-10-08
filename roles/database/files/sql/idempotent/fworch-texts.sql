@@ -571,6 +571,8 @@ INSERT INTO txt VALUES ('whats_new_in_version',	'German', 	'Was ist neu in Firew
 INSERT INTO txt VALUES ('whats_new_in_version',	'English', 	'Release notes Firewall Orchestrator version');
 INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 <ul>
+    <li>Red Hat Enterprise Linux 8 wird nicht mehr unterst&uuml;tzt. Neuinstallationen und Upgrades werden auf nicht unterst&uuml;tzten Betriebssystemversionen vor &Auml;nderungen am Zielsystem abgebrochen. Unterst&uuml;tzt werden Debian ab 12 (auch testing/unstable), Ubuntu ab 22.04 (nur LTS), Red Hat Enterprise Linux ab 9 und Rocky ab 9. Bestehende RHEL-8-Installationen m&uuml;ssen vor einem Upgrade auf eine unterst&uuml;tzte Plattform umgestellt werden. <code>allow_unsupported_os=true</code> umgeht die Pr&uuml;fung mit einer Warnung nur f&uuml;r Entwicklung und Tests; die Installation bleibt nicht unterst&uuml;tzt.</li>
+    <li>Stabile Releases enthalten CycloneDX-SBOMs der Quellcode-Abh&auml;ngigkeiten. Mit <code>generate_sbom=true</code> kann der Installer zus&auml;tzlich kombinierte SBOMs aus Quellcode-Abh&auml;ngigkeiten und installierter Software pro Zielsystem erzeugen. Die Erzeugung ist standardm&auml;&szlig;ig deaktiviert.</li>
     <li>Im Regeln-Report k&ouml;nnen nun statt Gateways die Start-Regelwerke eines Managements ausgew&auml;hlt werden, auch Regelwerke ohne Gateway-Verkn&uuml;pfung. Der Report enth&auml;lt jedes ausgew&auml;hlte Regelwerk mit den darauf folgenden Layern und Sections.</li>
     <li>Die Standard-Regelansicht (Gateway oder Management) kann global und pers&ouml;nlich eingestellt werden. Die pers&ouml;nliche Einstellung hat Vorrang; gespeicherte Report-Vorlagen behalten ihre Ansicht. Der globale Standard ist Gateway-basiert.</li>
     <li>Der Job-Scheduler der Middleware wurde auf Quartz.NET 4.3 aktualisiert, zusammen mit aktualisierten Bibliotheken unter anderem f&uuml;r E-Mail-Versand und PDF-Erzeugung.</li>
@@ -584,6 +586,8 @@ INSERT INTO txt VALUES ('whats_new_facts',	    'German', 	'
 ');
 INSERT INTO txt VALUES ('whats_new_facts',	    'English', 	'
 <ul>
+    <li>Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and upgrades on unsupported OS releases stop before changing the target host. Supported platforms are Debian 12+ (including testing/unstable), Ubuntu 22.04+ (LTS only), Red Hat Enterprise Linux 9+ and Rocky 9+. Move existing RHEL 8 installations to a supported platform before upgrading. <code>allow_unsupported_os=true</code> bypasses the guard with a warning for development and testing only; the installation remains unsupported.</li>
+    <li>Stable releases include CycloneDX source dependency SBOMs. With <code>generate_sbom=true</code>, the installer can also generate combined source dependency and installed-software SBOMs per target host. Generation is disabled by default.</li>
     <li>The Rules report can now select the start rulebases of a management instead of gateways, including rulebases without a gateway link. The report contains each selected rulebase with the layers and sections following it.</li>
     <li>The default rules view (gateway or management) can be configured globally and personally. Personal settings take precedence; saved report templates retain their view. The global default is gateway-based.</li>
     <li>The middleware job scheduler was upgraded to Quartz.NET 4.3, together with updated libraries for, among others, email delivery and PDF generation.</li>

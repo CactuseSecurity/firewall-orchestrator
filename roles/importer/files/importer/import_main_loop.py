@@ -170,7 +170,7 @@ def main_loop(
     try:
         json_data = json.loads(json_raw)
         jwt = json_data["AccessToken"]
-        refresh_token = json_data.get("RefreshToken")
+        refresh_token = json_data.get("RefreshToken") or None
     except Exception:
         FWOLogger.error("JWT could not be parsed")
         wait_with_shutdown_check(sleep_timer)

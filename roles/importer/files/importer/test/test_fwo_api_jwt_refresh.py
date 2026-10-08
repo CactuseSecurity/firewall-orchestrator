@@ -21,7 +21,7 @@ BASE_URL = "http://localhost:8880/"
 REFRESH_ENDPOINT = BASE_URL + "api/AuthenticationToken/Refresh"
 
 
-def _make_jwt(exp: float | None) -> str:
+def _make_jwt(exp: float | str | None) -> str:
     """Builds a syntactically valid (but unsigned) JWT carrying the given 'exp' claim."""
     payload: dict[str, Any] = {} if exp is None else {"exp": exp}
     payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
@@ -103,6 +103,9 @@ class TestGetJwtExpiryEpoch:
 
     def test_returns_none_for_malformed_token(self) -> None:
         assert FwoApi._get_jwt_expiry_epoch("not-a-jwt") is None
+
+    def test_returns_none_for_non_numeric_exp_claim(self) -> None:
+        assert FwoApi._get_jwt_expiry_epoch(_make_jwt(exp="1234567890")) is None
 
 
 class TestContainsJwtExpiredError:
@@ -235,6 +238,17 @@ class TestTryRefreshJwt:
 
         assert api._try_refresh_jwt() is False
         assert api.fwo_jwt == "old-jwt"
+
+    def test_returns_false_and_leaves_jwt_untouched_on_an_unexpected_refresh_response(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        session = _FakeSession([_FakeResponse(200, text=json.dumps({"RefreshToken": "new-refresh"}))])
+        _patch_session(monkeypatch, session)
+        api = FwoApi(BASE_URL, "old-jwt", "old-refresh", BASE_URL)
+
+        assert api._try_refresh_jwt() is False
+        assert api.fwo_jwt == "old-jwt"
+        assert api.fwo_refresh_token == "old-refresh"  # noqa: S105
 
     def test_refreshes_without_a_populated_service_provider(
         self, monkeypatch: pytest.MonkeyPatch, service_provider: ServiceProvider

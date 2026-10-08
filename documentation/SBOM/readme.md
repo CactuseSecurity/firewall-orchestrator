@@ -1,5 +1,112 @@
 # creating SBOM
-we are using cycloneDx
+we are using CycloneDX JSON as the internal SBOM format.
+
+## automated generation
+
+The primary reference platform for exact installed SBOMs is Debian testing/Trixie.
+
+### source SBOMs in the repository
+
+Run this from the repository root:
+
+```bash
+python3 scripts/sbom/generate_sbom.py \
+  --mode source \
+  --output-dir documentation/SBOM/generated \
+  --reference-platform debian-testing \
+  --product-version 9.5.10 \
+  --merge
+```
+
+`--product-version` sets the version of the main component (`metadata.component`)
+of every generated SBOM, so tools such as Dependency-Track can tell the SBOMs of
+different releases apart. The release workflow passes the release tag (without a
+leading `v`), the installer passes `product_version`.
+
+This creates layered source SBOMs for:
+
+- .NET package references from `roles/**/*.csproj`
+- Python requirements from importer and script requirements files
+- Ansible collections from `collections/requirements.yml`
+- a merged `fwo-combined.cdx.json`
+
+Every component carries its origin in the `fwo:source` property as a path relative
+to the repository root (e.g. `roles/importer/files/importer/requirements.txt`), so
+the SBOMs neither depend on nor reveal the checkout location. Components of the
+combined SBOM name their detail file in `fwo:merged-from`.
+
+Python requirements with an environment marker (e.g.
+`ansible==10.7.0; python_version < '3.11'`) are only installed where the marker
+applies. They are listed with CycloneDX `scope: optional` and keep the marker in the
+`fwo:marker` property, so mutually exclusive versions can be told apart.
+
+Everything below `documentation/SBOM/generated/` is ignored by git, so generated
+SBOMs are never committed by accident.
+
+When a GitHub Release with a stable semantic-version tag (`vMAJOR.MINOR.PATCH`
+or `MAJOR.MINOR.PATCH`) is published, `.github/workflows/sbom.yml` runs the
+same source generation from that exact tag and attaches every generated
+CycloneDX file to the release. Pre-releases and non-version release tags are
+skipped. To (re)attach the SBOMs of an existing stable release, run the
+workflow manually (*Actions* > *Publish release SBOM* > *Run workflow*) with the
+release tag as input. The workflow runs the generator from that tag, so this only
+works for releases that already contain `scripts/sbom/generate_sbom.py`; for older
+releases the job fails.
+
+### exact installed SBOMs through the installer
+
+Installed SBOM generation is opt-in:
+
+```bash
+ansible-playbook site.yml -e generate_sbom=true
+```
+
+The installer role writes host-local SBOM files to:
+
+```text
+{{ fworch_home }}/sbom
+```
+
+The installer generates source SBOMs on the controller, copies them to the target SBOM directory, generates installed SBOMs on the target, and writes a combined SBOM from both layers. The generated files include:
+
+- `fwo-combined.cdx.json` in the SBOM root directory
+- `fwo-sbom-details/fwo-dotnet.cdx.json`
+- `fwo-sbom-details/fwo-python-importer.cdx.json`
+- `fwo-sbom-details/fwo-python-scripts.cdx.json`
+- `fwo-sbom-details/fwo-ansible.cdx.json`
+- `fwo-sbom-details/fwo-os-<ID>.cdx.json`, named after the `ID` in `/etc/os-release` (e.g. `fwo-os-debian.cdx.json`, `fwo-os-ubuntu.cdx.json`, `fwo-os-rocky.cdx.json`)
+- `fwo-sbom-details/fwo-containers.cdx.json`, when container metadata can be inspected; the API container is recorded as the image it runs, identified by its repository digest
+
+The operating system packages are read with `dpkg-query` on Debian and Ubuntu and with
+`rpm` on Red Hat and Rocky. Their package URLs carry the distribution as namespace and
+`distro` qualifier (e.g. `pkg:deb/ubuntu/curl@8.5.0-2ubuntu10.6?arch=amd64&distro=ubuntu-24.04`).
+On a host with neither tool the operating system layer is skipped with a warning.
+
+To fetch generated SBOM files back to the controller, set:
+
+```yaml
+generate_sbom: true
+sbom_fetch_to_controller: true
+```
+
+The default controller destination is:
+
+```text
+documentation/SBOM/generated/installed/<inventory-host>/
+```
+
+These files contain the host name and the `/etc/os-release` data of each target; the
+directory is ignored by git.
+
+### generator modes
+
+```bash
+python3 scripts/sbom/generate_sbom.py --mode source --merge
+python3 scripts/sbom/generate_sbom.py --mode installed --merge
+python3 scripts/sbom/generate_sbom.py --mode all --merge
+```
+
+The installed mode is intended to run on the target host after installation or upgrade. It uses standard host tools first, so it does not require installing a separate SBOM generator package.
 
 ## standard script 
     wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.27.2/cyclonedx-linux-x64
@@ -9,7 +116,7 @@ we are using cycloneDx
     dotnet tool install --global CycloneDX
     cd fwo-cactus
     git pull
-    dotnet-CycloneDX -j roles/FWO.sln 
+    dotnet-CycloneDX roles/FWO.sln 
 
 ## list of python packages with venv (importer module)
 ### Core runtime

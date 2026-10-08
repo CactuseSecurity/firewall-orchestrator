@@ -139,6 +139,15 @@
 
 ## 9.6.2 - 02.10.2026
 
+- installer: Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and
+  upgrades now stop before changing the host if its OS release is unsupported. Supported
+  platforms are Debian 12+, Ubuntu 22.04+ (LTS only), Red Hat Enterprise Linux 9+ and Rocky 9+;
+  Debian testing/unstable are also accepted. Move existing RHEL 8 installations to a supported
+  platform before upgrading. `allow_unsupported_os=true` bypasses the guard with a warning
+  for development and testing only; it does not make an installation supported
+- SBOM: stable releases include CycloneDX source SBOMs. The installer can optionally generate
+  combined source and installed-host SBOMs with `generate_sbom=true`; generation is disabled
+  by default
 - add workflow task types object_create and object_modify for a single network object (host, network,
   address range) or service that stands alone without a group. Only the request side is covered: the
   tasks can be created, edited, approved and passed through the workflow; implementation tasks show the

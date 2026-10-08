@@ -127,7 +127,7 @@ namespace FWO.Test
             Assert.Multiple(() =>
             {
                 Assert.That(TableNames(upgrade), Is.EquivalentTo(TableNames(creationTables)));
-                Assert.That(Regex.Matches(upgrade, @"create table labelling\.", RegexOptions.IgnoreCase), Is.Empty);
+                Assert.That(UnguardedTableRegex().Matches(upgrade), Is.Empty);
             });
         }
 
@@ -345,6 +345,9 @@ namespace FWO.Test
 
         [GeneratedRegex(@"create table (?:if not exists )?labelling\.(\w+)", RegexOptions.IgnoreCase)]
         private static partial Regex TableRegex();
+
+        [GeneratedRegex(@"create table labelling\.", RegexOptions.IgnoreCase)]
+        private static partial Regex UnguardedTableRegex();
 
         [GeneratedRegex(@"ADD CONSTRAINT (labelling_\w+_fkey)")]
         private static partial Regex ForeignKeyRegex();

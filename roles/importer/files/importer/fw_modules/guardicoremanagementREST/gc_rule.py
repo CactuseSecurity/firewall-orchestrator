@@ -13,7 +13,7 @@ from models.rulebase import Rulebase
 from models.rulebase_link import RulebaseLinkUidBased
 
 if TYPE_CHECKING:
-    from fw_modules.guardicoremanagementREST.gc_models import GcRule, GcRuleSide, GuardicoreConfig
+    from fw_modules.guardicoremanagementREST.gc_models import GcLabelRef, GcRule, GcRuleSide, GuardicoreConfig
     from fw_modules.guardicoremanagementREST.gc_network import GcNetworkObjectCollector
     from model_controllers.management_controller import ManagementController
     from models.serviceobject import ServiceObject
@@ -71,26 +71,39 @@ def convert_last_hit(last_hit: int | None) -> str | None:
     return datetime.fromtimestamp(last_hit / MILLISECONDS_PER_SECOND, tz=timezone.utc).isoformat(timespec="seconds")
 
 
+def resolve_label_key_value(label_ref: GcLabelRef, collector: GcNetworkObjectCollector) -> tuple[str, str] | None:
+    """
+    Return key and value of a referenced label, preferring the full label over the reference.
+
+    Returns None if key or value is missing.
+    """
+    label = collector.labels_by_id.get(label_ref.id)
+    key = label.key if label is not None else label_ref.key
+    value = label.value if label is not None else label_ref.value
+    if key is None or value is None:
+        FWOLogger.warning(f"Guardicore label {label_ref.id} has no key or value, leaving it out of the rule labels")
+        return None
+    return key, value
+
+
 def get_side_labels(side: GcRuleSide, collector: GcNetworkObjectCollector) -> RuleLabels | None:
     """
     Return the labels of a rule side as {"label-key": "label-value"}, several values of one key as sorted list.
 
     Returns None if the side has no labels.
     """
+    if side.labels is None:
+        return None
     values_by_key: dict[str, list[str]] = {}
-    for and_labels in side.labels.or_labels if side.labels is not None else []:
-        for label_ref in and_labels.and_labels:
-            label = collector.labels_by_id.get(label_ref.id)
-            key = label.key if label is not None else label_ref.key
-            value = label.value if label is not None else label_ref.value
-            if key is None or value is None:
-                FWOLogger.warning(
-                    f"Guardicore label {label_ref.id} has no key or value, leaving it out of the rule labels"
-                )
-                continue
-            values = values_by_key.setdefault(key, [])
-            if value not in values:
-                values.append(value)
+    label_refs = [label_ref for and_labels in side.labels.or_labels for label_ref in and_labels.and_labels]
+    for label_ref in label_refs:
+        key_value = resolve_label_key_value(label_ref, collector)
+        if key_value is None:
+            continue
+        key, value = key_value
+        values = values_by_key.setdefault(key, [])
+        if value not in values:
+            values.append(value)
     if len(values_by_key) == 0:
         return None
     return {key: values[0] if len(values) == 1 else sorted(values) for key, values in values_by_key.items()}

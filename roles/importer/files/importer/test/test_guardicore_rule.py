@@ -107,6 +107,8 @@ class TestNormalizeRules:
         assert get_side_labels(side, collector) == {"AppRole": ["AR1", "AR2"], "Stage": "Prod"}
         assert get_side_labels(GcRuleSide(), collector) is None
         assert get_side_labels(GcRuleSide.model_validate({"subnets": ["10.0.0.0/8"]}), collector) is None
+        broken_side = GcRuleSide.model_validate({"labels": {"or_labels": [{"and_labels": [{"id": "broken"}]}]}})
+        assert get_side_labels(broken_side, collector) is None
 
     def test_rulebase_links_chain_rulebases(self) -> None:
         rulebases = [Rulebase(uid=uid, name=uid, mgm_uid="m") for uid in ["01 Override Allow", "04 Allow"]]

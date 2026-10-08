@@ -116,7 +116,7 @@ namespace FWO.Middleware.Server
             {
                 errorList.Add("Duplicate Zone IdStrings");
             }
-            CheckReservedZoneIds(importedZoneMatrixData, errorList);
+            CheckReservedZoneIds(importedZoneMatrixData, errorList, globalConfig);
             CheckDuplicateSubnet(importedZoneMatrixData, errorList);
             CheckCommunicationTargets(importedZoneMatrixData, errorList, globalConfig);
             CheckDeviceData(importedZoneMatrixData, deviceLookup, errorList);
@@ -151,18 +151,27 @@ namespace FWO.Middleware.Server
         }
 
         /// <summary>
-        /// Checks that internal zone names are not used by customer.
+        /// Checks that internal zone ids are used correctly: the auto-calculated internet zone may only be imported
+        /// when auto-calculation is enabled and must not contain subnets, the undefined-internal zone is never importable.
         /// </summary>
-        private static void CheckReservedZoneIds(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList)
+        private static void CheckReservedZoneIds(ImportNwZoneMatrixData importedZoneMatrixData, List<string> errorList, GlobalConfig globalConfig)
         {
-            HashSet<string> knownZones = [.. importedZoneMatrixData.NetworkZones.Select(zone => zone.IdString)];
-            if (knownZones.Contains(NetworkZoneService.kAutoCalculatedInternetZoneIdString))
+            NetworkZoneData? internetZone = importedZoneMatrixData.NetworkZones
+                .FirstOrDefault(zone => zone.IdString == NetworkZoneService.kAutoCalculatedInternetZoneIdString);
+            if (internetZone != null)
             {
-                errorList.Add($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedInternetZoneIdString} - please use a different id_string for your zone");
+                if (!globalConfig.AutoCalculateInternetZone)
+                {
+                    errorList.Add($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} is not enabled - please activate it in the Internet settings.");
+                }
+                if (internetZone.IpData.Count > 0)
+                {
+                    errorList.Add($"{NetworkZoneService.kAutoCalculatedInternetZoneIdString} must not contain subnets, its ranges are calculated automatically.");
+                }
             }
-            if (knownZones.Contains(NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString))
+            if (importedZoneMatrixData.NetworkZones.Any(zone => zone.IdString == NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString))
             {
-                errorList.Add($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} - please use a different id_string for your zone");
+                errorList.Add($"Use of internally reserved zone {NetworkZoneService.kAutoCalculatedUndefinedInternalZoneIdString} - please use a different id_string for your zone.");
             }
         }
 
@@ -368,7 +377,10 @@ namespace FWO.Middleware.Server
         /// </summary>
         private async Task<string> ImportMatrix(ImportNwZoneMatrixData importedMatrix, string importFileName, DeviceNameResolver deviceLookup)
         {
-            counters = new() { AllZones = importedMatrix.NetworkZones.Count };
+            // The auto-calculated internet zone is created by UpdateSpecialZones, only its communications are imported.
+            List<NetworkZoneData> regularZones = [.. importedMatrix.NetworkZones
+                .Where(zone => zone.IdString != NetworkZoneService.kAutoCalculatedInternetZoneIdString)];
+            counters = new() { AllZones = regularZones.Count };
             ZoneIds.Clear();
             if (MatrixId == 0)
             {
@@ -379,7 +391,7 @@ namespace FWO.Middleware.Server
                 await UpdateMatrix(importFileName, importedMatrix.Comment);
             }
 
-            foreach (var incomingZone in importedMatrix.NetworkZones)
+            foreach (var incomingZone in regularZones)
             {
                 await SaveZone(incomingZone);
             }

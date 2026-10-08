@@ -1,5 +1,32 @@
 # Firewall Orchestrator Revision History
 
+## 9.6.2 - 02.10.2026
+
+- installer: Red Hat Enterprise Linux 8 is no longer supported. Fresh installations and
+  upgrades now stop before changing the host if its OS release is unsupported. Supported
+  platforms are Debian 12+, Ubuntu 22.04+ (LTS only), Red Hat Enterprise Linux 9+ and Rocky 9+;
+  Debian testing/unstable are also accepted. Move existing RHEL 8 installations to a supported
+  platform before upgrading. `allow_unsupported_os=true` bypasses the guard with a warning
+  for development and testing only; it does not make an installation supported
+- SBOM: stable releases include CycloneDX source SBOMs. The installer can optionally generate
+  combined source and installed-host SBOMs with `generate_sbom=true`; generation is disabled
+  by default
+- add workflow task types object_create and object_modify for a single network object (host, network,
+  address range) or service that stands alone without a group. Only the request side is covered: the
+  tasks can be created, edited, approved and passed through the workflow; implementation tasks show the
+  object read-only. External ticket systems reject both task types, the Check Point integration follows in a
+  later version
+- the workflow action "create flow" stores the object of an object_create task as flow object in state
+  requested (or binds it to the flow object of the same values) and links the request element to it, as it
+  does for group members; object_modify is not mapped to the flow database yet
+- object_modify references an existing imported object, which is selected through a server side search
+  limited to the visible managements. The old values are stored in the task as unchanged element, the
+  new values as modify element, as rule_modify does for the rule content
+- the requester role may read active network objects and services of its visible managements (only the
+  columns needed for the search, at most 50 rows per query)
+- the upgrade copies the group_create state matrices of every workflow configuration for both new task
+  types; both task types stay unavailable until an admin adds them to the available task types
+
 ## 9.6.1 - 05.10.2026
 - add a management rulebases view to the rules report: select start rulebases per management instead of
   gateways (including rulebases without a gateway link); each selected rulebase is reported with the

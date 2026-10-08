@@ -86,3 +86,7 @@ scripts/customizing/log_data_import/import_log_data_from_git.json
 # Anchored and narrowed on purpose: a bare "collections" also matches the pinned
 # collections/requirements.yml, which has to stay in the repository.
 /collections/ansible_collections/
+
+# SBOMs written by scripts/sbom/generate_sbom.py and fetched by the installer's sbom role;
+# installed SBOMs carry host names and os-release data (never belongs into the repository)
+/documentation/SBOM/generated/

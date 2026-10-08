@@ -65,6 +65,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         [FromBody] RulesByFilterRequest request,
         [FromHeader(Name = "X-Request-Id")] string? requestId = null)
     {
+        DateTime requestTime = DateTime.UtcNow;
         string resolvedRequestId = requestId ?? Guid.NewGuid().ToString();
         string siemResult = kSiemResultError;
         try
@@ -112,7 +113,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
         }
         finally
         {
-            Log.WriteInfo(kSiemLogTitle, BuildSiemEntry(request, resolvedRequestId, User, siemResult, DateTime.UtcNow));
+            Log.WriteInfo(kSiemLogTitle, BuildSiemEntry(request, resolvedRequestId, User, siemResult, requestTime));
         }
     }
 
@@ -210,7 +211,7 @@ public class RuleController(ApiConnection apiConnection) : ControllerBase
     /// <param name="requestId">The resolved request identifier.</param>
     /// <param name="caller">The authenticated principal of the caller, if any.</param>
     /// <param name="result">The outcome of the request: ok, rejected or error.</param>
-    /// <param name="timestamp">The UTC time of the entry.</param>
+    /// <param name="timestamp">The UTC time the request was received.</param>
     /// <returns>The entry as comma-separated <c>Key: value</c> pairs.</returns>
     internal static string BuildSiemEntry(RulesByFilterRequest request, string requestId, ClaimsPrincipal? caller,
         string result, DateTime timestamp)

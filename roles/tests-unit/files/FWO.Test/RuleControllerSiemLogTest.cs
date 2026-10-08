@@ -1,4 +1,9 @@
+using System.Globalization;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
+using FWO.Api.Client;
+using FWO.Api.Client.Queries;
+using FWO.Config.Api.Data;
 using FWO.Middleware.Server.Controllers;
 using FWO.Test.Helpers;
 using Microsoft.AspNetCore.Http;
@@ -136,6 +141,41 @@ namespace FWO.Test
             StringAssert.Contains("UserName: \"alice\", Result: rejected", output);
         }
 
+        [Test]
+        public async Task GetRulesByFilter_ShouldLogErrorResultWithRequestTimeWhenRuleQueryFails()
+        {
+            FailingRuleQueryApiConnection apiConnection = new();
+            RuleController controller = new(apiConnection)
+            {
+                ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = CreateCaller("portal-svc", "17") } }
+            };
+            RulesByFilterRequest request = CreateRequest("alice", "42");
+            request.Query.OwnerId = 7;
+            ActionResult<RulesByFilterResponse>? actionResult = null;
+
+            string output = await ConsoleOutput.CaptureAsync(async () =>
+            {
+                actionResult = await controller.GetRulesByFilter(request, "req-siem-error");
+            });
+
+            ObjectResult? errorResult = actionResult?.Result as ObjectResult;
+            ClassicAssert.AreEqual(StatusCodes.Status500InternalServerError, errorResult?.StatusCode);
+            StringAssert.Contains("RequestId: \"req-siem-error\",", output);
+            StringAssert.Contains("UserName: \"alice\", OwnerId: 7, Result: error", output);
+
+            ClassicAssert.IsNotNull(apiConnection.RuleQueryTime, "The rule query was not reached.");
+            DateTime loggedTime = ExtractLoggedTime(output, "req-siem-error");
+            ClassicAssert.LessOrEqual(loggedTime, apiConnection.RuleQueryTime!.Value,
+                "The SIEM entry must carry the time the request was received, not the time it ended.");
+        }
+
+        private static DateTime ExtractLoggedTime(string output, string requestId)
+        {
+            Match match = Regex.Match(output, $"DateTime: (\\S+), RequestId: \"{Regex.Escape(requestId)}\"");
+            ClassicAssert.IsTrue(match.Success, $"No SIEM entry found for request {requestId}.");
+            return DateTime.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        }
+
         private static RulesByFilterRequest CreateRequest(string userName, string userId)
         {
             return new RulesByFilterRequest
@@ -153,6 +193,40 @@ namespace FWO.Test
                 new Claim("x-hasura-user-id", userId)
             ];
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
+        }
+
+        /// <summary>
+        /// Answers the queries needed to load the global config, then fails the rule query after a short delay,
+        /// so the request ends in the controller's error path well after it was received.
+        /// </summary>
+        private sealed class FailingRuleQueryApiConnection : SimulatedApiConnection
+        {
+            private static readonly Language[] kLanguages = [new Language { Name = "English", CultureInfo = "en-US" }];
+            private static readonly ConfigItem[] kConfigItems = [];
+            private static readonly TimeSpan kRuleQueryDelay = TimeSpan.FromMilliseconds(20);
+
+            public DateTime? RuleQueryTime { get; private set; }
+
+            public override async Task<QueryResponseType> SendQueryAsync<QueryResponseType>(string query, object? variables = null,
+                string? operationName = null, QueryChunkingOptions? chunkingOptions = null)
+            {
+                if (query == ConfigQueries.getLanguages)
+                {
+                    return (QueryResponseType)(object)kLanguages;
+                }
+                if (query == ConfigQueries.getTextsPerLanguage || query == ConfigQueries.getCustomTextsPerLanguage)
+                {
+                    return (QueryResponseType)(object)new List<UiText>();
+                }
+                if (query == ConfigQueries.getConfigItemsByUser)
+                {
+                    return (QueryResponseType)(object)kConfigItems;
+                }
+
+                RuleQueryTime = DateTime.UtcNow;
+                await Task.Delay(kRuleQueryDelay);
+                throw new InvalidOperationException("Simulated rule query failure.");
+            }
         }
     }
 }

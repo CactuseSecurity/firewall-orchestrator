@@ -30,13 +30,13 @@ connection, and for a connection of the default type the `sAMAccountName` of an 
 `uid`. The middleware looks up exactly one entry with
 an exact match on this attribute and checks the password only for that entry. Other names of the same account, such
 as the `cn`, the `userPrincipalName`, the mail address or a further value of a multi-valued `uid`, are not accepted
-(since 9.6.3). Login names containing LDAP filter characters (`*`, `\`, `(`, `)` or NUL) are rejected without any
+(since 9.7.0). Login names containing LDAP filter characters (`*`, `\`, `(`, `)` or NUL) are rejected without any
 directory access.
 
 Logins with the `userPrincipalName` or the mail address are not supported on purpose. Unlike the account name, these
 attributes are not guaranteed to be unique within a directory and across the connected directories, and a login
 that matched several entries could select another account than the one the user intended. Users who logged in with
-one of these names before 9.6.3 have to use their account name. The LDAP type of a connection (settings, LDAP
+one of these names before 9.7.0 have to use their account name. The LDAP type of a connection (settings, LDAP
 connections) determines which attribute is the account name.
 
 ## Login limits

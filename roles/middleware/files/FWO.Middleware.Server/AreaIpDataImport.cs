@@ -22,8 +22,10 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Run the Area IP Data Import
         /// </summary>
-        public async Task<List<string>> Run()
+        /// <param name="cancellationToken">Stops before the next file or area; nothing is saved or deleted when stopped while reading files.</param>
+        public async Task<List<string>> Run(CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             List<string> importfilePathAndNames = JsonSerializer.Deserialize<List<string>>(globalConfig.ImportSubnetDataPath) ?? throw new JsonException("Config Data could not be deserialized.");
             List<ModellingImportNwData> AllNwData = [];
             List<string> FailedImports = [];
@@ -31,15 +33,18 @@ namespace FWO.Middleware.Server
             // iterate over all files
             foreach (var importfilePathAndName in importfilePathAndNames)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 await ImportSingleFile(importfilePathAndName, AllNwData, FailedImports);
             }
 
+            // areas missing from the merged data get deleted, so only continue with the data of all files
+            cancellationToken.ThrowIfCancellationRequested();
             // merge all data into a single list of areas
             ModellingImportNwData mergedNwData = MergeNetworkData(AllNwData);
 
             if (mergedNwData.Areas.Count > 0)
             {
-                await SaveMergedNwData(mergedNwData);
+                await SaveMergedNwData(mergedNwData, cancellationToken);
             }
             else
             {
@@ -83,7 +88,7 @@ namespace FWO.Middleware.Server
             }
         }
 
-        private async Task SaveMergedNwData(ModellingImportNwData mergedNwData)
+        private async Task SaveMergedNwData(ModellingImportNwData mergedNwData, CancellationToken cancellationToken)
         {
             int successCounter = 0;
             int failCounter = 0;
@@ -94,6 +99,7 @@ namespace FWO.Middleware.Server
 
             foreach (ModellingImportAreaData incomingArea in mergedNwData.Areas)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (await SaveArea(incomingArea))
                 {
                     ++successCounter;
@@ -105,6 +111,7 @@ namespace FWO.Middleware.Server
             }
             foreach (ModellingNetworkArea existingArea in existingAreas)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (mergedNwData.Areas.FirstOrDefault(x => x.IdString == existingArea.IdString) == null)
                 {
                     if (await DeleteArea(existingArea))

@@ -31,6 +31,7 @@ namespace FWO.Test
     [NonParallelizable]
     internal class UiSettingsCredentialsTest
     {
+        private static readonly List<int> kRemainingCredentialIds = [1, 3];
         private static readonly FieldInfo JwtPublicKeyField = typeof(ConfigFile).GetField("jwtPublicKey", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingFieldException(typeof(ConfigFile).FullName, "jwtPublicKey");
 
@@ -103,7 +104,7 @@ namespace FWO.Test
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
             ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
-            apiConnection.MgmtCountUsingCred = 2;
+            apiConnection.ManagementsUsingCred[credential.Id] = [new Management { Id = 5, Name = "mgmt-a" }, new Management { Id = 6, Name = "mgmt-b" }];
 
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
 
@@ -111,8 +112,9 @@ namespace FWO.Test
             {
                 Assert.That(messages, Has.Count.EqualTo(1));
                 Assert.That(messages[0].Title, Is.EqualTo("Delete credential"));
-                Assert.That(messages[0].Message, Is.EqualTo("Credential is used by managements"));
+                Assert.That(messages[0].Message, Is.EqualTo($"Credential is used by managements ({credential.Name}: mgmt-a, mgmt-b)"));
                 Assert.That(GetMember<bool>(component, "DeleteMode"), Is.False);
+                Assert.That(apiConnection.Queries, Does.Not.Contain(DeviceQueries.deleteCredential));
             });
         }
 
@@ -123,7 +125,6 @@ namespace FWO.Test
             RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
             SettingsCredentials component = setup.Component;
             ImportCredential credential = GetMember<List<ImportCredential>>(component, "credentials")[0];
-            apiConnection.MgmtCountUsingCred = 0;
 
             await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RequestDelete", credential));
 
@@ -172,6 +173,30 @@ namespace FWO.Test
                 Assert.That(GetMember<List<ImportCredential>>(component, "credentials"), Has.Count.EqualTo(1));
                 Assert.That(GetMember<bool>(component, "CleanupMode"), Is.False);
                 Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.False);
+            });
+        }
+
+        [Test]
+        public async Task RemoveSampleData_KeepsDemoCredentialsStillUsedByManagements()
+        {
+            List<(Exception? Exception, string Title, string Message, bool IsError)> messages = [];
+            await using RenderSetup setup = await CreateRenderedSetup(CreateApiConnection(), Roles.Admin, messages);
+            RecordingCredentialsApiConnection apiConnection = setup.ApiConnection;
+            SettingsCredentials component = setup.Component;
+            apiConnection.ManagementsUsingCred[1] = [new Management { Id = 5, Name = "mgmt-a_demo" }];
+
+            InvokePrivateVoid(component, "RequestRemoveSampleData");
+            await setup.Rendered.InvokeAsync(() => InvokePrivateTask(component, "RemoveSampleData"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(apiConnection.Queries.Count(query => query == DeviceQueries.deleteCredential), Is.EqualTo(1));
+                Assert.That(GetMember<List<ImportCredential>>(component, "credentials").Select(credential => credential.Id),
+                    Is.EquivalentTo(kRemainingCredentialIds));
+                Assert.That(messages, Has.Count.EqualTo(1));
+                Assert.That(messages[0].Title, Is.EqualTo("Remove sample data"));
+                Assert.That(messages[0].Message, Does.Contain("mgmt-a_demo"));
+                Assert.That(GetMember<bool>(component, "showCleanupButton"), Is.True);
             });
         }
 
@@ -380,7 +405,7 @@ namespace FWO.Test
         {
             public List<string> Queries { get; } = [];
             public List<ImportCredential> Credentials { get; set; } = [];
-            public int MgmtCountUsingCred { get; set; }
+            public Dictionary<int, List<Management>> ManagementsUsingCred { get; } = [];
             public ReturnIdWrapper NewCredentialResult { get; set; } = new() { ReturnIds = [new ReturnId { NewId = 10 }] };
             public ReturnId UpdateCredentialResult { get; set; } = new() { UpdatedId = 1 };
             public ReturnId DeleteCredentialResult { get; set; } = new() { DeletedId = 1 };
@@ -402,9 +427,12 @@ namespace FWO.Test
                     return Task.FromResult((QueryResponseType)(object)sanitized);
                 }
 
-                if (query == DeviceQueries.getMgmtNumberUsingCred && typeof(QueryResponseType) == typeof(AggregateCount))
+                if (query == DeviceQueries.getManagementsUsingCredential && typeof(QueryResponseType) == typeof(List<Management>))
                 {
-                    return Task.FromResult((QueryResponseType)(object)new AggregateCount { Aggregate = new Aggregate { Count = MgmtCountUsingCred } });
+                    PropertyInfo? credentialIdProperty = variables?.GetType().GetProperty("importCredentialId");
+                    int credentialId = credentialIdProperty == null ? 0 : Convert.ToInt32(credentialIdProperty.GetValue(variables));
+                    List<Management> managements = ManagementsUsingCred.TryGetValue(credentialId, out List<Management>? found) ? found : [];
+                    return Task.FromResult((QueryResponseType)(object)managements);
                 }
 
                 if (query == DeviceQueries.deleteCredential && typeof(QueryResponseType) == typeof(ReturnId))

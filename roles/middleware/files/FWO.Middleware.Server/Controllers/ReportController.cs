@@ -39,7 +39,13 @@ namespace FWO.Middleware.Server.Controllers
             try
             {
                 AuthManager authManager = new(jwtWriter, ldaps, apiConnection);
-                UiUser targetUser = new() { Name = User.FindFirstValue("unique_name") ?? "", Dn = User.FindFirstValue("x-hasura-uuid") ?? "" };
+                // the local user id keeps the rebuilt user in the caller's directory, as the dn alone may exist in several (SEC-11)
+                UiUser targetUser = new()
+                {
+                    Name = User.FindFirstValue("unique_name") ?? "",
+                    Dn = User.FindFirstValue("x-hasura-uuid") ?? "",
+                    DbId = int.TryParse(User.FindFirstValue("x-hasura-user-id"), out int callerDbId) ? callerDbId : 0
+                };
                 string jwt = await authManager.AuthorizeUserAsync(targetUser, validatePassword: false);
                 using ApiConnection apiConnectionUserContext = new GraphQlApiConnection(ConfigFile.ApiServerUri, jwt);
                 ReportTemplate template = await ConvertParameters(parameters);

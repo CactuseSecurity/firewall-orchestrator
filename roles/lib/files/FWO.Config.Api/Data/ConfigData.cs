@@ -48,6 +48,10 @@ namespace FWO.Config.Api.Data
         [JsonProperty("autoFillRightSidebar"), JsonPropertyName("autoFillRightSidebar")]
         public bool AutoFillRightSidebar { get; set; } = false;
 
+        /// <summary>Gets or sets the default management rulebase view for new rules reports.</summary>
+        [JsonProperty("defaultManagementRulebaseView"), JsonPropertyName("defaultManagementRulebaseView"), UserConfigData]
+        public bool DefaultManagementRulebaseView { get; set; } = false;
+
         [JsonProperty("unusedTolerance"), JsonPropertyName("unusedTolerance")]
         public int UnusedTolerance { get; set; } = 400;
 
@@ -280,6 +284,9 @@ namespace FWO.Config.Api.Data
 
         [JsonProperty("reqPriorities"), JsonPropertyName("reqPriorities")]
         public string ReqPriorities { get; set; } = "[]";
+
+        [JsonProperty("reqCreateRequestTaskSortConfig"), JsonPropertyName("reqCreateRequestTaskSortConfig")]
+        public string ReqCreateRequestTaskSortConfig { get; set; } = System.Text.Json.JsonSerializer.Serialize(new CreateRequestTaskSortConfig());
 
         [JsonProperty("reqAutoCreateImplTasks"), JsonPropertyName("reqAutoCreateImplTasks")]
         public AutoCreateImplTaskOptions ReqAutoCreateImplTasks { get; set; } = AutoCreateImplTaskOptions.never;
@@ -560,8 +567,8 @@ namespace FWO.Config.Api.Data
         [JsonProperty("complianceCheckPolicy"), JsonPropertyName("complianceCheckPolicy")]
         public int ComplianceCheckPolicyId { get; set; } = 0;
 
-        [JsonProperty("complianceDesignatedZoneMatrix"), JsonPropertyName("complianceDesignatedZoneMatrix")]
-        public int ComplianceDesignatedZoneMatrixId { get; set; } = 0;
+        [JsonProperty("designatedZoneMatrix"), JsonPropertyName("designatedZoneMatrix")]
+        public int DesignatedZoneMatrixId { get; set; } = 0;
 
         [JsonProperty("complianceCheckMailRecipients"), JsonPropertyName("complianceCheckMailRecipients")]
         public string ComplianceCheckMailRecipients { get; set; } = "";

@@ -39,6 +39,8 @@ namespace FWO.Report.Filter
 
         public string ReportTimeString { get; set; } = "";
         public List<int> RelevantManagementIds { get; set; } = [];
+        public bool ManagementRulebaseView { get; set; }
+        public List<int> SelectedRulebaseIds { get; set; } = [];
         public List<WfTaskType> WorkflowTaskTypes { get; set; } = [];
         public List<int> WorkflowStateIds { get; set; } = [];
         public string WorkflowPhase { get; set; } = "";
@@ -67,6 +69,7 @@ namespace FWO.Report.Filter
         public static DynGraphqlQuery GenerateQuery(ReportTemplate filter, AstNode? ast)
         {
             DynGraphqlQuery query = new(filter.Filter);
+            query.ManagementRulebaseView = filter.ReportParams.IsManagementRulebaseView();
             ConstructWhereStatements(query, filter, ast);
             if (((ReportType)filter.ReportParams.ReportType).IsResolvedReport() || (ReportType)filter.ReportParams.ReportType == ReportType.AppRules)
             {
@@ -619,7 +622,14 @@ namespace FWO.Report.Filter
             SetTenantFilter(ref query, reportParams);
             if (reportType.IsDeviceRelatedReport())
             {
-                SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
+                if (query.ManagementRulebaseView)
+                {
+                    List<SelectedRulebase> selectedRulebases = reportParams.ReportParams.SelectedRulebases;
+                    query.RelevantManagementIds = [.. selectedRulebases.Select(rulebase => rulebase.ManagementId).Distinct()];
+                    query.SelectedRulebaseIds = [.. selectedRulebases.Select(rulebase => rulebase.RulebaseId).Distinct()];
+                }
+                else
+                    SetDeviceFilter(ref query, reportParams.ReportParams.DeviceFilter);
                 SetTimeFilter(ref query, reportParams.ReportParams.TimeFilter, reportType, reportParams.ReportParams.RecertFilter);
             }
             if (reportType == ReportType.Recertification)

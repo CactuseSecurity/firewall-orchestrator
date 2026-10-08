@@ -93,7 +93,7 @@ Create table "uiuser"
 (
 	"uiuser_id" SERIAL NOT NULL,
 	"uiuser_username" Varchar,
-	"uuid" Varchar NOT NULL UNIQUE,
+	"uuid" Varchar NOT NULL,
 	"uiuser_first_name" Varchar,
 	"uiuser_last_name" Varchar,
 	"uiuser_start_date" Date Default now(),
@@ -392,6 +392,28 @@ Create table "config"
 	"config_value" VARCHAR,
 	"config_user" Integer,
 	primary key ("config_key","config_user")
+);
+
+Create table "provisioning_config_node"
+(
+	"id" BIGSERIAL,
+	"node_type" Varchar NOT NULL,
+	"object_key" Varchar NOT NULL,
+	"parent_id" BIGINT,
+	"display_name" Varchar NOT NULL Default '',
+	"sort_order" Integer,
+	primary key ("id"),
+	CONSTRAINT provisioning_config_node_node_type_object_key_key UNIQUE ("node_type", "object_key"),
+	CONSTRAINT provisioning_config_node_node_type_check CHECK ("node_type" IN ('global', 'device_type', 'management', 'gateway')),
+	CONSTRAINT provisioning_config_node_parent_check CHECK (("node_type" = 'global') = ("parent_id" IS NULL))
+);
+
+Create table "provisioning_config_value"
+(
+	"node_id" BIGINT NOT NULL,
+	"config_key" Varchar NOT NULL,
+	"config_value" Jsonb NOT NULL,
+	primary key ("node_id","config_key")
 );
 
 create table time_object

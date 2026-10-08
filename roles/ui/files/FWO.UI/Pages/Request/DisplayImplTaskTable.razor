@@ -1,7 +1,7 @@
 @using FWO.Ui.Services
 
 
-@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}, {Roles.FwAdmin}")]
+@attribute [Authorize(Roles = $"{Roles.Admin}, {Roles.WorkflowRolesList}, {Roles.Auditor}")]
 
 @inject ApiConnection apiConnection
 @inject UserConfig userConfig
@@ -11,22 +11,22 @@
     @if (WfHandler.PlanReqTaskMode)
     {
         <div class="btn-group">
-            <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="AddImplTask">
+            <button type="button" class="btn btn-success" @onclick:preventDefault @onclick="AddImplTask">
                 @(DisplayService.DisplayButton(userConfig, "create_implementation", Icons.Add))</button>
             @if(WfHandler.ActReqTask.TaskType == WfTaskType.access.ToString() && userConfig.ReqActivatePathAnalysis)
             {
-                <button type="button" class="btn btn-success m-2" @onclick:preventDefault @onclick="CheckImplTasks">
+                <button type="button" class="btn btn-success" @onclick:preventDefault @onclick="CheckImplTasks">
                     @(DisplayService.DisplayButton(userConfig, "check_impltasks", Icons.Check))</button>
-                <button type="button" class="btn btn-warning m-2" @onclick:preventDefault @onclick="AutocreateImplTasks">
+                <button type="button" class="btn btn-warning" @onclick:preventDefault @onclick="AutocreateImplTasks">
                     @(DisplayService.DisplayButton(userConfig, "auto_create_impltasks", Icons.Create))</button>
                 @if(WfHandler.ActReqTask.ImplementationTasks.Count > 0)
                 {
-                    <button type="button" class="btn btn-danger m-2" @onclick:preventDefault @onclick="CleanupImplTasks">
+                    <button type="button" class="btn btn-danger" @onclick:preventDefault @onclick="CleanupImplTasks">
                         @(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-danger m-2" disabled>
+                    <button type="button" class="btn btn-danger" disabled>
 						@(DisplayService.DisplayButton(userConfig, "cleanup_impltasks", Icons.Cleanup))</button>
                 }
             }
@@ -70,7 +70,7 @@
                                 {
                                     @if (implTask.StateId < WfHandler.StateMatrix(implTask.TaskType).LowestStartedState)
                                     {
-                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}, {Roles.FwAdmin}")">
+                                        <ExecutionModeAuthorizeView Roles="@($"{Roles.Admin}, {Roles.Implementer}, {Roles.Reviewer}")">
                                             <Authorized Context="ctx">
                                                 <button type="button" class="btn btn-sm btn-warning" @onclick:preventDefault @onclick="async () => await StartImplPhase(implTask)">
                                                     @(DisplayService.DisplayButton(userConfig, "start_" + Phase.ToString(), Icons.Edit))</button>
@@ -220,7 +220,7 @@
     [Parameter]
     public Func<WfImplTask, Task> StartImplPhase { get; set; } = DefaultInit.DoNothing;
 
-    static List<string> validRoles = new (){ Roles.Implementer, Roles.FwAdmin };
+    static List<string> validRoles = new (){ Roles.Implementer };
     private bool DisplayInfo = false;
     private List<KeyValuePair<string, bool>> deviceCheck = [];
     private Dictionary<long, WfTicket> ticketsById = [];
@@ -346,7 +346,7 @@
 
     private async Task CheckImplTasks()
     {
-        List<Device> foundDevices = await PathAnalysis.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
+        List<Device> foundDevices = await RoutingBasedPathAnalyzer.GetAllDevices(WfHandler.ActReqTask.Elements, apiConnection);
         deviceCheck = [];
         foreach(var dev in foundDevices)
         {

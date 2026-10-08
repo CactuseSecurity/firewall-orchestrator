@@ -7,6 +7,7 @@ using FWO.Data.Middleware;
 using FWO.Data.Modelling;
 using FWO.Data.Workflow;
 using FWO.Logging;
+using FWO.Middleware.Server.Services;
 using FWO.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -28,7 +29,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     /// Notification data and recipients are resolved from persisted middleware data.
     /// </summary>
     [HttpPost("interface-decommission")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}")]
     [ProducesResponseType(typeof(NotificationDeliveryResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -88,7 +89,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
     /// All message data is resolved from the persisted connection and ticket in middleware.
     /// </summary>
     [HttpPost("interface-request")]
-    [Authorize(Roles = $"{Roles.Admin}, {Roles.FwAdmin}, {Roles.Modeller}")]
+    [Authorize(Roles = $"{Roles.Admin}, {Roles.Modeller}")]
     [ProducesResponseType(typeof(NotificationDeliveryResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -125,6 +126,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
             WfReqTask? requestTask = ticket?.Tasks.FirstOrDefault(task => task.TaskType == WfTaskType.new_interface.ToString());
             FwoOwner owner = await LoadOwner(connection.ProposedAppId, includeResponsibles: true) ?? connection.ProposedApp;
             FwoOwner? requestingOwner = await LoadOwner(requestTask?.GetAddInfoIntValue(AdditionalInfoKeys.ReqOwner));
+            string? suppressionReason = GetInterfaceRequestSuppressionReason(owner, ticket, requestTask, requestingOwner);
             UiUser? requester = CreateRequesterContext(ticket);
             NotificationPlaceholderResolver.NotificationPlaceholderValues placeholderValues =
                 BuildInterfaceRequestPlaceholderValues(connection, ticket, requestTask, owner, requestingOwner, requester);
@@ -137,6 +139,15 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
                 .ToList();
             if (notifications.Count == 0)
             {
+                return Ok(NotificationDeliveryResult.Suppressed);
+            }
+
+            if (suppressionReason != null)
+            {
+                foreach (FwoNotification notification in notifications)
+                {
+                    await notificationService.LogSuppressedNotification(notification, suppressionReason, owner, placeholderValues);
+                }
                 return Ok(NotificationDeliveryResult.Suppressed);
             }
 
@@ -156,6 +167,30 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         List<ModellingConnection> connections = await apiConnection.SendQueryAsync<List<ModellingConnection>>(
             ModellingQueries.getConnectionForNotification, new { id = connectionId });
         return connections.SingleOrDefault();
+    }
+
+    /// <summary>
+    /// Determines whether an interface-request notification should be suppressed.
+    /// </summary>
+    /// <param name="owner">Requested owner associated with the interface.</param>
+    /// <param name="ticket">Workflow ticket containing the request.</param>
+    /// <param name="requestTask">Interface-request task from the ticket.</param>
+    /// <param name="requestingOwner">Owner representing the requesting application.</param>
+    /// <returns>A suppression reason, or <see langword="null"/> when delivery is allowed.</returns>
+    private static string? GetInterfaceRequestSuppressionReason(FwoOwner owner, WfTicket? ticket, WfReqTask? requestTask,
+        FwoOwner? requestingOwner)
+    {
+        if (!InterfaceRequestNotificationGuard.IsActiveOwner(owner))
+        {
+            return "Requested owner is not active.";
+        }
+
+        if (!InterfaceRequestNotificationGuard.HasRequiredRequestContext(ticket, requestTask))
+        {
+            return "Interface request is incomplete.";
+        }
+
+        return requestingOwner == null ? "Requesting owner could not be resolved." : null;
     }
 
     private async Task<bool> CanProcessInterfaceRequest(ModellingConnection connection)
@@ -238,7 +273,7 @@ public class NotificationController(ApiConnection apiConnection, GlobalConfig gl
         bool allowRequestCreator = false)
     {
         ClaimsPrincipal caller = ControllerContext.HttpContext.User;
-        if (caller.IsInRole(Roles.Admin) || caller.IsInRole(Roles.FwAdmin))
+        if (caller.IsInRole(Roles.Admin))
         {
             return true;
         }

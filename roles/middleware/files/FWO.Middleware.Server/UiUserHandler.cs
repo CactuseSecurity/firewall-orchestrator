@@ -149,16 +149,24 @@ namespace FWO.Middleware.Server
         /// <param name="updateLastLogin">True to update the persisted last-login timestamp.</param>
         /// <param name="createIfMissing">True to create the user in the local database if no record exists yet.</param>
         /// <returns>The given user enriched with local database id, password-change flag, and ownership information.</returns>
-        /// <exception cref="InvalidOperationException">The workflow visibility groups could not be determined.</exception>
+        /// <exception cref="InvalidOperationException">The user has no LDAP connection, or the workflow visibility groups could not be determined.</exception>
         /// <exception cref="Exception">Rethrown unchanged when the API could not be reached.</exception>
         public static async Task<UiUser> SynchronizeUiUserContext(ApiConnection apiConnection, UiUser user, bool updateLastLogin = true, bool createIfMissing = true)
         {
+            // A dn is unique only inside its directory: the same dn in two LDAP connections belongs to
+            // two different subjects, so the local user must never be resolved by the dn alone (SEC-11).
+            int ldapConnectionId = user.LdapConnection?.Id ?? 0;
+            if (ldapConnectionId <= 0)
+            {
+                throw new InvalidOperationException($"User {user.Name} with dn {user.Dn} has no LDAP connection, so its local user cannot be determined.");
+            }
+
             bool userSetInDb = false;
             bool workflowVisibilityGroupsLoaded = false;
             bool workflowVisibilityGroupsAttempted = false;
             try
             {
-                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn });
+                UiUser[] existingUsers = await apiConnection.SendQueryAsync<UiUser[]>(AuthQueries.getUserByDn, new { dn = user.Dn, ldapConnectionId });
 
                 if (existingUsers.Length > 0)
                 {
@@ -391,13 +399,16 @@ namespace FWO.Middleware.Server
         /// <summary>
         /// Update the passwordMustBeChanged flag.
         /// </summary>
-        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, string userDn, bool passwordMustBeChanged = false)
+        /// <param name="apiConn">API connection used to update the local user.</param>
+        /// <param name="userId">Local database id of the user. The dn is not used, as it does not identify a user across LDAP connections.</param>
+        /// <param name="passwordMustBeChanged">New value of the flag.</param>
+        public static async Task UpdateUserPasswordChanged(ApiConnection apiConn, int userId, bool passwordMustBeChanged = false)
         {
             try
             {
                 var Variables = new
                 {
-                    dn = userDn,
+                    id = userId,
                     passwordMustBeChanged = passwordMustBeChanged,
                     changeTime = DateTime.UtcNow
                 };
@@ -405,7 +416,7 @@ namespace FWO.Middleware.Server
             }
             catch (Exception exeption)
             {
-                Log.WriteError("Update User Error", $"User {userDn} could not be updated in database.", exeption);
+                Log.WriteError("Update User Error", $"User {userId} could not be updated in database.", exeption);
             }
         }
     }

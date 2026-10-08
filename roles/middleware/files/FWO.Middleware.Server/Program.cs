@@ -16,7 +16,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using Quartz;
 using Scalar.AspNetCore;
 
 object changesLock = new(); // LOCK
@@ -66,17 +65,16 @@ Log.WriteInfo("Found ldap connection to server", string.Join("\n", connectedLdap
 // GlobalConfig for Quartz DI
 GlobalConfig globalConfig = await GlobalConfig.ConstructAsync(apiConnection, true);
 
-builder.Services.AddQuartz();
-builder.Services.AddQuartzHostedService(options =>
-{
-    options.WaitForJobsToComplete = true;
-});
+// Shared clock for Quartz and jobs, replaceable in tests
+TimeProvider timeProvider = TimeProvider.System;
+builder.Services.AddSingleton(timeProvider);
+
+builder.Services.AddMiddlewareQuartz(timeProvider);
 
 // Register singletons for DI
 builder.Services.AddSingleton(apiConnection);
 builder.Services.AddSingleton(globalConfig);
 builder.Services.AddSingleton<FlowSync>();
-builder.Services.AddSingleton<JobExecutionTracker>();
 builder.Services.AddSingleton<ComplianceCheckStatusTracker>();
 builder.Services.AddSingleton(tokenLifetimeProvider);
 builder.Services.AddSingleton(internalApiTokenService);
@@ -110,7 +108,7 @@ builder.Services.AddSingleton<FlowCatalogService>();
 builder.Services.AddSingleton<IFlowGroupResolver>(serviceProvider => serviceProvider.GetRequiredService<FlowCatalogService>());
 builder.Services.AddSingleton<ComplianceZoneService>();
 builder.Services.AddSingleton<FlowComplianceService>();
-builder.Services.AddSingleton<FlowRequestService>();
+builder.Services.AddSingleton<WorkflowTicketService>();
 builder.Services.AddSingleton<WorkflowChangeHistoryService>();
 builder.Services.AddTransient<IRuleTreeBuilder, RuleTreeBuilder>();
 builder.Services.AddSingleton<IRequestedRulePolicyCheckerFactory, ComplianceRequestedRulePolicyCheckerFactory>();
@@ -220,12 +218,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
-//Register JobExecutionTracker with scheduler
-ISchedulerFactory schedulerFactory = app.Services.GetRequiredService<ISchedulerFactory>();
-JobExecutionTracker executionTracker = app.Services.GetRequiredService<JobExecutionTracker>();
-IScheduler scheduler = await schedulerFactory.GetScheduler();
-scheduler.ListenerManager.AddJobListener(executionTracker);
 
 // Activate config listeners so they attach subscriptions after startup
 app.Services.GetRequiredService<ExternalRequestSchedulerService>();

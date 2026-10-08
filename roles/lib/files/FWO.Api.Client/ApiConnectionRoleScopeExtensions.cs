@@ -10,9 +10,9 @@ namespace FWO.Api.Client
     {
         private static readonly List<string> AdminOrAuditorRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ModellingRoles = [Roles.Modeller, Roles.Admin, Roles.Auditor];
-        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+        private static readonly List<string> MonitoringRoles = [Roles.Admin, Roles.Auditor];
         private static readonly List<string> ReportingRoles =
-            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor, Roles.FwAdmin];
+            [Roles.ReporterViewAll, Roles.Reporter, Roles.Modeller, Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> RecertificationRoles = [Roles.Recertifier, Roles.Admin, Roles.Auditor];
         private static readonly List<string> WorkflowRoles =
         [
@@ -22,7 +22,6 @@ namespace FWO.Api.Client
             Roles.Implementer,
             Roles.Reviewer,
             Roles.Admin,
-            Roles.FwAdmin,
             Roles.Auditor
         ];
 
@@ -125,7 +124,7 @@ namespace FWO.Api.Client
             List<string> roles;
             if (reportType == ReportType.Owners || reportType.IsComplianceReport())
             {
-                roles = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
+                roles = [Roles.Admin, Roles.Auditor];
             }
             else if (reportType.IsModellingReport())
             {
@@ -133,12 +132,12 @@ namespace FWO.Api.Client
             }
             else if (reportType.IsWorkflowReport())
             {
-                roles = [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester,
+                roles = [Roles.Admin, Roles.Auditor, Roles.Requester,
                     Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
             }
             else if (reportType.IsDeviceRelatedReport())
             {
-                roles = [Roles.Admin, Roles.FwAdmin, Roles.ReporterViewAll, Roles.Reporter,
+                roles = [Roles.Admin, Roles.ReporterViewAll, Roles.Reporter,
                     Roles.Recertifier, Roles.Auditor];
             }
             else

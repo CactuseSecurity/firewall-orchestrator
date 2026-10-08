@@ -6,7 +6,6 @@ namespace FWO.Basics
         public const string Anonymous = "anonymous";
         public const string Admin = "admin";
         public const string Auditor = "auditor";
-        public const string FwAdmin = "fw-admin";
 
         // Rules
         public const string Reporter = "reporter";
@@ -46,11 +45,11 @@ namespace FWO.Basics
     /// </summary>
     public static class ReportVisibilityRoleSets
     {
-        public static readonly string[] RuleRelated = [Roles.Reporter, Roles.ReporterViewAll, Roles.FwAdmin, Roles.Admin, Roles.Auditor, Roles.Recertifier];
+        public static readonly string[] RuleRelated = [Roles.Reporter, Roles.ReporterViewAll, Roles.Admin, Roles.Auditor, Roles.Recertifier];
         public static readonly string[] ModellingRelated = [Roles.Modeller, Roles.Admin, Roles.Auditor, Roles.Recertifier];
-        public static readonly string[] ComplianceRelated = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-        public static readonly string[] OwnerRelated = [Roles.Admin, Roles.FwAdmin, Roles.Auditor];
-        public static readonly string[] WorkflowRelated = [Roles.Admin, Roles.FwAdmin, Roles.Auditor, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
+        public static readonly string[] ComplianceRelated = [Roles.Admin, Roles.Auditor];
+        public static readonly string[] OwnerRelated = [Roles.Admin, Roles.Auditor];
+        public static readonly string[] WorkflowRelated = [Roles.Admin, Roles.Auditor, Roles.Requester, Roles.Approver, Roles.Planner, Roles.Implementer, Roles.Reviewer];
 
         /// <summary>
         /// Computes the report-category visibility for a single role (as opposed to the OR of every role a user holds).

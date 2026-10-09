@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Generate matching normalized app data and importer-compatible log data."""
+"""Generate matching normalized app data, importer-compatible log data and area IP data."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from scripts.customizing.app_data_import import generate_owner_data
+from scripts.customizing.area_ip_data_import import generate_area_ip_data
 from scripts.customizing.log_data_import import generate_log_data
 
 MAX_GENERATED_OWNERS: int = min(
@@ -36,11 +37,12 @@ def parse_owner_count(value: str) -> int:
 def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     """Parse the generator's command-line arguments."""
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Generate matching normalized app-data JSON and importer-compatible log data."
+        description="Generate matching normalized app-data JSON, importer-compatible log data and area IP data."
     )
     parser.add_argument("owner_count", type=parse_owner_count, help="number of applications to generate")
     parser.add_argument("app_data", type=Path, help="app-data JSON file to create")
     parser.add_argument("log_data", type=Path, help="log-data file to create")
+    parser.add_argument("area_ip_data", type=Path, help="area IP data JSON file covering the app servers to create")
     parser.add_argument(
         "--log-count",
         type=generate_log_data.parse_positive_count,
@@ -53,30 +55,34 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
         help="log-data output format; defaults to json",
     )
     parser.add_argument("--overwrite", action="store_true", help="replace existing output files")
+    generate_owner_data.add_reverse_dns_argument(parser, default=True)
+    generate_area_ip_data.add_area_count_argument(parser)
     return parser.parse_args(argv)
 
 
-def outputs_are_distinct(app_data_file: Path, log_data_file: Path) -> bool:
-    """Return whether the JSON and CSV output paths resolve to different files."""
-    return app_data_file.resolve() != log_data_file.resolve()
+def outputs_are_distinct(output_files: list[Path]) -> bool:
+    """Return whether all output paths resolve to different files."""
+    return len({output_file.resolve() for output_file in output_files}) == len(output_files)
 
 
-def outputs_can_be_written(app_data_file: Path, log_data_file: Path, overwrite: bool) -> bool:
-    """Return whether both output files can be created without data loss."""
-    if not outputs_are_distinct(app_data_file, log_data_file):
-        write_error("app-data and log-data output files must be different")
+def outputs_can_be_written(output_files: list[Path], overwrite: bool) -> bool:
+    """Return whether all output files can be created without data loss."""
+    if not outputs_are_distinct(output_files):
+        write_error("app-data, log-data and area IP data output files must be different")
         return False
-    if not overwrite and (app_data_file.exists() or log_data_file.exists()):
+    if not overwrite and any(output_file.exists() for output_file in output_files):
         write_error("refusing to overwrite an existing output file")
         return False
     return True
 
 
 def generate_matching_data(
-    owner_count: int, log_count: int
+    owner_count: int, log_count: int, reverse_dns_resolvable: bool = True
 ) -> tuple[dict[str, list[dict[str, object]]], list[dict[str, str | int]]]:
     """Build app data and log flows that share generated application IDs and server addresses."""
-    owner_data: dict[str, list[dict[str, object]]] = generate_owner_data.generate_owner_data(owner_count)
+    owner_data: dict[str, list[dict[str, object]]] = generate_owner_data.generate_owner_data(
+        owner_count, reverse_dns_resolvable
+    )
     applications: list[generate_log_data.Application] = []
     for owner_index, owner in enumerate(owner_data["owners"]):
         application_id: object = owner["app_id_external"]
@@ -129,17 +135,24 @@ def main(argv: list[str] | None = None) -> int:
     arguments: argparse.Namespace = parse_arguments(argv)
     app_data_file: Path = arguments.app_data
     log_data_file: Path = arguments.log_data
-    if not outputs_can_be_written(app_data_file, log_data_file, arguments.overwrite):
+    area_ip_data_file: Path = arguments.area_ip_data
+    if not outputs_can_be_written([app_data_file, log_data_file, area_ip_data_file], arguments.overwrite):
         return 1
     log_count: int = arguments.log_count if arguments.log_count is not None else arguments.owner_count
+    reverse_dns_resolvable: bool = arguments.reverse_dns_resolvable
+    area_count: int = arguments.area_count
     try:
         owner_data: dict[str, list[dict[str, object]]]
         log_entries: list[dict[str, str | int]]
-        owner_data, log_entries = generate_matching_data(arguments.owner_count, log_count)
+        owner_data, log_entries = generate_matching_data(arguments.owner_count, log_count, reverse_dns_resolvable)
+        area_ip_data: generate_area_ip_data.AreaIpData = generate_area_ip_data.generate_area_ip_data(
+            generate_area_ip_data.parse_app_servers(owner_data), area_count
+        )
         generate_owner_data.write_owner_data(app_data_file, owner_data)
         write_log_data(log_data_file, log_entries, arguments.log_format)
+        generate_area_ip_data.write_area_ip_data(area_ip_data_file, area_ip_data)
     except (OSError, TypeError, ValueError) as exception:
-        write_error(f"could not generate matching app and log data: {exception}")
+        write_error(f"could not generate matching app, log and area IP data: {exception}")
         return 1
     return 0
 

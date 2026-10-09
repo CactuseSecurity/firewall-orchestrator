@@ -89,7 +89,7 @@ namespace FWO.Test
             var reverseRule = TrivialityTestHelper.CreateRule(
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
-                [TrivialityTestHelper.CreateProtocolService("Https", 6, 443, 443, 0, 0)],
+                [TrivialityTestHelper.CreateProtocolService("Https", 6, 0, 0, 443, 443)],
                 id: 1002);
 
             RuleBidirectionalDuplicateIndex duplicateIndex = new([rule, reverseRule]);
@@ -112,7 +112,7 @@ namespace FWO.Test
             var reverseRule = TrivialityTestHelper.CreateRule(
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Destination", "10.9.8.7/32", "10.9.8.7/32"))],
                 [TrivialityTestHelper.CreateNetworkLocation(TrivialityTestHelper.CreateNetworkObject("Source", "10.1.2.3/32", "10.1.2.3/32"))],
-                [TrivialityTestHelper.CreateProtocolService("Https", 6, 443, 443, 0, 0)],
+                [TrivialityTestHelper.CreateProtocolService("Https", 6, 0, 0, 443, 443)],
                 id: 1002);
 
             RuleBidirectionalDuplicateIndex duplicateIndex = new([rule, reverseRule]);

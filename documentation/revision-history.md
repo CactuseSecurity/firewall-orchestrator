@@ -1,5 +1,8 @@
 # Firewall Orchestrator Revision History
 
+## 9.7.1 - 09.10.2026
+- bump product version to 9.7.1
+
 ## 9.7.0 - 08.10.2026
 - security (GHSA-f5f6-w5vg-mxp9): make TLS certificate checking of outbound connections to external systems
   configurable with one switch per connection type, validated against the host trust store:
@@ -128,7 +131,7 @@
     visible devices and managements (with rule.dev_id set as in older data), negated sources and destinations,
     rules enforced on one or several gateways, rules for all gateways, nat rules, rules installed on unknown
     targets, moved rules and rulebases, historic rule versions, full management visibility and the admin tenant;
-    a second one runs the 9.7.0 upgrade twice and checks the certificate switches and the migrated gateway links
+    a second one runs the 9.7.1 upgrade twice and checks the certificate switches and the migrated gateway links
 - security (GHSA-p8qh-59qx-rjj4): the Cisco ASA importer no longer imports access-list entries it does not fully
   understand with a broader meaning
   - so far an address it did not understand (e.g. "interface inside", a source port, any6) became "any", unknown

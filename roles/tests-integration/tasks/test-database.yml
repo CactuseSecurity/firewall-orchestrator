@@ -18,13 +18,13 @@
   become_user: postgres
 
 # the upgrade file is run twice within the test transaction (at its run-upgrade markers), which is always rolled back
-- name: test the data changes of the 9.7.0 database upgrade
+- name: test the data changes of the 9.7.1 database upgrade
   command: psql -X -q -v ON_ERROR_STOP=1 -d "{{ fworch_db_name }}"
   args:
     stdin: >-
-      {{ lookup('file', 'database/test-upgrade-9.7.0.sql')
-         | replace('-- @run-upgrade-9.7.0', lookup('file', role_path + '/../database/files/upgrade/9.7.0.sql')) }}
-  register: test_upgrade_9_7_0
+      {{ lookup('file', 'database/test-upgrade-9.7.1.sql')
+         | replace('-- @run-upgrade-9.7.1', lookup('file', role_path + '/../database/files/upgrade/9.7.1.sql')) }}
+  register: test_upgrade_9_7_1
   changed_when: false
   become: true
   become_user: postgres

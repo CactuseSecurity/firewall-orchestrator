@@ -1,4 +1,4 @@
--- Test of the data changes of upgrade/9.7.0.sql: the seeding of the certificate check switches for email servers and
+-- Test of the data changes of upgrade/9.7.1.sql: the seeding of the certificate check switches for email servers and
 -- external ticket systems, and the dating back of the rulebase links and gateway entries of the 9.0 migration (rule
 -- versions removed before the upgrade to v9 stay visible to the tenants of their gateways).
 -- The test task inserts the upgrade file at the two run-upgrade markers below. It runs twice: first with email
@@ -22,7 +22,7 @@ $$ LANGUAGE sql STABLE;
 CREATE FUNCTION pg_temp.expect(p_case text, p_actual text, p_expected text) RETURNS void AS $$
 BEGIN
     IF p_actual IS DISTINCT FROM p_expected THEN
-        RAISE EXCEPTION 'upgrade 9.7.0: % - expected %, got %', p_case, p_expected, p_actual;
+        RAISE EXCEPTION 'upgrade 9.7.1: % - expected %, got %', p_case, p_expected, p_actual;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -271,7 +271,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- @run-upgrade-9.7.0
+-- @run-upgrade-9.7.1
 
 SELECT pg_temp.expect('email certificates with a TLS server configured', pg_temp.config_value('emailCheckCertificates'), 'False');
 SELECT pg_temp.expect('ticket system certificates with a URL configured', pg_temp.config_value('extTicketSystemsCheckCertificates'), 'False');
@@ -297,7 +297,7 @@ DELETE FROM config WHERE config_key IN ('emailCheckCertificates', 'extTicketSyst
 SELECT pg_temp.set_config_value('emailServerAddress', '');
 SELECT pg_temp.set_config_value('extTicketSystems', '[{"Id":1,"TypeId":2,"Name":"probe","Url":""}]');
 
--- @run-upgrade-9.7.0
+-- @run-upgrade-9.7.1
 
 SELECT pg_temp.expect('email certificates without a server', pg_temp.config_value('emailCheckCertificates'), 'True');
 SELECT pg_temp.expect('ticket system certificates without a URL', pg_temp.config_value('extTicketSystemsCheckCertificates'), 'True');

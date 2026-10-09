@@ -63,7 +63,7 @@
                 <RequestTaskMetadataEditor @ref="metadataEditor" WfHandler="WfHandler"
                     AvailableTaskTypes="availableTaskTypes" Managements="managements"
                     TaskType="actTaskType" CanEditField="CanEditReqTaskField" TaskTypeChanged="OnMetadataTaskTypeChanged"
-                    TargetDatesValidChanged="SetTargetDatesValid" />
+                    TargetDatesValidChanged="SetTargetDatesValid" ManagementChanged="OnMetadataManagementChanged" />
                 @if(actTaskType == WfTaskType.generic)
                 {
                     <div class="form-group row mt-2">
@@ -131,7 +131,8 @@
 
                 <RequestTaskElementEditor @ref="elementEditor" WfHandler="WfHandler" TaskType="actTaskType"
                     CanEditField="CanEditReqTaskField" DisplayIpProtos="displayIpProtos"
-                    SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice" />
+                    SelectableIpProtos="selectableIpProtos" RuleDevice="actRuleDevice"
+                    ManagementId="@(actManagement?.Id ?? WfHandler.ActReqTask.ManagementId)" />
 
                 <hr />
                 @if(!WfHandler.EditReqTaskMode)
@@ -374,6 +375,11 @@
         actTaskType = taskType;
     }
 
+    private void OnMetadataManagementChanged(Management? management)
+    {
+        actManagement = management;
+    }
+
     private WfTaskType GetDefaultTaskType()
     {
         return availableTaskTypes.LastOrDefault(taskType => taskType != WfTaskType.master, WfTaskType.access);
@@ -610,36 +616,12 @@
         WfHandler.ActReqTask.RuleAction = actRuleAction?.Id;
         WfHandler.ActReqTask.Tracking = actTracking?.Id;
         WfHandler.ActReqTask.ManagementId = actManagement != null && actManagement.Id >= 0 ? actManagement.Id : null;
-        WfHandler.ActReqTask.RemovedOwners = new();
-        WfHandler.ActReqTask.NewOwners = new();
-        if(actOwner != oldOwner)
-        {
-            if(oldOwner != null)
-            {
-                WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
-            }
-            if(actOwner != null)
-            {
-                WfHandler.ActReqTask.NewOwners.Add(actOwner);
-            }
-        }
+        ApplyOwnerChanges();
         if (WfHandler.ActReqTask.Sanitize())
         {
             DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText("U0001"), true);
         }
-        if(actTaskType == WfTaskType.rule_delete)
-        {
-            WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
-        }
-        else if(actTaskType == WfTaskType.group_create)
-        {
-            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
-        }
-
-        if (actTaskType == WfTaskType.new_interface)
-        {
-            WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, actRequestingOwner?.Id.ToString() ?? "");
-        }
+        ApplyTaskTypeSpecificValues();
 
         elementEditor?.ApplyChanges(actRuleDevice);
         if (!await CheckTaskValues())
@@ -656,6 +638,52 @@
             WfHandler.ActReqTask.Owners.Add(new() { Owner = actOwner });
         }
         return true;
+    }
+
+    /// <summary>
+    /// Records which owners are removed from and added to the task by this save.
+    /// </summary>
+    private void ApplyOwnerChanges()
+    {
+        WfHandler.ActReqTask.RemovedOwners = [];
+        WfHandler.ActReqTask.NewOwners = [];
+        if (actOwner == oldOwner)
+        {
+            return;
+        }
+        if (oldOwner != null)
+        {
+            WfHandler.ActReqTask.RemovedOwners.Add(oldOwner);
+        }
+        if (actOwner != null)
+        {
+            WfHandler.ActReqTask.NewOwners.Add(actOwner);
+        }
+    }
+
+    /// <summary>
+    /// Sets the values only some task types carry.
+    /// </summary>
+    private void ApplyTaskTypeSpecificValues()
+    {
+        switch (actTaskType)
+        {
+            case WfTaskType.rule_delete:
+                WfHandler.ActReqTask.RequestAction = RequestAction.delete.ToString();
+                break;
+            case WfTaskType.group_create:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.GrpName, actGrpName ?? "");
+                break;
+            case WfTaskType.object_create:
+                WfHandler.ActReqTask.RequestAction = RequestAction.create.ToString();
+                break;
+            case WfTaskType.object_modify:
+                WfHandler.ActReqTask.RequestAction = RequestAction.modify.ToString();
+                break;
+            case WfTaskType.new_interface:
+                WfHandler.ActReqTask.SetAddInfo(AdditionalInfoKeys.ReqOwner, actRequestingOwner?.Id.ToString() ?? "");
+                break;
+        }
     }
 
     private bool RejectInvalidTaskFormat()
@@ -766,6 +794,26 @@
         return true;
     }
     
+    private bool RejectInvalidObjectTask()
+    {
+        string? error;
+        if (!WfHandler.EditReqTaskMode)
+        {
+            error = WfObjectTaskHelper.HasValidElementStructure(WfHandler.ActReqTask) ? null : "E5124";
+        }
+        else
+        {
+            error = elementEditor == null ? "E5124" : elementEditor.ApplyObjectTask();
+        }
+        if (error != null)
+        {
+            DisplayMessageInUi(null, userConfig.GetText("save_task"), userConfig.GetText(error), true);
+            return false;
+        }
+
+        return true;
+    }
+
     private async Task<bool> CheckTaskValues()
     {
         if (!RejectInvalidTaskFormat())
@@ -777,6 +825,7 @@
             case WfTaskType.access when !RejectInvalidAccessTask():
             case WfTaskType.rule_delete when !(await RejectInvalidRuleDeleteTask()):
             case WfTaskType.group_create when !RejectInvalidGroupCreateTask():
+            case WfTaskType.object_create or WfTaskType.object_modify when !RejectInvalidObjectTask():
                 return false;
             default:
                 return true;
